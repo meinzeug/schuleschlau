@@ -1795,7 +1795,13 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
         .where((page) => page['confirmed'] != true)
         .toList();
     final savedCount = pages.length - freshPages.length;
-    final hasPhotos = freshPages.isNotEmpty || pendingPhotos.isNotEmpty;
+    final newCount = freshPages.length + pendingPhotos.length;
+    final hasPhotos = newCount > 0;
+    final maxPages = day!['max_pages'] as int;
+    final remaining = (maxPages - pages.length - pendingPhotos.length).clamp(
+      0,
+      maxPages,
+    );
     final canAdd =
         allowUploads &&
         pages.length + pendingPhotos.length < (day!['max_pages'] as int);
@@ -1840,16 +1846,23 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
               ),
               SizedBox(height: 10),
               Text(
-                'Eine Seite pro Foto. Im nächsten Schritt kannst du Namen abschneiden und das Foto drehen.',
+                'Eine Seite pro Foto. Du kannst Namen abschneiden und dein Foto drehen.',
                 style: TextStyle(color: context.palette.muted),
               ),
-              SizedBox(height: 12),
-              Text(
-                '$savedCount bestätigt · ${freshPages.length + pendingPhotos.length} neu · ${((day!['max_pages'] as int) - pages.length - pendingPhotos.length).clamp(0, 24)} noch möglich',
-              ),
-              if (!canAdd)
+              if (hasPhotos) ...[
+                SizedBox(height: 8),
+                Text('Danach kannst du den Text und unklare Stellen ansehen.'),
+              ],
+              if (allowUploads &&
+                  (hasPhotos || (savedCount > 0 && remaining <= 3))) ...[
+                SizedBox(height: 12),
+                Text(
+                  '$newCount neue ${newCount == 1 ? 'Seite' : 'Seiten'} · $remaining Plätze frei',
+                ),
+              ],
+              if (allowUploads && !canAdd)
                 Notice(
-                  'Alle 24 Plätze für heute sind belegt. Du kannst die vorgemerkten Fotos noch abgeben. Deine Seiten bleiben gespeichert.',
+                  'Alle $maxPages Plätze für heute sind belegt. Du kannst die vorgemerkten Fotos noch abgeben. Deine Seiten bleiben gespeichert.',
                 ),
               if (hasPhotos) ...[
                 const SizedBox(height: 12),
@@ -1975,7 +1988,7 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
         if (hasPhotos) ...[
           SizedBox(height: 16),
           Text(
-            '${freshPages.length + pendingPhotos.length} neue ${freshPages.length + pendingPhotos.length == 1 ? 'Seite' : 'Seiten'} gesammelt',
+            'Deine neuen Fotos',
             style: TextStyle(fontWeight: FontWeight.w700),
           ),
           SizedBox(height: 10),

@@ -388,10 +388,7 @@ void main() {
         MaterialApp.router(theme: appTheme(), routerConfig: router),
       );
       await tester.pumpAndSettle();
-      expect(
-        find.text('21 bestätigt · 3 neu · 0 noch möglich'),
-        findsOneWidget,
-      );
+      expect(find.text('3 neue Seiten · 0 Plätze frei'), findsOneWidget);
       final preview = find.text('Vorgemerktes Foto 1 ansehen');
       await tester.ensureVisible(preview);
       await tester.tap(preview);
