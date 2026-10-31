@@ -22,10 +22,10 @@ RESTORE_MAX_AGE = 14 * 86400
 RESTORE_TABLES = ("families", "children", "materials", "learning_units", "attempts", "unit_coaching")
 
 
-def disk_space_low(disk):
+def disk_space_low(disk, minimum_free=1024**3):
     """Compare used space to usable space, including reserved blocks correctly."""
     usable = disk.used + disk.free
-    return disk.free < 1024**3 or usable <= 0 or disk.used / usable > 0.9
+    return disk.free < minimum_free or usable <= 0 or disk.used / usable > 0.9
 
 
 def backup_journal_available(backup):
@@ -191,11 +191,15 @@ def main():
             failures.append("erasure_journal_pending")
     except Exception:
         failures.append("database_metrics")
-    backups = list(Path("/var/backups/schulpilot").glob("*.tar.enc"))
-    if not backups or time.time() - max(p.stat().st_mtime for p in backups) > 30 * 3600:
-        failures.append("backup_stale")
-    if backups and not backup_journal_available(max(backups, key=lambda p: p.name)):
-        failures.append("backup_journal_unavailable")
+    try:
+        backups = list(Path("/var/backups/schulpilot").glob("*.tar.enc"))
+        if not backups or time.time() - max(p.stat().st_mtime for p in backups) > 30 * 3600:
+            failures.append("backup_stale")
+        if backups and not backup_journal_available(max(backups, key=lambda p: p.name)):
+            failures.append("backup_journal_unavailable")
+    except OSError:
+        backups = []
+        failures.append("backup_unavailable")
     restore = Path("/var/backups/schulpilot-monitor/restore-check.json")
     if Path("/etc/schulpilot/offsite-enabled").exists():
         marker = Path("/var/backups/schulpilot-monitor/offsite-last-success.json")
@@ -213,9 +217,19 @@ def main():
     )
     if restore_failure:
         failures.append(restore_failure)
-    disk = shutil.disk_usage("/var/lib/schulpilot")
-    if disk_space_low(disk):
-        failures.append("disk_space")
+    try:
+        if disk_space_low(shutil.disk_usage("/var/lib/schulpilot")):
+            failures.append("disk_space")
+    except OSError:
+        failures.append("disk_space_unavailable")
+    try:
+        # Leave room for two copies of the largest observed archive, plus
+        # 1 GiB of headroom. Archive sizes are not a growth guarantee.
+        largest = max((backup.stat().st_size for backup in backups), default=0)
+        if disk_space_low(shutil.disk_usage("/var/backups/schulpilot"), 1024**3 + 2 * largest):
+            failures.append("backup_disk_space")
+    except OSError:
+        failures.append("backup_disk_space_unavailable")
     path = Path("/var/backups/schulpilot-monitor/state.json")
     try:
         previous = json.loads(path.read_text())

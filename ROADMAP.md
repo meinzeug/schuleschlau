@@ -91,6 +91,13 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
 
 - [ ] **P0 – Speicherplatz prüfen und rechtzeitig absichern**
 
+  **31.10.2026, lokal ergänzt:** Die Systemplatte und das neue Backup-Volume
+  werden getrennt betrachtet; der unabhängige Wächter prüft zusätzlich sein
+  Offsite-Dateisystem. Stichtagsmessung, Reserven und ihre Grenzen stehen in
+  `docs/STORAGE_AND_ALERTS.md`. Künstliche Grenzwert- und Alarmtests bestehen.
+  Produktive Übernahme auf beiden Hosts, tatsächlicher Spitzenbedarf und
+  längerfristiger Wachstumstrend bleiben noch nachzuweisen.
+
   Bei der lesenden Prüfung am 31.10.2026 zeigte das Serverdateisystem rund 92 % Belegung und etwa 3,1 GiB frei. Wachstum von Datenbank, privaten Uploads, Backups und eigenen Releases getrennt messen; den Platzbedarf für Backup, Build, Upload und Wiederherstellung berücksichtigen. Nur eindeutig entbehrliche eigene Artefakte unter Einhaltung aller Aufbewahrungsregeln bereinigen oder Speicherkapazität erweitern; keine fremden Dienste oder Daten verändern. Warn- und Eskalationsschwellen auf den tatsächlich verfügbaren Platz und den Wachstumstrend abstimmen.
 
   **Abnahme:** Freier Platz, erwarteter Spitzenbedarf, Zuständigkeit und Alarmweg sind dokumentiert; ein kontrollierter Test zeigt eine rechtzeitige Warnung. Eine Stichtagsmessung wird nicht als dauerhafte Kapazitätsgarantie ausgegeben.
@@ -354,6 +361,13 @@ Die folgenden Punkte beschreiben ausstehende, wiederholbare Betriebs- und Freiga
 
   **Abnahme:** Datenintegrität, Löschabgleich, zulässige Backup-Aufbewahrung von höchstens 14 Tagen, getrennte Geheimnisse und eine dokumentierte Entscheidung zur möglichen Journallücke nachgewiesen sind; keine automatische produktive Rücksicherung.
 - [ ] **P0 – Überwachung und Störungsablauf prüfen**
+
+  **31.10.2026, lokal ergänzt:** Beschädigte und zukünftige Offsite-Marker
+  führen im unabhängigen Wächter zu einem neutralen Fehler statt zu einem
+  Programmabbruch. Getrennte Speicheralarme und simulierte Benachrichtigungen
+  werden künstlich geprüft; der Ablauf ist in `docs/STORAGE_AND_ALERTS.md`
+  dokumentiert. Die Auslieferung der Änderungen und eine unabhängige Prüfung
+  des laufenden Alarmsystems stehen noch aus.
 
   Bestehende Checks für API, Worker, festhängende Jobs, Lösch-Outbox, Backups, Speicher, öffentliche Erreichbarkeit und Offsite-Frische sowie zuständige Alarmwege kontrollieren.
 

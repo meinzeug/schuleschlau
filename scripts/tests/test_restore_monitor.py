@@ -54,6 +54,42 @@ class RestoreMonitorTest(unittest.TestCase):
         self.assertFalse(monitor.disk_space_low(SimpleNamespace(total=100 * unit, used=90 * unit, free=10 * unit)))
         self.assertTrue(monitor.disk_space_low(SimpleNamespace(total=10 * unit, used=8 * unit, free=unit - 1)))
         self.assertTrue(monitor.disk_space_low(SimpleNamespace(total=0, used=0, free=0)))
+        self.assertTrue(monitor.disk_space_low(SimpleNamespace(total=100 * unit, used=70 * unit, free=30 * unit),
+                                               minimum_free=31 * unit))
+
+    def test_backup_volume_low_is_a_distinct_neutral_alarm(self):
+        monitor_dir = self.root / "var/backups/schulpilot-monitor"
+        monitor_dir.mkdir(parents=True)
+        (monitor_dir / "restore-check.json").write_text(json.dumps(valid_report()))
+        backup_dir = self.root / "var/backups/schulpilot"
+        backup_dir.mkdir(parents=True)
+        backup = backup_dir / "20270101T030000Z.tar.enc"
+        backup.write_bytes(b'x' * 100)
+        backup.with_name(backup.name + '.journal.json').write_text(json.dumps({'backup': backup.name, 'journal': 'present'}))
+        response = unittest.mock.MagicMock()
+        response.__enter__.return_value.status = 200
+
+        def fake_run(args, **kwargs):
+            if args[0] == 'runuser':
+                return SimpleNamespace(stdout=json.dumps({'worker_age_seconds': 0, 'stalled_queued': 0,
+                    'stalled_running': 0, 'pending_erasure_journal': 0}), returncode=0)
+            return SimpleNamespace(returncode=1 if args[1] == 'is-failed' else 0)
+
+        def disk(path):
+            if str(path) == '/var/backups/schulpilot':
+                return SimpleNamespace(total=1000, used=1, free=1024**3)
+            return SimpleNamespace(total=200 * 1024**3, used=50 * 1024**3, free=150 * 1024**3)
+
+        output = io.StringIO()
+        with patch.object(monitor, 'Path', side_effect=lambda p: self.root / str(p).lstrip('/')), \
+             patch.object(monitor, 'environment', return_value={}), \
+             patch.object(monitor.subprocess, 'run', side_effect=fake_run), \
+             patch.object(monitor.urllib.request, 'urlopen', return_value=response), \
+             patch.object(monitor.shutil, 'disk_usage', side_effect=disk), \
+             patch.object(monitor.time, 'time', return_value=NOW), \
+             patch('sys.argv', ['monitor.py', '--dry-run']), contextlib.redirect_stdout(output):
+            self.assertTrue(monitor.main())
+        self.assertIn('backup_disk_space', json.loads(output.getvalue())['failures'])
 
     def test_fresh_report_and_staleness_boundary(self):
         report = valid_report()
