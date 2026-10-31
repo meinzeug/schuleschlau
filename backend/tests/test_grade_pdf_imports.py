@@ -347,10 +347,17 @@ def test_stale_preview_different_file_same_key_and_deleted_grade_protected(api, 
     assert confirm(api, child, preview).status_code == 200
     repeated = upload(api, child).json()
     grade_id = repeated["items"][0]["grade_id"]
-    assert api.delete(f"/api/children/{child['id']}/grades/{grade_id}").status_code == 200
+    path = f"/api/children/{child['id']}/grades/{grade_id}"
+    assert api.delete(path).status_code == 409
+    review = api.get(path + '/erasure-review').json()
+    assert api.post(path + '/erasure-review', json={
+        'revision': review['grade_revision'], 'context_revision': review['context_revision'],
+        'choices': [{'import_id': item['import_id'], 'entry_index': item['entry_index'], 'related': True}
+                    for item in review['candidates']],
+    }).status_code == 200
     assert confirm(api, child, repeated).status_code == 409
     fresh = api.get(f"/api/children/{child['id']}/grade-imports/{repeated['id']}").json()
-    assert fresh["counts"]["ignored"] == 1
+    assert fresh["counts"]["ignored"] == 0
     assert confirm(api, child, fresh).status_code == 200
     with DB() as db:
         assert db.scalar(select(func.count()).select_from(SchoolGrade)) == 2
@@ -434,8 +441,6 @@ def test_explicit_school_year_boundary(today, expected):
     assert school_year(today) == expected
 
 
-@pytest.mark.xfail(strict=True, raises=AssertionError,
-                   reason="Deleting an imported grade currently leaves its value in import copies and source slot")
 def test_deleted_imported_grade_does_not_survive_in_import_or_source_slot(api, household):
     """Synthetic PDF values must not survive deletion in auxiliary storage."""
     _, child = household
@@ -452,3 +457,183 @@ def test_deleted_imported_grade_does_not_survive_in_import_or_source_slot(api, h
         batches = list(db.scalars(select(GradeImport).where(GradeImport.child_id == child['id'])))
         assert all(slot.last_value != '4' for slot in slots)
         assert all(entry.get('value') != '4' for batch in batches for entry in batch.entries)
+
+
+def test_grade_source_plan_uses_only_explicit_confirmed_positions(api, household):
+    from schulpilot.grade_erasure import plan_grade_sources
+
+    _, child = household
+    year = today_year(child['id'])
+    raw = pdf(year, [('Mathematik', 1, 'other', 1, '4'), ('Biologie', 1, 'other', 1, '4')])
+    preview = upload(api, child, raw=raw).json()
+    assert confirm(api, child, preview).status_code == 200
+    with DB.begin() as db:
+        grade = db.scalar(select(SchoolGrade).where(SchoolGrade.child_id == child['id'],
+                                                     SchoolGrade.subject == 'Mathematik'))
+        plan = plan_grade_sources(db, child['id'], grade.id)
+        assert plan['entries'] == [{'import_id': preview['id'], 'entry_index': 0}]
+        assert len(plan['slots']) == 1
+        assert set(plan['entries'][0]) == {'import_id', 'entry_index'}
+
+
+def test_grade_source_plan_fails_closed_for_matching_unconfirmed_import(api, household):
+    from schulpilot.grade_erasure import UnresolvedGradeSources, plan_grade_sources
+
+    _, child = household
+    year = today_year(child['id'])
+    raw = pdf(year, [('Mathematik', 1, 'other', 1, '4')])
+    first = upload(api, child, raw=raw).json()
+    assert confirm(api, child, first).status_code == 200
+    second = upload(api, child, raw=raw).json()  # A different, unconfirmed document snapshot.
+    assert second['id'] != first['id']
+    with DB.begin() as db:
+        grade = db.scalar(select(SchoolGrade).where(SchoolGrade.child_id == child['id']))
+        with pytest.raises(UnresolvedGradeSources):
+            plan_grade_sources(db, child['id'], grade.id)
+        assert db.get(GradeImport, second['id']).entries[0]['value'] == '4'
+
+
+def test_exact_redaction_preserves_other_equal_grade_and_entry_indices(api, household):
+    from schulpilot.grade_erasure import plan_grade_sources, redact_grade_sources
+
+    _, child = household
+    year = today_year(child['id'])
+    raw = pdf(year, [('Mathematik', 1, 'other', 1, '4'), ('Biologie', 1, 'other', 1, '4')])
+    preview = upload(api, child, raw=raw).json()
+    assert confirm(api, child, preview).status_code == 200
+    with DB.begin() as db:
+        grade = db.scalar(select(SchoolGrade).where(SchoolGrade.child_id == child['id'],
+                                                     SchoolGrade.subject == 'Mathematik'))
+        plan = plan_grade_sources(db, child['id'], grade.id)
+        redact_grade_sources(db, plan)
+        redact_grade_sources(db, plan)  # Replaying the same proof is idempotent.
+    response = api.get(f"/api/children/{child['id']}/grade-imports/{preview['id']}")
+    assert response.status_code == 200, response.text
+    assert [(row['subject'], row['value'], row['entry_index']) for row in response.json()['items']] == [
+        ('Biologie', '4', 1)
+    ]
+    with DB() as db:
+        entries = db.get(GradeImport, preview['id']).entries
+        assert entries[0] == {'redacted': True}
+        assert entries[1]['value'] == '4' and entries[1]['subject'] == 'Biologie'
+
+
+def test_exact_redaction_refuses_foreign_child_source_even_when_missing_allowed(api, household):
+    from schulpilot.grade_erasure import UnresolvedGradeSources, redact_grade_sources
+
+    _, child = household
+    preview = upload(api, child).json()
+    with DB.begin() as db:
+        with pytest.raises(UnresolvedGradeSources):
+            redact_grade_sources(db, {'child_id': 'a' * 32, 'grade_id': 'b' * 32,
+                                      'slots': [], 'entries': [{'import_id': preview['id'], 'entry_index': 0}]},
+                                 allow_missing=True)
+        assert db.get(GradeImport, preview['id']).entries == [
+            {key: row[key] for key in ('subject', 'semester', 'kind', 'slot', 'value')}
+            for row in preview['items']
+        ]
+
+
+def test_grade_deletion_with_ambiguous_legacy_position_is_refused_without_data_loss(api, household):
+    from sqlalchemy import delete
+
+    _, child = household
+    year = today_year(child['id'])
+    raw = pdf(year, [('Mathematik', 1, 'other', 1, '4')])
+    preview = upload(api, child, raw=raw).json()
+    assert confirm(api, child, preview).status_code == 200
+    with DB.begin() as db:
+        grade = db.scalar(select(SchoolGrade).where(SchoolGrade.child_id == child['id']))
+        grade_id = grade.id
+        db.execute(delete(GradeImportGradeLink).where(GradeImportGradeLink.import_id == preview['id']))
+    response = api.delete(f"/api/children/{child['id']}/grades/{grade_id}")
+    assert response.status_code == 409
+    with DB() as db:
+        assert db.get(SchoolGrade, grade_id) is not None
+        assert db.get(GradeImport, preview['id']).entries[0]['value'] == '4'
+
+
+def test_pdf_preview_is_rejected_if_grade_deleted_during_extraction(api, household, monkeypatch):
+    from schulpilot import grade_imports
+
+    _, child = household
+    existing = api.post(f"/api/children/{child['id']}/grades", json={
+        'subject': 'Mathematik', 'topic': '', 'kind': 'test', 'scale': 'grade_1_6',
+        'value': 4, 'weight': 1, 'assessed_on': '2025-01-01', 'note': '',
+    })
+    assert existing.status_code == 201
+    original = grade_imports.isolated_extract
+
+    def read(raw):
+        parsed = original(raw)
+        assert api.delete(f"/api/children/{child['id']}/grades/{existing.json()['id']}").status_code == 200
+        return parsed
+
+    monkeypatch.setattr(grade_imports, 'isolated_extract', read)
+    response = upload(api, child)
+    assert response.status_code == 409
+    with DB() as db:
+        assert db.scalar(select(func.count()).select_from(GradeImport)) == 0
+
+
+def test_reviewed_legacy_sources_delete_only_explicitly_related_position(api, household, tmp_path, monkeypatch):
+    from dataclasses import replace
+
+    from schulpilot import erasure
+    from schulpilot.config import settings
+    from sqlalchemy import delete
+
+    monkeypatch.setattr(erasure, 'settings', replace(settings, data_dir=tmp_path))
+    _, child = household
+    year = today_year(child['id'])
+    raw = pdf(year, [('Mathematik', 1, 'other', 1, '4')])
+    first = upload(api, child, raw=raw).json()
+    assert confirm(api, child, first).status_code == 200
+    second = upload(api, child, raw=raw).json()
+    with DB.begin() as db:
+        grade = db.scalar(select(SchoolGrade).where(SchoolGrade.child_id == child['id']))
+        grade_id = grade.id
+        db.execute(delete(GradeImportGradeLink).where(GradeImportGradeLink.import_id == first['id']))
+    path = f"/api/children/{child['id']}/grades/{grade_id}"
+    assert api.delete(path).status_code == 409
+    preview = api.get(path + '/erasure-review')
+    assert preview.status_code == 200, preview.text
+    review = preview.json()
+    assert {row['import_id'] for row in review['candidates']} == {first['id'], second['id']}
+    body = {'revision': review['grade_revision'], 'context_revision': review['context_revision'],
+            'choices': [{'import_id': item['import_id'], 'entry_index': item['entry_index'],
+                         'related': item['import_id'] == first['id']} for item in review['candidates']]}
+    bad = api.post(path + '/erasure-review', json={**body, 'choices': body['choices'][:1]})
+    assert bad.status_code == 422
+    result = api.post(path + '/erasure-review', json=body)
+    assert result.status_code == 200, result.text
+    with DB() as db:
+        assert db.get(SchoolGrade, grade_id) is None
+        assert db.get(GradeImport, first['id']).entries == [{'redacted': True}]
+        assert db.get(GradeImport, second['id']).entries[0]['value'] == '4'
+    records = [erasure.verify(line, settings.master_key)
+               for line in (tmp_path/'erasure-ledger.jsonl').read_text().splitlines()]
+    details = next(row['details'] for row in records if row.get('resource_kind') == 'grade')
+    assert details['excluded'] == [{'import_id': second['id'], 'entry_index': 0}]
+
+
+def test_legacy_grade_review_rejects_stale_context(api, household):
+    from sqlalchemy import delete
+
+    _, child = household
+    preview = upload(api, child).json()
+    assert confirm(api, child, preview).status_code == 200
+    with DB.begin() as db:
+        grade = db.scalar(select(SchoolGrade).where(SchoolGrade.child_id == child['id']).order_by(SchoolGrade.id))
+        grade_id = grade.id
+        db.execute(delete(GradeImportGradeLink).where(GradeImportGradeLink.grade_id == grade_id))
+    path = f"/api/children/{child['id']}/grades/{grade_id}"
+    review = api.get(path + '/erasure-review').json()
+    body = {'revision': review['grade_revision'], 'context_revision': review['context_revision'],
+            'choices': [{'import_id': item['import_id'], 'entry_index': item['entry_index'], 'related': True}
+                        for item in review['candidates']]}
+    with DB.begin() as db:
+        db.get(SchoolGrade, grade_id).revision += 1
+    assert api.post(path + '/erasure-review', json=body).status_code == 409
+    with DB() as db:
+        assert db.get(SchoolGrade, grade_id) is not None

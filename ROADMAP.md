@@ -97,6 +97,17 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
 
 - [ ] **P0 – Notenlöschung einschließlich Importen und Restore absichern**
 
+  **31.10.2026, lokale Umsetzung:** Neue Löschungen und der Aufbewahrungslauf
+  verwenden versionierte Journalbelege; bestätigte PDF-Positionen werden
+  gezielt redigiert. Für alte, nicht sicher zuordenbare Positionen verlangt
+  die Elternansicht eine ausdrückliche Entscheidung. Wiederherstellungen mit
+  älteren Snapshots, Importkopien und offenen Outbox-Einträgen sind synthetisch
+  geprüft. Der genaue Vertrag und seine Grenzen stehen in
+  `docs/GRADE_ERASURE.md`. Die Produktivfreigabe, die Behandlung historischer
+  Löschungen ohne Journalbeleg und ein tatsächlicher isolierter Restore auf
+  dem Zielserver bleiben gesondert nachzuweisen; dieser Punkt ist daher noch
+  nicht abgehakt.
+
   Bei der lokalen Codeprüfung am 31.10.2026 fiel eine konkrete Lücke auf:
   `grades.delete_grade` löscht die einzelne `SchoolGrade` und auditiert den
   Vorgang, erstellt aber keinen Eintrag für das externe Löschjournal. Die
@@ -124,7 +135,7 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
   privaten Inhalte enthalten; ältere Restore-Leser müssen unbekannte Formate
   sicher ablehnen und Rollback und Wiederherstellung müssen vorab geprüft sein.
 
-  **Technischer Entwurf – noch nicht implementiert:**
+  **Ursprünglicher technischer Entwurf und weiterhin offene Abnahme:**
 
   1. Künftige Import-Einträge erhalten versionierte, stabile, opake IDs. Für
      ausdrücklich bestätigtes `add`, `link` und `update` werden Kind, Noten-ID,

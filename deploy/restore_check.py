@@ -61,10 +61,31 @@ def cleanup_images(directory, retained, paths):
     return erased_images, orphans
 
 
-def current_journal(path):
+def current_journal(path, check_pending=None):
     """Read the current journal; absence is not evidence of no deletions."""
     with locked_journal(path) as source:
-        return source.read().decode("utf-8")
+        contents = source.read().decode("utf-8")
+        if check_pending is not None and check_pending():
+            raise RuntimeError("Unpublished erasure outbox records")
+        return contents
+
+
+def live_outbox_pending(config):
+    """Read live outbox under the journal lock, without exposing its records."""
+    code = """from sqlalchemy import select
+from schulpilot.db import DB, ErasureRequest
+with DB() as db:
+ print('pending' if db.scalar(select(ErasureRequest.id).where(ErasureRequest.published.is_(False)).limit(1)) else 'clean')
+"""
+    result = command(
+        ['runuser', '-u', 'schulpilot', '--', '/opt/schulpilot/current/venv/bin/python', '-c', code],
+        cwd='/opt/schulpilot/current/backend',
+        env={**config, 'PATH': '/usr/sbin:/usr/bin:/sbin:/bin'},
+    )
+    state = result.stdout.decode().strip()
+    if state not in ('clean', 'pending'):
+        raise RuntimeError('Unknown erasure outbox status')
+    return state == 'pending'
 
 
 def main():
@@ -116,7 +137,8 @@ def restore():
                 )
             # An absent journal may mean lost deletion records. A missing file
             # must not be silently treated as a verified, empty journal.
-            contents = current_journal(Path("/var/lib/schulpilot/erasure-ledger.jsonl"))
+            contents = current_journal(Path("/var/lib/schulpilot/erasure-ledger.jsonl"),
+                                       lambda: live_outbox_pending(config))
             config["DATABASE_URL"] = "postgresql+psycopg://schulpilot@/" + name + "?host=/var/run/postgresql"
             code = """import json,sys
 from sqlalchemy import select,func,text,update

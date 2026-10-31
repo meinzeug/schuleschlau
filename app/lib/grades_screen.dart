@@ -532,6 +532,127 @@ class _GradesScreenState extends State<GradesScreen> {
       ),
     );
     if (accepted == true && current && child == widget.childId) {
+      Json? review;
+      setState(() => saving = true);
+      try {
+        review = await widget.state.api.get(
+          '/children/$child/grades/${grade['id']}/erasure-review',
+        );
+      } on ApiError catch (e) {
+        if (current && child == widget.childId) {
+          setState(
+            () => error = e.status == 404
+                ? ApiError(
+                    'Sicheres Löschen ist auf diesem Server noch nicht verfügbar.',
+                    409,
+                  )
+                : e,
+          );
+        }
+        return;
+      } catch (e) {
+        if (current && child == widget.childId) setState(() => error = e);
+        return;
+      } finally {
+        if (current && child == widget.childId) setState(() => saving = false);
+      }
+      if (!current || child != widget.childId) return;
+      final candidates = (review['candidates'] as List? ?? const [])
+          .map((value) => Map<String, dynamic>.from(value as Map))
+          .toList();
+      if (candidates.isNotEmpty) {
+        final decisions = List<bool?>.filled(candidates.length, null);
+        final approved = await showGradeDialog<bool>(
+          (context) => StatefulBuilder(
+            builder: (context, updateDialog) => AlertDialog(
+              scrollable: true,
+              title: const Text('Importquellen prüfen'),
+              content: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Gehört die jeweilige PDF-Position zu dieser Note? Nur bestätigte Positionen werden mit entfernt. Andere bleiben erhalten.',
+                  ),
+                  for (var i = 0; i < candidates.length; i++) ...[
+                    const SizedBox(height: 16),
+                    Text(
+                      '${(candidates[i]['entry'] as Map)['subject']} · Note ${(candidates[i]['entry'] as Map)['value']} · ${(candidates[i]['entry'] as Map)['semester']}. Halbjahr ${candidates[i]['school_year_start']}/${(candidates[i]['school_year_start'] as num) + 1}',
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                    Text(
+                      'PDF-Position ${(candidates[i]['entry_index'] as num) + 1}'
+                      '${(candidates[i]['entry'] as Map)['slot'] == null ? '' : ' · Rasterplatz ${(candidates[i]['entry'] as Map)['slot']}'}'
+                      '${candidates[i]['import_created'] is num ? ' · Import ${DateFormat.yMd('de').format(DateTime.fromMillisecondsSinceEpoch((candidates[i]['import_created'] as num).toInt() * 1000).toLocal())}' : ''}',
+                    ),
+                    Wrap(
+                      spacing: 8,
+                      children: [
+                        ChoiceChip(
+                          label: const Text('Gehört dazu'),
+                          selected: decisions[i] == true,
+                          onSelected: (_) =>
+                              updateDialog(() => decisions[i] = true),
+                        ),
+                        ChoiceChip(
+                          label: const Text('Andere Note'),
+                          selected: decisions[i] == false,
+                          onSelected: (_) =>
+                              updateDialog(() => decisions[i] = false),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    if (context.mounted &&
+                        ModalRoute.of(context)?.isCurrent == true) {
+                      Navigator.pop(context, false);
+                    }
+                  },
+                  child: const Text('Abbrechen'),
+                ),
+                FilledButton(
+                  onPressed: decisions.every((value) => value != null)
+                      ? () {
+                          if (context.mounted &&
+                              current &&
+                              child == widget.childId &&
+                              ModalRoute.of(context)?.isCurrent == true) {
+                            Navigator.pop(context, true);
+                          }
+                        }
+                      : null,
+                  child: const Text('Note entfernen'),
+                ),
+              ],
+            ),
+          ),
+        );
+        if (approved != true || !current || child != widget.childId) return;
+        final checkedReview = review;
+        await change(() async {
+          await widget.state.api.post(
+            '/children/$child/grades/${grade['id']}/erasure-review',
+            {
+              'revision': checkedReview['grade_revision'],
+              'context_revision': checkedReview['context_revision'],
+              'choices': [
+                for (var i = 0; i < candidates.length; i++)
+                  {
+                    'import_id': candidates[i]['import_id'],
+                    'entry_index': candidates[i]['entry_index'],
+                    'related': decisions[i]!,
+                  },
+              ],
+            },
+          );
+        });
+        return;
+      }
       await change(() async {
         await widget.state.api.delete(
           '/children/$child/grades/${grade['id']}${grade['revision'] is int ? '?revision=${grade['revision']}' : ''}',

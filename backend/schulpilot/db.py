@@ -363,6 +363,7 @@ class ErasureRequest(Base):
     id = Column(String(32), primary_key=True, default=uid)
     scope = Column(String(16), nullable=False)
     target = Column(String(32), nullable=False)
+    details = Column(JSON)
     created = Column(Integer, default=lambda: int(now()), nullable=False)
     published = Column(Boolean, default=False, server_default=false(), nullable=False)
 

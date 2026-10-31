@@ -16,7 +16,7 @@ from typing import Literal
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from fastapi.responses import Response
-from pydantic import Field, model_validator
+from pydantic import Field, StrictBool, model_validator
 from sqlalchemy import and_, func, or_, select, update
 from sqlalchemy.orm import defer
 
@@ -345,24 +345,103 @@ def update_grade(child_id: str, grade_id: str, data: GradeUpdate,
     return grade_data(row)
 
 
-@router.delete("/children/{child_id}/grades/{grade_id}")
-def delete_grade(child_id: str, grade_id: str, revision: int | None = Query(None, ge=1), p=Depends(parent), db=Depends(get_db)):
+class GradeErasureChoice(s.Strict):
+    import_id: str = Field(pattern=r"^[a-f0-9]{32}$")
+    entry_index: int = Field(ge=0, lt=1200, strict=True)
+    related: StrictBool
+
+
+class GradeErasureReview(s.Strict):
+    revision: int = Field(ge=1)
+    context_revision: str = Field(pattern=r"^[a-f0-9]{64}$")
+    choices: list[GradeErasureChoice] = Field(max_length=10000)
+
+
+def source_review(db, child, grade):
+    from .grade_erasure import scan_grade_sources
+
+    _, slots, refs, pending = scan_grade_sources(db, child.id, grade.id)
+    candidates = [pending[key] for key in sorted(pending)]
+    state = {'child': child.id, 'grade': grade.id, 'revision': grade.revision,
+             'slots': [[s.id, s.grade_id, s.slot_key, s.last_value, s.ignored] for s in slots],
+             'confirmed': sorted([list(ref) for ref in refs]), 'candidates': candidates}
+    if not settings.master_key:
+        raise HTTPException(503, 'Die sichere Notenverwaltung ist gerade nicht verfügbar.')
+    raw = json.dumps(state, sort_keys=True, separators=(',', ':'), ensure_ascii=False)
+    token = hmac.new(settings.master_key.encode(), raw.encode(), hashlib.sha256).hexdigest()
+    return {'grade_revision': grade.revision, 'context_revision': token, 'candidates': candidates}
+
+
+@router.get('/children/{child_id}/grades/{grade_id}/erasure-review')
+def review_grade_erasure(child_id: str, grade_id: str, p=Depends(parent), db=Depends(get_db)):
+    from .grade_erasure import UnresolvedGradeSources
+    from .grade_imports import live_parent
+
     child = child_access(db, p, child_id, write=True)
+    grade = owned_grade(db, child, grade_id)
+    try:
+        review = source_review(db, child, grade)
+    except UnresolvedGradeSources:
+        raise HTTPException(409, 'Die Importquellen können nicht eindeutig gelesen werden.') from None
+    live_parent(db, p, child)
+    return review
+
+
+@router.post('/children/{child_id}/grades/{grade_id}/erasure-review')
+def reviewed_grade_erasure(child_id: str, grade_id: str, data: GradeErasureReview,
+                            p=Depends(parent), db=Depends(get_db)):
+    from .erasure import flush_journal, journal_write_lock
+    from .grade_erasure import UnresolvedGradeSources, erase_grade
     from .grade_imports import live_parent
     from .vocabulary import lock_child
 
-    lock_child(db, child)
-    child = live_parent(db, p, child)
-    row = owned_grade(db, child, grade_id, lock=True)
-    if revision is not None and revision != row.revision:
-        raise HTTPException(409, "Diese Note wurde inzwischen geändert. Bitte zuerst neu laden.")
-    # A previously accepted parent goal has its own lifecycle, not a hidden cascade.
-    if row.request_key:
-        db.add(DeletedGradeRequest(child_id=child.id,
-                                  request_key_digest=deleted_request_digest(child.id, row.request_key)))
-    db.delete(row)
-    audit(db, p.user.id, "grade.delete", grade_id)
-    db.commit()
+    with journal_write_lock():
+        child = child_access(db, p, child_id, write=True)
+        lock_child(db, child)
+        child = live_parent(db, p, child)
+        grade = owned_grade(db, child, grade_id, lock=True)
+        try:
+            review = source_review(db, child, grade)
+            if (grade.revision != data.revision
+                    or not hmac.compare_digest(review['context_revision'], data.context_revision)):
+                raise HTTPException(409, 'Die Noten oder Importquellen wurden geändert. Bitte erneut prüfen.')
+            choices = {(choice.import_id, choice.entry_index): choice.related for choice in data.choices}
+            candidates = {(item['import_id'], item['entry_index']) for item in review['candidates']}
+            if len(choices) != len(data.choices) or set(choices) != candidates:
+                raise HTTPException(422, 'Bitte jede angezeigte Quelle genau einmal prüfen.')
+            erase_grade(db, child, grade, decisions=choices)
+        except UnresolvedGradeSources:
+            raise HTTPException(409, 'Die Importquellen wurden geändert. Bitte erneut prüfen.') from None
+        audit(db, p.user.id, 'grade.delete', grade_id)
+        db.commit()
+    flush_journal()
+    return {'deleted': True}
+
+
+@router.delete("/children/{child_id}/grades/{grade_id}")
+def delete_grade(child_id: str, grade_id: str, revision: int | None = Query(None, ge=1), p=Depends(parent), db=Depends(get_db)):
+    from .erasure import flush_journal, journal_write_lock
+
+    with journal_write_lock():
+        child = child_access(db, p, child_id, write=True)
+        from .grade_imports import live_parent
+        from .vocabulary import lock_child
+
+        lock_child(db, child)
+        child = live_parent(db, p, child)
+        row = owned_grade(db, child, grade_id, lock=True)
+        if revision is not None and revision != row.revision:
+            raise HTTPException(409, "Diese Note wurde inzwischen geändert. Bitte zuerst neu laden.")
+        from .grade_erasure import UnresolvedGradeSources, erase_grade
+
+        try:
+            erase_grade(db, child, row)
+        except UnresolvedGradeSources:
+            raise HTTPException(409, "Diese Note hat ältere oder unklare Importquellen. Bitte die Quellen zuerst prüfen.") from None
+        # A previously accepted parent goal has its own lifecycle, not a hidden cascade.
+        audit(db, p.user.id, "grade.delete", grade_id)
+        db.commit()
+    flush_journal()
     return {"deleted": True}
 
 

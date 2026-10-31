@@ -24,6 +24,15 @@ def digest(value):
     return hashlib.sha256(json.dumps(value, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
 
 
+def grade_context_revision(db, child_id):
+    grades = db.execute(select(SchoolGrade.id, SchoolGrade.revision).where(
+        SchoolGrade.child_id == child_id).order_by(SchoolGrade.id)).all()
+    slots = db.execute(select(GradeSourceSlot.id, GradeSourceSlot.grade_id, GradeSourceSlot.last_value,
+                              GradeSourceSlot.ignored).where(GradeSourceSlot.child_id == child_id)
+                       .order_by(GradeSourceSlot.id)).all()
+    return digest({'grades': [list(row) for row in grades], 'slots': [list(row) for row in slots]})
+
+
 def school_year(today):
     # Calendar boundary is an explicit product convention, not an asserted
     # state-specific term date. The PDF's year must independently agree.
@@ -74,12 +83,15 @@ def projection(db, child, batch):
     )
     start, end = f"{batch.school_year_start}-08-01", f"{batch.school_year_start + 1}-07-31"
     items = []
-    for original in batch.entries:
+    for entry_index, original in enumerate(batch.entries):
+        if original == {"redacted": True}:
+            continue
         key = slot_key(batch.school_year_start, original)
         source = by_slot.get(key)
         grade = by_id.get(source.grade_id) if source else None
         item = {
             **original,
+            "entry_index": entry_index,
             "slot_key": key,
             "grade_id": grade.id if grade else None,
             "grade_revision": grade.revision if grade else None,
@@ -139,6 +151,7 @@ def upload_pdf(child_id: str, file: UploadFile, idempotency_key: str = KEY, p=De
             raise HTTPException(409, "Dieser Uploadschlüssel gehört zu einer anderen PDF.")
         return projection(db, child, previous)
     rate_limit(db, "grade-pdf:" + p.user.id, 12, 3600, commit=False)
+    initial_context = grade_context_revision(db, child.id)
     # Reserve the bounded parse attempt, then release all locks while reading
     # untrusted PDF data. Logout and permission changes must remain possible.
     db.commit()
@@ -158,6 +171,8 @@ def upload_pdf(child_id: str, file: UploadFile, idempotency_key: str = KEY, p=De
         if previous.file_digest != file_digest:
             raise HTTPException(409, "Dieser Uploadschlüssel gehört zu einer anderen PDF.")
         return projection(db, child, previous)
+    if grade_context_revision(db, child.id) != initial_context:
+        raise HTTPException(409, "Die Noten wurden während des Imports geändert. Bitte die PDF erneut auswählen.")
     if parsed["school_year_start"] != school_year(local_day(child)):
         raise HTTPException(422, "Bitte die Übersicht des aktuellen Schuljahres hochladen.")
     keys = [slot_key(parsed["school_year_start"], e) for e in parsed["entries"]]
@@ -223,7 +238,7 @@ def confirm_import(child_id: str, import_id: str, data: ImportConfirmation, p=De
     if len(choices) != len(data.choices) or set(choices) != {r["slot_key"] for r in preview["items"]}:
         raise HTTPException(422, "Bitte jede erkannte Note genau einmal prüfen.")
     counts = {"added": 0, "linked": 0, "updated": 0, "unchanged": 0, "skipped": 0}
-    for entry_index, item in enumerate(preview["items"]):
+    for item in preview["items"]:
         choice = choices[item["slot_key"]]
         source = db.scalar(
             select(GradeSourceSlot).where(
@@ -283,7 +298,7 @@ def confirm_import(child_id: str, import_id: str, data: ImportConfirmation, p=De
         source.ignored = choice.action == "skip"
         if grade is not None and choice.action in {"add", "link", "update", "keep"}:
             db.add(GradeImportGradeLink(child_id=child.id, import_id=batch.id, grade_id=grade.id,
-                                       entry_index=entry_index, action=choice.action))
+                                       entry_index=item["entry_index"], action=choice.action))
         db.flush()
     batch.status, batch.confirmation_digest, batch.result = "applied", fingerprint, {"id": batch.id, **counts}
     audit(db, p.user.id, "grade.import_confirm", batch.id)

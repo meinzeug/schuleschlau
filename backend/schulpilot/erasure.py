@@ -11,19 +11,49 @@ import json
 import os
 import re
 import tempfile
+from contextlib import contextmanager
 
 from sqlalchemy import delete, select
 
 from .config import settings
 from .db import DB, Assignment, Child, ErasureRequest, Family, LearningUnit, Material, Membership, SchoolDay, User, now
 
-SCOPES = ("family", "child", "user", "material", "membership", "unit", "assignment")
+SCOPES = ("family", "child", "user", "material", "membership", "unit", "assignment", "grade", "grade_import", "grade_slot")
 
 
-def request(db, scope, target):
+def validate_grade_details(details):
+    if not isinstance(details, dict) or set(details) != {'version', 'child_id', 'entries', 'excluded', 'slots', 'request_digest'}:
+        raise ValueError('Invalid grade erasure details')
+    if type(details['version']) is not int or details['version'] != 1 or not isinstance(details['child_id'], str) or not re.fullmatch(r'[a-f0-9]{32}', details['child_id']):
+        raise ValueError('Invalid grade erasure child or version')
+    digest = details['request_digest']
+    if digest is not None and (not isinstance(digest, str) or not re.fullmatch(r'[a-f0-9]{64}', digest)):
+        raise ValueError('Invalid grade erasure request digest')
+    entries, excluded, slots = details['entries'], details['excluded'], details['slots']
+    if (not isinstance(entries, list) or not isinstance(excluded, list) or not isinstance(slots, list)
+            or len(entries) + len(excluded) > 10000 or len(slots) > 10000):
+        raise ValueError('Invalid grade erasure sources')
+    if any(not isinstance(s, str) or not re.fullmatch(r'[a-f0-9]{32}', s) for s in slots) or len(set(slots)) != len(slots):
+        raise ValueError('Invalid grade erasure slots')
+    pairs = []
+    for entry in entries + excluded:
+        if (not isinstance(entry, dict) or set(entry) != {'import_id', 'entry_index'}
+                or not isinstance(entry['import_id'], str) or not re.fullmatch(r'[a-f0-9]{32}', entry['import_id'])
+                or type(entry['entry_index']) is not int or not 0 <= entry['entry_index'] < 1200):
+            raise ValueError('Invalid grade erasure entry')
+        pairs.append((entry['import_id'], entry['entry_index']))
+    if len(set(pairs)) != len(pairs):
+        raise ValueError('Duplicate grade erasure entry')
+
+
+def request(db, scope, target, *, details=None):
     if scope not in SCOPES or not re.fullmatch(r"[a-f0-9]{32}", target):
         raise ValueError("Invalid erasure identifier")
-    db.add(ErasureRequest(scope=scope, target=target))
+    if scope == 'grade':
+        validate_grade_details(details)
+    elif details is not None:
+        raise ValueError('Unexpected erasure details')
+    db.add(ErasureRequest(scope=scope, target=target, details=details))
 
 
 def signed(record, key):
@@ -38,45 +68,60 @@ def verify(raw, key):
     expected = json.loads(signed(record, key))["signature"]
     if not hmac.compare_digest(value["signature"], expected):
         raise ValueError("Erasure journal authentication failed")
-    if record.get("resource_kind") not in (None, "assignment") or (
+    if record.get("resource_kind") not in (None, "assignment", "grade", "grade_import", "grade_slot") or (
         record.get("resource_kind") and record["scope"] != "unit"
     ):
         raise ValueError("Invalid erasure resource kind")
-    if record["scope"] not in SCOPES:
+    if record.get('resource_kind') == 'grade':
+        validate_grade_details(record.get('details'))
+    elif 'details' in record:
+        raise ValueError('Unexpected erasure details')
+    if record["scope"] not in SCOPES or record['scope'] in ('grade', 'grade_import', 'grade_slot'):
         raise ValueError("Invalid erasure scope")
     if not all(re.fullmatch(r"[a-f0-9]{32}", record[k]) for k in ("id", "target")):
         raise ValueError("Invalid erasure identifier")
     return record
 
 
+@contextmanager
+def journal_write_lock():
+    """Serialize a deletion commit against an authenticated journal snapshot."""
+    fd = os.open(settings.data_dir / ".erasure-ledger.lock", os.O_CREAT | os.O_RDWR, 0o600)
+    with os.fdopen(fd, "r+") as lock_file:
+        fcntl.flock(lock_file, fcntl.LOCK_EX)
+        yield
+
+
 def flush_journal():
     path = settings.data_dir / "erasure-ledger.jsonl"
-    with DB.begin() as db:
+    # Lock before opening the transaction: holding a database reader while
+    # waiting for a writer with this lock can deadlock SQLite commits.
+    with journal_write_lock(), DB.begin() as db:
         rows = list(db.scalars(select(ErasureRequest).where(ErasureRequest.published.is_(False))))
         if not rows:
             return
         if not settings.master_key:
             raise RuntimeError("An erasure journal requires the protected master key")
-        lock = os.open(settings.data_dir / ".erasure-ledger.lock", os.O_CREAT | os.O_RDWR, 0o600)
-        with os.fdopen(lock, "r+") as lock_file:
-            fcntl.flock(lock_file, fcntl.LOCK_EX)
-            descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)
-            with os.fdopen(descriptor, "a") as output:
-                fcntl.flock(output, fcntl.LOCK_EX)
-                for row in rows:
-                    record = {k: getattr(row, k) for k in ("id", "scope", "target", "created")}
-                    if row.scope == "assignment":
-                        # Old live journal readers accept/preserve extra fields
-                        # of a unit record. Current restore tools resolve this
-                        # explicitly typed resource before looking up its ID.
-                        record["scope"] = "unit"
-                        record["resource_kind"] = "assignment"
-                    output.write(signed(record, settings.master_key) + "\n")
-                    row.published = True
-                output.flush()
-                os.fsync(output.fileno())
-        # A crash before this commit can append duplicate signed IDs; replay is
-        # deliberately idempotent. Pending outbox rows are retried by maintenance.
+        descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)
+        with os.fdopen(descriptor, "a") as output:
+            fcntl.flock(output, fcntl.LOCK_EX)
+            for row in rows:
+                record = {k: getattr(row, k) for k in ("id", "scope", "target", "created")}
+                if row.scope == "assignment":
+                    record["scope"] = "unit"
+                    record["resource_kind"] = "assignment"
+                elif row.scope in ('grade', 'grade_import', 'grade_slot'):
+                    if row.scope == 'grade':
+                        validate_grade_details(row.details)
+                        record['details'] = row.details
+                    record['scope'] = 'unit'
+                    record['resource_kind'] = row.scope
+                output.write(signed(record, settings.master_key) + "\n")
+                row.published = True
+            output.flush()
+            os.fsync(output.fileno())
+        # A crash before commit may append duplicate signed IDs; replay is
+        # idempotent and maintenance retries pending outbox rows.
 
 
 def prune_journal():
@@ -107,16 +152,47 @@ def reconcile(db, records):
     from .families import remove_child, remove_family
 
     records = [
-        {**record, "scope": "assignment"}
-        if record["scope"] == "unit" and record.get("resource_kind") == "assignment"
-        else record
-        for record in records
+        {**record, "scope": record['resource_kind']}
+        if record["scope"] == "unit" and record.get("resource_kind") in ('assignment', 'grade', 'grade_import', 'grade_slot')
+        else record for record in records
     ]
     paths = []
     # Collect image paths before user cascades can remove their Material rows.
-    order = {"family": 0, "child": 1, "unit": 2, "assignment": 3, "material": 4, "membership": 5, "user": 6}
+    order = {"family": 0, "child": 1, "grade": 2, "grade_import": 3, "grade_slot": 4, "unit": 5,
+             "assignment": 6, "material": 7, "membership": 8, "user": 9}
     for record in sorted(records, key=lambda record: order[record["scope"]]):
         scope, target = record["scope"], record["target"]
+        if scope in ('grade_import', 'grade_slot'):
+            from .db import GradeImport, GradeSourceSlot
+
+            row = db.get(GradeImport if scope == 'grade_import' else GradeSourceSlot, target)
+            if row is not None:
+                db.delete(row)
+                db.flush()
+            continue
+        if scope == 'grade':
+            from .db import DeletedGradeRequest, SchoolGrade
+            from .grade_erasure import redact_grade_sources
+
+            details = record.get('details')
+            validate_grade_details(details)
+            child_id = details['child_id']
+            if db.get(Child, child_id) is None:
+                continue
+            grade = db.get(SchoolGrade, target)
+            if grade is not None and grade.child_id != child_id:
+                raise ValueError('Grade erasure belongs to another child')
+            redact_grade_sources(db, {'child_id': child_id, 'grade_id': target,
+                                      'entries': details['entries'], 'slots': details['slots']}, allow_missing=True)
+            digest = details['request_digest']
+            if digest and not db.scalar(select(DeletedGradeRequest.id).where(
+                DeletedGradeRequest.child_id == child_id, DeletedGradeRequest.request_key_digest == digest
+            )):
+                db.add(DeletedGradeRequest(child_id=child_id, request_key_digest=digest))
+            if grade is not None:
+                db.delete(grade)
+            db.flush()
+            continue
         model = {
             "family": Family,
             "child": Child,

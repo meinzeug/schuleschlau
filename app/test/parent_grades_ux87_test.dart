@@ -570,4 +570,52 @@ void main() {
       await tester.pumpWidget(const SizedBox());
     },
   );
+
+  testWidgets(
+    'Legacy import deletion requires an explicit choice for each position',
+    (tester) async {
+      final f = _Fixture((request) async {
+        if (request.url.path.endsWith('/erasure-review') &&
+            request.method == 'GET') {
+          return fixture.reply({
+            'grade_revision': 4,
+            'context_revision': 'a' * 64,
+            'candidates': [
+              {
+                'import_id': 'one',
+                'entry_index': 0,
+                'school_year_start': 2026,
+                'entry': {'subject': 'Mathematik', 'value': '4', 'semester': 1},
+              },
+              {
+                'import_id': 'two',
+                'entry_index': 1,
+                'school_year_start': 2026,
+                'entry': {'subject': 'Mathematik', 'value': '4', 'semester': 1},
+              },
+            ],
+          });
+        }
+        if (request.method == 'POST') return fixture.reply({'deleted': true});
+        return fixture.reply(fixture.grades(items: [grade()]));
+      });
+      await f.list(tester);
+      await click(tester, find.byTooltip('Note verwalten'));
+      await click(tester, find.text('Entfernen'));
+      await click(tester, find.widgetWithText(FilledButton, 'Entfernen'));
+      expect(find.text('Importquellen prüfen'), findsOneWidget);
+      final submit = find.widgetWithText(FilledButton, 'Note entfernen');
+      expect(tester.widget<FilledButton>(submit).onPressed, isNull);
+      await click(tester, find.text('Gehört dazu').first);
+      expect(tester.widget<FilledButton>(submit).onPressed, isNull);
+      await click(tester, find.text('Andere Note').last);
+      await click(tester, submit);
+      final request = f.requests.singleWhere((r) => r.method == 'POST');
+      final payload = jsonDecode(request.body);
+      expect(payload['choices'][0]['related'], true);
+      expect(payload['choices'][1]['related'], false);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
 }

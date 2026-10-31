@@ -410,3 +410,20 @@ def test_ambiguous_first_ack_does_not_leave_an_unverified_snapshot(tmp_path):
     assert not (tmp_path / "erasure-ledger.enc").exists()
     assert not (tmp_path / "last-success.json").exists()
     assert (tmp_path / ".erasure-ledger.pending").exists()
+
+
+def test_restore_journal_rejects_pending_outbox_while_holding_journal_lock(tmp_path):
+    ledger = tmp_path / 'erasure-ledger.jsonl'
+    ledger.write_text('synthetic\n')
+    lock = tmp_path / '.erasure-ledger.lock'
+    lock.touch()
+
+    def pending():
+        with lock.open('rb') as contender:
+            with pytest.raises(BlockingIOError):
+                fcntl.flock(contender, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        return True
+
+    with pytest.raises(RuntimeError, match='Unpublished'):
+        restore_check.current_journal(ledger, pending)
+    assert restore_check.current_journal(ledger, lambda: False) == 'synthetic\n'
