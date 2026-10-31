@@ -250,6 +250,8 @@ Migration 0012 ergänzt `school_days.preparation` additiv. Kein gewöhnliches Sc
 
 Täglich ca. 02:40 UTC mit bis zu fünf Minuten Zufallsverzögerung: PostgreSQL-Custom-Dump plus private Uploads, authentifiziert mit AES-256-GCM verschlüsselt, nur root-lesbar unter `/var/backups/schulpilot`, Rotation nach 14 Tagen. `systemctl start schulpilot-backup.service` löst eine Sicherung aus. Erfolgreiche One-shot-Dienste stehen anschließend regulär auf `inactive (dead)`; `Result=success` und `ExecMainStatus=0` prüfen.
 
+**Dorfspy-Installation, 31.10.2026:** Der Backup-Pfad ist ein eigenes Hetzner-Volume. `/etc/schulpilot/backup-volume.uuid` bindet die Backup-, Restore- und Offsite-Zugriffskette an dessen UUID; die gemeinsame Betriebssperre liegt außerhalb des Volumes unter `/run/lock/schulpilot-backup-operations.lock`. Dienste bei einer fehlenden oder abweichenden Einhängung nicht durch Entfernen der UUID-Datei freigeben. Vor Wartung Offsite-Timer und laufende Übertragung geordnet anhalten, Backup-/Restore-Timer koordinieren und die ausschließliche Betriebssperre halten. Die frühere fstab-Kopie ist erhalten. Der alte Ordner auf der Systemplatte wurde erst nach erfolgreichem Backup, isoliertem Restore, Offsite-Abgleich und erneutem Datei-für-Datei-Vergleich entfernt; für eine Rückkehr sind ein aktueller Abgleich, Löschjournalprüfung und ein separater Restoretest erforderlich. Hetzner-Server-Backups enthalten angehängte Volumes nicht; der getrennte Offsite-Abgleich bleibt erforderlich.
+
 ```bash
 /opt/schulpilot/current/venv/bin/python decrypt_backup.py \
   /var/backups/schulpilot/<backup>.tar.enc \

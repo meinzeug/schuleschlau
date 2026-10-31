@@ -1,5 +1,16 @@
 # Produktionsstand · 1.38.52+207
 
+**Aktualisierung 31.10.2026:** Aktiv ist Release `20261031T222700Z-6e48cfe`
+mit Quellcommit `6e48cfe181021f9a982f0cb944d9357c856f521f`; die Angaben zum
+Release `0870f3c` unten beschreiben den vorherigen Stand. Das Backup-Verzeichnis
+liegt auf dem neuen 50-GB-Volume. Eine neue Sicherung, eine authentifizierte
+Restoreprobe in separater Datenbank und der Abgleich mit dem aktualisierten
+Offsite-Client waren erfolgreich. Nach erneuter Prüfung und Entfernung der
+redundanten alten Dateien waren auf der Systemplatte rund 15 GiB frei; der
+Monitoring-Trockenlauf meldete keine Fehler. Der vollständige CI-Lauf
+[41242286254](https://github.com/meinzeug/schulpilot/actions/runs/41242286254)
+bestand. Die bekannte Notenlöschungs-/Restorelücke bleibt offen.
+
 Am 31.10.2026 wurde Release `20261031T205552Z-0870f3c` auf
 [schulpilot.dorfspy.de](https://schulpilot.dorfspy.de) aktiviert. Produktcommit:
 `0870f3c01349a1559a84af8251ff49814111e9cc`. Health meldet diesen Stand; API und
