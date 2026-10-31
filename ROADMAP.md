@@ -310,11 +310,21 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
 
   **Abnahme:** Jede veröffentlichte Zuordnung hat Quelle, Fassung, Geltungsbereich und Prüfergebnis; fehlende Abdeckung bleibt als solche sichtbar. Lehrplanüberschriften dienen nur als Orientierung und ersetzen weder bestätigten Heftstoff noch eine Antwortquelle; Schulstufe und Sprachlernjahr werden nicht gleichgesetzt.
 
-- [ ] **P1 – Hausaufgabenhilfe gegen Lösungsverrat und falsche Sicherheit prüfen**
+- [x] **P1 – Hausaufgabenhilfe gegen Lösungsverrat und falsche Sicherheit prüfen**
 
   Mit einem fachlich bewerteten künstlichen Korpus Schritte „Verstehen → selbst versuchen → gestuft helfen → eigenen Weg prüfen“ einschließlich Mehrdeutigkeiten, falscher eigener Antworten und Wiederaufnahme durchführen.
 
   **Abnahme:** Gespeicherte Hinweisstufen werden nachvollziehbar wiederverwendet, unbekannte Aufgaben werden nachgefragt und bekannte Lösungen nicht vorweggenommen; deterministische Rechenprüfungen und beratende KI-Rückmeldungen sind unterscheidbar. Für freie Modellantworten verbleibt eine dokumentierte manuelle Stichprobenprüfung, da lokale Regeln keinen allgemeinen Lösungsverrat ausschließen.
+
+  **Nachweis 31.10.2026:** `test_homework.py`, `test_homework_context.py`,
+  `test_homework_feedback.py` und `test_homework_session_recheck.py` prüfen
+  künstliche Aufgaben, drei Hinweisstufen, Wiederaufnahme, Mehrdeutigkeit,
+  fehlerhafte Schülerantworten, Lösungsverrat bei bekannten Mustern sowie
+  Rechte- und Quellenwechsel. Zusammen mit den Tutor-/Quellzitatfällen liefen
+  146 Fälle auf SQLite (zwei PostgreSQL-only übersprungen) und 148 auf
+  isoliertem PostgreSQL. Modelltransporte sind dabei simuliert; offene freie
+  Modellantworten benötigen weiterhin fachliche Stichproben und sind dadurch
+  nicht allgemein gegen Lösungsverrat bewiesen.
 
 - [ ] **P1 – Hefttutor und Rückblick gegen Quellen- und Kontextwechsel testen**
 
@@ -518,11 +528,18 @@ Die folgenden Punkte beschreiben ausstehende, wiederholbare Betriebs- und Freiga
 
   **Abnahme:** Berechtigte sehen nur eigene Quellen, auch bei vielen Seiten und Netzunterbrechung; Blättern und Suchen erzeugen keine KI-Kosten oder Lernzeit, und eine bewusst gestartete Übung ist den richtigen Quellenrevisionen zugeordnet.
 
-- [ ] **P2 – Offline-Ranzen als gesonderten Produktumfang entscheiden und gegebenenfalls umsetzen**
+- [x] **P2 – Offline-Ranzen als gesonderten Produktumfang entscheiden und gegebenenfalls umsetzen**
 
   Der vorhandene Fotozugriff ist kein nachgewiesener vollständiger Offline-Neustart. Für einen Offline-Ausbau festlegen, welche Inhalte ausdrücklich auf dem Gerät gespeichert werden, wie sie verschlüsselt, begrenzt und aktualisiert werden und wie Entzug, Logout, Geräteverlust, Quellenlöschung und Konflikte behandelt werden. Ohne beschlossenen und getesteten Ausbau die Internetabhängigkeit verständlich nennen.
 
   **Abnahme:** Bei Aufnahme in den Leistungsumfang funktionieren dokumentierte Lesefälle nach App-Neustart ohne Netz; unberechtigter Zugriff und veraltete beziehungsweise entzogene Inhalte werden verhindert. Synchronisation erzeugt keine doppelten Antworten, Fotos oder KI-Aufträge.
+
+  **Entscheidung 31.10.2026:** Ein vollständiger Offline-Ranzen ist derzeit
+  nicht im Leistungsumfang. Die Hefteroptionen nennen die Internetpflicht;
+  `docs/NOTEBOOKS.md` beschreibt die Grenzen und Voraussetzungen eines späteren
+  Ausbaus. `collection_resume_test.dart` prüft den Hinweis, den GET-only-Zugriff
+  und Schutz bei Sitzungs-/Kindwechsel; 15 Widgettests bestanden. Damit wird
+  weder Offline-Zugriff noch ein verschlüsselter Gerätespeicher behauptet.
 
 - [ ] **P1 – Elternübersicht, Noten und Planung gegen echte gespeicherte Fakten prüfen**
 

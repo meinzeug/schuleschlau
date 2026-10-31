@@ -249,3 +249,12 @@ und aktuelle Hostroute werden vor der Folgeaktion erneut geprüft.
 Ansichtwechsel ändern weder Lernstand noch Metadatenfilter; benötigte
 private Fotovorschauen dürfen beim Anzeigen normal nachgeladen werden.
 Die Elternansicht behält ihren berechtigten Kinder-/Familienkontext.
+## Offline-Zugriff: aktueller Umfang
+
+Die Hefter verwenden derzeit authentifizierte Serverabfragen und Bildabrufe.
+Ein vollständiger Offline-Neustart ist nicht Bestandteil des derzeitigen
+Umfangs; zwischengespeicherte Dateien begründen keinen Offlineanspruch. In den
+Hefteroptionen steht deshalb, dass Internet benötigt wird. Ein späterer Ausbau
+benötigt vorab einen eigenen Vertrag für begrenzte verschlüsselte Speicherung,
+Logout, Geräteverlust, Rechteentzug, Quelllöschung und Konflikte. Eine solche
+Offlinefunktion wird hierdurch nicht aktiviert.

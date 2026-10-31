@@ -300,6 +300,8 @@ class _NotebookShelfState extends State<_NotebookShelfBody> {
             key: const ValueKey('notebook-toolbar'),
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              const Text('Für deine Hefte brauchst du Internet.'),
+              const SizedBox(height: 8),
               searchField(),
               Wrap(
                 spacing: 8,

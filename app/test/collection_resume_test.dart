@@ -181,6 +181,16 @@ Future<void> _tap(
 }
 
 void main() {
+  testWidgets('Notebook options explain that Internet is required', (
+    tester,
+  ) async {
+    final f = _Fixture('shelf');
+    await f.open(tester);
+    expect(find.text('Für deine Hefte brauchst du Internet.'), findsNothing);
+    await page_tools.openPageTools(tester, 'notebook-shelf-tools');
+    expect(find.text('Für deine Hefte brauchst du Internet.'), findsOneWidget);
+    expect(f.requests.every((request) => request.method == 'GET'), isTrue);
+  });
   for (final kind in ['pages', 'words', 'shelf']) {
     final oldLabel = switch (kind) {
       'words' => 'Bedeutung child',
