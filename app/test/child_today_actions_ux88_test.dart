@@ -119,6 +119,7 @@ void main() {
         },
       ];
       final (_, _, requests) = await open(tester, data: data);
+      await tap(tester, find.text('Plan und Hefte'));
       await tap(tester, find.text('Mein Plan'));
       final future = tester.widget<PlanRow>(
         find.widgetWithText(PlanRow, 'Späterer Auftrag'),
@@ -245,6 +246,7 @@ void main() {
     'KK012 private plan removes exact old session and stale row cannot navigate',
     (tester) async {
       final (state, router, calls) = await open(tester);
+      await tap(tester, find.text('Plan und Hefte'));
       await tap(tester, find.text('Mein Plan'));
       final row = tester.widget<PlanRow>(
         find.descendant(

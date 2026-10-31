@@ -73,6 +73,7 @@ void main() {
         },
       ];
       final (_, requests) = await today(tester, data);
+      await old.tap(tester, find.text('Plan und Hefte'));
       await old.tap(tester, find.text('Mein Plan'));
       expect(find.text('Weitere passende Möglichkeiten'), findsOneWidget);
       expect(
@@ -91,6 +92,7 @@ void main() {
     final data = fixture.childDay();
     data['plan']['today'][0]['due'] = '2026-10-25';
     await today(tester, data);
+    await old.tap(tester, find.text('Plan und Hefte'));
     await old.tap(tester, find.text('Mein Plan'));
     expect(find.textContaining('Termin: 25.10.'), findsOneWidget);
   });
@@ -100,6 +102,7 @@ void main() {
       final data = fixture.childDay();
       data['plan']['today_count'] = 100;
       final (_, requests) = await today(tester, data);
+      await old.tap(tester, find.text('Plan und Hefte'));
       await old.tap(tester, find.text('Mein Plan'));
       expect(
         find.text('Hier siehst du 1 von 100 heutigen Schritten.'),
@@ -242,6 +245,7 @@ void main() {
     (tester) async {
       final data = fixture.childDay();
       final (_, requests) = await today(tester, data);
+      await old.tap(tester, find.text('Plan und Hefte'));
       await old.tap(tester, find.text('Mein Plan'));
       await old.tap(tester, find.text('Wunsch zu diesem Lernschritt').first);
       expect(find.text('Zur gleichen Lernrunde'), findsOneWidget);
@@ -272,6 +276,7 @@ void main() {
             'Bei zwei neuen Aufgaben wurde derselbe Rechenweg verwechselt.',
       };
       final (_, requests) = await today(tester, data);
+      await old.tap(tester, find.text('Mehr zur Runde'));
       await old.tap(tester, find.text('Warum dieser Lernschritt?'));
       expect(
         find.text(

@@ -72,6 +72,11 @@ void main() {
         await showTools(tester, opened, brightness: brightness);
         expect(find.text('Für deinen Tag'), findsOneWidget);
         expect(find.byKey(const ValueKey('today-tools')), findsOneWidget);
+        expect(find.text('Mein Plan'), findsNothing);
+        expect(find.text('Meine Heftseiten'), findsNothing);
+        await tester.ensureVisible(find.text('Plan und Hefte'));
+        await tester.tap(find.text('Plan und Hefte'));
+        await tester.pumpAndSettle();
         for (final title in actions.keys) {
           final text = find.text(title);
           await tester.ensureVisible(text);
@@ -101,6 +106,9 @@ void main() {
       try {
         final opened = <String>[];
         await showTools(tester, opened);
+        await tester.ensureVisible(find.text('Plan und Hefte'));
+        await tester.tap(find.text('Plan und Hefte'));
+        await tester.pumpAndSettle();
         for (final entry in actions.entries) {
           await tester.ensureVisible(find.text(entry.key));
           await tester.pumpAndSettle();
@@ -137,9 +145,12 @@ void main() {
       try {
         final opened = <String>[];
         await showTools(tester, opened, width: 700, scale: 1);
+        await tester.ensureVisible(find.text('Plan und Hefte'));
+        await tester.tap(find.text('Plan und Hefte'));
+        await tester.pumpAndSettle();
         final target = find.bySemanticsLabel(RegExp(r'^Mein Plan(?:\n|$)'));
         var focused = false;
-        for (var attempt = 0; attempt < 8; attempt++) {
+        for (var attempt = 0; attempt < 12; attempt++) {
           await tester.sendKeyEvent(LogicalKeyboardKey.tab);
           await tester.pumpAndSettle();
           if (tester

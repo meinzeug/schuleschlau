@@ -166,6 +166,9 @@ void main() {
             expect(find.text('Für deinen Tag'), findsOneWidget);
             expect(find.text('Dein Überblick'), findsNothing);
             expect(find.text('Android-App herunterladen'), findsNothing);
+            expect(find.text('Mein Plan'), findsNothing);
+            expect(find.text('Meine Heftseiten'), findsNothing);
+            await tap(tester, find.text('Plan und Hefte'));
             for (final title in [
               'Mein Plan',
               'Nachrichten & Wünsche',
@@ -201,17 +204,22 @@ void main() {
                 findsNothing,
               );
             }
-            final plan = tester.getRect(card('Mein Plan'));
+            final help = tester.getRect(card('Ich brauche Hilfe'));
             final messages = tester.getRect(card('Nachrichten & Wünsche'));
             if (size.$2 == 2) {
-              expect(messages.top, greaterThan(plan.bottom));
+              expect(help.top, greaterThan(messages.bottom));
             } else {
-              expect(messages.top, plan.top);
-              expect(messages.left, greaterThan(plan.right));
+              expect(help.top, messages.top);
+              expect(help.left, greaterThan(messages.right));
             }
             final info = find.byTooltip('Was sehen meine Eltern?');
             await tester.ensureVisible(info);
             expect(tester.getSize(info).shortestSide, greaterThanOrEqualTo(48));
+            await tap(tester, find.text('Plan und Hefte'));
+            expect(find.text('Mein Plan'), findsNothing);
+            expect(find.text('Meine Heftseiten'), findsNothing);
+            expect(find.text('Nachrichten & Wünsche'), findsOneWidget);
+            expect(find.text('Ich brauche Hilfe'), findsOneWidget);
             expect(
               requests.every((request) => request.method == 'GET'),
               isTrue,
@@ -252,6 +260,7 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('Letzte Nachricht von deinen Eltern'), findsNothing);
+      await tap(tester, find.text('Plan und Hefte'));
       await tap(tester, find.text('Mein Plan'));
       expect(find.text('Dein Tagesziel ist noch offen.'), findsOneWidget);
       await tap(tester, find.byTooltip('Schließen'));
@@ -288,6 +297,7 @@ void main() {
     'whole plan tile supports Enter with a real visible focus border',
     (tester) async {
       await mount(tester);
+      await tap(tester, find.text('Plan und Hefte'));
       await tester.ensureVisible(find.text('Mein Plan'));
       Focus.of(tester.element(find.text('Mein Plan'))).requestFocus();
       await tester.pumpAndSettle();

@@ -189,6 +189,11 @@ void main() {
       (tester) async {
         final data = childDay(), requests = <http.Request>[];
         addResume(data);
+        data['units'][0].addAll({
+          'study_path_id': 'saved-path',
+          'source_date': '2026-10-13',
+          'estimated_minutes': 8,
+        });
         data['pending_preparations'] = [
           {
             'day_id': 'older-day',
@@ -202,8 +207,19 @@ void main() {
         expect(card.title, 'Brüche fortsetzen');
         expect(
           find.textContaining('2 von 5 Aufgaben abgeschlossen'),
+          findsNothing,
+        );
+        await tap(tester, 'Mehr zur Runde');
+        expect(
+          find.textContaining('2 von 5 Aufgaben abgeschlossen'),
           findsOneWidget,
         );
+        expect(find.text('Heftpaket vom 13.10.'), findsOneWidget);
+        expect(find.text('Etwa 8 Minuten'), findsOneWidget);
+        expect(find.text('Zugehörigen Lernweg ansehen'), findsOneWidget);
+        await tap(tester, 'Mehr zur Runde');
+        await tester.ensureVisible(find.text('Weiterlernen'));
+        await tester.pumpAndSettle();
         expect(find.text('Heutige Seiten scannen'), findsOneWidget);
         expect(
           tester.getRect(find.text('Heutige Seiten scannen')).bottom,
@@ -238,7 +254,7 @@ void main() {
         );
         expect(find.text('Heftseiten prüfen'), findsOneWidget);
         expect(find.text('Anderes Thema'), findsOneWidget);
-        expect(find.text('Verstehen · Üben · Rückblick'), findsOneWidget);
+        expect(find.text('Verstehen · Üben · Rückblick'), findsNothing);
         expect(requests.where((request) => request.method == 'POST'), isEmpty);
         await tap(tester, 'Weiterlernen');
         expect(find.text('Gespeicherte Runde'), findsOneWidget);

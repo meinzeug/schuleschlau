@@ -185,7 +185,7 @@ void main() {
           await tester.pumpAndSettle();
           expect(tester.widget<Text>(find.text(title)).maxLines, isNull);
           expect(tester.widget<Text>(find.text(subtitle)).maxLines, isNull);
-          expect(find.text('Verstehen · Üben · Rückblick'), findsOneWidget);
+          expect(find.text('Verstehen · Üben · Rückblick'), findsNothing);
           final button = find.widgetWithText(FilledButton, 'Runde öffnen');
           await tester.ensureVisible(button);
           await tester.pumpAndSettle();

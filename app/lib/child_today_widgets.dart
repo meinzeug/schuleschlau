@@ -10,6 +10,7 @@ import 'schulbuddy.dart';
 class ChildTodayHero extends StatefulWidget {
   final String eyebrow, title, subtitle;
   final Widget action;
+  final Widget? details;
   final bool learning;
   const ChildTodayHero({
     super.key,
@@ -17,6 +18,7 @@ class ChildTodayHero extends StatefulWidget {
     required this.title,
     required this.subtitle,
     required this.action,
+    this.details,
     this.learning = true,
   });
 
@@ -171,21 +173,7 @@ class _ChildTodayHeroState extends State<ChildTodayHero> {
                 onPressed: () => openHero(action),
               )
             : action;
-        final actionArea = Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            primaryAction,
-            if (widget.learning) ...[
-              const SizedBox(height: 4),
-              Text(
-                'Verstehen · Üben · Rückblick',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: palette.muted, fontSize: 12),
-              ),
-            ],
-          ],
-        );
+        final actionArea = primaryAction;
         return Container(
           key: const ValueKey('today-primary-step'),
           padding: const EdgeInsets.all(16),
@@ -198,19 +186,33 @@ class _ChildTodayHeroState extends State<ChildTodayHero> {
             ),
             borderRadius: BorderRadius.circular(16),
           ),
-          child: wide
-              ? Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (wide)
+                Row(
                   children: [
                     Expanded(child: heading),
                     const SizedBox(width: 20),
                     SizedBox(width: 210, child: actionArea),
                   ],
                 )
-              : Column(
+              else
+                Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   mainAxisSize: MainAxisSize.min,
                   children: [heading, const SizedBox(height: 12), actionArea],
                 ),
+              if (widget.details != null)
+                ExpansionTile(
+                  key: const ValueKey('today-round-details'),
+                  tilePadding: EdgeInsets.zero,
+                  title: const Text('Mehr zur Runde'),
+                  children: [widget.details!],
+                ),
+            ],
+          ),
         );
       },
     );
@@ -522,14 +524,6 @@ class ChildTodayTools extends StatelessWidget {
                   MediaQuery.textScalerOf(context).scale(14) <= 21;
               final tiles = [
                 _TodayTool(
-                  title: 'Mein Plan',
-                  subtitle: 'Vor und nach der Schule',
-                  icon: Icons.route_rounded,
-                  color: palette.teal,
-                  onTap: onPlan,
-                  horizontal: !columns,
-                ),
-                _TodayTool(
                   title: 'Nachrichten & Wünsche',
                   subtitle: latestMessage == null
                       ? 'Deinen Eltern schreiben'
@@ -547,14 +541,6 @@ class ChildTodayTools extends StatelessWidget {
                   onTap: onHelp,
                   horizontal: !columns,
                 ),
-                _TodayTool(
-                  title: 'Meine Heftseiten',
-                  subtitle: pageSummary,
-                  icon: Icons.auto_stories_outlined,
-                  color: palette.cyanInk,
-                  onTap: onNotebooks,
-                  horizontal: !columns,
-                ),
               ];
               if (!columns) {
                 return Column(
@@ -567,7 +553,7 @@ class ChildTodayTools extends StatelessWidget {
                   ],
                 );
               }
-              final columnCount = constraints.maxWidth >= 900 ? 4 : 2;
+              const columnCount = 2;
               return Column(
                 children: [
                   for (var i = 0; i < tiles.length; i += columnCount) ...[
@@ -591,6 +577,32 @@ class ChildTodayTools extends StatelessWidget {
                 ],
               );
             },
+          ),
+          const SizedBox(height: 8),
+          ExpansionTile(
+            key: const ValueKey('today-more'),
+            tilePadding: const EdgeInsets.symmetric(horizontal: 12),
+            childrenPadding: const EdgeInsets.only(bottom: 8),
+            title: const Text('Plan und Hefte'),
+            children: [
+              _TodayTool(
+                title: 'Mein Plan',
+                subtitle: 'Vor und nach der Schule',
+                icon: Icons.route_rounded,
+                color: palette.teal,
+                onTap: onPlan,
+                horizontal: true,
+              ),
+              const SizedBox(height: 8),
+              _TodayTool(
+                title: 'Meine Heftseiten',
+                subtitle: pageSummary,
+                icon: Icons.auto_stories_outlined,
+                color: palette.cyanInk,
+                onTap: onNotebooks,
+                horizontal: true,
+              ),
+            ],
           ),
         ],
       ),

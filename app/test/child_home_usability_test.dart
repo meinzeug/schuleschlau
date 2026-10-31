@@ -117,7 +117,7 @@ void main() {
       expect(find.byType(ChildTodayHero), findsOneWidget);
       expect(find.text('Weiterlernen'), findsOneWidget);
       expect(find.text('Heutige Seiten scannen'), findsOneWidget);
-      expect(find.text('1 gespeicherte Seite'), findsOneWidget);
+      expect(find.text('1 gespeicherte Seite'), findsNothing);
       expect(find.text('Synthetischer Hefteintrag · Brüche'), findsNothing);
       expect(find.text('Was steht heute an?'), findsNothing);
       expect(
@@ -149,6 +149,10 @@ void main() {
       );
       expect(tester.takeException(), isNull);
 
+      await tester.ensureVisible(find.text('Plan und Hefte'));
+      await tester.tap(find.text('Plan und Hefte'));
+      await tester.pumpAndSettle();
+      expect(find.text('1 gespeicherte Seite'), findsOneWidget);
       await tester.ensureVisible(find.text('Meine Heftseiten'));
       await tester.tap(find.text('Meine Heftseiten'));
       await tester.pumpAndSettle();
@@ -444,7 +448,7 @@ void main() {
     ];
     await _openHome(tester, data, requests: requests);
     expect(find.byType(ChildTodayHero), findsOneWidget);
-    expect(find.byType(ExpansionTile), findsNothing);
+    expect(find.byKey(const ValueKey('today-more')), findsOneWidget);
     expect(
       find.text('Ein künstlicher privater Gesprächsverlauf'),
       findsNothing,
@@ -465,6 +469,9 @@ void main() {
     final data = _overview();
     await _openHome(tester, data, requests: requests);
     expect(find.byType(Dialog), findsNothing);
+    await tester.ensureVisible(find.text('Plan und Hefte'));
+    await tester.tap(find.text('Plan und Hefte'));
+    await tester.pumpAndSettle();
     expect(find.text('Vor und nach der Schule'), findsOneWidget);
     await tester.ensureVisible(find.text('Mein Plan'));
     await tester.tap(find.text('Mein Plan'));
