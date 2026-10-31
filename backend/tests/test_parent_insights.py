@@ -16,6 +16,8 @@ from schulpilot.db import (
     ParentLearningReview,
     Session,
     Usage,
+    User,
+    now,
 )
 from schulpilot.synthetic import sample_unit
 from sqlalchemy import func, select
@@ -174,6 +176,76 @@ def test_disabled_grant_before_dispatch_has_no_provider_call_and_known_zero_cost
     assert not transport["calls"]
     with DB() as db:
         assert db.scalar(select(Usage)).cost_micros == 0
+
+
+@pytest.mark.parametrize("change", ["idle_session", "unverified_account"])
+@pytest.mark.parametrize("when", ["before_dispatch", "during_dispatch"])
+def test_manual_review_rechecks_live_parent_and_session(api, book, transport, change, when):
+    """A running review has the same account/idle checks as a fresh request."""
+    seed(book)
+    response = request(api, book)
+    assert response.status_code == 202, response.text
+    review_id = response.json()["id"]
+
+    def remove_authority():
+        with DB.begin() as db:
+            review = db.get(ParentLearningReview, review_id)
+            job = db.get(Job, review.job_id)
+            if change == "idle_session":
+                db.get(Session, job.payload["session_id"]).seen = int(now()) - 7 * 86400 - 1
+            else:
+                db.get(User, job.payload["user_id"]).verified = False
+
+    if when == "before_dispatch":
+        remove_authority()
+    else:
+        transport["effect"] = remove_authority
+    finish()
+
+    assert len(transport["calls"]) == (when == "during_dispatch")
+    with DB() as db:
+        review = db.get(ParentLearningReview, review_id)
+        job = db.get(Job, review.job_id)
+        assert review.status == job.status == "failed"
+        assert review.report is None
+        assert job.error_code == "access_changed"
+        assert db.scalar(select(Usage)).cost_micros == (37 if when == "during_dispatch" else 0)
+        assert db.scalar(select(func.count()).select_from(Attempt)) == 3
+
+
+@pytest.mark.parametrize("when", ["before_schedule", "before_dispatch", "during_dispatch"])
+def test_daily_review_requires_verified_grant_owner(api, book, transport, when):
+    """A durable opt-in survives logout, but not loss of account verification."""
+    seed(book)
+    assert api.put(endpoint(book) + "/settings", json={"revision": 0, "enabled": True}).status_code == 200
+
+    def unverify_grant_owner():
+        with DB.begin() as db:
+            child = db.get(Child, book["child"]["id"])
+            db.get(User, child.parent_review_settings["approved_by"]).verified = False
+
+    if when == "before_schedule":
+        unverify_grant_owner()
+        assert not parent_insights.schedule_one()
+        assert not transport["calls"]
+        with DB() as db:
+            assert db.scalar(select(func.count()).select_from(Usage)) == 0
+        return
+
+    assert parent_insights.schedule_one()
+    if when == "before_dispatch":
+        unverify_grant_owner()
+    else:
+        transport["effect"] = unverify_grant_owner
+    finish()
+    assert len(transport["calls"]) == (when == "during_dispatch")
+    with DB() as db:
+        review = db.scalar(select(ParentLearningReview))
+        job = db.get(Job, review.job_id)
+        assert review.status == job.status == "failed"
+        assert review.report is None
+        assert job.error_code == "access_changed"
+        assert db.scalar(select(Usage)).cost_micros == (37 if when == "during_dispatch" else 0)
 
 
 def test_manual_topic_creation_is_idempotent_revision_bound_and_can_prepare_once(api, book, monkeypatch):

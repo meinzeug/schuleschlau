@@ -322,7 +322,9 @@ def lock_parent(db, p, child_id):
     child = db.get(Child, child_id, populate_existing=True)
     session = db.get(Session, p.session.id, populate_existing=True)
     user = db.get(User, p.user.id, populate_existing=True)
-    if not session or session.revoked or session.expires <= now() or not user or user.disabled:
+    if (not session or session.user_id != p.user.id or session.revoked or session.expires <= now()
+            or now() - session.seen > 7 * 86400 or not user or user.disabled or not user.verified
+            or user.role != "parent"):
         raise HTTPException(401, "Bitte melde dich erneut an.")
     child_access(db, p, child_id, write=True)
     return child
@@ -406,7 +408,7 @@ def authority(db, job):
         Membership.family_id == job.payload["family_id"]))
     family = db.get(Family, job.payload["family_id"])
     if (not child or child.family_id != job.payload["family_id"] or not user or user.role != "parent"
-            or user.disabled or not membership or membership.permission == "view" or not family
+            or user.disabled or not user.verified or not membership or membership.permission == "view" or not family
             or family.expires and family.expires <= now()):
         raise ValueError("access_changed")
     if job.payload["scheduled"]:
@@ -415,7 +417,8 @@ def authority(db, job):
             raise ValueError("access_changed")
     else:
         session = db.get(Session, job.payload["session_id"])
-        if not session or session.user_id != user.id or session.revoked or session.expires <= now():
+        if (not session or session.user_id != user.id or session.revoked or session.expires <= now()
+                or now() - session.seen > 7 * 86400):
             raise ValueError("access_changed")
     from .commerce import usage_terms
 
