@@ -451,6 +451,9 @@ class _InstallationScreenState extends State<InstallationScreen>
       fieldErrors['smtp_host'] = 'Nur den SMTP-Hostnamen eingeben, ohne https://, Leerzeichen oder Port.';
     }
     for (final key in ['operator_support_email', 'smtp_from']) {
+      // Legacy installations may use a valid display-name mailbox. An
+      // unchanged sender is validated with the merged settings by the backend.
+      if (key == 'smtp_from' && !dirtyFields.contains(key)) continue;
       final value = fields[key]?.text.trim() ?? '';
       if (value.isNotEmpty &&
           !RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(value)) {

@@ -127,9 +127,16 @@ Der Server meldete `push_approved=true`, `google_login_enabled=true` und SMTP-Ho
 jedes Konto oder den vollständigen Vertragsstatus. [Firebase nennt](https://firebase.google.com/terms)
 für FCM seine Data Processing and Security Terms; ob und mit welcher Google-
 Gesellschaft diese für das konkrete Projekt wirksam sind, ist im Konto zu
-prüfen. Die Firebase-Konsole meldete für das angemeldete Google-Konto fehlende
-Projektberechtigung oder ein nicht verfügbares Projekt; daraus folgt weder, dass
-das Projekt nicht existiert, noch ein fehlender Vertrag. [Firebase](https://firebase.google.com/support/privacy) beschreibt FCM
+prüfen. Ein zuerst angemeldetes Google-Konto erhielt keinen Projektzugriff;
+anschließend war das richtige Projekt unter einem anderen angemeldeten Konto
+sichtbar. In den Projekteinstellungen ist die Freigabe von Firebase-Dienstdaten
+für Verbesserungen und Analysen von Nicht-Firebase-Diensten ausgeschaltet; laut
+Google werden Dienstdaten dennoch für Firebase selbst und verknüpfte Dienste
+verwendet. Der Integrationseintrag bietet „Google Analytics aktivieren“ an,
+zeigt also keine bereits aktivierte Analytics-Verknüpfung. Im Projekt ist kein
+Datenschutzbeauftragter hinterlegt; dies entscheidet nicht über eine Pflicht.
+Der konkrete Vertragsannahmestatus und die vollständige Datenkette sind damit
+weiterhin nicht geprüft. Die Ansicht wurde nur gelesen, nichts umgestellt. [Firebase](https://firebase.google.com/support/privacy) beschreibt FCM
 als globalen Dienst; eine ausschließliche EU-Verarbeitung ist nicht belegt.
 Google-OIDC und Gmail haben andere Rollen und Bedingungen als FCM.
 
@@ -160,3 +167,21 @@ Keine E-Mail an Anbieter oder Nutzende wurde versandt.
 6. Die Korrektur der zeitversetzten Löschfristen und Exportrestdateien ist bereits
    in Commit `e8dfa3a` vorbereitet und getestet, aber nicht als ausgeliefert
    anzusehen, solange kein entsprechender Release/Deploymentnachweis vorliegt.
+
+## Betriebseinstellungen: vorhandenes Absenderformat
+
+Bei der Übernahme des vom Betreiber bestätigten Namens, der Anschrift und
+Support-E-Mail wurde nur dieser dreiteilige Entwurf im Administratorkonto
+vorbereitet. Ein vor der Änderung manuell gestartetes verschlüsseltes Backup
+meldete `Result=success`, `ExecMainStatus=0`. Das Speichern scheiterte an der
+clientseitigen Prüfung der unverändert vorhandenen SMTP-Absenderadresse mit
+Anzeigenamen. Der Absender selbst und die Freigabeeinstellungen wurden nicht
+geändert. Die Backendprüfung akzeptiert ein gültiges Mailboxformat mit
+Anzeigenamen; sie bleibt für die vollständige zusammengeführte Konfiguration
+verbindlich. Die lokale Flutterkorrektur überspringt nur für einen **nicht
+geänderten** SMTP-Absender die zusätzliche vereinfachte Clientprüfung;
+neu geänderte fehlerhafte E-Mail-Adressen werden weiterhin abgewiesen. Ein
+Fake-API-Widgettest prüft den ausschließlich geänderten Betreiberwert und den
+Erhalt des Absenders; ein zweiter prüft die Ablehnung einer ungültigen neuen
+Adresse. Solange kein Deployment und keine erfolgreiche Speicherkontrolle belegt
+sind, gelten die Betreiberangaben auf dem Server als nicht übernommen.
