@@ -10,6 +10,7 @@ import subprocess
 import sys
 import tarfile
 import threading
+from contextlib import nullcontext
 from datetime import datetime, timezone
 from pathlib import Path
 from types import SimpleNamespace
@@ -25,6 +26,7 @@ from ledger_snapshot import backup_lock  # noqa: E402
 
 
 def test_restore_holds_publication_lock_and_missing_lock_fails_closed(tmp_path, monkeypatch):
+    monkeypatch.setattr(restore_check, "guarded_operation", nullcontext)
     monkeypatch.setattr(restore_check.os, "geteuid", lambda: 0)
     monkeypatch.setattr(restore_check.os, "umask", lambda _mask: None)
     monkeypatch.setattr(restore_check, "Path", lambda _value: tmp_path)
@@ -277,7 +279,7 @@ def test_offsite_failed_journal_export_keeps_previous_copy_and_success_marker(tm
 
     def fake_run(args, **kwargs):
         calls.append(args[-1])
-        if args[-1] == "python3 -":
+        if args[-1].endswith("/backup_access.py inventory"):
             return SimpleNamespace(stdout=json.dumps(inventory))
         raise subprocess.CalledProcessError(1, args)
 
@@ -309,7 +311,7 @@ def test_offsite_ack_race_restores_previous_journal_and_does_not_record_success(
 
     def fake_run(args, **kwargs):
         command = args[-1]
-        if command == "python3 -":
+        if command.endswith("/backup_access.py inventory"):
             return SimpleNamespace(stdout=json.dumps(inventory))
         if command.endswith("/export_ledger.py"):
             kwargs["stdout"].write(new_journal)

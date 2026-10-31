@@ -10,3 +10,4 @@ PrivateTmp=true
 ProtectHome=true
 ProtectSystem=strict
 ReadWritePaths=/var/backups/schulpilot
+ReadWritePaths=/run/lock

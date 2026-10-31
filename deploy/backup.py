@@ -12,6 +12,7 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
+from backup_storage import guarded_operation
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from ledger_snapshot import backup_lock, locked_journal, status_path
 
@@ -100,7 +101,8 @@ def create_backup(destination, data_dir, key_path, *, stamp=None):
 
 
 def main():
-    create_backup(Path("/var/backups/schulpilot"), Path("/var/lib/schulpilot"), Path("/etc/schulpilot/backup.key"))
+    with guarded_operation():
+        create_backup(Path("/var/backups/schulpilot"), Path("/var/lib/schulpilot"), Path("/etc/schulpilot/backup.key"))
 
 
 if __name__ == "__main__":

@@ -15,6 +15,7 @@ import tempfile
 import uuid
 from pathlib import Path
 
+from backup_storage import guarded_operation
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from ledger_snapshot import backup_lock, locked_journal
 from monitor import environment
@@ -72,8 +73,9 @@ def main():
     os.umask(0o077)
     # Keep the selected ciphertext available throughout the rehearsal: backup
     # retention and publication use the same lock exclusively.
-    with backup_lock(Path("/var/backups/schulpilot"), exclusive=False):
-        restore()
+    with guarded_operation():
+        with backup_lock(Path("/var/backups/schulpilot"), exclusive=False):
+            restore()
 
 
 def restore():

@@ -99,16 +99,8 @@ def pull(destination):
     if (destination / ".erasure-ledger.pending").exists() or (destination / ".erasure-ledger.previous").exists():
         raise InterruptedTransfer("An interrupted journal transfer requires reconciliation")
     ssh = ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=15", "dorfspy"]
-    inventory_code = """import hashlib,json,time
-from pathlib import Path
-items=[]
-for p in Path('/var/backups/schulpilot').glob('*.tar.enc'):
- if p.is_file() and not p.is_symlink():
-  h=hashlib.file_digest(p.open('rb'),'sha256').hexdigest()
-  items.append({'name':p.name,'size':p.stat().st_size,'sha256':h})
-print(json.dumps({'backups':items,'server_now':int(time.time())}))
-"""
-    inventory = json.loads(run([*ssh, "python3 -"], input=inventory_code, capture_output=True, text=True).stdout)
+    access = "/opt/schulpilot/current/venv/bin/python /opt/schulpilot/current/deploy/backup_access.py"
+    inventory = json.loads(run([*ssh, access + " inventory"], capture_output=True, text=True).stdout)
     copied = 0
     for item in inventory["backups"]:
         name = item["name"]
@@ -121,7 +113,7 @@ print(json.dumps({'backups':items,'server_now':int(time.time())}))
             partial = target.with_suffix(".partial")
             try:
                 with partial.open("wb") as output:
-                    run([*ssh, "cat /var/backups/schulpilot/" + name], stdout=output, stderr=subprocess.PIPE)
+                    run([*ssh, access + " read " + name], stdout=output, stderr=subprocess.PIPE)
                 with partial.open("rb") as source:
                     digest = hashlib.file_digest(source, "sha256").hexdigest()
                 if partial.stat().st_size != item["size"] or digest != item["sha256"]:

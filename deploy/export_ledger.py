@@ -12,6 +12,7 @@ import tempfile
 import time
 from pathlib import Path
 
+from backup_storage import guarded_operation
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from ledger_snapshot import backup_lock, locked_journal, status_path
 
@@ -73,12 +74,13 @@ def acknowledge(expected_name, expected_hash):
 def main():
     if os.geteuid() != 0:
         raise SystemExit("Operator access required")
-    if len(sys.argv[1:]) == 3 and sys.argv[1] == "--ack":
-        acknowledge(sys.argv[2], sys.argv[3])
-    elif not sys.argv[1:]:
-        export(Path("/var/lib/schulpilot/erasure-ledger.jsonl"), Path("/etc/schulpilot/backup.key"), sys.stdout.buffer)
-    else:
-        raise SystemExit("Unsupported export action")
+    with guarded_operation():
+        if len(sys.argv[1:]) == 3 and sys.argv[1] == "--ack":
+            acknowledge(sys.argv[2], sys.argv[3])
+        elif not sys.argv[1:]:
+            export(Path("/var/lib/schulpilot/erasure-ledger.jsonl"), Path("/etc/schulpilot/backup.key"), sys.stdout.buffer)
+        else:
+            raise SystemExit("Unsupported export action")
 
 
 if __name__ == "__main__":

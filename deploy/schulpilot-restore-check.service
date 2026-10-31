@@ -11,4 +11,5 @@ PrivateTmp=true
 ProtectHome=true
 ProtectSystem=strict
 ReadWritePaths=/var/backups/schulpilot-monitor
+ReadWritePaths=/run/lock
 TimeoutStartSec=10min

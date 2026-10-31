@@ -8,8 +8,13 @@ import fcntl
 import os
 import stat
 import subprocess
+import uuid
 from contextlib import contextmanager
 from pathlib import Path
+
+OPERATION_LOCK = Path("/run/lock/schulpilot-backup-operations.lock")
+VOLUME_CONFIG = Path("/etc/schulpilot/backup-volume.uuid")
+BACKUP_DIRECTORY = Path("/var/backups/schulpilot")
 
 
 @contextmanager
@@ -35,7 +40,11 @@ def operation_lock(path: Path, *, exclusive: bool):
 
 def require_volume(mountpoint: Path, expected_uuid: str):
     """Fail closed when the exact mountpoint is absent or has the wrong UUID."""
-    if not expected_uuid or any(c not in "0123456789abcdef-" for c in expected_uuid):
+    try:
+        parsed_uuid = uuid.UUID(expected_uuid)
+    except (TypeError, ValueError, AttributeError):
+        raise ValueError("Invalid volume UUID") from None
+    if str(parsed_uuid) != expected_uuid:
         raise ValueError("Invalid volume UUID")
     result = subprocess.run(
         ["findmnt", "--noheadings", "--output", "UUID", "--mountpoint", str(mountpoint)],
@@ -43,3 +52,27 @@ def require_volume(mountpoint: Path, expected_uuid: str):
     )
     if result.stdout.strip() != expected_uuid:
         raise RuntimeError("Expected backup volume is not mounted")
+
+
+@contextmanager
+def guarded_operation(*, exclusive=False):
+    """Coordinate with cutovers and, when configured, require the volume.
+
+    An absent configuration preserves the existing directory-backed setup.
+    Provision and remove the root-owned configuration only while holding the
+    exclusive operation lock. Never store it on the volume being switched.
+    """
+    with operation_lock(OPERATION_LOCK, exclusive=exclusive):
+        try:
+            fd = os.open(VOLUME_CONFIG, os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC)
+        except FileNotFoundError:
+            pass
+        else:
+            with os.fdopen(fd, "r") as config:
+                metadata = os.fstat(config.fileno())
+                if (not stat.S_ISREG(metadata.st_mode) or metadata.st_uid != 0
+                        or metadata.st_nlink != 1 or metadata.st_mode & 0o022):
+                    raise RuntimeError("Untrusted backup volume configuration")
+                expected_uuid = config.read(128).strip()
+            require_volume(BACKUP_DIRECTORY, expected_uuid)
+        yield
