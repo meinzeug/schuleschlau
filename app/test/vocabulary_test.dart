@@ -387,6 +387,7 @@ void main() {
       tester.view.physicalSize = const Size(320, 600);
       await tester.pumpAndSettle();
       await tap(tester, find.text('Wörter üben'));
+      await tap(tester, find.text('Übung anpassen'));
       expect(find.text('10 Vokabeln'), findsOneWidget);
       await tap(tester, find.byType(DropdownButtonFormField<int>));
       await tap(tester, find.text('15 Vokabeln').last);

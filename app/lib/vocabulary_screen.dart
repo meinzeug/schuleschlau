@@ -2645,172 +2645,162 @@ class _VocabularyScreenState extends State<_VocabularyBody>
     final selection = await scopedDialog<Json>(
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, update) => AlertDialog(
+          scrollable: true,
           title: const Text('Deine nächste Wörterrunde'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(learningLocales[locale]!),
-                Text(
-                  collection == null
-                      ? 'Aus allen Sammlungen dieser Sprache'
-                      : 'Sammlung: ${collections.where((r) => r['id'] == collection).firstOrNull?['title'] ?? 'Deine Auswahl'}',
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(learningLocales[locale]!),
+              Text(
+                collection == null
+                    ? 'Aus allen Sammlungen dieser Sprache'
+                    : 'Sammlung: ${collections.where((r) => r['id'] == collection).firstOrNull?['title'] ?? 'Deine Auswahl'}',
+              ),
+              if (search.text.trim().isNotEmpty ||
+                  clarification ||
+                  origin != null ||
+                  searchContext)
+                const Notice(
+                  'Suche und Ansichtsfilter begrenzen die Wörterrunde nicht. Die gewählte Sprache und Sammlung gelten weiterhin.',
                 ),
-                if (search.text.trim().isNotEmpty ||
-                    clarification ||
-                    origin != null ||
-                    searchContext)
-                  const Notice(
-                    'Suche und Ansichtsfilter begrenzen die Wörterrunde nicht. Die gewählte Sprache und Sammlung gelten weiterhin.',
+              const SizedBox(height: 16),
+              Text(switch (skill) {
+                'spelling' =>
+                  'Lies die Bedeutung und schreibe das Wort selbst.',
+                'recognition' =>
+                  'Lies das Wort und wähle die passende Bedeutung.',
+                'listening' =>
+                  'Höre das Wort und wähle die passende Bedeutung.',
+                _ => 'Rufe das Wort oder seine Bedeutung selbst ab.',
+              }),
+              Text(
+                'Bis zu $count Wörter. Sind weniger verfügbar, übst du diese.',
+              ),
+              ExpansionTile(
+                tilePadding: EdgeInsets.zero,
+                title: const Text('Übung anpassen'),
+                subtitle: Text(
+                  '${languageSkill(skill)} · ${languageDirection(direction)}${voluntary ? ' · auch geübte Wörter' : ''}',
+                ),
+                children: [
+                  const Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'So möchtest du üben',
+                      style: TextStyle(fontWeight: FontWeight.w800),
+                    ),
                   ),
-                const SizedBox(height: 16),
-                const Text(
-                  'So möchtest du üben',
-                  style: TextStyle(fontWeight: FontWeight.w800),
-                ),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    for (final key in [
-                      'spelling',
-                      'recognition',
-                      'recall',
-                      'listening',
-                    ])
-                      SizedBox(
-                        width: 240,
-                        child: Semantics(
-                          selected: skill == key,
-                          child: OutlinedButton(
-                            key: ValueKey('word-mode-$key'),
-                            style: OutlinedButton.styleFrom(
-                              backgroundColor: skill == key
-                                  ? context.palette.mint
-                                  : null,
-                              padding: const EdgeInsets.all(12),
-                            ),
-                            onPressed: () {
-                              if (!ctx.mounted ||
-                                  !current ||
-                                  ModalRoute.of(ctx)?.isCurrent != true) {
-                                return;
-                              }
-                              update(() {
-                                skill = key;
-                                direction =
-                                    ['recognition', 'listening'].contains(skill)
-                                    ? 'target_to_de'
-                                    : 'de_to_target';
-                              });
-                            },
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  languageSkills[key]!,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w800,
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final key in [
+                        'spelling',
+                        'recognition',
+                        'recall',
+                        'listening',
+                      ])
+                        SizedBox(
+                          width: 240,
+                          child: Semantics(
+                            selected: skill == key,
+                            child: OutlinedButton(
+                              key: ValueKey('word-mode-$key'),
+                              style: OutlinedButton.styleFrom(
+                                backgroundColor: skill == key
+                                    ? context.palette.mint
+                                    : null,
+                                padding: const EdgeInsets.all(12),
+                              ),
+                              onPressed: () {
+                                if (!ctx.mounted ||
+                                    !current ||
+                                    ModalRoute.of(ctx)?.isCurrent != true) {
+                                  return;
+                                }
+                                update(() {
+                                  skill = key;
+                                  direction =
+                                      [
+                                        'recognition',
+                                        'listening',
+                                      ].contains(skill)
+                                      ? 'target_to_de'
+                                      : 'de_to_target';
+                                });
+                              },
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    languageSkills[key]!,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w800,
+                                    ),
                                   ),
-                                ),
-                                Text(switch (key) {
-                                  'spelling' =>
-                                    'Bedeutung lesen · Wort schreiben',
-                                  'recognition' =>
-                                    'Wort lesen · Bedeutung auswählen',
-                                  'listening' =>
-                                    'Wort hören · Bedeutung auswählen',
-                                  _ => 'Wort oder Bedeutung selbst abrufen',
-                                }),
-                              ],
+                                  Text(switch (key) {
+                                    'spelling' =>
+                                      'Bedeutung lesen · Wort schreiben',
+                                    'recognition' =>
+                                      'Wort lesen · Bedeutung auswählen',
+                                    'listening' =>
+                                      'Wort hören · Bedeutung auswählen',
+                                    _ => 'Wort oder Bedeutung selbst abrufen',
+                                  }),
+                                ],
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                  ],
-                ),
-                Text(switch (skill) {
-                  'spelling' =>
-                    'Lies die Bedeutung und schreibe das Wort selbst.',
-                  'recognition' =>
-                    'Lies das Wort und wähle die passende Bedeutung.',
-                  'listening' =>
-                    'Höre das Wort und wähle die passende Bedeutung.',
-                  _ => 'Rufe das Wort oder seine Bedeutung selbst ab.',
-                }),
-                if (skill == 'recall')
-                  DropdownButtonFormField<String>(
-                    initialValue: direction,
+                    ],
+                  ),
+                  if (skill == 'recall')
+                    DropdownButtonFormField<String>(
+                      initialValue: direction,
+                      isExpanded: true,
+                      items: const [
+                        DropdownMenuItem(
+                          value: 'de_to_target',
+                          child: Text('Deutsch in die Lernsprache'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'target_to_de',
+                          child: Text('Lernsprache ins Deutsche'),
+                        ),
+                      ],
+                      onChanged: (v) => update(() => direction = v!),
+                    ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<int>(
+                    initialValue: count,
                     isExpanded: true,
-                    items: const [
-                      DropdownMenuItem(
-                        value: 'de_to_target',
-                        child: Text('Deutsch in die Lernsprache'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'target_to_de',
-                        child: Text('Lernsprache ins Deutsche'),
-                      ),
+                    decoration: const InputDecoration(
+                      labelText: 'Vokabeln pro Runde',
+                    ),
+                    items: [
+                      for (final size in [5, 10, 15])
+                        DropdownMenuItem(
+                          value: size,
+                          child: Text('$size Vokabeln'),
+                        ),
                     ],
-                    onChanged: (v) => update(() => direction = v!),
+                    onChanged: (value) => update(() => count = value!),
                   ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<int>(
-                  initialValue: count,
-                  isExpanded: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Vokabeln pro Runde',
+                  CheckboxListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Zusätzliche Runde'),
+                    subtitle: const Text('Auch bereits geübte Wörter'),
+                    value: voluntary,
+                    onChanged: (v) => update(() => voluntary = v!),
                   ),
-                  items: [
-                    for (final size in [5, 10, 15])
-                      DropdownMenuItem(
-                        value: size,
-                        child: Text('$size Vokabeln'),
-                      ),
-                  ],
-                  onChanged: (value) => update(() => count = value!),
+                ],
+              ),
+              if (skill == 'listening')
+                const Text(
+                  'Du brauchst eine passende Gerätestimme. Der Hörtext wird auf deinem Gerät verarbeitet; das ist kein abgeschirmter Hörtest.',
                 ),
-                SurfaceInset(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Deine Rundenauswahl',
-                        style: TextStyle(fontWeight: FontWeight.w800),
-                      ),
-                      Text(learningLocales[locale] ?? locale),
-                      Text(
-                        collection == null
-                            ? 'Alle Sammlungen dieser Sprache'
-                            : 'Sammlung: ${collections.where((r) => r['id'] == collection).firstOrNull?['title'] ?? 'Gewählte Sammlung'}',
-                      ),
-                      Text(
-                        '${languageSkill(skill)} · ${languageDirection(direction)}',
-                      ),
-                      Text('Gewünscht: bis zu $count Vokabeln'),
-                      const Text(
-                        'Erst „Runde beginnen“ startet deine Auswahl.',
-                      ),
-                    ],
-                  ),
-                ),
-                CheckboxListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('Zusätzliche Runde'),
-                  subtitle: const Text('Auch bereits geübte Wörter'),
-                  value: voluntary,
-                  onChanged: (v) => update(() => voluntary = v!),
-                ),
-                Text(
-                  'Bis zu $count Vokabeln. Sind weniger verfügbar, übst du diese.',
-                ),
-                if (skill == 'listening')
-                  const Text(
-                    'Du brauchst eine passende Gerätestimme. Der Hörtext wird auf deinem Gerät verarbeitet; das ist kein abgeschirmter Hörtest.',
-                  ),
-              ],
-            ),
+            ],
           ),
           actions: [
             TextButton(

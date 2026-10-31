@@ -248,12 +248,14 @@ void main() {
       final calls = <http.Request>[];
       final fixture = await f.open(t, calls);
       await f.tap(t, find.text('Wörter üben'));
+      await f.tap(t, find.text('Übung anpassen'));
       await f.tap(t, find.byType(DropdownButtonFormField<int>));
       await f.tap(t, find.text('5 Vokabeln').last);
       await f.tap(t, find.text('Runde beginnen'));
       fixture.$2.go('/vocabulary/child');
       await t.pumpAndSettle();
       await f.tap(t, find.text('Wörter üben'));
+      await f.tap(t, find.text('Übung anpassen'));
       expect(
         t
             .widget<DropdownButtonFormField<int>>(
