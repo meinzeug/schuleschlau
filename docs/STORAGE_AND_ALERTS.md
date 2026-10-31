@@ -9,6 +9,12 @@ Releaseverzeichnisse 700.092.222 Byte und das Sicherungsverzeichnis
 Offsite-Dateisystem 4.328.330.723.328 Byte frei. Das Backup-Verzeichnis enthielt
 377 Archive mit insgesamt 12.515.985.184 Byte, das größte 60.661.792 Byte.
 Dateisystem- und Verzeichniswerte sind nicht unmittelbar addierbar.
+Die größten einzelnen Archive pro Tag stiegen vom 18. Oktober
+(10.362.912 Byte) bis 31. Oktober (60.661.792 Byte); die Anzahl und Größe
+schwankten stark, am 30. Oktober etwa 59 Archive mit zusammen 3.561.402.208
+Byte. Daraus lässt sich weder ein konstanter täglicher Zuwachs noch ein
+langfristig sicherer Füllzeitpunkt ableiten. Die Messung umfasst nur die
+aktuell erhaltenen Sicherungen.
 
 Für die aktuelle Größenordnung plant die neue Sicherungsvolume-Warnung den
 Platz für zwei größte beobachtete Archive plus 1 GiB Reserve ein; zusätzlich
@@ -24,7 +30,9 @@ Der unabhängige Wächter meldet fehlenden, beschädigten, zukünftigen oder meh
 als eine Stunde alten Offsite-Erfolgsstand sowie mangelnden oder nicht
 ermittelbaren Platz des Offsite-Dateisystems. Der Serverwächter meldet
 Speichermangel und fehlgeschlagene Platzabfragen getrennt für System- und
-Sicherungsdateisystem. Meldungen enthalten neutrale Fehlercodes. Die Tests
+Sicherungsdateisystem. Ist eine Volume-UUID eingerichtet, prüft der
+Serverwächter außerdem, ob genau dieses Volume am vorgesehenen Mountpunkt
+eingehängt ist. Meldungen enthalten neutrale Fehlercodes. Die Tests
 verwenden ausschließlich künstliche Dateisystemwerte und simuliertes SMTP;
 sie belegen weder die tatsächliche Mailzustellung noch eine Überwachung des
 vollständig ausgefallenen unabhängigen Rechners.
@@ -40,4 +48,7 @@ Statusdateien über einen unabhängigen Zugang zu prüfen.
 Die hier beschriebenen neuen Checks sind erst nach abgestimmtem Serverrelease
 und Aktualisierung des unabhängigen Clients im Betrieb wirksam. Dabei den
 bisherigen Offsite-Client bis zur Übernahme erhalten. Eine lokale Simulation
-und diese Stichtagsmessung sind keine Produktionsabnahme.
+und diese Stichtagsmessung sind keine Produktionsabnahme. Ein lesender
+Trockenlauf des neuen Serverchecks auf dem Zielhost und ein Trockenlauf des
+neuen unabhängigen Wächters meldeten am 31.10.2026 keine Fehler; dabei wurde
+keine Alarmmail versandt und kein installierter Dienst verändert.

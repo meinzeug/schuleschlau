@@ -12,9 +12,11 @@ import shlex
 import shutil
 import smtplib
 import ssl
+import stat
 import subprocess
 import time
 import urllib.request
+import uuid
 from email.message import EmailMessage
 from pathlib import Path
 
@@ -26,6 +28,30 @@ def disk_space_low(disk, minimum_free=1024**3):
     """Compare used space to usable space, including reserved blocks correctly."""
     usable = disk.used + disk.free
     return disk.free < minimum_free or usable <= 0 or disk.used / usable > 0.9
+
+
+def backup_volume_failure(config_path, mountpoint):
+    """An optional configured volume must be the exact mounted UUID."""
+    try:
+        fd = os.open(config_path, os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC | os.O_NONBLOCK)
+    except FileNotFoundError:
+        return None  # An unconfigured installation may use its normal directory.
+    except OSError:
+        return 'backup_volume_unavailable'
+    try:
+        with os.fdopen(fd, 'r') as source:
+            metadata = os.fstat(source.fileno())
+            if (not stat.S_ISREG(metadata.st_mode) or metadata.st_uid != 0
+                    or metadata.st_nlink != 1 or metadata.st_mode & 0o022):
+                return 'backup_volume_unavailable'
+            expected = source.read(128).strip()
+        if str(uuid.UUID(expected)) != expected:
+            return 'backup_volume_unavailable'
+        result = subprocess.run(['findmnt', '--noheadings', '--output', 'UUID', '--mountpoint', mountpoint],
+                                check=True, capture_output=True, text=True, timeout=10)
+        return None if result.stdout.strip() == expected else 'backup_volume_unavailable'
+    except (OSError, UnicodeError, ValueError, subprocess.SubprocessError):
+        return 'backup_volume_unavailable'
 
 
 def backup_journal_available(backup):
@@ -217,6 +243,9 @@ def main():
     )
     if restore_failure:
         failures.append(restore_failure)
+    volume_failure = backup_volume_failure('/etc/schulpilot/backup-volume.uuid', '/var/backups/schulpilot')
+    if volume_failure:
+        failures.append(volume_failure)
     try:
         if disk_space_low(shutil.disk_usage("/var/lib/schulpilot")):
             failures.append("disk_space")

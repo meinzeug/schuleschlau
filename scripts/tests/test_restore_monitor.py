@@ -57,6 +57,25 @@ class RestoreMonitorTest(unittest.TestCase):
         self.assertTrue(monitor.disk_space_low(SimpleNamespace(total=100 * unit, used=70 * unit, free=30 * unit),
                                                minimum_free=31 * unit))
 
+    def test_configured_backup_volume_requires_exact_uuid(self):
+        config = self.root / 'backup-volume.uuid'
+        self.assertIsNone(monitor.backup_volume_failure(config, '/backup'))
+        expected = '12345678-1234-5678-1234-567812345678'
+        config.write_text(expected)
+        metadata = SimpleNamespace(st_uid=0, st_nlink=1, st_mode=0o100600)
+        with patch.object(monitor.os, 'fstat', return_value=metadata), \
+             patch.object(monitor.subprocess, 'run', return_value=SimpleNamespace(stdout=expected + '\n')):
+            self.assertIsNone(monitor.backup_volume_failure(config, '/backup'))
+        with patch.object(monitor.os, 'fstat', return_value=metadata), \
+             patch.object(monitor.subprocess, 'run', return_value=SimpleNamespace(stdout='different')):
+            self.assertEqual(monitor.backup_volume_failure(config, '/backup'), 'backup_volume_unavailable')
+        config.write_text('not-a-uuid')
+        with patch.object(monitor.os, 'fstat', return_value=metadata):
+            self.assertEqual(monitor.backup_volume_failure(config, '/backup'), 'backup_volume_unavailable')
+        config.unlink()
+        config.symlink_to(self.report)
+        self.assertEqual(monitor.backup_volume_failure(config, '/backup'), 'backup_volume_unavailable')
+
     def test_backup_volume_low_is_a_distinct_neutral_alarm(self):
         monitor_dir = self.root / "var/backups/schulpilot-monitor"
         monitor_dir.mkdir(parents=True)
