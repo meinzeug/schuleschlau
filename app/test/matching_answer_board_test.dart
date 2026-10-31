@@ -186,6 +186,12 @@ void main() {
       ],
       scale: 2,
     );
+    expect(
+      find.text(
+        'Tippe auf einen Begriff und wähle eine Antwort. Oder halte eine Antwort gedrückt und ziehe sie dorthin.',
+      ),
+      findsOneWidget,
+    );
     expect(tester.widget<Text>(find.text(longChoice)).maxLines, isNull);
     await tester.ensureVisible(target('Nomen'));
     await tester.pumpAndSettle();

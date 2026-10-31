@@ -34,6 +34,32 @@ room.SavedRound matchingRound() {
 }
 
 void main() {
+  testWidgets('mobile tap chooses the target, then its answer', (tester) async {
+    final server = matchingRound();
+    await room.openRound(tester, server);
+    expect(
+      find.text(
+        'Tippe auf einen Begriff und wähle eine Antwort. Oder halte eine Antwort gedrückt und ziehe sie dorthin.',
+      ),
+      findsOneWidget,
+    );
+    await tester.ensureVisible(target('Nomen'));
+    await tester.tap(target('Nomen'));
+    await tester.pumpAndSettle();
+    expect(find.text('Was passt zu „Nomen“?'), findsOneWidget);
+    final answer = find.widgetWithText(RadioListTile<String>, 'Katze');
+    await tester.ensureVisible(answer);
+    await tester.tap(answer);
+    await tester.pumpAndSettle();
+    expect(
+      find.descendant(of: target('Nomen'), matching: find.text('Katze')),
+      findsOneWidget,
+    );
+    expect(server.answers, 0);
+    expect(server.value['pending_feedback'], isNull);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets(
     'actual task-room drops wait for explicit checking and preserve answer order',
     (tester) async {

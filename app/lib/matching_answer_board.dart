@@ -180,7 +180,7 @@ class _MatchingAnswerBoardState extends State<MatchingAnswerBoard> {
               ),
             ),
           Text(
-            'Halte eine Antwort kurz gedrückt und ziehe sie zum passenden Begriff. Du kannst die Zuordnung auch antippen.',
+            'Tippe auf einen Begriff und wähle eine Antwort. Oder halte eine Antwort gedrückt und ziehe sie dorthin.',
             style: TextStyle(color: p.muted, fontSize: 13, height: 1.5),
           ),
           const SizedBox(height: 12),
