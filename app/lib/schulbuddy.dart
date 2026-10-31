@@ -1088,8 +1088,13 @@ const _buddyIntroductionNotice =
 
 String _buddyKey() =>
     'buddy-${List.generate(20, (_) => Random.secure().nextInt(256).toRadixString(16).padLeft(2, '0')).join()}';
-String _buddyError(Object error) => error is ApiError
-    ? error.message
+String _buddyDisplayMessage(String message, {required bool isChild}) =>
+    isChild && message.contains('Luna/high')
+    ? 'Schulbuddy ist gerade nicht verfügbar. Schau später noch einmal nach.'
+    : message;
+
+String _buddyError(Object error, {required bool isChild}) => error is ApiError
+    ? _buddyDisplayMessage(error.message, isChild: isChild)
     : 'Schulbuddy ist gerade nicht erreichbar. Deine Frage bleibt erhalten. Versuche es bewusst erneut.';
 
 class _SchulbuddyChat extends StatefulWidget {
@@ -1128,6 +1133,7 @@ class _SchulbuddyChatState extends State<_SchulbuddyChat>
   Json? pendingBody;
   String? replyTo;
   bool? introductionExpanded;
+  bool ideasExpanded = false;
   bool loading = true,
       sending = false,
       reading = false,
@@ -1320,7 +1326,7 @@ class _SchulbuddyChatState extends State<_SchulbuddyChat>
       if (current && stamp == generation) {
         setState(() {
           loading = false;
-          error = _buddyError(e);
+          error = _buddyError(e, isChild: widget.state.isChild);
           if (e is ApiError && [401, 403, 404].contains(e.status)) {
             contextData = null;
             applying = true;
@@ -1363,6 +1369,7 @@ class _SchulbuddyChatState extends State<_SchulbuddyChat>
       newQuestionMode = false;
       restored = false;
       introductionExpanded = null;
+      ideasExpanded = false;
     });
     await load();
   }
@@ -1381,7 +1388,7 @@ class _SchulbuddyChatState extends State<_SchulbuddyChat>
       );
     } catch (e) {
       if (current && stamp == generation) {
-        setState(() => error = _buddyError(e));
+        setState(() => error = _buddyError(e, isChild: widget.state.isChild));
       }
     }
   }
@@ -1412,6 +1419,7 @@ class _SchulbuddyChatState extends State<_SchulbuddyChat>
     setState(() {
       sending = true;
       introductionExpanded = false;
+      ideasExpanded = false;
       error = null;
       pendingBody = body;
       pendingKey = key;
@@ -1467,7 +1475,7 @@ class _SchulbuddyChatState extends State<_SchulbuddyChat>
     } catch (e) {
       if (current && stamp == generation) {
         setState(() {
-          error = _buddyError(e);
+          error = _buddyError(e, isChild: widget.state.isChild);
           if (e is ApiError && e.status >= 400 && e.status < 500) {
             pendingBody = null;
             pendingKey = null;
@@ -1546,7 +1554,10 @@ class _SchulbuddyChatState extends State<_SchulbuddyChat>
             Semantics(liveRegion: true, child: Text('Schulbuddy denkt nach …'))
           else
             Notice(
-              turn['error'] ?? 'Diese Antwort konnte nicht erstellt werden. Deine Frage bleibt gespeichert.',
+              _buddyDisplayMessage(
+                turn['error'] is String ? turn['error'] : 'Diese Antwort konnte nicht erstellt werden. Deine Frage bleibt gespeichert.',
+                isChild: widget.state.isChild,
+              ),
               warning: true,
             ),
           for (final source
@@ -1576,6 +1587,11 @@ class _SchulbuddyChatState extends State<_SchulbuddyChat>
             .toList();
     final conversationStarted =
         sending || pendingBody != null || turns.isNotEmpty;
+    final visibleSuggestions = ideasExpanded
+        ? suggestions
+        : conversationStarted
+        ? <String>[]
+        : suggestions.take(2).toList();
     final showIntroduction = introductionExpanded ?? !conversationStarted;
     final notice = contextData?['notice'];
     final size = MediaQuery.sizeOf(context),
@@ -1671,11 +1687,6 @@ class _SchulbuddyChatState extends State<_SchulbuddyChat>
                   ? 'Ich helfe dir Schritt für Schritt zu verstehen. Probiere selbst mit; ich verrate nicht gleich die Lösung. KI kann Fehler machen.'
                   : 'KI-Hilfe kann Fehler machen. Prüfe wichtige Angaben. Teile nur, was für deine Frage nötig ist.',
               style: TextStyle(color: context.palette.muted),
-            )
-          else if (!available && !loading)
-            Text(
-              'Hier kannst du den vorhandenen Verlauf ansehen. Neue Fragen sind derzeit nicht möglich.',
-              style: TextStyle(color: context.palette.muted),
             ),
           if (loading)
             const Padding(
@@ -1686,7 +1697,7 @@ class _SchulbuddyChatState extends State<_SchulbuddyChat>
               (notice != _buddyIntroductionNotice ||
                   !available ||
                   showIntroduction))
-            Notice(notice)
+            Notice(_buddyDisplayMessage(notice, isChild: widget.state.isChild))
           else if (!loading && !available && error == null)
             const Notice(
               'Der Server hat den Chat in diesem Bereich nicht freigegeben. Du kannst den Status bewusst aktualisieren.',
@@ -1735,18 +1746,38 @@ class _SchulbuddyChatState extends State<_SchulbuddyChat>
             ),
           if (available && turns.isEmpty && !loading && suggestions.isNotEmpty)
             const Text('Womit möchtest du anfangen?'),
-          if (available && !pending && pendingBody == null)
+          if (available && !pending && pendingBody == null) ...[
             Wrap(
               spacing: 8,
               runSpacing: 8,
               children: [
-                for (final suggestion in suggestions)
+                for (final suggestion in visibleSuggestions)
                   ActionChip(
                     label: Text(suggestion),
                     onPressed: sending ? null : () => starter(suggestion),
                   ),
               ],
             ),
+            if (suggestions.length > visibleSuggestions.length ||
+                (ideasExpanded && suggestions.isNotEmpty))
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: () =>
+                      setState(() => ideasExpanded = !ideasExpanded),
+                  icon: Icon(
+                    ideasExpanded ? Icons.expand_less : Icons.expand_more,
+                  ),
+                  label: Text(
+                    ideasExpanded
+                        ? 'Frageideen ausblenden'
+                        : conversationStarted
+                        ? 'Frageideen anzeigen'
+                        : 'Weitere Frageideen',
+                  ),
+                ),
+              ),
+          ],
           const SizedBox(height: 12),
         ],
       ),

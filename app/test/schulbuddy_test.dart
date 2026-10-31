@@ -218,7 +218,7 @@ void main() {
       );
       await tap(t, find.text('Buddy öffnen'));
       expect(h.calls.every((r) => r.method == 'GET'), isTrue);
-      expect(find.byType(ActionChip), findsNWidgets(3));
+      expect(find.byType(ActionChip), findsNWidgets(2));
       await t.enterText(field(), 'Mein eigener Entwurf');
       await tap(t, find.text('Wie kann ich selbst anfangen?'));
       final posts = h.calls.where((r) => r.method == 'POST').toList();

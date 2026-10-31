@@ -124,7 +124,7 @@ void main() {
         t.widget<TextField>(f.field()).controller!.text,
         'Mein eigener ungesendeter Entwurf',
       );
-      expect(find.byType(ActionChip), findsNWidgets(3));
+      expect(find.byType(ActionChip), findsNWidgets(2));
       expect(h.calls.every((r) => r.method == 'GET'), isTrue);
     },
   );
