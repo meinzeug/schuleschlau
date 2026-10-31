@@ -80,11 +80,19 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
 
   **Abnahme:** Jedes Ziel hat Messmethode, Testdaten, Bezugszeitraum, Grenzwert, verantwortliche Rolle und ein Vorgehen bei Nichterfüllung.
 
-- [ ] **P0 – Anforderungen, Entscheidungen und tatsächliche Anbieterroute abgleichen**
+- [x] **P0 – Anforderungen, Entscheidungen und tatsächliche Anbieterroute abgleichen**
 
   Aktuelle Nutzeraufträge, `AGENTS.md`, dokumentierte Betreiberentscheidungen und tatsächlich eingesetzte Konfiguration zeitlich einordnen. Insbesondere den ausdrücklich beauftragten automatischen Seitenabgleich mit älteren Regeln zur manuellen Bestätigung in Einklang dokumentieren; frühere Anbieter-, Budget- und Lernzeitangaben als historische Stände kennzeichnen. Bestehende Freigaben nicht erneut anfordern und keine Live-Konfiguration allein wegen widersprüchlicher alter Dokumentation ändern.
 
   **Abnahme:** Eine Übersicht nennt für jeden Widerspruch die geltende spätere Entscheidung, den aktuellen Implementierungsstand und gegebenenfalls eine konkrete offene Anpassung. Mindestlernzeiten bleiben Mindestziele und sperren freiwilliges Weiterlernen nicht.
+
+  **Nachweis 31.10.2026:** Die Übersicht
+  `docs/DECISIONS_CURRENT_2026_10_31.md` ordnet die Betreiberentscheidungen zu
+  Prüfmodus, Mindestzeit, Anbieter, Modellwechsel, Reservierungen, Push und
+  Marke zeitlich ein. Die tatsächlichen Einstellungen wurden ohne Schlüssel
+  oder Kinderinhalte lesend auf Release `484a9be` geprüft; spätere Änderungen
+  erfordern einen erneuten Abgleich. Terra ist damit nicht freigegeben oder
+  aktiviert und eine externe Datenschutzprüfung nicht ersetzt.
 
 
 ## Konkrete P0-Befunde aus der Bestandsaufnahme
@@ -97,6 +105,13 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
   `docs/STORAGE_AND_ALERTS.md`. Künstliche Grenzwert- und Alarmtests bestehen.
   Produktive Übernahme auf beiden Hosts, tatsächlicher Spitzenbedarf und
   längerfristiger Wachstumstrend bleiben noch nachzuweisen.
+
+  - [x] Serverprüfungen für Speicherplatz und konfigurierte Volume-UUID
+    implementieren und mit künstlichen Grenzwerten sowie auf dem Zielhost im
+    lesenden Trockenlauf prüfen.
+  - [x] Den unabhängigen Wächter um Speicher- und Statusdateiprüfung erweitern
+    und die Fehlerfälle isoliert testen.
+  - [ ] Beide Änderungen abgestimmt ausliefern und die produktiven Timer prüfen.
 
   Bei der lesenden Prüfung am 31.10.2026 zeigte das Serverdateisystem rund 92 % Belegung und etwa 3,1 GiB frei. Wachstum von Datenbank, privaten Uploads, Backups und eigenen Releases getrennt messen; den Platzbedarf für Backup, Build, Upload und Wiederherstellung berücksichtigen. Nur eindeutig entbehrliche eigene Artefakte unter Einhaltung aller Aufbewahrungsregeln bereinigen oder Speicherkapazität erweitern; keine fremden Dienste oder Daten verändern. Warn- und Eskalationsschwellen auf den tatsächlich verfügbaren Platz und den Wachstumstrend abstimmen.
 
@@ -377,6 +392,11 @@ Die folgenden Punkte beschreiben ausstehende, wiederholbare Betriebs- und Freiga
   werden künstlich geprüft; der Ablauf ist in `docs/STORAGE_AND_ALERTS.md`
   dokumentiert. Die Auslieferung der Änderungen und eine unabhängige Prüfung
   des laufenden Alarmsystems stehen noch aus.
+
+  - [x] Beschädigte oder ungültige Offsite-Erfolgsstände als neutrale Störung
+    behandeln und die Erkennung isoliert prüfen.
+  - [ ] Installierte Überwachung, unabhängigen Alarmweg und Störungsablauf im
+    freigegebenen Betriebsumfang abnehmen.
 
   Bestehende Checks für API, Worker, festhängende Jobs, Lösch-Outbox, Backups, Speicher, öffentliche Erreichbarkeit und Offsite-Frische sowie zuständige Alarmwege kontrollieren.
 
