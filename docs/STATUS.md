@@ -8,13 +8,20 @@ Worker laufen aus dem aktiven Releaseverzeichnis. Der vorherige Release
 Prüfung von Schema und bereits geschriebenen Daten. Eine verschlüsselte
 Konfigurationssicherung liegt unter
 `/var/backups/schulpilot-config/predeploy-20261031T192307Z.tar.enc`.
+Nach der Aktivierung wurden Eigentum und Schreibrechte der Web-/Download-Dateien
+korrigiert und der Releaseinhalt erneut gegen die signierten Artefakte geprüft.
 
 Web, Direct-APK und Play-AAB wurden aus demselben Commit gebaut und ihre
 Releasebindung geprüft. Das öffentliche Android-Manifest meldet Version 206;
 der SHA-256 der tatsächlich heruntergeladenen APK entspricht dem Manifest.
 Ein physischer Androidtest und ein Play-Upload sind dadurch nicht belegt.
-Die vollständige CI für diesen Commit und der Abschluss des neu umgestellten
-Offsite-Abgleichs sind gesondert zu prüfen. Die offene Roadmap und die darin
+Nach der Umstellung wurden ein neues Backup mit Journalstatus und ein
+erfolgreicher Offsite-Abgleich mit frischen lokalen und serverseitigen
+Bestätigungen geprüft; der Timer ist wieder aktiv. Wegen des zuvor erreichten
+Zeitlimits wurde der lokale Dienst auf 45 Minuten erhöht. Ein erfolgreicher
+Abgleich ersetzt keinen Wiederherstellungstest. Der CI-Lauf für diesen Commit
+wurde bei einem neueren Push abgebrochen und ist kein Erfolgsnachweis; die
+Prüfungen des neueren Stands laufen separat. Die offene Roadmap und die darin
 beschriebenen Mehrgeräte-, Deployment- und Notenlöschungsrisiken bleiben gültig.
 
 ---
