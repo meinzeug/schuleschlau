@@ -1,27 +1,28 @@
-# Produktionsstand · 1.38.51+206
+# Produktionsstand · 1.38.52+207
 
-Am 31.10.2026 wurde Release `20261031T202240Z-cdc6589` auf
+Am 31.10.2026 wurde Release `20261031T205552Z-0870f3c` auf
 [schulpilot.dorfspy.de](https://schulpilot.dorfspy.de) aktiviert. Produktcommit:
-`cdc6589c211201ade7e2a279705cbb9b99e8b804`. Health meldet diesen Stand; API und
+`0870f3c01349a1559a84af8251ff49814111e9cc`. Health meldet diesen Stand; API und
 Worker laufen aus dem aktiven Releaseverzeichnis. Der vorherige Release
-`20261030T224607Z-4d33e10` bleibt erhalten; ein Rückweg benötigt vorher eine
+`20261031T202240Z-cdc6589` bleibt erhalten; ein Rückweg benötigt vorher eine
 Prüfung von Schema und bereits geschriebenen Daten. Eine verschlüsselte
 Konfigurationssicherung liegt unter
-`/var/backups/schulpilot-config/predeploy-20261031T192307Z.tar.enc`.
-Nach der Aktivierung wurden Eigentum und Schreibrechte der Web-/Download-Dateien
-korrigiert und der Releaseinhalt erneut gegen die signierten Artefakte geprüft.
+`/var/backups/schulpilot-config/predeploy-20261031T195558Z.tar.enc`.
+Der Releaseupload prüft Eigentum und Rechte vor der Aktivierung; ausgelieferte
+Web-/Download-Dateien sind root-eigen und nicht gruppen- oder fremdschreibbar.
+Die Leserechte der Dienste wurden geprüft.
 
 Web, Direct-APK und Play-AAB wurden aus demselben Commit gebaut und ihre
-Releasebindung geprüft. Das öffentliche Android-Manifest meldet Version 206;
+Releasebindung geprüft. Das öffentliche Android-Manifest meldet Version 207;
 der SHA-256 der tatsächlich heruntergeladenen APK entspricht dem Manifest.
 Ein physischer Androidtest und ein Play-Upload sind dadurch nicht belegt.
 Nach der Umstellung wurden ein neues Backup mit Journalstatus und ein
 erfolgreicher Offsite-Abgleich mit frischen lokalen und serverseitigen
 Bestätigungen geprüft; der Timer ist wieder aktiv. Wegen des zuvor erreichten
 Zeitlimits wurde der lokale Dienst auf 45 Minuten erhöht. Ein erfolgreicher
-Abgleich ersetzt keinen Wiederherstellungstest. Der CI-Lauf für diesen Commit
-wurde bei einem neueren Push abgebrochen und ist kein Erfolgsnachweis; die
-Prüfungen des neueren Stands laufen separat. Die offene Roadmap und die darin
+Abgleich ersetzt keinen vollständigen Wiederherstellungstest. Eine isolierte
+Restoreprobe mit aktuellem Journalstatus bestand; der gesonderte Notenfehler
+bleibt offen. Die Flutter-CI ist erfolgreich, die Backend-CI läuft noch. Die offene Roadmap und die darin
 beschriebenen Mehrgeräte-, Deployment- und Notenlöschungsrisiken bleiben gültig.
 
 ---
