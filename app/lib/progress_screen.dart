@@ -615,15 +615,43 @@ class _ProgressScreenState extends State<ProgressScreen> {
                   )
                 else
                   Panel(
-                    child: PracticeEvidence(
-                      Json.from(data!['selected_totals']),
+                    padding: EdgeInsets.zero,
+                    child: ExpansionTile(
+                      key: const ValueKey('child-progress-summary'),
+                      title: const Text('Dein Überblick'),
+                      subtitle: Text(
+                        counted(
+                          Json.from(data!['selected_totals'])['practiced_tasks']
+                                  as num? ??
+                              0,
+                          'Aufgabe geübt',
+                          'Aufgaben geübt',
+                        ),
+                      ),
+                      childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      children: [
+                        PracticeEvidence(Json.from(data!['selected_totals'])),
+                        const SizedBox(height: 10),
+                        Text(
+                          'Jede Übung zählt. Wiederholte Versuche bleiben sichtbar.',
+                          style: TextStyle(
+                            color: context.palette.muted,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                const SizedBox(height: 10),
-                Text(
-                  'Jede Übung zählt. Wiederholte Versuche bleiben sichtbar.',
-                  style: TextStyle(color: context.palette.muted, fontSize: 13),
-                ),
+                if (!widget.state.isChild) ...[
+                  const SizedBox(height: 10),
+                  Text(
+                    'Jede Übung zählt. Wiederholte Versuche bleiben sichtbar.',
+                    style: TextStyle(
+                      color: context.palette.muted,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 16),
                 heading(
                   data!['level'] == 'subjects'
@@ -676,40 +704,41 @@ class _ProgressScreenState extends State<ProgressScreen> {
                     ),
                 ],
                 const SizedBox(height: 12),
-                Wrap(
-                  alignment: WrapAlignment.center,
-                  spacing: 14,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    if (data!['pagination']['pages'] > 1)
-                      IconButton(
-                        tooltip: 'Vorherige Seite',
-                        onPressed: loading || data!['pagination']['page'] <= 1
+                if (!widget.state.isChild || data!['pagination']['pages'] > 1)
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    spacing: 14,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      if (data!['pagination']['pages'] > 1)
+                        IconButton(
+                          tooltip: 'Vorherige Seite',
+                          onPressed: loading || data!['pagination']['page'] <= 1
+                              ? null
+                              : pageAction(data!, -1),
+                          icon: Icon(Icons.chevron_left_rounded),
+                        ),
+                      TextButton(
+                        onPressed: loading || data!['pagination']['pages'] <= 1
                             ? null
-                            : pageAction(data!, -1),
-                        icon: Icon(Icons.chevron_left_rounded),
+                            : () => pickPage(data!, generation),
+                        child: Text(
+                          'Seite ${data!['pagination']['page']} von ${data!['pagination']['pages']}',
+                        ),
                       ),
-                    TextButton(
-                      onPressed: loading || data!['pagination']['pages'] <= 1
-                          ? null
-                          : () => pickPage(data!, generation),
-                      child: Text(
-                        'Seite ${data!['pagination']['page']} von ${data!['pagination']['pages']}',
-                      ),
-                    ),
-                    if (data!['pagination']['pages'] > 1)
-                      IconButton(
-                        tooltip: 'Nächste Seite',
-                        onPressed:
-                            loading ||
-                                data!['pagination']['page'] >=
-                                    data!['pagination']['pages']
-                            ? null
-                            : pageAction(data!, 1),
-                        icon: Icon(Icons.chevron_right_rounded),
-                      ),
-                  ],
-                ),
+                      if (data!['pagination']['pages'] > 1)
+                        IconButton(
+                          tooltip: 'Nächste Seite',
+                          onPressed:
+                              loading ||
+                                  data!['pagination']['page'] >=
+                                      data!['pagination']['pages']
+                              ? null
+                              : pageAction(data!, 1),
+                          icon: Icon(Icons.chevron_right_rounded),
+                        ),
+                    ],
+                  ),
                 if (!widget.state.isChild && subject == null) ...[
                   const SizedBox(height: 16),
                   ParentInsightsPanel(
@@ -887,6 +916,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
     final count = total is num
         ? '$shown von $total ${total == 1 ? singular : afterFrom}'
         : '${counted(shown, singular, plural)} auf dieser Seite';
+    if (widget.state.isChild && pagination['pages'] == 1) return count;
     return '$count · Seite ${pagination['page']} von ${pagination['pages']}';
   }
 
