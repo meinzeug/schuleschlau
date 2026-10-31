@@ -18,7 +18,7 @@ void main() {
       await fixture.resume(tester);
       await tester.pumpAndSettle();
       expect(find.text('Bruchtest vorbereiten'), findsOneWidget);
-      expect(find.text('Sitzung bewusst starten'), findsOneWidget);
+      expect(find.text('Lernrunde starten'), findsOneWidget);
       expect(value.writes, isEmpty);
       expect(tester.takeException(), isNull);
     },

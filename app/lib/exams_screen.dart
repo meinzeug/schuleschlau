@@ -450,6 +450,9 @@ class _ExamsBodyState extends State<_ExamsBody> {
   Widget preparation() {
     final exam = detail!;
     final sessions = examObjects(exam['sessions']);
+    final plannedDays = exam['planned_days'] ?? sessions.length;
+    final plannedDaysLabel =
+        '$plannedDays ${plannedDays == 1 ? 'Lerntag' : 'Lerntage'} geplant';
     final selected = widget.sessionId;
     final next = sessions
         .where(
@@ -478,24 +481,22 @@ class _ExamsBodyState extends State<_ExamsBody> {
           const Notice(
             'Mindestens eine Heftquelle wurde geändert. Prüfe den Plan vor der nächsten Vorbereitung.',
           ),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            PlanPill(
-              '${exam['planned_days'] ?? sessions.length} Lerntage geplant',
-              icon: Icons.calendar_today_outlined,
-            ),
-            PlanPill(
-              '${exam['requested_questions'] ?? 0} Aufgaben geplant',
-              icon: Icons.checklist,
-            ),
-            PlanPill(
-              '${exam['minutes']} Min. empfohlen',
-              icon: Icons.schedule_outlined,
-            ),
-          ],
-        ),
+        if (!state.isChild)
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              PlanPill(plannedDaysLabel, icon: Icons.calendar_today_outlined),
+              PlanPill(
+                '${exam['requested_questions'] ?? 0} Aufgaben geplant',
+                icon: Icons.checklist,
+              ),
+              PlanPill(
+                '${exam['minutes']} Min. empfohlen',
+                icon: Icons.schedule_outlined,
+              ),
+            ],
+          ),
         const SizedBox(height: 12),
         if (next != null) sessionCard(next, prominent: true),
         if (sessions.isNotEmpty && next == null)
@@ -510,6 +511,25 @@ class _ExamsBodyState extends State<_ExamsBody> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              if (state.isChild)
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    PlanPill(
+                      plannedDaysLabel,
+                      icon: Icons.calendar_today_outlined,
+                    ),
+                    PlanPill(
+                      '${exam['requested_questions'] ?? 0} Aufgaben geplant',
+                      icon: Icons.checklist,
+                    ),
+                    PlanPill(
+                      '${exam['minutes']} Min. empfohlen',
+                      icon: Icons.schedule_outlined,
+                    ),
+                  ],
+                ),
               for (final topic in examObjects(exam['topics']))
                 ListTile(
                   contentPadding: EdgeInsets.zero,
@@ -563,6 +583,11 @@ class _ExamsBodyState extends State<_ExamsBody> {
 
   Widget sessionCard(Json session, {bool prominent = false}) {
     final completed = session['status'] == 'completed';
+    final prefix = !prominent
+        ? ''
+        : state.isChild
+        ? 'Dein nächster Lerntag · '
+        : 'Deine nächste Sitzung · ';
     final canStart =
         state.isChild &&
         detail?['can_prepare'] == true &&
@@ -582,19 +607,23 @@ class _ExamsBodyState extends State<_ExamsBody> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              '${prominent ? 'Deine nächste Sitzung · ' : ''}${friendlyDate(session['date'])}',
+              '$prefix${friendlyDate(session['date'])}',
               style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
             ),
-            for (final topic in examObjects(session['topics']))
+            if (!state.isChild) ...[
+              for (final topic in examObjects(session['topics']))
+                Text(
+                  '${topic['label'] ?? topic['topic_label'] ?? ''} · ${topic['question_count'] ?? topic['requested_questions'] ?? ''} Aufgaben',
+                ),
               Text(
-                '${topic['label'] ?? topic['topic_label'] ?? ''} · ${topic['question_count'] ?? topic['requested_questions'] ?? ''} Aufgaben',
+                '${session['minutes']} Min. empfohlen · ${session['requested_questions']} Aufgaben geplant',
               ),
-            Text(
-              '${session['minutes']} Min. empfohlen · ${session['requested_questions']} Aufgaben geplant',
-            ),
-            Text(
-              '${session['completed_rounds'] ?? 0} von ${session['planned_rounds'] ?? rounds.length} Runden bearbeitet',
-            ),
+              Text(
+                '${session['completed_rounds'] ?? 0} von ${session['planned_rounds'] ?? rounds.length} Runden bearbeitet',
+              ),
+            ] else
+              for (final topic in examObjects(session['topics']))
+                Text('${topic['label'] ?? topic['topic_label'] ?? ''}'),
             if (completed) const Text('Bearbeitet'),
             if (session['status'] == 'stale')
               const Notice('Quelle geändert · Vorbereitung prüfen'),
@@ -607,10 +636,33 @@ class _ExamsBodyState extends State<_ExamsBody> {
                     ? 'Gespeicherten Stand prüfen …'
                     : saved != null
                     ? 'Gespeicherte Runde fortsetzen'
-                    : 'Sitzung bewusst starten',
+                    : 'Lernrunde starten',
                 icon: Icons.play_arrow_rounded,
                 enabled: workingSession == null,
                 onPressed: () => prepare(session),
+              ),
+            if (state.isChild)
+              ExpansionTile(
+                tilePadding: EdgeInsets.zero,
+                title: const Text('Mehr zum Lerntag'),
+                children: [
+                  for (final topic in examObjects(session['topics']))
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(
+                        '${topic['label'] ?? topic['topic_label'] ?? ''}',
+                      ),
+                      subtitle: Text(
+                        '${topic['question_count'] ?? topic['requested_questions'] ?? ''} Aufgaben geplant',
+                      ),
+                    ),
+                  Text(
+                    '${session['minutes']} Min. empfohlen · ${session['requested_questions']} Aufgaben geplant',
+                  ),
+                  Text(
+                    '${session['completed_rounds'] ?? 0} von ${session['planned_rounds'] ?? rounds.length} Runden bearbeitet',
+                  ),
+                ],
               ),
             if (state.isParent &&
                 rounds.any((round) => round['unit_id'] is String))

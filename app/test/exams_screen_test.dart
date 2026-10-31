@@ -14,6 +14,8 @@ import 'package:schulpilot/exams_screen.dart';
 import 'package:schulpilot/exams_scope.dart';
 import 'package:schulpilot/ui.dart';
 
+import 'page_tools_test_helpers.dart' as page_tools;
+
 const sourceId = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
 Json source() => {
   'id': sourceId,
@@ -385,7 +387,7 @@ void main() {
       final fixture = Fixture();
       await fixture.mount(tester, selected: 'exam');
       expect(fixture.writes, isEmpty);
-      await tap(tester, find.text('Sitzung bewusst starten'));
+      await tap(tester, find.text('Lernrunde starten'));
       expect(find.text('Job saved'), findsOneWidget);
       expect(fixture.writes, hasLength(1));
       expect(
@@ -400,7 +402,7 @@ void main() {
     (tester) async {
       final fixture = Fixture()..prepareKind = 'unit';
       await fixture.mount(tester, selected: 'exam');
-      await tap(tester, find.text('Sitzung bewusst starten'));
+      await tap(tester, find.text('Lernrunde starten'));
       expect(find.text('Runde saved'), findsOneWidget);
       expect(fixture.writes.map((call) => call.url.path), [
         '/api/exams/exam/sessions/session/prepare',
@@ -413,7 +415,7 @@ void main() {
   ) async {
     final fixture = Fixture(role: 'parent');
     await fixture.mount(tester, selected: 'exam');
-    expect(find.text('Sitzung bewusst starten'), findsNothing);
+    expect(find.text('Lernrunde starten'), findsNothing);
     expect(
       find.text('Das Kind startet die Vorbereitung in seinem Zugang.'),
       findsOneWidget,
@@ -425,8 +427,12 @@ void main() {
   ) async {
     final fixture = Fixture();
     await fixture.mount(tester, selected: 'exam');
-    expect(find.text('6 Aufgaben geplant'), findsOneWidget);
+    expect(find.text('6 Aufgaben geplant'), findsNothing);
+    expect(find.text('0 von 2 Runden bearbeitet'), findsNothing);
+    await tap(tester, find.text('Mehr zum Lerntag'));
     expect(find.text('0 von 2 Runden bearbeitet'), findsOneWidget);
+    await page_tools.openPageTools(tester, 'exam-plan-details');
+    expect(find.text('6 Aufgaben geplant'), findsWidgets);
     expect(find.textContaining('Aufgaben richtig'), findsNothing);
     expect(fixture.writes, isEmpty);
   });
@@ -449,7 +455,7 @@ void main() {
       final fixture = Fixture();
       await fixture.mount(tester, selected: 'exam');
       final button = tester.widget<ActionButton>(
-        find.widgetWithText(ActionButton, 'Sitzung bewusst starten'),
+        find.widgetWithText(ActionButton, 'Lernrunde starten'),
       );
       if (change == 'account') {
         fixture.state.user = {...fixture.state.user!, 'id': 'other'};
