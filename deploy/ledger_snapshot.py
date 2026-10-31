@@ -22,6 +22,8 @@ def status_path(backup):
 @contextmanager
 def backup_lock(directory, *, exclusive):
     """Serialize archive publication/retention and offsite acknowledgement."""
-    with (directory / ".backup.lock").open("a+b") as lock:
+    # Readers must not create the lock: restore runs with a read-only backup
+    # directory, and a missing lock must not silently split synchronization.
+    with (directory / ".backup.lock").open("a+b" if exclusive else "rb") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX if exclusive else fcntl.LOCK_SH)
         yield

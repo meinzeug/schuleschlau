@@ -16,7 +16,7 @@ import uuid
 from pathlib import Path
 
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from ledger_snapshot import locked_journal
+from ledger_snapshot import backup_lock, locked_journal
 from monitor import environment
 
 
@@ -70,6 +70,13 @@ def main():
     if os.geteuid() != 0:
         raise SystemExit("Operator access required")
     os.umask(0o077)
+    # Keep the selected ciphertext available throughout the rehearsal: backup
+    # retention and publication use the same lock exclusively.
+    with backup_lock(Path("/var/backups/schulpilot"), exclusive=False):
+        restore()
+
+
+def restore():
     candidates = sorted(Path("/var/backups/schulpilot").glob("*.tar.enc"))
     if not candidates:
         raise RuntimeError("No backup available")

@@ -24,6 +24,27 @@ import restore_check  # noqa: E402
 from ledger_snapshot import backup_lock  # noqa: E402
 
 
+def test_restore_holds_publication_lock_and_missing_lock_fails_closed(tmp_path, monkeypatch):
+    monkeypatch.setattr(restore_check.os, "geteuid", lambda: 0)
+    monkeypatch.setattr(restore_check.os, "umask", lambda _mask: None)
+    monkeypatch.setattr(restore_check, "Path", lambda _value: tmp_path)
+    invoked = []
+
+    def rehearsal():
+        invoked.append(True)
+        with (tmp_path / ".backup.lock").open("rb") as contender:
+            with pytest.raises(BlockingIOError):
+                fcntl.flock(contender, fcntl.LOCK_EX | fcntl.LOCK_NB)
+
+    monkeypatch.setattr(restore_check, "restore", rehearsal)
+    with pytest.raises(FileNotFoundError):
+        restore_check.main()
+    assert not invoked
+    (tmp_path / ".backup.lock").touch()
+    restore_check.main()
+    assert invoked == [True]
+
+
 def test_missing_and_empty_journal_are_distinct_and_no_lock_is_created(tmp_path):
     ledger = tmp_path / "erasure-ledger.jsonl"
     lock = tmp_path / ".erasure-ledger.lock"
@@ -136,6 +157,7 @@ def test_rotation_and_readers_share_stable_lock(tmp_path, reader):
 
 
 def test_ack_identity_and_publication_are_serialized(tmp_path):
+    (tmp_path / ".backup.lock").touch()
     old = tmp_path / "20261031T120000Z.tar.enc"
     old.write_bytes(b"synthetic-old-archive")
     backup.write_status(old, "present")
@@ -197,6 +219,7 @@ def test_ack_never_records_success_for_missing_journal_or_changed_backup(tmp_pat
     etc = mapped("/etc/schulpilot")
     for path in (directory, data, monitor, etc):
         path.mkdir(parents=True)
+    (directory / ".backup.lock").touch()
     archive = directory / "20261031T120000Z.tar.enc"
     archive.write_bytes(b"synthetic-archive")
     digest = hashlib.sha256(archive.read_bytes()).hexdigest()
