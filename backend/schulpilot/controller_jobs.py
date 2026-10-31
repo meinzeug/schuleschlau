@@ -20,7 +20,8 @@ router = APIRouter(tags=["Lernbegleitung"])
 def authority(db, job):
     session = db.get(Session, job.payload["session_id"])
     user = db.get(User, session.user_id) if session else None
-    if not session or session.revoked or session.expires <= now() or session.seen < now() - 7 * 86400 or not user or user.role != "child":
+    if (not session or session.revoked or session.expires <= now() or session.seen < now() - 7 * 86400
+            or not user or user.role != "child" or user.disabled or not user.verified):
         raise ProviderError("Die Anmeldung wurde beendet. Der Auftrag wird nicht übernommen.")
     p = Principal(user, session)
     child = child_access(db, p, job.child_id)

@@ -387,7 +387,8 @@ def own_material(db, p, material_id, *, write=False):
 
         session = db.get(Session, p.session.id, populate_existing=True)
         user = db.get(User, p.user.id, populate_existing=True)
-        if not session or session.revoked or session.expires <= now() or not user or user.disabled:
+        if (not session or session.user_id != p.user.id or session.revoked or session.expires <= now()
+                or now() - session.seen > 7 * 86400 or not user or user.disabled or not user.verified):
             raise HTTPException(401, "Bitte melde dich erneut an.")
         child_access(db, p, child.id)
         material = db.get(Material, material_id, populate_existing=True)
