@@ -69,6 +69,18 @@ def encode(value):
     return (json.dumps(value, sort_keys=True, separators=(',', ':')) + '\n').encode()
 
 
+def bind_repair(repair, proof, commit):
+    """Bind the canonical verified archive to the same commit as the signed APK."""
+    if not isinstance(repair, dict) or not isinstance(proof, dict):
+        raise ValueError('Invalid repair binding')
+    sha = repair.get('sha256')
+    if (repair.get('verified') is not True or repair.get('source_commit') != commit
+            or proof.get('source_commit') != commit or not isinstance(sha, str)
+            or not re.fullmatch(r'[0-9a-f]{64}', sha)):
+        raise ValueError('Repair source and signed release do not match')
+    return sha
+
+
 def payload(root, commit):
     version = re.search(r'^version:\s*(\S+)$', (root / 'app/pubspec.yaml').read_text(), re.M)
     if not version:
@@ -118,10 +130,17 @@ def verify(root, commit, verify_apk=None):
 
 def main():
     mode = sys.argv[1]
+    if mode == 'bind-repair':
+        print(bind_repair(json.load(sys.stdin), json.loads(base64.b64decode(sys.argv[2], validate=True)), sys.argv[3]))
+        return
     if mode == 'staged':
         root = Path(sys.argv[2])
-        apk_sha, raw, public_sha = sys.argv[3], base64.b64decode(sys.argv[4], validate=True), sys.argv[5]
+        apk_sha, raw, public_sha, repair_sha = sys.argv[3], base64.b64decode(sys.argv[4], validate=True), sys.argv[5], sys.argv[6]
         proof = json.loads(raw)
+        repair = root / 'repair-source.tar.gz'
+        if (not re.fullmatch(r'[0-9a-f]{64}', repair_sha) or repair.is_symlink()
+                or not repair.is_file() or digest(repair) != repair_sha):
+            raise ValueError('Uploaded repair source differs from verified archive')
         if raw != encode(proof) or digest(root / 'downloads/schulpilot-android.apk') != apk_sha:
             raise ValueError('Uploaded APK differs from verified APK')
         if apk_proof(root / 'downloads/schulpilot-android.apk') != raw:

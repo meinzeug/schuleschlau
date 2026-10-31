@@ -4,23 +4,27 @@ cd "$(dirname "$0")/.."
 test -f app/build/web/index.html
 test -f artifacts/schulpilot-android.apk
 test -f artifacts/repair-source.tar.gz
-python3 scripts/prepare_repair_source.py --commit "$(git rev-parse HEAD)" --output artifacts/repair-source.tar.gz --verify
+build_commit="$(git rev-parse HEAD)"
+repair_binding="$(python3 scripts/prepare_repair_source.py --commit "$build_commit" --output artifacts/repair-source.tar.gz --verify)"
 python3 scripts/android_manifest.py
 release_binding="$(python3 scripts/release_attestation.py verify)"
 read -r release_apk_sha release_proof release_android_sha <<< "$release_binding"
-release="$(date -u +%Y%m%dT%H%M%SZ)-$(git rev-parse --short HEAD)"
+repair_sha="$(printf '%s' "$repair_binding" | python3 scripts/release_attestation.py bind-repair "$release_proof" "$build_commit")"
+release="$(date -u +%Y%m%dT%H%M%SZ)-$(git rev-parse --short "$build_commit")"
 ssh -o BatchMode=yes dorfspy python3 - < deploy/bootstrap_host.py
-ssh dorfspy "mkdir -p /opt/schulpilot/releases/$release"
+# A fresh root-owned directory prevents an existing release or writable staged
+# path from being substituted between verification and activation.
+ssh dorfspy "mkdir -m 755 /opt/schulpilot/releases/$release"
 rsync -a --chown=root:root --chmod=Dgo-w,Fgo-w --exclude='__pycache__' --exclude='.pytest_cache' backend deploy workers "dorfspy:/opt/schulpilot/releases/$release/"
 rsync -a app/build/web/ "dorfspy:/opt/schulpilot/releases/$release/web/"
 ssh dorfspy "mkdir -p /opt/schulpilot/releases/$release/downloads"
 rsync -a artifacts/schulpilot-android.apk "dorfspy:/opt/schulpilot/releases/$release/downloads/schulpilot-android.apk"
 rsync -a artifacts/android-release.json "dorfspy:/opt/schulpilot/releases/$release/android-release.json"
-rsync -a artifacts/repair-source.tar.gz "dorfspy:/opt/schulpilot/releases/$release/repair-source.tar.gz"
-ssh dorfspy python3 - staged "/opt/schulpilot/releases/$release" "$release_apk_sha" "$release_proof" "$release_android_sha" < scripts/release_attestation.py
+rsync -a --no-links artifacts/repair-source.tar.gz "dorfspy:/opt/schulpilot/releases/$release/repair-source.tar.gz"
 ssh dorfspy "chown root:schulpilot /opt/schulpilot/releases/$release/repair-source.tar.gz && chmod 640 /opt/schulpilot/releases/$release/repair-source.tar.gz"
+ssh dorfspy python3 - staged "/opt/schulpilot/releases/$release" "$release_apk_sha" "$release_proof" "$release_android_sha" "$repair_sha" < scripts/release_attestation.py
 ssh dorfspy "chmod 755 /opt/schulpilot/releases/$release/downloads && chmod 644 /opt/schulpilot/releases/$release/downloads/schulpilot-android.apk /opt/schulpilot/releases/$release/android-release.json"
-ssh dorfspy python3 - "$release" "$(git rev-parse HEAD)" <<'PY'
+ssh dorfspy python3 - "$release" "$build_commit" <<'PY'
 import json,sys
 from pathlib import Path
 root=Path('/opt/schulpilot/releases')/sys.argv[1]
@@ -43,6 +47,7 @@ PY
 )"
 repair_restart_done=false
 trap 'if [[ "$repair_restart_done" != true ]]; then echo "Repair services remain stopped: verify source/schema and restart explicitly after resolving deployment failure." >&2; fi' EXIT
+ssh dorfspy python3 - staged "/opt/schulpilot/releases/$release" "$release_apk_sha" "$release_proof" "$release_android_sha" "$repair_sha" < scripts/release_attestation.py
 ssh dorfspy "python3 /opt/schulpilot/releases/$release/deploy/activate.py $release"
 ssh dorfspy "if test -f /etc/systemd/system/schulpilot-codex.service; then python3 /opt/schulpilot/releases/$release/deploy/install_codex.py; fi"
 curl --retry 10 --retry-all-errors --retry-delay 3 --fail --silent --show-error https://schulpilot.dorfspy.de/api/health

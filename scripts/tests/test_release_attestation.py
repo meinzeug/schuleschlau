@@ -50,6 +50,29 @@ def test_accepts_matching_artifacts(built):
     assert json.loads(base64.b64decode(proof))['source_commit'] == commit
 
 
+def test_repair_binding_requires_verified_hash_and_signed_commit(built):
+    root, commit = built
+    _, proof, _ = release.verify(root, commit, simulated_verified_apk)
+    info = {'verified': True, 'source_commit': commit, 'sha256': 'a' * 64}
+    parsed_proof = json.loads(base64.b64decode(proof))
+    assert release.bind_repair(info, parsed_proof, commit) == 'a' * 64
+    for changed in (
+        {**info, 'verified': False},
+        {**info, 'source_commit': 'b' * 40},
+        {**info, 'sha256': 'x' * 64},
+        {**info, 'sha256': None},
+    ):
+        with pytest.raises(ValueError):
+            release.bind_repair(changed, parsed_proof, commit)
+    with pytest.raises(ValueError):
+        release.bind_repair(info, {**parsed_proof, 'source_commit': 'c' * 40}, commit)
+    command = ['python3', str(MODULE), 'bind-repair', proof, commit]
+    result = subprocess.run(command, input=json.dumps(info), text=True, capture_output=True, check=True)
+    assert result.stdout.strip() == 'a' * 64
+    result = subprocess.run(command, input=json.dumps({**info, 'verified': False}), text=True, capture_output=True)
+    assert result.returncode != 0
+
+
 @pytest.mark.parametrize('path', ['app/build/web/index.html', 'backend/app.py', 'deploy/unit', 'workers/main',
                                   'artifacts/schulpilot-play.aab', 'toolchain.json'])
 def test_rejects_changed_inputs(built, path):
@@ -91,8 +114,25 @@ def test_staged_checks_actual_transferred_files(built, tmp_path):
     shutil.copytree(root / 'app/build/web', staged / 'web')
     write(staged, 'downloads/schulpilot-android.apk', (root / 'artifacts/schulpilot-android.apk').read_bytes())
     write(staged, 'android-release.json', (root / 'artifacts/android-release.json').read_bytes())
-    command = ['python3', '-', 'staged', str(staged), sha, proof, public_sha]
+    repair = write(staged, 'repair-source.tar.gz', b'verified repair source')
+    repair_sha = release.digest(repair)
+    command = ['python3', '-', 'staged', str(staged), sha, proof, public_sha, repair_sha]
     source = MODULE.read_text()
+    subprocess.run(command, input=source, text=True, check=True)
+    repair.write_bytes(b'swapped after local verification')
+    failed = subprocess.run(command, input=source, text=True, capture_output=True)
+    assert failed.returncode != 0 and 'repair source' in failed.stderr
+    repair.unlink()
+    failed = subprocess.run(command, input=source, text=True, capture_output=True)
+    assert failed.returncode != 0 and 'repair source' in failed.stderr
+    original_repair = write(staged, 'other-archive', b'verified repair source')
+    repair.symlink_to(original_repair)
+    failed = subprocess.run(command, input=source, text=True, capture_output=True)
+    assert failed.returncode != 0 and 'repair source' in failed.stderr
+    repair.unlink()
+    repair.write_bytes(original_repair.read_bytes())
+    bad_command = [*command[:-1], 'x' * 64]
+    assert subprocess.run(bad_command, input=source, text=True, capture_output=True).returncode != 0
     subprocess.run(command, input=source, text=True, check=True)
     uploaded_apk = staged / 'downloads/schulpilot-android.apk'
     original = uploaded_apk.read_bytes()
@@ -101,6 +141,19 @@ def test_staged_checks_actual_transferred_files(built, tmp_path):
     uploaded_apk.write_bytes(original)
     write(staged, 'backend/ignored-extra', b'unexpected')
     assert subprocess.run(command, input=source, text=True, capture_output=True).returncode != 0
+
+
+def test_deploy_checks_verified_archive_after_upload_and_immediately_before_activation():
+    script = (MODULE.parent / 'deploy.sh').read_text()
+    verify = script.index('prepare_repair_source.py')
+    upload = script.index('rsync -a --no-links artifacts/repair-source.tar.gz')
+    permissions = script.index('chown root:schulpilot')
+    first = script.index('python3 - staged')
+    second = script.index('python3 - staged', first + 1)
+    activate = script.index('deploy/activate.py $release')
+    assert verify < upload < permissions < first < second < activate
+    assert 'mkdir -m 755 /opt/schulpilot/releases/$release' in script
+    assert script.count('"$release_android_sha" "$repair_sha" < scripts/release_attestation.py') == 2
 
 
 def test_dirty_worktree_and_ignored_backend_extra_rejected(built, monkeypatch):

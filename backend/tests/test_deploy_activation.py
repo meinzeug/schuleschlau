@@ -1,6 +1,7 @@
 """Run the real activation script against temporary files and offline OS mocks."""
 
 import builtins
+import os
 import runpy
 import subprocess
 import sys
@@ -16,7 +17,7 @@ WRITERS = ["schulpilot-api", "schulpilot-worker"]
 class Activation:
     def __init__(self, root, failure=None, *, changed_schema=False):
         self.root, self.failure, self.changed_schema = root, failure, changed_schema
-        self.commands, self.schema_reads, self.restarts = [], 0, []
+        self.commands, self.command_releases, self.schema_reads, self.restarts, self.backup_checks = [], [], 0, [], 0
         self.base = root / "opt/schulpilot"
         self.old = self.base / "releases/old98"
         self.new = self.base / "releases/new99"
@@ -26,7 +27,7 @@ class Activation:
                 "backend/requirements.lock": "synthetic requirements",
                 "venv/bin/pip": "synthetic existing venv",
                 "deploy/Caddyfile.schulpilot": "old fragment" if release == self.old else "new fragment",
-                "deploy/schulpilot-api.service": "synthetic service",
+                "deploy/schulpilot-api.service": "old service" if release == self.old else "new service",
             }.items():
                 path = release / name
                 path.parent.mkdir(parents=True, exist_ok=True)
@@ -43,7 +44,15 @@ class Activation:
         environment = root / "etc/schulpilot/environment"
         environment.parent.mkdir(parents=True)
         environment.write_text("DATABASE_URL=synthetic-no-connection\n")
-        (root / "etc/systemd/system").mkdir(parents=True)
+        systemd = root / "etc/systemd/system"
+        systemd.mkdir(parents=True)
+        (systemd / "schulpilot-api.service").write_text("operator service")
+        (systemd / "schulpilot-monitor.timer").write_text("operator timer")
+        (self.new / "deploy/turn_certificate.py").write_text("new certificate helper")
+        turn = root / "etc/schulpilot-turn"
+        turn.mkdir()
+        (turn / "turnserver.conf").write_text("synthetic operator config")
+        (turn / "refresh_certificate.py").write_text("operator certificate helper")
 
     def path(self, *parts):
         path = Path(*parts)
@@ -54,16 +63,20 @@ class Activation:
     def run(self, command, **kwargs):
         command = list(map(str, command))
         self.commands.append(command)
+        self.command_releases.append(self.current.resolve())
         if command[0] == "runuser" and "-c" in command:
             self.schema_reads += 1
             schema = "0032" if self.changed_schema and self.schema_reads > 1 else "0031"
             return subprocess.CompletedProcess(command, 0, stdout=schema + "\n")
         if command[:3] == ["systemctl", "show", "schulpilot-backup.service"]:
-            return subprocess.CompletedProcess(command, 0, stdout="success\n")
+            self.backup_checks += 1
+            result = "failed" if self.failure == "second_backup" and self.backup_checks == 2 else "success"
+            return subprocess.CompletedProcess(command, 0, stdout=result + "\n")
         if command == ["systemctl", "restart", *WRITERS]:
             self.restarts.append((self.current.resolve(), kwargs.get("check")))
         failed = (
             (self.failure == "validate" and command[:2] == ["caddy", "validate"])
+            or (self.failure == "drain" and command == ["systemctl", "stop", *WRITERS] and kwargs.get("check"))
             or (self.failure == "enable" and command[:2] == ["systemctl", "enable"])
             or (self.failure == "migration" and "schulpilot.migrate" in command)
             or (self.failure == "restart" and command == ["systemctl", "restart", *WRITERS] and kwargs.get("check"))
@@ -108,14 +121,15 @@ class Activation:
 
 
 @pytest.mark.parametrize("rollback_compatible", [False, True])
-@pytest.mark.parametrize("failure", ["validate", "enable"])
+@pytest.mark.parametrize("failure", ["validate", "drain"])
 def test_failure_before_new_writers_keeps_schema_safe_old_release(tmp_path, monkeypatch, capsys, rollback_compatible, failure):
     activation = Activation(tmp_path, failure)
     with pytest.raises(subprocess.CalledProcessError):
         activation.execute(monkeypatch, rollback_compatible)
     assert activation.current.resolve() == activation.old
-    assert activation.restarts == [(activation.old, False)]
+    assert activation.restarts == [(activation.old, True)]
     assert activation.fragment.read_text() == "old fragment"
+    assert (activation.root / "etc/systemd/system/schulpilot-api.service").read_text() == "operator service"
     assert "incompatible JSON" not in capsys.readouterr().err
 
 
@@ -132,11 +146,15 @@ def test_migration_failure_before_new_writers_only_rolls_back_unchanged_schema(t
         assert "Schema changed" in capsys.readouterr().err
     else:
         assert activation.current.resolve() == activation.old
-        assert activation.restarts == [(activation.old, False)]
+        assert activation.restarts == [(activation.old, True)]
+        assert (activation.root / "etc/systemd/system/schulpilot-api.service").read_text() == "operator service"
+        assert (activation.root / "etc/systemd/system/schulpilot-monitor.timer").read_text() == "operator timer"
+        assert (activation.root / "etc/schulpilot-turn/refresh_certificate.py").read_text() == "operator certificate helper"
+        assert ["systemctl", "stop", "schulpilot-monitor.timer"] not in activation.commands
 
 
 @pytest.mark.parametrize("rollback_compatible", [False, True])
-@pytest.mark.parametrize("failure", ["restart", "timer", "health", "caddy"])
+@pytest.mark.parametrize("failure", ["restart", "enable", "timer", "health", "caddy"])
 def test_possible_new_writer_always_stops_and_retains_new_reader(tmp_path, monkeypatch, capsys, rollback_compatible, failure):
     activation = Activation(tmp_path, failure)
     expected = RuntimeError if failure == "health" else subprocess.CalledProcessError
@@ -149,6 +167,7 @@ def test_possible_new_writer_always_stops_and_retains_new_reader(tmp_path, monke
     failure_index = (max(i for i, cmd in enumerate(activation.commands) if cmd == ["health"])
                      if failure == "health" else next(i for i, cmd in enumerate(activation.commands)
                      if (cmd == ["systemctl", "restart", *WRITERS] if failure == "restart"
+                         else cmd[:2] == ["systemctl", "enable"] if failure == "enable"
                          else cmd[:3] == ["systemctl", "start", "schulpilot-backup.timer"] if failure == "timer"
                          else cmd == ["systemctl", "reload", "caddy"])))
     assert activation.commands[failure_index + 1] == stop
@@ -169,3 +188,59 @@ def test_success_activates_new_release_and_preserves_previous_pointer(tmp_path, 
     assert activation.schema_reads == (0 if rollback_compatible else 1)
     assert activation.commands[-1] == ["systemctl", "reload", "caddy"]
     assert "SCHULPILOT activated: new99" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize("rollback_compatible", [False, True])
+def test_writers_are_drained_and_last_backup_uses_old_release_before_switch(tmp_path, monkeypatch, rollback_compatible):
+    activation = Activation(tmp_path)
+    activation.execute(monkeypatch, rollback_compatible)
+    stop = activation.commands.index(["systemctl", "stop", *WRITERS])
+    restart = activation.commands.index(["systemctl", "restart", *WRITERS])
+    backups = [i for i, cmd in enumerate(activation.commands)
+               if cmd == ["systemctl", "start", "schulpilot-backup.service"]]
+    assert len(backups) == 2 and backups[0] < stop < backups[1] < restart
+    assert all(activation.command_releases[i] == activation.old for i in [*backups, stop])
+    assert activation.command_releases[restart] == activation.new
+
+
+def test_symlinked_service_refuses_activation_without_modifying_target(tmp_path, monkeypatch):
+    activation = Activation(tmp_path)
+    unit = activation.root / "etc/systemd/system/schulpilot-api.service"
+    unit.unlink()
+    target = activation.root / "unit-owner-file"
+    target.write_text("keep operator file")
+    unit.symlink_to(target)
+    with pytest.raises(RuntimeError, match="symlink"):
+        activation.execute(monkeypatch)
+    assert target.read_text() == "keep operator file"
+    assert unit.is_symlink() and activation.current.resolve() == activation.old
+
+
+def test_restore_failure_keeps_writers_stopped(tmp_path, monkeypatch, capsys):
+    activation = Activation(tmp_path, "migration")
+    original_replace = os.replace
+
+    def replace(source, destination, *args, **kwargs):
+        if Path(source).name.startswith(".schulpilot-restore-"):
+            raise OSError("synthetic restore failure")
+        return original_replace(source, destination, *args, **kwargs)
+
+    monkeypatch.setattr(os, "replace", replace)
+    with pytest.raises(subprocess.CalledProcessError):
+        activation.execute(monkeypatch)
+    assert activation.current.resolve() == activation.new
+    assert not activation.restarts
+    assert activation.commands[-2] == ["systemctl", "stop", *WRITERS]
+    assert "Automatic rollback incomplete; services stopped" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("rollback_compatible", [False, True])
+def test_failed_drained_backup_prevents_pointer_switch_or_migration(tmp_path, monkeypatch, rollback_compatible):
+    activation = Activation(tmp_path, "second_backup")
+    with pytest.raises(RuntimeError, match="backup failed"):
+        activation.execute(monkeypatch, rollback_compatible)
+    assert activation.backup_checks == 2
+    assert activation.current.resolve() == activation.old
+    assert activation.restarts == [(activation.old, True)]
+    assert not any("schulpilot.migrate" in cmd for cmd in activation.commands)
+    assert all(release == activation.old for release in activation.command_releases)

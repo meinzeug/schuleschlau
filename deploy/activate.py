@@ -1,9 +1,12 @@
 """Safely activate an uploaded immutable release; retain rollback pointer."""
 
+import os
 import re
 import shutil
+import stat
 import subprocess
 import sys
+import tempfile
 import time
 import urllib.request
 from datetime import datetime, timezone
@@ -29,6 +32,63 @@ migration_started = False
 new_writers_may_have_started = False
 schema_before = None
 environment = None
+unit_snapshots = None
+
+UNIT_NAMES = (
+    "schulpilot-api.service", "schulpilot-worker.service", "schulpilot-backup.service",
+    "schulpilot-backup.timer", "schulpilot-monitor.service", "schulpilot-monitor.timer",
+    "schulpilot-restore-check.service", "schulpilot-restore-check.timer",
+)
+TURN_NAMES = ("schulpilot-turn.service", "schulpilot-turn-cert.service", "schulpilot-turn-cert.timer")
+
+
+def snapshot_files(paths):
+    """Retain operator-owned service definitions before replacing any of them."""
+    result = {}
+    for path in paths:
+        if path.is_symlink():
+            raise RuntimeError("A managed service file is a symlink; reconcile it before deployment")
+        if not path.exists():
+            result[path] = None
+            continue
+        info = path.stat()
+        if not stat.S_ISREG(info.st_mode):
+            raise RuntimeError("A managed service file is not regular; reconcile it before deployment")
+        result[path] = (path.read_bytes(), info.st_mode, info.st_uid, info.st_gid, info.st_atime_ns, info.st_mtime_ns)
+    return result
+
+
+def restore_files(snapshots):
+    """Atomically restore prior definitions before restarting the previous code."""
+    for path, saved in snapshots.items():
+        if saved is None:
+            path.unlink(missing_ok=True)
+            continue
+        data, mode, uid, gid, atime, mtime = saved
+        fd, name = tempfile.mkstemp(prefix=".schulpilot-restore-", dir=path.parent)
+        try:
+            with os.fdopen(fd, "wb") as stream:
+                stream.write(data)
+                stream.flush()
+                os.fchown(stream.fileno(), uid, gid)
+                os.fchmod(stream.fileno(), stat.S_IMODE(mode))
+            os.utime(name, ns=(atime, mtime))
+            os.replace(name, path)
+        finally:
+            Path(name).unlink(missing_ok=True)
+
+
+def checked_backup():
+    """Require a completed successful systemd backup before using it as recovery."""
+    subprocess.run(["systemctl", "start", "schulpilot-backup.service"], check=True)
+    result = subprocess.run(
+        ["systemctl", "show", "schulpilot-backup.service", "-p", "Result", "--value"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    if result != "success":
+        raise RuntimeError("Pre-deployment database backup failed")
 
 
 def database_revision():
@@ -71,36 +131,32 @@ try:
         caddy.write_text(before.rstrip() + "\n\nimport /etc/caddy/schulpilot.caddy\n")
     subprocess.run(["caddy", "validate", "--config", str(caddy), "--adapter", "caddyfile"], check=True)
     if previous:
-        subprocess.run(["systemctl", "start", "schulpilot-backup.service"], check=True)
-        backup_result = subprocess.run(
-            ["systemctl", "show", "schulpilot-backup.service", "-p", "Result", "--value"],
-            check=True,
-            capture_output=True,
-            text=True,
-        ).stdout.strip()
-        if backup_result != "success":
-            raise RuntimeError("Pre-deployment database backup failed")
+        checked_backup()
+    turn = Path("/etc/schulpilot-turn")
+    turn_installed = (turn / "turnserver.conf").is_file()
+    destinations = [Path("/etc/systemd/system") / name for name in UNIT_NAMES]
+    if turn_installed:
+        destinations += [Path("/etc/systemd/system") / name for name in TURN_NAMES]
+        destinations.append(turn / "refresh_certificate.py")
+    unit_snapshots = snapshot_files(destinations)
+    if previous:
+        # Stop first: a crash/restart must not resolve the new current pointer
+        # against the old database, including on an explicit code rollback.
+        subprocess.run(["systemctl", "stop", "schulpilot-api", "schulpilot-worker"], check=True)
+        # This uses the old current release and captures work finished while
+        # the worker was draining, before the pointer or schema is changed.
+        checked_backup()
     temporary = base / ".current-new"
     temporary.unlink(missing_ok=True)
     temporary.symlink_to(release)
     temporary.replace(current)
-    for name in [
-        "schulpilot-api.service",
-        "schulpilot-worker.service",
-        "schulpilot-backup.service",
-        "schulpilot-backup.timer",
-        "schulpilot-monitor.service",
-        "schulpilot-monitor.timer",
-        "schulpilot-restore-check.service",
-        "schulpilot-restore-check.timer",
-    ]:
+    for name in UNIT_NAMES:
         source = release / "deploy" / name
         if source.is_file():
             shutil.copy2(source, Path("/etc/systemd/system") / name)
     # An existing operator-installed relay is maintained, never auto-installed.
-    turn = Path("/etc/schulpilot-turn")
-    if (turn / "turnserver.conf").is_file():
-        for name in ("schulpilot-turn.service", "schulpilot-turn-cert.service", "schulpilot-turn-cert.timer"):
+    if turn_installed:
+        for name in TURN_NAMES:
             source = release / "deploy" / name
             if source.is_file():
                 shutil.copy2(source, Path("/etc/systemd/system") / name)
@@ -112,13 +168,8 @@ try:
     timers = ["schulpilot-backup.timer"]
     if (release / "deploy/schulpilot-restore-check.timer").is_file():
         timers.append("schulpilot-restore-check.timer")
-    elif Path("/etc/systemd/system/schulpilot-restore-check.timer").exists():
-        subprocess.run(["systemctl", "stop", "schulpilot-restore-check.timer"], check=True)
     if (release / "deploy/schulpilot-monitor.timer").is_file():
         timers.append("schulpilot-monitor.timer")
-    elif Path("/etc/systemd/system/schulpilot-monitor.timer").exists():
-        subprocess.run(["systemctl", "stop", "schulpilot-monitor.timer"], check=True)
-    subprocess.run(["systemctl", "enable", "schulpilot-api", "schulpilot-worker", *timers], check=True)
     environment = {"PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"}
     import shlex
 
@@ -128,11 +179,6 @@ try:
             environment[key] = " ".join(shlex.split(value)) if value else ""
     if "--rollback-compatible" not in sys.argv[2:]:
         schema_before = database_revision()
-        # Drain this application's workers before changing their database schema.
-        subprocess.run(["systemctl", "stop", "schulpilot-api", "schulpilot-worker"], check=True)
-        if previous:
-            # Capture answers/jobs completed while the old worker was draining.
-            subprocess.run(["systemctl", "start", "schulpilot-backup.service"], check=True)
         migration_started = True
         subprocess.run(
             ["runuser", "-u", "schulpilot", "--", str(release / "venv/bin/python"), "-m", "schulpilot.migrate"],
@@ -144,6 +190,13 @@ try:
     # cannot prove compatibility with JSON formats persisted by the new code.
     new_writers_may_have_started = True
     subprocess.run(["systemctl", "restart", "schulpilot-api", "schulpilot-worker"], check=True)
+    # These change enabled/active timer state. Only do so once new writers may
+    # have run: earlier failures can then restore the old service definitions
+    # without having to guess the operator's previous timer configuration.
+    for optional in ("schulpilot-restore-check.timer", "schulpilot-monitor.timer"):
+        if optional not in timers and Path("/etc/systemd/system", optional).exists():
+            subprocess.run(["systemctl", "stop", optional], check=True)
+    subprocess.run(["systemctl", "enable", "schulpilot-api", "schulpilot-worker", *timers], check=True)
     subprocess.run(["systemctl", "start", *timers], check=True)
     healthy = False
     for _ in range(30):
@@ -180,9 +233,18 @@ except Exception:
         except Exception:
             compatible = False
     if previous and compatible:
-        current.unlink(missing_ok=True)
-        current.symlink_to(previous)
-        subprocess.run(["systemctl", "restart", "schulpilot-api", "schulpilot-worker"], check=False)
+        try:
+            if unit_snapshots is not None:
+                restore_files(unit_snapshots)
+                subprocess.run(["systemctl", "daemon-reload"], check=True)
+            temporary = base / ".current-restore"
+            temporary.unlink(missing_ok=True)
+            temporary.symlink_to(previous)
+            temporary.replace(current)
+            subprocess.run(["systemctl", "restart", "schulpilot-api", "schulpilot-worker"], check=True)
+        except Exception:
+            subprocess.run(["systemctl", "stop", "schulpilot-api", "schulpilot-worker"], check=False)
+            print("Automatic rollback incomplete; services stopped. Restore service definitions and verify the active release before restart.", file=sys.stderr)
     else:
         if not new_writers_may_have_started:
             subprocess.run(["systemctl", "stop", "schulpilot-api", "schulpilot-worker"], check=False)
