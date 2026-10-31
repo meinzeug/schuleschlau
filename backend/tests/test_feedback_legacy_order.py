@@ -6,7 +6,7 @@ representation; no historical answer is asserted to be the latest.
 """
 
 import pytest
-from schulpilot.db import DB, Activity, Attempt
+from schulpilot.db import DB, Activity, Attempt, LearningUnit
 from sqlalchemy import select
 
 pytest_plugins = ("test_guided_feedback",)
@@ -44,7 +44,6 @@ def test_tied_different_questions_cannot_trap_unacknowledgeable_feedback(guided)
         assert ack.status_code == 200
 
 
-@pytest.mark.xfail(strict=True, reason="Question-local attempt numbers are not used consistently for tied feedback")
 def test_same_question_tied_attempts_with_proven_order_can_be_acknowledged(guided):
     kid, _, child_id, uid, questions = guided
     with DB.begin() as db:
@@ -61,6 +60,107 @@ def test_same_question_tied_attempts_with_proven_order_can_be_acknowledged(guide
     assert overview['feedback_resume'] is not None
     assert overview['feedback_resume']['id'] == uid
     assert kid.post(f'/api/units/{uid}/feedback/acknowledge', json={'attempt_id': '0' * 32}).status_code == 200
+
+
+@pytest.mark.parametrize('invalid', [None, 0, -1, '2', 2.0, True, 1])
+def test_ambiguous_same_question_numbers_are_not_used_as_ordering_proof(guided, invalid):
+    from schulpilot.learning import pending_feedback
+
+    _, _, _, uid, questions = guided
+    with DB.begin() as db:
+        attempts = [
+            Attempt(id='0' * 32, unit_id=uid, question_id=questions[0]['id'], answer='first',
+                    outcome='incorrect', assisted=False, created=101.0, evaluation={'attempt_number': 1}),
+            Attempt(id='f' * 32, unit_id=uid, question_id=questions[0]['id'], answer='second',
+                    outcome='incorrect', assisted=False, created=101.0, evaluation={'attempt_number': invalid}),
+        ]
+        # Legacy ambiguous fallback is preserved, not silently recast as proof.
+        event = Activity(unit_id=uid, kind='feedback_pending', detail={'attempt_id': attempts[0].id})
+        unit = db.get(LearningUnit, uid)
+        assert pending_feedback(unit, attempts, [event]) is None
+
+
+def test_same_question_tie_does_not_resume_an_older_marked_attempt(guided):
+    kid, _, child_id, uid, questions = guided
+    with DB.begin() as db:
+        db.add_all([
+            Attempt(id='f' * 32, unit_id=uid, question_id=questions[0]['id'], answer='old',
+                    outcome='incorrect', assisted=False, created=101.0, evaluation={'attempt_number': 1}),
+            Attempt(id='0' * 32, unit_id=uid, question_id=questions[0]['id'], answer='new',
+                    outcome='incorrect', assisted=True, created=101.0, evaluation={'attempt_number': 2}),
+            Activity(child_id=child_id, unit_id=uid, kind='feedback_pending', detail={'attempt_id': 'f' * 32}),
+        ])
+    assert kid.get(f'/api/units/{uid}').json()['pending_feedback'] is None
+    assert kid.get(f'/api/children/{child_id}/overview?compact=true').json()['feedback_resume'] is None
+    assert kid.post(f'/api/units/{uid}/feedback/acknowledge', json={'attempt_id': 'f' * 32}).status_code == 409
+
+
+def test_newer_feedback_in_another_unit_remains_first(guided):
+    from schulpilot.synthetic import sample_unit
+
+    kid, _, child_id, uid, questions = guided
+    with DB.begin() as db:
+        newer = LearningUnit(child_id=child_id, **sample_unit(), provider='fixture', synthetic=True,
+                             status='active', introduction_seen=True)
+        db.add(newer)
+        db.flush()
+        db.add_all([
+            Attempt(id='f' * 32, unit_id=uid, question_id=questions[0]['id'], answer='old',
+                    outcome='incorrect', assisted=False, created=101.0, evaluation={'attempt_number': 1}),
+            Attempt(id='0' * 32, unit_id=uid, question_id=questions[0]['id'], answer='new',
+                    outcome='incorrect', assisted=True, created=101.0, evaluation={'attempt_number': 2}),
+            Activity(child_id=child_id, unit_id=uid, kind='feedback_pending', detail={'attempt_id': '0' * 32}),
+            Attempt(id='1' * 32, unit_id=newer.id, question_id=newer.questions[0]['id'], answer='later',
+                    outcome='incorrect', assisted=False, created=102.0, evaluation={'attempt_number': 1}),
+            Activity(child_id=child_id, unit_id=newer.id, kind='feedback_pending', detail={'attempt_id': '1' * 32}),
+        ])
+        newer_id = newer.id
+    overview = kid.get(f'/api/children/{child_id}/overview?compact=true').json()
+    assert overview['feedback_resume']['id'] == newer_id
+    assert kid.post(f'/api/units/{newer_id}/feedback/acknowledge', json={'attempt_id': '1' * 32}).status_code == 200
+    assert kid.get(f'/api/children/{child_id}/overview?compact=true').json()['feedback_resume']['id'] == uid
+
+
+@pytest.mark.parametrize('old_id,new_id', [('f' * 32, '0' * 32), ('0' * 32, 'f' * 32)])
+def test_invalid_newer_tie_does_not_hide_valid_older_unit(guided, old_id, new_id):
+    from schulpilot.synthetic import sample_unit
+
+    kid, _, child_id, uid, questions = guided
+    with DB.begin() as db:
+        other = LearningUnit(child_id=child_id, **sample_unit(), provider='fixture', synthetic=True,
+                             status='active', introduction_seen=True)
+        db.add(other)
+        db.flush()
+        db.add_all([
+            Attempt(id=old_id, unit_id=uid, question_id=questions[0]['id'], answer='old marked',
+                    outcome='incorrect', assisted=False, created=101.0, evaluation={'attempt_number': 1}),
+            Attempt(id=new_id, unit_id=uid, question_id=questions[0]['id'], answer='new unmarked',
+                    outcome='incorrect', assisted=True, created=101.0, evaluation={'attempt_number': 2}),
+            Activity(child_id=child_id, unit_id=uid, kind='feedback_pending', detail={'attempt_id': old_id}),
+            Attempt(id='1' * 32, unit_id=other.id, question_id=other.questions[0]['id'], answer='older unit',
+                    outcome='incorrect', assisted=False, created=100.0, evaluation={'attempt_number': 1}),
+            Activity(child_id=child_id, unit_id=other.id, kind='feedback_pending', detail={'attempt_id': '1' * 32}),
+        ])
+        other_id = other.id
+    assert kid.get(f'/api/units/{uid}').json()['pending_feedback'] is None
+    assert kid.get(f'/api/children/{child_id}/overview?compact=true').json()['feedback_resume']['id'] == other_id
+
+
+def test_conflicting_earlier_number_is_not_used_as_ordering_proof(guided):
+    from schulpilot.learning import pending_feedback
+
+    _, _, _, uid, questions = guided
+    with DB.begin() as db:
+        attempts = [
+            Attempt(id='a' * 32, unit_id=uid, question_id=questions[0]['id'], answer='older',
+                    outcome='incorrect', assisted=False, created=100.0, evaluation={'attempt_number': 1}),
+            Attempt(id='0' * 32, unit_id=uid, question_id=questions[0]['id'], answer='tie',
+                    outcome='incorrect', assisted=False, created=101.0, evaluation={'attempt_number': 2}),
+            Attempt(id='f' * 32, unit_id=uid, question_id=questions[0]['id'], answer='duplicate',
+                    outcome='incorrect', assisted=False, created=101.0, evaluation={'attempt_number': 1}),
+        ]
+        event = Activity(unit_id=uid, kind='feedback_pending', detail={'attempt_id': attempts[1].id})
+        assert pending_feedback(db.get(LearningUnit, uid), attempts, [event]) is None
 
 
 def test_equal_timestamp_records_cannot_prove_which_different_question_came_last():

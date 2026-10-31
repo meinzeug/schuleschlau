@@ -1,7 +1,7 @@
 # Offener Vertrag: Reihenfolge gespeicherter Rückmeldungen
 
-Stand 31.10.2026. Dies ist ein lokaler Entwicklungs- und Testplan, keine
-implementierte oder freigegebene Lösung. Der bestehende Fehler bleibt offen.
+Stand 31.10.2026. Der globale Reihenfolgenfehler bleibt offen; der unten
+genannte eng begrenzte Teilfall ist lokal korrigiert und wird separat geprüft.
 
 ## Nachgewiesene Probleme
 
@@ -14,10 +14,21 @@ Quittierung verwenden stattdessen zufällige IDs als Gleichstandsauflösung.
 Ende-zu-Ende-Vertrag als strikten erwarteten Fehlschlag fest. Er behauptet
 keine historische Reihenfolge.
 
-Weitere lokale Gegenbeispiele in derselben Testdatei zeigen zwei Grenzen:
-Selbst bei zwei zeitgleichen Versuchen *derselben* Frage, deren gespeicherte
-Nummern 1 und 2 die Reihenfolge belegen, findet die Übersicht die im Detail
-angezeigte Rückmeldung nicht. Außerdem kann bei zwei gleichzeitig markierten
+Weitere lokale Gegenbeispiele in derselben Testdatei zeigen die Grenzen:
+Bei zwei zeitgleichen Versuchen *derselben* Frage, deren gespeicherte Nummern
+1 und 2 die Reihenfolge belegen, wurde die im Detail angezeigte Rückmeldung
+in der Übersicht nicht gefunden. Für diesen Teilfall verwendet der gemeinsame
+Resolver jetzt nur dann die belegten Versuchsnummern, wenn alle Versuche am
+neuesten Zeitstempel zur selben Frage gehören, alle Nummern dieser Frage
+unterschiedliche positive Ganzzahlen sind und frühere Zeitstempel niedrigere
+Nummern tragen. Die Übersicht prüft dafür höchstens 16 reguläre und 16
+zusätzliche Gleichstandkandidaten; die Quittierung verwendet denselben
+Resolver. Eine zeitlich neuere Rückmeldung einer anderen Einheit hat Vorrang;
+ein ungültiger neuerer Kandidat verdeckt nicht den nächsten geprüften Treffer.
+Ohne diesen Nachweis gilt
+der bisherige Altbestand-Fallback; daraus wird keine Reihenfolge abgeleitet.
+Die Kandidatengrenze kann bei vielen gleichzeitig offenen Altmarkern weitere
+Rückmeldungen verbergen und ist keine Gesamtlösung. Außerdem kann bei zwei gleichzeitig markierten
 Versuchen nach dem Quittieren eines Markers der andere weiterhin ungelesen in
 der Datenbank liegen, ohne dass ihn der aktuelle Rückmeldevertrag anbietet.
 Ein reiner UUID-Gleichstandsvergleich oder ein stilles Ausblenden ist daher

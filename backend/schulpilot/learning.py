@@ -341,6 +341,19 @@ def pending_feedback(unit, attempts, events):
     if not attempts:
         return None
     latest = attempts[-1]
+    # Attempt numbers are scoped to a question.  They prove order for a tie
+    # only if *all* attempts at the latest timestamp belong to that question
+    # and have distinct, positive integer numbers.  In particular, don't
+    # compare these numbers across questions or invent missing old numbers.
+    tied = [a for a in attempts if a.created == latest.created]
+    if len(tied) > 1 and len({a.question_id for a in tied}) == 1:
+        same_question = [a for a in attempts if a.question_id == latest.question_id]
+        numbers = [a.evaluation.get("attempt_number") if isinstance(a.evaluation, dict) else None
+                   for a in same_question]
+        if (all(type(n) is int and n > 0 for n in numbers) and len(set(numbers)) == len(numbers)
+                and all(a.created == latest.created or a.evaluation["attempt_number"] < min(
+                    t.evaluation["attempt_number"] for t in tied) for a in same_question)):
+            latest = max(tied, key=lambda a: a.evaluation["attempt_number"])
     pending = any(e.kind == "feedback_pending" and e.detail.get("attempt_id") == latest.id for e in events)
     seen = any(e.kind == "feedback_seen" and e.detail.get("attempt_id") == latest.id for e in events)
     if not pending or seen:
@@ -360,23 +373,62 @@ def pending_feedback(unit, attempts, events):
 
 
 def feedback_resume_id(db, child_id, *, include_language=True):
-    """Find unread latest feedback without loading answer bodies or scanning units in Python."""
+    """Find unread feedback; only tied same-question candidates need bounded detail reads."""
     pending, seen, newer = aliased(Activity), aliased(Activity), aliased(Attempt)
     newer_answer = select(newer.id).where(
         newer.unit_id == Attempt.unit_id,
         or_(newer.created > Attempt.created, and_(newer.created == Attempt.created, newer.id > Attempt.id)),
     ).correlate(Attempt).exists()
-    return db.scalar(
-        select(LearningUnit.id)
+    # The legacy SQL tie-break uses UUIDs. For tied attempts of one question
+    # only, inspect a bounded set of candidates with the same resolver as the
+    # unit and ACK. Other-question ties remain an explicitly open ambiguity.
+    # Normal untied overview reads still use the compact query above.
+    tied_attempt, other_question = aliased(Attempt), aliased(Attempt)
+    has_same_question_tie = select(tied_attempt.id).where(
+        tied_attempt.unit_id == Attempt.unit_id, tied_attempt.id != Attempt.id,
+        tied_attempt.created == Attempt.created, tied_attempt.question_id == Attempt.question_id,
+    ).correlate(Attempt).exists()
+    has_other_question_tie = select(other_question.id).where(
+        other_question.unit_id == Attempt.unit_id, other_question.created == Attempt.created,
+        other_question.question_id != Attempt.question_id,
+    ).correlate(Attempt).exists()
+    newer_time = select(newer.id).where(newer.unit_id == Attempt.unit_id,
+                                        newer.created > Attempt.created).correlate(Attempt).exists()
+    base_query = (
+        select(LearningUnit.id, Attempt.created, (has_same_question_tie & ~has_other_question_tie).label("same_tie"))
         .join(Attempt, Attempt.unit_id == LearningUnit.id)
         .join(pending, and_(pending.unit_id == LearningUnit.id, pending.child_id == child_id,
                            pending.kind == "feedback_pending", pending.detail["attempt_id"].as_string() == Attempt.id))
         .outerjoin(seen, and_(seen.unit_id == LearningUnit.id, seen.child_id == child_id,
                              seen.kind == "feedback_seen", seen.detail["attempt_id"].as_string() == Attempt.id))
-        .where(LearningUnit.child_id == child_id, seen.id.is_(None), ~newer_answer,
+        .where(LearningUnit.child_id == child_id, seen.id.is_(None),
                True if include_language else LearningUnit.round_kind != "vocabulary")
-        .order_by(Attempt.created.desc(), Attempt.id.desc()).limit(1)
+        .order_by(Attempt.created.desc(), Attempt.id.desc())
     )
+    compact = list(db.execute(base_query.where(~newer_answer).limit(16)))
+    ties = list(db.execute(base_query.where(~newer_time, has_same_question_tie, ~has_other_question_tie).limit(16)))
+    # Compact candidates win ties across units only as a stable display choice,
+    # not as proof of chronology. Check an invalid compact result before moving
+    # on to the next, rather than hiding another unit's valid feedback.
+    merged = [(row.created, 0, i, row.id, row.same_tie) for i, row in enumerate(compact)]
+    merged += [(row.created, 1, i, row.id, True) for i, row in enumerate(ties)]
+    merged.sort(key=lambda item: (-item[0], item[1], item[2]))
+    checked = {}
+    for _, _, _, candidate_id, same_tie in merged:
+        if not same_tie:
+            return candidate_id
+        if candidate_id in checked:
+            if checked[candidate_id]:
+                return candidate_id
+            continue
+        unit = db.get(LearningUnit, candidate_id)
+        attempts = list(db.scalars(select(Attempt).where(Attempt.unit_id == candidate_id)
+                                   .order_by(Attempt.created, Attempt.id)))
+        events = list(db.scalars(select(Activity).where(Activity.unit_id == candidate_id)))
+        checked[candidate_id] = bool(pending_feedback(unit, attempts, events))
+        if checked[candidate_id]:
+            return candidate_id
+    return None
 
 
 def unit_source_texts(db, unit):
