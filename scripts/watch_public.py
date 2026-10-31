@@ -2,13 +2,14 @@
 
 import json
 import os
+import shutil
 import sys
 import time
 import urllib.request
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "deploy"))
-from monitor import environment, notify  # noqa: E402
+from monitor import disk_space_low, environment, notify  # noqa: E402
 
 
 def main():
@@ -24,10 +25,25 @@ def main():
     except Exception:
         failures.append("public_https_health")
     success = base / "last-success.json"
-    if not success.exists() or time.time() - json.loads(success.read_text())["checked_at"] > 3600:
+    try:
+        stamp = json.loads(success.read_text())["checked_at"]
+        fresh = type(stamp) is int and 0 < stamp <= time.time() and time.time() - stamp <= 3600
+    except (OSError, UnicodeError, ValueError, TypeError, KeyError):
+        fresh = False
+    if not fresh:
         failures.append("offsite_copy_stale")
+    try:
+        if disk_space_low(shutil.disk_usage(base)):
+            failures.append("offsite_disk_space")
+    except OSError:
+        failures.append("offsite_disk_space_unavailable")
     path = base / "watch-state.json"
-    previous = json.loads(path.read_text()) if path.exists() else {}
+    try:
+        previous = json.loads(path.read_text())
+        if not isinstance(previous, dict) or not isinstance(previous.get("fingerprint", ""), str) or type(previous.get("sent", 0)) is not int:
+            previous = {}
+    except (OSError, UnicodeError, ValueError):
+        previous = {}
     state = notify(config, failures, previous, path, dry_run="--dry-run" in sys.argv)
     print(
         json.dumps(
