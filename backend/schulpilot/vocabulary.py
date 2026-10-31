@@ -547,7 +547,8 @@ def context(db, row):
 def authority(db, row, family_id):
     session = db.get(Session, row.session_id) if row.session_id else None
     user = db.get(User, row.user_id)
-    if not session or session.revoked or session.expires <= now() or now() - session.seen > 7 * 86400 or not user or user.disabled or not user.verified:
+    if (not session or session.user_id != row.user_id or session.revoked or session.expires <= now()
+            or now() - session.seen > 7 * 86400 or not user or user.disabled or not user.verified):
         raise HTTPException(401, "Dieser Zugang wurde abgemeldet. Bitte nach der Anmeldung neu vorbereiten.")
     child = child_access(db, Principal(user, session), row.child_id, write=user.role == "parent")
     if child.family_id != family_id or db.get(Family, family_id).synthetic:
