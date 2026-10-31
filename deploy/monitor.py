@@ -28,6 +28,16 @@ def disk_space_low(disk):
     return disk.free < 1024**3 or usable <= 0 or disk.used / usable > 0.9
 
 
+def backup_journal_available(backup):
+    """Presence only; this does not verify signatures or journal completeness."""
+    try:
+        path = backup.with_name(backup.name + ".journal.json")
+        status = json.loads(path.read_text())
+        return isinstance(status, dict) and status.get("backup") == backup.name and status.get("journal") == "present"
+    except (OSError, UnicodeError, ValueError):
+        return False
+
+
 def restore_status(report_path, setup_path, now):
     """Return a neutral failure code and whether initial setup is still pending."""
     try:
@@ -184,6 +194,8 @@ def main():
     backups = list(Path("/var/backups/schulpilot").glob("*.tar.enc"))
     if not backups or time.time() - max(p.stat().st_mtime for p in backups) > 30 * 3600:
         failures.append("backup_stale")
+    if backups and not backup_journal_available(max(backups, key=lambda p: p.name)):
+        failures.append("backup_journal_unavailable")
     restore = Path("/var/backups/schulpilot-monitor/restore-check.json")
     if Path("/etc/schulpilot/offsite-enabled").exists():
         marker = Path("/var/backups/schulpilot-monitor/offsite-last-success.json")

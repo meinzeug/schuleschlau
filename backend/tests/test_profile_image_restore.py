@@ -138,6 +138,10 @@ def test_restore_requires_an_existing_readable_current_erasure_journal(tmp_path,
     with pytest.raises(FileNotFoundError):
         checker.current_journal(ledger)
     ledger.write_text("", encoding="utf-8")
+    # Never infer an empty journal or create the writer lock during restoration.
+    with pytest.raises(FileNotFoundError):
+        checker.current_journal(ledger)
+    (tmp_path / ".erasure-ledger.lock").touch()
     assert checker.current_journal(ledger) == ""
     ledger.write_text("synthetic signed record\n", encoding="utf-8")
     assert checker.current_journal(ledger) == "synthetic signed record\n"

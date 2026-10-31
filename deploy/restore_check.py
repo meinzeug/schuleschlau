@@ -5,7 +5,6 @@ the current signed erasure ledger, revokes old sessions/tokens, reports counts,
 then drops only the database this invocation created.
 """
 
-import fcntl
 import hashlib
 import json
 import os
@@ -17,6 +16,7 @@ import uuid
 from pathlib import Path
 
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from ledger_snapshot import locked_journal
 from monitor import environment
 
 
@@ -62,9 +62,8 @@ def cleanup_images(directory, retained, paths):
 
 def current_journal(path):
     """Read the current journal; absence is not evidence of no deletions."""
-    with path.open(encoding="utf-8") as source:
-        fcntl.flock(source, fcntl.LOCK_SH)
-        return source.read()
+    with locked_journal(path) as source:
+        return source.read().decode("utf-8")
 
 
 def main():

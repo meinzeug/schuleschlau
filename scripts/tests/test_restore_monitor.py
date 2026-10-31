@@ -109,6 +109,7 @@ class RestoreMonitorTest(unittest.TestCase):
         backup_dir.mkdir(parents=True)
         backup = backup_dir / "test.tar.enc"
         backup.touch()
+        backup.with_name(backup.name + ".journal.json").write_text(json.dumps({"backup": backup.name, "journal": "present"}))
         smtp = unittest.mock.MagicMock()
         smtp.__enter__.return_value = smtp
         config = {"OPERATIONS_ALERT_EMAIL": "operator@example.test", "SMTP_FROM": "system@example.test",
@@ -141,6 +142,18 @@ class RestoreMonitorTest(unittest.TestCase):
         self.assertIn("restore_rehearsal_failed,restore_rehearsal_invalid", message.get_content())
         self.assertNotIn("private sentinel", message.as_string())
         self.assertEqual(json.loads((monitor_dir / "state.json").read_text())["failures"], result["failures"])
+
+    def test_backup_without_valid_journal_status_is_not_reported_healthy(self):
+        backup = self.root / "20261031T120000Z.tar.enc"
+        backup.touch()
+        status = backup.with_name(backup.name + ".journal.json")
+        self.assertFalse(monitor.backup_journal_available(backup))
+        for value in ("{broken", "{}", json.dumps({"backup": backup.name, "journal": "missing"}),
+                      json.dumps({"backup": "different", "journal": "present"})):
+            status.write_text(value)
+            self.assertFalse(monitor.backup_journal_available(backup))
+        status.write_text(json.dumps({"backup": backup.name, "journal": "present"}))
+        self.assertTrue(monitor.backup_journal_available(backup))
 
 
 if __name__ == "__main__":
