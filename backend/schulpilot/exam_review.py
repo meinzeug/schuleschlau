@@ -179,7 +179,16 @@ def arithmetic_warnings(answer):
         # Parenthesized TeX has explicit boundaries even when a teacher's
         # annotation follows it on the same line.
         segments = re.findall(r"\\\((.*?)\\\)|\\\[(.*?)\\\]", line)
-        candidates.extend(next(value for value in segment if value) for segment in segments if any(segment))
+        pieces = [next(value for value in segment if value) for segment in segments if any(segment)]
+        # A complete equation may put each term in its own math span, e.g.
+        # \(1/4\) + \(2/4\) = \(3/8\). Only join when no span already
+        # contains an equality: the bounded numeric parser must accept the
+        # entire line, including everything between the spans.
+        remainder = re.sub(r"\\\((.*?)\\\)|\\\[(.*?)\\\]", "0", line)
+        if (len(pieces) > 1 and all("=" not in piece for piece in pieces)
+                and re.fullmatch(r"[0-9 \t.,+*/()=·×\-]+", remainder)):
+            candidates.append(line.strip())
+        candidates.extend(pieces)
         if not segments:
             candidates.append(line.strip())
     warnings = []
