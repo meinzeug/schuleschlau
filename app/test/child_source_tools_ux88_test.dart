@@ -96,7 +96,7 @@ void main() {
     (tester) async {
       final calls = <http.Request>[];
       await open(tester, calls, scale: 2, saved: true);
-      await f.tap(tester, find.text('Im Seitentext nachsehen'));
+      await f.tap(tester, find.text('Text öffnen'));
       await f.tap(tester, find.byKey(const ValueKey('source-reader-search')));
       await tester.enterText(f.input('Wort oder Textstelle finden'), 'Volumen');
       await tester.pumpAndSettle();
@@ -142,7 +142,7 @@ void main() {
       await open(tester, calls, saved: true);
       expect(calls.any((r) => r.url.path.endsWith('/image')), isFalse);
       expect(find.text('Heftfoto vergrößern'), findsNothing);
-      expect(find.text('Im Seitentext nachsehen'), findsOneWidget);
+      expect(find.text('Text öffnen'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );
@@ -151,7 +151,7 @@ void main() {
       'KK012 private source reader closes after ${familyChange ? 'family switch' : 'same-ID fresh session'} and old close is harmless',
       (tester) async {
         final state = await open(tester, []);
-        await f.tap(tester, find.text('Im Seitentext nachsehen'));
+        await f.tap(tester, find.text('Text öffnen'));
         final close = tester
             .widget<IconButton>(
               find.byWidgetPredicate(

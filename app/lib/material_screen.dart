@@ -1305,6 +1305,14 @@ class _MaterialReviewState extends State<MaterialReview>
     return List<dynamic>.from(jsonDecode(jsonEncode(data['source_blocks'])));
   }
 
+  Set<String> readingUncertainties(Json data) => <String>{
+    for (final value in (data['uncertainties'] as List? ?? [])) '$value',
+    for (final block in (data['source_blocks'] as List? ?? []))
+      if (block is Map)
+        for (final value in (block['reading_uncertainties'] as List? ?? []))
+          '$value',
+  };
+
   Widget sourceReadingTools() {
     final data = widget.data;
     final hasText = content.text.trim().isNotEmpty;
@@ -1327,7 +1335,11 @@ class _MaterialReviewState extends State<MaterialReview>
               alignment: Alignment.centerLeft,
               child: TextButton.icon(
                 icon: const Icon(Icons.find_in_page_outlined),
-                label: const Text('Im Seitentext nachsehen'),
+                label: Text(
+                  widget.state.isChild
+                      ? 'Text öffnen'
+                      : 'Im Seitentext nachsehen',
+                ),
                 onPressed: () {
                   if (!sourceCurrent(data)) return;
                   final text = content.text, snapshot = sourceToolSnapshot;
@@ -1335,7 +1347,7 @@ class _MaterialReviewState extends State<MaterialReview>
                     (ctx, route) => _SourceTextReader(
                       text: text,
                       blocks: readingBlocks(data, text),
-                      uncertainties: data['uncertainties'] as List? ?? [],
+                      uncertainties: readingUncertainties(data).toList(),
                       isCurrent: () =>
                           sourceCurrent(data) && snapshot == sourceToolSnapshot,
                       onClose: () {
@@ -2450,15 +2462,7 @@ class _MaterialReviewState extends State<MaterialReview>
       'francais',
       'spanisch',
     ].contains((d['subject'] ?? '').toString().trim().toLowerCase());
-    final uncertainties = d['uncertainties'] as List? ?? [];
-    final readingUncertainties = <String>{
-      for (final value in uncertainties)
-        if (value is String && value.trim().isNotEmpty) value,
-      for (final block in (d['source_blocks'] as List? ?? []))
-        if (block is Map)
-          for (final value in (block['reading_uncertainties'] as List? ?? []))
-            if (value is String && value.trim().isNotEmpty) value,
-    };
+    final readingUncertainties = this.readingUncertainties(d);
     final canConfirm = !confirmed && d['status'] == 'review';
     final longText =
         content.text.length > 120 || content.text.split('\n').length > 5;
@@ -2650,13 +2654,13 @@ class _MaterialReviewState extends State<MaterialReview>
                     wordPreviewPanel(),
                     SizedBox(height: 16),
                   ],
-                  if (uncertainties.isNotEmpty) ...[
+                  if (readingUncertainties.isNotEmpty) ...[
                     Text(
                       'Hier bitte genau hinschauen:',
                       style: TextStyle(fontWeight: FontWeight.w700),
                     ),
-                    for (final uncertainty in uncertainties)
-                      Notice('$uncertainty', warning: true),
+                    for (final uncertainty in readingUncertainties)
+                      Notice(uncertainty, warning: true),
                   ],
                   SizedBox(height: 10),
                   ActionButton(

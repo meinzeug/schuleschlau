@@ -161,7 +161,12 @@ void main() {
           ),
           findsOneWidget,
         );
-        expect(find.text('Im Seitentext nachsehen'), findsOneWidget);
+        expect(
+          find.text(
+            role == 'child' ? 'Text öffnen' : 'Im Seitentext nachsehen',
+          ),
+          findsOneWidget,
+        );
         expect(value.requests, isEmpty);
         await tap(tester, 'Zur Nacharbeit der Arbeit');
         expect(find.text('Gebundene Nacharbeit').hitTestable(), findsOneWidget);

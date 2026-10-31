@@ -112,7 +112,7 @@ class Fixture {
 
   Future<void> open(WidgetTester t, String kind) async {
     if (kind == 'reader') {
-      await tap(t, find.text('Im Seitentext nachsehen'));
+      await tap(t, find.text('Text öffnen'));
       return;
     }
     if (kind == 'correction') {
