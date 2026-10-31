@@ -3,7 +3,19 @@
 import pytest
 from conftest import HEADERS, create_child
 from fastapi.testclient import TestClient
-from schulpilot.db import DB, Activity, Attempt, Job, LearningMemory, LearningUnit, Material, UnitSource, Usage
+from schulpilot.db import (
+    DB,
+    Activity,
+    Attempt,
+    Child,
+    Job,
+    LearningMemory,
+    LearningUnit,
+    Material,
+    UnitSource,
+    Usage,
+    now,
+)
 from schulpilot.learning_controller import source_state
 from schulpilot.main import app
 from sqlalchemy import func, select
@@ -40,7 +52,8 @@ def test_recovery_ignores_broken_legacy_marker_details_without_losing_them(guide
         assert sum(e.kind == "feedback_pending" and e.detail == invalid for e in events) == 1
         assert sum(e.kind == "feedback_seen" and e.detail == invalid for e in events) == 1
         assert sum(e.kind == "feedback_exposure" and e.detail == invalid for e in events) == 1
-        assert sum(e.kind == "feedback_seen" and e.detail == {"attempt_id": second} for e in events) == 1
+        assert sum(e.kind == "feedback_seen" and e.detail == {"attempt_id": second, "via": "recovery"}
+                   for e in events) == 1
     # A corrupt older exposure record must not prevent recording an actual
     # disclosure when the currently displayed answer needs it.
     from schulpilot.learning import record_feedback_exposure
@@ -79,6 +92,139 @@ def test_recovery_unblocks_a_visible_legacy_tie_without_changing_the_old_contrac
     with DB() as db:
         assert db.scalar(select(func.count()).select_from(Attempt).where(Attempt.unit_id == uid)) == 3
         assert db.scalar(select(func.count()).select_from(Activity).where(Activity.kind == "feedback_seen")) == 1
+
+
+def test_recovery_does_not_claim_solution_was_seen_but_preserves_uncertainty(guided, monkeypatch):
+    from schulpilot import subject_content
+
+    kid, _, child_id, uid, questions = guided
+    first = "1" * 32
+    with DB.begin() as db:
+        db.add(Attempt(id=first, unit_id=uid, question_id=questions[0]["id"], answer="synthetic",
+                       outcome="correct", assisted=False, created=101, evaluation={"attempt_number": 1}))
+        db.add(Activity(child_id=child_id, unit_id=uid, kind="feedback_pending", detail={"attempt_id": first}))
+    monkeypatch.setattr(subject_content, "public_presentation", lambda *_args, **_kwargs:
+                        {"version": 1, "evidence_kind": "knowledge", "blocks": [{"disclosure": "solution"}]})
+    response = kid.post(f"/api/units/{uid}/feedback/recovery/acknowledge", json={"attempt_id": first})
+    assert response.status_code == 200, response.text
+    with DB() as db:
+        assert db.scalar(select(func.count()).select_from(Activity).where(
+            Activity.unit_id == uid, Activity.kind == "feedback_exposure")) == 0
+        possible = list(db.scalars(select(Activity).where(Activity.unit_id == uid, Activity.kind == "feedback_possible")))
+        assert [event.detail for event in possible] == [{"attempt_id": first, "question_id": questions[0]["id"]}]
+    # A later correct answer remains correct, but its independence cannot be
+    # inferred when a solution might have appeared in another learning room.
+    result = kid.post(f"/api/units/{uid}/questions/{questions[1]['id']}/answer",
+                      json={"answer": questions[1]["answer"], "guided_feedback": True})
+    assert result.status_code == 200, result.text
+    assert result.json()["outcome"] == "correct"
+    assert result.json()["evaluation"]["independence_uncertain"] is True
+    assert "possible_prior_solution" in result.json()["evaluation"]["support_reasons"]
+
+
+@pytest.mark.parametrize("mutation,expected_uncertain", [
+    ("valid", False), ("missing", True), ("wrong_hash", True),
+    ("wrong_version", True), ("overlap", True), ("stripped", True),
+    ("visual", True), ("visual_tampered", True),
+])
+def test_possible_text_disclosure_proves_only_checked_independent_examples(guided, monkeypatch, mutation, expected_uncertain):
+    from schulpilot import subject_content
+
+    kid, _, child_id, uid, questions = guided
+    first_q = {**questions[0], "id": "first", "type": "short", "prompt": "Berechne 1/2 + 1/2.",
+               "answer": "2/2", "accepted": [], "options": [], "explanation": "1/2 + 1/2 = 2/2."}
+    next_q = {**questions[1], "id": "next", "type": "short", "prompt": "Berechne 1/6 + 1/6.",
+              "answer": "2/6", "accepted": [], "options": [], "explanation": "1/6 + 1/6 = 2/6."}
+    with DB.begin() as db:
+        unit = db.get(LearningUnit, uid)
+        unit.questions = [first_q, next_q]
+        for index in range(3):
+            db.add(Attempt(id=f"{index + 1:032x}", unit_id=uid, question_id="first", answer="0/2",
+                           outcome="incorrect", assisted=index > 0, created=100 + index,
+                           evaluation={"attempt_number": index + 1}))
+        db.add(Activity(child_id=child_id, unit_id=uid, kind="feedback_pending", detail={"attempt_id": "3".zfill(32)}))
+    monkeypatch.setattr(subject_content, "public_presentation", lambda *_args, **_kwargs:
+                        {"version": 1, "evidence_kind": "knowledge", "blocks":
+                         ([{"disclosure": "solution"}] if mutation in ("visual", "visual_tampered") else [])})
+    assert kid.post(f"/api/units/{uid}/feedback/recovery/acknowledge", json={"attempt_id": "3".zfill(32)}).status_code == 200
+    with DB.begin() as db:
+        event = db.scalar(select(Activity).where(Activity.unit_id == uid, Activity.kind == "feedback_possible"))
+        assert event is not None
+        detail = dict(event.detail)
+        if mutation in ("visual", "visual_tampered"):
+            assert "arithmetic_disclosure" not in detail
+            if mutation == "visual_tampered":
+                from schulpilot.learning_disclosures import receipt
+
+                detail["arithmetic_disclosure"] = receipt(first_q, first_q["explanation"])
+        else:
+            assert "arithmetic_disclosure" in detail
+            proof = dict(detail["arithmetic_disclosure"])
+            if mutation == "missing":
+                detail.pop("arithmetic_disclosure")
+            elif mutation == "wrong_hash":
+                proof["question_sha256"] = "wrong"
+            elif mutation == "wrong_version":
+                proof["version"] = "unknown"
+            elif mutation == "overlap":
+                proof["values"] = [*proof["values"], "1/3"]
+            elif mutation == "stripped":
+                proof["values"] = ["2"]
+            if mutation != "missing":
+                detail["arithmetic_disclosure"] = proof
+        event.detail = detail
+    result = kid.post(f"/api/units/{uid}/questions/next/answer", json={"answer": "2/6", "guided_feedback": True})
+    assert result.status_code == 200, result.text
+    assert result.json()["outcome"] == "correct"
+    assert result.json()["evaluation"]["independence_uncertain"] is expected_uncertain
+
+
+def test_recovering_superseded_answer_preserves_possible_other_device_exposure(guided, monkeypatch):
+    from schulpilot import subject_content
+
+    kid, _, child_id, uid, questions = guided
+    with DB.begin() as db:
+        for index in range(2):
+            attempt_id = f"{index + 1:032x}"
+            db.add(Attempt(id=attempt_id, unit_id=uid, question_id=questions[index]["id"], answer="synthetic",
+                           outcome="correct", assisted=False, created=100 + index, evaluation={"attempt_number": 1}))
+            db.add(Activity(child_id=child_id, unit_id=uid, kind="feedback_pending", detail={"attempt_id": attempt_id}))
+    monkeypatch.setattr(subject_content, "public_presentation", lambda *_args, **_kwargs:
+                        {"version": 1, "evidence_kind": "knowledge", "blocks": [{"disclosure": "solution"}]})
+    assert kid.post(f"/api/units/{uid}/feedback/recovery/acknowledge", json={"attempt_id": "1".zfill(32)}).status_code == 200
+    with DB() as db:
+        possible = list(db.scalars(select(Activity).where(Activity.unit_id == uid, Activity.kind == "feedback_possible")))
+        assert [event.detail["attempt_id"] for event in possible] == ["1".zfill(32)]
+        assert db.scalar(select(func.count()).select_from(Activity).where(
+            Activity.unit_id == uid, Activity.kind == "feedback_exposure")) == 0
+
+
+def test_possible_exposure_is_private_exported_and_removed_with_unit_or_retention(guided):
+    from schulpilot.families import export_child
+    from schulpilot.unit_erasure import remove
+    from schulpilot.worker import maintenance
+
+    kid, _, child_id, uid, questions = guided
+    with DB.begin() as db:
+        old = Activity(child_id=child_id, unit_id=uid, kind="feedback_possible", created=int(now()) - 366 * 86400,
+                       detail={"attempt_id": "0" * 32, "question_id": questions[0]["id"]})
+        current = Activity(child_id=child_id, unit_id=uid, kind="feedback_possible",
+                           detail={"attempt_id": "1" * 32, "question_id": questions[0]["id"]})
+        db.add_all([old, current])
+        db.flush()
+        old_id, current_id = old.id, current.id
+        exported = export_child(db, db.get(Child, child_id))["activities"]
+        assert {old_id, current_id}.issubset({entry["id"] for entry in exported})
+    activity = kid.get(f"/api/children/{child_id}/activity")
+    assert activity.status_code == 200
+    assert not any(entry["kind"] == "feedback_possible" for entry in activity.json())
+    maintenance()
+    with DB.begin() as db:
+        assert db.get(Activity, old_id) is None
+        assert db.get(Activity, current_id) is not None
+        remove(db, db.get(Child, child_id), [uid])
+    with DB() as db:
+        assert db.get(Activity, current_id) is None
 
 
 def test_unordered_markers_can_be_reviewed_individually_without_new_evidence(guided, monkeypatch):
@@ -235,9 +381,21 @@ def test_recovery_of_final_marker_finishes_deferred_round_without_provider_job(g
             assert result.json()["completed"] is False
             assert kid.get(f"/api/units/{uid}").json()["status"] == "active"
             assert {item["attempt_id"] for item in kid.get(f"/api/units/{uid}/feedback/recovery").json()["items"]} == set(ids[:-1])
+            # Historical databases can contain duplicate seen records. A
+            # plain duplicate must not hide this marker's recovery origin.
+            with DB.begin() as db:
+                db.add(Activity(child_id=child_id, unit_id=uid, kind="feedback_seen", detail={"attempt_id": attempt_id}))
+            # A delayed normal ACK from another device must not finish the
+            # round or start a review while these other markers remain unread.
+            delayed = kid.post(f"/api/units/{uid}/feedback/acknowledge", json={"attempt_id": attempt_id})
+            assert delayed.status_code == 200, delayed.text
+            assert delayed.json()["status"] == "active"
+            assert not review_requests
     assert result.json()["completed"] is True
     detail = kid.get(f"/api/units/{uid}").json()
     assert detail["status"] == "completed" and detail["pending_feedback"] is None
+    assert not review_requests
+    assert kid.post(f"/api/units/{uid}/feedback/acknowledge", json={"attempt_id": ids[-1]}).status_code == 200
     assert not review_requests
     with DB() as db:
         assert db.scalar(select(func.count()).select_from(Attempt).where(Attempt.unit_id == uid)) == len(ids)

@@ -65,7 +65,7 @@ def receipt(question, text, *, adaptive=False):
 
 
 def independent_example(unit, question, events):
-    """Rule out overlap only for every actually opened, receipted example."""
+    """Rule out overlap only for every opened or potentially shown receipted example."""
     if unit.subject.casefold() not in ("mathematik", "mathe") or (task := _task(question)) is None:
         return False
     questions = {item["id"]: item for item in unit.questions}
@@ -75,10 +75,16 @@ def independent_example(unit, question, events):
         return False
     for event in relevant:
         data = event.detail.get("arithmetic_disclosure")
-        prior = questions.get(event.detail.get("question_id"))
-        if (event.kind != "explanation" or not prior or not isinstance(data, dict)
+        prior_id = event.detail.get("question_id")
+        prior = questions.get(prior_id) if isinstance(prior_id, str) else None
+        if (event.kind not in ("explanation", "feedback_possible") or not prior or not isinstance(data, dict)
                 or data.get("version") != VERSION or data.get("question_sha256") != _identity(prior)
                 or not isinstance(data.get("values"), list) or not data["values"]
                 or str(task[-1]) in data["values"]):
+            return False
+        # A possible-disclosure receipt can be checked against the immutable
+        # saved explanation itself. Reject truncated or otherwise tampered
+        # value lists instead of trusting them as evidence of independence.
+        if event.kind == "feedback_possible" and receipt(prior, prior.get("explanation")) != data:
             return False
     return True

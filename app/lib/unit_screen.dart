@@ -1472,6 +1472,7 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
     bool current() => requestIsCurrent(id, owner) && state.api.token == token;
     if (!current()) return;
     var changed = false;
+    Future<void>? outstanding;
     await showUnitSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -1482,9 +1483,14 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
         unitId: id,
         isCurrent: current,
         onChanged: () => changed = true,
+        onRequestStarted: (request) {
+          changed = true;
+          outstanding = request;
+        },
         onClose: () => popUnitRoute(sheet),
       ),
     );
+    if (outstanding != null) await outstanding;
     if (!current() || !changed) return;
     // A currently edited answer stays in place. It will synchronize through
     // the usual draft path; do not replace it with a freshly loaded snapshot.

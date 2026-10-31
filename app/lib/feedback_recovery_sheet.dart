@@ -9,6 +9,7 @@ class FeedbackRecoverySheet extends StatefulWidget {
   final String unitId;
   final bool Function() isCurrent;
   final VoidCallback onChanged;
+  final void Function(Future<void>) onRequestStarted;
   final VoidCallback onClose;
 
   const FeedbackRecoverySheet({
@@ -17,6 +18,7 @@ class FeedbackRecoverySheet extends StatefulWidget {
     required this.unitId,
     required this.isCurrent,
     required this.onChanged,
+    required this.onRequestStarted,
     required this.onClose,
   });
 
@@ -78,10 +80,17 @@ class _FeedbackRecoverySheetState extends State<FeedbackRecoverySheet> {
     });
     try {
       final id = item['attempt_id'] as String;
-      await widget.api.post(
+      final request = widget.api.post(
         '/units/${widget.unitId}/feedback/recovery/acknowledge',
         {'attempt_id': id},
       );
+      // Even an interrupted or timed-out response may already have committed.
+      // Let the owning route refresh after the request settles, including if
+      // the child closes this sheet while the request is still in flight.
+      widget.onRequestStarted(
+        request.then<void>((_) {}, onError: (Object error, StackTrace trace) {}),
+      );
+      await request;
       if (!mounted || !widget.isCurrent()) return;
       widget.onChanged();
       setState(() => items.removeWhere((entry) => entry['attempt_id'] == id));
@@ -100,7 +109,8 @@ class _FeedbackRecoverySheetState extends State<FeedbackRecoverySheet> {
   Widget build(BuildContext context) => SafeArea(
     child: FractionallySizedBox(
       heightFactor: .85,
-      child: Column(
+      child: ListView(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         children: [
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -129,61 +139,60 @@ class _FeedbackRecoverySheetState extends State<FeedbackRecoverySheet> {
           if (busy) const LinearProgressIndicator(),
           if (error != null)
             Padding(padding: const EdgeInsets.all(12), child: Text(error!)),
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                if (items.isEmpty && !busy && error == null && next == null)
-                  const Text('Keine ungelesenen Rückmeldungen.'),
-                for (final item in items)
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          MathText(
-                            item['prompt']?.toString() ??
-                                'Aufgabe nicht mehr verfügbar',
-                          ),
-                          const SizedBox(height: 8),
-                          MathText('Deine Antwort: ${item['answer']}'),
-                          const SizedBox(height: 8),
-                          Text(switch (item['outcome']) {
-                            'correct' => 'Richtig',
-                            'incorrect' => 'Noch üben',
-                            _ => 'Noch offen',
-                          }),
-                          if (item['assisted'] == true) const Text('Mit Hilfe'),
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: TextButton(
-                              onPressed: busy ? null : () => acknowledge(item),
-                              child: const Text('Gelesen'),
-                            ),
-                          ),
-                        ],
+          ...[
+            if (items.isEmpty && !busy && error == null && next == null)
+              Text(
+                laterPage
+                    ? 'Auf dieser Seite sind keine weiteren Rückmeldungen.'
+                    : 'Keine ungelesenen Rückmeldungen.',
+              ),
+            for (final item in items)
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      MathText(
+                        item['prompt']?.toString() ??
+                            'Aufgabe nicht mehr verfügbar',
                       ),
-                    ),
+                      const SizedBox(height: 8),
+                      MathText('Deine Antwort: ${item['answer']}'),
+                      const SizedBox(height: 8),
+                      Text(switch (item['outcome']) {
+                        'correct' => 'Richtig',
+                        'incorrect' => 'Noch üben',
+                        _ => 'Noch offen',
+                      }),
+                      if (item['assisted'] == true) const Text('Mit Hilfe'),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: busy ? null : () => acknowledge(item),
+                          child: const Text('Gelesen'),
+                        ),
+                      ),
+                    ],
                   ),
-                if (next != null)
-                  TextButton(
-                    onPressed: busy ? null : () => load(next),
-                    child: const Text('Weitere anzeigen'),
-                  ),
-                if (laterPage)
-                  TextButton(
-                    onPressed: busy ? null : () => load(),
-                    child: const Text('Zur ersten Seite'),
-                  ),
-                if (error != null)
-                  TextButton(
-                    onPressed: busy ? null : () => load(),
-                    child: const Text('Erneut versuchen'),
-                  ),
-              ],
-            ),
-          ),
+                ),
+              ),
+            if (next != null)
+              TextButton(
+                onPressed: busy ? null : () => load(next),
+                child: const Text('Weitere anzeigen'),
+              ),
+            if (laterPage)
+              TextButton(
+                onPressed: busy ? null : () => load(),
+                child: const Text('Zur ersten Seite'),
+              ),
+            if (error != null)
+              TextButton(
+                onPressed: busy ? null : () => load(),
+                child: const Text('Erneut versuchen'),
+              ),
+          ],
         ],
       ),
     ),

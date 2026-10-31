@@ -137,6 +137,41 @@ bleibt erreichbar. Ein synthetischer End-to-End-Test prüft Abschluss, echten
 lokalen Demo-Rückblick, erhaltene Antworten sowie unveränderte Jobs und Kosten
 bis zur ausdrücklichen Rückblickaktion. Ein offener Eingabeentwurf bleibt beim
 Schließen der Wiederherstellung auf dem Gerät erhalten.
+Wenn die Wiederherstellung auf einem Gerät bereits einen Marker quittiert hat,
+erkennt ein verspäteter regulärer ACK dafür den Wiederherstellungsursprung und
+ist ein idempotenter No-op. Außerdem schützt die Abschlussprüfung nach der ersten
+Recovery-Bestätigung alle übrigen zu Antworten gehörenden ungelesenen
+Marker, auch wenn danach ein anderes Gerät den regulären ACK verwendet. Für
+Altbestände, bei denen noch niemand Recovery verwendet hat, bleibt das alte
+Clientverhalten bestehen; auch unmittelbar nach dem Öffnen der Liste, aber vor
+dem ersten ACK, gilt weiterhin dieser alte Vertrag. Der ursprüngliche Altfall
+ist damit nicht gelöst.
+
+Die Wiederherstellungsliste zeigt keine Lösung. Könnte der normale
+Feedbackraum vor dem Quittieren jedoch eine Lösungsgrafik oder eine automatisch
+sichtbare Erklärung gezeigt haben, wird dies nur als **mögliche** Offenlegung
+festgehalten. Daraus entsteht kein behauptetes tatsächliches Lesen. Bei einer
+späteren, möglicherweise betroffenen richtigen Antwort bleibt die
+Selbstständigkeit ungeklärt. Bereits ausdrücklich belegte Offenlegungen bleiben
+davon getrennt. Für die eng begrenzte, versionierte Bruchvorlage kann eine
+vollständig überprüfte numerische Erklärung ohne Lösungsgrafik belegen, dass
+ein Folgebeispiel einen anderen Wert verwendet. Erklärung, gespeicherter Beleg
+und mögliche Grafik werden bei der späteren Bewertung erneut abgeglichen;
+fehlende, veränderte oder unvollständige Angaben gelten nicht als Beweis für
+Selbstständigkeit. Der interne Marker wird mit den Aktivitätsdaten exportiert,
+nach 365 Tagen und beim Löschen der Einheit entfernt und nicht in der normalen
+Aktivitätsliste angezeigt. Ob die Lösung im Einzelfall wirklich gesehen wurde,
+bleibt unbekannt.
+
+Schließt das Kind die Liste während einer Bestätigung, wartet die Oberfläche
+auf das Ende der Anfrage und gleicht anschließend ab, soweit kein offener
+Eingabeentwurf überschrieben würde. Bei einem Timeout kann der Server trotzdem
+erst später speichern; ein unmittelbar anschließender GET belegt dann keinen
+endgültigen Zustand. Ein vorhandener Entwurf bleibt erhalten und der Zugriff
+„Rückmeldungen ansehen“ bleibt in diesem Fall zum bewussten erneuten Abgleich
+erreichbar. Ohne weiteren Abgleich kann die ursprüngliche Aufgabenanzeige nach
+einem späten Commit vorübergehend veraltet bleiben; ein automatisches sicheres
+Ende-zu-Ende-Commit-Signal ist damit noch nicht nachgewiesen.
 Alte Marker mit gültigem JSON, aber unbrauchbarem Detailformat oder ohne
 zuordenbare Attempt-ID werden beim Lesen und Quittieren ignoriert und nicht
 verändert. Sie gelten nicht als Nachweis, dass ein gültiger Marker gelesen

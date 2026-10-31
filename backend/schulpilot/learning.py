@@ -374,8 +374,8 @@ def pending_feedback(unit, attempts, events):
     }
 
 
-def feedback_history_available(unit, attempts, events):
-    """Offer explicit recovery only if unread evidence is not coherently resumable."""
+def unread_feedback_ids(unit, attempts, events):
+    """Valid unread markers scoped to this unit's actual answer IDs."""
     valid = {attempt.id for attempt in attempts}
     unread = {event.detail.get("attempt_id") for event in events
               if event.child_id == unit.child_id and event.kind == "feedback_pending"
@@ -383,6 +383,12 @@ def feedback_history_available(unit, attempts, events):
     unread -= {event.detail.get("attempt_id") for event in events
                if event.child_id == unit.child_id and event.kind == "feedback_seen"
                and isinstance(event.detail, dict) and isinstance(event.detail.get("attempt_id"), str)}
+    return unread
+
+
+def feedback_history_available(unit, attempts, events):
+    """Offer explicit recovery only if unread evidence is not coherently resumable."""
+    unread = unread_feedback_ids(unit, attempts, events)
     if not unread:
         return False
     displayed = pending_feedback(unit, attempts, events)
@@ -1337,7 +1343,8 @@ def overview(child_id: str, p=Depends(authenticated), db=Depends(get_db), *, com
 def activity(child_id: str, before: int | None = None, p=Depends(authenticated), db=Depends(get_db)):
     child_access(db, p, child_id)
     query = select(Activity).where(
-        Activity.child_id == child_id, Activity.kind.not_in(["feedback_pending", "feedback_seen", "feedback_exposure"])
+        Activity.child_id == child_id, Activity.kind.not_in(["feedback_pending", "feedback_seen", "feedback_exposure",
+                                                            "feedback_possible"])
     )
     if before:
         query = query.where(Activity.created < before)
@@ -1866,6 +1873,12 @@ def recover_instructional_round(db, unit):
         return False
     attempts = list(db.scalars(select(Attempt).where(Attempt.unit_id == unit.id).order_by(Attempt.created, Attempt.id)))
     events = list(db.scalars(select(Activity).where(Activity.unit_id == unit.id)))
+    # Once a child explicitly uses recovery, a delayed regular ACK from any
+    # device must not bypass the recovery path's remaining unread markers.
+    # Untouched legacy units retain their previous behaviour for old clients.
+    if any(e.child_id == unit.child_id and e.kind == "feedback_seen" and isinstance(e.detail, dict)
+           and e.detail.get("via") == "recovery" for e in events) and unread_feedback_ids(unit, attempts, events):
+        return False
     if pending_feedback(unit, attempts, events):
         return False
     return complete_round(db, unit, attempts)
@@ -1959,6 +1972,35 @@ def answer(unit_id: str, question_id: str, data: s.AnswerRequest, p=Depends(chil
         and e.detail.get("question_id") != question_id
         for e in explanation_events
     )
+    # A recovered response may also have been shown by another learning room,
+    # but recovery itself does not prove that a solution was actually seen.
+    # Keep that distinction instead of fabricating a disclosure event.
+    possible_events = list(db.scalars(select(Activity).where(Activity.unit_id == unit.id,
+        Activity.child_id == unit.child_id, Activity.kind == "feedback_possible")))
+    # Do not trust a saved numeric receipt to rule out overlap if the current
+    # source-bound presentation can also disclose a visual solution. This
+    # recheck prevents forged or stale metadata from masking that possibility.
+    checked_possible = []
+    if any(isinstance(e.detail, dict) and e.detail.get("arithmetic_disclosure") for e in possible_events):
+        from types import SimpleNamespace
+
+        from .subject_content import legacy_presentation, public_presentation
+
+        sources = unit_source_texts(db, unit)
+        questions = {item["id"]: item for item in unit.questions}
+        for event in possible_events:
+            detail = dict(event.detail) if isinstance(event.detail, dict) else {}
+            prior_id = detail.get("question_id")
+            prior = questions.get(prior_id) if isinstance(prior_id, str) else None
+            if prior and detail.get("arithmetic_disclosure"):
+                shown = public_presentation(prior.get("presentation") or legacy_presentation(prior, sources), closed=True)
+                if shown and any(block.get("disclosure") == "solution" for block in shown.get("blocks", [])):
+                    detail.pop("arithmetic_disclosure", None)
+            checked_possible.append(SimpleNamespace(kind=event.kind, detail=detail))
+    else:
+        checked_possible = possible_events
+    possible_exposure = any(not isinstance(e.detail, dict) or not isinstance(e.detail.get("question_id"), str)
+                            or e.detail["question_id"] != question_id for e in possible_events)
     had_hint = any(
         e.detail.get("question_id") == question_id
         for e in db.scalars(select(Activity).where(Activity.unit_id == unit.id, Activity.kind == "hint"))
@@ -1999,9 +2041,9 @@ def answer(unit_id: str, question_id: str, data: s.AnswerRequest, p=Depends(chil
     # Conservatively set assisted for legacy evidence consumers as well.
     from .learning_disclosures import independent_example
 
-    independence_uncertain = bool(outcome == "correct" and prior_explanation and not prior_solution
+    independence_uncertain = bool(outcome == "correct" and (prior_explanation or possible_exposure) and not prior_solution
                                   and not hinted and not previous
-                                  and not independent_example(unit, q, explanation_events))
+                                  and not independent_example(unit, q, [*explanation_events, *checked_possible]))
     hinted = hinted or independence_uncertain
     evaluation.update(attempt_number=len(previous) + 1,
                       independent_attempt=not bool(hinted or previous),
@@ -2118,8 +2160,13 @@ def acknowledge_feedback(
     if not attempt or attempt.unit_id != unit.id:
         raise HTTPException(404, "Rückmeldung nicht gefunden.")
     events = list(db.scalars(select(Activity).where(Activity.unit_id == unit.id)))
-    if any(e.kind == "feedback_seen" and isinstance(e.detail, dict)
-           and e.detail.get("attempt_id") == attempt.id for e in events):
+    already_seen = [e for e in events if e.child_id == unit.child_id and e.kind == "feedback_seen" and isinstance(e.detail, dict)
+                    and e.detail.get("attempt_id") == attempt.id]
+    if already_seen:
+        # A stale regular ACK must not turn a no-AI recovery action into an
+        # implicit coaching request on another device.
+        if any(e.detail.get("via") == "recovery" for e in already_seen):
+            return unit_data(db, unit)
         if recover_instructional_round(db, unit):
             db.commit()
             schedule_completed_review(db, unit)
@@ -2192,23 +2239,38 @@ def acknowledge_recovered_feedback(unit_id: str, data: s.FeedbackAcknowledgement
         return {"acknowledged": True}
     attempts = list(db.scalars(select(Attempt).where(Attempt.unit_id == unit.id).order_by(
         Attempt.created, func.coalesce(Attempt.evaluation["attempt_number"].as_integer(), 0), Attempt.id)))
-    # If this was also the feedback shown in the normal learning room, keep
-    # its existing disclosure accounting. Historical list entries themselves
-    # never contain a solution, nor do they complete a unit or earn evidence.
-    shown_pending = pending_feedback(unit, attempts, events)
-    if shown_pending and shown_pending["attempt_id"] == attempt.id:
-        q = question(unit, attempt.question_id)
+    # Another device could have displayed any still-unread response before
+    # it was superseded. This list never displays its solution, so represent
+    # only the possibility, not a claim that a child viewed it.
+    q = next((value for value in unit.questions if value["id"] == attempt.question_id), None)
+    if q:
         from .subject_content import legacy_presentation, public_presentation
 
         closed = attempt.outcome in ("correct", "uncertain") or sum(
             a.question_id == attempt.question_id for a in attempts) >= 3
         shown = public_presentation(q.get("presentation") or legacy_presentation(q, unit_source_texts(db, unit)),
                                     closed=closed)
-        if shown and any(block.get("disclosure") == "solution" for block in shown.get("blocks", [])):
-            record_feedback_exposure(db, unit, attempt, "visual")
-        if attempt.outcome != "correct" and shown_pending.get("explanation"):
-            record_feedback_exposure(db, unit, attempt, "text")
-    record(db, unit.child_id, "feedback_seen", {"attempt_id": attempt.id}, unit.id)
+        visual_solution = bool(shown and any(block.get("disclosure") == "solution" for block in shown.get("blocks", [])))
+        # Correct-answer explanations can be expanded by older clients before
+        # exposure receipts existed; their visibility is therefore unknown too.
+        text_solution = q.get("explanation") if closed else None
+        if visual_solution or text_solution:
+            detail = {"attempt_id": attempt.id, "question_id": attempt.question_id}
+            # Only a fully checked numerical text, with no additional visual
+            # solution, can prove that a later example is different.
+            if not visual_solution and text_solution:
+                from .learning_disclosures import receipt
+
+                proof = receipt(q, text_solution)
+                if proof:
+                    detail["arithmetic_disclosure"] = proof
+            record(db, unit.child_id, "feedback_possible", detail, unit.id)
+    else:
+        # An orphaned question cannot be inspected for potentially shown
+        # solutions. Retain uncertainty without inventing its contents.
+        record(db, unit.child_id, "feedback_possible",
+               {"attempt_id": attempt.id, "question_id": attempt.question_id}, unit.id)
+    record(db, unit.child_id, "feedback_seen", {"attempt_id": attempt.id, "via": "recovery"}, unit.id)
     valid_ids = {a.id for a in attempts}
     unread_ids = {e.detail.get("attempt_id") for e in events if e.kind == "feedback_pending"
                   and isinstance(e.detail, dict) and isinstance(e.detail.get("attempt_id"), str)} & valid_ids
