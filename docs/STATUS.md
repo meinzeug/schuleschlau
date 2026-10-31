@@ -1,7 +1,28 @@
-# Produktionsstand · 1.38.49+204
+# Produktionsstand · 1.38.51+206
 
-Am 30.10.2026 ist Release `20261030T224607Z-4d33e10` auf
-[schulpilot.dorfspy.de](https://schulpilot.dorfspy.de) aktiv.
+Am 31.10.2026 wurde Release `20261031T202240Z-cdc6589` auf
+[schulpilot.dorfspy.de](https://schulpilot.dorfspy.de) aktiviert. Produktcommit:
+`cdc6589c211201ade7e2a279705cbb9b99e8b804`. Health meldet diesen Stand; API und
+Worker laufen aus dem aktiven Releaseverzeichnis. Der vorherige Release
+`20261030T224607Z-4d33e10` bleibt erhalten; ein Rückweg benötigt vorher eine
+Prüfung von Schema und bereits geschriebenen Daten. Eine verschlüsselte
+Konfigurationssicherung liegt unter
+`/var/backups/schulpilot-config/predeploy-20261031T192307Z.tar.enc`.
+
+Web, Direct-APK und Play-AAB wurden aus demselben Commit gebaut und ihre
+Releasebindung geprüft. Das öffentliche Android-Manifest meldet Version 206;
+der SHA-256 der tatsächlich heruntergeladenen APK entspricht dem Manifest.
+Ein physischer Androidtest und ein Play-Upload sind dadurch nicht belegt.
+Die vollständige CI für diesen Commit und der Abschluss des neu umgestellten
+Offsite-Abgleichs sind gesondert zu prüfen. Die offene Roadmap und die darin
+beschriebenen Mehrgeräte-, Deployment- und Notenlöschungsrisiken bleiben gültig.
+
+---
+
+# Vorheriger belegter Produktionsstand · 1.38.49+204
+
+Am 30.10.2026 wurde Release `20261030T224607Z-4d33e10` auf
+[schulpilot.dorfspy.de](https://schulpilot.dorfspy.de) aktiviert.
 Code: `4d33e1094616d70509e8749c82f43b8a957d359b`.
 [Der vollständige CI-Lauf](https://github.com/meinzeug/schulpilot/actions/runs/41131330744)
 ist mit allen Backend-/Flutterteilen erfolgreich abgeschlossen.
