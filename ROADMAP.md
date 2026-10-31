@@ -272,11 +272,20 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
 
   **Abnahme:** Reine Status-GETs erzeugen keine Jobs oder Kosten; jede Seite wird einzeln reserviert und dauerhaft gespeichert, eine geänderte Quelle wird revisionsgebunden erneut geprüft und historische Antworten bleiben erhalten. Nicht lesbare oder nicht bestätigte Seiten können bewusst zurückgestellt werden.
 
-- [ ] **P1 – Vokabelvorschau und Materialgrenzen kontrollieren**
+- [x] **P1 – Vokabelvorschau und Materialgrenzen kontrollieren**
 
   Künstliche Paare mit fehlender Bedeutung, mehreren Spalten und nachträglich korrigierter OCR durch Vorschau, Auswahl und erneuten Import führen.
 
   **Abnahme:** Paare sind anfangs abgewählt und einzeln editierbar; „Nur Heftseite speichern“ importiert keine Wörter, nur markierte Paare werden atomar und idempotent übernommen, und ein zweites Gerät erzeugt keine Duplikate oder stillen Wörterbuchergänzungen.
+
+  **Nachweis 31.10.2026:** `test_material_vocabulary.py`: je 17 Tests auf
+  SQLite und isoliertem PostgreSQL, einschließlich fehlender Übersetzung,
+  Mehrspaltenzuordnung, Quellrevision, Berechtigungen und paralleler
+  Bestätigung. `material_confirm_next_141_test.dart`: 25 Widgettests,
+  einschließlich zunächst abgewähltem und einzeln korrigiertem Wortpaar,
+  expliziter Auswahl und „Nur Heftseite speichern“. Die Tests verwenden
+  künstliche Daten und simulieren mehrere Sitzungen; sie sind keine native
+  Geräteabnahme.
 
 ## Lehrplan, Hausaufgaben, Tutor und Prüfungen
 

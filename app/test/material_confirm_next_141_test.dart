@@ -500,6 +500,15 @@ void main() {
       });
       await f.open(tester);
       final word = find.byType(Checkbox);
+      expect(tester.widget<Checkbox>(word).value, false);
+      await tester.tap(find.byTooltip('apple korrigieren'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Deutsche Bedeutung'),
+        'Apfelbaum',
+      );
+      await tap(tester, 'Korrektur übernehmen');
+      expect(tester.widget<Checkbox>(word).value, false);
       await tester.ensureVisible(word);
       await tester.tap(word);
       await tester.pumpAndSettle();
@@ -507,6 +516,7 @@ void main() {
       final body = jsonDecode(f.writes.single.body);
       expect(body['vocabulary']['language_confirmed'], true);
       expect(body['vocabulary']['selections'], hasLength(1));
+      expect(body['vocabulary']['selections'][0]['meaning'], 'Apfelbaum');
       expect(f.location.path, '/material/$next');
       expect(f.queueReads, 1);
       await f.close(tester);
