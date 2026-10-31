@@ -88,6 +88,46 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
 
   **Abnahme:** Freier Platz, erwarteter Spitzenbedarf, Zuständigkeit und Alarmweg sind dokumentiert; ein kontrollierter Test zeigt eine rechtzeitige Warnung. Eine Stichtagsmessung wird nicht als dauerhafte Kapazitätsgarantie ausgegeben.
 
+- [ ] **P0 – Notenlöschung einschließlich Importen und Restore absichern**
+
+  Bei der lokalen Codeprüfung am 31.10.2026 fiel eine konkrete Lücke auf:
+  `grades.delete_grade` löscht die einzelne `SchoolGrade` und auditiert den
+  Vorgang, erstellt aber keinen Eintrag für das externe Löschjournal. Die
+  Aufbewahrungsbereinigung in `worker.maintenance` löscht alte Noten ebenfalls
+  ohne solche Einzelbelege. `erasure.reconcile` unterstützt bisher keinen
+  Noten-Scope. Eine ältere Sicherung kann daher einen seitdem gelöschten
+  Notendatensatz bei der Wiederherstellung wieder enthalten. Auch
+  `GradeSourceSlot.last_value` und `GradeImport.entries` können den Wert
+  weiterhin speichern; das Löschen nur der Notenzeile ist keine vollständige
+  Löschung dieser Daten. Ein kurzer lokaler Lösungsversuch nur für die
+  Notenzeile wurde deshalb nicht übernommen.
+
+  Einen vollständigen, revisions- und familiengebundenen Löschvertrag für
+  einzeln gelöschte und abgelaufene Noten samt tatsächlicher Kopien in
+  Importvorschauen und Quellpositionen entwickeln. Dabei die bestehende
+  Kind- vor Notensperre aus dem Import einhalten, Sitzungen und Elternrechte
+  nach Wartezeiten erneut prüfen und die Konsequenzen für offene Vorschauen,
+  deren Kontextrevisionen, wiederholte Importbestätigungen und die sichere
+  Erkennung früherer Quellpositionen festlegen. Angenommene Elternlernziele
+  und andere Noten dürfen nicht mitgelöscht werden. Ein Import-Slot kann erst
+  **nach** einem älteren Backup ausdrücklich mit einer bereits vorhandenen
+  Note verknüpft worden sein; die dafür nötige Herkunft muss über den Restore
+  hinweg belegbar bleiben. Übereinstimmende Notenwerte allein sind kein
+  zuverlässiger Zuordnungsbeweis. Neue Journalinformationen dürfen keine
+  privaten Inhalte enthalten; ältere Restore-Leser müssen unbekannte Formate
+  sicher ablehnen und Rollback und Wiederherstellung müssen vorab geprüft sein.
+
+  **Abnahme:** Isolierte SQLite- und PostgreSQL-Fälle prüfen berechtigte und
+  fremde Familien, veraltete Revisionen, parallelen Import und Löschung,
+  Wiederholungen sowie Aufbewahrungsablauf. Separate Wiederherstellungen von
+  Sicherungen sowohl vor als auch nach der Slot-Verknüpfung entfernen alle
+  eindeutig zugeordneten gelöschten Daten, erhalten fremde und nicht betroffene
+  Daten und übernehmen keine erfundene Zuordnung. Ein fehlender oder alter
+  Journal-/Restore-Leser scheitert nachweisbar sicher; offene Vorschauen und
+  idempotente Wiederholungen bleiben verständlich und ohne Doppelimport.
+  Unklare historische Beziehungen bleiben als solche dokumentiert, solange
+  sie nicht ohne Datenverlust oder unzulässiges Raten auflösbar sind.
+
 - [x] **P0 – Fehlende Wiederherstellungsberichte als Überwachungsfehler erkennen**
 
   `deploy/monitor.py` prüft veraltete vorhandene Berichte und einen fehlgeschlagenen Dienst, behandelt einen vollständig fehlenden Restore-Bericht aber nicht ausdrücklich als Fehler. Nach definierter Einrichtungsfrist fehlende, ungültige, unvollständige und veraltete Berichte sowie fehlgeschlagene Wiederherstellungsdienste zuverlässig erfassen. Die Behandlung einer ersten Installation vom regulären Betrieb unterscheiden und keine privaten Inhalte alarmieren.
