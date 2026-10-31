@@ -901,7 +901,17 @@ def maintenance():
         expire_diagnostic_outputs(db, int(now()) - 86400)
         db.execute(delete(UnitVisualPosition).where(UnitVisualPosition.updated < int(now()) - 30 * 86400))
         # Private learning records: 365 days; activities/answers disappear together.
-        db.execute(delete(LearningUnit).where(LearningUnit.created < int(now()) - 365 * 86400))
+        # Record the IDs actually deleted in the same transaction so a backup
+        # taken before this retention pass cannot resurrect an expired round.
+        from .erasure import request as request_erasure
+
+        expired_unit_ids = db.scalars(
+            delete(LearningUnit)
+            .where(LearningUnit.created < int(now()) - 365 * 86400)
+            .returning(LearningUnit.id)
+        )
+        for unit_id in expired_unit_ids:
+            request_erasure(db, "unit", unit_id)
         from .db import (
             GradeImport,
             GradeSourceSlot,

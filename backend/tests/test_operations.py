@@ -11,6 +11,7 @@ from schulpilot.db import (
     Child,
     ErasureRequest,
     Family,
+    LearningUnit,
     Material,
     ProviderConfig,
     ServiceState,
@@ -75,6 +76,52 @@ def test_deletion_ledger_retention_exceeds_backup_retention_but_is_bounded(api):
     )
     with DB() as db:
         assert db.get(ErasureRequest, record["id"]) is None
+
+
+def test_expired_learning_unit_is_journaled_and_not_resurrected_by_restore(api, household):
+    from schulpilot.worker import maintenance
+
+    _, child = household
+    with DB.begin() as db:
+        old = LearningUnit(child_id=child["id"], subject="Mathematik", topic="Künstliche alte Runde",
+                           explanation="Test", questions=[], provider="synthetic", created=int(now()) - 366 * 86400)
+        recent = LearningUnit(child_id=child["id"], subject="Mathematik", topic="Künstliche neue Runde",
+                              explanation="Test", questions=[], provider="synthetic", created=int(now()))
+        db.add_all([old, recent])
+        db.flush()
+        old_id, recent_id = old.id, recent.id
+    with DB() as db:
+        backup = {table: list(db.execute(table.select()).mappings()) for table in Base.metadata.sorted_tables}
+
+    maintenance()
+    maintenance()
+    with DB() as db:
+        assert db.get(LearningUnit, old_id) is None
+        assert db.get(LearningUnit, recent_id) is not None
+        requests = list(db.scalars(select(ErasureRequest).where(
+            ErasureRequest.scope == "unit", ErasureRequest.target == old_id)))
+        assert len(requests) == 1 and requests[0].published
+
+    ledger = settings.data_dir / "erasure-ledger.jsonl"
+    records = [verify(line, settings.master_key) for line in ledger.read_text().splitlines()]
+    assert any(r["scope"] == "unit" and r["target"] == old_id for r in records)
+    restored = create_engine("sqlite:///:memory:")
+    with restored.connect() as connection:
+        connection.exec_driver_sql("PRAGMA foreign_keys=ON")
+    Base.metadata.create_all(restored)
+    try:
+        with restored.begin() as connection:
+            for table, rows in backup.items():
+                if rows:
+                    connection.execute(table.insert(), [dict(row) for row in rows])
+        with Session(restored) as db:
+            assert db.get(LearningUnit, old_id) is not None
+            reconcile(db, records)
+            db.commit()
+            assert db.get(LearningUnit, old_id) is None
+            assert db.get(LearningUnit, recent_id) is not None
+    finally:
+        restored.dispose()
 
 
 def test_operational_metrics_are_private_and_contain_no_child_content(api, household):
