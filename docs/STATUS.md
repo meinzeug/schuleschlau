@@ -22,8 +22,18 @@ Bestätigungen geprüft; der Timer ist wieder aktiv. Wegen des zuvor erreichten
 Zeitlimits wurde der lokale Dienst auf 45 Minuten erhöht. Ein erfolgreicher
 Abgleich ersetzt keinen vollständigen Wiederherstellungstest. Eine isolierte
 Restoreprobe mit aktuellem Journalstatus bestand; der gesonderte Notenfehler
-bleibt offen. Die Flutter-CI ist erfolgreich, die Backend-CI läuft noch. Die offene Roadmap und die darin
+bleibt offen. Der vollständige CI-Lauf für den Produktcommit ist erfolgreich:
+[Checks 41235837108](https://github.com/meinzeug/schulpilot/actions/runs/41235837108).
+Die offene Roadmap und die darin
 beschriebenen Mehrgeräte-, Deployment- und Notenlöschungsrisiken bleiben gültig.
+
+Am 31.10.2026 wurden drei bytegleiche, nicht verwendete Codex-Arbeitskopien
+entfernt (842 MiB); die benötigten Originale bleiben erhalten. Auf `/` waren
+danach 3,7 GiB frei (90 % belegt). Alle Sicherungsarchive bleiben bestehen.
+Der lesende Abgleich mit `scripts/backup_twohost_audit.py` ermittelt nur einen
+zeitgebundenen Prüfbericht, keine Löschfreigabe; parallele Sicherungs-,
+Restore- und Offsite-Prozesse sowie die 14-Tage-Rotation sind vor einer
+Aufbewahrungsänderung gesondert zu koordinieren.
 
 ---
 
