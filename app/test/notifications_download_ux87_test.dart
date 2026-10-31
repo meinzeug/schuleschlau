@@ -180,7 +180,7 @@ void main() {
       pending.complete(reply({'items': [], 'unread': 0}));
       await tester.pumpAndSettle();
       expect(find.text('Neuigkeiten erneut laden'), findsNothing);
-      expect(find.textContaining('Hier erscheint Neues'), findsOneWidget);
+      expect(find.text('Noch keine Neuigkeiten.'), findsOneWidget);
       state.inbox.clear();
     },
   );
