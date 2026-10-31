@@ -373,7 +373,7 @@ def pending_feedback(unit, attempts, events):
 
 
 def feedback_resume_id(db, child_id, *, include_language=True):
-    """Find unread feedback; only tied same-question candidates need bounded detail reads."""
+    """Find unread feedback, with bounded detail reads for ambiguous old ties."""
     pending, seen, newer = aliased(Activity), aliased(Activity), aliased(Attempt)
     newer_answer = select(newer.id).where(
         newer.unit_id == Attempt.unit_id,
@@ -395,7 +395,8 @@ def feedback_resume_id(db, child_id, *, include_language=True):
     newer_time = select(newer.id).where(newer.unit_id == Attempt.unit_id,
                                         newer.created > Attempt.created).correlate(Attempt).exists()
     base_query = (
-        select(LearningUnit.id, Attempt.created, (has_same_question_tie & ~has_other_question_tie).label("same_tie"))
+        select(LearningUnit.id, Attempt.created, Attempt.question_id.label("question_id"),
+               (has_same_question_tie & ~has_other_question_tie).label("same_tie"))
         .join(Attempt, Attempt.unit_id == LearningUnit.id)
         .join(pending, and_(pending.unit_id == LearningUnit.id, pending.child_id == child_id,
                            pending.kind == "feedback_pending", pending.detail["attempt_id"].as_string() == Attempt.id))
@@ -412,6 +413,8 @@ def feedback_resume_id(db, child_id, *, include_language=True):
     # on to the next, rather than hiding another unit's valid feedback.
     merged = [(row.created, 0, i, row.id, row.same_tie) for i, row in enumerate(compact)]
     merged += [(row.created, 1, i, row.id, True) for i, row in enumerate(ties)]
+    if not merged:
+        return None
     merged.sort(key=lambda item: (-item[0], item[1], item[2]))
     checked = {}
     for _, _, _, candidate_id, same_tie in merged:
@@ -428,6 +431,27 @@ def feedback_resume_id(db, child_id, *, include_language=True):
         checked[candidate_id] = bool(pending_feedback(unit, attempts, events))
         if checked[candidate_id]:
             return candidate_id
+
+    # A crowded window of invalid same-question ties can otherwise hide an
+    # older unambiguous response. Search these separately only after the normal
+    # candidates failed. Limit this fallback as well: overview must not turn
+    # into an unbounded traversal of a child's history. Tied responses beyond
+    # the regular candidate window still need the explicit legacy-order
+    # contract described in docs/FEEDBACK_ORDER_CONTRACT.md.
+    untied = db.execute(base_query.where(~newer_time, ~has_same_question_tie, ~has_other_question_tie).limit(16))
+    for row in untied:
+        if row.id in checked:
+            if checked[row.id]:
+                return row.id
+            continue
+        unit = db.get(LearningUnit, row.id)
+        # The query already proves this is the only latest response, with its
+        # own pending marker and without a seen marker. Only its question's
+        # continued existence remains to be checked; loading all historical
+        # attempts or activities for each fallback candidate is unnecessary.
+        checked[row.id] = bool(unit and any(q['id'] == row.question_id for q in unit.questions))
+        if checked[row.id]:
+            return row.id
     return None
 
 

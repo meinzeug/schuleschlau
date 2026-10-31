@@ -146,6 +146,101 @@ def test_invalid_newer_tie_does_not_hide_valid_older_unit(guided, old_id, new_id
     assert kid.get(f'/api/children/{child_id}/overview?compact=true').json()['feedback_resume']['id'] == other_id
 
 
+def test_many_invalid_newer_units_do_not_hide_valid_older_feedback(guided):
+    from schulpilot.db import engine
+    from schulpilot.learning import feedback_resume_id
+    from schulpilot.synthetic import sample_unit
+    from sqlalchemy import event
+
+    kid, _, child_id, uid, questions = guided
+    with DB.begin() as db:
+        db.add_all([
+            Attempt(id='1' * 32, unit_id=uid, question_id=questions[0]['id'], answer='older',
+                    outcome='incorrect', assisted=False, created=100.0, evaluation={'attempt_number': 1}),
+            Activity(child_id=child_id, unit_id=uid, kind='feedback_pending', detail={'attempt_id': '1' * 32}),
+        ])
+        for index in range(33):
+            unit = LearningUnit(child_id=child_id, **sample_unit(), provider='fixture', synthetic=True,
+                                status='active', introduction_seen=True)
+            db.add(unit)
+            db.flush()
+            marked_id = f'{index + 1:031x}f'
+            unmarked_id = f'{index + 1:031x}0'
+            db.add_all([
+                Attempt(id=marked_id, unit_id=unit.id, question_id=unit.questions[0]['id'], answer='old',
+                        outcome='incorrect', assisted=False, created=101.0, evaluation={'attempt_number': 1}),
+                Attempt(id=unmarked_id, unit_id=unit.id, question_id=unit.questions[0]['id'], answer='new',
+                        outcome='incorrect', assisted=True, created=101.0, evaluation={'attempt_number': 2}),
+                Activity(child_id=child_id, unit_id=unit.id, kind='feedback_pending', detail={'attempt_id': marked_id}),
+            ])
+    statements = []
+
+    def count_queries(_connection, _cursor, statement, _parameters, _context, _many):
+        statements.append(statement)
+
+    event.listen(engine, 'before_cursor_execute', count_queries)
+    try:
+        with DB() as db:
+            assert feedback_resume_id(db, child_id) == uid
+    finally:
+        event.remove(engine, 'before_cursor_execute', count_queries)
+    # At most 16 normal tied candidates plus the bounded untied fallback are
+    # inspected. This fixture needs one fallback candidate, not all 33 units.
+    assert len(statements) <= 60
+    resume = kid.get(f'/api/children/{child_id}/overview?compact=true').json()['feedback_resume']
+    assert resume is not None
+    assert resume['id'] == uid
+    assert kid.get(f'/api/units/{uid}').json()['pending_feedback']['attempt_id'] == '1' * 32
+    with DB() as db:
+        events = list(db.scalars(select(Activity).where(Activity.child_id == child_id,
+                                                         Activity.kind.in_(('feedback_pending', 'feedback_seen')))))
+        assert sum(event.kind == 'feedback_pending' for event in events) == 34
+        assert not any(event.kind == 'feedback_seen' for event in events)
+
+
+def test_feedback_overview_fallback_has_a_fixed_query_ceiling(guided):
+    from schulpilot.db import engine
+    from schulpilot.learning import feedback_resume_id
+    from schulpilot.synthetic import sample_unit
+    from sqlalchemy import event
+
+    _, _, child_id, _, _ = guided
+    with DB.begin() as db:
+        for index in range(40):
+            unit = LearningUnit(child_id=child_id, **sample_unit(), provider='fixture', synthetic=True,
+                                status='active', introduction_seen=True)
+            db.add(unit)
+            db.flush()
+            marked_id = f'{index + 100:031x}f'
+            # Newer tied candidates all point at a superseded attempt. Older
+            # untied candidates point at a missing question, as can occur in
+            # legacy data. Neither is a usable result.
+            qid = unit.questions[0]['id'] if index < 20 else 'missing-legacy-question'
+            db.add(Attempt(id=marked_id, unit_id=unit.id, question_id=qid, answer='old',
+                           outcome='incorrect', assisted=False, created=101.0 if index < 20 else 100.0,
+                           evaluation={'attempt_number': 1}))
+            db.add(Activity(child_id=child_id, unit_id=unit.id, kind='feedback_pending',
+                            detail={'attempt_id': marked_id}))
+            if index < 20:
+                db.add(Attempt(id=f'{index + 100:031x}0', unit_id=unit.id, question_id=qid, answer='new',
+                               outcome='incorrect', assisted=True, created=101.0,
+                               evaluation={'attempt_number': 2}))
+    statements = []
+
+    def count_queries(_connection, _cursor, statement, _parameters, _context, _many):
+        statements.append(statement)
+
+    event.listen(engine, 'before_cursor_execute', count_queries)
+    try:
+        with DB() as db:
+            assert feedback_resume_id(db, child_id) is None
+    finally:
+        event.remove(engine, 'before_cursor_execute', count_queries)
+    # Two regular candidate queries, one fallback query, at most three reads
+    # each for 16 normal candidates and one read each for 16 fallback units.
+    assert len(statements) <= 67
+
+
 def test_conflicting_earlier_number_is_not_used_as_ordering_proof(guided):
     from schulpilot.learning import pending_feedback
 

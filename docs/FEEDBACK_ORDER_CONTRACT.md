@@ -23,8 +23,20 @@ neuesten Zeitstempel zur selben Frage gehören, alle Nummern dieser Frage
 unterschiedliche positive Ganzzahlen sind und frühere Zeitstempel niedrigere
 Nummern tragen. Die Übersicht prüft dafür höchstens 16 reguläre und 16
 zusätzliche Gleichstandkandidaten; die Quittierung verwendet denselben
-Resolver. Eine zeitlich neuere Rückmeldung einer anderen Einheit hat Vorrang;
-ein ungültiger neuerer Kandidat verdeckt nicht den nächsten geprüften Treffer.
+Resolver. Innerhalb des geprüften Suchfensters hat eine zeitlich neuere
+Rückmeldung einer anderen Einheit Vorrang; ein ungültiger neuerer Kandidat
+verdeckt dort nicht den nächsten geprüften Treffer.
+Wenn das normale Suchfenster nur ungültige Kandidaten enthält, sucht die
+Übersicht zusätzlich begrenzt nach bis zu 16 ungelesenen Antworten ohne
+Zeitgleichstand. So verdecken beispielsweise 33 ungültige neuere Kandidaten
+eine solche ältere Rückmeldung nicht mehr. Für diesen Zusatzschritt werden
+keine gesamten Versuchs- oder Ereignisverläufe geladen. Ein synthetischer
+Sättigungstest begrenzt die Anzahl der SQL-Abfragen auf höchstens 67; dies ist
+keine Laufzeitmessung oder ein Beweis für allgemein begrenzte Datenbanklast.
+Die zusätzliche Abfrage läuft nur, wenn das reguläre Suchfenster ausgeschöpft
+wurde, ohne einen Treffer zu finden. Gültige zeitgleiche Rückmeldungen außerhalb
+des bisherigen Kandidatenfensters kann sie weiterhin nicht garantieren; ein
+älterer eindeutiger Treffer kann dann vor einem solchen Treffer erscheinen.
 Ohne diesen Nachweis gilt
 der bisherige Altbestand-Fallback; daraus wird keine Reihenfolge abgeleitet.
 Die Kandidatengrenze kann bei vielen gleichzeitig offenen Altmarkern weitere
