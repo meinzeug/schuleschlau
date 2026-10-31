@@ -132,6 +132,17 @@ def restore_checker(monkeypatch):
     return module
 
 
+def test_restore_requires_an_existing_readable_current_erasure_journal(tmp_path, monkeypatch):
+    checker = restore_checker(monkeypatch)
+    ledger = tmp_path / "erasure-ledger.jsonl"
+    with pytest.raises(FileNotFoundError):
+        checker.current_journal(ledger)
+    ledger.write_text("", encoding="utf-8")
+    assert checker.current_journal(ledger) == ""
+    ledger.write_text("synthetic signed record\n", encoding="utf-8")
+    assert checker.current_journal(ledger) == "synthetic signed record\n"
+
+
 def test_scheduled_restore_image_cleanup_retains_current_avatar_and_legacy_image(tmp_path, monkeypatch):
     checker = restore_checker(monkeypatch)
     live_avatar, erased_avatar = filename("synthetic-kept", "a" * 32), filename("synthetic-erased", "b" * 32)

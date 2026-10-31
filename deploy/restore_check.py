@@ -60,6 +60,13 @@ def cleanup_images(directory, retained, paths):
     return erased_images, orphans
 
 
+def current_journal(path):
+    """Read the current journal; absence is not evidence of no deletions."""
+    with path.open(encoding="utf-8") as source:
+        fcntl.flock(source, fcntl.LOCK_SH)
+        return source.read()
+
+
 def main():
     if os.geteuid() != 0:
         raise SystemExit("Operator access required")
@@ -99,12 +106,9 @@ def main():
                     ],
                     stdin=source,
                 )
-            ledger = Path("/var/lib/schulpilot/erasure-ledger.jsonl")
-            contents = ""
-            if ledger.exists():
-                with ledger.open() as source:
-                    fcntl.flock(source, fcntl.LOCK_SH)
-                    contents = source.read()
+            # An absent journal may mean lost deletion records. A missing file
+            # must not be silently treated as a verified, empty journal.
+            contents = current_journal(Path("/var/lib/schulpilot/erasure-ledger.jsonl"))
             config["DATABASE_URL"] = "postgresql+psycopg://schulpilot@/" + name + "?host=/var/run/postgresql"
             code = """import json,sys
 from sqlalchemy import select,func,text,update
@@ -139,6 +143,7 @@ print(json.dumps({'schema':version,'before':before,'after':after,'paths':paths,'
             data["erasure_images_removed"] = erased_images
             report.update(data)
             report["authenticated_restore"] = True
+            report["erasure_journal_present"] = True
             report["sessions_revoked"] = True
             report["ai_emergency_stop"] = True
     finally:

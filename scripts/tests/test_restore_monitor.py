@@ -28,6 +28,7 @@ def valid_report():
         "orphan_images_removed": 0,
         "erasure_images_removed": 1,
         "authenticated_restore": True,
+        "erasure_journal_present": True,
         "sessions_revoked": True,
         "ai_emergency_stop": True,
         "checked_at": NOW,
@@ -73,6 +74,10 @@ class RestoreMonitorTest(unittest.TestCase):
 
     def test_invalid_and_incomplete_reports_are_never_exempt(self):
         self.setup.write_text(str(NOW))
+        old_report = valid_report()
+        del old_report["erasure_journal_present"]
+        self.report.write_text(json.dumps(old_report))
+        self.assertEqual(self.status(), ("restore_rehearsal_invalid", False))
         malformed = ["", "{", "[]", "null", '"private sentinel"', "\udcff"]
         for value in malformed:
             with self.subTest(value=repr(value)):
@@ -80,6 +85,7 @@ class RestoreMonitorTest(unittest.TestCase):
                 self.assertEqual(self.status(), ("restore_rehearsal_invalid", False))
         for key, value in (("checked_at", True), ("checked_at", NOW + 1), ("checked_at", None),
                            ("production_overwritten", 0), ("authenticated_restore", False),
+                           ("erasure_journal_present", False), ("erasure_journal_present", None),
                            ("sessions_revoked", None), ("ai_emergency_stop", 1),
                            ("backup", "private sentinel"), ("schema", " "),
                            ("verified_erasure_records", -1), ("orphan_images_removed", True),

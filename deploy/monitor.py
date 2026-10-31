@@ -55,7 +55,7 @@ def restore_status(report_path, setup_path, now):
         and re.fullmatch(r"\d{8}T\d{6}Z\.tar\.enc", report["backup"]) is not None
         and isinstance(report.get("schema"), str) and bool(report["schema"].strip())
         and report.get("production_overwritten") is False
-        and all(report.get(key) is True for key in ("authenticated_restore", "sessions_revoked", "ai_emergency_stop"))
+        and all(report.get(key) is True for key in ("authenticated_restore", "erasure_journal_present", "sessions_revoked", "ai_emergency_stop"))
         and all(count(report.get(key)) for key in ("verified_erasure_records", "orphan_images_removed", "erasure_images_removed"))
         and all(
             isinstance(report.get(group), dict) and all(count(report[group].get(table)) for table in RESTORE_TABLES)
