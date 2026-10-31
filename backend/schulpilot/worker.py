@@ -69,6 +69,19 @@ def unit_sources(db, job):
     return sources
 
 
+def validate_submission_authority(db, job):
+    # New explicit unit/package jobs carry the original server-bound session.
+    # Older jobs and the separate preparation coordinator use their existing
+    # contracts; its own validate_job checks the preparing session and family.
+    if job.kind in ("unit", "package") and "completion_origin" in job.payload:
+        from .study_authority import validate
+
+        child = db.get(Child, job.child_id)
+        if not child:
+            raise ProviderError("Dieser Kinderzugang ist nicht mehr vorhanden.")
+        validate(db, child, job.payload["completion_origin"])
+
+
 def claim(db):
     query = select(Job).where(Job.status == "queued").order_by(Job.created).limit(1)
     if db.bind.dialect.name == "postgresql":
@@ -172,6 +185,7 @@ def _process(job_id):
             from .school_preparation import defer_package, validate_job
 
             validate_job(db, job)
+            validate_submission_authority(db, job)
             from .material_review import validate_first
 
             validate_first(db, job)
@@ -507,6 +521,7 @@ def _process(job_id):
             if not db.execute(update(Child).where(Child.id == job.child_id).values(grade=Child.grade)).rowcount:
                 return
             validate_job(db, job)
+            validate_submission_authority(db, job)
             validate_first(db, job)
             from .material_actions import validate_reprocess_job
 
