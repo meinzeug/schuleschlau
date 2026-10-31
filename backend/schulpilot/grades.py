@@ -6,6 +6,7 @@ Five recent observations in 90 days inform weighting inside the same time plan.
 
 import csv
 import hashlib
+import hmac
 import io
 import json
 import re
@@ -20,7 +21,8 @@ from sqlalchemy import and_, func, or_, select, update
 from sqlalchemy.orm import defer
 
 from . import schemas as s
-from .db import Assignment, Child, GradeSourceSlot, Material, SchoolGrade, User, get_db, now
+from .config import settings
+from .db import Assignment, Child, DeletedGradeRequest, GradeSourceSlot, Material, SchoolGrade, User, get_db, now
 from .security import audit, child_access, family_access, parent, rate_limit
 
 router = APIRouter(tags=["Noten und Lernschwerpunkte"])
@@ -29,6 +31,13 @@ router = APIRouter(tags=["Noten und Lernschwerpunkte"])
 def subject_key(value):
     key = " ".join(value.casefold().split())
     return "mathematik" if key == "mathe" else key
+
+
+def deleted_request_digest(child_id, request_key):
+    if not settings.master_key:
+        raise HTTPException(503, "Die sichere Notenverwaltung ist gerade nicht verfügbar.")
+    material = json.dumps(["deleted-grade-request-v1", child_id, request_key], separators=(",", ":"))
+    return hmac.new(settings.master_key.encode(), material.encode(), hashlib.sha256).hexdigest()
 
 
 class GradeInput(s.Strict):
@@ -295,6 +304,14 @@ def create_grade(child_id: str, data: GradeInput, idempotency_key: str | None = 
         if not re.fullmatch(r"[A-Za-z0-9_-]{16,80}", idempotency_key):
             raise HTTPException(422, "Bitte einen gültigen Anfrageschlüssel verwenden.")
         db.execute(update(Child).where(Child.id == child.id).values(grade=Child.grade))
+        from .grade_imports import live_parent
+
+        child = live_parent(db, p, child)
+        if db.scalar(select(DeletedGradeRequest.id).where(
+            DeletedGradeRequest.child_id == child.id,
+            DeletedGradeRequest.request_key_digest == deleted_request_digest(child.id, idempotency_key)
+        )):
+            raise HTTPException(409, "Diese Note wurde gelöscht. Bitte eine neue Eingabe beginnen.")
         previous = db.scalar(select(SchoolGrade).where(SchoolGrade.child_id == child.id, SchoolGrade.request_key == idempotency_key))
         if previous:
             if previous.request_digest != digest:
@@ -331,10 +348,18 @@ def update_grade(child_id: str, grade_id: str, data: GradeUpdate,
 @router.delete("/children/{child_id}/grades/{grade_id}")
 def delete_grade(child_id: str, grade_id: str, revision: int | None = Query(None, ge=1), p=Depends(parent), db=Depends(get_db)):
     child = child_access(db, p, child_id, write=True)
+    from .grade_imports import live_parent
+    from .vocabulary import lock_child
+
+    lock_child(db, child)
+    child = live_parent(db, p, child)
     row = owned_grade(db, child, grade_id, lock=True)
     if revision is not None and revision != row.revision:
         raise HTTPException(409, "Diese Note wurde inzwischen geändert. Bitte zuerst neu laden.")
     # A previously accepted parent goal has its own lifecycle, not a hidden cascade.
+    if row.request_key:
+        db.add(DeletedGradeRequest(child_id=child.id,
+                                  request_key_digest=deleted_request_digest(child.id, row.request_key)))
     db.delete(row)
     audit(db, p.user.id, "grade.delete", grade_id)
     db.commit()

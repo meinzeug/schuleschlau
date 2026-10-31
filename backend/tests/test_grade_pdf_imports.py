@@ -13,7 +13,18 @@ import pytest
 from conftest import HEADERS, create_child, register
 from fastapi.testclient import TestClient
 from pdf_fixture import pdf
-from schulpilot.db import DB, Child, GradeImport, GradeSourceSlot, Membership, SchoolGrade, Session, Usage, User
+from schulpilot.db import (
+    DB,
+    Child,
+    GradeImport,
+    GradeImportGradeLink,
+    GradeSourceSlot,
+    Membership,
+    SchoolGrade,
+    Session,
+    Usage,
+    User,
+)
 from schulpilot.grade_imports import school_year
 from schulpilot.grade_pdf import isolated_extract
 from schulpilot.learning import local_day
@@ -65,6 +76,19 @@ def test_real_pdf_reader_with_synthetic_a1_excludes_averages_and_keeps_both_halv
     assert result["entries"] == [
         {"subject": s, "semester": h, "kind": k, "slot": n, "value": v} for s, h, k, n, v in entries
     ]
+
+
+def test_confirmed_grade_import_keeps_explicit_entry_lineage_and_repeat_is_idempotent(api, household):
+    _, child = household
+    preview = upload(api, child).json()
+    result = confirm(api, child, preview)
+    assert result.status_code == 200, result.text
+    assert confirm(api, child, preview).status_code == 200
+    with DB() as db:
+        links = list(db.scalars(select(GradeImportGradeLink).where(GradeImportGradeLink.import_id == preview['id'])))
+        assert sorted(link.entry_index for link in links) == list(range(len(preview['items'])))
+        assert all(link.child_id == child['id'] and link.action == 'add' for link in links)
+        assert len({link.grade_id for link in links}) == len(links)
 
 
 @pytest.mark.parametrize(
@@ -408,3 +432,23 @@ def test_authority_rechecked_after_pdf_parsing(api, household, monkeypatch, chan
 )
 def test_explicit_school_year_boundary(today, expected):
     assert school_year(today) == expected
+
+
+@pytest.mark.xfail(strict=True, raises=AssertionError,
+                   reason="Deleting an imported grade currently leaves its value in import copies and source slot")
+def test_deleted_imported_grade_does_not_survive_in_import_or_source_slot(api, household):
+    """Synthetic PDF values must not survive deletion in auxiliary storage."""
+    _, child = household
+    year = today_year(child['id'])
+    raw = pdf(year, [('Mathematik', 1, 'other', 1, '4')])
+    preview = upload(api, child, raw=raw).json()
+    assert confirm(api, child, preview).status_code == 200
+    rows = api.get(f"/api/children/{child['id']}/grades").json()['items']
+    assert len(rows) == 1
+    response = api.delete(f"/api/children/{child['id']}/grades/{rows[0]['id']}")
+    assert response.status_code == 200
+    with DB() as db:
+        slots = list(db.scalars(select(GradeSourceSlot).where(GradeSourceSlot.child_id == child['id'])))
+        batches = list(db.scalars(select(GradeImport).where(GradeImport.child_id == child['id'])))
+        assert all(slot.last_value != '4' for slot in slots)
+        assert all(entry.get('value') != '4' for batch in batches for entry in batch.entries)

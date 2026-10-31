@@ -514,6 +514,16 @@ class SchoolGrade(Base):
                      CheckConstraint("assessed_on IS NOT NULL OR (school_year_start IS NOT NULL AND semester IS NOT NULL AND semester IN (1,2))", name="ck_grade_known_period"))
 
 
+class DeletedGradeRequest(Base):
+    """Opaque replay barrier; no grade value or other learning content."""
+    __tablename__ = "deleted_grade_requests"
+    id = Column(String(32), primary_key=True, default=uid)
+    child_id = Column(ForeignKey("children.id", ondelete="CASCADE"), nullable=False, index=True)
+    request_key_digest = Column(String(64), nullable=False)
+    created = Column(Integer, default=lambda: int(now()), nullable=False, index=True)
+    __table_args__ = (UniqueConstraint("child_id", "request_key_digest", name="uq_deleted_grade_request"),)
+
+
 class GradeImport(Base):
     __tablename__ = "grade_imports"
     id = Column(String(32), primary_key=True, default=uid)
@@ -540,6 +550,19 @@ class GradeSourceSlot(Base):
     ignored = Column(Boolean, default=False, nullable=False)
     created = Column(Integer, default=lambda: int(now()), nullable=False)
     __table_args__ = (UniqueConstraint("child_id", "slot_key", name="uq_grade_source_slot"),)
+
+
+class GradeImportGradeLink(Base):
+    """Explicitly confirmed relationship, never inferred from similar marks."""
+    __tablename__ = "grade_import_grade_links"
+    id = Column(String(32), primary_key=True, default=uid)
+    child_id = Column(ForeignKey("children.id", ondelete="CASCADE"), nullable=False, index=True)
+    import_id = Column(ForeignKey("grade_imports.id", ondelete="CASCADE"), nullable=False, index=True)
+    grade_id = Column(ForeignKey("school_grades.id", ondelete="CASCADE"), nullable=False, index=True)
+    entry_index = Column(Integer, nullable=False)
+    action = Column(String(16), nullable=False)
+    created = Column(Integer, default=lambda: int(now()), nullable=False)
+    __table_args__ = (UniqueConstraint("import_id", "entry_index", name="uq_grade_import_entry_link"),)
 
 
 class TutorTurn(Base):

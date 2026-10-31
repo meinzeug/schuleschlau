@@ -10,7 +10,7 @@ from pydantic import Field
 from sqlalchemy import select
 
 from . import schemas as s
-from .db import GradeImport, GradeSourceSlot, SchoolGrade, Session, User, get_db, now
+from .db import GradeImport, GradeImportGradeLink, GradeSourceSlot, SchoolGrade, Session, User, get_db, now
 from .grade_pdf import isolated_extract
 from .grades import grade_data, subject_key
 from .learning import local_day
@@ -223,7 +223,7 @@ def confirm_import(child_id: str, import_id: str, data: ImportConfirmation, p=De
     if len(choices) != len(data.choices) or set(choices) != {r["slot_key"] for r in preview["items"]}:
         raise HTTPException(422, "Bitte jede erkannte Note genau einmal prüfen.")
     counts = {"added": 0, "linked": 0, "updated": 0, "unchanged": 0, "skipped": 0}
-    for item in preview["items"]:
+    for entry_index, item in enumerate(preview["items"]):
         choice = choices[item["slot_key"]]
         source = db.scalar(
             select(GradeSourceSlot).where(
@@ -281,6 +281,9 @@ def confirm_import(child_id: str, import_id: str, data: ImportConfirmation, p=De
         source.grade_id = grade.id if grade else None
         source.last_value = item["value"]
         source.ignored = choice.action == "skip"
+        if grade is not None and choice.action in {"add", "link", "update", "keep"}:
+            db.add(GradeImportGradeLink(child_id=child.id, import_id=batch.id, grade_id=grade.id,
+                                       entry_index=entry_index, action=choice.action))
         db.flush()
     batch.status, batch.confirmation_digest, batch.result = "applied", fingerprint, {"id": batch.id, **counts}
     audit(db, p.user.id, "grade.import_confirm", batch.id)

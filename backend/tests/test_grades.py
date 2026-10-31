@@ -7,7 +7,7 @@ from datetime import date, timedelta
 import pytest
 from schulpilot import schemas as s
 from schulpilot.daily_planner import distribute
-from schulpilot.db import DB, Assignment, Child, SchoolGrade, now
+from schulpilot.db import DB, Assignment, Child, DeletedGradeRequest, SchoolGrade, now
 from schulpilot.grades import focus_summary, priorities
 from schulpilot.learning import local_day
 from sqlalchemy import func, select
@@ -378,3 +378,51 @@ def test_deleting_last_grade_keeps_the_active_filter_valid_for_existing_clients(
     assert api.delete(path + "/" + row["id"]).status_code == 200
     result = api.get(path + "?subject=Physik").json()
     assert result["items"] == [] and "Physik" in result["subjects"]
+
+
+def test_deleted_grade_cannot_be_recreated_by_replaying_original_request(api):
+    demo, _ = prepared(api)
+    path = f"/api/children/{demo['child_id']}/grades"
+    key = {'Idempotency-Key': 'synthetic-grade-replay-0001'}
+    payload = mark(demo['child_id'])
+    created = api.post(path, json=payload, headers=key)
+    assert created.status_code == 201
+    assert api.delete(path + '/' + created.json()['id']).status_code == 200
+    replay = api.post(path, json=payload, headers=key)
+    assert replay.status_code != 201
+    with DB() as db:
+        assert db.scalar(select(func.count()).select_from(SchoolGrade)) == 0
+        marker = db.scalar(select(DeletedGradeRequest).where(DeletedGradeRequest.child_id == demo['child_id']))
+        assert marker is not None and len(marker.request_key_digest) == 64
+        assert key['Idempotency-Key'] not in marker.request_key_digest
+
+
+def test_parallel_grade_deletion_and_replay_never_recreates_grade(api):
+    from conftest import HEADERS
+    from fastapi.testclient import TestClient
+    from schulpilot.main import app
+
+    demo, _ = prepared(api)
+    path = f"/api/children/{demo['child_id']}/grades"
+    body = mark(demo['child_id'])
+    headers = {**HEADERS, 'Authorization': 'Bearer ' + demo['token'],
+               'Idempotency-Key': 'synthetic-delete-race-0001'}
+    initial = api.post(path, json=body, headers=headers)
+    assert initial.status_code == 201
+    grade_id = initial.json()['id']
+
+    def remove():
+        with TestClient(app, headers=headers) as client:
+            return client.delete(path + '/' + grade_id).status_code
+
+    def replay():
+        with TestClient(app, headers=headers) as client:
+            return client.post(path, json=body).status_code
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        deletion, retry = pool.submit(remove), pool.submit(replay)
+        assert deletion.result() == 200
+        assert retry.result() in (201, 409)
+    with DB() as db:
+        assert db.scalar(select(func.count()).select_from(SchoolGrade)) == 0
+    assert api.post(path, json=body, headers=headers).status_code == 409
