@@ -47,7 +47,7 @@ PARAGRAPHS = (
         "Wir ordnen dem eigenen Lernstoff passende Themen aus einem lokal gespeicherten Katalog öffentlicher Titel und "
         "Verweise zu. Begrenzte Fach- und Themenkandidaten können im bereits angeforderten KI-Auftrag mitgeprüft werden. "
         "Persönliche Zuordnungen, Rückmeldungen und Linkaufrufe sind nur für das eigene Kind und die berechtigten Eltern "
-        "sichtbar und werden höchstens 365 Tage aufbewahrt; sie gehören zum Export und zur Kontolöschung. Erst beim eigenen "
+        "sichtbar und werden nach 365 Tagen durch den nächsten Bereinigungslauf entfernt; sie gehören zum Export und zur Kontolöschung. Erst beim eigenen "
         "Klick wird Sofatutor im Browser oder einer vom Betriebssystem gewählten App geöffnet. Wir übermitteln dabei keine "
         "Hefttexte, Fotos oder SchuleSchlau-Zugänge. Der externe Anbieter verarbeitet den Seitenaufruf nach seinen eigenen "
         "Datenschutzregeln; eine Anmeldung und ein Abo können nötig sein. Ein Linkaufruf belegt weder Wiedergabe noch "
@@ -110,8 +110,9 @@ PARAGRAPHS = (
         "Konto-, Lern- und Familiendaten liegen in der eigenen Datenbank auf dem SchuleSchlau-Server bei Hetzner. "
         "Private Materialien und Datenbank sind nicht öffentlich zugänglich. Sitzungen sind widerrufbar und Passwörter "
         "werden mit Argon2id gehasht. Materialien, Aufgaben, Antworten, Aktivitäten, Heftfragen, Wortlisten, Wiederholungsstände, "
-        "Sprachprojekte, Lernposition, eigene Antwortentwürfe, begründete nächste Schritte, Schulnoteneinträge und Nachrichten werden höchstens "
-        "365 Tage gespeichert; technische Aufträge 30 Tage; abgelaufene Zugangstokens und Sitzungen weitere sieben Tage; "
+        "Sprachprojekte, Lernposition, eigene Antwortentwürfe, begründete nächste Schritte, Schulnoteneinträge und Nachrichten werden grundsätzlich nach "
+        "365 Tagen im nächsten Bereinigungslauf entfernt. Bei laufender Verarbeitung kann sich insbesondere die Löschung von Seiten verzögern. "
+        "Technische Aufträge werden grundsätzlich nach 30 Tagen, abgelaufene Zugangstokens und Sitzungen nach weiteren sieben Tagen bereinigt; "
         "tägliche Backups 14 Tage. Backups werden vor einer Wiederherstellung mit zwischenzeitlichen Löschungen abgeglichen. "
         "Technische Betriebsprotokolle enthalten keine Fotos, vollständigen Kinderantworten oder Zugangsdaten.",
     ),

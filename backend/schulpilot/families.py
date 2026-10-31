@@ -492,7 +492,9 @@ def export_child(db, child):
     from .db import (
         ChildCostBucket,
         ChildSubject,
+        DeletedGradeRequest,
         GradeImport,
+        GradeImportGradeLink,
         GradeSourceSlot,
         LanguageProject,
         LearningEvent,
@@ -539,7 +541,7 @@ def export_child(db, child):
                                   if c.name != "session_id"}
         for row in db.scalars(select(SchulbuddyTurn).where(SchulbuddyTurn.child_id == child.id,
             SchulbuddyTurn.user_id == child.user_id))]
-    for model in (GradeImport, GradeSourceSlot):
+    for model in (GradeImport, GradeImportGradeLink, GradeSourceSlot, DeletedGradeRequest):
         result[model.__tablename__] = [{c.name: getattr(row, c.name) for c in model.__table__.columns}
                                      for row in db.scalars(select(model).where(model.child_id == child.id))]
     from .db import Subject
@@ -646,54 +648,58 @@ def export_family(family_id: str, p=Depends(parent), db=Depends(get_db)):
     directory.mkdir(exist_ok=True, mode=0o700)
     with tempfile.NamedTemporaryFile(prefix="family-", suffix=".zip", dir=directory, delete=False) as temporary:
         output = Path(temporary.name)
-    with zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED) as archive:
-        archive.writestr(
-            "family.json",
-            json.dumps(
-                {
-                    "name": family.name,
-                    "account": {
-                        "id": p.user.id,
-                        "username": p.user.username,
-                        "email": p.user.email,
-                        "display_name": p.user.display_name,
-                        "role": p.user.role,
-                        **avatar_metadata(db, p.user.id),
+    try:
+        with zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED) as archive:
+            archive.writestr(
+                "family.json",
+                json.dumps(
+                    {
+                        "name": family.name,
+                        "account": {
+                            "id": p.user.id,
+                            "username": p.user.username,
+                            "email": p.user.email,
+                            "display_name": p.user.display_name,
+                            "role": p.user.role,
+                            **avatar_metadata(db, p.user.id),
+                        },
+                        "children": [export_child(db, c) for c in children],
+                        "visual_positions": visual_position_export(db, p.user.id),
+                        "learning_asset_instances": asset_instance_export(db, p.user.id, [c.id for c in children]),
+                        "parent_goal_reminders": export_parent_reminders(db, p.user.id, [c.id for c in children]),
+                        "schulbuddy_turns": [{column.name: getattr(row, column.name)
+                            for column in SchulbuddyTurn.__table__.columns if column.name != "session_id"}
+                            for row in db.scalars(select(SchulbuddyTurn).where(SchulbuddyTurn.user_id == p.user.id,
+                                SchulbuddyTurn.child_id.in_([c.id for c in children])))],
+                        "orders": orders_export(db, family.id, include_withdrawals=True) if membership.permission == "owner" else [],
+                        "trial": trial_data(db.get(FamilyTrial, family.id)),
+                        "notification_reads": [{"event_key": row.event_key, "created": row.created}
+                            for row in db.scalars(select(NotificationRead).where(
+                                NotificationRead.user_id == p.user.id, NotificationRead.child_id.in_([c.id for c in children])))],
+                        "usage": [
+                            {column.name: getattr(record, column.name) for column in Usage.__table__.columns}
+                            for record in db.scalars(select(Usage).where(Usage.family_id == family.id))
+                        ],
                     },
-                    "children": [export_child(db, c) for c in children],
-                    "visual_positions": visual_position_export(db, p.user.id),
-                    "learning_asset_instances": asset_instance_export(db, p.user.id, [c.id for c in children]),
-                    "parent_goal_reminders": export_parent_reminders(db, p.user.id, [c.id for c in children]),
-                    "schulbuddy_turns": [{column.name: getattr(row, column.name)
-                        for column in SchulbuddyTurn.__table__.columns if column.name != "session_id"}
-                        for row in db.scalars(select(SchulbuddyTurn).where(SchulbuddyTurn.user_id == p.user.id,
-                            SchulbuddyTurn.child_id.in_([c.id for c in children])))],
-                    "orders": orders_export(db, family.id, include_withdrawals=True) if membership.permission == "owner" else [],
-                    "trial": trial_data(db.get(FamilyTrial, family.id)),
-                    "notification_reads": [{"event_key": row.event_key, "created": row.created}
-                        for row in db.scalars(select(NotificationRead).where(
-                            NotificationRead.user_id == p.user.id, NotificationRead.child_id.in_([c.id for c in children])))],
-                    "usage": [
-                        {column.name: getattr(record, column.name) for column in Usage.__table__.columns}
-                        for record in db.scalars(select(Usage).where(Usage.family_id == family.id))
-                    ],
-                },
-                ensure_ascii=False,
-                indent=2,
-            ),
+                    ensure_ascii=False,
+                    indent=2,
+                ),
+            )
+            add_to_export(db, p.user.id, archive, "account/avatar.jpg")
+            for c in children:
+                add_to_export(db, c.user_id, archive, f"children/{c.id}/avatar.jpg")
+                for m in db.scalars(select(Material).where(Material.child_id == c.id, Material.path.is_not(None))):
+                    path = settings.data_dir / "uploads" / m.path
+                    if path.is_file():
+                        archive.write(path, "materials/" + m.path)
+        audit(db, p.user.id, "family.export", family.id)
+        db.commit()
+        return FileResponse(
+            output,
+            media_type="application/zip",
+            filename="schulpilot-export.zip",
+            background=BackgroundTask(output.unlink, missing_ok=True),
         )
-        add_to_export(db, p.user.id, archive, "account/avatar.jpg")
-        for c in children:
-            add_to_export(db, c.user_id, archive, f"children/{c.id}/avatar.jpg")
-            for m in db.scalars(select(Material).where(Material.child_id == c.id, Material.path.is_not(None))):
-                path = settings.data_dir / "uploads" / m.path
-                if path.is_file():
-                    archive.write(path, "materials/" + m.path)
-    audit(db, p.user.id, "family.export", family.id)
-    db.commit()
-    return FileResponse(
-        output,
-        media_type="application/zip",
-        filename="schulpilot-export.zip",
-        background=BackgroundTask(output.unlink, missing_ok=True),
-    )
+    except BaseException:
+        output.unlink(missing_ok=True)
+        raise

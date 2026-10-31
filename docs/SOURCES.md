@@ -1,3 +1,12 @@
+## 31.10.2026 · Datenschutzprüfung und Kinderrechte
+
+Rechtsstand und aktuelle Primärquellen zu DSGVO, BDSG, TDDDG, KI-Verordnung,
+Datenschutzfolgenabschätzung, Kinderrechten, Drittlandtransfers und Anbieterangaben
+stehen mit den Einschränkungen der Prüfung in
+[DATENSCHUTZ_PRUEFUNG_2026_10_31.md](DATENSCHUTZ_PRUEFUNG_2026_10_31.md).
+Anbieterunterlagen belegen weder einen abgeschlossenen Vertrag noch die
+Kontoeinstellungen der konkreten Installation.
+
 ## 30.10.2026 · Mobiler Seitenwechsel und Listengrafiken · Version 1.38.23
 
 Beim mobilen Alltagstest wechselte die Quellenprüfung nach einer Bestätigung
