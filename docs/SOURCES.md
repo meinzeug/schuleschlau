@@ -1,3 +1,11 @@
+## 31.10.2026 · Anbieterprüfung im Konto
+
+Aktuelle Unterlagen von Hetzner, OpenRouter und Firebase sowie die Grenzen der
+Konto- und Vertragssichtung stehen in
+[DATENSCHUTZ_ANBIETERPRUEFUNG_2026_10_31.md](DATENSCHUTZ_ANBIETERPRUEFUNG_2026_10_31.md).
+Die bei Hetzner eingesehenen konkreten Vertragsdokumente verbleiben außerhalb
+von Git; die bloße Sichtung ersetzt keine rechtliche Freigabe.
+
 ## 31.10.2026 · Datenschutzprüfung und Kinderrechte
 
 Rechtsstand und aktuelle Primärquellen zu DSGVO, BDSG, TDDDG, KI-Verordnung,

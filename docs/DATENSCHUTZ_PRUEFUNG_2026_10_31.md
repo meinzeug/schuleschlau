@@ -1,5 +1,7 @@
 # Datenschutzprüfung und Arbeitsunterlagen – SchuleSchlau
 
+> **Aktualisierung:** Die spätere [Anbieter- und Betreiberprüfung vom 31.10.](DATENSCHUTZ_ANBIETERPRUEFUNG_2026_10_31.md) ergänzt die tatsächliche Hetzner- und OpenRouter-Kontosichtung sowie die bestätigten Betreiberangaben. Frühere als offen gekennzeichnete Punkte sind anhand dieser Ergänzung zu lesen.
+
 **Stand 31.10.2026 · Entwurf, keine anwaltliche Prüfung oder Freigabe.** Umfang: Deutschland, alle Bundesländer; zunächst private Familiennutzung (Nutzerangabe 31.10.). Betreiber, Sitz, Vertragsdokumente und tatsächliche Verarbeitungskette sind nicht vollständig belegt. Für Schulen oder andere Länder ist vor Einsatz eine neue Prüfung nötig. Diese Unterlagen belegen weder die Rechtskonformität noch einen vollständigen technischen Audit. Zuständige Menschen müssen Entscheidungen treffen und dokumentieren.
 
 ## 1. Kurzbefund und Belegstatus
