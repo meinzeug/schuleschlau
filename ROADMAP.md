@@ -21,6 +21,9 @@ Die Reihenfolge innerhalb der Prioritäten richtet sich nach Abhängigkeiten. Ei
 
 ## Arbeitsfortschritt
 
+- 31.10.2026, lokal: Die Kinderseite „Heute“ zeigt die nächste Lernaktion mit Fach und gegebenenfalls Elternauftrag. Herkunft, geschätzte Dauer, Lernweg und Begründung sind unter „Mehr zur Runde“ erreichbar; Plan und Hefte sind gebündelt. Im echten Webbrowser bei 390 × 844 Pixeln mit künstlichem Konto wurden Ausgangs- und Änderungsstand angesehen sowie die Rundendetails geöffnet und geschlossen. Widgettests prüfen weitere Größen und große Schrift. Die Gesamtabnahme aller Kinderseiten bleibt offen.
+- 31.10.2026, lokal: Die Fach-/Themenauswahl verwendet kürzere Aufforderungen; die gewünschte Zufallsauswahl bleibt oben. Der Wörterrunden-Dialog zeigt die aktuelle Auswahl und bündelt weitere Optionen; bei 320 × 600 Pixeln und 200 % Schrift wurde ein verdeckter Startknopf behoben. Der Fotoeinstieg zeigt Zähler situationsabhängig und nennt das tatsächliche Seitenlimit. Künstliche Fluttertests prüfen Auswahl, Rückwege, Fotoabgabe und große Schrift. Diese Teile sind noch keine browsergestützte Abnahme sämtlicher Kinderansichten.
+- 31.10.2026, lokal: In der Vorbereitung führt ein fehlender Auftrag direkt zu gespeicherten Runden; andere Fehler bieten zusätzlich bewusstes Nachladen. Die Rückmeldungsanzeige verwendet den zugehörigen Versuch statt des letzten Versuchs derselben Frage. Für neue Clients prüft eine fähigkeitsgebundene Neubewertung die angezeigte Versuch-ID unter Einheitensperre; Tests decken auch gleichzeitige neuere Antworten und ältere Clients ab. Die globale Reihenfolge zeitgleicher alter Antworten verschiedener Fragen bleibt offen; siehe `docs/FEEDBACK_ORDER_CONTRACT.md`.
 - 31.10.2026, lokal: Der Wiederherstellungsmonitor erkennt fehlende, ungültige und veraltete Berichte. Ein einmaliger Initialzeitanker begrenzt die Frist für neue Installationen; die Berichtablage erfolgt atomar. Die isolierten Regressionstests einschließlich simuliertem Alarm sind in `scripts/tests/test_restore_monitor.py` dokumentiert. Kein Serverupdate und kein echter Alarmversand wurden durchgeführt.
 - 31.10.2026, lokal: Die Speicherwarnung berücksichtigt nun den tatsächlich nutzbaren Platz einschließlich reservierter Dateisystemblöcke. Ein künstlicher Fall deckt ab, dass eine nach `df` über 90 % belegte Partition zuvor nicht wegen des prozentualen Grenzwerts gewarnt hätte. Speicherbereinigung, Kapazitätsplanung und echte Alarmabnahme bleiben offen.
 - 31.10.2026, lokal: Die Quellenbindung der Releaseartefakte wurde im getrennten Worktree auf Commit `614f7d3` mit echtem Web-, signiertem Direct-APK- und Play-AAB-Build geprüft. Der signierte Nachweis ließ sich erfolgreich verifizieren; eine veränderte Webdatei, eine ältere signierte APK mit gleicher Versionsnummer sowie ein veränderter oder ungetrackter Quellstand wurden abgewiesen. Der Abgleich eines übertragenen Baums wurde nur synthetisch getestet; es gab kein Deployment und keinen physischen Androidtest. Spätere Änderungen erfordern einen neuen Build ihres eigenen Commits.
@@ -163,6 +166,12 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
   **Abnahme:** Entweder eine ausdrücklich begründete Nichtaufnahme oder ein freigegebenes Konzept mit Rechte- und Löschmatrix, Pilotgrenzen und Testfällen liegt vor; bis dahin keine bestehende Klassenraumfunktion oder Schulfreigabe behaupten.
 
 ## Kindgerechte Bedienung und Alltagstest
+
+- [ ] **P1 – Alle Kinderansichten sprachlich und in ihrer Bedienung entrümpeln**
+
+  Heute, Lernen, Fach- und Themenlisten, Hefte und Fotoimport, Seitenprüfung, Lernvorbereitung, Lernrunde und Rückblick, Wortschatz, Klassenarbeiten, Schulbuddy, Benachrichtigungen und Einstellungen jeweils in typischen Zuständen auf einem schmalen Smartphone durchgehen. Pro Ansicht die nächste Handlung erkennbar machen, wiederholte Erklärungen entfernen, vertraute kurze Begriffe verwenden und selten benötigte Einzelheiten sinnvoll erreichbar bündeln. Pflichtaufträge, Unsicherheiten, Datenschutzinformationen, Fehler und sichere Rückwege müssen weiterhin verständlich auffindbar sein. Große Schrift, Tastatur, Screenreader, leere Zustände, laufende Verarbeitung und Wiederaufnahme mitprüfen.
+
+  **Abnahme:** Für jede genannte Ansicht sind konkrete Vorher-/Nachher-Befunde, mobile Screenshots und passende Interaktions- beziehungsweise Regressionstests dokumentiert. Die wichtigsten Aufgaben werden mit künstlichen Konten tatsächlich bedient; zusammengeklappte Informationen und Nebenaktionen bleiben erreichbar. Eine einzelne verbesserte Seite oder ein Widgettest ersetzt nicht die Abnahme des gesamten Kinderbereichs.
 
 - [ ] **P1 – Alters- und situationsgerechte Bedienung beobachten**
 
@@ -355,6 +364,12 @@ Die folgenden Punkte beschreiben ausstehende, wiederholbare Betriebs- und Freiga
   **Abnahme:** Fremde Familien und Administratoren erhalten keinen privaten Zugriff; fehlende Berechtigungen und ausgefallene Medien blockieren den Lernweg nicht. Nicht geprüfte optionale Funktionen sind nicht Bestandteil der Freigabe.
 
 ## Laufende Qualitätssicherung und finale Freigabe
+
+- [ ] **P1 – Abhängigkeiten und kommende Toolchain-Änderungen prüfen**
+
+  Beim lokalen Releasebuild auf Commit `614f7d3` meldete Flutter WebAssembly-Hinweise für `flutter_tts` und Gradle künftig erforderliche Kotlin-Plugin-Anpassungen; bei Backendtests erschien eine Starlette-/HTTPX-DeprecationWarning. Diese Warnungen sind keine aktuellen Buildfehler, können aber spätere Updates behindern. Kompatible Versionen, Lizenz- und Sicherheitsstände sowie Folgen für Web, Android, Sprache und Firebase anhand verlässlicher Quellen untersuchen. Updates getrennt und reproduzierbar mit bestehender Toolchain, Tests und Rückweg durchführen, ohne geschützte Routen oder Firebase-Projekte auszutauschen.
+
+  **Abnahme:** Jede Warnung ist mit tatsächlicher Auswirkung, zuständiger Abhängigkeit und Lösung oder dokumentiertem Beobachtungszeitpunkt erfasst; angepasste Builds und betroffene Funktions-/Gerätetests sind für den jeweils freigegebenen Umfang nachgewiesen. Ein regulär erfolgreicher JavaScript-Webbuild wird nicht als erfolgreicher WebAssembly-Build ausgegeben.
 
 - [ ] **P1 – Datenschutz und Anbieterunterlagen fachkundig prüfen lassen**
 
