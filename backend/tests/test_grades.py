@@ -43,6 +43,19 @@ def test_grade_crud_parent_only_revision_and_immediate_priority(api):
     assert api.get(path).json()["items"] == []
 
 
+def test_overdue_grade_is_visible_for_parent_review(api, household):
+    _, child = household
+    path = f"/api/children/{child['id']}/grades"
+    created = api.post(path, json=mark(child['id']))
+    assert created.status_code == 201
+    assert created.json()['retention_due'] is False
+    with DB.begin() as db:
+        db.get(SchoolGrade, created.json()['id']).created = int(now()) - 366 * 86400
+    response = api.get(path)
+    assert response.status_code == 200
+    assert response.json()['items'][0]['retention_due'] is True
+
+
 @pytest.mark.parametrize("change", [
     {"value": 0}, {"value": 6.1}, {"value": 2.345}, {"scale": "invented"},
     {"weight": 0}, {"weight": 6}, {"subject": "   "}, {"kind": "arbitrary"},

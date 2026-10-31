@@ -82,7 +82,8 @@ def grade_data(row):
     return {key: (float(row.value) if key == "value" else getattr(row, key)) for key in (
         "id", "subject", "topic", "kind", "scale", "value", "weight", "assessed_on", "note", "assignment_id",
         "revision", "created", "updated", "school_year_start", "semester",
-    )} | {"date_precision": "day" if row.assessed_on else "semester", "date_label": row.assessed_on or
+    )} | {"retention_due": row.created < int(now()) - 365 * 86400,
+          "date_precision": "day" if row.assessed_on else "semester", "date_label": row.assessed_on or
           f"{row.semester}. Halbjahr {row.school_year_start}/{row.school_year_start + 1}"}
 
 

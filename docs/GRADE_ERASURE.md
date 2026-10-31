@@ -26,6 +26,8 @@ geändert hat. Elternziele und andere Noten bleiben erhalten.
 Der Aufbewahrungslauf verwendet denselben Löschweg. Solange alte Quellen nicht
 eindeutig zugeordnet sind, bleiben betroffene Noten vorübergehend erhalten;
 der Worker protokolliert eine inhaltsfreie Anzahl betroffener Kinderkonten.
+Die Elternansicht kennzeichnet Noten nach Ablauf der Frist und bietet die
+Prüfung und Entfernung an.
 Ein noch mit einer vorhandenen Note verknüpfter Quellslot bleibt zur sicheren
 späteren Zuordnung erhalten. Das kann die übliche 365-Tage-Frist überschreiten
 und muss betrieblich verfolgt werden; eine ungeklärte Zuordnung ist kein

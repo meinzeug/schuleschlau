@@ -1480,6 +1480,17 @@ class _GradesScreenState extends State<GradesScreen> {
               ],
             ),
           ),
+          if (manage && grade['retention_due'] == true)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: TextButton.icon(
+                onPressed: saving ? null : () => remove(grade),
+                icon: const Icon(Icons.info_outline),
+                label: const Text(
+                  'Aufbewahrungsfrist erreicht · Entfernen prüfen',
+                ),
+              ),
+            ),
           if ((grade['note'] ?? '').toString().isNotEmpty)
             ExpansionTile(
               tilePadding: EdgeInsets.zero,
