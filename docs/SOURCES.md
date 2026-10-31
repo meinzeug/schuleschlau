@@ -1,3 +1,9 @@
+## 31.10.2026 · Datenschutzrelease 1.38.54+209
+
+Der aktive Quellstand und die Versionierung des separat gebauten
+Datenschutzreleases stehen in [STATUS.md](STATUS.md). Die Änderung verwendet
+keine zusätzlichen Bibliotheken oder neuen Anbieterquellen.
+
 ## 31.10.2026 · Anbieterprüfung im Konto
 
 Aktuelle Unterlagen von Hetzner, OpenRouter und Firebase sowie die Grenzen der

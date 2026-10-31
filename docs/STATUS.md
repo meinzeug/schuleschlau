@@ -1,4 +1,27 @@
-# Produktionsstand · 1.38.52+207
+# Produktionsstand · 1.38.54+209
+
+**Aktualisierung 31.10.2026:** Aktiv ist der gezielte Datenschutz- und
+Betriebseinstellungsrelease `20261031T233356Z-484a9be` vom Quellcommit
+`484a9be83b7bbdbd7b6aceedcd031b66868242d2` (Remotezweig
+`codex/privacy-settings-release`). Er baut auf dem vorherigen Produktivstand
+`6e48cfe` auf und enthält die Datenschutzkorrekturen und die Formularreparatur;
+die separat in `main` liegenden Notenlöschungsänderungen sind nicht enthalten.
+Das Backend meldet den Release gesund, API und Worker sind aktiv. Die
+Betriebseinstellungen wurden gespeichert, wobei das bisherige SMTP-Absenderformat
+erhalten blieb. Das Impressum meldet weiterhin fehlende Angaben.
+
+Das Web, Play-Bundle und die signierte Direct-APK wurden aus diesem Commit mit
+Version `1.38.54+209` gebaut; die Releasebindung wurde verifiziert. Zehn
+gezielte Backendtests bestanden, zusätzlich die zuvor dokumentierten
+Flutter-Formulartests. Künftige Releases einschließlich der Notenänderung müssen
+Android-Versionscode **größer als 209** und eine entsprechend höhere Version
+verwenden; `main` ist allein kein Nachweis des zuletzt ausgelieferten Codes.
+Die Releaseartefakte liegen lokal unter
+`~/.local/share/schulpilot-releases/1.38.54-209/`. Der vorherige Release
+`20261031T222700Z-6e48cfe` ist erhalten; dieser Release ergänzt keine
+Datenbankmigrationen. Ein nötiger Code-Rückweg erfordert trotzdem Prüfung des
+aktuellen Schema- und Auftragsstands, keine automatische Datenrücksicherung.
+
 
 **Aktualisierung 31.10.2026:** Aktiv ist Release `20261031T222700Z-6e48cfe`
 mit Quellcommit `6e48cfe181021f9a982f0cb944d9357c856f521f`; die Angaben zum
