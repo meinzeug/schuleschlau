@@ -405,25 +405,23 @@ void main() {
       expect(state.collectionViews['homework_list:child']?['filter'], 'review');
     },
   );
-  testWidgets(
-    'KK039 empty homework card opens only explicit local photo choice',
-    (tester) async {
-      final requests = <http.Request>[];
-      final state = account((r) async {
-        requests.add(r);
-        return reply({'photos': [], 'next_cursor': null});
-      });
-      await homework.open(tester, state, overview: true);
-      await tester.ensureVisible(
-        find.text('Erstes Hausaufgabenfoto aufnehmen'),
-      );
-      await tester.tap(find.text('Erstes Hausaufgabenfoto aufnehmen'));
-      await tester.pump(const Duration(milliseconds: 400));
-      expect(find.text('Foto auswählen'), findsOneWidget);
-      expect(requests.every((r) => r.method == 'GET'), isTrue);
-      await tester.pumpWidget(const SizedBox());
-    },
-  );
+  testWidgets('KK039 empty homework opens only explicit local photo choice', (
+    tester,
+  ) async {
+    final requests = <http.Request>[];
+    final state = account((r) async {
+      requests.add(r);
+      return reply({'photos': [], 'next_cursor': null});
+    });
+    await homework.open(tester, state, overview: true);
+    expect(find.text('Erstes Hausaufgabenfoto aufnehmen'), findsNothing);
+    await tester.ensureVisible(find.text('Hausaufgaben fotografieren'));
+    await tester.tap(find.text('Hausaufgaben fotografieren'));
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.text('Foto auswählen'), findsOneWidget);
+    expect(requests.every((r) => r.method == 'GET'), isTrue);
+    await tester.pumpWidget(const SizedBox());
+  });
   testWidgets(
     'KK040 saved homework practice card opens its exact existing round',
     (tester) async {

@@ -52,6 +52,12 @@ class _HomeworkScreenState extends State<HomeworkScreen> {
       photoFilter != 'all' ||
       photoSearch.text.trim().isNotEmpty ||
       photoDates != null;
+  bool get showPhotoFilters =>
+      photos.isNotEmpty ||
+      listFiltered ||
+      photoOrder != 'newest' ||
+      cursor != null ||
+      startCursor != null;
   DateTime? photoDate(Json photo) {
     final stamp = photo['created'];
     if (stamp is num &&
@@ -525,7 +531,8 @@ class _HomeworkScreenState extends State<HomeworkScreen> {
           ChildSectionHero(
             eyebrow: 'Hausaufgaben',
             title: 'Was hast du heute auf?',
-            description: 'Buch, Arbeitsblatt oder Hefter: Fotografiere die Aufgabe. Dann schauen wir gemeinsam, was zu tun ist.',
+            description:
+                'Fotografiere deine Aufgabe. Wir schauen sie uns gemeinsam an.',
             icon: Icons.edit_note_rounded,
             action: Align(
               alignment: Alignment.centerLeft,
@@ -645,10 +652,14 @@ class _HomeworkScreenState extends State<HomeworkScreen> {
         if (widget.state.isChild) ...[
           PageToolsGroup(
             id: 'homework-photo-tools',
-            title: 'Aufgabenfotos suchen & ordnen',
+            title: showPhotoFilters
+                ? 'Aufgabenfotos suchen & ordnen'
+                : 'Fotos aktualisieren',
             scope: (ObjectKey(actor), actorFamily, actorToken, widget.childId),
             isCurrent: () => mounted && own,
-            summary: '${photos.length} geladene Fotos',
+            summary: showPhotoFilters
+                ? '${photos.length} geladene Fotos'
+                : null,
             active: listFiltered,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -659,121 +670,125 @@ class _HomeworkScreenState extends State<HomeworkScreen> {
                   label: const Text('Aufgabenfotos aktualisieren'),
                 ),
 
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 8,
-                  children: [
-                    for (final filter in [
-                      ('all', 'Alle Fotos'),
-                      ('review', 'Foto noch prüfen'),
-                      ('ready', 'Text geprüft'),
-                      ('marked', 'Mit Häkchen'),
-                    ])
-                      ChoiceChip(
-                        label: Text(filter.$2),
-                        selected: photoFilter == filter.$1,
-                        onSelected: (_) {
+                if (showPhotoFilters) ...[
+                  Wrap(
+                    spacing: 10,
+                    runSpacing: 8,
+                    children: [
+                      for (final filter in [
+                        ('all', 'Alle Fotos'),
+                        ('review', 'Foto noch prüfen'),
+                        ('ready', 'Text geprüft'),
+                        ('marked', 'Mit Häkchen'),
+                      ])
+                        ChoiceChip(
+                          label: Text(filter.$2),
+                          selected: photoFilter == filter.$1,
+                          onSelected: (_) {
+                            if (!own) return;
+                            FocusManager.instance.primaryFocus?.unfocus();
+                            setState(() => photoFilter = filter.$1);
+                            rememberList();
+                          },
+                        ),
+                      OutlinedButton.icon(
+                        onPressed: () {
                           if (!own) return;
                           FocusManager.instance.primaryFocus?.unfocus();
-                          setState(() => photoFilter = filter.$1);
-                          rememberList();
+                          setState(() => showPhotoSearch = !showPhotoSearch);
                         },
+                        icon: Icon(Icons.search_rounded),
+                        label: Text(
+                          showPhotoSearch
+                              ? 'Suchfeld einklappen'
+                              : 'Foto suchen',
+                        ),
                       ),
-                    OutlinedButton.icon(
-                      onPressed: () {
-                        if (!own) return;
-                        FocusManager.instance.primaryFocus?.unfocus();
-                        setState(() => showPhotoSearch = !showPhotoSearch);
-                      },
-                      icon: Icon(Icons.search_rounded),
-                      label: Text(
-                        showPhotoSearch ? 'Suchfeld einklappen' : 'Foto suchen',
-                      ),
-                    ),
-                  ],
-                ),
-                if (showPhotoSearch) ...[
-                  SizedBox(height: 12),
-                  TextField(
-                    controller: photoSearch,
-                    textInputAction: TextInputAction.search,
-                    decoration: InputDecoration(
-                      labelText: 'In geladenen Fotos suchen',
-                      hintText: 'Fach, Thema oder Titel',
-                      suffixIcon: photoSearch.text.isEmpty
-                          ? null
-                          : IconButton(
-                              tooltip: 'Fotosuche leeren',
-                              onPressed: () {
-                                if (!own) return;
-                                FocusManager.instance.primaryFocus?.unfocus();
-                                setState(photoSearch.clear);
-                                rememberList();
-                              },
-                              icon: Icon(Icons.clear_rounded),
-                            ),
-                    ),
-                    onChanged: (_) {
-                      if (own) {
-                        setState(() {});
-                        rememberList();
-                      }
-                    },
-                    onSubmitted: (_) =>
-                        FocusManager.instance.primaryFocus?.unfocus(),
+                    ],
                   ),
-                ],
-                ExpansionTile(
-                  title: Text('Fotos zeitlich finden'),
-                  children: [
-                    DropdownButtonFormField<String>(
-                      key: ValueKey(('photo-order', photoOrder)),
-                      initialValue: photoOrder,
-                      isExpanded: true,
+                  if (showPhotoSearch) ...[
+                    SizedBox(height: 12),
+                    TextField(
+                      controller: photoSearch,
+                      textInputAction: TextInputAction.search,
                       decoration: InputDecoration(
-                        labelText: 'Geladene Fotos sortieren',
+                        labelText: 'In geladenen Fotos suchen',
+                        hintText: 'Fach, Thema oder Titel',
+                        suffixIcon: photoSearch.text.isEmpty
+                            ? null
+                            : IconButton(
+                                tooltip: 'Fotosuche leeren',
+                                onPressed: () {
+                                  if (!own) return;
+                                  FocusManager.instance.primaryFocus?.unfocus();
+                                  setState(photoSearch.clear);
+                                  rememberList();
+                                },
+                                icon: Icon(Icons.clear_rounded),
+                              ),
                       ),
-                      items: [
-                        DropdownMenuItem(
-                          value: 'newest',
-                          child: Text('Neueste zuerst'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'oldest',
-                          child: Text('Älteste zuerst'),
-                        ),
-                      ],
-                      onChanged: (value) {
-                        if (own && value != null) {
-                          FocusManager.instance.primaryFocus?.unfocus();
-                          setState(() => photoOrder = value);
+                      onChanged: (_) {
+                        if (own) {
+                          setState(() {});
                           rememberList();
                         }
                       },
+                      onSubmitted: (_) =>
+                          FocusManager.instance.primaryFocus?.unfocus(),
                     ),
-                    TextButton.icon(
-                      onPressed: loading ? null : choosePhotoDates,
-                      icon: Icon(Icons.date_range_rounded),
-                      label: Text('Fotodatum eingrenzen'),
-                    ),
-                    if (photoDates != null)
-                      InputChip(
-                        label: Text(
-                          '${DateFormat('dd.MM.yyyy').format(photoDates!.start)} bis ${DateFormat('dd.MM.yyyy').format(photoDates!.end)}',
+                  ],
+                  ExpansionTile(
+                    title: Text('Fotos zeitlich finden'),
+                    children: [
+                      DropdownButtonFormField<String>(
+                        key: ValueKey(('photo-order', photoOrder)),
+                        initialValue: photoOrder,
+                        isExpanded: true,
+                        decoration: InputDecoration(
+                          labelText: 'Geladene Fotos sortieren',
                         ),
-                        onDeleted: () {
-                          if (own) {
-                            setState(() => photoDates = null);
+                        items: [
+                          DropdownMenuItem(
+                            value: 'newest',
+                            child: Text('Neueste zuerst'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'oldest',
+                            child: Text('Älteste zuerst'),
+                          ),
+                        ],
+                        onChanged: (value) {
+                          if (own && value != null) {
+                            FocusManager.instance.primaryFocus?.unfocus();
+                            setState(() => photoOrder = value);
                             rememberList();
                           }
                         },
-                        deleteButtonTooltipMessage: 'Fotodatum aufheben',
                       ),
-                    Text(
-                      'Die Datumsansicht verwendet nur geladene Fotos und die Datumsanzeige dieses Geräts.',
-                    ),
-                  ],
-                ),
+                      TextButton.icon(
+                        onPressed: loading ? null : choosePhotoDates,
+                        icon: Icon(Icons.date_range_rounded),
+                        label: Text('Fotodatum eingrenzen'),
+                      ),
+                      if (photoDates != null)
+                        InputChip(
+                          label: Text(
+                            '${DateFormat('dd.MM.yyyy').format(photoDates!.start)} bis ${DateFormat('dd.MM.yyyy').format(photoDates!.end)}',
+                          ),
+                          onDeleted: () {
+                            if (own) {
+                              setState(() => photoDates = null);
+                              rememberList();
+                            }
+                          },
+                          deleteButtonTooltipMessage: 'Fotodatum aufheben',
+                        ),
+                      Text(
+                        'Die Datumsansicht verwendet nur geladene Fotos und die Datumsanzeige dieses Geräts.',
+                      ),
+                    ],
+                  ),
+                ],
               ],
             ),
           ),
@@ -816,13 +831,14 @@ class _HomeworkScreenState extends State<HomeworkScreen> {
               label: Text('Neueste Aufgabenfotos laden'),
             ),
           SizedBox(height: 10),
-          Semantics(
-            liveRegion: true,
-            child: Text(
-              '${visiblePhotos.length} von ${photos.length} geladenen Fotos${cursor == null ? '' : ' · Weitere Fotos unten laden'}',
-              style: TextStyle(color: context.palette.muted),
+          if (photos.isNotEmpty || listFiltered || cursor != null)
+            Semantics(
+              liveRegion: true,
+              child: Text(
+                '${visiblePhotos.length} von ${photos.length} geladenen Fotos${cursor == null ? '' : ' · Weitere Fotos unten laden'}',
+                style: TextStyle(color: context.palette.muted),
+              ),
             ),
-          ),
           if (photoFilter == 'marked')
             Text(
               'Häkchen sind deine Checkliste. Sie zeigen nicht, ob eine Antwort richtig ist.',
@@ -868,21 +884,15 @@ class _HomeworkScreenState extends State<HomeworkScreen> {
               ],
             ),
           ),
-        if (!loading && photos.isEmpty && error == null)
-          widget.state.isChild && pending == null
-              ? ActionPanel(
-                  actionLabel: 'Erstes Hausaufgabenfoto aufnehmen',
-                  enabled: !photoBusy,
-                  onPressed: capture,
-                  child: Text(
-                    'Hier warten deine Hausaufgaben auf dich, sobald du ein Foto abgibst.',
-                  ),
-                )
-              : Panel(
-                  child: Text(
-                    'Hier warten deine Hausaufgaben auf dich, sobald du ein Foto abgibst.',
-                  ),
-                ),
+        if (!loading && photos.isEmpty && error == null && !listFiltered)
+          if (widget.state.isChild && pending == null)
+            const Text('Noch keine Aufgabenfotos.')
+          else if (!widget.state.isChild)
+            Panel(
+              child: Text(
+                'Hier warten deine Hausaufgaben auf dich, sobald du ein Foto abgibst.',
+              ),
+            ),
         for (final photo in widget.state.isChild ? visiblePhotos : photos)
           Padding(
             padding: EdgeInsets.only(bottom: 10),

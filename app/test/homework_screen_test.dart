@@ -476,7 +476,7 @@ void main() {
             expect(find.text('Was hast du heute auf?'), findsOneWidget);
             expect(
               find.text(
-                'Buch, Arbeitsblatt oder Hefter: Fotografiere die Aufgabe. Dann schauen wir gemeinsam, was zu tun ist.',
+                'Fotografiere deine Aufgabe. Wir schauen sie uns gemeinsam an.',
               ),
               findsOneWidget,
             );
@@ -487,8 +487,17 @@ void main() {
             expect(photoAction.hitTestable(), findsOneWidget);
           }
           expect(find.byTooltip('Aktualisieren'), findsNothing);
+          expect(find.text('Noch keine Aufgabenfotos.'), findsOneWidget);
+          expect(find.text('0 von 0 geladenen Fotos'), findsNothing);
+          expect(
+            find.text('KI erkennt dein Foto. Prüfe danach den Text.'),
+            findsOneWidget,
+          );
           await page_tools.openPageTools(tester, 'homework-photo-tools');
           expect(find.text('Aufgabenfotos aktualisieren'), findsOneWidget);
+          expect(find.text('Foto suchen'), findsNothing);
+          expect(find.text('Foto noch prüfen'), findsNothing);
+          await tap(tester, 'Aufgabenfotos aktualisieren');
           expect(methods.every((m) => m == 'GET'), isTrue);
           expect(tester.takeException(), isNull);
         },
