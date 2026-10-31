@@ -33,6 +33,7 @@ import 'practice_evidence.dart';
 import 'adaptive_learning_step.dart';
 import 'knowledge_sheet.dart';
 import 'schulbuddy.dart';
+import 'feedback_recovery_sheet.dart';
 
 class UnitScreen extends StatefulWidget {
   final AppState state;
@@ -1181,34 +1182,48 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
                 ? null
                 : () => unawaited(perform(() => openHelp(u))),
             primaryAction: u == null || error != null ? null : primaryAction(u),
-            actionMessage: actionError == null
+            actionMessage:
+                actionError == null &&
+                    !(state.isChild &&
+                        u?['feedback_recovery_available'] == true)
                 ? null
                 : Semantics(
                     liveRegion: true,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Text(
-                          actionError is ApiError
-                              ? (actionError as ApiError).message
-                              : 'Das hat gerade nicht geklappt. Deine Antworten bleiben gespeichert.',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: context.palette.dangerInk,
+                        if (actionError != null)
+                          Text(
+                            actionError is ApiError
+                                ? (actionError as ApiError).message
+                                : 'Das hat gerade nicht geklappt. Deine Antworten bleiben gespeichert.',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: context.palette.dangerInk,
+                            ),
                           ),
-                        ),
-                        TextButton.icon(
-                          onPressed: actionBusy
-                              ? null
-                              : () async {
-                                  await load();
-                                  if (mounted && error == null) {
-                                    setState(() => actionError = null);
-                                  }
-                                },
-                          icon: Icon(Icons.refresh),
-                          label: Text('Gespeicherten Stand laden'),
-                        ),
+                        if (actionError != null)
+                          TextButton.icon(
+                            onPressed: actionBusy
+                                ? null
+                                : () async {
+                                    await load();
+                                    if (mounted && error == null) {
+                                      setState(() => actionError = null);
+                                    }
+                                  },
+                            icon: Icon(Icons.refresh),
+                            label: Text('Gespeicherten Stand laden'),
+                          ),
+                        if (state.isChild &&
+                            u?['feedback_recovery_available'] == true)
+                          TextButton.icon(
+                            onPressed: actionBusy
+                                ? null
+                                : () => openFeedbackRecovery(u!),
+                            icon: Icon(Icons.history_rounded),
+                            label: Text('Rückmeldungen ansehen'),
+                          ),
                       ],
                     ),
                   ),
@@ -1448,6 +1463,35 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
     });
     revealStep();
     watchCoaching();
+  }
+
+  Future<void> openFeedbackRecovery(Json u) async {
+    final id = u['id'] as String;
+    final owner = ownerAccount;
+    final token = state.api.token;
+    bool current() => requestIsCurrent(id, owner) && state.api.token == token;
+    if (!current()) return;
+    var changed = false;
+    await showUnitSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      showDragHandle: true,
+      builder: (sheet) => FeedbackRecoverySheet(
+        api: state.api,
+        unitId: id,
+        isCurrent: current,
+        onChanged: () => changed = true,
+        onClose: () => popUnitRoute(sheet),
+      ),
+    );
+    if (!current() || !changed) return;
+    // A currently edited answer stays in place. It will synchronize through
+    // the usual draft path; do not replace it with a freshly loaded snapshot.
+    final hasDraft =
+        !awaitingContinue &&
+        (choice != null || text.text.trim().isNotEmpty || matches.isNotEmpty);
+    if (!hasDraft) await load();
   }
 
   Future<void> leaveLearning() async {

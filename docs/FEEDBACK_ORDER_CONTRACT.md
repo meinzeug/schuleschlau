@@ -115,6 +115,40 @@ zwischen verschiedenen Fragen nicht.
   eine Neubewertung ohne eindeutige Ziel-ID auslösen. Bei fehlendem Beleg bleiben
   Details offen; fachliche Urteile und alte Antworten werden nicht umgeschrieben.
 
+## Ausdrückliche Wiederherstellung für neue Clients
+
+Neue Clients können bei mehreren oder widersprüchlich angezeigten ungelesenen
+Markern die Schaltfläche „Rückmeldungen ansehen“ verwenden. Der Kinderzugang
+liest dabei ausschließlich Marker seiner eigenen Einheit und zeigt je Seite
+höchstens zehn eigene Antworten mit Aufgabenstellung und gespeichertem Ergebnis.
+Die stabile Paginierung verwendet IDs nur zur Darstellung; ihre Reihenfolge ist
+keine Aussage über den zeitlichen Ablauf. Lösungen, Erklärungen und interne
+Bewertungsgründe werden in dieser Ansicht nicht zusätzlich offengelegt. Das
+Öffnen und Blättern ist lesend und markiert nichts als gelesen.
+
+Erst „Gelesen“ quittiert unter der Einheitensperre ausdrücklich die gewählte
+Attempt-ID, wiederholt denselben Klick idempotent und erhält alle anderen Marker
+und Antworten. Solange ein weiterer zu einer existierenden Antwort gehörender
+Marker ungelesen ist, löst dieser Wiederherstellungsweg keinen Abschluss aus.
+Nach dem letzten Marker prüft er dieselben Abschlussbedingungen wie der
+reguläre ACK. Anders als der reguläre ACK startet er dabei ausdrücklich keinen
+automatischen Coach-Auftrag; die vorhandene bewusste Aktion für den Rückblick
+bleibt erreichbar. Ein synthetischer End-to-End-Test prüft Abschluss, echten
+lokalen Demo-Rückblick, erhaltene Antworten sowie unveränderte Jobs und Kosten
+bis zur ausdrücklichen Rückblickaktion. Ein offener Eingabeentwurf bleibt beim
+Schließen der Wiederherstellung auf dem Gerät erhalten.
+Alte Marker mit gültigem JSON, aber unbrauchbarem Detailformat oder ohne
+zuordenbare Attempt-ID werden beim Lesen und Quittieren ignoriert und nicht
+verändert. Sie gelten nicht als Nachweis, dass ein gültiger Marker gelesen
+wurde; die fachliche Zuordnung dieser beschädigten Datensätze bleibt offen.
+
+Dieser Weg repariert nicht die historische Reihenfolge und ersetzt keine
+Migration für künftige Antworten. Alte Clients kennen die Schaltfläche nicht;
+auch für sie bleibt die globale Wiederaufnahme bei mehrdeutigen Altbeständen
+offen. Die Aufbewahrung von Markern, deren zugehörige Antwort fehlt, ist damit
+nicht geklärt. Die zwei ursprünglichen Gegenbeispiele für den alten Vertrag
+bleiben deshalb erwartete Fehlschläge.
+
 ## Clientkompatibilität als offene Bedingung
 
 Der bestehende Flutter-Client versteht für die Fortsetzung nur eine einzelne

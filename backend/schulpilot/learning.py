@@ -354,8 +354,10 @@ def pending_feedback(unit, attempts, events):
                 and all(a.created == latest.created or a.evaluation["attempt_number"] < min(
                     t.evaluation["attempt_number"] for t in tied) for a in same_question)):
             latest = max(tied, key=lambda a: a.evaluation["attempt_number"])
-    pending = any(e.kind == "feedback_pending" and e.detail.get("attempt_id") == latest.id for e in events)
-    seen = any(e.kind == "feedback_seen" and e.detail.get("attempt_id") == latest.id for e in events)
+    pending = any(e.kind == "feedback_pending" and isinstance(e.detail, dict)
+                  and e.detail.get("attempt_id") == latest.id for e in events)
+    seen = any(e.kind == "feedback_seen" and isinstance(e.detail, dict)
+               and e.detail.get("attempt_id") == latest.id for e in events)
     if not pending or seen:
         return None
     q = next((q for q in unit.questions if q["id"] == latest.question_id), None)
@@ -370,6 +372,24 @@ def pending_feedback(unit, attempts, events):
         "assisted": latest.assisted,
         "explanation": q["explanation"] if latest.outcome != "incorrect" or count >= 3 else None,
     }
+
+
+def feedback_history_available(unit, attempts, events):
+    """Offer explicit recovery only if unread evidence is not coherently resumable."""
+    valid = {attempt.id for attempt in attempts}
+    unread = {event.detail.get("attempt_id") for event in events
+              if event.child_id == unit.child_id and event.kind == "feedback_pending"
+              and isinstance(event.detail, dict) and isinstance(event.detail.get("attempt_id"), str)} & valid
+    unread -= {event.detail.get("attempt_id") for event in events
+               if event.child_id == unit.child_id and event.kind == "feedback_seen"
+               and isinstance(event.detail, dict) and isinstance(event.detail.get("attempt_id"), str)}
+    if not unread:
+        return False
+    displayed = pending_feedback(unit, attempts, events)
+    acknowledged = pending_feedback(unit, sorted(attempts, key=lambda a: (a.created, a.id)), events)
+    shown_id = displayed["attempt_id"] if displayed else None
+    ack_id = acknowledged["attempt_id"] if acknowledged else None
+    return unread != {shown_id} or shown_id != ack_id
 
 
 def feedback_resume_id(db, child_id, *, include_language=True):
@@ -572,6 +592,8 @@ def unit_data(db, unit, include_answers=False, *, include_progress=True):
         **visual_projection(db, unit,
             show_introduction=not hide_introduction and (include_answers or unit.round_kind not in coaching.CHECK_KINDS or unit.status == "completed")),
         "pending_feedback": pending_feedback(unit, attempts, events),
+        "supports_feedback_recovery": True,
+        "feedback_recovery_available": feedback_history_available(unit, attempts, events),
         "supports_recheck": True,
         "supports_recheck_attempt_id": True,
         "supports_question_explanation": True,
@@ -2062,7 +2084,8 @@ def record_feedback_exposure(db, unit, attempt, surface):
     """Idempotent display marker under the existing unit lock, without text."""
     events = db.scalars(select(Activity).where(Activity.unit_id == unit.id,
         Activity.child_id == unit.child_id, Activity.kind == "feedback_exposure"))
-    if not any(e.detail.get("attempt_id") == attempt.id and e.detail.get("surface") == surface for e in events):
+    if not any(isinstance(e.detail, dict) and e.detail.get("attempt_id") == attempt.id
+               and e.detail.get("surface") == surface for e in events):
         db.add(Activity(child_id=unit.child_id, unit_id=unit.id, kind="feedback_exposure",
                         detail={"attempt_id": attempt.id, "question_id": attempt.question_id, "surface": surface}))
 
@@ -2095,7 +2118,8 @@ def acknowledge_feedback(
     if not attempt or attempt.unit_id != unit.id:
         raise HTTPException(404, "Rückmeldung nicht gefunden.")
     events = list(db.scalars(select(Activity).where(Activity.unit_id == unit.id)))
-    if any(e.kind == "feedback_seen" and e.detail.get("attempt_id") == attempt.id for e in events):
+    if any(e.kind == "feedback_seen" and isinstance(e.detail, dict)
+           and e.detail.get("attempt_id") == attempt.id for e in events):
         if recover_instructional_round(db, unit):
             db.commit()
             schedule_completed_review(db, unit)
@@ -2120,6 +2144,85 @@ def acknowledge_feedback(
     if recovered:
         schedule_completed_review(db, unit)
     return unit_data(db, unit)
+
+
+@router.get("/units/{unit_id}/feedback/recovery")
+def feedback_recovery(unit_id: str, after: str | None = Query(None, pattern=r"^[a-f0-9]{32}$"),
+                      p=Depends(child_user), db=Depends(get_db)):
+    """List unread markers in a stable presentation order, never a chronology."""
+    unit = get_unit(db, p, unit_id, True)
+    pending, seen = aliased(Activity), aliased(Activity)
+    marked = select(pending.id).where(
+        pending.unit_id == unit.id, pending.child_id == unit.child_id, pending.kind == "feedback_pending",
+        pending.detail["attempt_id"].as_string() == Attempt.id,
+    ).correlate(Attempt).exists()
+    read = select(seen.id).where(
+        seen.unit_id == unit.id, seen.child_id == unit.child_id, seen.kind == "feedback_seen",
+        seen.detail["attempt_id"].as_string() == Attempt.id,
+    ).correlate(Attempt).exists()
+    query = select(Attempt).where(Attempt.unit_id == unit.id, marked, ~read)
+    if after:
+        query = query.where(Attempt.id > after)
+    attempts = list(db.scalars(query.order_by(Attempt.id).limit(11)))
+    questions = {q["id"]: q for q in unit.questions}
+    items = []
+    for attempt in attempts[:10]:
+        q = questions.get(attempt.question_id)
+        items.append({"attempt_id": attempt.id,
+                      "prompt": q.get("prompt") if q else None,
+                      "answer": attempt.answer, "outcome": attempt.outcome, "assisted": attempt.assisted})
+    return {"items": items, "next_after": attempts[9].id if len(attempts) > 10 else None}
+
+
+@router.post("/units/{unit_id}/feedback/recovery/acknowledge")
+def acknowledge_recovered_feedback(unit_id: str, data: s.FeedbackAcknowledgement,
+                                   p=Depends(child_user), db=Depends(get_db)):
+    """Explicitly acknowledge one displayed marker without inferring chronology."""
+    unit = get_unit(db, p, unit_id, True, True)
+    attempt = db.get(Attempt, data.attempt_id)
+    if not attempt or attempt.unit_id != unit.id:
+        raise HTTPException(404, "Rückmeldung nicht gefunden.")
+    events = list(db.scalars(select(Activity).where(Activity.unit_id == unit.id, Activity.child_id == unit.child_id,
+                            Activity.kind.in_(("feedback_pending", "feedback_seen")))))
+    if not any(e.kind == "feedback_pending" and isinstance(e.detail, dict)
+               and e.detail.get("attempt_id") == attempt.id for e in events):
+        raise HTTPException(404, "Rückmeldung nicht gefunden.")
+    if any(e.kind == "feedback_seen" and isinstance(e.detail, dict)
+           and e.detail.get("attempt_id") == attempt.id for e in events):
+        return {"acknowledged": True}
+    attempts = list(db.scalars(select(Attempt).where(Attempt.unit_id == unit.id).order_by(
+        Attempt.created, func.coalesce(Attempt.evaluation["attempt_number"].as_integer(), 0), Attempt.id)))
+    # If this was also the feedback shown in the normal learning room, keep
+    # its existing disclosure accounting. Historical list entries themselves
+    # never contain a solution, nor do they complete a unit or earn evidence.
+    shown_pending = pending_feedback(unit, attempts, events)
+    if shown_pending and shown_pending["attempt_id"] == attempt.id:
+        q = question(unit, attempt.question_id)
+        from .subject_content import legacy_presentation, public_presentation
+
+        closed = attempt.outcome in ("correct", "uncertain") or sum(
+            a.question_id == attempt.question_id for a in attempts) >= 3
+        shown = public_presentation(q.get("presentation") or legacy_presentation(q, unit_source_texts(db, unit)),
+                                    closed=closed)
+        if shown and any(block.get("disclosure") == "solution" for block in shown.get("blocks", [])):
+            record_feedback_exposure(db, unit, attempt, "visual")
+        if attempt.outcome != "correct" and shown_pending.get("explanation"):
+            record_feedback_exposure(db, unit, attempt, "text")
+    record(db, unit.child_id, "feedback_seen", {"attempt_id": attempt.id}, unit.id)
+    valid_ids = {a.id for a in attempts}
+    unread_ids = {e.detail.get("attempt_id") for e in events if e.kind == "feedback_pending"
+                  and isinstance(e.detail, dict) and isinstance(e.detail.get("attempt_id"), str)} & valid_ids
+    unread_ids -= {e.detail.get("attempt_id") for e in events if e.kind == "feedback_seen"
+                   and isinstance(e.detail, dict) and isinstance(e.detail.get("attempt_id"), str)}
+    unread_ids.discard(attempt.id)
+    # The normal legacy resolver considers only one marker. Recovery knows
+    # about every extant marker and must leave the round open until the child
+    # has explicitly reviewed all of them.
+    recovered = not unread_ids and recover_instructional_round(db, unit)
+    db.commit()
+    # Recovery must not create a fresh provider call. The saved round and any
+    # existing report remain available; requesting a report stays explicit.
+    return {"acknowledged": True, "completed": recovered}
 
 
 @router.post("/units/{unit_id}/feedback")
