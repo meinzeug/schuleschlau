@@ -45,6 +45,21 @@ def test_restore_holds_publication_lock_and_missing_lock_fails_closed(tmp_path, 
     assert invoked == [True]
 
 
+def test_backup_directory_lock_cannot_coordinate_directory_replacement(tmp_path):
+    """A path swap creates a different inode despite an identical lock path."""
+    current = tmp_path / "backups"
+    current.mkdir()
+    (current / ".backup.lock").touch()
+    with backup_lock(current, exclusive=True):
+        current.rename(tmp_path / "previous")
+        current.mkdir()
+        (current / ".backup.lock").touch()
+        with (current / ".backup.lock").open("rb") as other:
+            # This succeeds: the old directory's lock cannot protect a mount
+            # or directory replacement. A separate stable lock is required.
+            fcntl.flock(other, fcntl.LOCK_EX | fcntl.LOCK_NB)
+
+
 def test_missing_and_empty_journal_are_distinct_and_no_lock_is_created(tmp_path):
     ledger = tmp_path / "erasure-ledger.jsonl"
     lock = tmp_path / ".erasure-ledger.lock"
