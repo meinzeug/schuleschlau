@@ -117,6 +117,59 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
   privaten Inhalte enthalten; ältere Restore-Leser müssen unbekannte Formate
   sicher ablehnen und Rollback und Wiederherstellung müssen vorab geprüft sein.
 
+  **Technischer Entwurf – noch nicht implementiert:**
+
+  1. Künftige Import-Einträge erhalten versionierte, stabile, opake IDs. Für
+     ausdrücklich bestätigtes `add`, `link` und `update` werden Kind, Noten-ID,
+     Import-/Eintrags-ID, Quellenrevision und Verknüpfungszeitpunkt
+     nachvollziehbar gebunden. Der Fuxnoten-Slot bezeichnet nur eine Position
+     im Raster: Eine gleiche Position oder ein gleicher Wert in zwei
+     Dokumentversionen belegt für sich keine identische Klassenleistung.
+     Migration und Backfill dürfen unbelegte historische Beziehungen nicht
+     erfinden; veränderte JSON-Formate benötigen einen ausdrücklich
+     kompatiblen Leseweg für bestehende Web- und Android-Clients.
+  2. Löschen und Aufbewahrungsbereinigung verwenden dieselbe geprüfte
+     Sperrreihenfolge Kind → Note → Slot → Import wie die beteiligten
+     Import-/Änderungspfade. Elternsitzung und Familienrechte werden nach dem
+     Warten erneut geprüft. Eine Transaktion redigiert die nachweislich
+     zugehörigen Importkopien, entfernt beziehungsweise ersetzt den Slotwert
+     durch einen datensparsamen Löschmarker, löscht die Note und schreibt den
+     versionierten Löschauftrag in die bestehende Outbox. Eine Schemaänderung
+     für den heute verpflichtenden Slotwert und das Verhalten älterer Leser
+     sind vorher zu prüfen. Fremde Noten und angenommene Elternziele bleiben
+     erhalten.
+  3. Löschung erhöht die betroffene Kontext-/Vorschaurevision. Ein PDF-Import
+     merkt sich vor der ausgelagerten Verarbeitung die relevante Revision und
+     prüft sie nach dem erneuten Kind-Lock; bei zwischenzeitlicher Löschung
+     wird die alte Auswertung verworfen und eine neue ausdrückliche Aktion
+     angeboten. Ein wiederholter alter Noten-Anfrageschlüssel darf gelöschte
+     Daten nicht erneut anlegen. Bereits bestätigte Importwiederholungen
+     bleiben deterministisch, geben keine redigierten Werte zurück und führen
+     nicht zu Doppelimporten; hierfür sind datensparsame Tombstones und der
+     Umgang mit alten Clients gesondert zu entwerfen.
+  4. Das authentifizierte Journal benötigt einen eindeutig versionierten
+     Noten-Löschbeleg mit opaker, kindgebundener Herkunft, die auch gegen
+     eindeutig identifizierbare Import-Einträge eines älteren Backups geprüft
+     werden kann, wenn die Verknüpfung erst nach diesem Backup erfolgte. Das
+     derzeitige Outbox-Schema aus Scope und Ziel-ID reicht dafür nicht aus.
+     Keine Note, Fachbezeichnung oder Freitext in den Beleg schreiben; falls
+     deterministische Kennungen nötig sind, niedrig-entropische Rasterdaten
+     nicht durch ungeschützte Hashes offenlegen, sondern einen getrennt
+     verwahrten versionierten HMAC-Schlüssel verwenden. Schlüsselrotation und
+     Verfügbarkeit während des gesamten Backupfensters sind zu prüfen.
+     Unbekannte Recordversionen und fehlende Schlüssel lassen den Restore
+     sicher scheitern; ältere Restore-Leser und Code-Rollback müssen vor der
+     Einführung ausdrücklich geprüft werden.
+  5. Nach dem Datenbankcommit wird die Outbox zuverlässig und dauerhaft ins
+     Journal übertragen. Vor einer Freigabe von Backup oder Restore sind eine
+     leer abgearbeitete Outbox und das aktuelle authentifizierte Journal
+     nachzuweisen. Wenn nach einem Absturz weder die ausstehende Outbox noch
+     ihre Übernahme belegbar ist, darf ein Restore nicht als vollständig
+     löschkonform gelten. Betroffene unklare historische Daten bleiben bis zu
+     einer konkreten Prüfung gesperrt; weder ganze fremde Importe automatisch
+     löschen noch einzelne Beziehungen raten. Zeitablauf allein beweist keinen
+     lückenlosen Cutover oder eine vollständige Journalhistorie.
+
   **Abnahme:** Isolierte SQLite- und PostgreSQL-Fälle prüfen berechtigte und
   fremde Familien, veraltete Revisionen, parallelen Import und Löschung,
   Wiederholungen sowie Aufbewahrungsablauf. Separate Wiederherstellungen von
@@ -125,6 +178,14 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
   Daten und übernehmen keine erfundene Zuordnung. Ein fehlender oder alter
   Journal-/Restore-Leser scheitert nachweisbar sicher; offene Vorschauen und
   idempotente Wiederholungen bleiben verständlich und ohne Doppelimport.
+  Die Restorefälle umfassen Backups vor dem Import, nach einer Vorschau vor
+  dem Link, nach Link und Löschung, Korrekturen sowie inzwischen abgelaufene
+  sieben Tage alte Vorschauen und 365 Tage alte Importbelege. Teste außerdem
+  Widerruf während Sperrwartezeiten, einen zweiten gleichwertigen Noteneintrag,
+  einen tatsächlich parallel ablaufenden Import, verspätete Commits,
+  Prozessabbruch zwischen Outbox und Journal sowie beschädigte Signaturen und
+  fehlende Schlüssel. Keine solche synthetische Probe ersetzt den gesonderten
+  Nachweis des tatsächlichen produktiven Restore- und Cutover-Zustands.
   Unklare historische Beziehungen bleiben als solche dokumentiert, solange
   sie nicht ohne Datenverlust oder unzulässiges Raten auflösbar sind.
 
