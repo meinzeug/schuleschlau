@@ -68,17 +68,29 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
 
 ## 1. Rahmen und Freigabeumfang
 
-- [ ] **P0 – Verbindlichen Einsatzumfang und Freigabestufen festlegen**
+- [x] **P0 – Verbindlichen Einsatzumfang und Freigabestufen festlegen**
 
   Festlegen, welche Nutzergruppen, Geräte, Fächer, Alters- und Klassenbereiche, KI- und Medienfunktionen beim betreuten Test, beim begrenzten Pilot und bei einer späteren breiten Freigabe tatsächlich unterstützt werden. Lehrplanabdeckung, Offline-Nutzung, Push, Familienanrufe, Play-Veröffentlichung und Verkauf nur dann als Bestandteil einer Stufe ausweisen, wenn sie dafür ausdrücklich vorgesehen sind. Verantwortlichkeiten für fachliche, technische, Datenschutz- und Betreiberfreigabe benennen.
 
   **Abnahme:** Eine nachvollziehbare Umfangs- und Freigabematrix nennt pro Stufe Funktionen, ausgeschlossene Fälle, erforderliche Nachweise und Entscheidungsverantwortliche. Fehlende Angaben gelten nicht als automatisch genehmigt.
 
-- [ ] **P0 – Messbare Qualitäts- und Betriebsziele definieren**
+  **Nachweis 31.10.2026:** `docs/RELEASE_SCOPE.md` grenzt die bestehende
+  Übungsumgebung, einen möglichen begrenzten Pilot und eine spätere breite
+  Freigabe ab und nennt Zuständigkeitsrollen und erforderliche Nachweise.
+  Die Matrix aktiviert keinen Pilot oder Verkauf und ersetzt keine noch
+  ausstehenden Entscheidungen oder externen Fachprüfungen.
+
+- [x] **P0 – Messbare Qualitäts- und Betriebsziele definieren**
 
   Für die gewählte Zielgruppe vor den Tests Grenzen für kritische fachliche Fehler, unbekannte Bewertungen, Wiederherstellbarkeit, Auftragszuverlässigkeit, Wartezeit, Benachrichtigung, gleichzeitige Nutzung und Datenschutzvorfälle festlegen. Keine erfundenen Prozentwerte als bereits gemessene Leistung ausgeben; Grenzwerte müssen zum beabsichtigten Einsatz und den zur Verfügung stehenden Messungen passen.
 
   **Abnahme:** Jedes Ziel hat Messmethode, Testdaten, Bezugszeitraum, Grenzwert, verantwortliche Rolle und ein Vorgehen bei Nichterfüllung.
+
+  **Nachweis 31.10.2026:** `docs/QUALITY_TARGETS.md` legt überprüfbare
+  Arbeitsziele für den betreuten Übungsbetrieb fest. Die Werte sind Vorgaben,
+  keine erfundenen Messergebnisse oder allgemeine Produktionsfreigabe; für
+  einen größeren Pilot müssen Umfang und Stichprobengröße erneut festgelegt
+  werden.
 
 - [x] **P0 – Anforderungen, Entscheidungen und tatsächliche Anbieterroute abgleichen**
 
@@ -338,11 +350,17 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
 
   **Abnahme:** Jede Runde wird einzeln bewusst vorbereitet, enthält höchstens fünf Aufgaben und vermeidet gespeicherte Wiederholungen; Zeitangaben bleiben Empfehlungen. Aufgabenauszüge belegen die Originalzeile, trennen alte Antwort, gesicherte Lehrkraft-Rückmeldung und KI-Vorschlag und behaupten weder Vollständigkeit noch Benotung. Alte Antworten erzeugen keine Attempts oder Kompetenznachweise.
 
-- [ ] **P1 – Schul- und Klassenkontext als Produktentscheidung klären**
+- [x] **P1 – Schul- und Klassenkontext als Produktentscheidung klären**
 
   Prüfen, ob neben dem bestehenden familiengebundenen Schulprofil überhaupt eine gemeinsame Klassen-/Lehrkraftfunktion benötigt und rechtlich freigegeben ist. Vor einer Umsetzung Rollen, Datenflüsse, Einwilligungen, Mandantentrennung und Zuständigkeit schriftlich festlegen; kein Zugriff aus Klassenname oder Lehrkraftbehauptung ableiten.
 
   **Abnahme:** Entweder eine ausdrücklich begründete Nichtaufnahme oder ein freigegebenes Konzept mit Rechte- und Löschmatrix, Pilotgrenzen und Testfällen liegt vor; bis dahin keine bestehende Klassenraumfunktion oder Schulfreigabe behaupten.
+
+  **Entscheidung 31.10.2026:** Gemeinsame Klassen- und Lehrkraftzugänge sind
+  nicht Bestandteil des derzeitigen Übungsumfangs. Der Zweck ist die
+  familiengebundene Lernbegleitung; Klassenname oder Schulform begründen
+  keinen Zugriff Dritter. Voraussetzungen für eine spätere gesonderte Aufnahme
+  stehen in `docs/RELEASE_SCOPE.md`. Bestehende Familienrechte bleiben gleich.
 
 ## Kindgerechte Bedienung und Alltagstest
 
