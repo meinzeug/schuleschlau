@@ -261,11 +261,19 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
 
   **Abnahme:** Jede für den Start angebotene Kombination hat dokumentierte repräsentative Fälle, eindeutige erwartete Ergebnisse und einen Befund; kritische fachliche Fehler sind behoben und mit Regressionstest erneut geprüft. Nicht untersuchte Kombinationen bleiben sichtbar offen; eine gültige Schemaantwort gilt nicht als fachliche Abnahme.
 
-- [ ] **P1 – Bewertung und Lernfortschritt über den gesamten Lebenszyklus prüfen**
+- [x] **P1 – Bewertung und Lernfortschritt über den gesamten Lebenszyklus prüfen**
 
   Für richtige, falsche, unklare, unterstützte und erneut richtige Antworten sowie mehrere Runden und Geräte nachvollziehen, welche Aufgaben und Versuche gespeichert und wie sie gezählt werden. Brucherweiterung, verlangte Zähler-/Nennerdarstellung, eindeutige Faktoren, Auswahlindex und ausgeschöpfte neue Zahlenbeispiele gezielt prüfen.
 
   **Abnahme:** Ausgangsantworten und Hilfen bleiben erhalten, jede Aufgabe zählt genau einmal als Aufgabe und jeder Versuch als Versuch; unklare Modellurteile werden nicht als gesicherter Lernerfolg ausgegeben, und ein fehlender Beleg führt nicht zu erfundenen Aufgaben.
+
+  **Nachweis 31.10.2026:** 115 SQLite-Fälle aus `test_practice_progress.py`,
+  `test_fraction_form.py`, `test_fraction_component_assessment.py`,
+  `test_recheck_attempt_binding.py`, `test_unit_fraction_practice.py` und
+  `test_guided_feedback.py` bestanden. Zusammen mit 57 Coachingfällen
+  bestanden dieselben 172 Fälle auf isoliertem PostgreSQL. Geprüft wurden
+  insbesondere Erst-/Folgeversuche, Unterstützung, unklare Urteile,
+  Bruchdarstellung und bestehende Nachweise; Modelltransporte sind simuliert.
 
 - [ ] **P1 – Abruf und Lernplanung nachvollziehbar abnehmen**
 
@@ -287,17 +295,33 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
 
   **Abnahme:** Alle als lesbar bewerteten Absätze und Formeln werden in richtiger Reihenfolge gegen die Referenz manuell geprüft; Abweichungen, Auslassungen und unlesbare Stellen sind einzeln dokumentiert und führen zu einer Korrektur oder offenen Einschränkung. Treffer auf wenige Textanker und eine Umfangsprüfung gelten nicht als Vollständigkeitsnachweis.
 
-- [ ] **P1 – Manuelle und automatische Seitenprüfung getrennt abnehmen**
+- [x] **P1 – Manuelle und automatische Seitenprüfung getrennt abnehmen**
 
   Pro Modus künstliche Fälle mit korrekter, fehlerhafter und unlesbarer Erstabschrift sowie technischem Gegencheckfehler prüfen; Hausaufgaben, Klassenarbeiten und Vokabelübernahme mit ihren eigenen Bestätigungsregeln einschließen.
 
   **Abnahme:** „Stimmt, weiter“ bestätigt im manuellen Ablauf die Quelle ohne zusätzliche Checkbox; im konfigurierten Automodus ist der separate Bild-/Abschriftgegencheck belegbar, Unsicherheit bleibt markiert und nicht belegter Stoff wird nicht bewertet. Ein technischer Fehler erscheint nicht als Erfolg, stoppt nicht fremde Seiten und löst keinen automatischen unbegrenzten Wiederholungsauftrag aus.
 
-- [ ] **P1 – Quellenänderung und Unterbrechung sicher fortsetzen**
+  **Nachweis 31.10.2026:** 66 SQLite-Fälle zu automatischer Prüfung und
+  Mindestzeit (zwei PostgreSQL-only übersprungen), 86 SQLite-Fälle zu
+  Prüfungsseiten und Vokabelübernahme sowie 20 mobile Widgetfälle zu Prüfmodus
+  und Klassenarbeitsmaterial bestanden. Auf isoliertem PostgreSQL bestanden
+  zusätzlich 141 Fälle einschließlich der Seitenprüfung und
+  Vorbereitungs-/Quellrevisionstests. Die Anbieterantworten sind künstlich;
+  das ist kein Nachweis vollständiger OCR-Erkennung auf echten Geräten.
+
+- [x] **P1 – Quellenänderung und Unterbrechung sicher fortsetzen**
 
   Im isolierten Test Fotoabgabe, einzelne Seitenreservierungen, Netzverlust, Reload, Mitternachtswechsel, Quellkorrektur, Löschung und widerrufene Sitzung vor und nach Provideraufrufen auslösen.
 
   **Abnahme:** Reine Status-GETs erzeugen keine Jobs oder Kosten; jede Seite wird einzeln reserviert und dauerhaft gespeichert, eine geänderte Quelle wird revisionsgebunden erneut geprüft und historische Antworten bleiben erhalten. Nicht lesbare oder nicht bestätigte Seiten können bewusst zurückgestellt werden.
+
+  **Nachweis 31.10.2026:** 72 SQLite-Fälle aus `test_school_preparation.py`,
+  `test_school_preparation_parts.py`, `test_source_cleanup.py` und
+  `test_source_lineage.py` bestanden; ein echter Sperrparallelitätsfall wurde
+  unter SQLite ausgelassen und im 141-Fälle-PostgreSQL-Lauf ausgeführt.
+  Unter anderem wurden unterbrochene Aufträge, GETs ohne neue Kosten,
+  Mitternacht, Quellenwechsel, widerrufene Sitzungen und gespeicherte
+  Antworten mit künstlichen Daten geprüft.
 
 - [x] **P1 – Vokabelvorschau und Materialgrenzen kontrollieren**
 
@@ -338,11 +362,19 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
   Modellantworten benötigen weiterhin fachliche Stichproben und sind dadurch
   nicht allgemein gegen Lösungsverrat bewiesen.
 
-- [ ] **P1 – Hefttutor und Rückblick gegen Quellen- und Kontextwechsel testen**
+- [x] **P1 – Hefttutor und Rückblick gegen Quellen- und Kontextwechsel testen**
 
   Eigene bestätigte Quellen, knappe Zitate, aktive/pausierte/abgeschlossene Einheiten, Entzug der Sitzung, Löschung und konkurrierende Geräte prüfen.
 
   **Abnahme:** Antworten bleiben an berechtigte Quellen gebunden; nach geändertem Kontext wird keine alte Providerantwort gespeichert. Hilfe zählt nur für passende aktive oder pausierte Einheiten, ältere Antworten bleiben unverändert. Rückblick und gezielte Anschlussübung sind getrennte Aufträge; ein Generatorfehler löscht weder fertigen Bericht noch Antworten.
+
+  **Nachweis 31.10.2026:** Der künstliche Tutor-/Hausaufgaben-/Zitatlauf
+  bestand mit 146 SQLite-Fällen (zwei PostgreSQL-only ausgelassen) und 148
+  Fällen auf isoliertem PostgreSQL. Weitere 57 SQLite- und zusammen 172
+  PostgreSQL-Fälle schließen getrennten Rückblick und Anschlussgenerator,
+  Fehlererhalt, Quellenwechsel und Parallelität ein. Providertransporte waren
+  simuliert; daraus folgt keine allgemeine Qualitätsaussage über freie
+  Modellantworten.
 
 - [ ] **P1 – Klassenarbeitsvorbereitung und Nacharbeit fachlich abnehmen**
 
