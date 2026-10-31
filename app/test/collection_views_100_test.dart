@@ -418,6 +418,7 @@ void main() {
       expect(find.text('2 Seiten'), findsNWidgets(2));
       expect(find.text('1 gespeicherte Runde'), findsNWidgets(2));
       expect(find.text('1 Runde bearbeitet'), findsOneWidget);
+      await tap(tester, find.text('Geladene Tage direkt öffnen'));
       await tap(tester, find.widgetWithText(OutlinedButton, 'Di 20.10.'));
       expect(find.textContaining('day=a'), findsOneWidget);
       expect(requests.every((r) => r.method == 'GET'), isTrue);

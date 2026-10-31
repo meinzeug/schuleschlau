@@ -51,6 +51,96 @@ Finder drop(String text) => find.byWidgetPredicate(
 );
 void main() {
   testWidgets(
+    'a child can open the day card without expanding quick navigation',
+    (tester) async {
+      final requests = <http.Request>[];
+      final state = f.account((request) async {
+        requests.add(request);
+        return f.reply({
+          'days': [day('a', '2026-10-20', 'Mathematik')],
+          'next_before': null,
+        });
+      });
+      await open(tester, state);
+      await f.tap(tester, find.text('Tagespaket vom 20.10.2026 öffnen'));
+      expect(find.textContaining('day=a'), findsOneWidget);
+      expect(requests.every((request) => request.method == 'GET'), isTrue);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  for (final width in [320.0, 390.0]) {
+    testWidgets(
+      'history keeps child cards and optional quick navigation usable at $width',
+      (tester) async {
+        final requests = <http.Request>[];
+        final state = f.account((request) async {
+          requests.add(request);
+          return f.reply({
+            'days': [
+              day('a', '2026-10-20', 'Mathematik'),
+              day('b', '2026-10-19', 'Biologie', done: true),
+            ],
+            'next_before': null,
+          });
+        });
+        tester.view.physicalSize = Size(width, 844);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        final router = GoRouter(
+          routes: [
+            GoRoute(
+              path: '/',
+              builder: (_, _) => SchoolDayHistory(state, childId: 'child'),
+            ),
+            GoRoute(
+              path: '/after-school/:id',
+              builder: (_, r) => Scaffold(body: Text('Ziel ${r.uri}')),
+            ),
+          ],
+        );
+        addTearDown(() async {
+          await tester.pumpWidget(const SizedBox.shrink());
+          router.dispose();
+          state.dispose();
+        });
+        await tester.pumpWidget(
+          MaterialApp.router(
+            theme: appTheme(),
+            routerConfig: router,
+            builder: (context, child) => MediaQuery(
+              data: MediaQuery.of(context)
+                  .copyWith(textScaler: const TextScaler.linear(2)),
+              child: child!,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(find.text('Tagespaket vom 20.10.2026 öffnen'), findsOneWidget);
+        expect(find.text('Tagespaket vom 19.10.2026 öffnen'), findsOneWidget);
+        expect(find.text('Di 20.10.'), findsNothing);
+        expect(
+          find.text(
+            'Bearbeitet ist ein Arbeitsstand, kein gesicherter Lernerfolg.',
+          ),
+          findsNothing,
+        );
+        expect(
+          find.textContaining('Lernrunden bearbeitet heißt nicht automatisch'),
+          findsOneWidget,
+        );
+        await f.tap(tester, find.text('Geladene Tage direkt öffnen'));
+        expect(find.text('Di 20.10.'), findsOneWidget);
+        await f.tap(tester, find.widgetWithText(OutlinedButton, 'Di 20.10.'));
+        expect(find.textContaining('day=a'), findsOneWidget);
+        expect(requests.every((request) => request.method == 'GET'), isTrue);
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
+
+  testWidgets(
     'CK053 history searches only loaded dates and subjects with an explicit empty return',
     (tester) async {
       final requests = <http.Request>[];

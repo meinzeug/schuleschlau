@@ -252,6 +252,25 @@ class _SchoolDayHistoryState extends State<_SchoolDayHistoryBody> {
     return 'Woche vom ${DateFormat('dd.MM.yyyy').format(monday)}';
   }
 
+  Widget quickDays(List<Json> rows) => SingleChildScrollView(
+    scrollDirection: Axis.horizontal,
+    child: Row(
+      children: [
+        for (final day in rows)
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: Tooltip(
+              message: 'Tagespaket vom ${schoolDate(day['date'])}',
+              child: OutlinedButton(
+                onPressed: loading ? null : () => openDay(day),
+                child: Text(compactDayLabel(day)),
+              ),
+            ),
+          ),
+      ],
+    ),
+  );
+
   Widget dayCards(List<Json> rows) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
@@ -302,9 +321,10 @@ class _SchoolDayHistoryState extends State<_SchoolDayHistoryBody> {
                     ),
                   ],
                 ),
-                const Text(
-                  'Bearbeitet ist ein Arbeitsstand, kein gesicherter Lernerfolg.',
-                ),
+                if (!widget.state.isChild)
+                  const Text(
+                    'Bearbeitet ist ein Arbeitsstand, kein gesicherter Lernerfolg.',
+                  ),
               ],
             ),
           ),
@@ -560,29 +580,19 @@ class _SchoolDayHistoryState extends State<_SchoolDayHistoryBody> {
                     'Für diesen Datumausschnitt gibt es keine gespeicherten Tagespakete. Du kannst oben die neuesten Tage öffnen.',
                   ),
                 if (visible.isNotEmpty) ...[
-                  const Text(
-                    'Geladene Tage direkt öffnen',
-                    style: TextStyle(fontWeight: FontWeight.w800),
-                  ),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: [
-                        for (final day in visible)
-                          Padding(
-                            padding: const EdgeInsets.only(right: 8),
-                            child: Tooltip(
-                              message:
-                                  'Tagespaket vom ${schoolDate(day['date'])}',
-                              child: OutlinedButton(
-                                onPressed: loading ? null : () => openDay(day),
-                                child: Text(compactDayLabel(day)),
-                              ),
-                            ),
-                          ),
-                      ],
+                  if (widget.state.isChild)
+                    ExpansionTile(
+                      key: const ValueKey('school-history-quick-days'),
+                      title: const Text('Geladene Tage direkt öffnen'),
+                      children: [quickDays(visible)],
+                    )
+                  else ...[
+                    const Text(
+                      'Geladene Tage direkt öffnen',
+                      style: TextStyle(fontWeight: FontWeight.w800),
                     ),
-                  ),
+                    quickDays(visible),
+                  ],
                   const SizedBox(height: 12),
                 ],
                 dayCards(visible),
