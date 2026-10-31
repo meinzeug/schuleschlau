@@ -48,6 +48,11 @@ android {
         create("play") { dimension = "distribution" }
     }
 
+    // The release script supplies this directory only for the signed direct APK.
+    System.getenv("SCHULPILOT_RELEASE_ATTESTATION_DIR")?.let {
+        sourceSets.getByName("direct").assets.srcDir(it)
+    }
+
     signingConfigs {
         if (hasUploadKey) {
             create("upload") {

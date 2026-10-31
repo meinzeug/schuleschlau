@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from fastapi import HTTPException
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
 
 from .answer_evaluation import VERSION, evaluate
 from .db import Attempt, AttemptAssessment, Child, LearningUnit, Mastery, UnitCoaching
@@ -25,7 +25,8 @@ def rebuild_mastery(db, child, subject, topic):
     previous_day = None
     zone = ZoneInfo(Preferences(**child.preferences).timezone)
     for unit in units:
-        attempts = list(db.scalars(select(Attempt).where(Attempt.unit_id == unit.id).order_by(Attempt.created, Attempt.id)))
+        attempts = list(db.scalars(select(Attempt).where(Attempt.unit_id == unit.id).order_by(
+            Attempt.question_id, Attempt.created, func.coalesce(Attempt.evaluation["attempt_number"].as_integer(), 0), Attempt.id)))
         final = {a.question_id: a for a in attempts}
         values = [final[q["id"]] for q in unit.questions if q["id"] in final]
         if not values or len(values) != len(unit.questions) or not unit.completed:
@@ -61,7 +62,7 @@ def recheck(db, unit, question, actor_id):
     if question.get("language"):
         raise HTTPException(409, "Für Wörter gelten die bestätigten Bedeutungen und Varianten. Öffne die Wortkarte zur Klärung.")
     attempt = db.scalar(select(Attempt).where(Attempt.unit_id == unit.id, Attempt.question_id == question["id"])
-                        .order_by(Attempt.created.desc(), Attempt.id.desc()).limit(1))
+                        .order_by(Attempt.created.desc(), func.coalesce(Attempt.evaluation["attempt_number"].as_integer(), 0).desc(), Attempt.id.desc()).limit(1))
     if not attempt:
         raise HTTPException(409, "Bitte zuerst eine Antwort abgeben.")
     if db.scalar(select(AttemptAssessment.id).where(AttemptAssessment.attempt_id == attempt.id,

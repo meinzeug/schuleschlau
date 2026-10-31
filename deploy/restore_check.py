@@ -149,8 +149,11 @@ print(json.dumps({'schema':version,'before':before,'after':after,'paths':paths,'
     report["checked_at"] = int(time.time())
     path = Path("/var/backups/schulpilot-monitor/restore-check.json")
     path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-    path.write_text(json.dumps(report) + "\n")
-    path.chmod(0o600)
+    partial = path.with_suffix(".partial")
+    partial.write_text(json.dumps(report) + "\n")
+    partial.chmod(0o600)
+    partial.replace(path)
+    path.with_name("restore-setup-started").unlink(missing_ok=True)
     print(json.dumps(report))
 
 

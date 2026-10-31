@@ -70,8 +70,38 @@ def test_real_timestamp_order_remains_authoritative_for_legacy_attempts(api):
             outcome="incorrect", assisted=False, created=100.25, evaluation={"attempt_number": 3}))
         db.add(Attempt(id="0" * 32, unit_id=unit_id, question_id="sum", answer="synthetic newer legacy",
             outcome="correct", assisted=True, created=100.5, evaluation=None))
+        db.flush()
+        observed = next(item for item in coaching.observations(db, db.get(LearningUnit, unit_id)) if item["question_id"] == "sum")
+        assert observed["deterministic_outcome"] == "correct"
     data = api.get(f"/api/children/{demo['child_id']}/learning-progress").json()["totals"]
     assert data["assisted_tasks"] == 1 and data["needs_practice_tasks"] == 0
+
+
+def test_coaching_uses_attempt_number_when_answer_timestamps_tie(api, monkeypatch):
+    from schulpilot import instructional_decisions, learning_controller
+
+    demo, unit_id = prepared(api)
+    with DB.begin() as db:
+        db.add(Attempt(id="f" * 32, unit_id=unit_id, question_id="sum", answer="synthetic first",
+            outcome="incorrect", assisted=False, created=100.25, evaluation={"attempt_number": 1}))
+        db.add(Attempt(id="0" * 32, unit_id=unit_id, question_id="sum", answer="synthetic second",
+            outcome="correct", assisted=True, created=100.25, evaluation={"attempt_number": 2}))
+        db.flush()
+        old_order = list(db.scalars(select(Attempt).where(Attempt.unit_id == unit_id).order_by(Attempt.created, Attempt.id)))
+        assert old_order[-1].outcome == "incorrect"  # The previous ordering misidentified the latest answer.
+        unit = db.get(LearningUnit, unit_id)
+        observed = next(item for item in coaching.observations(db, unit) if item["question_id"] == "sum")
+        assert [attempt["outcome"] for attempt in observed["attempts"]] == ["incorrect", "correct"]
+        assert observed["deterministic_outcome"] == "correct"
+        assert learning_controller.facts(db, unit)["by_question"]["sum"][-1].outcome == "correct"
+        old_order[-1].outcome = "uncertain"
+        db.flush()
+        monkeypatch.setattr(instructional_decisions, "stored", lambda *_: {
+            "cursor": 0, "steps": [{"kind": "clarify_assessment", "question_id": "sum",
+                                    "evidence_refs": ["attempt:" + "f" * 32]}]})
+        assert instructional_decisions.current(db, unit) is None
+    progress = api.get(f"/api/children/{demo['child_id']}/learning-progress").json()["totals"]
+    assert progress["assisted_tasks"] == 1 and progress["needs_practice_tasks"] == 0
 
 
 def test_voluntary_normal_rounds_after_minimum_on_free_day_and_different_roots_all_count(api):

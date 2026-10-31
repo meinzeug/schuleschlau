@@ -415,6 +415,7 @@ def unit_source_projection(db, unit):
 
 def unit_data(db, unit, include_answers=False, *, include_progress=True):
     from . import adaptive_plan, coaching
+    from .attempt_order import question_order
     from .learning_controller import projection as session_projection
     from .legacy_learning_content import issue as content_issue
     from .visual_references import projection as visual_projection
@@ -459,8 +460,7 @@ def unit_data(db, unit, include_answers=False, *, include_progress=True):
         value["attempts"] = [
             {"id": a.id, "answer": a.answer, "outcome": a.outcome, "assisted": a.assisted, "created": a.created,
              "evaluation": a.evaluation, "input_method": a.input_method, "assessment_history": history.get(a.id, [])}
-            for a in attempts
-            if a.question_id == q["id"]
+            for a in sorted((a for a in attempts if a.question_id == q["id"]), key=question_order)
         ]
         shown = [e for e in events if e.kind == "hint" and e.detail.get("question_id") == q["id"]]
         value["hints_used"] = len(shown)
@@ -1563,7 +1563,7 @@ def hint(unit_id: str, question_id: str, p=Depends(child_user), db=Depends(get_d
     if unit.status not in ("active", "paused"):
         raise HTTPException(409, "Diese Runde ist abgeschlossen. Du kannst die gespeicherte Erklärung im Rückblick lesen.")
     previous = db.scalar(select(Attempt).where(Attempt.unit_id == unit.id, Attempt.question_id == question_id)
-                         .order_by(Attempt.created.desc(), Attempt.id.desc()).limit(1))
+                         .order_by(Attempt.created.desc(), func.coalesce(Attempt.evaluation["attempt_number"].as_integer(), 0).desc(), Attempt.id.desc()).limit(1))
     if previous and previous.outcome in ("correct", "uncertain"):
         raise HTTPException(409, "Diese Antwort ist gespeichert. Öffne die Erklärung oder kläre die offene Prüfung mit der Lernhilfe.")
     count = len(list(db.scalars(select(Activity.id).where(Activity.unit_id == unit.id, Activity.kind == "hint"))))
@@ -1676,6 +1676,8 @@ def learning_block(db, unit):
 
 
 def update_mastery(db, unit, attempts):
+    from .attempt_order import question_order
+
     child = db.get(Child, unit.child_id)
     today = local_day(child)
     mastery = db.scalar(
@@ -1697,7 +1699,7 @@ def update_mastery(db, unit, attempts):
             review_successes=0,
         )
         db.add(mastery)
-    final = [next(a for a in reversed(attempts) if a.question_id == q["id"]) for q in unit.questions]
+    final = [max((a for a in attempts if a.question_id == q["id"]), key=question_order) for q in unit.questions]
     independent = all(a.outcome == "correct" and not a.assisted for a in final)
     if independent:
         mastery.independent += 1
@@ -1832,7 +1834,9 @@ def answer(unit_id: str, question_id: str, data: s.AnswerRequest, p=Depends(chil
         events = list(db.scalars(select(Activity).where(Activity.unit_id == unit.id)))
         if pending_feedback(unit, existing, events):
             raise HTTPException(409, "Lies zuerst die Rückmeldung und tippe auf Weiter.")
-    previous = [a for a in existing if a.question_id == question_id]
+    from .attempt_order import question_order
+
+    previous = sorted((a for a in existing if a.question_id == question_id), key=question_order)
     if previous and (previous[-1].outcome in ("correct", "uncertain") or len(previous) >= 3):
         raise HTTPException(409, "Diese Aufgabe wurde bereits abgeschlossen.")
     # Live parent support is an actual aid, including when the child opened a

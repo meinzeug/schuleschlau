@@ -7,6 +7,7 @@ host; scripts/watch_public.py supplies the independent-host check.
 import argparse
 import json
 import os
+import re
 import shlex
 import shutil
 import smtplib
@@ -16,6 +17,56 @@ import time
 import urllib.request
 from email.message import EmailMessage
 from pathlib import Path
+
+RESTORE_MAX_AGE = 14 * 86400
+RESTORE_TABLES = ("families", "children", "materials", "learning_units", "attempts", "unit_coaching")
+
+
+def disk_space_low(disk):
+    """Compare used space to usable space, including reserved blocks correctly."""
+    usable = disk.used + disk.free
+    return disk.free < 1024**3 or usable <= 0 or disk.used / usable > 0.9
+
+
+def restore_status(report_path, setup_path, now):
+    """Return a neutral failure code and whether initial setup is still pending."""
+    try:
+        report = json.loads(report_path.read_text())
+    except FileNotFoundError:
+        try:
+            started = int(setup_path.read_text().strip())
+            if 0 < started <= now and now - started <= RESTORE_MAX_AGE:
+                return None, True
+        except (OSError, UnicodeError, ValueError):
+            pass
+        return "restore_rehearsal_missing", False
+    except (OSError, UnicodeError, ValueError):
+        return "restore_rehearsal_invalid", False
+
+    def count(value):
+        return type(value) is int and value >= 0
+
+    if not isinstance(report, dict):
+        return "restore_rehearsal_invalid", False
+    checked = report.get("checked_at")
+    complete = (
+        type(checked) is int and 0 < checked <= now
+        and isinstance(report.get("backup"), str)
+        and re.fullmatch(r"\d{8}T\d{6}Z\.tar\.enc", report["backup"]) is not None
+        and isinstance(report.get("schema"), str) and bool(report["schema"].strip())
+        and report.get("production_overwritten") is False
+        and all(report.get(key) is True for key in ("authenticated_restore", "sessions_revoked", "ai_emergency_stop"))
+        and all(count(report.get(key)) for key in ("verified_erasure_records", "orphan_images_removed", "erasure_images_removed"))
+        and all(
+            isinstance(report.get(group), dict) and all(count(report[group].get(table)) for table in RESTORE_TABLES)
+            for group in ("before", "after")
+        )
+    )
+    if not complete:
+        return "restore_rehearsal_invalid", False
+    if now - checked > RESTORE_MAX_AGE:
+        return "restore_rehearsal_stale", False
+    return None, False
 
 
 def environment(path):
@@ -136,17 +187,30 @@ def main():
     restore = Path("/var/backups/schulpilot-monitor/restore-check.json")
     if Path("/etc/schulpilot/offsite-enabled").exists():
         marker = Path("/var/backups/schulpilot-monitor/offsite-last-success.json")
-        if not marker.exists() or time.time() - json.loads(marker.read_text())["checked_at"] > 3600:
+        try:
+            offsite_checked = json.loads(marker.read_text())["checked_at"]
+            offsite_fresh = type(offsite_checked) is int and 0 < offsite_checked <= time.time() and time.time() - offsite_checked <= 3600
+        except (OSError, UnicodeError, ValueError, TypeError, KeyError):
+            offsite_fresh = False
+        if not offsite_fresh:
             failures.append("offsite_copy_stale")
     if subprocess.run(["systemctl", "is-failed", "--quiet", "schulpilot-restore-check.service"]).returncode == 0:
         failures.append("restore_rehearsal_failed")
-    if restore.exists() and time.time() - json.loads(restore.read_text())["checked_at"] > 14 * 86400:
-        failures.append("restore_rehearsal_stale")
+    restore_failure, restore_initializing = restore_status(
+        restore, restore.with_name("restore-setup-started"), time.time()
+    )
+    if restore_failure:
+        failures.append(restore_failure)
     disk = shutil.disk_usage("/var/lib/schulpilot")
-    if disk.free < 1024**3 or disk.used / disk.total > 0.9:
+    if disk_space_low(disk):
         failures.append("disk_space")
     path = Path("/var/backups/schulpilot-monitor/state.json")
-    previous = json.loads(path.read_text()) if path.exists() else {}
+    try:
+        previous = json.loads(path.read_text())
+        if not isinstance(previous, dict) or not isinstance(previous.get("fingerprint", ""), str) or type(previous.get("sent", 0)) is not int:
+            previous = {}
+    except (OSError, UnicodeError, ValueError):
+        previous = {}
     state = notify(config, failures, previous, path, dry_run=args.dry_run)
     print(
         json.dumps(
@@ -155,6 +219,7 @@ def main():
                 "alert_configured": bool(config.get("OPERATIONS_ALERT_EMAIL")),
                 "dry_run": args.dry_run,
                 "alert_error": state.get("alert_error"),
+                "restore_rehearsal_initializing": restore_initializing,
             }
         )
     )

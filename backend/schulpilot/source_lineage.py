@@ -154,7 +154,15 @@ def learning_source(db, material, revision=None):
         else None
     )
     blocks = literal_blocks(material)
-    has_reading_warning = bool(material.uncertainties or any(b.get("reading_uncertainties") for b in blocks))
+    # OCR also copies each block-local warning to the page list. Only exact
+    # copies are known to be scoped; every other page warning could concern
+    # any block and must remain conservative until explicit confirmation.
+    local_warnings = {warning for block in blocks for warning in block.get("reading_uncertainties", [])}
+    warnings = material.uncertainties
+    page_warning = not isinstance(warnings, list) or any(
+        not isinstance(warning, str) or not warning.strip() or warning not in local_warnings for warning in warnings
+    )
+    has_reading_warning = page_warning or bool(local_warnings)
     reading_confirmed = False
     if has_reading_warning and db is not None and material.confirmed and getattr(material, "confirmation_digest", None):
         confirmation = db.scalar(select(SourceRevision).where(
@@ -195,7 +203,7 @@ def learning_source(db, material, revision=None):
         blocked = reason
         if not blocked and not reading_confirmed and (
             block.get("reading_uncertainties")
-            or (material.uncertainties and not any(b.get("reading_uncertainties") for b in blocks))
+            or page_warning
         ):
             blocked = "reading_uncertain"
         if not blocked and false_equality(block["text"]):

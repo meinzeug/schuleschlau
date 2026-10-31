@@ -33,18 +33,22 @@ def verify_metadata(metadata, certificates, policy, version, code):
     }
 
 
-def main():
-    apk = ROOT / "artifacts/schulpilot-android.apk"
+def verify_apk(apk, root=ROOT):
     sdk = Path(os.getenv("ANDROID_SDK_ROOT", str(Path.home() / "android-sdk")))
     tools = sdk / "build-tools/36.0.0"
     certificates = subprocess.check_output([str(tools / "apksigner"), "verify", "--print-certs", str(apk)], text=True)
     subprocess.run([str(tools / "zipalign"), "-c", "-P", "16", "4", str(apk)], check=True)
     metadata = subprocess.check_output([str(tools / "aapt"), "dump", "badging", str(apk)], text=True)
-    version = re.search(r"^version: (\d+\.\d+\.\d+)\+(\d+)$", (ROOT / "app/pubspec.yaml").read_text(), re.M)
-    if not version or f'__version__ = "{version[1]}"' not in (ROOT / "backend/schulpilot/__init__.py").read_text():
+    version = re.search(r"^version: (\d+\.\d+\.\d+)\+(\d+)$", (root / "app/pubspec.yaml").read_text(), re.M)
+    if not version or f'__version__ = "{version[1]}"' not in (root / "backend/schulpilot/__init__.py").read_text():
         raise SystemExit("App and backend version must match")
-    data = verify_metadata(metadata, certificates, json.loads((ROOT / "release-policy.json").read_text()), version[1], int(version[2]))
+    data = verify_metadata(metadata, certificates, json.loads((root / "release-policy.json").read_text()), version[1], int(version[2]))
     data.update(size_bytes=apk.stat().st_size, sha256=hashlib.file_digest(apk.open("rb"), "sha256").hexdigest())
+    return data
+
+
+def main():
+    data = verify_apk(ROOT / "artifacts/schulpilot-android.apk")
     (ROOT / "artifacts/android-release.json").write_text(json.dumps(data) + "\n")
     print(json.dumps(data))
 

@@ -79,6 +79,24 @@ def test_guided_retry_requires_feedback_ack_and_keeps_original_attempt(guided):
     assert duplicate.json()["pending_feedback"]["attempt_id"] == second["pending_feedback"]["attempt_id"]
 
 
+def test_tied_retry_cannot_be_answered_or_hinted_again(guided):
+    kid, _, _, uid, questions = guided
+    old_id, latest_id = "f" * 32, "0" * 32
+    with DB.begin() as db:
+        db.add_all([
+            Attempt(id=old_id, unit_id=uid, question_id=questions[0]["id"], answer="wrong", outcome="incorrect",
+                    assisted=False, created=100.25, evaluation={"attempt_number": 1}),
+            Attempt(id=latest_id, unit_id=uid, question_id=questions[0]["id"], answer=questions[0]["answer"],
+                    outcome="correct", assisted=True, created=100.25, evaluation={"attempt_number": 2}),
+        ])
+    unit = kid.get(f"/api/units/{uid}").json()
+    assert [attempt["id"] for attempt in unit["questions"][0]["attempts"]] == [old_id, latest_id]
+    assert submit(kid, uid, questions[0], "wrong", guided=False).status_code == 409
+    assert kid.post(f"/api/units/{uid}/questions/{questions[0]['id']}/hint").status_code == 409
+    with DB() as db:
+        assert db.scalar(select(func.count()).select_from(Attempt).where(Attempt.unit_id == uid)) == 2
+
+
 def test_legacy_answers_do_not_create_old_feedback_on_upgrade(guided):
     kid, _, _, uid, questions = guided
     first = submit(kid, uid, questions[0], "wrong", guided=False)

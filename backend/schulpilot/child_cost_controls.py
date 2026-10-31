@@ -47,13 +47,19 @@ def policy_value(row):
         "daily_limit_eur_micros", "monthly_limit_eur_micros")}
 
 
-def quote_for(config):
+def has_money_limit(policy):
+    return policy["daily_limit_eur_micros"] is not None or policy["monthly_limit_eur_micros"] is not None
+
+
+def quote_for(config, *, require_fresh=False):
     from .model_routing import BudgetPolicy
 
     try:
         budget = BudgetPolicy.model_validate((config.routing_policy or {}).get("budget", {})).model_dump()
     except (ValueError, TypeError, AttributeError):
         raise HTTPException(503, "Für die EUR-Kostenkontrolle fehlt ein gültiger belegter Wechselkurs.") from None
+    if require_fresh and not -300 <= int(now()) - budget["fx_checked_at"] <= 31 * 86400:
+        raise HTTPException(503, "Die Kostenumrechnung muss vor weiteren KI-Aufrufen aktualisiert werden.")
     return {key: budget[key] for key in ("eur_per_usd", "fx_evidence", "fx_checked_at", "fee_reserve_bps")}
 
 
@@ -125,8 +131,9 @@ def reservation_policy(db, child_id, *, family_id=None):
     row = db.get(ChildCostControl, child_id, populate_existing=True)
     if not row or not row.enabled:
         return None
-    return {**policy_value(row), "cost_basis": BASIS, "currency": "EUR",
-        "quote": quote_for(db.get(ProviderConfig, 1))}
+    policy = policy_value(row)
+    return {**policy, "cost_basis": BASIS, "currency": "EUR",
+        "quote": quote_for(db.get(ProviderConfig, 1), require_fresh=has_money_limit(policy))}
 
 
 def windows(zone, current):
@@ -259,7 +266,7 @@ def preflight(db, child_id, reserved_micros):
     if not row or not row.enabled:
         return False, None
     try:
-        quote = quote_for(db.get(ProviderConfig, 1))
+        quote = quote_for(db.get(ProviderConfig, 1), require_fresh=has_money_limit(policy_value(row)))
         amount = convert(reserved_micros, quote) + fee_reserve(reserved_micros, quote)
         for kind, value in rollups(db, child_id, policy_value(row), fallback=quote).items():
             if value["unconverted_calls"]:

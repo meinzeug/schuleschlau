@@ -4,6 +4,7 @@ import os
 import pwd
 import secrets
 import subprocess
+import time
 from pathlib import Path
 
 
@@ -77,6 +78,14 @@ if not env.exists():
     )
     env.chmod(0o640)
     os.chown(env, 0, user.pw_gid)
+    # Only a new installation receives a grace period; an upgrade must never
+    # reset it. Exclusive creation also preserves a marker after an interrupted setup.
+    marker = Path("/var/backups/schulpilot-monitor/restore-setup-started")
+    try:
+        with os.fdopen(os.open(marker, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), "w") as output:
+            output.write(str(int(time.time())) + "\n")
+    except FileExistsError:
+        pass
 os.chown(env.parent, 0, user.pw_gid)
 
 key = Path("/etc/schulpilot/backup.key")

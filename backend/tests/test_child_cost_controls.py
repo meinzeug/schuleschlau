@@ -345,13 +345,20 @@ def test_fx_is_frozen_per_call_and_policy_edits_do_not_reset_spending(api, house
 
 
 def test_local_day_rollover_keeps_monthly_spending_and_no_get_mutations(api, household, operator, monkeypatch):
+    from schulpilot import model_routing
+
     parent, child = household
     configure(api, household, operator, day=30_000, month=40_000)
     ident = claim(parent["families"][0]["id"], child["id"])
     stamp = datetime.fromisoformat("2026-10-12T12:00:00+00:00").timestamp()
     with DB.begin() as db:
         db.get(Usage, ident).created = int(stamp - 86400)
+        config = db.get(ProviderConfig, 1)
+        config.routing_policy = {**config.routing_policy, "budget": {**config.routing_policy["budget"],
+            "fx_checked_at": int(stamp)}, "routes": {key: {**value, "verified_at": int(stamp)}
+                for key, value in config.routing_policy["routes"].items()}}
     monkeypatch.setattr(costs, "now", lambda: stamp)
+    monkeypatch.setattr(model_routing, "now", lambda: stamp)
     with DB() as db:
         value = costs.projection(db, db.get(Child, child["id"]))
         assert value["day"]["calls"] == 0 and value["month"]["calls"] == 1

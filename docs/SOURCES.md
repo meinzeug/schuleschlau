@@ -4051,3 +4051,5 @@ Rundenabschluss mit offenem Zeitminimum geprüft; Coach-Rückblick bereit.
 Quellfoto ohne AnmeldungHTTP 401. Details, Grenzen und lokale Screenshots 93–98
 in `docs/EVERYDAY_QA_2026_10_30.md`. Keine Produktionsuhr und keine echten
 Kinderantworten für diesen Nachtest geändert; kein Android-Zustellnachweis.
+
+Der lokale Release-Quellnachweis und seine Grenzen sind in [RELEASE_ATTESTATION.md](RELEASE_ATTESTATION.md) beschrieben. Er nutzt die bestehende [Android-APK-Signaturprüfung](https://developer.android.com/tools/apksigner); ein tatsächlicher neuer signierter Build oder ein Deployment ist damit nicht belegt.

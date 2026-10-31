@@ -146,11 +146,12 @@ def source_state(db, unit):
 
 def facts(db, unit):
     from . import adaptive_plan, instructional_decisions
+    from .attempt_order import question_order
 
     attempts = list(db.scalars(select(Attempt).where(Attempt.unit_id == unit.id).order_by(Attempt.created, Attempt.id)))
     activities = list(db.scalars(select(Activity).where(Activity.unit_id == unit.id).order_by(Activity.created, Activity.id)))
     signature, source_valid, sources = source_state(db, unit)
-    by_question = {q["id"]: [a for a in attempts if a.question_id == q["id"]] for q in unit.questions}
+    by_question = {q["id"]: sorted((a for a in attempts if a.question_id == q["id"]), key=question_order) for q in unit.questions}
     deferred = adaptive_plan.deferred(db, unit) | instructional_decisions.deferred(db, unit)
     current = adaptive_plan.current_question(db, unit)
     model_step = instructional_decisions.current(db, unit)

@@ -63,7 +63,8 @@ def _verified_prior_checks(db, unit):
 
 
 def observations(db, unit):
-    attempts = list(db.scalars(select(Attempt).where(Attempt.unit_id == unit.id).order_by(Attempt.created, Attempt.id)))
+    attempts = list(db.scalars(select(Attempt).where(Attempt.unit_id == unit.id).order_by(
+        Attempt.question_id, Attempt.created, func.coalesce(Attempt.evaluation["attempt_number"].as_integer(), 0), Attempt.id)))
     events = list(db.scalars(select(Activity).where(Activity.unit_id == unit.id)))
     return [
         {

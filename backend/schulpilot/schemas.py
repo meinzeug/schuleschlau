@@ -290,13 +290,13 @@ class ExtractionOutput(Strict):
         if self.source_blocks and "\n\n".join(b.text for b in self.source_blocks) != self.content:
             raise ValueError("Abschnittsrollen gehören nicht zur wörtlichen Abschrift.")
         if self.legibility == "unreadable":
-            if not self.uncertainties or self.homework or self.content.strip():
+            if not any(value.strip() for value in self.uncertainties) or self.homework or self.content.strip():
                 raise ValueError(
                     "Unleserliche Seiten brauchen einen Unsicherheitshinweis und dürfen keinen erfundenen Stoff oder Hausaufgaben enthalten."
                 )
         elif not all(value.strip() for value in (self.subject, self.topic, self.content)):
             raise ValueError("Lesbarer oder teilweise lesbarer Stoff benötigt Fach, Thema und Inhalt.")
-        if self.legibility == "partial" and not self.uncertainties:
+        if self.legibility == "partial" and not any(value.strip() for value in self.uncertainties):
             raise ValueError("Teilweise lesbarer Stoff benötigt einen Unsicherheitshinweis.")
         return self
 

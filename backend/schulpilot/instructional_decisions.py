@@ -11,7 +11,7 @@ from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import Field
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
 
 from .db import DB, Activity, Attempt, Child, Job, LearningMemory, LearningUnit, Usage, get_db, now
 from .learning_controller import ChooseAction
@@ -88,7 +88,7 @@ def current(db, unit):
     step = plan["steps"][plan["cursor"]]
     if step["kind"] == "clarify_assessment":
         attempts = db.execute(select(Attempt.id, Attempt.question_id, Attempt.outcome).where(Attempt.unit_id == unit.id)
-            .order_by(Attempt.created, Attempt.id))
+            .order_by(Attempt.question_id, Attempt.created, func.coalesce(Attempt.evaluation["attempt_number"].as_integer(), 0), Attempt.id))
         question_ids = {q["id"] for q in unit.questions}
         refs = _clarification_refs([{"question_id": item.question_id, "ref": "attempt:" + item.id,
             "outcome": item.outcome} for item in attempts if item.question_id in question_ids])

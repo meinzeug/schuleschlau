@@ -128,6 +128,36 @@ def test_explicit_recheck_is_consistent_idempotent_private_and_does_not_count_pr
             assert db.scalar(select(func.count()).select_from(model)) == 0
 
 
+def test_recheck_selects_latest_attempt_when_timestamps_tie(api, household):
+    _, child = household
+    q = question()
+    with DB.begin() as db:
+        unit = LearningUnit(child_id=child["id"], subject="Mathematik", topic="Brüche", explanation=q["explanation"],
+                            questions=[q], status="completed", completed=100, provider="synthetic", synthetic=True)
+        db.add(unit)
+        db.flush()
+        uid = unit.id
+        db.add_all([
+            Attempt(id="f" * 32, unit_id=uid, question_id=q["id"], answer="2/8", outcome="incorrect",
+                    assisted=False, created=100.25, evaluation={"attempt_number": 1}),
+            Attempt(id="0" * 32, unit_id=uid, question_id=q["id"], answer="6/16", outcome="uncertain",
+                    assisted=True, created=100.25, evaluation={"attempt_number": 2}),
+        ])
+    with TestClient(app, headers=HEADERS) as kid:
+        login = kid.post("/api/auth/login", json={"username": "test-child", "password": "secure-child-pass-123"}).json()
+        kid.headers["Authorization"] = "Bearer " + login["token"]
+        result = kid.post(f"/api/units/{uid}/questions/{q['id']}/recheck")
+        assert result.status_code == 200 and result.json()["attempt_id"] == "0" * 32
+        assert result.json()["outcome"] == "correct" and result.json()["assisted"] is True
+    with DB() as db:
+        assert db.get(Attempt, "f" * 32).outcome == "incorrect"
+        assert db.get(Attempt, "0" * 32).outcome == "correct"
+        audit = db.scalar(select(AttemptAssessment))
+        assert audit.attempt_id == "0" * 32 and audit.previous_outcome == "uncertain"
+        mastery = db.scalar(select(Mastery))
+        assert mastery.assisted == 1 and mastery.difficulties == 0
+
+
 TASK_PAGE = "APP-TEST – keine echte Heftseite\nBrüche addieren\nProbeaufgabe:\n1/3 + 1/6 = ?\nDer Nenner beschreibt die Einteilung."
 
 
