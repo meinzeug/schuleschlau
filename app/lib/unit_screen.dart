@@ -3308,9 +3308,16 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
     final closed = done(q) || u['status'] == 'completed';
     final correct = answerOutcome == 'correct';
     final uncertain = answerOutcome == 'uncertain';
-    final lastEvaluation =
-        (q['attempts'] as List? ?? []).lastOrNull?['evaluation'] as Map?;
-    final openContribution = lastEvaluation?['method'] == 'open_learning_v1';
+    final attempts = (q['attempts'] as List? ?? []).whereType<Map>().toList();
+    final shownAttemptId = feedbackAttemptId;
+    // Saved feedback identifies its own answer. Never attach a different
+    // attempt's assessment when a later answer exists or the ID is missing.
+    final feedbackAttempt = shownAttemptId == null
+        ? attempts.lastOrNull
+        : attempts.where((item) => item['id'] == shownAttemptId).firstOrNull;
+    final feedbackEvaluation = feedbackAttempt?['evaluation'] as Map?;
+    final openContribution =
+        feedbackEvaluation?['method'] == 'open_learning_v1';
     final title = openContribution
         ? 'Deine Idee ist gespeichert.'
         : correct
@@ -3320,10 +3327,7 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
         : closed
         ? 'Das üben wir noch'
         : 'Noch nicht ganz';
-    final answer =
-        answeredText ??
-        (q['attempts'] as List).lastOrNull?['answer']?.toString() ??
-        '';
+    final answer = answeredText ?? feedbackAttempt?['answer']?.toString() ?? '';
     final matchingAnswers = q['type'] == 'match'
         ? answer.split(';')
         : <String>[];
@@ -3374,7 +3378,7 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
                     ? GroupedAnswerSummary(
                         spec: GroupedAnswerSpec.tryParse(q['field_group']),
                         answer: answer,
-                        parts: lastEvaluation?['parts'],
+                        parts: feedbackEvaluation?['parts'],
                       )
                     : q['type'] == 'match'
                     ? Column(
@@ -3390,12 +3394,13 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
                               child: Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  if ((lastEvaluation?['parts'] as List? ?? [])
+                                  if ((feedbackEvaluation?['parts'] as List? ??
+                                          [])
                                       .any(
                                         (p) => p['label'] == q['options'][i],
                                       )) ...[
                                     Icon(
-                                      (lastEvaluation!['parts'] as List)
+                                      (feedbackEvaluation!['parts'] as List)
                                                   .firstWhere(
                                                     (p) =>
                                                         p['label'] ==
@@ -3405,7 +3410,7 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
                                           ? Icons.check_circle_outline
                                           : Icons.refresh_rounded,
                                       color:
-                                          (lastEvaluation['parts'] as List)
+                                          (feedbackEvaluation['parts'] as List)
                                                   .firstWhere(
                                                     (p) =>
                                                         p['label'] ==
@@ -3415,7 +3420,7 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
                                           ? context.palette.successInk
                                           : context.palette.warningInk,
                                       semanticLabel:
-                                          (lastEvaluation['parts'] as List)
+                                          (feedbackEvaluation['parts'] as List)
                                                   .firstWhere(
                                                     (p) =>
                                                         p['label'] ==
@@ -3512,7 +3517,7 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
                       : 'Versuch es noch einmal. Unter Hilfe findest du einen Tipp.',
                   style: TextStyle(fontSize: 16),
                 )
-              else if (lastEvaluation?['independence_uncertain'] == true)
+              else if (feedbackEvaluation?['independence_uncertain'] == true)
                 Text(
                   'Richtig! Bei einer neuen Aufgabe kannst du zeigen, was du schon alleine weißt.',
                   style: TextStyle(fontSize: 16),
@@ -3520,38 +3525,39 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
               else if (answerAssisted)
                 MathText(
                   q['language'] is Map &&
-                          ((q['attempts'] as List)
-                                          .last['evaluation']?['support_reasons']
-                                      as List? ??
+                          (feedbackEvaluation?['support_reasons'] as List? ??
                                   [])
                               .contains('recent_solution')
                       ? 'Gerade mit Vorlage gelernt. Später probierst du es ohne.'
-                      : (lastEvaluation?['support_reasons'] as List? ?? [])
+                      : (feedbackEvaluation?['support_reasons'] as List? ?? [])
                                     .length ==
                                 1 &&
-                            (lastEvaluation?['support_reasons'] as List)
+                            (feedbackEvaluation?['support_reasons'] as List)
                                 .contains('another_attempt')
                       ? 'Im weiteren Versuch geschafft. Gut, dass du drangeblieben bist.'
                       : 'Mit Unterstützung oder im weiteren Versuch gelöst. Gut, dass du drangeblieben bist.',
                   style: TextStyle(fontSize: 16),
                 ),
-              if (lastEvaluation?['reason'] is String) ...[
+              if (feedbackEvaluation?['reason'] is String) ...[
                 SizedBox(height: 8),
                 MathText(
-                  lastEvaluation!['reason'],
+                  feedbackEvaluation!['reason'],
                   style: TextStyle(fontSize: 15),
                 ),
               ],
-              if ((q['attempts'] as List? ?? []).isNotEmpty)
-                AnswerSupport(Json.from((q['attempts'] as List).last)),
+              if (feedbackAttempt != null)
+                AnswerSupport(Json.from(feedbackAttempt)),
               AssessmentTrail(
-                (q['attempts'] as List? ?? []).lastOrNull?['assessment_history']
-                        as List? ??
-                    [],
+                feedbackAttempt?['assessment_history'] as List? ?? [],
               ),
               if (uncertain && !openContribution && state.isChild) ...[
                 SizedBox(height: 12),
-                if (u['supports_recheck'] == true && q['language'] is! Map)
+                if (u['supports_recheck'] == true &&
+                    u['supports_recheck_attempt_id'] == true &&
+                    q['language'] is! Map &&
+                    shownAttemptId != null &&
+                    feedbackAttempt != null &&
+                    feedbackAttempt['id'] == attempts.lastOrNull?['id'])
                   OutlinedButton.icon(
                     onPressed: actionBusy
                         ? null
@@ -3559,8 +3565,12 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
                             final owner = ownerAccount;
                             final response = await state.api.post(
                               '/units/${u['id']}/questions/${q['id']}/recheck',
+                              {'attempt_id': shownAttemptId},
                             );
-                            if (!requestIsCurrent(u['id'], owner)) return;
+                            if (!requestIsCurrent(u['id'], owner) ||
+                                feedbackAttemptId != shownAttemptId) {
+                              return;
+                            }
                             setState(() {
                               unit = Json.from(response['unit']);
                               answeredQuestion = Json.from(
@@ -3577,6 +3587,10 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
                           }),
                     icon: Icon(Icons.fact_check_outlined),
                     label: Text('Antwort erneut prüfen'),
+                  )
+                else if (u['supports_recheck'] == true && q['language'] is! Map)
+                  Text(
+                    'Diese Antwort lässt sich hier nicht sicher erneut prüfen. Du kannst die Lernhilfe fragen.',
                   ),
                 TextButton.icon(
                   onPressed: actionBusy

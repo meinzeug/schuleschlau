@@ -937,17 +937,42 @@ class _ChildCoachingPanel extends StatelessWidget {
                         .lastOrNull?['outcome'] ==
                     'uncertain') ...[
                   if (unit['supports_recheck'] == true &&
-                      question['language'] is! Map)
-                    ActionButton(
-                      secondary: true,
-                      label: 'Antwort erneut prüfen',
-                      onPressed: () async {
-                        final current = currentAction;
-                        await state.api.post(
-                          '/units/${unit['id']}/questions/${question['id']}/recheck',
+                      unit['supports_recheck_attempt_id'] == true &&
+                      question['language'] is! Map &&
+                      (question['attempts'] as List).lastOrNull?['id']
+                          is String)
+                    Builder(
+                      builder: (context) {
+                        final attemptId =
+                            (question['attempts'] as List).last['id'] as String;
+                        final questionId = question['id'];
+                        final unitId = unit['id'];
+                        return ActionButton(
+                          secondary: true,
+                          label: 'Antwort erneut prüfen',
+                          onPressed: () async {
+                            final current = currentAction;
+                            if (!current()) return;
+                            try {
+                              await state.api.post(
+                                '/units/$unitId/questions/$questionId/recheck',
+                                {'attempt_id': attemptId},
+                              );
+                            } catch (error) {
+                              if (context.mounted && current()) {
+                                toast(context, error.toString());
+                              }
+                              return;
+                            }
+                            if (current()) await refresh();
+                          },
                         );
-                        if (current()) await refresh();
                       },
+                    )
+                  else if (unit['supports_recheck'] == true &&
+                      question['language'] is! Map)
+                    Text(
+                      'Diese Antwort lässt sich hier nicht sicher erneut prüfen. Du kannst die Lernhilfe fragen.',
                     ),
                   TextButton.icon(
                     onPressed: () => showTutorSheet(

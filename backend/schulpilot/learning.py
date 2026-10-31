@@ -497,6 +497,7 @@ def unit_data(db, unit, include_answers=False, *, include_progress=True):
             show_introduction=not hide_introduction and (include_answers or unit.round_kind not in coaching.CHECK_KINDS or unit.status == "completed")),
         "pending_feedback": pending_feedback(unit, attempts, events),
         "supports_recheck": True,
+        "supports_recheck_attempt_id": True,
         "supports_question_explanation": True,
         "supports_feedback_exposure": True,
         "supports_detailed_feedback": True,
@@ -1969,12 +1970,14 @@ def answer_response(db, unit, q, attempt):
 
 
 @router.post("/units/{unit_id}/questions/{question_id}/recheck")
-def recheck_answer(unit_id: str, question_id: str, p=Depends(child_user), db=Depends(get_db)):
+def recheck_answer(unit_id: str, question_id: str, data: s.AnswerRecheck | None = None,
+                   p=Depends(child_user), db=Depends(get_db)):
     from .assessments import recheck
 
     unit = get_unit(db, p, unit_id, True, True)
     rate_limit(db, "answer-recheck:" + p.user.id, 12, 60, commit=False)
-    attempt = recheck(db, unit, question(unit, question_id), p.user.id)
+    attempt = recheck(db, unit, question(unit, question_id), p.user.id,
+                      expected_attempt_id=data.attempt_id if data else None)
     db.commit()
     return answer_response(db, unit, question(unit, question_id), attempt)
 

@@ -367,6 +367,7 @@ void main() {
           'explanation': 'Gespeicherte Erklärung.',
           'introduction_seen': true,
           'supports_recheck': true,
+          'supports_recheck_attempt_id': true,
           'questions': [task()],
           'coaching': null,
           'pending_feedback': {
@@ -384,6 +385,7 @@ void main() {
             client: MockClient((r) async {
               requests.add(r);
               if (r.url.path.endsWith('/recheck')) {
+                expect(jsonDecode(r.body), {'attempt_id': 'saved'});
                 outcome = 'correct';
                 return jsonReply({
                   'unit': unit(),

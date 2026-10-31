@@ -395,6 +395,17 @@ class FeedbackAcknowledgement(Strict):
     attempt_id: str = Field(pattern=r"^[a-f0-9]{32}$")
 
 
+class AnswerRecheck(Strict):
+    attempt_id: str | None = Field(default=None, pattern=r"^[a-f0-9]{32}$")
+
+    @model_validator(mode="before")
+    @classmethod
+    def explicit_id_cannot_be_null(cls, value):
+        if isinstance(value, dict) and "attempt_id" in value and value["attempt_id"] is None:
+            raise ValueError("Für die gebundene Prüfung wird eine Antwort-ID benötigt.")
+        return value
+
+
 class HeartbeatRequest(Strict):
     baseline: bool = False
 
