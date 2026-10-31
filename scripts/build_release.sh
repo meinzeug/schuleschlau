@@ -3,6 +3,15 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 unset SCHULPILOT_RELEASE_ATTESTATION_DIR
 build_commit="$(python3 scripts/release_attestation.py check-source)"
+# Fail before the expensive Flutter builds if release metadata disagrees.
+python3 - <<'PY'
+import re
+from pathlib import Path
+app = re.search(r'^version:\s*([^+\s]+)\+', Path('app/pubspec.yaml').read_text(), re.M)
+backend = re.search(r'^__version__\s*=\s*["\']([^"\']+)["\']', Path('backend/schulpilot/__init__.py').read_text(), re.M)
+if not app or not backend or app.group(1) != backend.group(1):
+    raise SystemExit('App and backend version must match')
+PY
 flutter_bin="${SCHULPILOT_FLUTTER:-$HOME/.local/share/schulpilot-flutter/bin/flutter}"
 export SCHULPILOT_SIGNING_PROPERTIES="${SCHULPILOT_SIGNING_PROPERTIES:-$HOME/.local/share/schulpilot-signing/signing.properties}"
 export SCHULPILOT_STORE_BUILD=true
