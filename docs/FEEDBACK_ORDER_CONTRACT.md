@@ -14,6 +14,18 @@ Quittierung verwenden stattdessen zufällige IDs als Gleichstandsauflösung.
 Ende-zu-Ende-Vertrag als strikten erwarteten Fehlschlag fest. Er behauptet
 keine historische Reihenfolge.
 
+Weitere lokale Gegenbeispiele in derselben Testdatei zeigen zwei Grenzen:
+Selbst bei zwei zeitgleichen Versuchen *derselben* Frage, deren gespeicherte
+Nummern 1 und 2 die Reihenfolge belegen, findet die Übersicht die im Detail
+angezeigte Rückmeldung nicht. Außerdem kann bei zwei gleichzeitig markierten
+Versuchen nach dem Quittieren eines Markers der andere weiterhin ungelesen in
+der Datenbank liegen, ohne dass ihn der aktuelle Rückmeldevertrag anbietet.
+Ein reiner UUID-Gleichstandsvergleich oder ein stilles Ausblenden ist daher
+keine sichere Behebung. Ein Modelltest zeigt zudem, dass bei zwei verschiedenen
+Fragen beide möglichen historischen Reihenfolgen identische gespeicherte Daten
+ergeben können. Diese synthetischen Gegenbeispiele belegen keine Häufigkeit im
+Produktionsbestand.
+
 Der Flutter-Lernraum las Bewertungsdetails aus dem letzten Versuch der Frage,
 nicht aus der ID der angezeigten Rückmeldung. Ein lokaler Widgettest mit zwei
 künstlichen Versuchen zeigte zur ersten Antwort die Begründung des zweiten
