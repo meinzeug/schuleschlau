@@ -16,8 +16,7 @@ const outputLength =
     'Die KI hat die begrenzte Ausgabelänge erreicht. Die unvollständige Antwort wurde verworfen; kein automatischer Wiederholungsversuch.';
 const invalidOutput =
     'Die KI-Ausgabe ist unvollständig, abgelehnt oder nicht als sichere Aufgabenstruktur validierbar. Es wurden keine erfundenen Ersatzaufgaben erstellt.';
-const childCopy =
-    'Diese Runde konnte gerade nicht vorbereitet werden. Deine Heftseiten und gespeicherten Runden bleiben erhalten.';
+const childCopy = 'Deine Hefte und gespeicherten Runden bleiben erhalten.';
 const readCopy =
     'Wir können den Stand gerade nicht laden. Deine Heftseiten und gespeicherten Runden bleiben erhalten.';
 const changedSource =

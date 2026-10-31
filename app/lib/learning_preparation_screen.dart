@@ -162,6 +162,10 @@ class _LearningPreparationScreenState extends State<_LearningPreparationBody>
     final failed = job != null && !waiting && !ready;
     final planning = job?['kind'] == 'decision';
     final failure = error ?? job?['error'];
+    final missingJob =
+        widget.state.isChild &&
+        error is ApiError &&
+        (error as ApiError).status == 404;
     final technicalFailure =
         (failed || error != null) &&
         widget.state.isChild &&
@@ -199,9 +203,13 @@ class _LearningPreparationScreenState extends State<_LearningPreparationBody>
                             ? 'Dein Lernplan konnte nicht vorbereitet werden.'
                             : 'Diese Runde konnte nicht vorbereitet werden.'
                       : error != null
-                      ? 'Wir können gerade nicht nachsehen.'
+                      ? missingJob
+                            ? 'Vorbereitung nicht gefunden.'
+                            : 'Wir können gerade nicht nachsehen.'
                       : job?['status'] == 'queued'
-                      ? 'Deine Vorbereitung wartet auf ihren Start.'
+                      ? widget.state.isChild
+                            ? 'Deine Runde wartet.'
+                            : 'Deine Vorbereitung wartet auf ihren Start.'
                       : planning
                       ? 'Dein Lernplan entsteht …'
                       : 'Deine Runde entsteht …',
@@ -217,13 +225,17 @@ class _LearningPreparationScreenState extends State<_LearningPreparationBody>
                     child: LinearProgressIndicator(),
                   ),
                   SizedBox(height: 16),
-                  Text('Du kannst die App schließen. Wir arbeiten weiter.'),
+                  Text(
+                    widget.state.isChild
+                        ? 'Die Vorbereitung geht auch ohne offene App weiter.'
+                        : 'Du kannst die App schließen. Wir arbeiten weiter.',
+                  ),
                 ],
                 if (failed || error != null) ...[
                   Text(
                     technicalFailure
                         ? failed
-                              ? 'Diese Runde konnte gerade nicht vorbereitet werden. Deine Heftseiten und gespeicherten Runden bleiben erhalten.'
+                              ? 'Deine Hefte und gespeicherten Runden bleiben erhalten.'
                               : 'Wir können den Stand gerade nicht laden. Deine Heftseiten und gespeicherten Runden bleiben erhalten.'
                         : error is ApiError
                         ? (error as ApiError).message
@@ -258,13 +270,25 @@ class _LearningPreparationScreenState extends State<_LearningPreparationBody>
                       }
                     },
                   )
+                else if (missingJob)
+                  ActionButton(
+                    label: 'Gespeicherte Runden ansehen',
+                    icon: Icons.auto_stories_outlined,
+                    onPressed: () async {
+                      if (sameOwner) {
+                        openRoute(context, '/learn/${widget.childId}');
+                      }
+                    },
+                  )
                 else if (error != null)
                   ActionButton(
                     label: 'Status neu laden',
                     icon: Icons.refresh_rounded,
                     onPressed: load,
                   ),
-                if ((failed || technicalFailure) && widget.state.isChild) ...[
+                if ((failed || error != null) &&
+                    widget.state.isChild &&
+                    !missingJob) ...[
                   SizedBox(height: 12),
                   OutlinedButton.icon(
                     onPressed: () {
