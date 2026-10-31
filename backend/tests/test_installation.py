@@ -442,3 +442,14 @@ def test_setup_probe_recovery_is_cookie_bound_read_only_and_closes_after_setup(a
         assert len(list(db.scalars(select(UsageBucket)))) == 0
     assert finish(api).status_code == 201
     assert api.get(path).status_code == 409
+
+
+def test_operator_edit_preserves_existing_display_name_sender(api):
+    unlock(api)
+    sender = "Synthetic Sender <sender@example.org>"
+    response = api.put("/api/setup/site", json={"smtp_from": sender})
+    assert response.status_code == 200, response.text
+    response = api.put("/api/setup/site", json={"operator_name": "Synthetic Operator"})
+    assert response.status_code == 200, response.text
+    assert response.json()["site"]["smtp_from"] == sender
+    assert runtime_settings().smtp_from == sender

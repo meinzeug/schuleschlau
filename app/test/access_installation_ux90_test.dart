@@ -297,6 +297,35 @@ void main() {
       await f.close(t);
     },
   );
+  testWidgets(
+    'unchanged legacy display-name sender does not block an operator edit',
+    (t) async {
+      final f = Fixture();
+      f.data['smtp_from'] = 'Synthetic sender <sender@example.invalid>';
+      await f.mount(t);
+      await t.enterText(field('Betreiber'), 'Changed synthetic operator');
+      await press(t, 'Einstellungen speichern');
+      expect(f.saved, hasLength(1));
+      expect(f.saved.single, {'operator_name': 'Changed synthetic operator'});
+      expect(f.data['smtp_from'], 'Synthetic sender <sender@example.invalid>');
+      await f.close(t);
+    },
+  );
+
+  testWidgets(
+    'a changed malformed sender still cannot be saved',
+    (t) async {
+      final f = Fixture();
+      f.data['smtp_from'] = 'Synthetic sender <sender@example.invalid>';
+      await f.mount(t, section: 'email');
+      await t.enterText(field('Absender-E-Mail'), 'invalid');
+      await press(t, 'Einstellungen speichern');
+      expect(f.saved, isEmpty);
+      expect(find.textContaining('vollständige E-Mail-Adresse'), findsWidgets);
+      await f.close(t);
+    },
+  );
+
   testWidgets('AK024 site draft reset needs confirmation and sends no write', (
     t,
   ) async {
