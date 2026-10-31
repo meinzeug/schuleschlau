@@ -438,7 +438,8 @@ def due_kinds(db, device, current):
             if (
                 device.summaries
                 and local.hour >= 18
-                and db.scalar(select(Activity.id).where(Activity.child_id == child.id, Activity.created >= start))
+                and db.scalar(select(Activity.id).where(Activity.child_id == child.id, Activity.created >= start,
+                                                       Activity.kind != "feedback_recovery_begin"))
             ):
                 result.add("summary")
         elif (

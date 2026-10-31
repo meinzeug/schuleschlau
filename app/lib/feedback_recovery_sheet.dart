@@ -11,6 +11,7 @@ class FeedbackRecoverySheet extends StatefulWidget {
   final VoidCallback onChanged;
   final void Function(Future<void>) onRequestStarted;
   final VoidCallback onClose;
+  final bool supportsBegin;
 
   const FeedbackRecoverySheet({
     super.key,
@@ -20,6 +21,7 @@ class FeedbackRecoverySheet extends StatefulWidget {
     required this.onChanged,
     required this.onRequestStarted,
     required this.onClose,
+    this.supportsBegin = false,
   });
 
   @override
@@ -32,6 +34,7 @@ class _FeedbackRecoverySheetState extends State<FeedbackRecoverySheet> {
   bool laterPage = false;
   String? error;
   bool busy = false;
+  bool begun = false;
 
   @override
   void initState() {
@@ -46,6 +49,21 @@ class _FeedbackRecoverySheetState extends State<FeedbackRecoverySheet> {
       error = null;
     });
     try {
+      if (widget.supportsBegin && !begun) {
+        final request = widget.api.post(
+          '/units/${widget.unitId}/feedback/recovery/begin',
+          {},
+        );
+        widget.onRequestStarted(
+          request.then<void>(
+            (_) {},
+            onError: (Object error, StackTrace trace) {},
+          ),
+        );
+        await request;
+        if (!mounted || !widget.isCurrent()) return;
+        begun = true;
+      }
       final query = after == null
           ? ''
           : '?after=${Uri.encodeQueryComponent(after)}';
@@ -88,7 +106,10 @@ class _FeedbackRecoverySheetState extends State<FeedbackRecoverySheet> {
       // Let the owning route refresh after the request settles, including if
       // the child closes this sheet while the request is still in flight.
       widget.onRequestStarted(
-        request.then<void>((_) {}, onError: (Object error, StackTrace trace) {}),
+        request.then<void>(
+          (_) {},
+          onError: (Object error, StackTrace trace) {},
+        ),
       );
       await request;
       if (!mounted || !widget.isCurrent()) return;

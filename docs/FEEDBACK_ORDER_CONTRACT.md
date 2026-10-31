@@ -143,9 +143,17 @@ ist ein idempotenter No-op. Außerdem schützt die Abschlussprüfung nach der er
 Recovery-Bestätigung alle übrigen zu Antworten gehörenden ungelesenen
 Marker, auch wenn danach ein anderes Gerät den regulären ACK verwendet. Für
 Altbestände, bei denen noch niemand Recovery verwendet hat, bleibt das alte
-Clientverhalten bestehen; auch unmittelbar nach dem Öffnen der Liste, aber vor
-dem ersten ACK, gilt weiterhin dieser alte Vertrag. Der ursprüngliche Altfall
-ist damit nicht gelöst.
+Clientverhalten bestehen. Ein neuer Client kann mit dem fähigkeitsgebundenen,
+ausdrücklichen POST `/feedback/recovery/begin` bereits vor dem Laden der Liste
+die Abschlusssperre aktivieren. Der POST ist unter der Einheitensperre
+wiederholbar, markiert keine Antwort als gelesen und startet keinen
+Anbieterauftrag. Ein danach eintreffender regulärer ACK eines anderen Geräts
+darf verbleibende ungelesene Marker nicht durch einen Abschluss verdecken;
+automatische Rückblicke aus diesem ACK werden unterdrückt. Das gilt erst nach
+Verarbeitung des Startsignals: Gewinnt ein alter ACK das Rennen vor dessen
+Serversperre, bleibt der alte Vertrag wirksam. Alte Clients senden das
+Startsignal nicht und haben weiterhin keinen vollständig kompatiblen
+Wiederherstellungsweg. Der ursprüngliche Altfall ist damit nicht gelöst.
 
 Die Wiederherstellungsliste zeigt keine Lösung. Könnte der normale
 Feedbackraum vor dem Quittieren jedoch eine Lösungsgrafik oder eine automatisch

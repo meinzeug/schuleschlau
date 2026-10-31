@@ -1481,6 +1481,7 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
       builder: (sheet) => FeedbackRecoverySheet(
         api: state.api,
         unitId: id,
+        supportsBegin: u['supports_feedback_recovery_begin'] == true,
         isCurrent: current,
         onChanged: () => changed = true,
         onRequestStarted: (request) {

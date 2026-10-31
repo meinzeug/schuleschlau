@@ -8,7 +8,7 @@ from conftest import HEADERS, register
 from fastapi.testclient import TestClient
 from schulpilot import notifications as n
 from schulpilot.config import settings
-from schulpilot.db import DB, Child, Message, PushDelivery, PushDevice, Session, now
+from schulpilot.db import DB, Activity, Child, Message, PushDelivery, PushDevice, Session, now
 from schulpilot.main import app
 from schulpilot.security import decrypt
 from sqlalchemy import func, select
@@ -86,6 +86,25 @@ def test_push_bundling_quiet_times_and_revocation(api, household, tmp_path, monk
     assert sent == []
     with DB() as db:
         assert db.scalar(select(PushDelivery)).status == "suppressed"
+
+
+def test_starting_feedback_recovery_is_not_a_learning_summary(api, household, tmp_path):
+    enable(tmp_path)
+    _, child = household
+    registered = device(api)
+    fixed = int(datetime(2026, 10, 14, 19, tzinfo=ZoneInfo("Europe/Berlin")).timestamp())
+    with DB.begin() as db:
+        stored = db.get(PushDevice, registered["id"])
+        stored.summaries = True
+        session = db.get(Session, stored.session_id)
+        session.seen, session.expires = fixed, fixed + 86400
+        db.get(Child, child["id"]).preferences = {"quiet_start": 0, "quiet_end": 0}
+        db.add(Activity(child_id=child["id"], kind="feedback_recovery_begin", created=fixed))
+    with DB.begin() as db:
+        assert "summary" not in n.due_kinds(db, db.get(PushDevice, registered["id"]), fixed)
+        db.add(Activity(child_id=child["id"], kind="answer", created=fixed))
+    with DB() as db:
+        assert "summary" in n.due_kinds(db, db.get(PushDevice, registered["id"]), fixed)
 
 
 def test_removed_membership_is_rechecked_before_push(api, household, tmp_path, mailbox, monkeypatch):

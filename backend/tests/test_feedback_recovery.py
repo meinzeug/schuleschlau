@@ -275,11 +275,13 @@ def test_recovery_requires_own_child_and_exact_unit(guided, household):
     assert kid.post(f"/api/units/{other_unit_id}/feedback/recovery/acknowledge", json={"attempt_id": attempt_id}).status_code == 404
     assert kid.post(f"/api/units/{uid}/feedback/recovery/acknowledge", json={"attempt_id": "2" * 32}).status_code == 404
     assert parent.get(f"/api/units/{uid}/feedback/recovery").status_code == 403
+    assert parent.post(f"/api/units/{uid}/feedback/recovery/begin").status_code == 403
     with TestClient(app, headers=HEADERS) as sibling:
         login = sibling.post("/api/auth/login", json={"username": "other-child", "password": "secure-child-pass-123"})
         sibling.headers["Authorization"] = "Bearer " + login.json()["token"]
         assert other["id"] != child_id
         assert sibling.get(f"/api/units/{uid}/feedback/recovery").status_code in (403, 404)
+        assert sibling.post(f"/api/units/{uid}/feedback/recovery/begin").status_code in (403, 404)
         assert sibling.post(f"/api/units/{uid}/feedback/recovery/acknowledge", json={"attempt_id": attempt_id}).status_code in (403, 404)
 
 
@@ -336,6 +338,29 @@ def test_two_devices_acknowledge_one_marker_only_once(guided):
     with DB() as db:
         seen = list(db.scalars(select(Activity).where(Activity.unit_id == uid, Activity.kind == "feedback_seen")))
         assert [e.detail["attempt_id"] for e in seen] == [first]
+
+
+def test_two_devices_begin_recovery_only_once(guided):
+    from concurrent.futures import ThreadPoolExecutor
+
+    kid, _, child_id, uid, questions = guided
+    with DB.begin() as db:
+        db.add(Attempt(id="1" * 32, unit_id=uid, question_id=questions[0]["id"], answer="synthetic",
+                       outcome="incorrect", assisted=False, created=101, evaluation={"attempt_number": 1}))
+        db.add(Activity(child_id=child_id, unit_id=uid, kind="feedback_pending", detail={"attempt_id": "1" * 32}))
+    authorization = kid.headers["Authorization"]
+
+    def begin(_):
+        with TestClient(app, headers={**HEADERS, "Authorization": authorization}) as device:
+            return device.post(f"/api/units/{uid}/feedback/recovery/begin").status_code
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        assert list(pool.map(begin, range(2))) == [200, 200]
+    with DB() as db:
+        assert db.scalar(select(func.count()).select_from(Activity).where(
+            Activity.unit_id == uid, Activity.kind == "feedback_recovery_begin")) == 1
+        assert db.scalar(select(func.count()).select_from(Activity).where(
+            Activity.unit_id == uid, Activity.kind == "feedback_seen")) == 0
 
 
 def test_recovery_of_final_marker_finishes_deferred_round_without_provider_job(guided, monkeypatch):
@@ -406,3 +431,65 @@ def test_recovery_of_final_marker_finishes_deferred_round_without_provider_job(g
     assert review.status_code == 200, review.text
     assert review.json()["status"] == "ready"
     assert review_requests == [(uid, {})]
+
+
+def test_begin_recovery_blocks_other_device_before_first_recovery_ack(guided, monkeypatch):
+    from schulpilot.learning import complete_round
+    from schulpilot.synthetic import CONTENT
+
+    kid, parent, child_id, uid, questions = guided
+    ids = [f"{index + 1:032x}" for index in range(len(questions))]
+    with DB.begin() as db:
+        unit = db.get(LearningUnit, uid)
+        material = Material(child_id=child_id, title="Künstliche Testseite", status="confirmed", confirmed=True,
+                            synthetic=True, subject="Mathematik", topic="Brüche", content=CONTENT)
+        db.add(material)
+        db.flush()
+        unit.material_id = material.id
+        db.add(UnitSource(unit_id=uid, material_id=material.id, revision=material.revision))
+        for index, q in enumerate(questions):
+            db.add(Attempt(id=ids[index], unit_id=uid, question_id=q["id"], answer="synthetic",
+                           outcome="incorrect" if index == 0 else "correct", assisted=False,
+                           created=101 + index, evaluation={"attempt_number": 1}))
+            db.add(Activity(child_id=child_id, unit_id=uid, kind="feedback_pending", detail={"attempt_id": ids[index]}))
+        db.flush()
+        signature, valid, _ = source_state(db, unit)
+        assert valid
+        db.add(LearningMemory(unit_id=uid, child_id=child_id, source_signature=signature,
+                              working={"instructional_deferrals": {"source_signature": signature,
+                                                                  "question_ids": [questions[0]["id"]]}}, decision={}))
+    scheduled = []
+    monkeypatch.setattr("schulpilot.coaching.schedule", lambda *a, **kw: scheduled.append((a, kw)))
+    assert parent.post(f"/api/units/{uid}/feedback/recovery/begin").status_code == 403
+    # GET is still strictly read-only; opening the recovery view is explicit.
+    assert kid.get(f"/api/units/{uid}/feedback/recovery").status_code == 200
+    with DB() as db:
+        assert not db.scalar(select(Activity.id).where(Activity.unit_id == uid, Activity.kind == "feedback_recovery_begin"))
+    for _ in range(2):
+        assert kid.post(f"/api/units/{uid}/feedback/recovery/begin").status_code == 200
+    activity = parent.get(f"/api/children/{child_id}/activity")
+    assert activity.status_code == 200
+    assert all(event["kind"] != "feedback_recovery_begin" for event in activity.json())
+    # The completion primitive also protects other paths, including answers
+    # submitted by an older device without guided feedback.
+    with DB.begin() as db:
+        assert complete_round(db, db.get(LearningUnit, uid)) is False
+        assert db.get(LearningUnit, uid).status == "active"
+    # Before any recovery ACK, another device acknowledges the latest answer.
+    # It must not complete the unit while earlier feedback is still unread.
+    response = kid.post(f"/api/units/{uid}/feedback/acknowledge", json={"attempt_id": ids[-1]})
+    assert response.status_code == 200, response.text
+    assert response.json()["status"] == "active"
+    assert not scheduled
+    assert {item["attempt_id"] for item in kid.get(f"/api/units/{uid}/feedback/recovery").json()["items"]} == set(ids[:-1])
+    with DB() as db:
+        assert db.scalar(select(func.count()).select_from(Activity).where(
+            Activity.unit_id == uid, Activity.kind == "feedback_recovery_begin")) == 1
+        assert db.scalar(select(func.count()).select_from(Job)) == 0
+        assert db.scalar(select(func.count()).select_from(Usage)) == 0
+    for attempt_id in ids[:-1]:
+        result = kid.post(f"/api/units/{uid}/feedback/recovery/acknowledge", json={"attempt_id": attempt_id})
+        assert result.status_code == 200, result.text
+    assert result.json()["completed"] is True
+    assert not scheduled
+    assert kid.get(f"/api/units/{uid}/feedback/recovery").json()["items"] == []

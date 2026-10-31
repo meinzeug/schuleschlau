@@ -599,6 +599,7 @@ def unit_data(db, unit, include_answers=False, *, include_progress=True):
             show_introduction=not hide_introduction and (include_answers or unit.round_kind not in coaching.CHECK_KINDS or unit.status == "completed")),
         "pending_feedback": pending_feedback(unit, attempts, events),
         "supports_feedback_recovery": True,
+        "supports_feedback_recovery_begin": True,
         "feedback_recovery_available": feedback_history_available(unit, attempts, events),
         "supports_recheck": True,
         "supports_recheck_attempt_id": True,
@@ -1344,7 +1345,7 @@ def activity(child_id: str, before: int | None = None, p=Depends(authenticated),
     child_access(db, p, child_id)
     query = select(Activity).where(
         Activity.child_id == child_id, Activity.kind.not_in(["feedback_pending", "feedback_seen", "feedback_exposure",
-                                                            "feedback_possible"])
+                                                            "feedback_possible", "feedback_recovery_begin"])
     )
     if before:
         query = query.where(Activity.created < before)
@@ -1850,6 +1851,18 @@ def complete_round(db, unit, attempts=None):
     from . import instructional_decisions
     from .subject_content import open_learning_unit
 
+    # Every completion path, including a new answer on another device, must
+    # honor explicitly started recovery while any saved feedback is unread.
+    events = list(db.scalars(select(Activity).where(Activity.unit_id == unit.id, Activity.child_id == unit.child_id,
+        Activity.kind.in_(("feedback_recovery_begin", "feedback_pending", "feedback_seen")))))
+    recovery_started = any(e.kind == "feedback_recovery_begin" or (
+        e.kind == "feedback_seen" and isinstance(e.detail, dict) and e.detail.get("via") == "recovery"
+    ) for e in events)
+    if recovery_started:
+        saved_attempts = attempts if attempts is not None else list(
+            db.scalars(select(Attempt).where(Attempt.unit_id == unit.id)))
+        if unread_feedback_ids(unit, saved_attempts, events):
+            return False
     if not completion_ready(db, unit, attempts):
         return False
     db.execute(update(Child).where(Child.id == unit.child_id).values(grade=Child.grade))
@@ -1873,12 +1886,6 @@ def recover_instructional_round(db, unit):
         return False
     attempts = list(db.scalars(select(Attempt).where(Attempt.unit_id == unit.id).order_by(Attempt.created, Attempt.id)))
     events = list(db.scalars(select(Activity).where(Activity.unit_id == unit.id)))
-    # Once a child explicitly uses recovery, a delayed regular ACK from any
-    # device must not bypass the recovery path's remaining unread markers.
-    # Untouched legacy units retain their previous behaviour for old clients.
-    if any(e.child_id == unit.child_id and e.kind == "feedback_seen" and isinstance(e.detail, dict)
-           and e.detail.get("via") == "recovery" for e in events) and unread_feedback_ids(unit, attempts, events):
-        return False
     if pending_feedback(unit, attempts, events):
         return False
     return complete_round(db, unit, attempts)
@@ -2160,6 +2167,7 @@ def acknowledge_feedback(
     if not attempt or attempt.unit_id != unit.id:
         raise HTTPException(404, "Rückmeldung nicht gefunden.")
     events = list(db.scalars(select(Activity).where(Activity.unit_id == unit.id)))
+    recovery_started = any(e.child_id == unit.child_id and e.kind == "feedback_recovery_begin" for e in events)
     already_seen = [e for e in events if e.child_id == unit.child_id and e.kind == "feedback_seen" and isinstance(e.detail, dict)
                     and e.detail.get("attempt_id") == attempt.id]
     if already_seen:
@@ -2169,7 +2177,8 @@ def acknowledge_feedback(
             return unit_data(db, unit)
         if recover_instructional_round(db, unit):
             db.commit()
-            schedule_completed_review(db, unit)
+            if not recovery_started:
+                schedule_completed_review(db, unit)
         return unit_data(db, unit)
     attempts = list(db.scalars(select(Attempt).where(Attempt.unit_id == unit.id).order_by(Attempt.created, Attempt.id)))
     pending = pending_feedback(unit, attempts, events)
@@ -2188,7 +2197,7 @@ def acknowledge_feedback(
     record(db, unit.child_id, "feedback_seen", {"attempt_id": attempt.id}, unit.id)
     recovered = recover_instructional_round(db, unit)
     db.commit()
-    if recovered:
+    if recovered and not recovery_started:
         schedule_completed_review(db, unit)
     return unit_data(db, unit)
 
@@ -2219,6 +2228,19 @@ def feedback_recovery(unit_id: str, after: str | None = Query(None, pattern=r"^[
                       "prompt": q.get("prompt") if q else None,
                       "answer": attempt.answer, "outcome": attempt.outcome, "assisted": attempt.assisted})
     return {"items": items, "next_after": attempts[9].id if len(attempts) > 10 else None}
+
+
+@router.post("/units/{unit_id}/feedback/recovery/begin")
+def begin_feedback_recovery(unit_id: str, p=Depends(child_user), db=Depends(get_db)):
+    """Opt in to preserving all unread feedback before listing it on a new client."""
+    unit = get_unit(db, p, unit_id, True, True)
+    events = list(db.scalars(select(Activity).where(Activity.unit_id == unit.id, Activity.child_id == unit.child_id)))
+    if not any(e.kind == "feedback_recovery_begin" for e in events):
+        attempts = list(db.scalars(select(Attempt).where(Attempt.unit_id == unit.id)))
+        if unread_feedback_ids(unit, attempts, events):
+            record(db, unit.child_id, "feedback_recovery_begin", unit_id=unit.id)
+            db.commit()
+    return {"started": True}
 
 
 @router.post("/units/{unit_id}/feedback/recovery/acknowledge")

@@ -11,6 +11,53 @@ import 'package:schulpilot/feedback_recovery_sheet.dart';
 import 'learning_room_test.dart' as fixtures;
 
 void main() {
+  testWidgets('Starts recovery before loading and retries a failed start', (
+    tester,
+  ) async {
+    var beginCalls = 0;
+    var listCalls = 0;
+    final api = Api(
+      base: 'https://example.invalid/api',
+      client: MockClient((request) async {
+        if (request.url.path.endsWith('/feedback/recovery/begin')) {
+          beginCalls++;
+          if (beginCalls == 1) {
+            return fixtures.jsonReply({
+              'detail': 'Bitte erneut versuchen',
+            }, 503);
+          }
+          return fixtures.jsonReply({'started': true});
+        }
+        listCalls++;
+        return fixtures.jsonReply({'items': [], 'next_after': null});
+      }),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: FeedbackRecoverySheet(
+            api: api,
+            unitId: 'unit',
+            isCurrent: () => true,
+            onChanged: () {},
+            onRequestStarted: (_) {},
+            onClose: () {},
+            supportsBegin: true,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(beginCalls, 1);
+    expect(listCalls, 0);
+    expect(find.text('Erneut versuchen'), findsOneWidget);
+    await tester.tap(find.text('Erneut versuchen'));
+    await tester.pumpAndSettle();
+    expect(beginCalls, 2);
+    expect(listCalls, 1);
+    expect(find.text('Keine ungelesenen Rückmeldungen.'), findsOneWidget);
+  });
+
   testWidgets(
     '320 × 568 and 200% text keeps long entries and actions reachable',
     (tester) async {
@@ -192,7 +239,8 @@ void main() {
         tester,
         server,
         handle: (request) async {
-          if (request.method == 'GET' && request.url.path == '/api/units/unit') {
+          if (request.method == 'GET' &&
+              request.url.path == '/api/units/unit') {
             unitReads++;
           }
           if (request.method == 'GET' &&
