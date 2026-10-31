@@ -271,10 +271,24 @@ void main() {
       home(LearningPreparationScreen(state, childId: 'child', jobId: 'job')),
     );
     await flush(tester);
+    expect(find.text('Deine Runde wartet.'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+  testWidgets('queued preparation keeps the separate parent wording', (
+    tester,
+  ) async {
+    final state = account(
+      MockClient((_) async => reply({'kind': 'unit', 'status': 'queued'})),
+    )..user = {'id': 'parent-user', 'role': 'parent'};
+    await tester.pumpWidget(
+      home(LearningPreparationScreen(state, childId: 'child', jobId: 'job')),
+    );
+    await flush(tester);
     expect(
       find.text('Deine Vorbereitung wartet auf ihren Start.'),
       findsOneWidget,
     );
+    expect(find.text('Deine Runde wartet.'), findsNothing);
     await tester.pumpWidget(const SizedBox());
   });
   testWidgets('K055 material controllers follow a different saved source', (

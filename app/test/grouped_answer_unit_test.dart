@@ -42,6 +42,7 @@ class _GroupServer extends round.SavedRound {
   final drafts = <Json>[];
   final submitted = <Json>[];
   final capabilities = <String>[];
+  String? savedAttemptId = 'group-attempt';
   _GroupServer() : super(questions: [groupedQuestion()]);
 
   @override
@@ -74,6 +75,7 @@ class _GroupServer extends round.SavedRound {
       answers++;
       final q = (value['questions'] as List).first as Json;
       final attempt = {
+        if (savedAttemptId != null) 'id': savedAttemptId,
         'answer': body['answer'],
         'outcome': 'incorrect',
         'assisted': false,
@@ -204,6 +206,25 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+
+  for (final savedId in <String?>[null, 'another-attempt']) {
+    testWidgets(
+      'group feedback does not borrow part verdicts from a missing or different attempt: $savedId',
+      (tester) async {
+        final server = _GroupServer()..savedAttemptId = savedId;
+        await round.openRound(tester, server);
+        await fill(tester);
+        await tester.tap(check());
+        await tester.pumpAndSettle();
+        expect(server.answers, 1);
+        expect(find.byType(GroupedAnswerSummary), findsOneWidget);
+        expect(find.text('walk; „gehen“'), findsOneWidget);
+        expect(find.text('Richtig'), findsNothing);
+        expect(find.text('Noch einmal prüfen'), findsNothing);
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
 
   testWidgets(
     'actual room overview filters locally without posting or selecting a question',
