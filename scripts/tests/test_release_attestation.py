@@ -157,6 +157,11 @@ def test_deploy_checks_verified_archive_after_upload_and_immediately_before_acti
     assert 'remote_stage="/opt/schulpilot/staging/$release"' in script
     assert 'python3 - prepare "$release" < deploy/stage_release.py' in script
     assert script.count('"$release_android_sha" "$repair_sha" < scripts/release_attestation.py') == 3
+    assert 'rsync -a --chown=root:root --chmod=Dgo=rx,Fgo=rX app/build/web/' in script
+    assert 'rsync -a --chown=root:root --chmod=Fgo=rX artifacts/schulpilot-android.apk' in script
+    assert 'rsync -a --chown=root:root --chmod=Fgo=rX artifacts/android-release.json' in script
+    assert 'os.umask(0o077)' in script
+    assert 'os.fchmod(output.fileno(),0o644)' in script
 
 
 def test_dirty_worktree_and_ignored_backend_extra_rejected(built, monkeypatch):

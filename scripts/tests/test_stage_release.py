@@ -2,6 +2,7 @@ import errno
 import importlib.util
 import os
 import stat
+import subprocess
 import threading
 from pathlib import Path
 
@@ -42,6 +43,7 @@ def test_unfinished_upload_is_invisible_to_old_prune_then_published_atomically(r
     stage.prepare(root, RELEASE, owner)
     partial = root / 'staging' / RELEASE
     (partial / 'upload-in-progress').write_text('incomplete')
+    (partial / 'upload-in-progress').chmod(0o644)
     assert stat.S_IMODE((root / 'staging').stat().st_mode) == 0o700
     assert prune.plan_prune(root / 'releases', root / 'current', root / 'previous') == []
     assert not (root / 'releases' / RELEASE).exists()
@@ -141,3 +143,93 @@ def test_rename_failure_is_closed_and_leaves_private_stage(root, monkeypatch):
     assert failure.value.errno == errno.EXDEV
     assert not (root / 'releases' / RELEASE).exists()
     assert stat.S_IMODE((root / 'staging' / RELEASE).stat().st_mode) == 0o700
+
+
+@pytest.mark.parametrize('bad_mode', [0o664, 0o666, 0o600, 0o4644])
+def test_publish_refuses_writable_private_or_special_public_files(root, bad_mode):
+    owner = os.geteuid()
+    stage.prepare(root, RELEASE, owner)
+    web = root / 'staging' / RELEASE / 'web'
+    web.mkdir(mode=0o755)
+    web.chmod(0o755)
+    content = web / 'index.html'
+    content.write_text('public page')
+    content.chmod(bad_mode)
+    with pytest.raises(ValueError):
+        stage.publish(root, RELEASE, owner)
+    assert not (root / 'releases' / RELEASE).exists()
+
+
+@pytest.mark.parametrize('bad_mode', [0o775, 0o750])
+def test_publish_refuses_writable_or_untraversable_directories(root, bad_mode):
+    owner = os.geteuid()
+    stage.prepare(root, RELEASE, owner)
+    web = root / 'staging' / RELEASE / 'web'
+    web.mkdir()
+    web.chmod(bad_mode)
+    with pytest.raises(ValueError):
+        stage.publish(root, RELEASE, owner)
+
+
+@pytest.mark.parametrize('directory_link', [False, True])
+def test_publish_refuses_symlinks_in_release(root, tmp_path, directory_link):
+    owner = os.geteuid()
+    stage.prepare(root, RELEASE, owner)
+    (root / 'staging' / RELEASE / 'link').symlink_to(tmp_path, target_is_directory=directory_link)
+    with pytest.raises(ValueError, match='Non-regular'):
+        stage.publish(root, RELEASE, owner)
+
+
+def test_publish_checks_ownership_and_repair_archive_group(root):
+    owner = os.geteuid()
+    stage.prepare(root, RELEASE, owner)
+    partial = root / 'staging' / RELEASE
+    archive = partial / 'repair-source.tar.gz'
+    archive.write_text('private')
+    archive.chmod(0o640)
+    with pytest.raises(ValueError, match='archive permissions'):
+        stage.publish(root, RELEASE, owner, repair_gid=os.getegid() + 1)
+    with os.scandir(partial) as entries:
+        assert next(entries).stat().st_uid == owner
+    fd = os.open(partial, os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        with pytest.raises(ValueError, match='owner'):
+            stage._check_contents(fd, owner + 1, os.getegid(), os.getegid())
+    finally:
+        os.close(fd)
+    stage.publish(root, RELEASE, owner, repair_gid=os.getegid())
+    assert stat.S_IMODE((root / 'releases' / RELEASE / 'repair-source.tar.gz').stat().st_mode) == 0o640
+
+
+def test_publish_refuses_hard_linked_release_files(root, tmp_path):
+    owner = os.geteuid()
+    stage.prepare(root, RELEASE, owner)
+    outside = tmp_path / 'outside'
+    outside.write_text('shared')
+    outside.chmod(0o644)
+    os.link(outside, root / 'staging' / RELEASE / 'linked')
+    with pytest.raises(ValueError, match='Hard-linked'):
+        stage.publish(root, RELEASE, owner)
+
+
+def test_web_rsync_removes_group_write_without_breaking_readability(root, tmp_path):
+    owner, group = os.geteuid(), os.getegid()
+    stage.prepare(root, RELEASE, owner)
+    source = tmp_path / 'web-source'
+    source.mkdir(mode=0o775)
+    source.chmod(0o775)
+    page = source / 'index.html'
+    page.write_text('web page')
+    page.chmod(0o664)
+    executable = source / 'executable'
+    executable.write_text('executable bit retained for attestation')
+    executable.chmod(0o754)
+    dest = root / 'staging' / RELEASE / 'web'
+    subprocess.run([
+        'rsync', '-a', f'--chown={owner}:{group}', '--chmod=Dgo=rx,Fgo=rX',
+        str(source) + '/', str(dest) + '/',
+    ], check=True)
+    assert stat.S_IMODE(dest.stat().st_mode) == 0o755
+    assert stat.S_IMODE((dest / 'index.html').stat().st_mode) == 0o644
+    assert stat.S_IMODE((dest / 'executable').stat().st_mode) & 0o111
+    stage.publish(root, RELEASE, owner, public_gid=group)

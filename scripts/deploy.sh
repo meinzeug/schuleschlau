@@ -17,19 +17,24 @@ ssh -o BatchMode=yes dorfspy python3 - < deploy/bootstrap_host.py
 remote_stage="/opt/schulpilot/staging/$release"
 ssh dorfspy python3 - prepare "$release" < deploy/stage_release.py
 rsync -a --chown=root:root --chmod=Dgo-w,Fgo-w --exclude='__pycache__' --exclude='.pytest_cache' backend deploy workers "dorfspy:$remote_stage/"
-rsync -a app/build/web/ "dorfspy:$remote_stage/web/"
-ssh dorfspy "mkdir -p $remote_stage/downloads"
-rsync -a artifacts/schulpilot-android.apk "dorfspy:$remote_stage/downloads/schulpilot-android.apk"
-rsync -a artifacts/android-release.json "dorfspy:$remote_stage/android-release.json"
+rsync -a --chown=root:root --chmod=Dgo=rx,Fgo=rX app/build/web/ "dorfspy:$remote_stage/web/"
+ssh dorfspy "mkdir -m 755 $remote_stage/downloads"
+rsync -a --chown=root:root --chmod=Fgo=rX artifacts/schulpilot-android.apk "dorfspy:$remote_stage/downloads/schulpilot-android.apk"
+rsync -a --chown=root:root --chmod=Fgo=rX artifacts/android-release.json "dorfspy:$remote_stage/android-release.json"
 rsync -a --no-links artifacts/repair-source.tar.gz "dorfspy:$remote_stage/repair-source.tar.gz"
 ssh dorfspy "chown root:schulpilot $remote_stage/repair-source.tar.gz && chmod 640 $remote_stage/repair-source.tar.gz"
 ssh dorfspy python3 - staged "$remote_stage" "$release_apk_sha" "$release_proof" "$release_android_sha" "$repair_sha" < scripts/release_attestation.py
 ssh dorfspy "chmod 755 $remote_stage/downloads && chmod 644 $remote_stage/downloads/schulpilot-android.apk $remote_stage/android-release.json"
 ssh dorfspy python3 - "$release" "$build_commit" <<'PY'
-import json,sys
+import json,os,sys
 from pathlib import Path
 root=Path('/opt/schulpilot/staging')/sys.argv[1]
-(root/'release.json').write_text(json.dumps({'release_id':sys.argv[1],'source_commit':sys.argv[2]})+'\n')
+os.umask(0o077)
+fd=os.open(root/'release.json',os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600)
+with os.fdopen(fd,'w') as output:
+    output.write(json.dumps({'release_id':sys.argv[1],'source_commit':sys.argv[2]})+'\n')
+    output.flush()
+    os.fchmod(output.fileno(),0o644)
 PY
 # Preserve explicit operator activation; never auto-install/enable repair services.
 # A failed activation leaves them stopped, including after rollback. The operator
