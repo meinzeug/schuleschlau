@@ -244,6 +244,10 @@ class _LearningSubjectsState extends State<LearningSubjectsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (visible.isNotEmpty) ...[
+          const Text('Wähle ein Fach.'),
+          const SizedBox(height: 8),
+        ],
         ChildSectionTabs(
           tabs: const [
             (
@@ -441,12 +445,12 @@ class _LearningSubjectsState extends State<LearningSubjectsScreen> {
                 : 'Lernen',
             title: detail
                 ? (subject?['title'] ?? 'Deine Themen')
-                : 'Was möchtest du üben?',
+                : 'Lernen',
             description: detail
                 ? (topicRounds
-                      ? 'Deine gespeicherten Runden zu diesem Thema.'
-                      : 'Wähle ein Thema oder lass dich überraschen.')
-                : 'Öffne ein Fach. Dort findest du deine Themen und Lernrunden.',
+                      ? 'Hier sind deine Runden zu diesem Thema.'
+                      : 'Hier findest du deine Themen und Lernrunden.')
+                : 'Hier findest du deine Fächer und Lernrunden.',
             icon: detail
                 ? Icons.auto_stories_rounded
                 : Icons.folder_copy_outlined,
@@ -468,7 +472,11 @@ class _LearningSubjectsState extends State<LearningSubjectsScreen> {
             shelf(subjects)
           else ...[
             if (!topicRounds && state.isChild) ...[
-              FilledButton.icon(
+              if ((listing?['total'] as num? ?? 0) > 0) ...[
+                const Text('Wähle ein Thema.'),
+                const SizedBox(height: 8),
+              ],
+              OutlinedButton.icon(
                 key: const ValueKey('random-subject-round'),
                 onPressed:
                     starting ||
@@ -487,7 +495,7 @@ class _LearningSubjectsState extends State<LearningSubjectsScreen> {
                 ),
               ),
               const SizedBox(height: 8),
-              if (listing?['learning_preparation'] is Map)
+              if (listing?['learning_preparation'] is Map) ...[
                 TextButton.icon(
                   onPressed: () => openRoute(
                     context,
@@ -495,13 +503,9 @@ class _LearningSubjectsState extends State<LearningSubjectsScreen> {
                   ),
                   icon: const Icon(Icons.hourglass_top_rounded),
                   label: const Text('Laufende Vorbereitung ansehen'),
-                )
-              else
-                Text(
-                  'Aus deinen jetzt verfügbaren Themen.',
-                  style: TextStyle(fontSize: 12, color: context.palette.muted),
                 ),
-              const SizedBox(height: 12),
+                const SizedBox(height: 8),
+              ],
             ],
             PagedCollection(
               state,

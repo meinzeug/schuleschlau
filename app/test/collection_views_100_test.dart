@@ -145,12 +145,19 @@ void main() {
       final requests = <http.Request>[];
       await v.open(tester, requests);
       await tap(tester, find.text('Wörter üben').first);
+      await tap(tester, find.text('Übung anpassen'));
       for (final key in ['spelling', 'recognition', 'recall', 'listening']) {
         expect(find.byKey(ValueKey('word-mode-$key')), findsOneWidget);
       }
       await tap(tester, find.byKey(const ValueKey('word-mode-recognition')));
-      expect(find.text('Deine Rundenauswahl'), findsOneWidget);
-      expect(find.text('Gewünscht: bis zu 10 Vokabeln'), findsOneWidget);
+      expect(
+        find.text('Bedeutung erkennen · Lernsprache ins Deutsche'),
+        findsOneWidget,
+      );
+      expect(
+        find.text('Bis zu 10 Wörter. Sind weniger verfügbar, übst du diese.'),
+        findsOneWidget,
+      );
       expect(requests.where((r) => r.method == 'POST'), isEmpty);
       await tap(tester, find.text('Runde beginnen'));
       final request = requests
@@ -438,8 +445,12 @@ void main() {
       expect(find.text('Wort 1 von 1'), findsOneWidget);
       await tap(tester, find.text('Schließen').last);
       await tap(tester, find.text('Wörter üben').first);
+      await tap(tester, find.text('Übung anpassen'));
       await tap(tester, find.byKey(const ValueKey('word-mode-recall')));
-      expect(find.text('Deine Rundenauswahl'), findsOneWidget);
+      expect(
+        find.text('Wort abrufen · Deutsch in die Lernsprache'),
+        findsOneWidget,
+      );
       expect(requests.where((r) => r.method != 'GET'), isEmpty);
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox());

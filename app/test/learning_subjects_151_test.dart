@@ -168,7 +168,7 @@ Future<void> tap(WidgetTester t, Finder finder) async {
 }
 
 void main() {
-  for (final width in [320.0, 1280.0]) {
+  for (final width in [320.0, 390.0, 1280.0]) {
     testWidgets('Subjects first, then only that subject topics at $width px', (
       t,
     ) async {
@@ -177,19 +177,32 @@ void main() {
         t,
         calls,
         width: width,
-        scale: width == 320 ? 1.6 : 1,
+        scale: width == 320 ? 2 : 1,
       );
+      expect(find.text('Wähle ein Fach.'), findsOneWidget);
+      await tap(t, find.byTooltip('Über diesen Bereich'));
+      expect(find.text('Wähle ein Fach.'), findsOneWidget);
+      await tap(t, find.byTooltip('Bereichsinfo schließen'));
       expect(find.text('Mathematik'), findsOneWidget);
       expect(find.text('Deutsch'), findsOneWidget);
       expect(find.text('Brüche'), findsNothing);
       await tap(t, find.text('Mathematik'));
       expect(find.text('Brüche'), findsOneWidget);
+      expect(find.text('Wähle ein Thema.'), findsOneWidget);
       expect(
         t.widget<NavigationBar>(find.byType(NavigationBar).last).selectedIndex,
         1,
       );
       expect(find.text('Deutsch'), findsNothing);
       expect(find.text('Zufälliges Thema üben'), findsOneWidget);
+      expect(
+        t.getTopLeft(find.text('Zufälliges Thema üben')).dy,
+        lessThan(t.getTopLeft(find.text('Brüche')).dy),
+      );
+      expect(
+        t.getSize(find.byKey(const ValueKey('random-subject-round'))).height,
+        greaterThanOrEqualTo(48),
+      );
       final request = calls.lastWhere((q) => q.url.path.endsWith('/learning'));
       expect(request.url.queryParameters['subject_id'], math);
       expect(request.url.queryParameters['topic_view'], 'true');
@@ -197,6 +210,42 @@ void main() {
       expect(t.takeException(), isNull);
     });
   }
+
+  testWidgets('Empty topic list does not ask the child to pick a topic', (
+    t,
+  ) async {
+    final calls = <http.Request>[];
+    await open(
+      t,
+      calls,
+      initial: '/learn/child/subject/$math',
+      respond: (q) async {
+        if (q.url.path.endsWith('/learning/subjects')) {
+          return response(catalog());
+        }
+        if (q.url.path.endsWith('/learning')) {
+          return response({
+            ...listing(),
+            'items': <Json>[],
+            'total': 0,
+            'random_available': false,
+          });
+        }
+        return response({'items': []});
+      },
+    );
+    expect(find.text('Wähle ein Thema.'), findsNothing);
+    expect(find.text('Gerade ist keine Lernrunde eingeplant.'), findsOneWidget);
+    expect(
+      t
+          .widget<OutlinedButton>(
+            find.byKey(const ValueKey('random-subject-round')),
+          )
+          .onPressed,
+      isNull,
+    );
+    expect(calls.every((q) => q.method == 'GET'), isTrue);
+  });
 
   testWidgets('Random saved round starts once and opens its own route', (
     t,
@@ -326,7 +375,7 @@ void main() {
       );
       expect(
         t
-            .widget<FilledButton>(
+            .widget<OutlinedButton>(
               find.byKey(const ValueKey('random-subject-round')),
             )
             .onPressed,
@@ -356,6 +405,7 @@ void main() {
           return response({'items': []});
         },
       );
+      await t.ensureVisible(find.text('Zufälliges Thema üben'));
       await t.tap(find.text('Zufälliges Thema üben'));
       await t.pump();
       state.user = {
