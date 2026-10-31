@@ -530,3 +530,18 @@ def test_pk034_profile_waiting_for_child_user_lock_does_not_write_after_parent_l
         assert future.result(timeout=10).status_code == 401
     with DB() as db:
         assert db.get(User,child_user_id).display_name == child['display_name']
+
+
+def test_family_export_failure_removes_temporary_archive(api, household, monkeypatch):
+    from schulpilot import families
+    from schulpilot.config import settings
+
+    user, _ = household
+
+    def fail_export(*args, **kwargs):
+        raise RuntimeError('synthetic export failure')
+
+    monkeypatch.setattr(families, 'export_child', fail_export)
+    response = api.get(f'/api/families/{user["families"][0]["id"]}/export')
+    assert response.status_code == 500
+    assert not list((settings.data_dir / 'exports').glob('family-*.zip'))

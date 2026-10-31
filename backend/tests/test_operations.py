@@ -205,3 +205,32 @@ def test_orphan_cleanup_keeps_owned_and_in_flight_uploads(api, household):
         assert prune_orphan_images(db) == 1
     assert (directory / names[0]).exists() and (directory / names[2]).exists()
     assert not (directory / names[1]).exists()
+
+
+def test_interrupted_exports_are_removed_without_touching_recent_files(api, household):
+    import os
+
+    from schulpilot.config import settings
+    from schulpilot.worker import maintenance
+
+    directory = settings.data_dir / "exports"
+    directory.mkdir(mode=0o700, exist_ok=True)
+    old_child = directory / "child-interrupted.zip"
+    old_family = directory / "family-interrupted.zip"
+    recent = directory / "child-current.zip"
+    unrelated = directory / "other-file.zip"
+    for path in (old_child, old_family, recent, unrelated):
+        path.write_bytes(b"synthetic")
+    for path in (old_child, old_family, unrelated):
+        os.utime(path, (now() - 7200, now() - 7200))
+
+    try:
+        maintenance()
+
+        assert not old_child.exists()
+        assert not old_family.exists()
+        assert recent.exists()
+        assert unrelated.exists()
+    finally:
+        for path in (old_child, old_family, recent, unrelated):
+            path.unlink(missing_ok=True)

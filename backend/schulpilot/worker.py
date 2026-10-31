@@ -954,9 +954,14 @@ def maintenance():
         # ownership; unfinished writes are never served from the webroot.
         exports = settings.data_dir / "exports"
         if exports.is_dir():
-            for file in exports.glob("family-*.zip"):
-                if file.stat().st_mtime < now() - 3600:
-                    file.unlink(missing_ok=True)
+            for pattern in ("family-*.zip", "child-*.zip"):
+                for file in exports.glob(pattern):
+                    try:
+                        if file.stat().st_mtime < now() - 3600:
+                            file.unlink(missing_ok=True)
+                    except FileNotFoundError:
+                        # A completed response may remove it concurrently.
+                        pass
         # Bundled, in-app reminders only; no sensitive lock-screen messages.
         for child in db.scalars(select(Child)):
             prefs = s.Preferences(**child.preferences)

@@ -12,3 +12,10 @@ def test_privacy_is_readable_without_javascript_or_login(api):
         assert content in response.text
     assert "client_secret" not in response.text
     assert "sp_session" not in response.text
+
+
+def test_privacy_describes_retention_as_periodic_cleanup(api):
+    response = api.get("/api/legal/privacy")
+    assert "im nächsten Bereinigungslauf entfernt" in response.text
+    assert "Löschung von Seiten verzögern" in response.text
+    assert "werden höchstens 365 Tage gespeichert" not in response.text
