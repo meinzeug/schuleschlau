@@ -146,8 +146,9 @@ Transaktionsdateien gelten als Störung. Der Watchdog aus Commit `96c43ca` wurde
 atomar installiert; der vorherige Stand liegt unter
 `~/.local/share/schulpilot-operations/backups/pre-96c43ca/`. Der installierte
 Wächter meldete bei einem künstlich unterbrochenen Journalwechsel in einem
-separaten temporären Home-Verzeichnis die erwartete neutrale Störung; es wurde
-keine Nachricht versandt. Der reale lesende Trockenlauf war fehlerfrei und
+separaten temporären Home-Verzeichnis die erwartete neutrale Störung; bei
+synthetisch gehaltener Pull-Sperre blieb er ohne Fehlalarm. Es wurde keine
+Nachricht versandt. Der reale lesende Trockenlauf war fehlerfrei und
 beide lokalen Timer waren aktiv. Die Transaktionsdateien dürfen nicht
 automatisch gelöscht werden.
 
@@ -186,3 +187,8 @@ Platz sank auf `/` gegenüber dem Ausgangswert um bis zu 68.087.808 Byte und
 auf dem Sicherungsvolume um bis zu 62.812.160 Byte. Auch diese Werte sind
 Stichproben mit möglicherweise verpassten kurzen Spitzen und gleichzeitigen
 Fremdaktivitäten, keine zulässigen Höchstwerte für spätere größere Datenmengen.
+Der nach dieser Messsicherung eigens angestoßene Offsite-Abgleich war
+erfolgreich, kopierte ein zusätzliches Archiv und meldete 367 Kopien sowie
+ein verschlüsseltes Journal. Es blieben keine angefangenen Journaltransaktionen
+zurück; beide lokalen Timer und die lesenden Trockenläufe von Server- und
+unabhängigem Wächter waren fehlerfrei.
