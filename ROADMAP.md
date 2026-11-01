@@ -360,6 +360,19 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
   Bedienungsprobe; Ergebnisse und noch fehlende Gesamtprüfung gesondert
   dokumentieren.
 
+  **01.11.2026, kombinierter API-Test:**
+  `backend/tests/test_recall_planning_journey.py` verbindet mit einer
+  gezielten Testuhr einen anfänglichen Fehler und Lernschritt mit drei
+  selbstständigen Prüftagen über acht Tage. Der zukünftige Elternauftrag
+  bleibt erhalten; nach erfülltem Mindestziel und bei Pause startet eine
+  freiwillige Runde. Zwei parallele Geräte schreiben dieselbe Aktivitätszeit
+  nicht doppelt. Eine Quellenänderung macht die alten Bezüge ungültig, ohne
+  Antworten oder Quellenrevisionen umzuschreiben. Der Test bestand einzeln auf
+  SQLite und isoliertem PostgreSQL. Die Wiederholungsrunden werden dabei als
+  künstliche Datensätze angelegt: Er belegt noch nicht ihre durchgehend
+  beobachtete Auswahl und Erzeugung durch den Planer oder eine mobile
+  Mehrtagesbedienung; der Punkt bleibt deshalb offen.
+
   **Abnahme:** Mindestens drei unabhängige selbstständige Prüftage pro Lernziel sind unterscheidbar, neue Fragen und Quellenrevisionen bleiben zugeordnet, Elternaufträge und echte Starttermine bleiben erhalten; Pausen und Zeitziele verhindern keine freiwillige Fortsetzung. Gespeicherte Aktivitätssekunden ergeben den Fortschritt ohne Doppelzählung über Geräte hinweg.
 
 - [ ] **P1 – Sprachlernen mit Fachprüfung und echten Geräten abnehmen**
