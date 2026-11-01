@@ -13,9 +13,11 @@ import re
 import subprocess
 import tempfile
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 
 MIN_SUCCESS_GAP_SECONDS = 60
+RETENTION_SECONDS = 14 * 86400
 
 
 class InterruptedTransfer(RuntimeError):
@@ -121,19 +123,49 @@ def pace_recent_success(destination):
         time.sleep(MIN_SUCCESS_GAP_SECONDS - age)
 
 
+def backup_time(name):
+    if not isinstance(name, str) or not re.fullmatch(r"\d{8}T\d{6}Z\.tar\.enc", name):
+        raise RuntimeError("Unexpected backup filename")
+    try:
+        return datetime.strptime(name[:16], "%Y%m%dT%H%M%SZ").replace(tzinfo=timezone.utc).timestamp()
+    except (ValueError, OverflowError):
+        raise RuntimeError("Invalid backup timestamp") from None
+
+
+def retained_inventory(inventory):
+    """Validate all identities before transferring only currently retained archives."""
+    stamp, rows = inventory.get("server_now"), inventory.get("backups")
+    if type(stamp) is not int or stamp <= 0 or not isinstance(rows, list):
+        raise RuntimeError("Invalid server inventory")
+    names, retained = set(), []
+    for item in rows:
+        if not isinstance(item, dict):
+            raise RuntimeError("Invalid backup inventory item")
+        name = item.get("name")
+        created = backup_time(name)
+        if (name in names or created > stamp or type(item.get("size")) is not int or item["size"] < 1
+                or not isinstance(item.get("sha256"), str) or not re.fullmatch(r"[a-f0-9]{64}", item["sha256"])):
+            raise RuntimeError("Invalid backup inventory identity")
+        names.add(name)
+        if created >= stamp - RETENTION_SECONDS:
+            retained.append(item)
+    if not retained:
+        raise RuntimeError("No retained server backup available")
+    if stamp - max(backup_time(item["name"]) for item in retained) > 30 * 3600:
+        raise RuntimeError("Server backup is stale")
+    return retained
+
+
 def pull(destination):
     if (destination / ".erasure-ledger.pending").exists() or (destination / ".erasure-ledger.previous").exists():
         raise InterruptedTransfer("An interrupted journal transfer requires reconciliation")
     ssh = ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=15", "dorfspy"]
     access = "/opt/schulpilot/current/venv/bin/python /opt/schulpilot/current/deploy/backup_access.py"
     inventory = json.loads(run([*ssh, access + " inventory"], capture_output=True, text=True).stdout)
+    retained = retained_inventory(inventory)
     copied = 0
-    for item in inventory["backups"]:
+    for item in retained:
         name = item["name"]
-        if not re.fullmatch(r"\d{8}T\d{6}Z\.tar\.enc", name):
-            raise RuntimeError("Unexpected backup filename")
-        if not re.fullmatch(r"[a-f0-9]{64}", item["sha256"]):
-            raise RuntimeError("Unexpected backup digest")
         target = destination / name
         if not target.exists():
             partial = target.with_suffix(".partial")
@@ -152,8 +184,6 @@ def pull(destination):
             with target.open("rb") as source:
                 if hashlib.file_digest(source, "sha256").hexdigest() != item["sha256"]:
                     raise RuntimeError("Existing offsite ciphertext checksum mismatch")
-    if not inventory["backups"]:
-        raise RuntimeError("No server backup available")
     partial = destination / "erasure-ledger.partial"
     try:
         with partial.open("wb") as output:
@@ -165,20 +195,14 @@ def pull(destination):
         with partial.open("rb") as source:
             if source.read(4) != b"SPB1" or partial.stat().st_size < 32:
                 raise RuntimeError("Invalid encrypted ledger")
-        from datetime import datetime, timezone
-
         backups = list(destination.glob("*.tar.enc"))
-
-        def backup_time(path):
-            return datetime.strptime(path.name[:16], "%Y%m%dT%H%M%SZ").replace(tzinfo=timezone.utc).timestamp()
-
-        available = [p for p in backups if backup_time(p) >= inventory["server_now"] - 14 * 86400]
+        if any(backup_time(p.name) > inventory["server_now"] for p in backups):
+            raise RuntimeError("Offsite backup timestamp is in the future")
+        available = [p for p in backups if backup_time(p.name) >= inventory["server_now"] - RETENTION_SECONDS]
         if not available:
             raise RuntimeError("No retained offsite backup available")
-        if inventory["server_now"] - max(map(backup_time, available)) > 30 * 3600:
-            raise RuntimeError("Server backup is stale")
         # Both identity values are restricted to shell-safe syntax above.
-        latest_item = max(inventory["backups"], key=lambda item: item["name"])
+        latest_item = max(retained, key=lambda item: item["name"])
 
         def acknowledge():
             run(
