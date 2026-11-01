@@ -430,8 +430,18 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
   Vor dieser Text-/Kontextanpassung bestanden je 199 künstliche Backendfälle
   auf SQLite und isoliertem PostgreSQL sowie 58 Flutterfälle zu Planung und
   Nacharbeit. Die angepasste Ansicht bestand anschließend weitere 30
-  Flutterfälle; ein zusätzlicher Englischfall reproduziert die Zuordnungslücke.
+  Flutterfälle; gezielte neue Prüfungen bestanden auf SQLite und PostgreSQL.
+  Ein zusätzlicher Englischfall reproduziert die Zuordnungslücke.
   Die Anbieterantworten waren simuliert, keine fachliche Modellabnahme.
+
+  **Nächste Umsetzung für die Rollenherkunft:** Eine ausdrücklich bestätigte
+  Zuordnung muss an Kind, Arbeit, Aufgabe, Quellenrevision und wörtlichen
+  Ausschnitt gebunden sein; Farbe, Position, KI-Ausgabe und bloßes Vorkommen
+  sind kein solcher Nachweis. Beim Quellenwechsel muss sie veralten, ohne
+  gespeicherte Antworten umzuschreiben. Unklare Ausschnitte bleiben als solche
+  sichtbar und dürfen im Tutor nicht als gesicherte Lehrkraftaussage eingehen.
+  Neue und alte Clients sowie wiederholte und parallele Bestätigungen müssen
+  getestet werden; weder Lesen noch Zuordnen darf einen Lernnachweis erzeugen.
 
   **Abnahme:** Jede Runde wird einzeln bewusst vorbereitet, enthält höchstens fünf Aufgaben und vermeidet gespeicherte Wiederholungen; Zeitangaben bleiben Empfehlungen. Aufgabenauszüge belegen die Originalzeile, trennen alte Antwort, gesicherte Lehrkraft-Rückmeldung und KI-Vorschlag und behaupten weder Vollständigkeit noch Benotung. Alte Antworten erzeugen keine Attempts oder Kompetenznachweise.
 
