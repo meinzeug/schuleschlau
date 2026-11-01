@@ -212,3 +212,11 @@ verschlüsselte Journal ab; beide Timer und die beiden Wächter-Trockenläufe
 waren danach fehlerfrei. In der vorherigen Inventur befand sich kein Archiv
 im neuen Pufferbereich. Der Live-Lauf belegt deshalb nicht die Löschung an
 dieser Grenze, die durch die künstlichen Fälle geprüft wurde.
+
+Künftige Releasekennungen verwenden jetzt die per SSH abgefragte UTC-Uhr des
+Zielservers. Das Deploymentskript verwirft fehlgeschlagene SSH-Abfragen sowie
+ungültige oder unmögliche Zeitangaben und fällt nicht auf die lokale Uhr
+zurück. Eine lesende Probe auf dem Zielserver und künstliche Fehlerfälle
+bestanden. Die Abfrage selbst beweist keine NTP-Synchronisierung; diese muss
+weiterhin im Betrieb geprüft werden. Das behebt nicht die fehlende Sperre für
+parallele Deployments.

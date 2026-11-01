@@ -837,6 +837,14 @@ Bestandteil des bestehenden Buildvertrags.
   bestand anschließend mit 105 Fällen und 41 Unterfällen. Die nachfolgend
   beschriebene Koordinationslücke bleibt davon unberührt und offen.
 
+  - [x] Release-Zeitstempel mit der Zielserveruhr statt der nicht
+    synchronisierten lokalen Uhr bilden. Eine echte lesende SSH-Abfrage
+    lieferte eine gültige Server-UTC-Zeit; Tests verwerfen unzulässige,
+    mehrdeutige oder unmögliche Zeitangaben sowie SSH-Fehler und lassen keinen
+    stillen Rückfall auf die lokale Uhr zu. Die Prüfung bescheinigt nicht,
+    dass jeder künftige Server tatsächlich synchronisiert ist. Die unten
+    beschriebene Sperre für parallele Betriebsabläufe bleibt offen.
+
   **Noch offen – parallele Betriebsabläufe:** Zwei gleichzeitige Deployments oder ein manueller Rückweg dürfen sich bei Upload, Aktivierung, Caddy, Dienstdateien, Anbieterworker und Releasezeigern nicht überlagern. Insbesondere darf `prune_releases.py` kein gerade übertragenes, noch nicht aktives Release entfernen. Die Sperre muss auch bei SSH-Abbruch oder beendetem Koordinator erhalten bleiben, solange ein untergeordneter Upload oder ein anderer verändernder Prozess noch läuft. Eine bloß über eine SSH-Verbindung gehaltene Lease genügt dafür nicht. Zeitgesteuerte Backup-, Monitor- und Wiederherstellungsdienste sowie manuelle Aktivierung und Bereinigung in die Koordination einbeziehen. Übergangsweise beachten, dass alte installierte Skripte eine neue Sperre noch nicht kennen.
 
   **Zusätzliche Tests:** Zwei synthetische Deployments mit künstlich pausiertem Upload und paralleler Bereinigung ausführen; dazu SSH während Upload und Aktivierung unterbrechen, den Kindprozess verzögert beenden und prüfen, dass kein zweiter verändernder Ablauf oder prune das laufende Staging beeinträchtigt. Frühe und späte Fehler, Timerläufe sowie einen manuellen Rückweg unter demselben Vertrag prüfen. Keine Tests gegen Produktion ausführen.

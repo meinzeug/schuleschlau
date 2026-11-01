@@ -10,7 +10,8 @@ python3 scripts/android_manifest.py
 release_binding="$(python3 scripts/release_attestation.py verify)"
 read -r release_apk_sha release_proof release_android_sha <<< "$release_binding"
 repair_sha="$(printf '%s' "$repair_binding" | python3 scripts/release_attestation.py bind-repair "$release_proof" "$build_commit")"
-release="$(date -u +%Y%m%dT%H%M%SZ)-$(git rev-parse --short "$build_commit")"
+release_stamp="$(python3 scripts/release_timestamp.py)"
+release="${release_stamp}-$(git rev-parse --short "$build_commit")"
 ssh -o BatchMode=yes dorfspy python3 - < deploy/bootstrap_host.py
 # Incomplete uploads stay outside the tree traversed by even older prune scripts.
 # This is not a deployment lock: publication/activation still need coordination.

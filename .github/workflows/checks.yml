@@ -27,7 +27,7 @@ jobs:
           scripts/tests/test_offsite_retention.py
           scripts/tests/test_journal_snapshot.py scripts/tests/test_watch_public.py
           scripts/tests/test_backup_storage.py scripts/tests/test_backup_retention.py scripts/tests/test_restore_monitor.py
-          scripts/tests/test_stage_release.py scripts/tests/test_postgres_ci_results.py
+          scripts/tests/test_stage_release.py scripts/tests/test_release_timestamp.py scripts/tests/test_postgres_ci_results.py
           scripts/tests/test_extract_gradle_runtime.py scripts/tests/test_audit_maven_osv.py
   backend:
     name: backend-${{ matrix.shard }}
