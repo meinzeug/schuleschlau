@@ -1,7 +1,9 @@
 """Exact grade-source provenance used by a future journalled erasure flow.
 
 Callers must hold the child and grade locks first. Unknown legacy associations
-are reported, never inferred from equal numeric values or silently redacted.
+are reported, never inferred from equal numeric values. On mandatory expiry,
+potential matching copies are conservatively redacted without claiming that
+they were the source of the grade.
 """
 
 from sqlalchemy import select
@@ -129,12 +131,22 @@ def redact_grade_sources(db, plan, *, allow_missing=False):
         slot.ignored = True
 
 
-def erase_grade(db, child, grade, *, decisions=None):
+def erase_grade(db, child, grade, *, decisions=None, expire_ambiguous=False):
     """Journal and erase a locked grade and its confirmed exact sources."""
     from .db import DeletedGradeRequest
     from .erasure import request
     from .grades import deleted_request_digest
 
+    if expire_ambiguous:
+        if decisions is not None:
+            raise ValueError('Retention and reviewed decisions cannot be combined')
+        # A same-position legacy entry is only a possible copy, not evidence
+        # that it belongs to this grade. Once the grade reaches its retention
+        # deadline, remove all such possible copies instead of retaining the
+        # grade indefinitely. Other grades and explicitly linked entries are
+        # preserved. Manual deletions still require an explicit parent review.
+        _, _, _, unresolved = scan_grade_sources(db, child.id, grade.id)
+        decisions = {key: True for key in unresolved}
     plan = plan_grade_sources(db, child.id, grade.id, decisions=decisions)
     redact_grade_sources(db, plan)
     request_digest = deleted_request_digest(child.id, grade.request_key) if grade.request_key else None
@@ -150,7 +162,8 @@ def expire_grades(cutoff):
     """Use the same journalled grade path for expiry; return unresolved children.
 
     Each child/grade is locked in a short separate transaction, before its
-    source rows. A failed legacy association remains intact for review.
+    source rows. Ambiguous possible copies are redacted at expiry; malformed
+    or inconsistent source data remains intact and is reported for review.
     """
     from .db import DB, Child
     from .erasure import journal_write_lock
@@ -172,7 +185,7 @@ def expire_grades(cutoff):
                     SchoolGrade.id == grade_id, SchoolGrade.child_id == child_id, SchoolGrade.created < cutoff
                 ).with_for_update())
                 if grade is not None:
-                    erase_grade(db, child, grade)
+                    erase_grade(db, child, grade, expire_ambiguous=True)
         except UnresolvedGradeSources:
             unresolved.add(child_id)
     return unresolved

@@ -24,11 +24,19 @@ bleibt die Löschung gesperrt. Die Bestätigung ist revisionsgebunden. Laufende
 PDF-Auswertungen werden verworfen, wenn sich der Notenkontext zwischenzeitlich
 geändert hat. Elternziele und andere Noten bleiben erhalten.
 
-Der Aufbewahrungslauf verwendet denselben Löschweg. Solange alte Quellen nicht
-eindeutig zugeordnet sind, bleiben betroffene Noten vorübergehend erhalten;
-der Worker protokolliert eine inhaltsfreie Anzahl betroffener Kinderkonten.
-Die Elternansicht kennzeichnet Noten nach Ablauf der Frist und bietet die
-Prüfung und Entfernung an.
+Der Aufbewahrungslauf verwendet denselben Löschweg. Bei Ablauf einer Note
+entfernt er auch alle nicht anderweitig belegten Importpositionen am passenden
+historischen Tabellenplatz. Diese vorsorgliche Redigierung behauptet keine
+gesicherte Herkunft und kann auch eine noch junge Importvorschau betreffen;
+andere Noten und ausdrücklich mit anderen Noten verknüpfte Positionen bleiben
+erhalten. Die Positionen werden im signierten Löschjournal aufgeführt, damit
+auch ein älterer Snapshot die möglichen Kopien nicht wiederherstellt. Bei
+manueller Löschung gilt weiterhin die ausdrückliche Elternprüfung.
+
+Beschädigte oder widersprüchliche Quellstrukturen können weiterhin nicht
+automatisch sicher verarbeitet werden; der Worker protokolliert eine
+inhaltsfreie Anzahl betroffener Kinderkonten. Die Elternansicht kennzeichnet
+Noten nach Ablauf der Frist und bietet die Prüfung und Entfernung an.
 Ein noch mit einer vorhandenen Note verknüpfter Quellslot bleibt zur sicheren
 späteren Zuordnung erhalten. Das kann die übliche 365-Tage-Frist überschreiten
 und muss betrieblich verfolgt werden; eine ungeklärte Zuordnung ist kein

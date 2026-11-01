@@ -132,6 +132,14 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
 
 - [ ] **P0 – Notenlöschung einschließlich Importen und Restore absichern**
 
+  **01.11.2026, neue lokale Änderung:** Beim Fristablauf werden auch noch
+  nicht eindeutig zugeordnete mögliche Kopien am belegten Tabellenplatz
+  vorsorglich redigiert und journalisiert; andere Noten bleiben erhalten.
+  Manuelle Löschungen verlangen weiterhin die Elternprüfung. Künstliche
+  Restore- und Regressionstests prüfen beide Datenbanken. Produktivtest und
+  Auslieferung sind hierfür gesondert nachzuweisen. Beschädigte Quellen,
+  ältere Löschungen ohne Journal und aufbewahrte Slots bleiben offen.
+
   **31.10.2026, lokale Umsetzung:** Neue Löschungen und der Aufbewahrungslauf
   verwenden versionierte Journalbelege; bestätigte PDF-Positionen werden
   gezielt redigiert. Für alte, nicht sicher zuordenbare Positionen verlangt
@@ -288,6 +296,13 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
 - [ ] **P1 – Abruf und Lernplanung nachvollziehbar abnehmen**
 
   Mit künstlichen Quellen, Revisionen und Elternaufträgen mehrere eigenständige Prüftage über mindestens sieben simulierte Tage sowie freiwillige Zusatzrunden durchspielen.
+
+  **01.11.2026:** Die Fälle für mindestens drei Prüftage, mehr als sieben
+  Tage Abstand, neue Quellen, freiwillige Fortsetzung und konkurrierende
+  Aktivitätssekunden laufen erneut auf isolierten Testdatenbanken. Diese
+  automatisierten Bausteine sind keine durchgehend beobachtete mehrtägige
+  Bedienungsprobe; Ergebnisse und noch fehlende Gesamtprüfung gesondert
+  dokumentieren.
 
   **Abnahme:** Mindestens drei unabhängige selbstständige Prüftage pro Lernziel sind unterscheidbar, neue Fragen und Quellenrevisionen bleiben zugeordnet, Elternaufträge und echte Starttermine bleiben erhalten; Pausen und Zeitziele verhindern keine freiwillige Fortsetzung. Gespeicherte Aktivitätssekunden ergeben den Fortschritt ohne Doppelzählung über Geräte hinweg.
 

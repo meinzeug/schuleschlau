@@ -185,6 +185,73 @@ def test_expired_grade_is_journalled_and_does_not_reappear_in_restore(api, house
             assert db.get(SchoolGrade, grade_id) is None
 
 
+def test_expired_grade_redacts_ambiguous_possible_copies_without_deleting_other_grades(
+    api, household, tmp_path, monkeypatch
+):
+    from schulpilot.db import GradeImport, GradeImportGradeLink, GradeSourceSlot, now
+    from schulpilot.worker import maintenance
+    from sqlalchemy import delete, select
+    from test_grade_pdf_imports import confirm, pdf, today_year, upload
+
+    monkeypatch.setattr(erasure, 'settings', replace(settings, data_dir=tmp_path))
+    _, child = household
+    raw = pdf(today_year(child['id']), [('Mathematik', 1, 'other', 1, '4'),
+                                       ('Biologie', 1, 'other', 2, '4')])
+    original = upload(api, child, raw=raw).json()
+    assert confirm(api, child, original).status_code == 200
+    new_preview = upload(api, child, raw=raw).json()
+    with DB.begin() as db:
+        slots = list(db.scalars(select(GradeSourceSlot).where(
+            GradeSourceSlot.child_id == child['id']).order_by(GradeSourceSlot.id)))
+        grades = [db.get(SchoolGrade, slot.grade_id) for slot in slots]
+        expired = next(grade for grade in grades if grade.subject == 'Mathematik')
+        other = next(grade for grade in grades if grade.subject == 'Biologie')
+        expired_id, other_id = expired.id, other.id
+        expired.created = int(now()) - 366 * 86400
+        db.execute(delete(GradeImportGradeLink).where(
+            GradeImportGradeLink.import_id == original['id'],
+            GradeImportGradeLink.grade_id == expired_id))
+    with DB() as db:
+        snapshot = {table: list(db.execute(table.select()).mappings()) for table in Base.metadata.sorted_tables}
+
+    maintenance()
+    records = [verify(line, settings.master_key) for line in (tmp_path/'erasure-ledger.jsonl').read_text().splitlines()]
+    grade_record = next(record for record in records if record.get('resource_kind') == 'grade'
+                        and record['target'] == expired_id)
+    assert {(row['import_id'], row['entry_index']) for row in grade_record['details']['entries']} == {
+        (original['id'], 0), (new_preview['id'], 0)}
+    with DB() as db:
+        assert db.get(SchoolGrade, expired_id) is None
+        assert db.get(SchoolGrade, other_id) is not None
+        for batch_id in (original['id'], new_preview['id']):
+            entries = db.get(GradeImport, batch_id).entries
+            assert entries[0] == {'redacted': True}
+            assert entries[1]['subject'] == 'Biologie'
+    assert [item['subject'] for item in api.get(
+        f"/api/children/{child['id']}/grade-imports/{new_preview['id']}").json()['items']] == ['Biologie']
+    maintenance()  # A repeated cleanup must not recreate or delete other records.
+    with DB() as db:
+        assert db.get(SchoolGrade, expired_id) is None
+        assert db.get(SchoolGrade, other_id) is not None
+        assert db.get(GradeImport, new_preview['id']).entries[1]['subject'] == 'Biologie'
+
+    with isolated_restore() as restored:
+        Base.metadata.create_all(restored)
+        with restored.begin() as connection:
+            for table, rows in snapshot.items():
+                if rows:
+                    connection.execute(table.insert(), [dict(row) for row in rows])
+        with Session(restored) as db:
+            reconcile(db, records)
+            db.commit()
+            assert db.get(SchoolGrade, expired_id) is None
+            assert db.get(SchoolGrade, other_id) is not None
+            for batch_id in (original['id'], new_preview['id']):
+                entries = db.get(GradeImport, batch_id).entries
+                assert entries[0] == {'redacted': True}
+                assert entries[1]['subject'] == 'Biologie'
+
+
 def test_expired_import_is_deleted_but_slot_of_retained_grade_survives_restore(api, household, tmp_path, monkeypatch):
     from schulpilot.db import GradeImport, GradeSourceSlot, now
     from schulpilot.worker import maintenance
