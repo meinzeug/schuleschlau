@@ -172,6 +172,16 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
   erfolgt; tatsächlicher Spitzenbedarf und längerfristiger Wachstumstrend
   bleiben noch nachzuweisen.
 
+  **01.11.2026, zusätzliche Restore-Messung:** Eine erneute authentifizierte
+  isolierte Restoreprobe dauerte 5,1 Sekunden. Bei 50 Messpunkten wurden bis zu
+  125.487.528 Byte im temporären Dienstverzeichnis und ein Rückgang des auf
+  `/` verfügbaren Platzes um bis zu 193.060.864 Byte beobachtet. Kurzzeitige
+  Spitzen und gleichzeitige andere Prozesse begrenzen die Aussage; Backup,
+  Eine spätere Backupmessung beobachtete bei 14 Messpunkten höchstens
+  68.055.520 Byte temporäre Dateien, 68.087.808 Byte geringeren freien
+  Root-Platz und 62.812.160 Byte auf dem Backupvolume. Diese Stichproben
+  sind keine Obergrenzen; Build und künftiges Wachstum bleiben zu messen.
+
   **01.11.2026, Offsite-Laufzeit:** Ein verifizierter Abgleich benötigte rund
   19 Minuten und damit länger als das 15-Minuten-Startintervall. Der nächste
   Lauf startete unmittelbar nach Abschluss; bei langsamer lokaler Platte kann
@@ -216,7 +226,8 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
 
   - [x] Die serverseitige Archivbereinigung unabhängig von der täglichen
     Sicherung planen, mit Wiederherstellungs- und Offsite-Nachweisen absichern
-    und produktiv überprüfen. Release `534009f` entfernte 18 abgelaufene
+    und produktiv überprüfen. Der neue Timer lief um 18:45 UTC planmäßig
+    erfolgreich. Release `534009f` entfernte 18 abgelaufene
     Archive nach einem erfolgreichen Offsite-Lauf; anschließend fanden sich
     366 Serverarchive und keines über 14 Tagen. Eine neue Sicherung und ein
     isolierter Restore mit 393 geprüften Löschjournal-Einträgen bestanden;
@@ -224,6 +235,15 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
     liefen wieder. Der Wächter meldete im Trockenlauf keine Fehler. Bei
     Ausfällen kann die Frist überschritten werden und wird dann alarmiert;
     Spitzenbedarf und langfristige Kapazitätsentwicklung bleiben offen.
+
+  **Zusätzlicher Befund 01.11.2026:** Die Uhr des unabhängigen Rechners ging
+  bei der Prüfung gegenüber dem NTP-synchronisierten Server und einer externen
+  UTC-Abfrage rund 59 Minuten vor; NTP und Synchronisierung waren lokal aus.
+  Die Aufbewahrungsgrenze berechnet sich anhand der Serverzeit. Die lokale Uhr
+  wurde nicht verändert, da keine nichtinteraktiven Administratorrechte
+  vorhanden sind und weitere lokale Prozesse betroffen wären. NTP-Korrektur
+  und anschließenden frischen Offsite-Lauf sowie Wächterprüfung nachholen;
+  siehe `docs/STORAGE_AND_ALERTS.md`.
 
   Bei der lesenden Prüfung am 31.10.2026 zeigte das Serverdateisystem rund 92 % Belegung und etwa 3,1 GiB frei. Wachstum von Datenbank, privaten Uploads, Backups und eigenen Releases getrennt messen; den Platzbedarf für Backup, Build, Upload und Wiederherstellung berücksichtigen. Nur eindeutig entbehrliche eigene Artefakte unter Einhaltung aller Aufbewahrungsregeln bereinigen oder Speicherkapazität erweitern; keine fremden Dienste oder Daten verändern. Warn- und Eskalationsschwellen auf den tatsächlich verfügbaren Platz und den Wachstumstrend abstimmen.
 
@@ -719,6 +739,13 @@ Die folgenden Punkte beschreiben ausstehende, wiederholbare Betriebs- und Freiga
   - [x] Installierte Überwachung, unabhängigen Alarmweg und Störungsablauf im
     freigegebenen Betriebsumfang abnehmen.
 
+  **Ergänzung 01.11.2026:** Der unabhängige Wächter erkennt jetzt auch
+  liegengebliebene Offsite-Journaltransaktionen nach Freigabe der Pull-Sperre;
+  ein aktiver Pull verursacht dabei keinen Fehlalarm. Der installierte Code
+  bestand einen künstlichen Unterbrechungstest im getrennten temporären Home,
+  ohne eine Nachricht zu versenden. Der reale Trockenlauf war fehlerfrei;
+  die vorherige Version ist als Rückweg gesichert.
+
   Bestehende Checks für API, Worker, festhängende Jobs, Lösch-Outbox, Backups, Speicher, öffentliche Erreichbarkeit und Offsite-Frische sowie zuständige Alarmwege kontrollieren.
 
   **Abnahme:** ein isolierter, ausdrücklich autorisierter Test die Erkennung und Zuordnung einer Störung belegt, Meldungen keine privaten Inhalte enthalten und Runbook, Eskalation und Wiederanlauf aktuell sind.
@@ -996,6 +1023,15 @@ Bestandteil des bestehenden Buildvertrags.
   Installationsberechtigung. Eine Aufzählung direkter Komponenten belegt
   weder vollständige native Transitive noch deren Sicherheits- und Lizenzstand.
   Der Bericht benennt nun die fehlenden Nachweise; der Punkt bleibt offen.
+
+  **Ergänzung 01.11.2026:** Eine lesende Ubuntu-Abfrage meldet 18
+  ausstehende `esm-apps`-Updates mit `pending_attach`, darunter Caddy und
+  Podman; Ubuntu Pro ist nicht verbunden. Außerdem läuft Kernel 6.8.0-138,
+  obwohl 6.8.0-147 installiert ist und das System einen Neustart verlangt.
+  Vor Änderungen müssen Paketquellen, konkrete Sicherheitsmeldungen und die
+  Dienste des gemeinsam genutzten Hosts geprüft werden. Kein Neustart wurde
+  ausgelöst. Details und Einschränkungen stehen in
+  `docs/SUPPLY_CHAIN_AUDIT_2026_11_01.md`.
 
   - [x] Die nativen Gradle-Laufzeitbäume für Direct und Play offline auflösen,
     versioniert erfassen und die daraus aufgelösten Maven-Koordinaten mit der

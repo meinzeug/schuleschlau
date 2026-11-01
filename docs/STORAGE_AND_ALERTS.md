@@ -124,7 +124,8 @@ anschließend aktiviert. Eine neue Sicherung wurde isoliert und authentifiziert
 wiederhergestellt; 393 Löschjournal-Einträge wurden geprüft, Sitzungen
 widerrufen und der KI-Notstopp gesetzt. Die Produktionsdatenbank wurde nicht
 überschrieben. Nach dem Wechsel meldete der Server 366 Archive und keines über
-14 Tagen. Der neue Dienst lief erfolgreich; sein Timer sowie API, Worker und
+14 Tagen. Der neue Dienst lief erfolgreich; sein Timer führte ihn am 01.11.2026 um
+18:45 UTC auch planmäßig mit Status `success` aus. API, Worker und
 Restore-Timer waren aktiv. Der Serverwächter meldete im Trockenlauf keine
 Fehler. Der anschließende unabhängige Abgleich übertrug drei neue Archive,
 bestätigte 366 Kopien und ein verschlüsseltes Journal; beide lokalen Timer
@@ -141,6 +142,47 @@ oder `.erasure-ledger.previous` nach Freigabe der Pull-Sperre liegen, meldet er
 Sperre hält, meldet er diese kurzzeitig erwarteten Dateien nicht als Fehler;
 der bestehende Frischealarm bleibt als Schutz gegen einen dauerhaft hängenden
 Pull bestehen. Fehlende oder nicht vertrauenswürdige Sperren bei vorhandenen
-Transaktionsdateien gelten als Störung. Diese Änderung ist bis zur getrennten
-Installation des Watchdogs nur lokal geprüft; die Dateien dürfen nicht
+Transaktionsdateien gelten als Störung. Der Watchdog aus Commit `96c43ca` wurde nach dem erfolgreichen Offsite-Lauf
+atomar installiert; der vorherige Stand liegt unter
+`~/.local/share/schulpilot-operations/backups/pre-96c43ca/`. Der installierte
+Wächter meldete bei einem künstlich unterbrochenen Journalwechsel in einem
+separaten temporären Home-Verzeichnis die erwartete neutrale Störung; es wurde
+keine Nachricht versandt. Der reale lesende Trockenlauf war fehlerfrei und
+beide lokalen Timer waren aktiv. Die Transaktionsdateien dürfen nicht
 automatisch gelöscht werden.
+
+### Uhrzeit des unabhängigen Rechners
+
+Am 01.11.2026 zeigte die UTC-Systemuhr des unabhängigen Rechners bei der
+lesenden Prüfung rund 59 Minuten mehr als die per NTP synchronisierte Serveruhr
+und eine unabhängige UTC-Zeitabfrage. Lokal meldete `timedatectl` sowohl
+`NTP=no` als auch `NTPSynchronized=no`; auf dem Server waren beide Werte `yes`.
+Die lokalen Erfolgs- und Alarmzeitstempel verwenden die lokale Uhr, die
+Aufbewahrungsentscheidung verwendet ausdrücklich die Serverzeit. Der
+Timestamp im Namen von Release `20261101T193953Z-534009f` stammt von der
+lokalen Uhr und ist daher keine verlässliche UTC-Zeitangabe für die
+Aktivierung. Der unabhängige Rechner ließ keine nichtinteraktive
+Administratorausführung zu; seine Systemuhr wurde nicht verändert. Eine
+Korrektur muss Auswirkungen auf andere lokale Prozesse berücksichtigen. Nach
+einer Rückstellung können vorhandene lokale Erfolgsmarker vorübergehend in der
+Zukunft liegen; ein neuer erfolgreicher Offsite-Abgleich und der Wächter sind
+dann ausdrücklich zu prüfen, statt Marker manuell umzuschreiben.
+
+Bei einer weiteren regulären isolierten Wiederherstellungsprobe am 01.11.2026
+wurden während des Dienstlaufs in 100-ms-Abständen verfügbare Bytes auf `/`
+und die Größe der Dateien im privaten temporären Dienstverzeichnis gemessen.
+Die erfolgreiche Probe dauerte 5,1 Sekunden (50 Messpunkte). Beobachtet wurden
+höchstens 125.487.528 Byte temporäre Dateien und ein Rückgang des auf `/` für
+normale Nutzer verfügbaren Platzes um bis zu 193.060.864 Byte gegenüber dem
+Startwert. Der zweite Wert kann auch gleichzeitige andere Aktivitäten enthalten;
+kurze Spitzen zwischen den Messpunkten bleiben unsichtbar. Die Messung gilt nur
+für diese Sicherung und ersetzt weder eine garantierte Platzobergrenze noch die
+Messung von Backup, Releasebuild und künftigem Datenwachstum.
+
+Eine anschließend ebenfalls in 100-ms-Abständen beobachtete reguläre
+Sicherung dauerte 1,4 Sekunden (14 Messpunkte). Im privaten temporären
+Dienstverzeichnis wurden bis zu 68.055.520 Byte beobachtet; der verfügbare
+Platz sank auf `/` gegenüber dem Ausgangswert um bis zu 68.087.808 Byte und
+auf dem Sicherungsvolume um bis zu 62.812.160 Byte. Auch diese Werte sind
+Stichproben mit möglicherweise verpassten kurzen Spitzen und gleichzeitigen
+Fremdaktivitäten, keine zulässigen Höchstwerte für spätere größere Datenmengen.

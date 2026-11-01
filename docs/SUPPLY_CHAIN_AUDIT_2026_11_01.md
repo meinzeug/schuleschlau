@@ -96,3 +96,29 @@ Die Tests `scripts/tests/test_extract_gradle_runtime.py` und
 `scripts/tests/test_audit_maven_osv.py` prüfen unter anderem fehlgeschlagene
 Auflösung, Versionsersetzung, Constraints und unvollständige oder paginierte
 OSV-Antworten ohne Netzaufruf.
+
+## Ubuntu-Sicherheits- und Neustartstatus des Zielservers
+
+Eine zusätzliche **lesende** Abfrage von `pro security-status --format json`
+am 01.11.2026 meldete 841 installierte Pakete, keine aus den vorhandenen
+Paketlisten ermittelten regulären Sicherheitsupdates und 18 ausstehende
+`esm-apps`-Updates mit Status `pending_attach`; Ubuntu Pro war laut Ausgabe
+nicht verbunden. Unter diesen Paketen sind `caddy` und `podman`: installiert
+waren `caddy 2.6.2-6ubuntu0.24.04.3` und
+`podman 4.9.3+ds1-1ubuntu0.2`. Ob und wie die ausstehenden
+Paketaktualisierungen für diesen Betrieb bezogen und eingespielt werden,
+ist noch zu klären. Die Abfrage ersetzt keine Analyse einzelner
+Sicherheitsmeldungen, keine vollständige Lizenzprüfung und keine Aktualisierung
+der Paketlisten.
+
+Der Server meldete außerdem einen erforderlichen Neustart. Aktiv war Kernel
+`6.8.0-138-generic`, während `linux-image-6.8.0-147-generic` bereits installiert
+war; auch `libc6` stand in der lokalen Neustartliste. Diese Beobachtung
+beweist die Notwendigkeit, den Neustart und betroffene Dienste zu koordinieren,
+belegt aber nicht für sich allein, welche konkreten Sicherheitslücken dadurch
+betroffen sind. Es wurde weder ein Neustart durchgeführt noch ein Dienst oder
+Ubuntu-Pro-Vertrag geändert. Vor einem Neustart Verfügbarkeit und Zuständigkeit
+für alle Dienste auf dem gemeinsam genutzten Server sowie Wiederanlauf und
+Sicherungen prüfen; anschließend Kernel, Dienste und Gesundheit erneut prüfen.
+
+Der Status `pending_attach` bezeichnet laut [Canonical-Dokumentation](https://ubuntu.com/pro-client/docs/en/v30/explanations/how_to_interpret_the_security_status_command/) ein Paket, dessen angebotenes Update eine verbundene Ubuntu-Pro-Subskription benötigt. [Canonical beschreibt `esm-apps`](https://documentation.ubuntu.com/security/security-updates/esm/) als gesonderte Wartungsquelle für Universe-Pakete. Ob eine konkrete Subskription für diesen Server zulässig, vorhanden oder kostenpflichtig ist, wurde nicht geprüft; weder eine Registrierung noch eine Anbindung oder Änderung der Paketquellen wurde vorgenommen.
