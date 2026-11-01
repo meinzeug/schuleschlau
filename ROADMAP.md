@@ -147,15 +147,20 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
   Journalabgleich und den bestehenden Alarmvertrag erhalten; ein einfacher
   Timerwechsel ist dafür nicht nachgewiesen.
 
-  **Lokal vorbereitet:** Der Offsite-Client hält nach einem erfolgreichen
+  **01.11.2026, Offsite-Client aktualisiert:** Der Offsite-Client hält nach einem erfolgreichen
   Lauf vor einer erneuten vollständigen Prüfung einen Abstand von höchstens
   einer Minute ein. Die unveränderte 15-Minuten-Planung und alle Prüfsummen
   bleiben erhalten; ein fehlender, ungültiger oder zukünftiger Erfolgsmarker
   verzögert keinen Lauf. Die Standard-Servicefrist umfasst zusätzlich eine
   Minute für diese Pause; die bisherige reine Laufzeit bleibt erhalten. 71
   künstliche Offsite-, Journal-, Speicher-, Staging- und Überwachungsfälle
-  sowie 28 Untertests bestehen. Die endgültige Installation und ein erneuter
-  produktiver Offsite-Lauf sind noch nachzuweisen.
+  sowie 28 Untertests bestehen. Der installierte Client entspricht Commit
+  `cee08c7`; der vorherige Client und die vorherigen Unit-Dateien sind lokal
+  gesichert. Ein echter anschließender Abgleich prüfte 381 Sicherungen und
+  übertrug das verschlüsselte Journal; lokale und serverseitige Erfolgsmarker
+  sind frisch, beide lokalen Timer aktiv. Dies ist keine Inhaltsprüfung der
+  Journal-Kopie und kein neuer Wiederherstellungstest. Spitzenbedarf,
+  Wachstumstrend und tatsächliche Alarmzustellung bleiben offen.
 
   - [x] Serverprüfungen für Speicherplatz und konfigurierte Volume-UUID
     implementieren und mit künstlichen Grenzwerten sowie auf dem Zielhost im
@@ -891,7 +896,9 @@ Bestandteil des bestehenden Buildvertrags.
 
   **01.11.2026, ergänzt:** Die CI enthält einen eigenen Operationslauf für
   Offsite-Pacing, Löschjournal, Backup-Sperren, Monitoring, Wiederherstellung
-  und Release-Staging. Die dort vorgesehenen Fälle bestanden lokal zusammen
+  und Release-Staging; der Operationsjob des Laufs
+  [41295568206](https://github.com/meinzeug/schulpilot/actions/runs/41295568206)
+  war erfolgreich. Die dort vorgesehenen Fälle bestanden lokal zusammen
   mit den Prüfungen für die Flutter-CI-Aufteilung: 95 Tests und 56 Untertests.
   Ein einzelner erfolgreicher Operationslauf ersetzt weder den vollständigen
   Releasecheck noch eine echte Wiederherstellung oder Alarmzustellung.

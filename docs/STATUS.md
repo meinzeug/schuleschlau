@@ -27,6 +27,14 @@ Ein gezielter Vergleich bekannter Geheimnisse mit Quellen und Artefakten ergab
 keinen Treffer; er ersetzt keine allgemeine Geheimnis- oder Sicherheitsprüfung.
 Ein neuer physischer Androidtest und sichtbare Pushzustellung sind nicht belegt.
 
+Der separate Offsite-Client aus `cee08c7` ist ebenfalls installiert. Er legt
+nach einem unmittelbar vorherigen Erfolg eine kurze Pause ein, ohne die
+vollständige Prüfsummenprüfung zu überspringen. Die lokale Servicefrist ist um
+die höchstens eine Warteminute auf 46 Minuten erhöht; der Frischealarm bleibt
+unverändert. Ein abschließender echter Lauf prüfte 381 vorhandene Sicherungen,
+kopierte das verschlüsselte Journal und aktualisierte beide Erfolgsmarker;
+die Journalinhalte wurden dabei nicht geprüft. Beide lokalen Timer sind aktiv.
+
 ## Vorheriger Produktionsstand · 1.38.57+212
 
 **Aktualisierung 01.11.2026:** Aktiv ist Release

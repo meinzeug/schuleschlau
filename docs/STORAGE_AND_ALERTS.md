@@ -57,19 +57,20 @@ Da der Timer 15 Minuten nach Laufstart auslöst, startete anschließend sofort e
 weiterer vollständiger Prüfsummenlauf; dieser war nach rund elf Minuten
 erfolgreich. Bei langsamer Platte kann das hohe dauerhafte I/O-Last erzeugen.
 Ein isolierter Vergleich mit kurzen künstlichen systemd-Läufen zeigte dasselbe
-unmittelbare Nachlaufen auch für den getesteten Kalendertimer. Eine Änderung
-des Zeitplans oder der vollständigen Prüfsummenprüfung wurde nicht vorgenommen;
-eine spätere Lösung muss den bestehenden Frischealarm und die Integritätsprüfung
-erhalten und bei langen und fehlgeschlagenen Läufen praktisch geprüft werden.
+unmittelbare Nachlaufen auch für den getesteten Kalendertimer.
 
-Lokal vorbereitet ist ein Abstand von höchstens einer Minute, falls direkt
-zuvor ein erfolgreicher Abgleich abgeschlossen wurde. Timer, vollständige
-Prüfsummenprüfung und Frischealarm bleiben unverändert; ein fehlender,
-beschädigter oder zukünftiger Marker blockiert und verzögert keinen Lauf.
+Der installierte Client aus `cee08c7` hält bei einem direkt vorangegangenen
+Erfolg vor dem nächsten Abgleich einen Abstand von bis zu einer Minute ein.
+Timer, vollständige Prüfsummenprüfung und Frischealarm bleiben unverändert;
+ein fehlender, beschädigter oder zukünftiger Marker verzögert keinen Lauf.
 Die künstlichen Tests prüfen außerdem, dass Warten und Abgleich unter derselben
-exklusiven Offsite-Sperre stattfinden. Der installierte Client wird erst nach
-Ende des laufenden Abgleichs gewechselt und danach erneut geprüft.
-Damit der eigentlichen Übertragung durch das neue Warten keine Zeit verloren
-geht, steigt die Standard-Servicefrist von zehn auf elf Minuten. Die lokale
-Ausnahme von 45 Minuten muss beim abgestimmten Clientwechsel entsprechend
-auf 46 Minuten steigen; der einstündige Frischealarm bleibt unverändert.
+exklusiven Offsite-Sperre stattfinden. Damit der Übertragung keine Zeit verloren
+geht, beträgt die Standard-Servicefrist elf statt zehn Minuten und die lokale
+Ausnahme 46 statt 45 Minuten. Der einstündige Frischealarm bleibt unverändert.
+Nach der abgestimmten Installation bestand ein echter Abgleich: 381 Sicherungen
+wurden prüfsummengeprüft, das verschlüsselte Journal kopiert und die lokalen
+und serverseitigen Erfolgsmarker aktualisiert. Keine der Kopien benötigte einen
+neuen Transfer; der Inhalt des verschlüsselten Journals wurde dabei nicht geprüft.
+Die vorherigen Client- und Unit-Dateien liegen unter
+`~/.local/share/schulpilot-operations/backups/pre-cee08c7/`. Fehlgeschlagene
+Läufe und unerwartete Zeitänderungen sind weiterhin zu beobachten.
