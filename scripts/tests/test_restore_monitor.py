@@ -4,6 +4,7 @@ import contextlib
 import importlib.util
 import io
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -37,6 +38,11 @@ def valid_report():
 
 class RestoreMonitorTest(unittest.TestCase):
     def setUp(self):
+        # The production watchdog deliberately tightens its process umask.
+        # Restore it when running its main() inside the shared test process.
+        previous_umask = os.umask(0o077)
+        os.umask(previous_umask)
+        self.addCleanup(os.umask, previous_umask)
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)

@@ -551,6 +551,14 @@ Die folgenden Punkte beschreiben ausstehende, wiederholbare Betriebs- und Freiga
 
   Betroffene Konfigurationen und Daten vorher sichern, Migrations- und Rückwärtskompatibilität prüfen, nur SCHULPILOT aktualisieren und vorheriges Release erhalten.
 
+  **01.11.2026:** Der reale Release `1.38.57+212` wurde mit Sicherung,
+  Healthprüfung und erhaltenem Vorgänger ausgerollt. Eine Testinterferenz
+  zwischen Watchdog und Stagingprüfung wurde korrigiert: der Watchdogtest
+  stellt die Prozess-Umask wieder her, und die Stagingprüfung setzt ihre
+  öffentlichen Testrechte ausdrücklich. Der gemeinsame isolierte Lauf
+  bestand anschließend mit 105 Fällen und 41 Unterfällen. Die nachfolgend
+  beschriebene Koordinationslücke bleibt davon unberührt und offen.
+
   **Noch offen – parallele Betriebsabläufe:** Zwei gleichzeitige Deployments oder ein manueller Rückweg dürfen sich bei Upload, Aktivierung, Caddy, Dienstdateien, Anbieterworker und Releasezeigern nicht überlagern. Insbesondere darf `prune_releases.py` kein gerade übertragenes, noch nicht aktives Release entfernen. Die Sperre muss auch bei SSH-Abbruch oder beendetem Koordinator erhalten bleiben, solange ein untergeordneter Upload oder ein anderer verändernder Prozess noch läuft. Eine bloß über eine SSH-Verbindung gehaltene Lease genügt dafür nicht. Zeitgesteuerte Backup-, Monitor- und Wiederherstellungsdienste sowie manuelle Aktivierung und Bereinigung in die Koordination einbeziehen. Übergangsweise beachten, dass alte installierte Skripte eine neue Sperre noch nicht kennen.
 
   **Zusätzliche Tests:** Zwei synthetische Deployments mit künstlich pausiertem Upload und paralleler Bereinigung ausführen; dazu SSH während Upload und Aktivierung unterbrechen, den Kindprozess verzögert beenden und prüfen, dass kein zweiter verändernder Ablauf oder prune das laufende Staging beeinträchtigt. Frühe und späte Fehler, Timerläufe sowie einen manuellen Rückweg unter demselben Vertrag prüfen. Keine Tests gegen Produktion ausführen.

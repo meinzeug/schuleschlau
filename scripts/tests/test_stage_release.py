@@ -119,6 +119,7 @@ def test_refuses_symlink_or_public_staging(root, tmp_path):
         stage.prepare(root, RELEASE, os.geteuid())
     (root / 'staging').unlink()
     (root / 'staging').mkdir(mode=0o755)
+    (root / 'staging').chmod(0o755)  # Explicitly public, independent of the caller's umask.
     with pytest.raises(ValueError, match='permissions'):
         stage.prepare(root, RELEASE, os.geteuid())
 
