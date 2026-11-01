@@ -21,6 +21,15 @@ Restoreprobe bestand mit Schema `0044` und aktuellem Löschjournal. Sie belegt
 keine vollständige historische Löschjournalabdeckung; die dafür offenen
 Grenzen bleiben in `GRADE_ERASURE.md` und der Roadmap dokumentiert.
 
+Nach dem Release wurde der unabhängige Offsite-Abgleich erfolgreich beendet:
+381 Sicherungen im Aufbewahrungsfenster, davon zwei neu kopiert; das
+verschlüsselte Journal wurde übertragen. Beide Erfolgsmarker waren frisch,
+kein ausstehender Transaktionsmarker war vorhanden, und beide lokalen Timer
+waren aktiv. Eine zuvor unterbrochene Quittung wurde anhand des älteren
+Server-ACKs, des wiederhergestellten verschlüsselten Vorstands und der
+Zeitabweichung geprüft; der technische Prüfbeleg bleibt ohne zusätzliche
+dauerhafte Kopie des alten verschlüsselten Journals erhalten.
+
 Web, Play-Bundle und signierte Direct-APK wurden revisionsgebunden aus diesem
 Commit gebaut. Das öffentliche APK-Manifest meldet Version 211 und SHA-256
 `53d5b14d11e779f7d889dc2d637028ae7547c7342da6f7fcd94b6e2ddf3ac8b8`.
