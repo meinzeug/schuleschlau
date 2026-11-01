@@ -52,7 +52,8 @@ innerhalb „sonstige Leistungen“ und Gewichtungen stehen nicht darin:
 
 ## Erkennung und Grenzen
 
-`grade_pdf.py` verwendet pypdf6.21.1 ausschließlich lokal, ohne OCR oder
+Der Quellstand verwendet pypdf6.21.4; der am 01.11.2026 noch aktive Release
+`1.38.57+212` verwendet 6.21.1. `grade_pdf.py` arbeitet ausschließlich lokal, ohne OCR oder
 PDF-Ausführung. Erlaubt sind unverschlüsselte PDFs bis6MB/sechs Seiten mit
 vollständig erkanntem Fuxnoten-Spaltenraster und eindeutigen Fachzeilen.
 Noten1–6 und explizite Dezimalwerte werden gelesen, keine Umdeutung von

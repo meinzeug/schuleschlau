@@ -571,13 +571,38 @@ Die folgenden Punkte beschreiben ausstehende, wiederholbare Betriebs- und Freiga
   simulierte Transporte belegen keine Erreichbarkeit des Anbieters.
 
   **Abnahme:** feste Adapter/Upstreams, Schema- und Quellenprüfung, Grenzen, Audit, ehrliche unbekannte Kosten und Verzicht auf automatische Providerwechsel oder Wiederholungen belegbar sind; Konfiguration und Freigaben werden nicht still gelockert.
-- [ ] **P1 – Google- und Geheimnisbetrieb überprüfen**
+- [x] **P1 – Google- und Geheimnisbetrieb überprüfen**
 
   OIDC-State, Nonce, serverseitiges PKCE, Cookie-Webfluss, native Geräte-Proof-/Callback-Ticket-Bindung, ausdrückliche Kontoverknüpfung und zusätzliche Mailbestätigung bei Bedarf prüfen.
 
   **Abnahme:** keine automatische Verknüpfung nach E-Mail möglich ist, öffentliche Datenschutzerklärung und Inhabernachweis beim Deployment erhalten bleiben und private Clients, Dienstkonten und Signierschlüssel außerhalb von Git und Builds bleiben.
 
+  **Nachweis 01.11.2026:** Je 23 Google-/Datenschutzfälle auf SQLite und
+  isoliertem PostgreSQL sowie 28 Flutterfälle bestanden. Sie prüfen unter
+  anderem State, Nonce, PKCE, Cookie-/Native-Trennung, ein einmaliges
+  Rückgabeticket, ausdrückliche Verknüpfung und die zusätzliche Bestätigung
+  externer Postfächer. `/privacy` liefert öffentlich HTML; die Google-Datei
+  ist bytegleich mit dem gespeicherten Inhabernachweis. Der produktive Google-
+  Zugang verwendet den überprüften externen Client ohne verschlüsselten
+  Ersatzwert; auch der aktive FCM-Schlüssel entspricht der überprüften Datei.
+  Beide Serverdateien sind root-eigen und auf die Dienstgruppe begrenzt.
+  Die bekannten privaten Werte und der Signierspeicher wurden mit 1.560
+  verfolgten Dateien sowie dem entpackten APK, AAB, Reparaturarchiv und Web des
+  aktiven Releases `1.38.57+212` verglichen; kein Treffer. Dies ist ein
+  gezielter Vergleich bekannter Geheimnisse, keine Aussage über alle möglichen
+  unbekannten Geheimnisse. Ein historischer echter Google-Weblogin ist in
+  `docs/GOOGLE_LOGIN.md` dokumentiert; ein neuer Android-Gerätetest war für
+  diese Abnahme ausdrücklich optional und wurde nicht behauptet.
+
 ## Release, Android und Benachrichtigungen
+
+**Umfang seit 01.11.2026:** Der Betreiber behandelt Tests auf physischen
+Androidgeräten als optional. Sie blockieren die Bearbeitung und eine getrennte
+Webabnahme nicht. Die folgenden gerätebezogenen Prüfpunkte bleiben sichtbar
+offen, solange sie nicht ausgeführt wurden; APK-Installierbarkeit, tatsächliche
+Push-Zustellung und Geräteeigenschaften werden ohne Beobachtung nicht als
+nachgewiesen ausgegeben. Signierte und quellgebundene Releaseartefakte bleiben
+Bestandteil des bestehenden Buildvertrags.
 
 - [x] **P0 – Jeden Release aus einem nachvollziehbaren Quellstand herstellen**
 
@@ -756,6 +781,18 @@ Die folgenden Punkte beschreiben ausstehende, wiederholbare Betriebs- und Freiga
   Beim lokalen Releasebuild auf Commit `614f7d3` meldete Flutter WebAssembly-Hinweise für `flutter_tts` und Gradle künftig erforderliche Kotlin-Plugin-Anpassungen; bei Backendtests erschien eine Starlette-/HTTPX-DeprecationWarning. Diese Warnungen sind keine aktuellen Buildfehler, können aber spätere Updates behindern. Kompatible Versionen, Lizenz- und Sicherheitsstände sowie Folgen für Web, Android, Sprache und Firebase anhand verlässlicher Quellen untersuchen. Updates getrennt und reproduzierbar mit bestehender Toolchain, Tests und Rückweg durchführen, ohne geschützte Routen oder Firebase-Projekte auszutauschen.
 
   **Abnahme:** Jede Warnung ist mit tatsächlicher Auswirkung, zuständiger Abhängigkeit und Lösung oder dokumentiertem Beobachtungszeitpunkt erfasst; angepasste Builds und betroffene Funktions-/Gerätetests sind für den jeweils freigegebenen Umfang nachgewiesen. Ein regulär erfolgreicher JavaScript-Webbuild wird nicht als erfolgreicher WebAssembly-Build ausgegeben.
+
+  **01.11.2026, Sicherheitsprüfung und Update vorbereitet:** Vier bisherige
+  Python-Paketstände hatten Treffer in OSV. Die Locks für Backend und
+  Codex-Worker wurden auf verfügbare korrigierte Versionen aktualisiert. Die
+  erneute Abfrage der festgeschriebenen PyPI- und Pub-Versionen sowie der
+  erfassten QA-/Workerstände ergab keinen Treffer; sie deckt unter anderem
+  Gradle-Transitive und Systempakete nicht vollständig ab. Versionsbereiche,
+  Beispielmeldungen, Lizenzen der betroffenen Pakete, Toolchainwarnungen und
+  Nachprüftermin stehen in `docs/DEPENDENCY_AUDIT_2026_11_01.md`.
+  Tests und tatsächliche Auslieferung müssen vor einem Abschluss gesondert
+  nachgewiesen werden; ein bestehendes Codex-Worker-Image wird durch eine
+  Lockdatei allein nicht aktualisiert.
 
 - [ ] **P1 – Datenschutz und Anbieterunterlagen fachkundig prüfen lassen**
 
