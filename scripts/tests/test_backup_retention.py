@@ -197,3 +197,10 @@ def test_main_applies_after_valid_rehearsal_and_offsite_ack(snapshot, monkeypatc
     monkeypatch.setattr(retention.time, 'time', lambda: NOW)
     retention.main()
     assert latest.exists() and not older.exists()
+
+
+def test_current_fractional_file_time_is_not_mistaken_for_future(tmp_path):
+    current = archive(tmp_path, "20261101T120000Z.tar.enc", NOW + 0.5)
+    assert retention._inspect(current, NOW + 0.8) == (NOW, NOW + 0.5)
+    with pytest.raises(RuntimeError):
+        retention._inspect(current, NOW + 0.2)

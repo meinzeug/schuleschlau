@@ -136,7 +136,7 @@ def prune(directory, now, report, *, dry_run):
 def main():
     os.umask(0o077)
     with guarded_operation(), backup_lock(BACKUP_DIR, exclusive=True):
-        now = int(time.time())
+        now = time.time()
         report = _json(MONITOR_DIR / 'restore-check.json')
         if not offsite_fresh(OFFSITE_ENABLED, MONITOR_DIR / 'offsite-last-success.json', now):
             raise RuntimeError('Offsite acknowledgement unavailable')
