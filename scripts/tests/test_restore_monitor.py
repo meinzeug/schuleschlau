@@ -63,6 +63,15 @@ class RestoreMonitorTest(unittest.TestCase):
         self.assertTrue(monitor.disk_space_low(SimpleNamespace(total=100 * unit, used=70 * unit, free=30 * unit),
                                                minimum_free=31 * unit))
 
+    def test_backup_retention_overdue_reports_expired_archive(self):
+        archive = self.root / "old.tar.enc"
+        archive.touch()
+        for age, overdue in ((monitor.RESTORE_MAX_AGE - 1, False),
+                             (monitor.RESTORE_MAX_AGE, False),
+                             (monitor.RESTORE_MAX_AGE + 1, True)):
+            os.utime(archive, (NOW - age, NOW - age))
+            self.assertEqual(monitor.backup_retention_overdue([archive], NOW), overdue)
+
     def test_configured_backup_volume_requires_exact_uuid(self):
         config = self.root / 'backup-volume.uuid'
         self.assertIsNone(monitor.backup_volume_failure(config, '/backup'))
@@ -197,7 +206,7 @@ class RestoreMonitorTest(unittest.TestCase):
              patch("sys.argv", ["monitor.py"]), contextlib.redirect_stdout(output):
             self.assertTrue(monitor.main())
         result = json.loads(output.getvalue())
-        self.assertEqual(result["failures"], ["offsite_copy_stale", "restore_rehearsal_failed", "restore_rehearsal_invalid"])
+        self.assertEqual(result["failures"], ["offsite_copy_stale", "backup_retention_failed", "restore_rehearsal_failed", "restore_rehearsal_invalid"])
         self.assertFalse(result["restore_rehearsal_initializing"])
         message = smtp.send_message.call_args.args[0]
         self.assertIn("restore_rehearsal_failed,restore_rehearsal_invalid", message.get_content())

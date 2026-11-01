@@ -8,7 +8,6 @@ import subprocess
 import sys
 import tarfile
 import tempfile
-import time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -89,11 +88,6 @@ def create_backup(destination, data_dir, key_path, *, stamp=None):
             publish_backup(partial, final, journal)
         finally:
             partial.unlink(missing_ok=True)
-    with backup_lock(destination, exclusive=True):
-        for old in destination.glob("*.tar.enc"):
-            if old.stat().st_mtime < time.time() - 14 * 86400:
-                old.unlink()
-                status_path(old).unlink(missing_ok=True)
     if journal != "present":
         print("SCHULPILOT backup: deletion journal " + journal + "; restore requires investigation.", file=sys.stderr)
     print("SCHULPILOT backup created: " + final.name + "; deletion journal: " + journal)

@@ -36,7 +36,8 @@ unit_snapshots = None
 
 UNIT_NAMES = (
     "schulpilot-api.service", "schulpilot-worker.service", "schulpilot-backup.service",
-    "schulpilot-backup.timer", "schulpilot-monitor.service", "schulpilot-monitor.timer",
+    "schulpilot-backup.timer", "schulpilot-backup-retention.service", "schulpilot-backup-retention.timer",
+    "schulpilot-monitor.service", "schulpilot-monitor.timer",
     "schulpilot-restore-check.service", "schulpilot-restore-check.timer",
 )
 TURN_NAMES = ("schulpilot-turn.service", "schulpilot-turn-cert.service", "schulpilot-turn-cert.timer")
@@ -166,6 +167,8 @@ try:
             (turn / "refresh_certificate.py").chmod(0o644)
     subprocess.run(["systemctl", "daemon-reload"], check=True)
     timers = ["schulpilot-backup.timer"]
+    if (release / "deploy/schulpilot-backup-retention.timer").is_file():
+        timers.append("schulpilot-backup-retention.timer")
     if (release / "deploy/schulpilot-restore-check.timer").is_file():
         timers.append("schulpilot-restore-check.timer")
     if (release / "deploy/schulpilot-monitor.timer").is_file():
@@ -193,7 +196,7 @@ try:
     # These change enabled/active timer state. Only do so once new writers may
     # have run: earlier failures can then restore the old service definitions
     # without having to guess the operator's previous timer configuration.
-    for optional in ("schulpilot-restore-check.timer", "schulpilot-monitor.timer"):
+    for optional in ("schulpilot-backup-retention.timer", "schulpilot-restore-check.timer", "schulpilot-monitor.timer"):
         if optional not in timers and Path("/etc/systemd/system", optional).exists():
             subprocess.run(["systemctl", "stop", optional], check=True)
     subprocess.run(["systemctl", "enable", "schulpilot-api", "schulpilot-worker", *timers], check=True)

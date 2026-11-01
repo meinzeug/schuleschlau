@@ -97,3 +97,28 @@ Der Inhalt des verschlüsselten Journals wurde dabei nicht entschlüsselt geprü
 Der Serverbestand enthielt am 01.11. um 16:39 UTC bereits ein Archiv älter als
 14 Tage: Die tägliche serverseitige Bereinigung und der belegbare Spitzenbedarf
 für Restore und Build müssen gesondert verbessert beziehungsweise gemessen werden.
+
+### Vorbereitet: häufigere serverseitige Aufbewahrungsprüfung
+
+Die bisherige tägliche Bereinigung wird durch einen eigenen Fünf-Minuten-Timer
+ersetzt. Unter denselben Volume- und Archivsperren prüft der neue Dienst vor
+jeder Löschung den jüngsten vollständigen Restore-Bericht, das dort benannte
+Archiv mit vorhandenem Journalstatus, eine weitere aktuelle Sicherung und,
+bei eingeschaltetem Offsite-Betrieb, eine höchstens eine Stunde alte Offsite-
+Bestätigung. Unerwartete Dateinamen, Symlinks, ungültige Zeitstempel und andere
+inkonsistente Metadaten stoppen die Bereinigung. Historische Archive ohne
+separate Journalstatusdatei dürfen nur als auslaufende Altkopien entfernt
+werden, nicht als Wiederherstellungsnachweis dienen. Der Wächter meldet einen
+fehlgeschlagenen beziehungsweise inaktiven Timer und überalterte Archive.
+
+Die Bereinigung beginnt zehn Minuten vor Ablauf der Höchstfrist; der Zeitpuffer
+übersteigt das fünfminütige reguläre Prüfintervall. Bei ausgeschaltetem Host,
+langen Sperren, fehlenden Nachweisen oder sonstigen Störungen kann die Frist
+überschritten werden: Dann wird nicht blind gelöscht, sondern eine Störung
+angezeigt. Die tatsächliche maximale Aufbewahrung bei Ausfällen ist daher
+keine technische Garantie. Ein lesender, gesperrter Trockenlauf des neuen Codes
+auf dem Zielserver identifizierte 18 Kandidaten; es wurden dabei keine Archive
+entfernt. Der lokale und der Server-UTC-Zeitstand unterschieden sich bei der
+Prüfung um ungefähr eine Stunde, daher ist für die Aufbewahrung die jeweilige
+Serverzeit maßgeblich. Erst produktive Aktivierung, neue Sicherung, Offsite-
+Abgleich und isolierte Restore-Probe schließen die betroffene Abnahme ab.

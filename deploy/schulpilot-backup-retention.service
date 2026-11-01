@@ -1,0 +1,15 @@
+[Unit]
+Description=SCHULPILOT guarded encrypted backup retention
+After=local-fs.target
+
+[Service]
+Type=oneshot
+User=root
+UMask=0077
+ExecStart=/usr/bin/python3 /opt/schulpilot/current/deploy/backup_retention.py
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/backups/schulpilot
+ReadWritePaths=/run/lock
+TimeoutStartSec=10min

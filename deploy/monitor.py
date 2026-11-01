@@ -54,6 +54,11 @@ def backup_volume_failure(config_path, mountpoint):
         return 'backup_volume_unavailable'
 
 
+def backup_retention_overdue(backups, now):
+    """Alert after the maximum age, including during failed cleanup."""
+    return any(now - backup.stat().st_mtime > RESTORE_MAX_AGE for backup in backups)
+
+
 def backup_journal_available(backup):
     """Presence only; this does not verify signatures or journal completeness."""
     try:
@@ -79,11 +84,16 @@ def restore_status(report_path, setup_path, now):
     except (OSError, UnicodeError, ValueError):
         return "restore_rehearsal_invalid", False
 
+    return validate_restore_report(report, now), False
+
+
+def validate_restore_report(report, now):
+    """Validate the authenticated rehearsal report without inferring success."""
     def count(value):
         return type(value) is int and value >= 0
 
     if not isinstance(report, dict):
-        return "restore_rehearsal_invalid", False
+        return "restore_rehearsal_invalid"
     checked = report.get("checked_at")
     complete = (
         type(checked) is int and 0 < checked <= now
@@ -99,10 +109,10 @@ def restore_status(report_path, setup_path, now):
         )
     )
     if not complete:
-        return "restore_rehearsal_invalid", False
+        return "restore_rehearsal_invalid"
     if now - checked > RESTORE_MAX_AGE:
-        return "restore_rehearsal_stale", False
-    return None, False
+        return "restore_rehearsal_stale"
+    return None
 
 
 def environment(path):
@@ -181,7 +191,7 @@ def main():
     os.umask(0o077)
     config = environment("/etc/schulpilot/environment")
     failures = []
-    for service in ("schulpilot-api", "schulpilot-worker", "schulpilot-backup.timer"):
+    for service in ("schulpilot-api", "schulpilot-worker", "schulpilot-backup.timer", "schulpilot-backup-retention.timer"):
         if subprocess.run(["systemctl", "is-active", "--quiet", service]).returncode:
             failures.append(service + "_inactive")
     try:
@@ -223,6 +233,8 @@ def main():
             failures.append("backup_stale")
         if backups and not backup_journal_available(max(backups, key=lambda p: p.name)):
             failures.append("backup_journal_unavailable")
+        if backups and backup_retention_overdue(backups, time.time()):
+            failures.append("backup_retention_overdue")
     except OSError:
         backups = []
         failures.append("backup_unavailable")
@@ -236,6 +248,8 @@ def main():
             offsite_fresh = False
         if not offsite_fresh:
             failures.append("offsite_copy_stale")
+    if subprocess.run(["systemctl", "is-failed", "--quiet", "schulpilot-backup-retention.service"]).returncode == 0:
+        failures.append("backup_retention_failed")
     if subprocess.run(["systemctl", "is-failed", "--quiet", "schulpilot-restore-check.service"]).returncode == 0:
         failures.append("restore_rehearsal_failed")
     restore_failure, restore_initializing = restore_status(
