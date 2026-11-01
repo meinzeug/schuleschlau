@@ -208,8 +208,11 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
     Altarchive beibehalten. Mehrere bisherige Echtläufe meldeten jeweils zwölf
     kopierte Archive; künstliche Tests decken den Wiederholungsfall,
     14-Tage-Grenze, fehlerhafte Inventare und misslungene Bestätigungen ab.
-    Die Ergebnisse des anschließend installierten Clients werden gesondert
-    dokumentiert; die serverseitige tägliche Bereinigung bleibt unabhängig.
+    Der installierte Client aus `6f1ef41` führte nach regulärem Abschluss des
+    vorherigen Laufs einen echten Abgleich mit 367 beibehaltenen Sicherungen,
+    null neuen Archivdownloads und bestätigtem verschlüsseltem Journal durch.
+    Der Journalinhalt wurde dabei nicht entschlüsselt geprüft; die
+    serverseitige tägliche Bereinigung bleibt unabhängig und weiterhin offen.
 
   Bei der lesenden Prüfung am 31.10.2026 zeigte das Serverdateisystem rund 92 % Belegung und etwa 3,1 GiB frei. Wachstum von Datenbank, privaten Uploads, Backups und eigenen Releases getrennt messen; den Platzbedarf für Backup, Build, Upload und Wiederherstellung berücksichtigen. Nur eindeutig entbehrliche eigene Artefakte unter Einhaltung aller Aufbewahrungsregeln bereinigen oder Speicherkapazität erweitern; keine fremden Dienste oder Daten verändern. Warn- und Eskalationsschwellen auf den tatsächlich verfügbaren Platz und den Wachstumstrend abstimmen.
 

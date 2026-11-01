@@ -74,3 +74,26 @@ neuen Transfer; der Inhalt des verschlüsselten Journals wurde dabei nicht gepr�
 Die vorherigen Client- und Unit-Dateien liegen unter
 `~/.local/share/schulpilot-operations/backups/pre-cee08c7/`. Fehlgeschlagene
 Läufe und unerwartete Zeitänderungen sind weiterhin zu beobachten.
+
+Eine weitere Prüfung am 01.11.2026 zeigte wiederholt zwölf beziehungsweise
+vierzehn Archivdownloads pro Lauf: bereits abgelaufene Serverarchive wurden
+übertragen und nach dem Journalabgleich lokal gleich wieder entfernt. Der
+Client aus `6f1ef41` validiert das Inventar vor dem Download und überträgt nur
+Archive innerhalb der 14-Tage-Frist. Alle verbleibenden Serverarchive werden
+weiterhin anhand ihrer Prüfsummen geprüft. Der letzte Server-Archivstand muss
+frisch sein; ungültige, doppelte oder zukünftige Inventare stoppen ohne
+Bestätigung. Eine vorhandene lokale Altkopie wird weiterhin erst nach
+erfolgreichem Journalabgleich entfernt. Der Server inventarisiert und hasht
+auch seine älteren Archive; diese Änderung behebt deren Aufbewahrung nicht.
+
+Der vorherige Client liegt unter
+`~/.local/share/schulpilot-operations/backups/pre-6f1ef41/`. Der Timer wurde für
+den atomaren Wechsel angehalten, ein bereits laufender Abgleich regulär beendet
+und der Timer wieder gestartet. Der echte Nachlauf berücksichtigte 367
+Sicherungen mit null neuen Archivdownloads und bestätigtem verschlüsseltem
+Journal; beide lokalen Timer waren aktiv. Die lokalen und serverseitigen
+Erfolgsmarker wurden aktualisiert und keine Transaktionsmarker blieben zurück.
+Der Inhalt des verschlüsselten Journals wurde dabei nicht entschlüsselt geprüft.
+Der Serverbestand enthielt am 01.11. um 16:39 UTC bereits ein Archiv älter als
+14 Tage: Die tägliche serverseitige Bereinigung und der belegbare Spitzenbedarf
+für Restore und Build müssen gesondert verbessert beziehungsweise gemessen werden.
