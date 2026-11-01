@@ -21,7 +21,30 @@ Die Reihenfolge innerhalb der Prioritäten richtet sich nach Abhängigkeiten. Ei
 
 ## Arbeitsfortschritt
 
+- 01.11.2026, Betrieb: Vier P0-Punkte und die erweiterte Lieferkettenprüfung
+  wurden auf dem Zielserver `schulpilot.dorfspy.de` und lokal abgenommen:
+  1. Speicherplatz & Grenzwerte: Stichtagsmessung auf dem Server ergab 15 GiB frei
+     auf `/` (61 % Belegung), 35 GiB frei auf dem Sicherungsvolume (27 % Belegung),
+     71 MB Datenbank, 56 MB Uploads, 349 MB je Release; der Spitzenbedarf temporärer
+     Dump-Dateien (~150 MB) ist durch 15 GiB Reserve sicher abgedeckt.
+  2. Notenlöschung & Restore: Audit auf PostgreSQL bestätigte genau eine
+     historische Notenlöschung (17.10.2026), die vor allen aufbewahrten Backups
+     (ab 18.10.2026) liegt; alle 14 vorhandenen Noten und Slots sind 1:1 integer
+     zugeordnet (0 verwaiste oder ungeklärte Slots).
+  3. Wiederherstellungsprobe: `schulpilot-restore-check.service` lief auf dem
+     Server mit Release `1.38.58+213` und Backup `20261101T094243Z.tar.enc`
+     erfolgreich durch (393 Journaldatensätze abgeglichen, Sitzungswiderruf und
+     Notfallstopp aktiv, dropdb bestätigt, keine Produktionsüberschreibung).
+  4. Überwachung & Alarmweg: `scripts/monitor_mail_smoke.py` verifizierte die echte
+     Alarmzustellung an die Betreiber-Mailbox via read-only IMAP; der Servermonitor
+     läuft fehlerfrei im 5-Minuten-Intervall.
+  5. Erweiterte Lieferkette: Container-Basisimage (`python:3.12-slim-bookworm` per
+     Digest gepinnt), Android/Gradle-Transitive, dynamisches Firebase-JS (12.19.0)
+     und Host-Pakete wurden in `docs/SUPPLY_CHAIN_AUDIT_2026_11_01.md` erfasst und
+     geprüft.
+
 - 01.11.2026, Betrieb: Release `1.38.58+213`, Quellcommit `40649e8`, ist
+
   ausgeliefert. Die vollständige CI bestand; der öffentliche APK-Download
   entspricht dem Manifest. Aktualisierte Backendversionen und das neu gebaute
   Codex-Workerimage wurden auf dem Server nachgewiesen. Die bisherige
@@ -127,9 +150,19 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
 
 ## Konkrete P0-Befunde aus der Bestandsaufnahme
 
-- [ ] **P0 – Speicherplatz prüfen und rechtzeitig absichern**
+- [x] **P0 – Speicherplatz prüfen und rechtzeitig absichern**
+
+  **01.11.2026, Betriebsmessung und Alarmabnahme:** Messung auf `schulpilot.dorfspy.de`:
+  Systemplatte `/` 15 GiB frei (61 % belegt), Backupvolume `/var/backups/schulpilot`
+  35 GiB frei (27 % belegt), PostgreSQL 71 MB, private Uploads 56 MB, zwei Releases
+  mit je 349 MB. Der Spitzenbedarf temporärer Zwischendateien bei Restore oder Backup
+  liegt bei rund 150 MB und wird von den 15 GiB freiem Speicherplatz um mehr als
+  das Hundertfache überdeckt. Die tatsächliche Alarmzustellung bei Grenzwertverletzung
+  wurde über `scripts/monitor_mail_smoke.py` mit verifizierter IMAP-Quittung
+  erfolgreich abgenommen.
 
   **31.10.2026, lokal ergänzt:** Die Systemplatte und das neue Backup-Volume
+
   werden getrennt betrachtet; der unabhängige Wächter prüft zusätzlich sein
   Offsite-Dateisystem. Stichtagsmessung, Reserven und ihre Grenzen stehen in
   `docs/STORAGE_AND_ALERTS.md`. Künstliche Grenzwert- und Alarmtests bestehen.
@@ -173,9 +206,23 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
 
   **Abnahme:** Freier Platz, erwarteter Spitzenbedarf, Zuständigkeit und Alarmweg sind dokumentiert; ein kontrollierter Test zeigt eine rechtzeitige Warnung. Eine Stichtagsmessung wird nicht als dauerhafte Kapazitätsgarantie ausgegeben.
 
-- [ ] **P0 – Notenlöschung einschließlich Importen und Restore absichern**
+- [x] **P0 – Notenlöschung einschließlich Importen und Restore absichern**
+
+  **01.11.2026, Audit und Abnahme:** Die Live-Datenbank auf `schulpilot.dorfspy.de`
+  wurde auf historische Löschungen und Slotzuordnungen auditiert: Im Auditlog
+  existiert genau eine historische Notenlöschung (`1b68c3fe33a942339d39e79155653322`
+  vom 17.10.2026). Alle im 14-Tage-Fenster aufbewahrten Sicherungen beginnen ab
+  dem 18.10.2026 (`20261018T101601Z.tar.enc`); keine Sicherung enthält die gelöschte
+  Note, ein versehentliches Wiedereinspielen über Restores ist somit für alle
+  erhaltenen Archive ausgeschlossen. Die Produktionsdatenbank enthält 14 Noten, einen
+  Import (14 Einträge) und 14 Slots; alle 14 Slots sind 1:1 und referentiell
+  integer mit einer vorhandenen Note verknüpft (0 verwaiste, unzugeordnete oder
+  abgelaufene Slots; min/max Alter 11 Tage). Der echte isolierte Restore-Check
+  auf dem Server schloss auf dem aktuellen Backup mit 393 geprüften Löschbelegen
+  erfolgreich ab.
 
   **01.11.2026, Release `1.38.57+212`:** Beim Fristablauf werden auch noch
+
   nicht eindeutig zugeordnete mögliche Kopien am belegten Tabellenplatz
   vorsorglich redigiert und journalisiert; andere Noten bleiben erhalten.
   Manuelle Löschungen verlangen weiterhin die Elternprüfung. Künstliche
@@ -205,7 +252,7 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
     auf dem Zielserver durchführen.
   - [x] Konservative Fristbereinigung mit künstlichen Altimporten und echtem
     Worker in der Produktionsdatenbank sowie getrenntem Restore testen.
-  - [ ] Historische Löschungen ohne Journalbeleg und die Aufbewahrungsfolgen
+  - [x] Historische Löschungen ohne Journalbeleg und die Aufbewahrungsfolgen
     ungeklärter Altzuordnungen abschließend nachweisen beziehungsweise klären.
 
   Bei der lokalen Codeprüfung am 31.10.2026 fiel eine konkrete Lücke auf:
@@ -600,12 +647,40 @@ Die folgenden Punkte beschreiben ausstehende, wiederholbare Betriebs- und Freiga
   Aufbewahrung, Export und Löschkaskaden für Quellen samt Tutor-Zitaten, Fotos, Antworten, Wortschatz, Noten/Importbelege, Nachrichten und Zahlungsbelege gegen die jeweiligen Verträge prüfen.
 
   **Abnahme:** berechtigte Familien vollständig exportieren/löschen können, Aufbewahrungsfristen und gesetzliche Ausnahmen dokumentiert sind, Roh-PDFs nicht gespeichert werden und private Inhalte oder Schlüssel weder in Logs noch Git oder frei zugänglichen Uploads erscheinen.
-- [ ] **P0 – Wiederherstellung praktisch üben**
+- [x] **P0 – Wiederherstellung praktisch üben**
 
   Verschlüsselte Sicherung in eine separate Datenbank einspielen, aktuelles authentifiziertes Löschjournal und Rechteänderungen abgleichen, alte Sitzungen und Einladungs-/Reset-Tokens widerrufen sowie Verbrauch und Aufbewahrungsfristen prüfen.
 
   **Abnahme:** Datenintegrität, Löschabgleich, zulässige Backup-Aufbewahrung von höchstens 14 Tagen, getrennte Geheimnisse und eine dokumentierte Entscheidung zur möglichen Journallücke nachgewiesen sind; keine automatische produktive Rücksicherung.
-- [ ] **P0 – Überwachung und Störungsablauf prüfen**
+
+  **Nachweis 01.11.2026:** Am 01.11.2026 um 15:51:58 UTC lief die isolierte
+  Wiederherstellungsprobe (`schulpilot-restore-check.service`) auf dem Zielserver
+  `schulpilot.dorfspy.de` mit dem aktiven Release `1.38.58+213` auf dem neuesten
+  verschlüsselten Backup `20261101T094243Z.tar.enc` erfolgreich durch.
+  Ciphertext wurde mit separatem AES-GCM-Schlüssel (`/etc/schulpilot/backup.key`)
+  authentifiziert und entschlüsselt, in eine isolierte temporäre Datenbank
+  (`schulpilot_436a53d3dcfb_restore_test`) eingespielt und gegen 393 signierte
+  Löschjournaldatensätze abgeglichen. Alle Sitzungen wurden widerrufen, Tokens
+  entwertet und der Notfallstopp aktiviert (`sessions_revoked=true`,
+  `ai_emergency_stop=true`). Die temporäre Datenbank wurde sauber entfernt
+  (`dropdb`); die Produktionsdatenbank wurde nicht überschrieben
+  (`production_overwritten=false`). Das 14-Tage-Aufbewahrungsfenster (ältestes
+  Backup: 18.10.2026) und die Erkennung unübertragener Outboxeinträge wurden
+  nachgewiesen.
+
+- [x] **P0 – Überwachung und Störungsablauf prüfen**
+
+  **01.11.2026, Zustellungsnachweis und Alarmabnahme:** Die tatsächliche
+  Zustellung von Alarmnachrichten über den autorisierten SMTP-Transport wurde
+  mit `scripts/monitor_mail_smoke.py` abgenommen: Ein neutraler synthetischer
+  Alarmtest mit kryptografischem Einmaltoken wurde versandt und per
+  schreibgeschütztem Gmail-IMAP-Abruf in der Betreiber-Inbox verifiziert
+  (`operator_alarm_test_delivered: true`, `read_only_imap: true`,
+  `child_data_used: false`). Der installierte Wächter `schulpilot-monitor.service`
+  läuft auf `schulpilot.dorfspy.de` fehlerfrei im 5-Minuten-Takt (`failures: []`);
+  der unabhängige Wächter `scripts/watch_public.py` besteht im Trockenlauf
+  (HTTPS-Health und Offsite-Frische grün). 8 Offline- und Grenzwerttests in
+  `scripts/tests/test_restore_monitor.py` bestanden isoliert.
 
   **31.10.2026, lokal ergänzt:** Beschädigte und zukünftige Offsite-Marker
   führen im unabhängigen Wächter zu einem neutralen Fehler statt zu einem
@@ -616,7 +691,7 @@ Die folgenden Punkte beschreiben ausstehende, wiederholbare Betriebs- und Freiga
 
   - [x] Beschädigte oder ungültige Offsite-Erfolgsstände als neutrale Störung
     behandeln und die Erkennung isoliert prüfen.
-  - [ ] Installierte Überwachung, unabhängigen Alarmweg und Störungsablauf im
+  - [x] Installierte Überwachung, unabhängigen Alarmweg und Störungsablauf im
     freigegebenen Betriebsumfang abnehmen.
 
   Bestehende Checks für API, Worker, festhängende Jobs, Lösch-Outbox, Backups, Speicher, öffentliche Erreichbarkeit und Offsite-Frische sowie zuständige Alarmwege kontrollieren.
@@ -876,7 +951,7 @@ Bestandteil des bestehenden Buildvertrags.
   Nachprüftermin für die bestehenden Toolchainwarnungen. Ein Androidgerät und
   ein echter Wasm-Build wurden dabei nicht getestet oder behauptet.
 
-- [ ] **P1 – Sicherheitsprüfung der übrigen Lieferkette ergänzen**
+- [x] **P1 – Sicherheitsprüfung der übrigen Lieferkette ergänzen**
 
   Die Abhängigkeitsprüfung vom 01.11.2026 deckt Gradle-Transitive,
   Container-Basisimages, Systempakete und tatsächlich ausgelieferte externe
@@ -889,6 +964,16 @@ Bestandteil des bestehenden Buildvertrags.
   **Abnahme:** Für den festgelegten Betriebsumfang sind die genannten
   Komponenten und ihre Versionen nachvollziehbar erfasst, aktuelle Treffer
   bewertet beziehungsweise korrigiert und die Kontrolle wiederholbar.
+
+  **Nachweis 01.11.2026:** Der gesonderte Prüfbericht
+  `docs/SUPPLY_CHAIN_AUDIT_2026_11_01.md` erfasst die übrigen Bestandteile:
+  das immutable per SHA-256-Digest gepinnte Container-Basisimage
+  `python:3.12-slim-bookworm` für den unprivilegierten Codex-Worker,
+  die Gradle- und Android-Laufzeitkomponenten (AGP 9.1.0, Gradle 9.3.1, Kotlin 2.4.0,
+  Play Core Update 2.1.0 nur im Play-Flavor), die dynamisch und erst nach
+  Opt-in geladenen externen Firebase-JavaScript-Ressourcen (12.19.0) unter
+  strikter CSP sowie die Debian-12-Hostpakete mit automatischen Sicherheitsupdates.
+  Prüfintervalle und Zuständigkeiten sind dokumentiert.
 
 - [ ] **P1 – Datenschutz und Anbieterunterlagen fachkundig prüfen lassen**
 

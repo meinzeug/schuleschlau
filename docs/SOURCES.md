@@ -1,10 +1,14 @@
 ## 01.11.2026 · Sicherheits- und Toolchainprüfung
 
-Die aktuelle Untersuchung von OSV-Meldungen, PyPI-Paketständen und Lizenzen
+Die Untersuchung von OSV-Meldungen, PyPI-Paketständen und Lizenzen
 sowie den offiziellen Flutter-/Starlette-Hinweisen steht mit Umfang und
 Grenzen in [DEPENDENCY_AUDIT_2026_11_01.md](DEPENDENCY_AUDIT_2026_11_01.md).
-Ältere Versionsangaben darunter dokumentieren ihren jeweiligen historischen
-Prüfstand. Der aktive Release ist weiterhin in [STATUS.md](STATUS.md) genannt.
+Die ergänzende Prüfung der erweiterten Lieferkette (Container-Basisimages,
+Gradle/Android-Transitive, externe JavaScript-Ressourcen und Host-Systempakete)
+ist in [SUPPLY_CHAIN_AUDIT_2026_11_01.md](SUPPLY_CHAIN_AUDIT_2026_11_01.md)
+dokumentiert. Ältere Versionsangaben darunter dokumentieren ihren jeweiligen
+historischen Prüfstand. Der aktive Release ist weiterhin in [STATUS.md](STATUS.md) genannt.
+
 
 ## 31.10.2026 · Datenschutzrelease 1.38.54+209
 
