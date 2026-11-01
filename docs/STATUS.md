@@ -11,6 +11,11 @@ Testfamilie und entfernte sie samt möglichen Kopien; eine aktuelle Kontrollnote
 blieb erhalten. Das authentifizierte Journal und die anschließende Löschung der
 Testfamilie wurden überprüft.
 
+Der anschließende Offsite-Lauf übernahm zwei weitere verschlüsselte
+Sicherungen und bestätigte deren Prüfsummen. Das verschlüsselte Journal
+wurde kopiert; eine Inhaltsprüfung der Offsite-Kopie wird damit nicht
+behauptet. Der Offsite-Timer ist wieder aktiv.
+
 Neue Sachrunden lehnen ein eng eingegrenztes Wiederholungsmuster aus mehrfach
 gleichen längeren Antwortauswahlen ab. Bereits gespeicherte Runden und
 Antworten bleiben erhalten. Jeweils auf SQLite und isoliertem PostgreSQL
