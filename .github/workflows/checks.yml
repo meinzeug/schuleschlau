@@ -26,7 +26,7 @@ jobs:
           python -m pytest -q scripts/tests/test_offsite_pacing.py
           scripts/tests/test_journal_snapshot.py scripts/tests/test_watch_public.py
           scripts/tests/test_backup_storage.py scripts/tests/test_restore_monitor.py
-          scripts/tests/test_stage_release.py
+          scripts/tests/test_stage_release.py scripts/tests/test_postgres_ci_results.py
   backend:
     name: backend-${{ matrix.shard }}
     runs-on: ubuntu-24.04
@@ -49,6 +49,30 @@ jobs:
       - name: Record collection and partition
         if: always()
         run: cat artifacts/backend-shard-${{ matrix.shard }}.json
+  postgres_concurrency:
+    name: postgres-concurrency
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12.3'
+      - run: python -m pip install -r backend/requirements-dev.lock
+      - name: Exercise isolated PostgreSQL 16 locks and idempotency
+        run: >-
+          python scripts/test_postgres.py
+          backend/tests/test_admin_user_races.py
+          backend/tests/test_providers.py::test_parallel_family_budget_atomic
+          backend/tests/test_notification_inbox.py::test_two_devices_acknowledge_one_event_once
+          backend/tests/test_grade_pdf_imports.py::test_parallel_confirm_and_parallel_repeat_upload_do_not_duplicate
+          backend/tests/test_grade_pdf_imports.py::test_parallel_preview_upload_rechecks_idempotency_after_unlocked_parsing
+          backend/tests/test_recall_planning_journey.py
+          --junitxml="${{ runner.temp }}/postgres-concurrency.xml"
+      - name: Reject skipped or incomplete PostgreSQL checks
+        run: python scripts/check_postgres_ci_results.py "${{ runner.temp }}/postgres-concurrency.xml"
   flutter_tests:
     name: flutter-test-${{ matrix.shard }}
     runs-on: ubuntu-24.04

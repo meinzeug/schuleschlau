@@ -916,6 +916,16 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Abnahmen systematisch und wiederholbar automatisieren**
 
+  - [x] Einen separaten PostgreSQL-16-Testlauf für Familien-/Adminrennen,
+    atomare Kontingente, parallele Lesemarkierungen, konkurrierende
+    Notenimporte und den Mehrtages-Lernablauf in die CI-Konfiguration
+    aufnehmen. `scripts/test_postgres.py` verwendet einen eigenen kurzlebigen
+    lokalen Cluster und eine separate Testdatenbank; ein lokaler Lauf der
+    ausgewählten 13 Fälle bestand ohne Überspringen. Ein separat getesteter
+    Prüfbaustein verwirft unvollständige oder übersprungene JUnit-Ergebnisse.
+    Die Ausführung des neuen CI-Jobs ist zusätzlich am jeweiligen GitHub-Lauf
+    abzulesen und nicht durch den lokalen Lauf belegt.
+
   **01.11.2026, ergänzt:** Die CI enthält einen eigenen Operationslauf für
   Offsite-Pacing, Löschjournal, Backup-Sperren, Monitoring, Wiederherstellung
   und Release-Staging; der Operationsjob des Laufs
