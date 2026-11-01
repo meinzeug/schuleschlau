@@ -1,9 +1,16 @@
 # Notenlöschung und Wiederherstellung
 
-Stand: 01.11.2026. Die Implementierung ist mit Release `1.38.56+211`,
-Quellcommit `e8387f3`, aktiv; Schema `0044` und eine authentifizierte
+Stand: 01.11.2026. Die Implementierung ist mit Release `1.38.57+212`,
+Quellcommit `669ae59`, aktiv; Schema `0044` und eine authentifizierte
 isolierte Restoreprobe mit aktuellem Journal wurden auf dem Zielserver
 geprüft. Das belegt keine lückenlose frühere Löschhistorie.
+
+Der produktive Worker wurde mit einer ausdrücklich synthetischen, gesperrten
+Testfamilie und einer 366 Tage alten Note geprüft. Er redigierte zwei mögliche
+Importkopien, behielt eine jüngere Vergleichsnote und veröffentlichte den
+authentifizierten Löschbeleg. Die Testfamilie wurde anschließend über den
+journalisierten Familienlöschweg entfernt. SQLite und isoliertes PostgreSQL
+prüfen zusätzlich das Abgleichen eines vor der Löschung erstellten Snapshots.
 
 ## Löschung
 

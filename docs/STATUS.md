@@ -1,6 +1,28 @@
-# Produktionsstand · 1.38.56+211
+# Produktionsstand · 1.38.57+212
 
-**Aktualisierung 01.11.2026 Gerätezeit:** Aktiv ist Release
+**Aktualisierung 01.11.2026:** Aktiv ist Release
+`20261101T073216Z-669ae59`, Quellcommit
+`669ae59f994b1af0461bb5d3ff1204e97b50a07b`, mit Schema `0044`.
+API, Worker und Sicherungs-/Überwachungstimer sind aktiv; der vorherige
+Release `20261101T002001Z-e8387f3` bleibt als migrationsbewusster Code-Rückweg
+erhalten. Eine isolierte Wiederherstellungsprobe bestand. Der reguläre Worker
+prüfte künstliche über 365 Tage alte Noten in einer eigenen gesperrten
+Testfamilie und entfernte sie samt möglichen Kopien; eine aktuelle Kontrollnote
+blieb erhalten. Das authentifizierte Journal und die anschließende Löschung der
+Testfamilie wurden überprüft.
+
+Neue Sachrunden lehnen ein eng eingegrenztes Wiederholungsmuster aus mehrfach
+gleichen längeren Antwortauswahlen ab. Bereits gespeicherte Runden und
+Antworten bleiben erhalten. Jeweils auf SQLite und isoliertem PostgreSQL
+bestanden 77 Notenfälle, 119 Fälle zum Aufgaben- und Transportpfad,
+148 Fälle zu Lernplanung und Anmeldung, weitere 69 Planungsfälle, 25
+Einrichtungs-/Datenschutzfälle und 120 Anbieter-/Kostenfälle. Der signierte
+Web-, Direct-APK- und Play-AAB-Build ist an denselben Quellstand gebunden;
+eine neue physische Android- oder sichtbare Push-Zustellprüfung fand nicht statt.
+
+## Vorheriger Stand 1.38.56+211
+
+**Aktualisierung 01.11.2026 Gerätezeit:** Damals aktiv war Release
 `20261101T002001Z-e8387f3`, Quellcommit
 `e8387f3dcd5ea65e76b55507538cbcd93a85261b`, mit Version `1.38.56+211`
 und Datenbankschema `0044`. API, Worker und die projektspezifischen Timer sind

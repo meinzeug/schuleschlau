@@ -132,12 +132,15 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
 
 - [ ] **P0 – Notenlöschung einschließlich Importen und Restore absichern**
 
-  **01.11.2026, neue lokale Änderung:** Beim Fristablauf werden auch noch
+  **01.11.2026, Release `1.38.57+212`:** Beim Fristablauf werden auch noch
   nicht eindeutig zugeordnete mögliche Kopien am belegten Tabellenplatz
   vorsorglich redigiert und journalisiert; andere Noten bleiben erhalten.
   Manuelle Löschungen verlangen weiterhin die Elternprüfung. Künstliche
-  Restore- und Regressionstests prüfen beide Datenbanken. Produktivtest und
-  Auslieferung sind hierfür gesondert nachzuweisen. Beschädigte Quellen,
+  Restore- und Regressionstests bestehen auf beiden Datenbanken. Der reale
+  Worker entfernte eine 366 Tage alte künstliche Note in einer separaten,
+  gesperrten Testfamilie; mögliche Kopien wurden redigiert, eine aktuelle
+  Vergleichsnote erhalten und der signierte Beleg geprüft. Die Testfamilie
+  wurde anschließend regulär und journalisiert entfernt. Beschädigte Quellen,
   ältere Löschungen ohne Journal und aufbewahrte Slots bleiben offen.
 
   **31.10.2026, lokale Umsetzung:** Neue Löschungen und der Aufbewahrungslauf
@@ -157,6 +160,8 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
     ausdrücklich prüfen lassen.
   - [x] Schema `0044` ausliefern und einen authentifizierten isolierten Restore
     auf dem Zielserver durchführen.
+  - [x] Konservative Fristbereinigung mit künstlichen Altimporten und echtem
+    Worker in der Produktionsdatenbank sowie getrenntem Restore testen.
   - [ ] Historische Löschungen ohne Journalbeleg und die Aufbewahrungsfolgen
     ungeklärter Altzuordnungen abschließend nachweisen beziehungsweise klären.
 
@@ -457,16 +462,37 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
 
 Die folgenden Punkte beschreiben ausstehende, wiederholbare Betriebs- und Freigabearbeiten; bestehende Betreiberentscheidungen werden nicht erneut angefragt. Maßgeblich für den jeweils tatsächlich ausgelieferten Stand ist `docs/STATUS.md`, für Sicherung und Rückweg `docs/OPERATIONS.md`. Der dort zuletzt dokumentierte Release 1.38.49+204 vom 30.10.2026 hatte eine erfolgreiche vollständige CI; ein historischer Befund ist kein Nachweis für spätere Änderungen.
 
-- [ ] **P0 – Installation und Zugriffe vor dem Ausbau überprüfen**
+- [x] **P0 – Installation und Zugriffe vor dem Ausbau überprüfen**
 
   Bestandsaufnahme von Diensten, Caddy, Datenbank, Worker, gespeicherten Anbieter- und Pushfreigaben und deren Revisionen durchführen; nur notwendige projektbezogene Änderungen planen.
 
   **Abnahme:** Istzustand, Zuständigkeit und Rückweg ohne Zugangsdaten dokumentiert sind und andere Dienste unverändert bleiben. Leere Neuinstallationen müssen einmaligen Setupcode, kurzlebiges HttpOnly-Cookie und genau einen Erstadmin auch bei parallelen Anfragen nachweisen; bestehende Familien dürfen den Assistenten nicht erneut öffnen.
-- [ ] **P1 – Berechtigung und Sitzungsentzug als wiederkehrende Freigabeprüfung ausführen**
+
+  **Nachweis 01.11.2026:** Je 25 isolierte SQLite-/PostgreSQL-Fälle aus
+  `test_installation.py` und `test_public_privacy.py` bestanden, darunter
+  paralleler Erstabschluss, abgelaufene Cookies und bestehende Familien.
+  Der Zielserver meldet Schema `0044`, abgeschlossene Einrichtung (Revision 6),
+  OpenRouter (Konfigurationsrevision 37, Datenschutzfreigabe aktiv), aktivierte
+  Google-Anmeldung und erteilte Push-Betreiberfreigabe. API, Worker,
+  Sicherungs- und Überwachungstimer sind aktiv. Das isolierte Restore bestand;
+  Zuständigkeit und migrationsbewusster Rückweg stehen in `docs/OPERATIONS.md`.
+  Keine Zugangsdaten oder Inhalte der verschlüsselten Einstellungen ausgegeben.
+- [x] **P1 – Berechtigung und Sitzungsentzug als wiederkehrende Freigabeprüfung ausführen**
 
   Eltern-, Kinder- und Adminrollen auf eigene und fremde Familien, private Uploads, Noten, Export und Löschung sowie abgelaufene/widerrufene Sitzungen prüfen.
 
   **Abnahme:** die API Rechte aus der Sitzung ableitet, fremde Inhalte und Adminzugriffe auf private Inhalte abweist und Entzüge auch laufende Vorgänge vor und nach externen Aufrufen erfassen. Adminlogin behält Passwort, Rate Limits, eintägige widerrufbare Sitzung und Audit; keine öffentliche Registrierung.
+
+  **Nachweis 01.11.2026:** Die gezielte Freigabeprüfung aus
+  `test_accounts.py`, `test_admin_users.py`, `test_admin_user_races.py`,
+  `test_integrity.py`, `test_study_authority.py`,
+  `test_schulbuddy_scope_safety.py` und `test_homework_session_recheck.py`
+  bestand mit 90 Fällen und vier SQLite-Auslassungen sowie mit allen 94 Fällen
+  auf isoliertem PostgreSQL. `test_source_reading.py` bestand zusätzlich mit
+  je sieben Fällen, einschließlich privater Originalbilder und Adminsperre.
+  Die ebenfalls auf beiden Datenbanken bestandenen Noten- und Providerprüfungen
+  decken Elternexport, fremde Familien, Adminlogin und Sperren ab. Diese
+  automatisierte Freigabeprüfung ersetzt keinen unabhängigen Sicherheitstest.
 - [ ] **P1 – Datenlebenszyklus und Löschung pro Datenart prüfen**
 
   Aufbewahrung, Export und Löschkaskaden für Quellen samt Tutor-Zitaten, Fotos, Antworten, Wortschatz, Noten/Importbelege, Nachrichten und Zahlungsbelege gegen die jeweiligen Verträge prüfen.
@@ -497,6 +523,15 @@ Die folgenden Punkte beschreiben ausstehende, wiederholbare Betriebs- und Freiga
 - [ ] **P1 – Anbieter- und Kostenkontrollen revisionsgebunden nachweisen**
 
   Tatsächlich aktive Konfiguration und spätere dokumentierte Betreiberentscheidungen prüfen (`docs/APPROVALS.md`, `docs/STATUS.md`); historische Standards nicht als aktuelle Einstellung behandeln. Mit ausschließlich freigegebenen künstlichen Vorlagen den regulären Ablauf und atomare Reservierung bei Erfolg, Fehler, Parallelität und Widerruf testen.
+
+  **01.11.2026:** Der Zielserver verwendet OpenRouter, Konfigurationsrevision
+  37, mit aktiver Datenschutzfreigabe. Je 120 SQLite-/PostgreSQL-Fälle zu
+  Grenzen, Reservierungen und Anbietervalidierung sowie je 50 Fälle zu
+  Modellrouting, Codex-Adapter und Ausgaberahmen bestanden mit künstlichen
+  Transporten. Unbekannte Kosten behalten die Reservierung, parallele
+  Ansprüche und fehlende Gebührenbelege werden geprüft. Ein aktueller echter
+  künstlicher Providerlauf für die aktive Revision bleibt separat zu belegen;
+  simulierte Transporte belegen keine Erreichbarkeit des Anbieters.
 
   **Abnahme:** feste Adapter/Upstreams, Schema- und Quellenprüfung, Grenzen, Audit, ehrliche unbekannte Kosten und Verzicht auf automatische Providerwechsel oder Wiederholungen belegbar sind; Konfiguration und Freigaben werden nicht still gelockert.
 - [ ] **P1 – Google- und Geheimnisbetrieb überprüfen**
