@@ -373,6 +373,15 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
   beobachtete Auswahl und Erzeugung durch den Planer oder eine mobile
   Mehrtagesbedienung; der Punkt bleibt deshalb offen.
 
+  - [x] Die simulierte Testuhr auch bei bereits zwischengespeichertem
+    SQLAlchemy-INSERT verlässlich anwenden. Der Test wärmt den Cache mit
+    einem zurückgerollten künstlichen Versuch selbst auf und setzt die
+    Testzeit vor dem Einfügen neuer Versuche; gespeicherte Nachweise werden
+    nicht nachträglich umdatiert. Der frühere CI-Lauf
+    [41296514655](https://github.com/meinzeug/schulpilot/actions/runs/41296514655)
+    war an dieser Testinteraktion fehlgeschlagen; sein Ergebnis bleibt als
+    Fehlbefund bestehen.
+
   **Abnahme:** Mindestens drei unabhängige selbstständige Prüftage pro Lernziel sind unterscheidbar, neue Fragen und Quellenrevisionen bleiben zugeordnet, Elternaufträge und echte Starttermine bleiben erhalten; Pausen und Zeitziele verhindern keine freiwillige Fortsetzung. Gespeicherte Aktivitätssekunden ergeben den Fortschritt ohne Doppelzählung über Geräte hinweg.
 
 - [ ] **P1 – Sprachlernen mit Fachprüfung und echten Geräten abnehmen**

@@ -11,7 +11,7 @@ from schulpilot import learning
 from schulpilot.db import DB, Activity, Assignment, Attempt, Child, LearningUnit, Material, UnitSource, now
 from schulpilot.learning_knowledge import evidence
 from schulpilot.main import app
-from sqlalchemy import select
+from sqlalchemy import event, select
 from test_adaptive_plan import action, session, submit
 from test_adaptive_plan import fraction_profile as original_profile
 
@@ -21,7 +21,7 @@ def profile(api, household):
     yield from original_profile.__wrapped__(api, household)
 
 
-def test_source_bound_multiday_journey_preserves_parent_plan_and_shared_activity(profile, api, monkeypatch):
+def test_source_bound_multiday_journey_preserves_parent_plan_and_shared_activity(profile, api, monkeypatch, request):
     client, root_id, material_id, _, _, child = profile
     child_id = child["id"]
     stamp = int(now())
@@ -29,13 +29,24 @@ def test_source_bound_multiday_journey_preserves_parent_plan_and_shared_activity
     parent_date = (today + timedelta(days=12)).isoformat()
     clock = [int(datetime(today.year, today.month, today.day, 12, tzinfo=timezone.utc).timestamp())]
     beginning = clock[0]
+    # Simulate preceding tests that compiled the normal INSERT. Roll the
+    # fixture attempt back so it cannot become a learning observation.
+    with DB() as db:
+        db.add(Attempt(unit_id=root_id, question_id="cache-warmup", answer="fixture", outcome="incorrect"))
+        db.flush()
+        db.rollback()
     monkeypatch.setattr(database, "now", lambda: clock[0])
     monkeypatch.setattr(learning, "now", lambda: clock[0])
     monkeypatch.setattr(learning, "local_day", lambda _: datetime.fromtimestamp(clock[0], timezone.utc).date())
-    # SQLAlchemy captures this particular column's callable at mapping time;
-    # patch its test-only default as well so answers are born on the simulated
-    # day rather than modifying saved evidence afterwards.
-    monkeypatch.setattr(Attempt.__table__.c.created.default, "arg", lambda _: clock[0])
+    # An already compiled INSERT can retain the original column default, even
+    # when the default is monkeypatched. Set the timestamp on new test-only
+    # objects before INSERT instead, including when the statement cache is warm.
+    def timestamp_attempt(_mapper, _connection, attempt):
+        if attempt.created is None:
+            attempt.created = clock[0]
+
+    event.listen(Attempt, "before_insert", timestamp_attempt)
+    request.addfinalizer(lambda: event.remove(Attempt, "before_insert", timestamp_attempt))
     with DB.begin() as db:
         profile_row = db.get(Child, child_id)
         profile_row.preferences = {**profile_row.preferences, "timezone": "UTC", "weekdays": list(range(7))}
