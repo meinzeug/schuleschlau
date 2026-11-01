@@ -16,7 +16,8 @@ spec.loader.exec_module(offsite)
 
 NOW = int(datetime(2026, 11, 1, 12, tzinfo=timezone.utc).timestamp())
 EXPIRED = "20261018T115959Z.tar.enc"
-BOUNDARY = "20261018T120000Z.tar.enc"
+EARLY_EXPIRED = "20261018T135959Z.tar.enc"
+BOUNDARY = "20261018T140000Z.tar.enc"
 LATEST = "20261101T120000Z.tar.enc"
 ARCHIVE = b"synthetic-ciphertext"
 HASH = hashlib.sha256(ARCHIVE).hexdigest()
@@ -51,9 +52,9 @@ def transport(monkeypatch, data, *, fail_ack=False):
 
 def test_expired_remote_backup_is_never_retransferred_and_only_removed_after_success(tmp_path, monkeypatch):
     expired = tmp_path / EXPIRED
-    calls = transport(monkeypatch, inventory([EXPIRED, BOUNDARY, LATEST]))
+    calls = transport(monkeypatch, inventory([EXPIRED, EARLY_EXPIRED, BOUNDARY, LATEST]))
     offsite.pull(tmp_path)
-    assert not any(" read " + EXPIRED in call for call in calls)
+    assert not any(" read " + EXPIRED in call or " read " + EARLY_EXPIRED in call for call in calls)
     assert all(any(" read " + name in call for call in calls) for name in (BOUNDARY, LATEST))
     assert not expired.exists()
     assert (tmp_path / BOUNDARY).read_bytes() == (tmp_path / LATEST).read_bytes() == ARCHIVE
@@ -115,3 +116,23 @@ def test_future_local_copy_does_not_get_deleted_or_acknowledged(tmp_path, monkey
         offsite.pull(tmp_path)
     assert future.read_bytes() == (tmp_path / EXPIRED).read_bytes() == ARCHIVE
     assert not any("--ack " in call for call in calls)
+
+
+def test_buffered_copy_is_removed_only_after_success_and_preserved_on_failure(tmp_path, monkeypatch):
+    old = tmp_path / EARLY_EXPIRED
+    old.write_bytes(ARCHIVE)
+    transport(monkeypatch, inventory([EARLY_EXPIRED, LATEST]), fail_ack=True)
+    with pytest.raises(subprocess.CalledProcessError):
+        offsite.pull(tmp_path)
+    assert old.read_bytes() == ARCHIVE
+    assert (tmp_path / '.erasure-ledger.pending').exists()
+
+
+def test_buffered_copy_is_removed_on_success_before_full_fourteen_days(tmp_path, monkeypatch):
+    old = tmp_path / EARLY_EXPIRED
+    old.write_bytes(ARCHIVE)
+    calls = transport(monkeypatch, inventory([EARLY_EXPIRED, BOUNDARY, LATEST]))
+    offsite.pull(tmp_path)
+    assert not old.exists()
+    assert not any(' read ' + EARLY_EXPIRED in call for call in calls)
+    assert (tmp_path / BOUNDARY).exists()

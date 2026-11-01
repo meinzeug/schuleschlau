@@ -192,3 +192,16 @@ erfolgreich, kopierte ein zusätzliches Archiv und meldete 367 Kopien sowie
 ein verschlüsseltes Journal. Es blieben keine angefangenen Journaltransaktionen
 zurück; beide lokalen Timer und die lesenden Trockenläufe von Server- und
 unabhängigem Wächter waren fehlerfrei.
+
+Der Offsite-Client berücksichtigt zusätzlich einen vorbereitenden Puffer von
+zwei Stunden: Er überträgt Kopien nur bis zum Alter von 13 Tagen und 22 Stunden
+und entfernt ältere lokale Kopien weiterhin erst nach vollständig erfolgreichem
+Journalabgleich und ACK. Damit bleiben im üblichen Betrieb bei einem
+15-Minuten-Timer, der konfigurierten Transferfrist von bis zu 46 Minuten und
+der einminütigen Pause Reserven vor der 14-Tage-Grenze. Bei längerem Ausfall,
+einer gescheiterten Übertragung oder ungeklärter Transaktion ist die Frist
+nicht garantiert; dann bleiben Kopien zum Schutz des Wiederherstellungswegs
+zunächst erhalten und der Fehler muss bearbeitet werden. Die Puffergrenze,
+fehlgeschlagene Quittierung und der Schutz der letzten aktuellen Kopie wurden
+mit künstlichen Archiven getestet. Die tatsächliche lokale Umstellung und ein
+anschließender realer Abgleich müssen noch dokumentiert werden.

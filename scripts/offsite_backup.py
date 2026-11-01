@@ -18,6 +18,9 @@ from pathlib import Path
 
 MIN_SUCCESS_GAP_SECONDS = 60
 RETENTION_SECONDS = 14 * 86400
+# Allow regular timer cadence, the configured transfer timeout and a bounded
+# pacing delay to complete before the maximum retention period expires.
+RETENTION_BUFFER_SECONDS = 2 * 3600
 
 
 class InterruptedTransfer(RuntimeError):
@@ -147,7 +150,7 @@ def retained_inventory(inventory):
                 or not isinstance(item.get("sha256"), str) or not re.fullmatch(r"[a-f0-9]{64}", item["sha256"])):
             raise RuntimeError("Invalid backup inventory identity")
         names.add(name)
-        if created >= stamp - RETENTION_SECONDS:
+        if created >= stamp - RETENTION_SECONDS + RETENTION_BUFFER_SECONDS:
             retained.append(item)
     if not retained:
         raise RuntimeError("No retained server backup available")
@@ -198,7 +201,7 @@ def pull(destination):
         backups = list(destination.glob("*.tar.enc"))
         if any(backup_time(p.name) > inventory["server_now"] for p in backups):
             raise RuntimeError("Offsite backup timestamp is in the future")
-        available = [p for p in backups if backup_time(p.name) >= inventory["server_now"] - RETENTION_SECONDS]
+        available = [p for p in backups if backup_time(p.name) >= inventory["server_now"] - RETENTION_SECONDS + RETENTION_BUFFER_SECONDS]
         if not available:
             raise RuntimeError("No retained offsite backup available")
         # Both identity values are restricted to shell-safe syntax above.
