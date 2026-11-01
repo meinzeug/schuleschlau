@@ -17,6 +17,9 @@ sicher zuzuordnen sind, tasks=[] und uncertainties mit offenem Hinweis, keine Er
 original_answer, teacher_feedback und score_label strikt getrennt und WÖRTLICH aus den Quellen
 übernehmen, fehlende/unleserliche Teile leer lassen und in uncertainties offen benennen.
 Lehrermarkierung ist eine sichtbare Annotation, kein von dir bestätigtes fachliches Urteil.
+Auch bei wörtlichem Fund ist die Zuordnung zur Lehrkraft oder zum Kind nicht allein dadurch
+belegt. Behandle sie als vorläufig und behaupte keine sichere Urheberschaft; bitte bei Bedarf
+um Abgleich mit der Originalseite.
 Keine richtige Lösung aus einer möglicherweise falschen Schülerantwort ableiten.
 Je Aufgabe sources mit wörtlichem quote und erlaubter p-Referenz. ai_proposal ist nur ein
 kurzer ausdrücklich vorläufiger Lernhinweis; keine Note speichern, keine Lehrernote korrigieren,

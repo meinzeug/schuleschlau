@@ -418,6 +418,21 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
 
   Künstliche Arbeiten mit mehreren Themen, optionalem Termin, individuell vorgegebenen Aufgabenzahlen je Lerntag, geänderten Plänen, unklarer Lehrkraftzuordnung und schriftlichen Altantworten testen.
 
+  **01.11.2026, offene Zuordnungslücke:** Die wörtliche Quellenprüfung
+  beweist, dass eine Zeichenfolge im bestätigten Text steht; sie beweist nicht,
+  wer sie geschrieben hat. Ein künstlicher Englischfall zeigt, dass dieselbe
+  Schülerantwort auch als angeblicher Lehrkrafthinweis durch die Prüfung
+  gelangen kann. Die Anzeige kennzeichnet erkannte Antwort und Hinweis daher
+  als zu prüfende Zuordnung. Der API-Hinweis und die Tutorvorgaben erklären
+  dieselbe Grenze; gespeicherte Texte bleiben erhalten. Diese Hinweise
+  verhindern keine falsche KI-Zuordnung. Ein gesicherter, revisionsgebundener
+  Nachweis der Rollen und seine Behandlung bei alten Clients bleiben offen.
+  Vor dieser Text-/Kontextanpassung bestanden je 199 künstliche Backendfälle
+  auf SQLite und isoliertem PostgreSQL sowie 58 Flutterfälle zu Planung und
+  Nacharbeit. Die angepasste Ansicht bestand anschließend weitere 30
+  Flutterfälle; ein zusätzlicher Englischfall reproduziert die Zuordnungslücke.
+  Die Anbieterantworten waren simuliert, keine fachliche Modellabnahme.
+
   **Abnahme:** Jede Runde wird einzeln bewusst vorbereitet, enthält höchstens fünf Aufgaben und vermeidet gespeicherte Wiederholungen; Zeitangaben bleiben Empfehlungen. Aufgabenauszüge belegen die Originalzeile, trennen alte Antwort, gesicherte Lehrkraft-Rückmeldung und KI-Vorschlag und behaupten weder Vollständigkeit noch Benotung. Alte Antworten erzeugen keine Attempts oder Kompetenznachweise.
 
 - [x] **P1 – Schul- und Klassenkontext als Produktentscheidung klären**

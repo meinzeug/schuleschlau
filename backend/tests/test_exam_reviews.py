@@ -175,6 +175,26 @@ def no_learning():
             assert db.scalar(select(func.count()).select_from(model)) == 0
 
 
+def test_verbatim_text_alone_does_not_prove_who_wrote_it(api, paper, transport):
+    question = "Übersetze: I went home."
+    answer = "Ich ging nach Hause."
+    with DB.begin() as db:
+        page = db.get(Material, paper["material_id"])
+        page.subject = "Englisch"
+        page.content = f"{question}\nAntwort: {answer}"
+    transport["output"]["tasks"][0].update(
+        question=question, original_answer=answer, teacher_feedback=answer, score_label="",
+        sources=[{"ref": "p1", "quote": question}],
+    )
+    result = ready(paper, transport)
+    # This word-for-word match proves presence, not whether the model's role
+    # assignment is true. Preserve the visible excerpt and warn on all clients.
+    assert result["tasks"][0]["teacher_feedback"] == answer
+    assert "KI ordnet Antworten und Hinweise zu" in result["notice"]
+    assert "am Original prüfen" in result["notice"]
+    no_learning()
+
+
 def test_false_student_equation_is_reported_without_rewriting_the_saved_analysis(api, paper, transport):
     question = "Kürze 6/8 vollständig."
     answer = r"\(\frac{6}{8}=\frac{2}{4}\) weiter kürzen"
@@ -218,6 +238,8 @@ def test_reading_and_explicit_review_keep_original_roles_without_grade_or_compet
             )
         )
     output = ready(paper, transport)
+    assert "KI ordnet Antworten und Hinweise zu" in output["notice"]
+    assert "am Original prüfen" in output["notice"]
     task = output["tasks"][0]
     assert task["original_answer"] == "1/8" and task["teacher_feedback"] == "Nenner bleibt 4."
     assert task["score_label"] == "0 von 2" and task["needs_review"] is True

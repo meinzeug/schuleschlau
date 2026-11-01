@@ -148,6 +148,8 @@ def test_written_paper_separates_original_error_and_teacher_annotation(api, book
     payload = transport["calls"][0]
     assert payload["exam_review"]["original_answer"] == "Erde."
     assert payload["exam_review"]["teacher_feedback"] == "Bezeichnung prüfen."
+    assert "Zuordnung von Antwort und Hinweis ist vorläufig" in payload["exam_review"]["notice"]
+    assert "belegt nicht" in payload["exam_review"]["notice"]
     assert "ai_proposal" not in payload["exam_review"] and "draft" not in payload["exam_review"]
     assert payload["sources"][0]["evidence_kind"] == "written_work_original"
     assert payload["sources"][0]["authoritative_solution"] is False

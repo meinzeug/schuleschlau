@@ -321,7 +321,7 @@ def projection(db, p, exam, child):
         "notebook_sources": notebook_sources(db, exam, child),
         "scan": scan_data(db, exam, child, manage=manage),
         "notice": (
-            "Kleiner KI-Auszug · einzelne Aufgaben je bewusster Analyse, keine vollständige Auswertung. Originalaufgabe, alte Antwort und Lehrermarkierung bleiben getrennt. KI-Hinweise sind Vorschläge, keine Note oder neuen Lernbelege."
+            "Kleiner KI-Auszug · keine vollständige Auswertung. Die KI ordnet Antworten und Hinweise zu; bitte am Original prüfen. KI-Hinweise sind Vorschläge, keine Note oder neuen Lernbelege."
             + (
                 " Der erkannte Text ist für einen einzelnen Auszug zu umfangreich. Bitte jeweils Arbeitsseiten mit insgesamt höchstens 60000 Zeichen auswählen."
                 if sum(len(m.content or "") for m in pages) > MAX_CONTENT

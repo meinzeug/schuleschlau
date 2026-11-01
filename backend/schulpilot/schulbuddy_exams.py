@@ -75,7 +75,9 @@ def bind(db, p, child, scope, exam, payload, normalized, guards):
             payload["exam_review"] = {key: task.get(key, "") for key in
                 ("id", "question", "original_answer", "teacher_feedback", "score_label", "uncertainties")}
             payload["exam_review"]["notice"] = (
-                "Originalantwort und Lehrermarkierung sind wörtliche Beobachtungen, keine bestätigten richtigen Lösungen. "
+                "Die KI-Zuordnung von Antwort und Hinweis ist vorläufig: Wörtliche Übereinstimmung belegt nicht, "
+                "wer den Text geschrieben hat. Keine Urheberschaft behaupten; bei Bedarf das Original prüfen lassen. "
+                "Originalantwort und Hinweis sind keine bestätigten richtigen Lösungen. "
                 "Keine Note ändern, keine Beherrschung behaupten; eigene Überarbeitung und Heftgrundlagen getrennt behandeln.")
             ids = {source["material_id"] for source in task.get("sources", []) if source.get("material_id")}
             pages = [page for page in pages if page.id in ids]

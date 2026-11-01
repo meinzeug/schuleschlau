@@ -560,8 +560,8 @@ void main() {
       final fixture = Fixture();
       await fixture.mount(tester, selected: 'exam', tab: 'review');
       for (final label in [
-        'Deine ursprüngliche Antwort',
-        'Rückmeldung deiner Lehrkraft',
+        'Erkannte Antwort · Zuordnung prüfen',
+        'Erkannter Hinweis · Zuordnung prüfen',
         'KI-Vorschlag · bitte prüfen',
       ]) {
         expect(find.text(label), findsOneWidget);

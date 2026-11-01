@@ -990,14 +990,14 @@ class _ExamReviewPanelState extends State<ExamReviewPanel> {
                   children: [
                     written('Aufgabe aus deiner Arbeit', task!['question']),
                     written(
-                      'Deine ursprüngliche Antwort',
+                      'Erkannte Antwort · Zuordnung prüfen',
                       task!['original_answer'],
                     ),
                     for (final warning
                         in (task!['arithmetic_warnings'] as List? ?? []))
                       if (warning is Map) Notice('${warning['message']}'),
                     written(
-                      'Rückmeldung deiner Lehrkraft',
+                      'Erkannter Hinweis · Zuordnung prüfen',
                       task!['teacher_feedback'],
                     ),
                     if ((task!['score_label'] ?? '').toString().isNotEmpty)
