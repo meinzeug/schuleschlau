@@ -14,7 +14,11 @@ router = APIRouter(tags=["Betrieb"])
 def snapshot(db):
     stamp = int(now())
     worker = db.get(ServiceState, "worker")
-    counts = dict(db.execute(select(Job.status, func.count()).group_by(Job.status)).all())
+    # A successful grouped query omits statuses with no rows. These are known
+    # zero counts, unlike an absent/failed operations response in older clients.
+    counts = {"queued": 0, "running": 0} | dict(
+        db.execute(select(Job.status, func.count()).group_by(Job.status)).all()
+    )
     queued = db.scalar(select(func.count()).select_from(Job).where(Job.status == "queued", Job.created < stamp - 300))
     running = db.scalar(select(func.count()).select_from(Job).where(Job.status == "running", Job.started < stamp - 240))
     unpublished = db.scalar(select(func.count()).select_from(ErasureRequest).where(ErasureRequest.published.is_(False)))

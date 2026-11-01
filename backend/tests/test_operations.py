@@ -11,6 +11,7 @@ from schulpilot.db import (
     Child,
     ErasureRequest,
     Family,
+    Job,
     LearningUnit,
     Material,
     ProviderConfig,
@@ -132,6 +133,20 @@ def test_operational_metrics_are_private_and_contain_no_child_content(api, house
         data = snapshot(db)
     assert 12 <= data["worker_age_seconds"] < 15
     assert "Testkind" not in json.dumps(data) and "subject" not in json.dumps(data)
+
+
+def test_successful_queue_snapshot_reports_measured_zero_and_real_counts(api, household):
+    _, child = household
+    with DB.begin() as db:
+        assert snapshot(db)['jobs']['queued'] == 0
+        assert snapshot(db)['jobs']['running'] == 0
+        db.add_all([
+            Job(child_id=child['id'], kind='synthetic', payload={}, status='queued', idempotency='queue-test-1'),
+            Job(child_id=child['id'], kind='synthetic', payload={}, status='running', idempotency='queue-test-2'),
+        ])
+    with DB() as db:
+        assert snapshot(db)['jobs']['queued'] == 1
+        assert snapshot(db)['jobs']['running'] == 1
 
 
 def test_operator_approval_is_distinct_from_an_unavailable_private_route(api):
