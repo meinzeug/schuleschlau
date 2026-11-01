@@ -889,6 +889,13 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Abnahmen systematisch und wiederholbar automatisieren**
 
+  **01.11.2026, ergänzt:** Die CI enthält einen eigenen Operationslauf für
+  Offsite-Pacing, Löschjournal, Backup-Sperren, Monitoring, Wiederherstellung
+  und Release-Staging. Die dort vorgesehenen Fälle bestanden lokal zusammen
+  mit den Prüfungen für die Flutter-CI-Aufteilung: 95 Tests und 56 Untertests.
+  Ein einzelner erfolgreicher Operationslauf ersetzt weder den vollständigen
+  Releasecheck noch eine echte Wiederherstellung oder Alarmzustellung.
+
   Passende Backendtests auf SQLite und für Sperren, Rechte und Parallelität auf isoliertem PostgreSQL, Flutter-Tests, Analyse, Webbuild und releasegebundene Prüfungen in einer nachvollziehbaren Pipeline ausführen. Für Fotoimport, Aufgabenbewertung, Lernstand, Tutor, Benachrichtigungen und Rollen repräsentative Browser-E2E-Fälle mit künstlichen Daten ergänzen. Fehlerpfade, Migrations- und Rollbackkompatibilität sowie zeitgesteuerte Abläufe mit isolierter Testuhr abdecken.
 
   **Abnahme:** Testumfang, Quellrevision, Ergebnisse und übersprungene Tests sind nachvollziehbar. Mocks, Emulatoren, synthetische Inhalte und physische Beobachtungen werden getrennt ausgewiesen; fehlgeschlagene oder abgebrochene Tests gelten nicht als bestanden.
