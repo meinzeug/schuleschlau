@@ -1,0 +1,542 @@
+{
+  "queried_at_utc_local_clock": "2026-11-01T17:53:56.804728+00:00",
+  "source": "https://api.osv.dev/v1/querybatch",
+  "ecosystem": "Maven",
+  "count": 106,
+  "inventories": {
+    "gradle-direct-runtime-20261101.txt": "af0f0c9d368424f55fa0533e740d0c34d7f4ad16dc09a9ede5f15b5a970ba5d4",
+    "gradle-play-runtime-20261101.txt": "1ba7f5964056692c420968a513ae1814508c4884156b35cc82537162d2645e7c"
+  },
+  "packages": [
+    {
+      "name": "androidx.activity:activity",
+      "version": "1.13.0",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "androidx.annotation:annotation",
+      "version": "1.10.0",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "androidx.annotation:annotation-experimental",
+      "version": "1.4.1",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "androidx.annotation:annotation-jvm",
+      "version": "1.10.0",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "androidx.arch.core:core-common",
+      "version": "2.2.0",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "androidx.arch.core:core-runtime",
+      "version": "2.2.0",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "androidx.browser:browser",
+      "version": "1.9.0",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "androidx.collection:collection",
+      "version": "1.4.2",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "androidx.collection:collection-jvm",
+      "version": "1.4.2",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "androidx.compose.runtime:runtime-annotation",
+      "version": "1.9.0",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "androidx.compose.runtime:runtime-annotation-android",
+      "version": "1.9.0",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "androidx.concurrent:concurrent-futures",
+      "version": "1.1.0",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "androidx.core:core",
+      "version": "1.18.0",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "androidx.core:core-ktx",
+      "version": "1.18.0",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "androidx.core:core-viewtree",
+      "version": "1.0.0",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "androidx.customview:customview",
+      "version": "1.0.0",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "androidx.datastore:datastore",
+      "version": "1.1.7",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "androidx.datastore:datastore-android",
+      "version": "1.1.7",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "androidx.datastore:datastore-core",
+      "version": "1.1.7",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "androidx.datastore:datastore-core-android",
+      "version": "1.1.7",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "androidx.datastore:datastore-core-okio",
+      "version": "1.1.7",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "androidx.datastore:datastore-core-okio-jvm",
+      "version": "1.1.7",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "androidx.datastore:datastore-preferences",
+      "version": "1.1.7",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "androidx.datastore:datastore-preferences-android",
+      "version": "1.1.7",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "androidx.datastore:datastore-preferences-core",
+      "version": "1.1.7",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "androidx.datastore:datastore-preferences-core-android",
+      "version": "1.1.7",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "androidx.datastore:datastore-preferences-external-protobuf",
+      "version": "1.1.7",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "androidx.datastore:datastore-preferences-proto",
+      "version": "1.1.7",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "androidx.documentfile:documentfile",
+      "version": "1.0.0",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "androidx.exifinterface:exifinterface",
+      "version": "1.4.2",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "androidx.fragment:fragment",
+      "version": "1.7.1",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "androidx.interpolator:interpolator",
+      "version": "1.0.0",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "androidx.legacy:legacy-support-core-utils",
+      "version": "1.0.0",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "androidx.lifecycle:lifecycle-common",
+      "version": "2.7.0",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "androidx.lifecycle:lifecycle-common-java8",
+      "version": "2.7.0",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "androidx.lifecycle:lifecycle-livedata",
+      "version": "2.7.0",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "androidx.lifecycle:lifecycle-livedata-core",
+      "version": "2.7.0",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "androidx.lifecycle:lifecycle-livedata-core-ktx",
+      "version": "2.7.0",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "androidx.lifecycle:lifecycle-process",
+      "version": "2.7.0",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "androidx.lifecycle:lifecycle-runtime",
+      "version": "2.7.0",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "androidx.lifecycle:lifecycle-viewmodel",
+      "version": "2.7.0",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "androidx.lifecycle:lifecycle-viewmodel-savedstate",
+      "version": "2.7.0",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "androidx.loader:loader",
+      "version": "1.0.0",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "androidx.localbroadcastmanager:localbroadcastmanager",
+      "version": "1.1.0",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "androidx.navigationevent:navigationevent",
+      "version": "1.0.0",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "androidx.navigationevent:navigationevent-android",
+      "version": "1.0.0",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "androidx.print:print",
+      "version": "1.0.0",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "androidx.profileinstaller:profileinstaller",
+      "version": "1.4.0",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "androidx.savedstate:savedstate",
+      "version": "1.2.1",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "androidx.startup:startup-runtime",
+      "version": "1.1.1",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "androidx.tracing:tracing",
+      "version": "1.2.0",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "androidx.versionedparcelable:versionedparcelable",
+      "version": "1.1.1",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "androidx.viewpager:viewpager",
+      "version": "1.0.0",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "androidx.window.extensions.core:core",
+      "version": "1.0.0",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "androidx.window:window",
+      "version": "1.2.0",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "androidx.window:window-java",
+      "version": "1.2.0",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "com.getkeepsafe.relinker:relinker",
+      "version": "1.4.5",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "com.github.davidliu:audioswitch",
+      "version": "039a35aefab7747c557242fa216c9ea11743b604",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "com.google.android.datatransport:transport-api",
+      "version": "3.1.0",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "com.google.android.datatransport:transport-backend-cct",
+      "version": "3.1.9",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "com.google.android.datatransport:transport-runtime",
+      "version": "3.1.9",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "com.google.android.gms:play-services-base",
+      "version": "18.9.0",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "com.google.android.gms:play-services-basement",
+      "version": "18.9.0",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "com.google.android.gms:play-services-cloud-messaging",
+      "version": "17.4.0",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "com.google.android.gms:play-services-stats",
+      "version": "17.0.2",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "com.google.android.gms:play-services-tasks",
+      "version": "18.4.0",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "com.google.android.play:app-update",
+      "version": "2.1.0",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "com.google.android.play:core-common",
+      "version": "2.0.3",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "com.google.code.findbugs:jsr305",
+      "version": "3.0.2",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "com.google.code.gson:gson",
+      "version": "2.13.2",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "com.google.crypto.tink:tink-android",
+      "version": "1.23.0",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "com.google.errorprone:error_prone_annotations",
+      "version": "2.41.0",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "com.google.firebase:firebase-annotations",
+      "version": "17.0.0",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "com.google.firebase:firebase-bom",
+      "version": "34.19.0",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "com.google.firebase:firebase-common",
+      "version": "22.2.1",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "com.google.firebase:firebase-components",
+      "version": "19.0.0",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "com.google.firebase:firebase-datatransport",
+      "version": "18.2.0",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "com.google.firebase:firebase-encoders",
+      "version": "17.0.0",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "com.google.firebase:firebase-encoders-json",
+      "version": "18.0.0",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "com.google.firebase:firebase-encoders-proto",
+      "version": "16.0.0",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "com.google.firebase:firebase-iid-interop",
+      "version": "17.1.0",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "com.google.firebase:firebase-installations",
+      "version": "19.1.2",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "com.google.firebase:firebase-installations-interop",
+      "version": "17.3.0",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "com.google.firebase:firebase-measurement-connector",
+      "version": "19.0.0",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "com.google.firebase:firebase-messaging",
+      "version": "25.1.3",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "com.google.guava:listenablefuture",
+      "version": "1.0",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "com.squareup.okio:okio",
+      "version": "3.4.0",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "com.squareup.okio:okio-jvm",
+      "version": "3.4.0",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "io.flutter:arm64_v8a_release",
+      "version": "1.0.0-deb287481e3ce9468f3434937ced4240a70539ca",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "io.flutter:armeabi_v7a_release",
+      "version": "1.0.0-deb287481e3ce9468f3434937ced4240a70539ca",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "io.flutter:flutter_embedding_release",
+      "version": "1.0.0-deb287481e3ce9468f3434937ced4240a70539ca",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "io.flutter:x86_64_release",
+      "version": "1.0.0-deb287481e3ce9468f3434937ced4240a70539ca",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "io.github.webrtc-sdk:android",
+      "version": "150.7871.01",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "javax.inject:javax.inject",
+      "version": "1",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "org.jetbrains.kotlin:kotlin-android-extensions-runtime",
+      "version": "1.9.22",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "org.jetbrains.kotlin:kotlin-parcelize-runtime",
+      "version": "1.9.22",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "org.jetbrains.kotlin:kotlin-stdlib",
+      "version": "2.4.0",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "org.jetbrains.kotlin:kotlin-stdlib-jdk7",
+      "version": "1.8.0",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "org.jetbrains.kotlin:kotlin-stdlib-jdk8",
+      "version": "1.8.0",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "org.jetbrains.kotlinx:kotlinx-coroutines-android",
+      "version": "1.9.0",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "org.jetbrains.kotlinx:kotlinx-coroutines-bom",
+      "version": "1.9.0",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "org.jetbrains.kotlinx:kotlinx-coroutines-core",
+      "version": "1.9.0",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm",
+      "version": "1.9.0",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "org.jetbrains.kotlinx:kotlinx-coroutines-play-services",
+      "version": "1.9.0",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "org.jetbrains:annotations",
+      "version": "23.0.0",
+      "vulnerability_ids": []
+    },
+    {
+      "name": "org.jspecify:jspecify",
+      "version": "1.0.0",
+      "vulnerability_ids": []
+    }
+  ]
+}

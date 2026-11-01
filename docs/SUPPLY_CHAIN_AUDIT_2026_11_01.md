@@ -41,9 +41,9 @@ in der Git-Historie nachvollziehbar.
 
 ## Noch offen für die Abnahme
 
-1. Tatsächliche Gradle-Abhängigkeitsbäume beider Release-Flavors inklusive
-   transitiver Maven-Koordinaten und Lizenzen reproduzierbar erfassen. Der
-   Pub-Lock allein legt diese nativen Transitiven nicht vollständig fest.
+1. Für die unten erfassten tatsächlichen Gradle-Abhängigkeitsbäume beider
+   Release-Flavors die Lizenzen und gegebenenfalls weitere Sicherheitsquellen
+   prüfen. Der Pub-Lock allein legt die nativen Transitiven nicht vollständig fest.
 2. Basisimage **und** gebautes Workerimage einschließlich OS-Paketen sowie
    die produktiv verwendeten Hostpakete versioniert inventarisieren. Für
    Ubuntu den Ubuntu-Sicherheitsstatus einschließlich zurückportierter Fixes
@@ -57,3 +57,42 @@ in der Git-Historie nachvollziehbar.
    Kontrolle und verantwortliche Betriebsrolle dokumentieren.
 
 Bis zu diesen Nachweisen bleibt der entsprechende Roadmap-Punkt offen.
+
+## Gradle-Laufzeitbäume und Maven-OSV-Abfrage
+
+Am 01.11.2026 wurden im sauberen Release-Worktree auf Git-Stand `96e32a2`
+`directReleaseRuntimeClasspath` und `playReleaseRuntimeClasspath` mit dem
+lokal vorhandenen Gradle 9.3.1, Java 17 und der gepinnten Flutter-Toolchain
+**offline** erfolgreich aufgelöst. Die Releasekonfiguration benötigt beim
+Projektsetup die extern hinterlegte Signierungskonfiguration; diese wurde weder
+ausgegeben noch in den Bericht übernommen. Es wurde dabei keine APK gebaut.
+
+Die vollständigen, um Buildpfade bereinigten Bäume stehen unter
+[Direct](dependency-inventory/gradle-direct-runtime-20261101.txt) und
+[Play](dependency-inventory/gradle-play-runtime-20261101.txt): 504
+beziehungsweise 508 Baumzeilen einschließlich Wiederholungs- und
+Constraint-Markierungen. Die Play-Updatebibliothek erscheint nur im Play-Baum.
+Der lokale Abhängigkeitsgraph ist nicht die Analyse des tatsächlich
+ausgelieferten APK- oder AAB-Inhalts.
+
+`scripts/extract_gradle_runtime.py` verwirft fehlgeschlagene Gradle-Ausgaben,
+unaufgelöste Abhängigkeiten, fehlende Bäume und unerwartete Einträge.
+`scripts/audit_maven_osv.py` berücksichtigt aufgelöste Versionen nach
+Gradle-Konfliktauflösung, lässt bloße Constraints und lokale Projekte aus und
+fragt die 106 unterschiedlichen Maven-Koordinaten beider Bäume über die
+[OSV-Batch-API](https://google.github.io/osv.dev/post-v1-querybatch/) ab.
+Antwortanzahl und Pagination werden geprüft. Die versionierte
+[Einzelabfrage](dependency-inventory/maven-osv-20261101.json) enthält die
+Tree-Hashes, den Gerätezeitpunkt, sämtliche abgefragten Koordinaten und die
+Ergebnis-IDs: OSV meldete bei dieser Abfrage **keine Treffer**. Das gilt nur
+für diesen Datenbestand und diese Datenquelle; es ist weder ein Nachweis der
+Sicherheit noch eine Lizenzprüfung. Android-Artefakte, Systempakete,
+Container und externe Web-Ressourcen bleiben gesondert zu bewerten.
+
+Zur Wiederholung beide Gradle-`dependencies`-Berichte für die genannten
+Konfigurationen erzeugen, mit `extract_gradle_runtime.py` extrahieren und
+beide Dateien `audit_maven_osv.py --output <Bericht.json>` übergeben.
+Die Tests `scripts/tests/test_extract_gradle_runtime.py` und
+`scripts/tests/test_audit_maven_osv.py` prüfen unter anderem fehlgeschlagene
+Auflösung, Versionsersetzung, Constraints und unvollständige oder paginierte
+OSV-Antworten ohne Netzaufruf.

@@ -986,6 +986,13 @@ Bestandteil des bestehenden Buildvertrags.
   weder vollständige native Transitive noch deren Sicherheits- und Lizenzstand.
   Der Bericht benennt nun die fehlenden Nachweise; der Punkt bleibt offen.
 
+  - [x] Die nativen Gradle-Laufzeitbäume für Direct und Play offline auflösen,
+    versioniert erfassen und die daraus aufgelösten Maven-Koordinaten mit der
+    OSV-Batch-API einschließlich Pagination prüfen. Der Bericht
+    `docs/SUPPLY_CHAIN_AUDIT_2026_11_01.md` verlinkt beide Bäume und alle 106
+    Einzelresultate. OSV meldete keine Treffer; die noch fehlende Lizenz- und
+    Host-/Containerprüfung bleibt ausdrücklich offen.
+
 - [ ] **P1 – Datenschutz und Anbieterunterlagen fachkundig prüfen lassen**
 
   Verzeichnis der Datenarten und Datenflüsse für Kinder, Eltern, Fotos, Lernstände, KI-Anbieter, Hosting, Firebase und Support erstellen. Tatsächliche Auftragsverarbeiter, Unterauftragsverarbeiter, Speicherorte, internationale Übermittlungen, Löschfristen und vertragliche Grundlagen dokumentieren. Eine qualifizierte Stelle prüft Rechtsgrundlagen, altersgerechte Informationen, Elternrechte, Widerruf und ob eine Datenschutz-Folgenabschätzung erforderlich ist; bestehende Betreiberfreigaben nicht mit einer unabhängigen Rechtsprüfung verwechseln. Für KI-Funktionen den konkret anwendbaren Rechtsrahmen und die Risikoeinstufung bewerten lassen.
