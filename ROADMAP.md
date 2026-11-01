@@ -771,6 +771,18 @@ Die folgenden Punkte beschreiben ausstehende, wiederholbare Betriebs- und Freiga
   künstlicher Providerlauf für die aktive Revision bleibt separat zu belegen;
   simulierte Transporte belegen keine Erreichbarkeit des Anbieters.
 
+  - [x] Die aktuelle OpenRouter-Konfigurationsrevision 37 mit einem echten,
+    ausschließlich künstlichen Bild im regulären Testkonto auf Erreichbarkeit
+    und Kostenerfassung prüfen. Ein synthetisches Bruchblatt wurde hochgeladen,
+    gelesen und nach der automatischen Gegenprüfung regulär entfernt. Zwei
+    abgeschlossene Extract-Kostenbelege gehören zur Revision 37: Luna mit
+    979 Mikro-USD und Sol mit 13.592 Mikro-USD. Der Hintergrundabgleich
+    bestätigte beide Beträge anhand der OpenRouter-Generation-Belege;
+    zusammen sind das 14.571 Mikro-USD. Dies war die konfigurierte
+    kostenpflichtige Route, kein Free-Test.
+    Die Prüfung belegt die beiden Bildaufrufe, nicht alle anderen
+    KI-Funktionen oder vollständige fachliche OCR-Richtigkeit.
+
   **Abnahme:** feste Adapter/Upstreams, Schema- und Quellenprüfung, Grenzen, Audit, ehrliche unbekannte Kosten und Verzicht auf automatische Providerwechsel oder Wiederholungen belegbar sind; Konfiguration und Freigaben werden nicht still gelockert.
 - [x] **P1 – Google- und Geheimnisbetrieb überprüfen**
 
