@@ -54,7 +54,9 @@ und belegen weder eine erfolgreiche echte KI-Anfrage noch einen Gerätetest.
 - AGP 9.1 und Flutter 3.47 verwenden derzeit den dokumentierten Übergangsweg
   mit `android.builtInKotlin=false`. Laut [Flutter-Migrationsanleitung](https://docs.flutter.dev/release/breaking-changes/migrate-to-built-in-kotlin)
   muss nach Migration aller beteiligten Plugins auf eingebautes Kotlin
-  umgestellt werden. Kein ungeprüfter Plugin- oder Gradle-Wechsel in diesem
+  umgestellt werden. Der Android-Releasebuild meldete den bisherigen
+  Kotlin-Gradle-Plugin-Weg für `firebase_core`, `flutter_tts` und
+  `flutter_webrtc`. Kein ungeprüfter Plugin- oder Gradle-Wechsel in diesem
   Update; vor Entfernung des Übergangswegs getrennt bauen und testen.
 - Starlette meldet für Tests mit `httpx` eine Deprecation; laut
   [TestClient-Dokumentation](https://www.starlette.io/testclient/) ist

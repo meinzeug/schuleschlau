@@ -21,6 +21,16 @@ Die Reihenfolge innerhalb der Prioritäten richtet sich nach Abhängigkeiten. Ei
 
 ## Arbeitsfortschritt
 
+- 01.11.2026, lokal: Der vollständige CI-Lauf für `066dce1` fand zwei
+  fehlschlagende künstliche Kostengrenztests für Deutsch-Lernrunden. Der
+  konservative Vorabwert lag bei 250.044 statt höchstens 250.000 Mikro-USD;
+  der Anbieter wurde nicht aufgerufen. Eine kürzere, weiterhin quellgebundene
+  Erklärungsvorgabe trägt jetzt die Revision `explanation-guidance-2`.
+  Der echte Kostenrechner und die Reservierungsgrenze bleiben unverändert;
+  zusätzliche Tests prüfen eine knapp größere Anfrage, die weiterhin vor dem
+  Versand abgewiesen wird. Die erneute vollständige CI und Auslieferung bleiben
+  getrennt nachzuweisen.
+
 - 31.10.2026, Entwicklung: Neue PDF-Bestätigungen halten die explizit bestätigte Zuordnung zwischen Note und Importposition fest; gelöschte manuelle Noten mit Anfrageschlüssel erhalten eine kindgebundene, mit dem Installationsschlüssel authentifizierte Wiederholungssperre. Diese Grundlagen schließen die Noten-Restorelücke noch nicht: Altimporte sind nicht rückwirkend zugeordnet, Importkopien und Journalbelege bleiben zu bearbeiten. Die Sperren hängen vom gleichbleibenden Installationsschlüssel ab; Schlüsselrotation benötigt einen gesonderten Migrationsvertrag.
 - 31.10.2026, Betrieb: Release `6e48cfe` und der zugehörige Offsite-Client sind aktiv. Sicherungen liegen auf dem 50-GB-Volume; eine neue Sicherung mit Journal, eine isolierte authentifizierte Wiederherstellung und der unabhängige Offsite-Abgleich waren erfolgreich. Nach erfolgreichem Abgleich von 2.256 Dateien wurde nur die verifizierte alte Systemplattenkopie entfernt (12.275.552.735 Bytes). Danach waren auf `/` rund 15 GiB frei; der Monitoring-Trockenlauf meldete keine Fehler. Die bekannte Notenlöschungs-/Restorelücke bleibt ungeachtet dieser erfolgreichen allgemeinen Restoreprobe offen.
 - 31.10.2026, lokal: Backup- und Restore-Einstiege, Journalexport und ein neuer eingeschränkter Offsite-Leseweg nutzen die vorbereitete stabile Betriebssperre und bei konfiguriertem Volume die UUID-Prüfung. Die Systemd-Dienste erhalten Schreibzugriff auf den Sperrpfad. Dies ist noch kein produktiver Wechsel: Alter Offsite-Client und alter Server müssen koordiniert aktualisiert, Parallelität/Abbrüche und die bestehende Installation vollständig geprüft und erst danach Sicherung, Offsite und Restore auf dem Volume nachgewiesen werden.

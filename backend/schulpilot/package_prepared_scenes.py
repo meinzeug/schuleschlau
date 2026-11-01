@@ -28,7 +28,7 @@ Fach, Quellenbeleg und Lernziel. presentation.blocks=[ID]. reference, source_ref
 disclosure bleiben exakt bei derselben ID; keine neuen Titel, Beschriftungen oder
 Pfeile erfinden. source_caption benennt nur den unveränderten Originalbeleg und ist
 KEINE fertige Erklärung. Schreibe den tatsächlich sichtbaren explanation_steps.text
-wie explanation-guidance-1: kurz verständlich erklären, was die Grafik zeigt, wie das
+wie explanation-guidance-2: kurz verständlich erklären, was die Grafik zeigt, wie das
 Kind sie liest und warum das beim belegten Lernziel hilft. Höchstens350 Zeichen und
 passend zur Offenlegungsstufe; keine verdeckte Antwort vorwegnehmen. Eine Frage mit einer Szene nennt mindestens zwei vollständige Original-
 Objektlabels. Ein Wortbausteinvergleich nennt mindestens einen vollständigen Original-

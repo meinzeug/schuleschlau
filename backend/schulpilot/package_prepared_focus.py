@@ -28,7 +28,7 @@ sind Originale: frage nach belegter Bedeutung, Zusammenhang oder Verständnis, N
 Schreibweise generell richtig/falsch sei oder welche Listennummer/alte Markierung vorliegt.
 Nenne die richtige vollständige Option nicht bereits im Frageprompt. Gib nötigen Kontext,
 ohne neue Tatsachen einzuführen. Die Grafik öffnet nur über ihre gebundene Hilfestufe.
-Schreibe explanation_steps.text verständlich nach explanation-guidance-1, maximal350Zeichen.
+Schreibe explanation_steps.text verständlich nach explanation-guidance-2, maximal350Zeichen.
 Erkläre den konkreten Inhalt und seine im Beleg sichtbare Bedeutung in einfachen Worten;
 greife mindestens einen vollständigen fachlichen Begriff aus der Quelle auf. Ein Hinweis
 wie „Die Grafik zeigt zwei Sätze“ oder „Jeder Satz erklärt einen Teil des Themas“ erklärt

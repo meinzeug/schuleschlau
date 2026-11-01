@@ -250,7 +250,7 @@ def test_actual_http_mock_uses_checked_ids_preserves_answers_and_one_reported_bi
         sent = json.loads(body["messages"][1]["content"][0]["text"])
         assert sent["prepared_graphics"]["revision"] == "package-source-graphics-3"
         assert all("block" not in row and "text" not in row and "source_caption" in row for row in sent["prepared_graphics"]["candidates"])
-        assert "explanation-guidance-1" in body["messages"][0]["content"]
+        assert "explanation-guidance-2" in body["messages"][0]["content"]
         assert "tatsächlich sichtbare explanation_steps.text" in body["messages"][0]["content"]
         assert body["max_tokens"] == 8000 and body["reasoning"]["effort"] == "medium"
         return httpx.Response(200, json={"choices": [{"finish_reason": "stop", "message": {

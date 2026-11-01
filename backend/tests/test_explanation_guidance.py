@@ -31,6 +31,7 @@ def test_grade_is_explicit_profile_only_and_never_inferred_from_age_or_source(gr
     assert rule.count(explanation_guidance.REVISION) == 1
     assert "Konfigurierte Klassenstufe: " + str(grade) + "." in rule if type(grade) is int and 1 <= grade <= 13 else "Klassenstufe nicht angegeben" in rule
     for condition in ("explanation_steps.text", "Fachwort", "gewöhnlichen Wörtern", "konkretes zulässiges Beispiel",
+        "in Fragen nur Fachwörter aus dem bestätigten Stoff oder der sichtbaren Einführung",
         "was die Grafik", "Merksatz", "jede tatsächlich geprüfte Regel", "noch offenen Aufgabe", "wörtlich und belegt",
         "ohne ein unsichtbares altes Arbeitsblatt", "welche alte Antwort", "Alte Schülerantworten oder Lehrermarkierungen",
         "Schrittzahl, Zeichen-/Aufgaben-/Tokenlimits bleiben unverändert"):
