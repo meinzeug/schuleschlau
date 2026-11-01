@@ -115,15 +115,16 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
   werden getrennt betrachtet; der unabhängige Wächter prüft zusätzlich sein
   Offsite-Dateisystem. Stichtagsmessung, Reserven und ihre Grenzen stehen in
   `docs/STORAGE_AND_ALERTS.md`. Künstliche Grenzwert- und Alarmtests bestehen.
-  Produktive Übernahme auf beiden Hosts, tatsächlicher Spitzenbedarf und
-  längerfristiger Wachstumstrend bleiben noch nachzuweisen.
+  Die produktive Übernahme auf beiden Hosts ist mit Release `1.38.56+211`
+  erfolgt; tatsächlicher Spitzenbedarf und längerfristiger Wachstumstrend
+  bleiben noch nachzuweisen.
 
   - [x] Serverprüfungen für Speicherplatz und konfigurierte Volume-UUID
     implementieren und mit künstlichen Grenzwerten sowie auf dem Zielhost im
     lesenden Trockenlauf prüfen.
   - [x] Den unabhängigen Wächter um Speicher- und Statusdateiprüfung erweitern
     und die Fehlerfälle isoliert testen.
-  - [ ] Beide Änderungen abgestimmt ausliefern und die produktiven Timer prüfen.
+  - [x] Beide Änderungen abgestimmt ausliefern und die produktiven Timer prüfen.
 
   Bei der lesenden Prüfung am 31.10.2026 zeigte das Serverdateisystem rund 92 % Belegung und etwa 3,1 GiB frei. Wachstum von Datenbank, privaten Uploads, Backups und eigenen Releases getrennt messen; den Platzbedarf für Backup, Build, Upload und Wiederherstellung berücksichtigen. Nur eindeutig entbehrliche eigene Artefakte unter Einhaltung aller Aufbewahrungsregeln bereinigen oder Speicherkapazität erweitern; keine fremden Dienste oder Daten verändern. Warn- und Eskalationsschwellen auf den tatsächlich verfügbaren Platz und den Wachstumstrend abstimmen.
 
@@ -137,10 +138,19 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
   die Elternansicht eine ausdrückliche Entscheidung. Wiederherstellungen mit
   älteren Snapshots, Importkopien und offenen Outbox-Einträgen sind synthetisch
   geprüft. Der genaue Vertrag und seine Grenzen stehen in
-  `docs/GRADE_ERASURE.md`. Die Produktivfreigabe, die Behandlung historischer
-  Löschungen ohne Journalbeleg und ein tatsächlicher isolierter Restore auf
-  dem Zielserver bleiben gesondert nachzuweisen; dieser Punkt ist daher noch
-  nicht abgehakt.
+  `docs/GRADE_ERASURE.md`. Seit Release `1.38.56+211` ist die Änderung aktiv;
+  eine authentifizierte isolierte Restoreprobe auf dem Zielserver bestand.
+  Historische Löschungen ohne Journalbeleg und ungeklärte Altzuordnungen
+  bleiben gesondert nachzuweisen; dieser Punkt ist daher noch nicht abgehakt.
+
+  - [x] Neue Notenlöschungen samt bestätigter Importkopien journalisieren und
+    Wiederholung alter Anfrageschlüssel verhindern.
+  - [x] Mehrdeutige Altimporte vor dem Löschen durch berechtigte Eltern
+    ausdrücklich prüfen lassen.
+  - [x] Schema `0044` ausliefern und einen authentifizierten isolierten Restore
+    auf dem Zielserver durchführen.
+  - [ ] Historische Löschungen ohne Journalbeleg und die Aufbewahrungsfolgen
+    ungeklärter Altzuordnungen abschließend nachweisen beziehungsweise klären.
 
   Bei der lokalen Codeprüfung am 31.10.2026 fiel eine konkrete Lücke auf:
   `grades.delete_grade` löscht die einzelne `SchoolGrade` und auditiert den
@@ -450,8 +460,8 @@ Die folgenden Punkte beschreiben ausstehende, wiederholbare Betriebs- und Freiga
   führen im unabhängigen Wächter zu einem neutralen Fehler statt zu einem
   Programmabbruch. Getrennte Speicheralarme und simulierte Benachrichtigungen
   werden künstlich geprüft; der Ablauf ist in `docs/STORAGE_AND_ALERTS.md`
-  dokumentiert. Die Auslieferung der Änderungen und eine unabhängige Prüfung
-  des laufenden Alarmsystems stehen noch aus.
+  dokumentiert. Die Auslieferung ist erfolgt; eine unabhängige Prüfung der
+  tatsächlichen Alarmzustellung steht noch aus.
 
   - [x] Beschädigte oder ungültige Offsite-Erfolgsstände als neutrale Störung
     behandeln und die Erkennung isoliert prüfen.

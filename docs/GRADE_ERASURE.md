@@ -1,8 +1,9 @@
 # Notenlöschung und Wiederherstellung
 
-Stand: 31.10.2026. Die Implementierung ist lokal getestet; das ist noch kein
-Nachweis für eine erfolgte Produktionsumstellung oder eine lückenlose frühere
-Löschhistorie.
+Stand: 01.11.2026. Die Implementierung ist mit Release `1.38.56+211`,
+Quellcommit `e8387f3`, aktiv; Schema `0044` und eine authentifizierte
+isolierte Restoreprobe mit aktuellem Journal wurden auf dem Zielserver
+geprüft. Das belegt keine lückenlose frühere Löschhistorie.
 
 ## Löschung
 

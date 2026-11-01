@@ -45,10 +45,9 @@ Wächter sowie eine neue Sicherung und den unabhängigen Abgleich prüfen.
 Zuständig ist der Betreiber; bei Ausfall des Alarmwegs sind die Dienste und
 Statusdateien über einen unabhängigen Zugang zu prüfen.
 
-Die hier beschriebenen neuen Checks sind erst nach abgestimmtem Serverrelease
-und Aktualisierung des unabhängigen Clients im Betrieb wirksam. Dabei den
-bisherigen Offsite-Client bis zur Übernahme erhalten. Eine lokale Simulation
-und diese Stichtagsmessung sind keine Produktionsabnahme. Ein lesender
-Trockenlauf des neuen Serverchecks auf dem Zielhost und ein Trockenlauf des
-neuen unabhängigen Wächters meldeten am 31.10.2026 keine Fehler; dabei wurde
-keine Alarmmail versandt und kein installierter Dienst verändert.
+Seit Release `1.38.56+211` sind die Serverprüfungen aktiv; der unabhängige
+Wächter und seine Monitorbibliothek wurden anschließend aktualisiert, der
+vorherige Code bleibt lokal erhalten. Ein lesender Trockenlauf des neuen
+Serverchecks und des unabhängigen Wächters meldete keine Fehler; dabei wurde
+keine Alarmmail versandt. Die Stichtagsmessung und simulierte Alarme belegen
+weder einen langfristigen Wachstumstrend noch eine tatsächliche Alarmzustellung.

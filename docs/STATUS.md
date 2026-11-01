@@ -1,4 +1,38 @@
-# Produktionsstand · 1.38.54+209
+# Produktionsstand · 1.38.56+211
+
+**Aktualisierung 01.11.2026 Gerätezeit:** Aktiv ist Release
+`20261101T002001Z-e8387f3`, Quellcommit
+`e8387f3dcd5ea65e76b55507538cbcd93a85261b`, mit Version `1.38.56+211`
+und Datenbankschema `0044`. API, Worker und die projektspezifischen Timer sind
+aktiv. Der vorherige Release `20261101T000730Z-48d1581` bleibt als Code-Rückweg
+erhalten; eine Wiederherstellung verlangt weiterhin den aktuellen
+Löschjournalabgleich und eine Prüfung der geschriebenen Daten.
+Bei der Prüfung ging die UTC-Uhr des Entwicklungsrechners gegenüber dem
+NTP-synchronisierten Server um etwa 59 Minuten vor; Release-ID und Gerätezeit
+sind daher nicht mit dem UTC-Zeitstempel auf dem Server gleichzusetzen.
+
+Der Release enthält die versionierte Notenlöschung einschließlich
+Importpositionen und Restoreabgleich, neue Speicher- und Offsiteprüfungen,
+den Internethinweis in den Hefteroptionen und elf geprüfte beziehungsweise
+entschiedene Roadmap-Punkte. Eine leere, erfolgreich abgefragte Warteschlange
+wird im Adminbereich als null statt als unbekannt angezeigt; nach dem
+Deployment wurde die Ansicht im Browser geprüft. Die isolierte authentifizierte
+Restoreprobe bestand mit Schema `0044` und aktuellem Löschjournal. Sie belegt
+keine vollständige historische Löschjournalabdeckung; die dafür offenen
+Grenzen bleiben in `GRADE_ERASURE.md` und der Roadmap dokumentiert.
+
+Web, Play-Bundle und signierte Direct-APK wurden revisionsgebunden aus diesem
+Commit gebaut. Das öffentliche APK-Manifest meldet Version 211 und SHA-256
+`53d5b14d11e779f7d889dc2d637028ae7547c7342da6f7fcd94b6e2ddf3ac8b8`.
+Ein physischer Androidtest oder Play-Upload wird daraus nicht abgeleitet.
+Eine bytegleich geprüfte lokale Kopie von Webbuild und APK sowie Play-Bundle,
+Manifest und Releasebeleg liegt unter
+`~/.local/share/schulpilot-releases/1.38.56-211/`.
+Testergebnisse und Einschränkungen zu den einzelnen Punkten stehen in der
+Roadmap; die Prüfungen nutzen synthetische Daten und Provider-Mocks, wo
+angegeben.
+
+## Vorheriger Produktionsstand · 1.38.54+209
 
 **Aktualisierung 31.10.2026:** Aktiv ist der gezielte Datenschutz- und
 Betriebseinstellungsrelease `20261031T233356Z-484a9be` vom Quellcommit
