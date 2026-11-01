@@ -30,7 +30,8 @@ def test_invalid_or_multiple_values_never_become_release_names(monkeypatch, inva
         clock.release_timestamp()
 
 
-@pytest.mark.parametrize('error', [OSError('private sentinel'), subprocess.TimeoutExpired('ssh', 20),
+@pytest.mark.parametrize('error', [OSError('private sentinel'), UnicodeDecodeError('utf-8', b'\xff', 0, 1, 'bad input'),
+    subprocess.TimeoutExpired('ssh', 20),
     subprocess.CalledProcessError(1, 'ssh', stderr='private sentinel')])
 def test_failed_ssh_never_falls_back_to_unsynchronized_local_time(monkeypatch, error):
     def fail(*_args, **_kwargs):
