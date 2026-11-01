@@ -542,11 +542,26 @@ Die folgenden Punkte beschreiben ausstehende, wiederholbare Betriebs- und Freiga
 
 ## Release, Android und Benachrichtigungen
 
-- [ ] **P0 – Jeden Release aus einem nachvollziehbaren Quellstand herstellen**
+- [x] **P0 – Jeden Release aus einem nachvollziehbaren Quellstand herstellen**
 
   Passende Backendtests einschließlich isoliertem PostgreSQL, Fluttertests, Analyse und Webbuild sowie `scripts/build_release.sh` mit fixierter Toolchain ausführen; Diff und Geheimnisse prüfen.
 
   **Abnahme:** Ergebnisse und Fehler mit Commit, Toolchain und Artefakten dokumentiert sind, signierte Direct-APK und Play-AAB dieselbe beabsichtigte Version tragen und Paket, Signierer, Nicht-Debug-Status, 16-KB-Ausrichtung und AAB validiert sind.
+
+  **01.11.2026, Release `1.38.57+212`:** Der ausgelieferte Quellcommit
+  `669ae59f994b1af0461bb5d3ff1204e97b50a07b` wurde mit der fixierten
+  Toolchain (Flutter 3.47.7, Dart 3.13.5, Python 3.12.3, Android SDK 36,
+  Bundletool 1.18.3; Einzelheiten in `toolchain.json`) gebaut. Die vollständige
+  Flutter-Testsuite bestand mit 4.319 Fällen und 19 plattformspezifischen
+  Auslassungen; ein zusätzlicher Chrome-Weblauf bestand mit 110 Fällen und
+  fünf Auslassungen. Flutteranalyse und Webbuild waren erfolgreich. Für die
+  betroffenen Backendpfade bestanden die in `docs/STATUS.md` aufgeführten
+  SQLite- und isolierten PostgreSQL-Läufe. Direct-APK und Play-AAB wurden
+  signiert und auf Version, Paket und Signierer geprüft; APK-Ausrichtung und
+  Bundlevalidierung waren erfolgreich. Die öffentliche APK stimmt mit dem
+  SHA-256 `aa7b9c9f74d9e9f39d866ac34bef2560398d3bc38b7c0b28a659c2076b8d495e`
+  überein. Ein physischer Androidtest und die gesonderte Prüfung künftiger
+  Toolchain-Warnungen sind dadurch nicht ersetzt.
 - [ ] **P0 – Deployment und Rückkehr belegen**
 
   Betroffene Konfigurationen und Daten vorher sichern, Migrations- und Rückwärtskompatibilität prüfen, nur SCHULPILOT aktualisieren und vorheriges Release erhalten.
