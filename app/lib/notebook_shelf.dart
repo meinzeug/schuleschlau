@@ -167,6 +167,7 @@ class _NotebookShelfState extends State<_NotebookShelfBody> {
   }
 
   Widget sectionTabs() => ChildSectionTabs(
+    wrapCompact: true,
     tabs: const [
       (id: 'mine', label: 'Meine Fächer', icon: Icons.folder_open_rounded),
       (id: 'all', label: 'Alle Fächer', icon: Icons.school_outlined),

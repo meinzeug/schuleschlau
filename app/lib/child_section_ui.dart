@@ -181,11 +181,13 @@ class ChildSectionTabs extends StatefulWidget {
   final List<({String id, String label, IconData icon})> tabs;
   final String selected;
   final ValueChanged<String> onSelected;
+  final bool wrapCompact;
   const ChildSectionTabs({
     super.key,
     required this.tabs,
     required this.selected,
     required this.onSelected,
+    this.wrapCompact = false,
   });
 
   @override
@@ -256,6 +258,47 @@ class _ChildSectionTabsState extends State<ChildSectionTabs> {
   Widget build(BuildContext context) {
     final palette = context.palette;
     final compact = MediaQuery.sizeOf(context).width < 720;
+    final wrapCompact = compact && widget.wrapCompact;
+    Widget button(({String id, String label, IconData icon}) tab) {
+      final style =
+          OutlinedButton.styleFrom(
+            backgroundColor: palette.cream,
+            foregroundColor: selected == tab.id ? palette.ink : palette.muted,
+            minimumSize: const Size(48, 48),
+            padding: EdgeInsets.symmetric(
+              horizontal: wrapCompact ? 6 : 10,
+              vertical: 10,
+            ),
+            shape: const RoundedRectangleBorder(),
+            side: BorderSide.none,
+            textStyle: TextStyle(
+              fontFamily: 'Nunito',
+              fontSize: wrapCompact ? 14 : 15,
+              fontWeight: selected == tab.id
+                  ? FontWeight.w800
+                  : FontWeight.w600,
+            ),
+          ).copyWith(
+            side: WidgetStateProperty.resolveWith(
+              (states) => states.contains(WidgetState.focused)
+                  ? BorderSide(color: palette.cyanInk, width: 2.5)
+                  : BorderSide.none,
+            ),
+          );
+      return wrapCompact
+          ? OutlinedButton(
+              style: style,
+              onPressed: () => onSelected(tab.id),
+              child: Text(tab.label),
+            )
+          : OutlinedButton.icon(
+              style: style,
+              onPressed: () => onSelected(tab.id),
+              icon: Icon(tab.icon, size: 20),
+              label: Text(tab.label),
+            );
+    }
+
     final buttons = <Widget>[
       for (final tab in tabs)
         Padding(
@@ -273,41 +316,7 @@ class _ChildSectionTabsState extends State<ChildSectionTabs> {
                 ),
               ),
             ),
-            child: Semantics(
-              selected: selected == tab.id,
-              child: OutlinedButton.icon(
-                style:
-                    OutlinedButton.styleFrom(
-                      backgroundColor: palette.cream,
-                      foregroundColor: selected == tab.id
-                          ? palette.ink
-                          : palette.muted,
-                      minimumSize: const Size(48, 48),
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 10,
-                      ),
-                      shape: const RoundedRectangleBorder(),
-                      side: BorderSide.none,
-                      textStyle: TextStyle(
-                        fontFamily: 'Nunito',
-                        fontSize: 15,
-                        fontWeight: selected == tab.id
-                            ? FontWeight.w800
-                            : FontWeight.w600,
-                      ),
-                    ).copyWith(
-                      side: WidgetStateProperty.resolveWith(
-                        (states) => states.contains(WidgetState.focused)
-                            ? BorderSide(color: palette.cyanInk, width: 2.5)
-                            : BorderSide.none,
-                      ),
-                    ),
-                onPressed: () => onSelected(tab.id),
-                icon: Icon(tab.icon, size: 20),
-                label: Text(tab.label),
-              ),
-            ),
+            child: Semantics(selected: selected == tab.id, child: button(tab)),
           ),
         ),
     ];
@@ -315,7 +324,7 @@ class _ChildSectionTabsState extends State<ChildSectionTabs> {
       decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: palette.surfaceBorder)),
       ),
-      child: compact
+      child: compact && !wrapCompact
           ? SingleChildScrollView(
               key: viewport,
               controller: controller,

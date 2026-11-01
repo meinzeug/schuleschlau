@@ -359,6 +359,79 @@ void main() {
     );
   }
 
+  for (final width in [320.0, 390.0]) {
+    for (final scale in [1.0, 2.0]) {
+      testWidgets(
+        'Notebook tabs are fully visible at $width and text scale $scale',
+        (tester) async {
+          tester.view.physicalSize = Size(width, 844);
+          tester.view.devicePixelRatio = 1;
+          addTearDown(tester.view.resetPhysicalSize);
+          addTearDown(tester.view.resetDevicePixelRatio);
+          String selected = 'mine';
+          await tester.pumpWidget(
+            MaterialApp(
+              theme: appTheme(),
+              home: MediaQuery(
+                data: MediaQueryData(
+                  size: Size(width, 844),
+                  textScaler: TextScaler.linear(scale),
+                ),
+                child: Scaffold(
+                  body: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: StatefulBuilder(
+                      builder: (context, setState) => ChildSectionTabs(
+                        wrapCompact: true,
+                        tabs: const [
+                          (
+                            id: 'mine',
+                            label: 'Meine Fächer',
+                            icon: Icons.folder_open_rounded,
+                          ),
+                          (
+                            id: 'all',
+                            label: 'Alle Fächer',
+                            icon: Icons.school_outlined,
+                          ),
+                          (
+                            id: 'pages',
+                            label: 'Alle Seiten',
+                            icon: Icons.photo_library_outlined,
+                          ),
+                        ],
+                        selected: selected,
+                        onSelected: (id) => setState(() => selected = id),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
+          for (final label in ['Meine Fächer', 'Alle Fächer', 'Alle Seiten']) {
+            final target = find
+                .ancestor(
+                  of: find.text(label),
+                  matching: find.byType(OutlinedButton),
+                )
+                .first;
+            final rect = tester.getRect(target);
+            expect(rect.left, greaterThanOrEqualTo(16));
+            expect(rect.right, lessThanOrEqualTo(width - 16));
+            expect(rect.width, greaterThanOrEqualTo(48));
+            expect(rect.height, greaterThanOrEqualTo(48));
+            await tester.tap(target);
+            await tester.pumpAndSettle();
+          }
+          expect(selected, 'pages');
+          expect(tester.takeException(), isNull);
+        },
+      );
+    }
+  }
+
   testWidgets('Child section tabs keep readable rendered states', (
     tester,
   ) async {

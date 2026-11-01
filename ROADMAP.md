@@ -440,6 +440,16 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
 
   **Abnahme:** Für jede genannte Ansicht sind konkrete Vorher-/Nachher-Befunde, mobile Screenshots und passende Interaktions- beziehungsweise Regressionstests dokumentiert. Die wichtigsten Aufgaben werden mit künstlichen Konten tatsächlich bedient; zusammengeklappte Informationen und Nebenaktionen bleiben erreichbar. Eine einzelne verbesserte Seite oder ein Widgettest ersetzt nicht die Abnahme des gesamten Kinderbereichs.
 
+  **01.11.2026, lokale Teilverbesserung:** In der produktiven Heftübersicht
+  war bei 390 Pixeln der Reiter „Alle Seiten“ angeschnitten. Die drei
+  Reiter verwenden auf schmalen Displays vollständige Beschriftungen und
+  brechen bei großer Schrift um. 62 Flutterfälle einschließlich 320/390 Pixel
+  und doppelter Schriftgröße bestanden. Eine lokale Webvorschau mit
+  Beispieldaten zeigte alle drei Beschriftungen bei 390 und 320 Pixeln; die
+  Auswahl „Alle Seiten“ funktionierte. Die Vorschau zeigt den geänderten
+  Reiterbaustein, nicht den vollständigen produktiven Heftablauf. Der
+  Gesamtpunkt bleibt offen.
+
 - [ ] **P1 – Alters- und situationsgerechte Bedienung beobachten**
 
   Für unterschiedliche bestätigte Klassen-/Altersgruppen repräsentative Aufgaben in schmalem Smartphone-Web, großem Web und auf Android mit künstlichem Material durchführen; fachlich und datenschutzrechtlich geeignete begleitete Nutzertests separat planen und freigeben.
