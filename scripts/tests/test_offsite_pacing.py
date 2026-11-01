@@ -66,3 +66,10 @@ def test_pacing_and_pull_share_the_existing_exclusive_lock(tmp_path, monkeypatch
     finally:
         os.umask(old_umask)
     assert phases == ["pace", "pull"]
+
+
+def test_default_service_keeps_ten_minutes_for_transfer_after_maximum_pacing():
+    unit = Path(__file__).resolve().parents[2] / "deploy/schulpilot-offsite.service"
+    settings = [line for line in unit.read_text().splitlines() if line.startswith("TimeoutStartSec=")]
+    assert settings == ["TimeoutStartSec=11min"]
+    assert 11 * 60 - offsite.MIN_SUCCESS_GAP_SECONDS == 10 * 60

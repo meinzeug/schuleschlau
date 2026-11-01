@@ -6,6 +6,7 @@ After=network-online.target
 Type=oneshot
 UMask=0077
 ExecStart=/usr/bin/python3 %h/schulpilot/scripts/offsite_backup.py
-TimeoutStartSec=10min
+# Include the bounded one-minute success pacing; the transfer retains 10 minutes.
+TimeoutStartSec=11min
 NoNewPrivileges=true
 PrivateTmp=true

@@ -151,8 +151,10 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
   Lauf vor einer erneuten vollständigen Prüfung einen Abstand von höchstens
   einer Minute ein. Die unveränderte 15-Minuten-Planung und alle Prüfsummen
   bleiben erhalten; ein fehlender, ungültiger oder zukünftiger Erfolgsmarker
-  verzögert keinen Lauf. 38 künstliche Offsite-, Journal-, Speicher- und
-  Überwachungsfälle bestehen. Die abgestimmte Installation und ein erneuter
+  verzögert keinen Lauf. Die Standard-Servicefrist umfasst zusätzlich eine
+  Minute für diese Pause; die bisherige reine Laufzeit bleibt erhalten. 71
+  künstliche Offsite-, Journal-, Speicher-, Staging- und Überwachungsfälle
+  sowie 28 Untertests bestehen. Die endgültige Installation und ein erneuter
   produktiver Offsite-Lauf sind noch nachzuweisen.
 
   - [x] Serverprüfungen für Speicherplatz und konfigurierte Volume-UUID

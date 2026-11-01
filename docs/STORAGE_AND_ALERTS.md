@@ -69,3 +69,7 @@ beschädigter oder zukünftiger Marker blockiert und verzögert keinen Lauf.
 Die künstlichen Tests prüfen außerdem, dass Warten und Abgleich unter derselben
 exklusiven Offsite-Sperre stattfinden. Der installierte Client wird erst nach
 Ende des laufenden Abgleichs gewechselt und danach erneut geprüft.
+Damit der eigentlichen Übertragung durch das neue Warten keine Zeit verloren
+geht, steigt die Standard-Servicefrist von zehn auf elf Minuten. Die lokale
+Ausnahme von 45 Minuten muss beim abgestimmten Clientwechsel entsprechend
+auf 46 Minuten steigen; der einstündige Frischealarm bleibt unverändert.
