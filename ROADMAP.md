@@ -21,6 +21,14 @@ Die Reihenfolge innerhalb der Prioritäten richtet sich nach Abhängigkeiten. Ei
 
 ## Arbeitsfortschritt
 
+- 01.11.2026, Betrieb: Release `1.38.58+213`, Quellcommit `40649e8`, ist
+  ausgeliefert. Die vollständige CI bestand; der öffentliche APK-Download
+  entspricht dem Manifest. Aktualisierte Backendversionen und das neu gebaute
+  Codex-Workerimage wurden auf dem Server nachgewiesen. Die bisherige
+  Version bleibt als Code-Rückweg erhalten; eine Rückkehr braucht weiterhin
+  die Prüfung von Schema und bereits geschriebenen Daten. Kein Androidgerät
+  und keine sichtbare Pushzustellung wurden bei diesem Release getestet.
+
 - 01.11.2026, lokal: Der vollständige CI-Lauf für `066dce1` fand zwei
   fehlschlagende künstliche Kostengrenztests für Deutsch-Lernrunden. Der
   konservative Vorabwert lag bei 250.044 statt höchstens 250.000 Mikro-USD;
@@ -128,6 +136,24 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
   Die produktive Übernahme auf beiden Hosts ist mit Release `1.38.56+211`
   erfolgt; tatsächlicher Spitzenbedarf und längerfristiger Wachstumstrend
   bleiben noch nachzuweisen.
+
+  **01.11.2026, Offsite-Laufzeit:** Ein verifizierter Abgleich benötigte rund
+  19 Minuten und damit länger als das 15-Minuten-Startintervall. Der nächste
+  Lauf startete unmittelbar nach Abschluss; bei langsamer lokaler Platte kann
+  das wiederholte vollständige Prüfsummenlesen hohe I/O-Last verursachen.
+  Ein isolierter systemd-Vergleich mit künstlichen 15-Sekunden-Läufen zeigte,
+  dass auch ein einfacher Kalendertimer bei verpassten Auslösungen sofort
+  nachlaufen kann. Die Lösung muss Prüfsummenintegrität, rechtzeitigen
+  Journalabgleich und den bestehenden Alarmvertrag erhalten; ein einfacher
+  Timerwechsel ist dafür nicht nachgewiesen.
+
+  **Lokal vorbereitet:** Der Offsite-Client hält nach einem erfolgreichen
+  Lauf vor einer erneuten vollständigen Prüfung einen Abstand von höchstens
+  einer Minute ein. Die unveränderte 15-Minuten-Planung und alle Prüfsummen
+  bleiben erhalten; ein fehlender, ungültiger oder zukünftiger Erfolgsmarker
+  verzögert keinen Lauf. 38 künstliche Offsite-, Journal-, Speicher- und
+  Überwachungsfälle bestehen. Die abgestimmte Installation und ein erneuter
+  produktiver Offsite-Lauf sind noch nachzuweisen.
 
   - [x] Serverprüfungen für Speicherplatz und konfigurierte Volume-UUID
     implementieren und mit künstlichen Grenzwerten sowie auf dem Zielhost im
@@ -778,6 +804,13 @@ Bestandteil des bestehenden Buildvertrags.
   Wiederholungen. Der vollständige Glockenablauf und eine sichtbare native
   Zustellung bleiben gesondert offen; die Tests simulieren FCM.
 
+  **01.11.2026, ergänzender Befund:** Das Glockenmenü ist scrollbar und rendert
+  vorhandene Einträge bedarfsgerecht, der API-Endpunkt liefert jedoch insgesamt
+  höchstens 50 Ereignisse aus 30 Tagen. Eine serverseitige Cursor-Fortsetzung
+  über diese Grenze hinaus ist nicht implementiert; das ist kein vollständiges
+  Lazy Loading. Ein Ausbau muss alle Ereignisquellen, stabile Sortierung,
+  Berechtigungs- und Lesemarkierungsprüfungen sowie den Kontowechsel abdecken.
+
 - [ ] **P1 – Familienanrufe und optionale Medien nur im freigegebenen Umfang abnehmen**
 
   Falls für die gewählte Startstufe vorgesehen, Eltern-/Kinderrollen, ausdrückliche Kamera-/Mikrofon-/Bildschirmfreigaben, Verbindungsaufbau, Abbruch, Widerruf und Gerätewechsel mit synthetischen Konten prüfen. Medienlinks auf passende katalogisierte Inhalte und Rückkehr zum Lernkontext testen; kein privater Kontext in URL oder Referrer.
@@ -786,13 +819,13 @@ Bestandteil des bestehenden Buildvertrags.
 
 ## Laufende Qualitätssicherung und finale Freigabe
 
-- [ ] **P1 – Abhängigkeiten und kommende Toolchain-Änderungen prüfen**
+- [x] **P1 – Abhängigkeiten und kommende Toolchain-Änderungen prüfen**
 
   Beim lokalen Releasebuild auf Commit `614f7d3` meldete Flutter WebAssembly-Hinweise für `flutter_tts` und Gradle künftig erforderliche Kotlin-Plugin-Anpassungen; bei Backendtests erschien eine Starlette-/HTTPX-DeprecationWarning. Diese Warnungen sind keine aktuellen Buildfehler, können aber spätere Updates behindern. Kompatible Versionen, Lizenz- und Sicherheitsstände sowie Folgen für Web, Android, Sprache und Firebase anhand verlässlicher Quellen untersuchen. Updates getrennt und reproduzierbar mit bestehender Toolchain, Tests und Rückweg durchführen, ohne geschützte Routen oder Firebase-Projekte auszutauschen.
 
   **Abnahme:** Jede Warnung ist mit tatsächlicher Auswirkung, zuständiger Abhängigkeit und Lösung oder dokumentiertem Beobachtungszeitpunkt erfasst; angepasste Builds und betroffene Funktions-/Gerätetests sind für den jeweils freigegebenen Umfang nachgewiesen. Ein regulär erfolgreicher JavaScript-Webbuild wird nicht als erfolgreicher WebAssembly-Build ausgegeben.
 
-  **01.11.2026, Sicherheitsprüfung und Update vorbereitet:** Vier bisherige
+  **01.11.2026, Sicherheitsprüfung und Update ausgeliefert:** Vier bisherige
   Python-Paketstände hatten Treffer in OSV. Die Locks für Backend und
   Codex-Worker wurden auf verfügbare korrigierte Versionen aktualisiert. Die
   erneute Abfrage der festgeschriebenen PyPI- und Pub-Versionen sowie der
@@ -800,9 +833,26 @@ Bestandteil des bestehenden Buildvertrags.
   Gradle-Transitive und Systempakete nicht vollständig ab. Versionsbereiche,
   Beispielmeldungen, Lizenzen der betroffenen Pakete, Toolchainwarnungen und
   Nachprüftermin stehen in `docs/DEPENDENCY_AUDIT_2026_11_01.md`.
-  Tests und tatsächliche Auslieferung müssen vor einem Abschluss gesondert
-  nachgewiesen werden; ein bestehendes Codex-Worker-Image wird durch eine
-  Lockdatei allein nicht aktualisiert.
+  Release `1.38.58+213` enthält die Aktualisierungen; die Versionen im
+  Backend und das neu gebaute Codex-Workerimage wurden auf dem Zielserver
+  geprüft. Die vollständige CI und die im Bericht genannten gezielten Tests
+  bestanden. Der Bericht benennt Auswirkungen, weitere Schritte und einen
+  Nachprüftermin für die bestehenden Toolchainwarnungen. Ein Androidgerät und
+  ein echter Wasm-Build wurden dabei nicht getestet oder behauptet.
+
+- [ ] **P1 – Sicherheitsprüfung der übrigen Lieferkette ergänzen**
+
+  Die Abhängigkeitsprüfung vom 01.11.2026 deckt Gradle-Transitive,
+  Container-Basisimages, Systempakete und tatsächlich ausgelieferte externe
+  JavaScript-Ressourcen nicht vollständig ab. Diese Bestände versioniert
+  erfassen und mit geeigneten Quellen auf bekannte Sicherheitsmeldungen und
+  Lizenzen prüfen; Ergebnisse, betroffene Laufzeitpfade, Zuständigkeit und
+  einen regelmäßigen Überprüfungsweg dokumentieren. Keine Trefferfreiheit für
+  nicht geprüfte Komponenten oder unbekannte Schwachstellen behaupten.
+
+  **Abnahme:** Für den festgelegten Betriebsumfang sind die genannten
+  Komponenten und ihre Versionen nachvollziehbar erfasst, aktuelle Treffer
+  bewertet beziehungsweise korrigiert und die Kontrolle wiederholbar.
 
 - [ ] **P1 – Datenschutz und Anbieterunterlagen fachkundig prüfen lassen**
 

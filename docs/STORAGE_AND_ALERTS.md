@@ -51,3 +51,21 @@ vorherige Code bleibt lokal erhalten. Ein lesender Trockenlauf des neuen
 Serverchecks und des unabhängigen Wächters meldete keine Fehler; dabei wurde
 keine Alarmmail versandt. Die Stichtagsmessung und simulierte Alarme belegen
 weder einen langfristigen Wachstumstrend noch eine tatsächliche Alarmzustellung.
+
+Am 01.11.2026 benötigte ein erfolgreicher Offsite-Abgleich ungefähr 19 Minuten.
+Da der Timer 15 Minuten nach Laufstart auslöst, startete anschließend sofort ein
+weiterer vollständiger Prüfsummenlauf; dieser war nach rund elf Minuten
+erfolgreich. Bei langsamer Platte kann das hohe dauerhafte I/O-Last erzeugen.
+Ein isolierter Vergleich mit kurzen künstlichen systemd-Läufen zeigte dasselbe
+unmittelbare Nachlaufen auch für den getesteten Kalendertimer. Eine Änderung
+des Zeitplans oder der vollständigen Prüfsummenprüfung wurde nicht vorgenommen;
+eine spätere Lösung muss den bestehenden Frischealarm und die Integritätsprüfung
+erhalten und bei langen und fehlgeschlagenen Läufen praktisch geprüft werden.
+
+Lokal vorbereitet ist ein Abstand von höchstens einer Minute, falls direkt
+zuvor ein erfolgreicher Abgleich abgeschlossen wurde. Timer, vollständige
+Prüfsummenprüfung und Frischealarm bleiben unverändert; ein fehlender,
+beschädigter oder zukünftiger Marker blockiert und verzögert keinen Lauf.
+Die künstlichen Tests prüfen außerdem, dass Warten und Abgleich unter derselben
+exklusiven Offsite-Sperre stattfinden. Der installierte Client wird erst nach
+Ende des laufenden Abgleichs gewechselt und danach erneut geprüft.

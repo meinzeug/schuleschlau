@@ -15,6 +15,8 @@ import tempfile
 import time
 from pathlib import Path
 
+MIN_SUCCESS_GAP_SECONDS = 60
+
 
 class InterruptedTransfer(RuntimeError):
     """A previous transfer needs an operator to reconcile both hosts."""
@@ -92,7 +94,29 @@ def main():
     args.destination.chmod(0o700)
     with (args.destination / ".pull.lock").open("a+") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
+        pace_recent_success(args.destination)
         pull(args.destination)
+
+
+def pace_recent_success(destination):
+    """Avoid immediately repeating a successful long full-digest run.
+
+    Only an existing local success marker can cause a bounded delay; missing,
+    invalid or future timestamps never stop a backup. The normal timer and
+    the complete checksum verification remain unchanged.
+    """
+    try:
+        marker = destination / "last-success.json"
+        if marker.is_symlink() or not marker.is_file() or marker.stat().st_size > 4096:
+            return
+        checked = json.loads(marker.read_text()).get("checked_at")
+    except (OSError, UnicodeError, ValueError, AttributeError):
+        return
+    if type(checked) is not int:
+        return
+    age = time.time() - checked
+    if 0 <= age < MIN_SUCCESS_GAP_SECONDS:
+        time.sleep(MIN_SUCCESS_GAP_SECONDS - age)
 
 
 def pull(destination):

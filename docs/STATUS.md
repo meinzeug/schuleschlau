@@ -1,4 +1,33 @@
-# Produktionsstand · 1.38.57+212
+# Produktionsstand · 1.38.58+213
+
+**Aktualisierung 01.11.2026:** Aktiv ist Release
+`20261101T104132Z-40649e8` aus Quellcommit
+`40649e875a53c616e7337df5fb068d93671fadf9`. API, Worker, Codex-Dienst
+und Sicherungs-/Überwachungstimer laufen; als vorheriger Code-Rückweg bleibt
+`20261101T073216Z-669ae59` erhalten. Eine verschlüsselte und überprüfte
+Sicherung der betroffenen Serverkonfigurationen liegt unter
+`/var/backups/schulpilot-config/predeploy-20261101T093544Z.tar.enc`.
+Ein Code-Rückweg setzt die Prüfung des Schemas und der inzwischen geschriebenen
+Daten voraus; er ist keine automatische Datenwiederherstellung.
+
+Der Release aktualisiert vier Python-Abhängigkeiten und verkürzt eine
+quellgebundene Erklärungsvorgabe, nachdem ein künstlicher langer Deutschfall
+die unveränderte Kostenreservierung knapp überschritt. Zu große Anfragen
+werden weiterhin vor dem Provideraufruf gestoppt. Alle drei Backend- und alle
+Flutter-Partitionen sowie Analyse und Webbuild der
+[Release-CI](https://github.com/meinzeug/schulpilot/actions/runs/41292493190)
+bestanden. Der aktive Server meldet die aktualisierten Paketversionen; das neu
+gebaute Codex-Image enthält ebenfalls die aktualisierte Zertifikatsliste.
+
+Das öffentliche Manifest und die tatsächlich heruntergeladene APK stimmen
+für Version 213, 137.556.720 Bytes und SHA-256
+`2e92bfe1af54484c9df5ffd6260896beff794eb57f7f8df175f71e1e13daae01` überein.
+Web, signierte APK und Play-Bundle sind an denselben Quellcommit gebunden.
+Ein gezielter Vergleich bekannter Geheimnisse mit Quellen und Artefakten ergab
+keinen Treffer; er ersetzt keine allgemeine Geheimnis- oder Sicherheitsprüfung.
+Ein neuer physischer Androidtest und sichtbare Pushzustellung sind nicht belegt.
+
+## Vorheriger Produktionsstand · 1.38.57+212
 
 **Aktualisierung 01.11.2026:** Aktiv ist Release
 `20261101T073216Z-669ae59`, Quellcommit

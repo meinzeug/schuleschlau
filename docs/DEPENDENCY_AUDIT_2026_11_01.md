@@ -44,6 +44,18 @@ ebenfalls konfliktfrei. TLS-GETs an Google und OpenRouter gelangen mit dem
 neuen Zertifikatsspeicher. Die Prüfungen verwenden keine echten Kinderbilder
 und belegen weder eine erfolgreiche echte KI-Anfrage noch einen Gerätetest.
 
+**Auslieferung:** Release `1.38.58+213` aus Commit `40649e8` ist aktiv.
+Die vier Versionen wurden in der produktiven Backend-Umgebung nachgeschlagen;
+der gesondert neu gebaute Codex-Container enthält ebenfalls certifi
+2026.10.23. Sein Buildfingerprint und die Lockdatei stimmen mit dem aktiven
+Release überein. Die vollständige [CI für den Releasecommit](https://github.com/meinzeug/schulpilot/actions/runs/41292493190)
+bestand. Zusätzlich bestanden jeweils 157 künstliche Fälle zu Kostengrenzen,
+Erklärung und Grafiktransport auf SQLite und isoliertem PostgreSQL; die später
+ergänzte engere Kostengrenze bestand mit je zwölf Fällen auf beiden Datenbanken.
+Web, signierte APK und Play-Bundle wurden quellgebunden gebaut. Die tatsächlich
+heruntergeladene APK stimmt in Version, Größe und Hash mit dem öffentlichen
+Manifest überein. Es wurde kein physischer Androidtest durchgeführt.
+
 ## Bekannte Toolchainhinweise
 
 - Der reguläre JavaScript-Webbuild gelingt. Die automatische Wasm-Trockenprobe
