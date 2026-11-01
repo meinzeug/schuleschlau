@@ -110,9 +110,11 @@ def pace_recent_success(destination):
         if marker.is_symlink() or not marker.is_file() or marker.stat().st_size > 4096:
             return
         checked = json.loads(marker.read_text()).get("checked_at")
-    except (OSError, UnicodeError, ValueError, AttributeError):
+    except (OSError, UnicodeError, ValueError, AttributeError, RecursionError):
         return
-    if type(checked) is not int:
+    # Guard floating-point conversion and reject impossible dates. Corrupt
+    # local metadata must never prevent the real backup from starting.
+    if type(checked) is not int or not 0 <= checked <= 253402300799:
         return
     age = time.time() - checked
     if 0 <= age < MIN_SUCCESS_GAP_SECONDS:

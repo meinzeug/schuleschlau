@@ -684,7 +684,14 @@ Bestandteil des bestehenden Buildvertrags.
   **Abnahme:** gültiges Update mit erhaltenem Konto und Daten funktioniert, fehlerhafte Downloads nicht installiert werden und das Play-AAB ausschließlich den Play-Updateweg ohne APK-Installerberechtigung enthält. Ein gebautes AAB ist kein Play-Upload oder veröffentlichter Storeeintrag.
 - [ ] **P1 – Physische Android-Abnahme nachholen**
 
-  Auf Nutzerwunsch derzeit zurückgestellt; sie bleibt für eine belastbare Produktions-/Gerätefreigabe erforderlich und wird durch Emulator, Build oder API-Antwort nicht ersetzt. Mit eigenem Gerät und künstlichem Material Kamera/Fotozuschnitt, Tastatur, Netzverlust, Speicherknappheit, Hintergrund/Rückkehr, Appneustart, Update und Barrierefreiheit einschließlich großer Schrift und TalkBack tatsächlich bedienen.
+  Auf Nutzerwunsch für diesen Auftrag optional und derzeit zurückgestellt; sie
+  blockiert den Abschluss anderer Roadmap-Punkte nicht. Ohne echte
+  Gerätebeobachtung bleiben gerätespezifische Aussagen offen; Emulator, Build
+  oder API-Antwort ersetzen sie nicht. Bei späterer Durchführung mit eigenem
+  Gerät und künstlichem Material Kamera/Fotozuschnitt, Tastatur, Netzverlust,
+  Speicherknappheit, Hintergrund/Rückkehr, Appneustart, Update und
+  Barrierefreiheit einschließlich großer Schrift und TalkBack tatsächlich
+  bedienen.
 
   **Abnahme:** Gerät/Androidversion, konkrete Abläufe, Beobachtungen, Fehler und Korrekturen dokumentiert und Testdaten regulär bereinigt sind.
 - [ ] **P1 – Benachrichtigungen auf echtem Gerät sichtbar prüfen**

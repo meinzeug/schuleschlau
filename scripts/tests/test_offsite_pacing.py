@@ -3,6 +3,7 @@
 import fcntl
 import importlib.util
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -27,7 +28,8 @@ def test_delay_is_bounded_and_only_follows_a_recent_success(tmp_path, monkeypatc
     assert waits == ([] if expected is None else [expected])
 
 
-@pytest.mark.parametrize("content", ["{", "[]", "null", '{"checked_at": true}', '{"checked_at": "1060"}', "x" * 4097])
+@pytest.mark.parametrize("content", ["{", "[]", "null", '{"checked_at": true}', '{"checked_at": "1060"}',
+    "x" * 4097, "[" * 1200 + "]" * 1200, '{"checked_at":' + "9" * 400 + '}'])
 def test_invalid_marker_never_blocks_a_backup(tmp_path, monkeypatch, content):
     (tmp_path / "last-success.json").write_text(content)
     monkeypatch.setattr(offsite.time, "sleep", lambda _: pytest.fail("invalid marker must not delay a backup"))
@@ -58,5 +60,9 @@ def test_pacing_and_pull_share_the_existing_exclusive_lock(tmp_path, monkeypatch
 
     monkeypatch.setattr(offsite, "pace_recent_success", phase("pace"))
     monkeypatch.setattr(offsite, "pull", phase("pull"))
-    offsite.main()
+    old_umask = os.umask(0o077)
+    try:
+        offsite.main()
+    finally:
+        os.umask(old_umask)
     assert phases == ["pace", "pull"]
