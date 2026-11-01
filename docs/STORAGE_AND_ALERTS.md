@@ -98,7 +98,7 @@ Der Serverbestand enthielt am 01.11. um 16:39 UTC bereits ein Archiv älter als
 14 Tage: Die tägliche serverseitige Bereinigung und der belegbare Spitzenbedarf
 für Restore und Build müssen gesondert verbessert beziehungsweise gemessen werden.
 
-### Vorbereitet: häufigere serverseitige Aufbewahrungsprüfung
+### Produktiv: häufigere serverseitige Aufbewahrungsprüfung
 
 Die bisherige tägliche Bereinigung wird durch einen eigenen Fünf-Minuten-Timer
 ersetzt. Unter denselben Volume- und Archivsperren prüft der neue Dienst vor
@@ -116,9 +116,31 @@ Die Bereinigung beginnt zehn Minuten vor Ablauf der Höchstfrist; der Zeitpuffer
 langen Sperren, fehlenden Nachweisen oder sonstigen Störungen kann die Frist
 überschritten werden: Dann wird nicht blind gelöscht, sondern eine Störung
 angezeigt. Die tatsächliche maximale Aufbewahrung bei Ausfällen ist daher
-keine technische Garantie. Ein lesender, gesperrter Trockenlauf des neuen Codes
-auf dem Zielserver identifizierte 18 Kandidaten; es wurden dabei keine Archive
-entfernt. Der lokale und der Server-UTC-Zeitstand unterschieden sich bei der
-Prüfung um ungefähr eine Stunde, daher ist für die Aufbewahrung die jeweilige
-Serverzeit maßgeblich. Erst produktive Aktivierung, neue Sicherung, Offsite-
-Abgleich und isolierte Restore-Probe schließen die betroffene Abnahme ab.
+keine technische Garantie. Ein lesender, gesperrter Trockenlauf des neuen Codes identifizierte zunächst
+18 Kandidaten. Nach regulärem Abschluss des laufenden Offsite-Abgleichs
+entfernte die neue Prüfung diese 18 abgelaufenen Archive unter den vorgesehenen
+Sperren und mit gültigem Restore- und Offsite-Nachweis. Release `534009f` wurde
+anschließend aktiviert. Eine neue Sicherung wurde isoliert und authentifiziert
+wiederhergestellt; 393 Löschjournal-Einträge wurden geprüft, Sitzungen
+widerrufen und der KI-Notstopp gesetzt. Die Produktionsdatenbank wurde nicht
+überschrieben. Nach dem Wechsel meldete der Server 366 Archive und keines über
+14 Tagen. Der neue Dienst lief erfolgreich; sein Timer sowie API, Worker und
+Restore-Timer waren aktiv. Der Serverwächter meldete im Trockenlauf keine
+Fehler. Der anschließende unabhängige Abgleich übertrug drei neue Archive,
+bestätigte 366 Kopien und ein verschlüsseltes Journal; beide lokalen Timer
+waren danach aktiv. Die verschlüsselte Journalkopie wurde dabei nicht auf ihren
+Inhalt geprüft. Der lokale und der Server-UTC-Zeitstand unterschieden sich bei
+der Prüfung um ungefähr eine Stunde, daher ist für die Aufbewahrung die
+jeweilige Serverzeit maßgeblich. Eine spätere Überschreitung bei Ausfällen
+bleibt möglich und muss überwacht werden.
+
+Der unabhängige Wächter enthält zusätzlich eine lokal getestete Prüfung auf
+unvollständige Offsite-Journaltransaktionen. Bleiben `.erasure-ledger.pending`
+oder `.erasure-ledger.previous` nach Freigabe der Pull-Sperre liegen, meldet er
+`offsite_transaction_incomplete`. Während ein normaler Pull die exklusive
+Sperre hält, meldet er diese kurzzeitig erwarteten Dateien nicht als Fehler;
+der bestehende Frischealarm bleibt als Schutz gegen einen dauerhaft hängenden
+Pull bestehen. Fehlende oder nicht vertrauenswürdige Sperren bei vorhandenen
+Transaktionsdateien gelten als Störung. Diese Änderung ist bis zur getrennten
+Installation des Watchdogs nur lokal geprüft; die Dateien dürfen nicht
+automatisch gelöscht werden.

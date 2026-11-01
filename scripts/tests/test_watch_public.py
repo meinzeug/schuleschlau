@@ -51,3 +51,56 @@ def test_fresh_future_and_missing_marker_are_distinguished(tmp_path):
              patch('sys.argv', ['watch_public.py', '--dry-run']), contextlib.redirect_stdout(out):
             assert bool(watch.main()) is bool(expected)
         assert json.loads(out.getvalue())['failures'] == expected
+
+
+def test_interrupted_transaction_requires_reconciliation_only_after_pull_lock(tmp_path):
+    import fcntl
+
+    lock_path = tmp_path / '.pull.lock'
+    lock_path.touch()
+    pending = tmp_path / '.erasure-ledger.pending'
+    pending.touch()
+    with lock_path.open('rb') as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        assert watch.interrupted_offsite_transaction(tmp_path) is False
+    assert watch.interrupted_offsite_transaction(tmp_path) is True
+    pending.unlink()
+    assert watch.interrupted_offsite_transaction(tmp_path) is False
+    previous = tmp_path / '.erasure-ledger.previous'
+    previous.symlink_to(tmp_path / 'missing')
+    assert watch.interrupted_offsite_transaction(tmp_path) is True
+
+
+def test_interrupted_transaction_without_trustworthy_lock_fails_closed(tmp_path):
+    pending = tmp_path / '.erasure-ledger.pending'
+    pending.touch()
+    assert watch.interrupted_offsite_transaction(tmp_path) is True
+    lock_path = tmp_path / '.pull.lock'
+    lock_path.symlink_to(tmp_path / 'missing')
+    assert watch.interrupted_offsite_transaction(tmp_path) is True
+
+
+def test_interrupted_transaction_reaches_neutral_alarm(tmp_path):
+    base = tmp_path / '.local/share/schulpilot-offsite'
+    base.mkdir(parents=True)
+    (base / 'last-success.json').write_text(json.dumps({'checked_at': 2000}))
+    (base / '.erasure-ledger.pending').touch()
+    response = MagicMock()
+    response.__enter__.return_value.status = 200
+    response.__enter__.return_value.read.return_value = b'{"status":"ok"}'
+    disk = SimpleNamespace(used=1, free=2**40, total=2**40 + 1)
+    out = io.StringIO()
+    with patch.object(watch.Path, 'home', return_value=tmp_path), \
+         patch.object(watch.time, 'time', return_value=2000), \
+         patch.object(watch.urllib.request, 'urlopen', return_value=response), \
+         patch.object(watch.shutil, 'disk_usage', return_value=disk), \
+         patch('sys.argv', ['watch_public.py', '--dry-run']), contextlib.redirect_stdout(out):
+        assert watch.main() is True
+    assert json.loads(out.getvalue())['failures'] == ['offsite_transaction_incomplete']
+
+
+def test_interrupted_transaction_lock_error_is_reported(tmp_path):
+    (tmp_path / '.erasure-ledger.pending').touch()
+    (tmp_path / '.pull.lock').touch()
+    with patch.object(watch.fcntl, 'flock', side_effect=OSError('unavailable')):
+        assert watch.interrupted_offsite_transaction(tmp_path) is True

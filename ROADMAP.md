@@ -214,6 +214,17 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
     Der Journalinhalt wurde dabei nicht entschlüsselt geprüft; die
     serverseitige tägliche Bereinigung bleibt unabhängig und weiterhin offen.
 
+  - [x] Die serverseitige Archivbereinigung unabhängig von der täglichen
+    Sicherung planen, mit Wiederherstellungs- und Offsite-Nachweisen absichern
+    und produktiv überprüfen. Release `534009f` entfernte 18 abgelaufene
+    Archive nach einem erfolgreichen Offsite-Lauf; anschließend fanden sich
+    366 Serverarchive und keines über 14 Tagen. Eine neue Sicherung und ein
+    isolierter Restore mit 393 geprüften Löschjournal-Einträgen bestanden;
+    der erneute Offsite-Lauf übertrug drei neue Archive und beide lokalen Timer
+    liefen wieder. Der Wächter meldete im Trockenlauf keine Fehler. Bei
+    Ausfällen kann die Frist überschritten werden und wird dann alarmiert;
+    Spitzenbedarf und langfristige Kapazitätsentwicklung bleiben offen.
+
   Bei der lesenden Prüfung am 31.10.2026 zeigte das Serverdateisystem rund 92 % Belegung und etwa 3,1 GiB frei. Wachstum von Datenbank, privaten Uploads, Backups und eigenen Releases getrennt messen; den Platzbedarf für Backup, Build, Upload und Wiederherstellung berücksichtigen. Nur eindeutig entbehrliche eigene Artefakte unter Einhaltung aller Aufbewahrungsregeln bereinigen oder Speicherkapazität erweitern; keine fremden Dienste oder Daten verändern. Warn- und Eskalationsschwellen auf den tatsächlich verfügbaren Platz und den Wachstumstrend abstimmen.
 
   **Abnahme:** Freier Platz, erwarteter Spitzenbedarf, Zuständigkeit und Alarmweg sind dokumentiert; ein kontrollierter Test zeigt eine rechtzeitige Warnung. Eine Stichtagsmessung wird nicht als dauerhafte Kapazitätsgarantie ausgegeben.
