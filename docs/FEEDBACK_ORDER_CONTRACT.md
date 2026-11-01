@@ -3,6 +3,18 @@
 Stand 31.10.2026. Der globale Reihenfolgenfehler bleibt offen; der unten
 genannte eng begrenzte Teilfall ist lokal korrigiert und wird separat geprüft.
 
+Ergänzung 01.11.2026: Der gemeinsame Resolver und die Ermittlung ungelesener
+Marker berücksichtigen nur Ereignisse, deren Kind und Einheit zur betrachteten
+Runde passen. Ein synthetischer Test prüft fremde und beschädigte Marker
+sowie reguläre eigene Bestätigungen; der bisherige API-Pfad filtert bereits
+bei der Datenbankabfrage. Diese zusätzliche Absicherung belegt weder einen
+konkreten Fremdzugriff noch die Lösung der unten beschriebenen unklaren
+historischen Reihenfolge. Je 28 gezielte Fälle bestanden auf SQLite und
+isoliertem PostgreSQL; zwei bekannte Reihenfolgefälle bleiben erwartete
+Fehlschläge. Weitere je 64 Fälle zu Rückmeldungswiederherstellung, möglichen
+Lösungsoffenlegungen, Lerncontroller und Schulbuddy bestanden auf beiden
+Datenbanken.
+
 ## Nachgewiesene Probleme
 
 Ein synthetischer API-Fall mit zwei Fragen und gleichem Zeitstempel ergibt

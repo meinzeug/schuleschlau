@@ -336,6 +336,11 @@ def learning_times(db, children):
     return result
 
 
+def _own_feedback_event(unit, event, kind):
+    return (event.child_id == unit.child_id and event.unit_id == unit.id
+            and event.kind == kind and isinstance(event.detail, dict))
+
+
 def pending_feedback(unit, attempts, events):
     """Resume only the latest explicitly guided response; legacy history stays unchanged."""
     if not attempts:
@@ -354,9 +359,9 @@ def pending_feedback(unit, attempts, events):
                 and all(a.created == latest.created or a.evaluation["attempt_number"] < min(
                     t.evaluation["attempt_number"] for t in tied) for a in same_question)):
             latest = max(tied, key=lambda a: a.evaluation["attempt_number"])
-    pending = any(e.kind == "feedback_pending" and isinstance(e.detail, dict)
+    pending = any(_own_feedback_event(unit, e, "feedback_pending")
                   and e.detail.get("attempt_id") == latest.id for e in events)
-    seen = any(e.kind == "feedback_seen" and isinstance(e.detail, dict)
+    seen = any(_own_feedback_event(unit, e, "feedback_seen")
                and e.detail.get("attempt_id") == latest.id for e in events)
     if not pending or seen:
         return None
@@ -378,11 +383,11 @@ def unread_feedback_ids(unit, attempts, events):
     """Valid unread markers scoped to this unit's actual answer IDs."""
     valid = {attempt.id for attempt in attempts}
     unread = {event.detail.get("attempt_id") for event in events
-              if event.child_id == unit.child_id and event.kind == "feedback_pending"
-              and isinstance(event.detail, dict) and isinstance(event.detail.get("attempt_id"), str)} & valid
+              if _own_feedback_event(unit, event, "feedback_pending")
+              and isinstance(event.detail.get("attempt_id"), str)} & valid
     unread -= {event.detail.get("attempt_id") for event in events
-               if event.child_id == unit.child_id and event.kind == "feedback_seen"
-               and isinstance(event.detail, dict) and isinstance(event.detail.get("attempt_id"), str)}
+               if _own_feedback_event(unit, event, "feedback_seen")
+               and isinstance(event.detail.get("attempt_id"), str)}
     return unread
 
 

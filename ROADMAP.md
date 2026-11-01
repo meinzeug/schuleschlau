@@ -700,6 +700,12 @@ Die folgenden Punkte beschreiben ausstehende, wiederholbare Betriebs- und Freiga
 
   **Abnahme:** Genau die vorgesehene berechtigte Person kann den passenden gespeicherten Inhalt öffnen; gelesene und ungelesene Meldungen stimmen nach Scrollen und Gerätewechsel. In-App-Erfolg, FCM-Annahme und sichtbare native Zustellung sind getrennt belegt.
 
+  **01.11.2026, Teilprüfung:** 94 SQLite-Fälle mit künstlichen Familien und
+  simuliertem Push bestanden, ein Fall wurde übersprungen. Sie prüfen unter
+  anderem gespeicherte Rundenziele, Berechtigungs- und Quellenänderungen sowie
+  Wiederholungen. Der vollständige Glockenablauf und eine sichtbare native
+  Zustellung bleiben gesondert offen; die Tests simulieren FCM.
+
 - [ ] **P1 – Familienanrufe und optionale Medien nur im freigegebenen Umfang abnehmen**
 
   Falls für die gewählte Startstufe vorgesehen, Eltern-/Kinderrollen, ausdrückliche Kamera-/Mikrofon-/Bildschirmfreigaben, Verbindungsaufbau, Abbruch, Widerruf und Gerätewechsel mit synthetischen Konten prüfen. Medienlinks auf passende katalogisierte Inhalte und Rückkehr zum Lernkontext testen; kein privater Kontext in URL oder Referrer.
