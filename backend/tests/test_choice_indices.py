@@ -95,6 +95,61 @@ def test_package_choice_index_becomes_existing_full_answer_without_extra_call(tr
     assert calls[0]["provider"]["data_collection"] == "deny"
 
 
+def test_repeated_sentence_options_are_rejected_after_index_decoding_without_retry(transport, monkeypatch):
+    config, output, choice, calls = transport
+    output["units"][0]["subject"] = "Geschichte"
+    options = ["Eine historische Reise über das Meer", "Eine andere historische Reise an Land"]
+    questions = []
+    for index in range(4):
+        question = copy.deepcopy(choice)
+        question.update(id=f"q{index + 1}", prompt=f"Welche Aussage passt zu Situation {index + 1}?",
+                        options=options if index % 2 == 0 else list(reversed(options)),
+                        answer=0, accepted=[])
+        questions.append(question)
+    unit = {**output["units"][0], "questions": questions}
+    unit.pop("group_id")
+
+    class Client:
+        def __init__(self, **kwargs):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            pass
+
+        def post(self, url, headers, **kwargs):
+            calls.append(kwargs["json"])
+            return httpx.Response(200, json={"choices": [{"finish_reason": "stop",
+                "message": {"content": json.dumps(unit)}}],
+                "usage": {"prompt_tokens": 100, "completion_tokens": 200, "cost": 0}})
+
+    monkeypatch.setattr(providers.httpx, "Client", Client)
+    with pytest.raises(ProviderError, match="denselben langen Antwortmöglichkeiten") as caught:
+        request_provider(config, "unit", {"material": {"content": "Synthetischer Geschichtsstoff."}})
+    assert caught.value.code == "invalid_output"
+    assert caught.value.billing_result is not None
+    assert len(calls) == 1
+
+
+def test_shared_short_categories_and_different_options_remain_valid():
+    categories = [{"type": "choice", "options": ["Richtig", "Falsch"],
+                   "answer": "Richtig" if index % 2 else "Falsch"} for index in range(4)]
+    providers.validate_choice_variety(categories)
+    for index, question in enumerate(categories):
+        question["options"] = [f"Möglichkeit für Beispiel {index}", "Eine andere passende Antwort"]
+        question["answer"] = question["options"][0]
+    providers.validate_choice_variety(categories)
+
+
+def test_shared_long_options_with_distinct_correct_answers_remain_valid():
+    options = ["Eine Antwort mit mehreren Worten", "Eine andere Antwort mit Worten",
+               "Eine dritte Antwort mit Worten"]
+    providers.validate_choice_variety([{"type": "choice", "options": options, "answer": option}
+                                     for option in options])
+
+
 @pytest.mark.parametrize("answer", [-1, 3, 999, True, 1.5, "B", "2"])
 def test_invalid_choice_reference_is_rejected_without_guessing_or_retry(transport, answer):
     config, _, choice, calls = transport

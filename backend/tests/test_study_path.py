@@ -659,6 +659,30 @@ def test_duplicate_questions_are_rejected_without_replacement_or_losing_old_answ
             assert attempt.answer == "Ein Stern" and attempt.outcome == "correct" and not attempt.assisted
 
 
+def test_repeated_long_choice_bank_is_not_published_as_a_study_stage(study, stage_transport, monkeypatch):
+    block = create(study)["next_block_id"]
+    original = study_path.request_provider
+
+    def repetitive(config, function, payload):
+        result = original(config, function, payload)
+        assert len(result.data["questions"]) >= 3
+        options = ["Der Stern strahlt selbst Licht aus", "Der Planet leuchtet nur durch fremdes Licht"]
+        for index, question in enumerate(result.data["questions"]):
+            question["options"] = options if index % 2 else list(reversed(options))
+            question["answer"] = options[index % 2]
+        return result
+
+    monkeypatch.setattr(study_path, "request_provider", repetitive)
+    assert generate(study, block).status_code == 202
+    finish()
+    assert len(stage_transport["calls"]) == 1
+    with DB() as db:
+        job = db.scalar(select(Job).where(Job.kind == "study_block"))
+        assert job.status == "failed" and "denselben langen Antwortmöglichkeiten" in job.error
+        assert db.scalar(select(func.count()).select_from(LearningUnit)) == 0
+        assert db.scalar(select(Usage)).cost_micros == 0
+
+
 def ready_recall(study):
     block = create(study)["next_block_id"]
     with DB.begin() as db:

@@ -277,6 +277,14 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
 
   Aus den vorhandenen synthetischen Fachfällen eine versionierte Matrix nach Fach, Klassenband, Aufgabentyp, Hilfestufe und Fehlerklasse erstellen. Eine fachkundige Person bewertet unabhängig Quellenbezug, Lösung, verlangte Darstellung, Erklärung und Verständlichkeit anhand vorab festgelegter Kriterien.
 
+  **01.11.2026, lokale Ergänzung:** Wiederkehrende längere Antwortauswahlen
+  mit mehrfach gleichen Lösungen innerhalb einer neuen Sachrunde werden
+  nach der Auflösung der Auswahlindizes als ungültige Ausgabe erkannt;
+  die Anweisung fordert abwechslungsreiche Fragen. Kurze gemeinsame
+  Kategorien bleiben möglich. Bestehende Runden und Antworten werden nicht
+  umgeschrieben. Die Prüfung erkennt keine sinngleichen Umformulierungen und
+  ersetzt keine fachliche Abnahme.
+
   **Abnahme:** Jede für den Start angebotene Kombination hat dokumentierte repräsentative Fälle, eindeutige erwartete Ergebnisse und einen Befund; kritische fachliche Fehler sind behoben und mit Regressionstest erneut geprüft. Nicht untersuchte Kombinationen bleiben sichtbar offen; eine gültige Schemaantwort gilt nicht als fachliche Abnahme.
 
 - [x] **P1 – Bewertung und Lernfortschritt über den gesamten Lebenszyklus prüfen**

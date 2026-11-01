@@ -719,6 +719,10 @@ def process(job_id):
         request_config._selected_route = route_snapshot
         result = request_provider(request_config, "unit", payload)
         data = s.UnitOutput.model_validate(result.data).model_dump()
+        from .providers import is_mathematics, validate_choice_variety
+
+        if not is_mathematics(data["subject"]):
+            validate_choice_variety(data["questions"])
         validate_fraction_comparison_application(
             payload["required_subject"], payload["required_topic"], payload["study_block"]["mode"],
             [value["content"] for value in safe], data["questions"],

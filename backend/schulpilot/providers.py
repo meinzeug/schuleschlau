@@ -112,6 +112,9 @@ Jede Aufgabe braucht 1 bis 3 hilfreiche Hinweise und eine verständliche Erklär
 Kennzeichne neue Beispiele als Übungen. Behaupte nie, ein erfundenes Beispiel stamme aus einer notierten Hausaufgabe.
 Jede Aufgaben-ID ist eindeutig, zum Beispiel q1, q2, q3, q4. Auswahloptionen enthalten vollständige inhaltliche Antworten,
 niemals nur die Buchstaben A/B/C/D. Prüfe jede Lösung gegen ihre Frage und Erklärung.
+Stelle in einer Runde verschiedene sachliche Fragen mit dazu passenden Antwortmöglichkeiten. Wiederhole nicht
+mehrfach dieselben längeren Antwortsätze als Auswahl, wenn sich dadurch dieselben Lösungen wiederholen.
+Kurze allgemeine Kategorien wie Ja/Nein oder richtig/falsch sind für passende Fragen weiterhin zulässig.
 Eine Lücke fragt nach dem fehlenden Bestandteil, nicht nach dem übrigen bereits vorgegebenen Teil.
 accepted enthält nur zusätzliche gleichwertige Schreibweisen der Antwort auf genau dieselbe Frage.
 Bei choice und match bleibt accepted leer.
@@ -137,6 +140,32 @@ def is_mathematics(subject):
     return isinstance(subject, str) and bool(
         re.match(r"^(?:mathematik|mathe|mathematics|math|rechnen)\b", subject, re.I)
     )
+
+
+def validate_choice_variety(questions):
+    """Reject a repeated long-answer bank that makes several tasks redundant.
+
+    This is deliberately narrow: short shared category labels and groups with
+    distinct correct answers remain valid. It does not judge factual meaning
+    or claim that differently worded options make a good exercise.
+    """
+    def normalize(value):
+        return " ".join(unicodedata.normalize("NFKC", value).casefold().split())
+
+    groups = {}
+    for question in questions:
+        if question.get("type") != "choice":
+            continue
+        options = frozenset(normalize(option) for option in question["options"])
+        answer = normalize(question["answer"])
+        groups.setdefault(options, []).append(answer)
+    for options, answers in groups.items():
+        if (len(answers) >= 3 and len(set(answers)) < len(answers)
+                and any(len(option.split()) >= 3 for option in options)):
+            raise ProviderError(
+                "Die KI hat mehrere Aufgaben mit denselben langen Antwortmöglichkeiten erzeugt. Bitte die Runde erneut vorbereiten.",
+                code="invalid_output",
+            )
 
 
 def system_text(function, *, review_only=False):
@@ -2362,6 +2391,13 @@ def request_provider(config, function, payload, image_bytes=None, *, synthetic_f
         if function == "extract":
             validation_phase = "extract"
             data = TranscriptionOutput.model_validate(data).as_material()
+        validation_phase = "choice_variety"
+        if function == "unit" and not is_mathematics(data.get("subject")):
+            validate_choice_variety(data["questions"])
+        elif function == "package":
+            for unit in data["units"]:
+                if not is_mathematics(unit.get("subject")):
+                    validate_choice_variety(unit["questions"])
         if exam_analysis:
             from .exam_review_transport import validate_bounds as validate_exam_bounds
 
