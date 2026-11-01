@@ -448,7 +448,9 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
   Beispieldaten zeigte alle drei Beschriftungen bei 390 und 320 Pixeln; die
   Auswahl „Alle Seiten“ funktionierte. Die Vorschau zeigt den geänderten
   Reiterbaustein, nicht den vollständigen produktiven Heftablauf. Der
-  Gesamtpunkt bleibt offen.
+  ergänzende 20-Fälle-Lauf prüfte unter anderem die Reiter in hellem und
+  dunklem Design auf mindestens 4,5:1 Textkontrast und 48-Pixel-Trefferflächen.
+  Der Gesamtpunkt bleibt offen.
 
 - [ ] **P1 – Alters- und situationsgerechte Bedienung beobachten**
 
