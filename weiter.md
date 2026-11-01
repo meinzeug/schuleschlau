@@ -14,7 +14,7 @@ Der Nutzer möchte die offene `ROADMAP.md` vollständig und nachweisbar abarbeit
 
 ## Git und Arbeitsverzeichnis
 
-Das Hauptverzeichnis ist `/home/dennis/schulpilot`, Branch `main`, Remote `origin`. Bei der jüngsten Aktualisierung war `main` auf `534009f`; spätere Commits und den tatsächlichen Stand zuerst prüfen. Im Hauptverzeichnis liegen zwei bereits vorhandene, nicht zu dieser Arbeit gehörende Änderungen:
+Das Hauptverzeichnis ist `/home/dennis/schulpilot`, Branch `main`, Remote `origin`. Der zuletzt geprüfte produktive App-Quellstand war `534009f`; danach folgten weitere Commits für den unabhängigen Watchdog, den Offsite-Client und Dokumentation. Den tatsächlichen Stand von `main` und Remote zuerst prüfen. Im Hauptverzeichnis liegen zwei bereits vorhandene, nicht zu dieser Arbeit gehörende Änderungen:
 
 - `app/pubspec.yaml`, SHA-256 bei Übergabe: `0f1581c5f623adac6a49c7837e7c080fb4c98b82065587db7124c7c3772a0d30`
 - `backend/schulpilot/__init__.py`, SHA-256 bei Übergabe: `313b5053897d6953cf386f4157d66d3527e6e161ba497053f9927762482e45e0`
@@ -33,7 +33,7 @@ Der abschließende Offsite-Abgleich endete erfolgreich: zunächst drei neue Arch
 
 Der Offsite-Client aus Commit `2558c11` ist mit einem zweistündigen Aufbewahrungspuffer installiert. Der bisherige Client liegt unter `/home/dennis/.local/share/schulpilot-operations/backups/pre-2558c11/`. 133 lokale Betriebsfälle und 34 Unterfälle bestanden; ein echter Pull mit dem neuen Client meldete 367 Kopien, ein verschlüsseltes Journal, keine offenen Transaktionsdateien und aktive Timer. In der vorangehenden Inventur lag kein Archiv im Pufferbereich; seine Löschgrenze ist durch künstliche Fälle geprüft, nicht durch diesen Live-Lauf. Bei längeren Ausfällen bleibt die Einhaltung der Höchstfrist offen.
 
-Der unabhängige Watchdog aus Commit `96c43ca` ist lokal installiert. Er meldet liegengebliebene Journal-Transaktionsmarker nach Freigabe der Offsite-Sperre als `offsite_transaction_incomplete`; ein laufender Pull erzeugt dadurch keinen Fehlalarm. Der installierte Code meldete eine synthetische Unterbrechung in einem separaten temporären Home korrekt und blieb bei gehaltener Pull-Sperre ohne Fehlalarm; der reale Trockenlauf war fehlerfrei. Der vorherige Watchdog liegt unter `/home/dennis/.local/share/schulpilot-operations/backups/pre-96c43ca/`. Die geänderten Betriebs- und Roadmap-Dokumente sowie der Commit können bei einer Unterbrechung noch ungepusht sein; Gitstatus und Remote prüfen.
+Der unabhängige Watchdog aus Commit `96c43ca` ist lokal installiert. Er meldet liegengebliebene Journal-Transaktionsmarker nach Freigabe der Offsite-Sperre als `offsite_transaction_incomplete`; ein laufender Pull erzeugt dadurch keinen Fehlalarm. Der installierte Code meldete eine synthetische Unterbrechung in einem separaten temporären Home korrekt und blieb bei gehaltener Pull-Sperre ohne Fehlalarm; der reale Trockenlauf war fehlerfrei. Der vorherige Watchdog liegt unter `/home/dennis/.local/share/schulpilot-operations/backups/pre-96c43ca/`. Vor weiteren Arbeiten Gitstatus und Remote prüfen; der App-Release und die unabhängig installierten Betriebsprogramme können verschiedene Quellstände verwenden.
 
 ## Nachgewiesener Stand und weitere Prioritäten
 
