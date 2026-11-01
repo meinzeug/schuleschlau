@@ -245,6 +245,15 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
   und anschließenden frischen Offsite-Lauf sowie Wächterprüfung nachholen;
   siehe `docs/STORAGE_AND_ALERTS.md`.
 
+  - [x] Die Offsite-Aufbewahrung vor der 14-Tage-Grenze mit einem Puffer für
+    reguläres Timerintervall und Transferfrist absichern. Der aktualisierte
+    Client verwendet regulär eine Grenze von 13 Tagen und 22 Stunden und
+    entfernt alte Kopien erst nach erfolgreichem Journalabgleich. Künstliche Grenz- und
+    Fehlerfälle bestanden. Ein echter anschließender Abgleich prüfte 367
+    Kopien und das verschlüsselte Journal; im Puffer lag bei der vorherigen
+    Inventur keine Kopie. Bei längeren Ausfällen bleibt eine Überschreitung
+    möglich und wird weiterhin überwacht.
+
   Bei der lesenden Prüfung am 31.10.2026 zeigte das Serverdateisystem rund 92 % Belegung und etwa 3,1 GiB frei. Wachstum von Datenbank, privaten Uploads, Backups und eigenen Releases getrennt messen; den Platzbedarf für Backup, Build, Upload und Wiederherstellung berücksichtigen. Nur eindeutig entbehrliche eigene Artefakte unter Einhaltung aller Aufbewahrungsregeln bereinigen oder Speicherkapazität erweitern; keine fremden Dienste oder Daten verändern. Warn- und Eskalationsschwellen auf den tatsächlich verfügbaren Platz und den Wachstumstrend abstimmen.
 
   **Abnahme:** Freier Platz, erwarteter Spitzenbedarf, Zuständigkeit und Alarmweg sind dokumentiert; ein kontrollierter Test zeigt eine rechtzeitige Warnung. Eine Stichtagsmessung wird nicht als dauerhafte Kapazitätsgarantie ausgegeben.

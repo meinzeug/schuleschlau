@@ -203,5 +203,12 @@ einer gescheiterten Übertragung oder ungeklärter Transaktion ist die Frist
 nicht garantiert; dann bleiben Kopien zum Schutz des Wiederherstellungswegs
 zunächst erhalten und der Fehler muss bearbeitet werden. Die Puffergrenze,
 fehlgeschlagene Quittierung und der Schutz der letzten aktuellen Kopie wurden
-mit künstlichen Archiven getestet. Die tatsächliche lokale Umstellung und ein
-anschließender realer Abgleich müssen noch dokumentiert werden.
+mit künstlichen Archiven getestet. Der Client aus Commit `2558c11` wurde nach Ende eines laufenden Pulls
+atomar installiert; der Timer wurde für das Umschaltfenster angehalten und
+anschließend wieder aktiviert. Der vorherige Client liegt unter
+`~/.local/share/schulpilot-operations/backups/pre-2558c11/`. Der erste reale
+Abgleich prüfte 367 Kopien, kopierte kein neues Archiv und glich das
+verschlüsselte Journal ab; beide Timer und die beiden Wächter-Trockenläufe
+waren danach fehlerfrei. In der vorherigen Inventur befand sich kein Archiv
+im neuen Pufferbereich. Der Live-Lauf belegt deshalb nicht die Löschung an
+dieser Grenze, die durch die künstlichen Fälle geprüft wurde.
