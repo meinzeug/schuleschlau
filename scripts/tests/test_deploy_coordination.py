@@ -374,6 +374,16 @@ def test_manual_rollback_acquires_exclusive_lock_and_blocks_concurrency(env):
     assert stage.check_lock(env, owner=owner) is None
 
 
+@pytest.mark.parametrize("operation", ["rollback", "prune"])
+def test_failed_operator_operation_retains_lease_until_inspected(env, operation):
+    with pytest.raises(RuntimeError, match="synthetic failure"):
+        with stage.release_operation(env, operation, PREVIOUS):
+            raise RuntimeError("synthetic failure")
+    assert stage.check_lock(env)["operation"] == operation
+    with pytest.raises(stage.ReleaseLockError):
+        stage.prepare(env, RELEASE_1)
+
+
 def test_early_staging_error_cleans_up_lock(env, tmp_path):
     """If prepare fails during staging directory setup, the acquired lock is released."""
     owner = os.geteuid()

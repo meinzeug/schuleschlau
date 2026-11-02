@@ -375,12 +375,14 @@ def release_operation(
     is_session_owner = token is None
     try:
         yield lock_data
-    finally:
+    except BaseException:
+        # A failed or interrupted rollback/prune may still have descendants
+        # working, or leave partially modified state. Never free its lease
+        # automatically; an operator must first examine the actual state.
+        raise
+    else:
         if is_session_owner:
-            try:
-                release_lock(base, managed_token, owner=owner)
-            except Exception:
-                pass
+            release_lock(base, managed_token, owner=owner)
 
 
 def _directory(parent, name, owner, *, mode=None):

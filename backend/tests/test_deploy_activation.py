@@ -217,6 +217,17 @@ def test_failed_deployment_activation_keeps_existing_lease(tmp_path, monkeypatch
     assert activation.current.resolve() == activation.old
 
 
+def test_failed_manual_activation_also_retains_lease(tmp_path, monkeypatch):
+    from deploy.stage_release import ReleaseLockError, check_lock, prepare
+
+    activation = Activation(tmp_path, "validate")
+    with pytest.raises(subprocess.CalledProcessError):
+        activation.execute(monkeypatch)
+    assert check_lock(activation.base)["operation"] == "rollback"
+    with pytest.raises(ReleaseLockError):
+        prepare(activation.base, "20261031T200000Z-abcdef3")
+
+
 @pytest.mark.parametrize("rollback_compatible", [False, True])
 def test_writers_are_drained_and_last_backup_uses_old_release_before_switch(tmp_path, monkeypatch, rollback_compatible):
     activation = Activation(tmp_path)

@@ -969,6 +969,10 @@ Bestandteil des bestehenden Buildvertrags.
     ergänzte Fälle prüfen, dass die Deployment-Lease bei erfolgreicher oder
     fehlgeschlagener Aktivierung bis zur ausdrücklichen Nacharbeit bestehen
     bleibt. Systemdienste und Migrationen sind dabei Testdoubles, keine Live-Abnahme.
+    Eine spätere Teilkorrektur erhält die Lease auch bei einem fehlgeschlagenen
+    manuellen Rückweg oder fehlgeschlagener Bereinigung; die Tests prüfen, dass
+    danach kein konkurrierendes Staging startet. Der konkrete Anlagenzustand
+    muss vor einer manuellen Freigabe jeweils geprüft werden.
 
   **Zusätzliche Tests:** Zwei synthetische Deployments mit künstlich pausiertem Upload und paralleler Bereinigung ausführen; dazu SSH während Upload und Aktivierung unterbrechen, den Kindprozess verzögert beenden und prüfen, dass kein zweiter verändernder Ablauf oder prune das laufende Staging beeinträchtigt. Frühe und späte Fehler, Timerläufe sowie einen manuellen Rückweg unter demselben Vertrag prüfen. Keine Tests gegen Produktion ausführen.
 
