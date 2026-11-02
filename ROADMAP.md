@@ -933,6 +933,23 @@ Bestandteil des bestehenden Buildvertrags.
 
   Betroffene Konfigurationen und Daten vorher sichern, Migrations- und Rückwärtskompatibilität prüfen, nur SCHULPILOT aktualisieren und vorheriges Release erhalten.
 
+  **02.11.2026, produktiver Release:** `1.38.59+214` aus Commit `6f1e113`
+  wurde auf `schulpilot.dorfspy.de` aktiviert; vorheriges Release ist
+  `20261101T193953Z-534009f`. Der Deployablauf meldete erfolgreiche
+  Sicherung und Caddy-Prüfung; API, Worker, Reparaturdienste, Codex-Dienst
+  und Überwachung waren anschließend aktiv. HTTPS-Health meldete Commit und
+  Release, der Direktlink lieferte HTTP 200, ein anonymer Zugriff auf eine
+  private Materialliste HTTP 401. Die aus dem öffentlichen Download gelesene
+  APK hatte 137.556.720 Bytes und stimmte mit Version, Code 214 und SHA-256
+  des öffentlichen Manifests überein. Die Weboberfläche öffnete im Browser
+  „Heute“ und die Fachübersicht unter „Lernen“. Der Play-Build wurde erstellt,
+  kein Store-Upload durchgeführt. Der Backend-CI-Teil lief zum Zeitpunkt des
+  Deployments noch; anschließend endete der vollständige
+  [CI-Lauf 41479726888](https://github.com/meinzeug/schulpilot/actions/runs/41479726888)
+  für `6f1e113` erfolgreich. Der physische
+  Android-Updateablauf, die Koordination mit alten Skripten und ein echter
+  Rückweg sind dadurch nicht abgenommen; der Hauptpunkt bleibt offen.
+
   **01.11.2026:** Der reale Release `1.38.57+212` wurde mit Sicherung,
   Healthprüfung und erhaltenem Vorgänger ausgerollt. Eine Testinterferenz
   zwischen Watchdog und Stagingprüfung wurde korrigiert: der Watchdogtest

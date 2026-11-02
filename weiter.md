@@ -36,12 +36,14 @@ Pflicht jetzt rekursiv; Tests prüfen normale Runden, Folgeübungen und Pakete
 sowie das tatsächliche Anfrageschema. Bestehende Inhaltsprüfungen bleiben
 erhalten. Die Belege stehen in `docs/GRAPHIC_TRANSPORT_RELIABILITY.md`.
 
-Der Codefix ist noch nicht produktiv abgenommen. Vor der konkreten Reparatur
-Deployment-Koordination und sicheren Releasepfad abschließen; nach Installation
-ist auf ausdrücklichen Nutzerauftrag höchstens ein separater auditierter,
-normal reservierter Reparaturauftrag für den exakt betroffenen vorhandenen
-Auftrag zulässig. Alte Fehler und Kosten erhalten, keine Antworten eintragen.
-Danach Ergebnis und Browserstatus prüfen; keinen Erfolg vorwegnehmen.
+Der Codefix ist seit Release `20261102T163558Z-6f1e113` produktiv. Der
+ursprüngliche Link zeigt nach dem Deployment weiterhin den erhaltenen Fehler;
+allein das Ausrollen startet keinen neuen Auftrag. Auf ausdrücklichen
+Nutzerauftrag ist höchstens ein separater auditierter, normal reservierter
+Reparaturauftrag für den exakt betroffenen vorhandenen Auftrag zulässig. Vorher
+den normalen, gegen aktuelle Sitzung und Quellen abgesicherten Weg nachweisen;
+alte Fehler und Kosten erhalten, keine Antworten eintragen. Das Ergebnis ist
+noch nicht repariert oder als erfolgreich geprüft.
 
 ## Aktuell laufende Arbeit: Backup-Aufbewahrung
 
@@ -63,6 +65,7 @@ Der unabhängige Watchdog aus Commit `96c43ca` ist lokal installiert. Er meldet 
 - Fünf offene Bereiche wurden am 02.11.2026 mit künstlichen SQLite-Daten erneut geprüft: Lernplanung (13 Fälle), KI-Transport (49 bestanden, ein Sperrentest übersprungen), Referenzen/Medien (109), Szenen (50) und Tutor (44 bestanden, zwei Sperrentests übersprungen). Der Mehrtagesfall und die drei SQLite-Skips bestanden anschließend auf isoliertem PostgreSQL. Befehle und weiterhin fehlende Abnahmeschritte stehen in `docs/ROADMAP_REGRESSION_2026_11_02.md`; keiner der fünf Hauptpunkte wurde allein wegen dieser Tests abgehakt.
 - Weitere Teilprüfungen zu fünf anderen offenen Bereichen: Hefte 34 SQLite-Fälle und drei zusätzliche PostgreSQL-Sperrentests, Klassenarbeiten 45, Eltern/Noten 45, Administration 47 und Aufbewahrung/Notenwiederherstellung 21 SQLite-Fälle. Der PostgreSQL-Lauf enthielt zusätzlich Admin-Parallelitätsfälle und bestand mit zehn Fällen. Die Grenzen und Befehle stehen in `docs/ROADMAP_MODULE_CHECKS_2026_11_02.md`; vollständige fachliche und Browser-Abnahmen bleiben offen.
 - Der zuletzt geprüfte produktive Stand war Release `534009f` unter `/opt/schulpilot/releases/20261101T193953Z-534009f`; API, Worker und Sicherungs-/Wiederherstellungstimer waren aktiv. Das ist eine historische Beobachtung, keine Garantie für den aktuellen Zustand.
+- Update 02.11.2026: Produktiv ist `20261102T163558Z-6f1e113`, Version `1.38.59+214`; `534009f` ist der vorherige Release. Health und Direktlink waren erreichbar, private Materiallisten anonym gesperrt, Dienste und Timer aktiv; das öffentliche APK wurde vollständig geladen und gegen Manifestgröße und SHA-256 geprüft. Die Fachübersicht unter „Lernen“ wurde im Browser geöffnet. Der vollständige CI-Lauf `41479726888` für `6f1e113` war nach dem Deployment erfolgreich. Nicht vollständig abgenommene Koordination alter Werkzeuge und echter Rückweg siehe Roadmap. Keine Android-Installation oder Play-Veröffentlichung behaupten.
 - Der lokale Offsite-Client enthält `6f1ef41`; sein vorheriger Stand wurde unter `/home/dennis/.local/share/schulpilot-operations/backups/pre-6f1ef41/` gesichert. Den tatsächlichen Installationsstand und laufende Timer erneut prüfen.
 - Eine isolierte Wiederherstellungsprobe mit Löschjournal und Sitzungswiderruf war erfolgreich. Die belastbare Einhaltung der 14-Tage-Aufbewahrungsfrist ist durch den 5-Minuten-Dienst `schulpilot-backup-retention.service` live nachgewiesen (363 Archive, ältestes 13,66 Tage alt). Der PostgreSQL-Audit ergab 0 unzugeordnete Slots und genau eine historische Notenlöschung vor Beginn der aufbewahrten Backups. Der betriebliche Spitzenbedarf (< 610 MB) ist durch 15,8 GiB Reserve auf `/` mehr als 25-fach gedeckt. Details: `docs/STORAGE_AND_ALERTS.md` und `ROADMAP.md`.
 - Die Systemuhr des unabhängigen Rechners ging bei der letzten Prüfung gegenüber Server-NTP und einer UTC-Zeitabfrage rund 59 Minuten vor; lokales NTP war aus und nichtinteraktives `sudo` nicht verfügbar. Eine Uhrkorrektur mit Rücksicht auf andere Prozesse koordinieren und danach einen frischen Offsite-Lauf und den Wächter prüfen. Existierende Marker nicht händisch verfälschen. Details: `docs/STORAGE_AND_ALERTS.md`.
