@@ -13,6 +13,7 @@ import functools
 import grp
 import inspect
 import json
+import math
 import os
 import re
 import shutil
@@ -180,7 +181,22 @@ def _read_lock_file(lock_file: Path, owner: int) -> dict | None:
             if not content.strip():
                 raise ReleaseLockError("Empty release lock metadata")
             data = json.loads(content)
-            if not isinstance(data, dict) or not isinstance(data.get('token'), str) or not data['token']:
+            if not isinstance(data, dict):
+                raise ReleaseLockError("Invalid release lock metadata")
+            if any(not isinstance(data.get(field), str) or not data[field]
+                   for field in ('token', 'operation', 'stage')):
+                raise ReleaseLockError("Invalid release lock metadata")
+            for field in ('created_at', 'updated_at', 'lease_timeout'):
+                value = data.get(field)
+                if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+                    raise ReleaseLockError("Invalid release lock metadata")
+            if data['lease_timeout'] <= 0 or type(data.get('holder_pid')) is not int or data['holder_pid'] <= 0:
+                raise ReleaseLockError("Invalid release lock metadata")
+            tracked = data.get('tracked_pids', [])
+            if not isinstance(tracked, list) or any(type(pid) is not int or pid <= 0 for pid in tracked):
+                raise ReleaseLockError("Invalid release lock metadata")
+            release_id = data.get('release_id')
+            if release_id is not None and (not isinstance(release_id, str) or not RELEASE_ID.fullmatch(release_id)):
                 raise ReleaseLockError("Invalid release lock metadata")
             return data
     except (json.JSONDecodeError, UnicodeDecodeError) as exc:

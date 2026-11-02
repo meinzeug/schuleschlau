@@ -78,7 +78,7 @@ def test_simultaneous_processes_cannot_both_acquire_lease(env):
         results.close()
 
 
-@pytest.mark.parametrize("content", ["", "{", "[]", '{}', '{"token": ""}'])
+@pytest.mark.parametrize("content", ["", "{", "[]", '{}', '{"token": ""}', '{"token": "foo"}'])
 def test_corrupt_lease_refuses_acquire_and_prune(env, monkeypatch, content):
     lease = env / ".deploy.lock"
     lease.write_text(content)
@@ -91,6 +91,18 @@ def test_corrupt_lease_refuses_acquire_and_prune(env, monkeypatch, content):
     assert prune.main() == 2
     assert (env / "releases" / CURRENT).is_dir()
     assert (env / "releases" / PREVIOUS).is_dir()
+
+
+@pytest.mark.parametrize("field,value", [
+    ("updated_at", float("nan")), ("lease_timeout", -1), ("holder_pid", True),
+    ("tracked_pids", [0]), ("release_id", "../../elsewhere"),
+])
+def test_corrupt_lease_fields_refuse_acquire(env, field, value):
+    data = stage.acquire_lock(env, "deploy", RELEASE_1)
+    data[field] = value
+    (env / ".deploy.lock").write_text(json.dumps(data))
+    with pytest.raises(stage.ReleaseLockError, match="lock metadata"):
+        stage.acquire_lock(env, "deploy", RELEASE_2)
 
 
 @pytest.fixture

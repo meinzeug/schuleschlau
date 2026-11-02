@@ -935,7 +935,8 @@ Bestandteil des bestehenden Buildvertrags.
     Bereinigung berechnet ihren Plan unter der Lease erneut. Ein Test mit zwölf
     gleichzeitig startenden Prozessen prüft die exklusive Lease. Leere oder
     ungültige Lease-Dateien blockieren nun Erwerb und Bereinigung statt eine
-    fehlende Sperre vorzutäuschen. Der vorhandene
+    fehlende Sperre vorzutäuschen; auch ungültige Zeitstempel, Prozess-IDs und
+    Releasekennungen werden abgewiesen. Der vorhandene
     vermeintliche SSH-Abbruchtest simuliert keinen SSH-Abbruch und belegt das
     Überleben verzögerter Kindprozesse nicht. Das Entfernen des Stagings beim
     Abbruch, die Freigabe während der Aktivierung, Bootstrap und Arbeiten nach
