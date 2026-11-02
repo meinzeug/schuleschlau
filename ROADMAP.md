@@ -38,18 +38,21 @@ Die Reihenfolge innerhalb der Prioritäten richtet sich nach Abhängigkeiten. Ei
      `schulpilot-restore-check.service` lief erfolgreich auf dem neuesten
      Backup durch (dropdb bestätigt, keine Produktionsüberschreibung).
 
-- 02.11.2026, lokal: Parallele Betriebsabläufe und Release-Sperren wurden über
-  eine zustandsbehaftete, verbindliche Leasesperre (`deploy/release_lock.py` und
-  `deploy/stage_release.py`) abgesichert. Mutierende Aktionen (Deployment, Staging,
-  Aktivierung, Pruning, manueller Rollback) schließen sich gegenseitig aus. Die
-  Sperre übersteht SSH-Verbindungsabbrüche durch PID- und Pfadzustandsprüfung
-  laufender Server-Kindprozesse (`/proc/<pid>/fd`). Staging-Uploads, bereits
-  veröffentlichte, aber noch nicht aktivierte Releases sowie Releases neuer als
-  `current` sind vor vorzeitigem `prune_releases.py` geschützt. Der
-  Systemwächter unterdrückt während der kurzen Aktivierungsphase Fehlalarme.
-  29 gezielte Tests (`scripts/tests/test_deploy_coordination.py` und
-  `scripts/tests/test_stage_release.py`) sowie die Backend-Aufbewahrungstests
-  bestanden.
+- 02.11.2026, lokal: Die Release-Koordination wurde teilweise abgesichert;
+  eine frühe Behauptung vollständigen Schutzes war nicht ausreichend belegt.
+  Atomare Lease-Änderungen, Erhalt bei Unterbrechungen, ein tatsächlicher
+  Loopback-SSH-Abbruch und Schutz vor dem bekannten älteren Prune-Programm
+  wurden isoliert geprüft. Frühere PID-/Dateideskriptorprüfungen allein sind
+  kein ausreichender Nachweis. Das Zusammenspiel mit alten Deployment- und
+  Rollbackskripten und der vollständige Rückweg bleiben offen; siehe den
+  detaillierten P0-Punkt „Deployment und Rückkehr belegen“.
+
+- 02.11.2026, Anbieter und Kosten: OpenRouter-Revision 37 wurde lesend erneut
+  bestätigt; künstliche Kosten-, Rechte- und Wechseltests bestanden auf SQLite
+  und isoliertem PostgreSQL. Zusammen mit den bereits belegten echten
+  künstlichen Bildaufrufen erfüllt das den Punkt „Anbieter- und
+  Kostenkontrollen revisionsgebunden nachweisen“. Es belegt keine allgemeine
+  Modellqualität oder unabhängige Datenschutzprüfung.
 
 - 01.11.2026, Betrieb: Die nachfolgenden Befunde wurden dokumentiert. Der
   erneute Abgleich fand falsche beziehungsweise nicht ausreichend belegte
