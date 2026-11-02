@@ -78,6 +78,21 @@ def test_simultaneous_processes_cannot_both_acquire_lease(env):
         results.close()
 
 
+@pytest.mark.parametrize("content", ["", "{", "[]", '{}', '{"token": ""}'])
+def test_corrupt_lease_refuses_acquire_and_prune(env, monkeypatch, content):
+    lease = env / ".deploy.lock"
+    lease.write_text(content)
+    lease.chmod(0o600)
+    with pytest.raises(stage.ReleaseLockError, match="lock metadata"):
+        stage.acquire_lock(env, "deploy", RELEASE_1)
+    monkeypatch.setattr(prune, "BASE", env)
+    monkeypatch.setattr(prune, "RELEASES", env / "releases")
+    monkeypatch.setattr(prune.sys, "argv", ["prune", "--apply"])
+    assert prune.main() == 2
+    assert (env / "releases" / CURRENT).is_dir()
+    assert (env / "releases" / PREVIOUS).is_dir()
+
+
 @pytest.fixture
 def env(tmp_path):
     base = tmp_path / "schulpilot"

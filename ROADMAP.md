@@ -933,7 +933,9 @@ Bestandteil des bestehenden Buildvertrags.
     nicht atomar; außerdem plant die Bereinigung vor dem Erwerb der Sperre.
     Ein zusätzlicher Dateilock serialisiert nun die Lease-Änderungen, und die
     Bereinigung berechnet ihren Plan unter der Lease erneut. Ein Test mit zwölf
-    gleichzeitig startenden Prozessen prüft die exklusive Lease. Der vorhandene
+    gleichzeitig startenden Prozessen prüft die exklusive Lease. Leere oder
+    ungültige Lease-Dateien blockieren nun Erwerb und Bereinigung statt eine
+    fehlende Sperre vorzutäuschen. Der vorhandene
     vermeintliche SSH-Abbruchtest simuliert keinen SSH-Abbruch und belegt das
     Überleben verzögerter Kindprozesse nicht. Das Entfernen des Stagings beim
     Abbruch, die Freigabe während der Aktivierung, Bootstrap und Arbeiten nach

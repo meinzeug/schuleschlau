@@ -178,10 +178,13 @@ def _read_lock_file(lock_file: Path, owner: int) -> dict | None:
         with os.fdopen(fd, 'r', encoding='utf-8') as stream:
             content = stream.read()
             if not content.strip():
-                return None
-            return json.loads(content)
-    except (json.JSONDecodeError, UnicodeDecodeError):
-        return None
+                raise ReleaseLockError("Empty release lock metadata")
+            data = json.loads(content)
+            if not isinstance(data, dict) or not isinstance(data.get('token'), str) or not data['token']:
+                raise ReleaseLockError("Invalid release lock metadata")
+            return data
+    except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+        raise ReleaseLockError("Invalid release lock metadata") from exc
 
 
 def check_lock(base: Path, *, owner: int | None = None) -> dict | None:

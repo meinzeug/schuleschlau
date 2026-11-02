@@ -48,10 +48,7 @@ def plan_prune(releases_root: Path, current_link: Path, previous_link: Path) -> 
 
     # Protect in-flight releases from an active deployment lock or staging
     base = root.parent
-    try:
-        active_lock = check_lock(base)
-    except Exception:
-        active_lock = None
+    active_lock = check_lock(base)
 
     if active_lock and active_lock.get("release_id"):
         locked_target = root / active_lock["release_id"]
