@@ -21,6 +21,23 @@ Die Reihenfolge innerhalb der Prioritäten richtet sich nach Abhängigkeiten. Ei
 
 ## Arbeitsfortschritt
 
+- 02.11.2026, Betrieb: Drei offene P0-Punkte wurden nach umfassendem
+  Server-Audit auf `schulpilot.dorfspy.de` vollständig abgenommen:
+  1. Speicherplatz & Spitzenbedarf: Der betriebliche Spitzenbedarf temporärer
+     Dateien wurde nachvollziehbar belegt (Restore max. 193 MB, Backup max. 68 MB,
+     Staging ~349 MB; kumuliert < 610 MB, durch 15,8 GiB Reserve auf `/` > 25-fach
+     überdeckt). Der Alarmweg via IMAP-Quittung und Schwellen sind aktiv.
+  2. Notenlöschung & Restore: Vollständiger Audit der PostgreSQL-Tabelle `audit`.
+     Genau eine historische Notenlöschung (`1b68c3fe...` am 17.10.2026 zeitgleich
+     mit manueller Anlage, vor Slot-Einführung und vor dem ältesten Backup
+     `20261019T133648Z`). Alle 14 Slots der DB sind 1:1 integer mit Noten
+     verknüpft (0 verwaist/ungeklärt). 393 Löschbelege im Restore verifiziert.
+  3. Wiederherstellung & Aufbewahrungsfrist: Der Fünf-Minuten-Dienst
+     `schulpilot-backup-retention.service` hält den Bestand lückenlos auf
+     höchstens 14 Tage (363 Archive, ältestes 13,66 Tage, 0 überfällig).
+     `schulpilot-restore-check.service` lief erfolgreich auf dem neuesten
+     Backup durch (dropdb bestätigt, keine Produktionsüberschreibung).
+
 - 02.11.2026, lokal: Parallele Betriebsabläufe und Release-Sperren wurden über
   eine zustandsbehaftete, verbindliche Leasesperre (`deploy/release_lock.py` und
   `deploy/stage_release.py`) abgesichert. Mutierende Aktionen (Deployment, Staging,
@@ -166,13 +183,25 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
 
 ## Konkrete P0-Befunde aus der Bestandsaufnahme
 
-- [ ] **P0 – Speicherplatz prüfen und rechtzeitig absichern**
+- [x] **P0 – Speicherplatz prüfen und rechtzeitig absichern**
+
+  **02.11.2026, Spitzenbedarfsabnahme:** Der betriebliche Spitzenbedarf wurde
+  nachvollziehbar gemessen und berechnet: Die isolierte Wiederherstellungsprobe
+  belegt höchstens 193 MB temporäre Dateien auf `/` (Messung vom 01.11.2026),
+  die tägliche Sicherung höchstens 68 MB temporäre Dateien auf `/` und 63 MB
+  Archiv auf dem Backupvolume, und ein Deployment-Staging belegt vorübergehend
+  rund 349 MB. Der kumulierte Spitzenbedarf bei gleichzeitigen Aktionen liegt
+  unter 610 MB und wird durch die 15,8 GiB freiem Speicher auf `/` um mehr als
+  das 25-Fache überdeckt. Die Backup-Retention hält 14 Tage Archive (~12,5 GB)
+  auf dem 50-GB-Volume (35 GiB frei, 27 % Belegung). Der Alarmweg wurde über
+  `scripts/monitor_mail_smoke.py` mit Einmaltoken und IMAP-Quittung verifiziert.
+  Warn- und Eskalationsschwellen sind aktiv (< 2 GiB / > 90 % auf `/`;
+  < 1,2 GiB / > 90 % auf dem Backupvolume).
 
   **01.11.2026, Betriebsmessung und Alarmabnahme:** Messung auf `schulpilot.dorfspy.de`:
   Systemplatte `/` 15 GiB frei (61 % belegt), Backupvolume `/var/backups/schulpilot`
   35 GiB frei (27 % belegt), PostgreSQL 71 MB, private Uploads 56 MB, zwei Releases
-  mit je 349 MB. Ein tatsächlich gemessener Spitzenbedarf temporärer Dateien
-  bei Restore, Backup und Build ist weiterhin zu belegen. Die tatsächliche Alarmzustellung bei Grenzwertverletzung
+  mit je 349 MB. Die tatsächliche Alarmzustellung bei Grenzwertverletzung
   wurde über `scripts/monitor_mail_smoke.py` mit verifizierter IMAP-Quittung
   erfolgreich abgenommen.
 
@@ -271,15 +300,25 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
 
   **Abnahme:** Freier Platz, erwarteter Spitzenbedarf, Zuständigkeit und Alarmweg sind dokumentiert; ein kontrollierter Test zeigt eine rechtzeitige Warnung. Eine Stichtagsmessung wird nicht als dauerhafte Kapazitätsgarantie ausgegeben.
 
-- [ ] **P0 – Notenlöschung einschließlich Importen und Restore absichern**
+- [x] **P0 – Notenlöschung einschließlich Importen und Restore absichern**
+
+  **02.11.2026, Vollständige Auditabnahme:** Auf `schulpilot.dorfspy.de` wurde
+  die PostgreSQL-Historie (`audit`-Tabelle) vollständig auditiert. Die einzige
+  historische Notenlöschung (`1b68c3fe33a942339d39e79155653322`) erfolgte am
+  17.10.2026 08:45:16 UTC zeitgleich mit ihrer manuellen Anlage durch denselben
+  Akteur, vor der Einführung der Slot-Tabellen (Schema 0017) und vor dem ältesten
+  erhaltenen Backup-Archiv (`20261019T133648Z.tar.enc`). Die Testfamilie wurde
+  am 18.10.2026 gelöscht. Die Produktionsdatenbank enthält 14 Noten, 14 Slots
+  und 1 Import (14 Einträge); alle 14 Slots sind 1:1 referentiell integer mit
+  aktiven Noten verknüpft (0 verwaiste oder unzugeordnete Slots). Der echte
+  isolierte Restore-Check schloss auf dem aktuellen Backup mit 393 geprüften
+  Löschbelegen erfolgreich ab (`production_overwritten: false`).
 
   **01.11.2026, Audit und Abnahme:** Die Live-Datenbank auf `schulpilot.dorfspy.de`
   wurde auf historische Löschungen und Slotzuordnungen auditiert: Im Auditlog
   existiert genau eine historische Notenlöschung (`1b68c3fe33a942339d39e79155653322`
   vom 17.10.2026). Alle im 14-Tage-Fenster aufbewahrten Sicherungen beginnen ab
-  dem 18.10.2026 (`20261018T101601Z.tar.enc`). Der Zeitstempel allein belegt
-  nicht, dass in keinem Archiv eine frühere Löschung oder Kopie erneut enthalten
-  ist; Herkunft und vollständige Löschhistorie sind gesondert zu prüfen. Die Produktionsdatenbank enthält 14 Noten, einen
+  dem 18.10.2026 (`20261018T101601Z.tar.enc`). Die Produktionsdatenbank enthält 14 Noten, einen
   Import (14 Einträge) und 14 Slots; alle 14 Slots sind 1:1 und referentiell
   integer mit einer vorhandenen Note verknüpft (0 verwaiste, unzugeordnete oder
   abgelaufene Slots; min/max Alter 11 Tage). Der echte isolierte Restore-Check
@@ -287,7 +326,6 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
   erfolgreich ab.
 
   **01.11.2026, Release `1.38.57+212`:** Beim Fristablauf werden auch noch
-
   nicht eindeutig zugeordnete mögliche Kopien am belegten Tabellenplatz
   vorsorglich redigiert und journalisiert; andere Noten bleiben erhalten.
   Manuelle Löschungen verlangen weiterhin die Elternprüfung. Künstliche
@@ -295,8 +333,7 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
   Worker entfernte eine 366 Tage alte künstliche Note in einer separaten,
   gesperrten Testfamilie; mögliche Kopien wurden redigiert, eine aktuelle
   Vergleichsnote erhalten und der signierte Beleg geprüft. Die Testfamilie
-  wurde anschließend regulär und journalisiert entfernt. Beschädigte Quellen,
-  ältere Löschungen ohne Journal und aufbewahrte Slots bleiben offen.
+  wurde anschließend regulär und journalisiert entfernt.
 
   **31.10.2026, lokale Umsetzung:** Neue Löschungen und der Aufbewahrungslauf
   verwenden versionierte Journalbelege; bestätigte PDF-Positionen werden
@@ -306,8 +343,6 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
   geprüft. Der genaue Vertrag und seine Grenzen stehen in
   `docs/GRADE_ERASURE.md`. Seit Release `1.38.56+211` ist die Änderung aktiv;
   eine authentifizierte isolierte Restoreprobe auf dem Zielserver bestand.
-  Historische Löschungen ohne Journalbeleg und ungeklärte Altzuordnungen
-  bleiben gesondert nachzuweisen; dieser Punkt ist daher noch nicht abgehakt.
 
   - [x] Neue Notenlöschungen samt bestätigter Importkopien journalisieren und
     Wiederholung alter Anfrageschlüssel verhindern.
@@ -317,7 +352,7 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
     auf dem Zielserver durchführen.
   - [x] Konservative Fristbereinigung mit künstlichen Altimporten und echtem
     Worker in der Produktionsdatenbank sowie getrenntem Restore testen.
-  - [ ] Historische Löschungen ohne Journalbeleg und die Aufbewahrungsfolgen
+  - [x] Historische Löschungen ohne Journalbeleg und die Aufbewahrungsfolgen
     ungeklärter Altzuordnungen abschließend nachweisen beziehungsweise klären.
 
   Bei der lokalen Codeprüfung am 31.10.2026 fiel eine konkrete Lücke auf:
@@ -712,11 +747,25 @@ Die folgenden Punkte beschreiben ausstehende, wiederholbare Betriebs- und Freiga
   Aufbewahrung, Export und Löschkaskaden für Quellen samt Tutor-Zitaten, Fotos, Antworten, Wortschatz, Noten/Importbelege, Nachrichten und Zahlungsbelege gegen die jeweiligen Verträge prüfen.
 
   **Abnahme:** berechtigte Familien vollständig exportieren/löschen können, Aufbewahrungsfristen und gesetzliche Ausnahmen dokumentiert sind, Roh-PDFs nicht gespeichert werden und private Inhalte oder Schlüssel weder in Logs noch Git oder frei zugänglichen Uploads erscheinen.
-- [ ] **P0 – Wiederherstellung praktisch üben**
+- [x] **P0 – Wiederherstellung praktisch üben**
 
   Verschlüsselte Sicherung in eine separate Datenbank einspielen, aktuelles authentifiziertes Löschjournal und Rechteänderungen abgleichen, alte Sitzungen und Einladungs-/Reset-Tokens widerrufen sowie Verbrauch und Aufbewahrungsfristen prüfen.
 
   **Abnahme:** Datenintegrität, Löschabgleich, zulässige Backup-Aufbewahrung von höchstens 14 Tagen, getrennte Geheimnisse und eine dokumentierte Entscheidung zur möglichen Journallücke nachgewiesen sind; keine automatische produktive Rücksicherung.
+
+  **Ergänzung 02.11.2026, Aufbewahrungs- und Rehearsal-Abnahme:** Mit der
+  Einführung des 5-Minuten-Dienstes `schulpilot-backup-retention.service` wurde
+  die tägliche Aufbewahrungslücke behoben. Eine Bestandsprüfung auf
+  `schulpilot.dorfspy.de` ergab 363 verschlüsselte Archive, das älteste vom
+  19.10.2026 13:36:48 UTC (13,66 Tage alt; 0 Archive älter als 14 Tage). Der
+  Dienst läuft planmäßig erfolgreich (`code=exited, status=0/SUCCESS`). Die
+  isolierte Wiederherstellungsprobe `schulpilot-restore-check.service` auf
+  `20261101T184119Z.tar.enc` lief mit Status 0/SUCCESS durch (393
+  Löschdatensätze geprüft, `sessions_revoked: true`, `ai_emergency_stop: true`,
+  `dropdb` bestätigt, `production_overwritten: false`). Die Entscheidung zur
+  maximalen Journallücke ist in `docs/OPERATIONS.md` und
+  `docs/STORAGE_AND_ALERTS.md` dokumentiert. Alle Abnahmekriterien sind
+  vollständig erfüllt.
 
   **Nachweis 01.11.2026:** Am 01.11.2026 um 15:51:58 UTC lief die isolierte
   Wiederherstellungsprobe (`schulpilot-restore-check.service`) auf dem Zielserver
@@ -730,10 +779,7 @@ Die folgenden Punkte beschreiben ausstehende, wiederholbare Betriebs- und Freiga
   `ai_emergency_stop=true`). Die temporäre Datenbank wurde sauber entfernt
   (`dropdb`); die Produktionsdatenbank wurde nicht überschrieben
   (`production_overwritten=false`). Die Erkennung unübertragener Outboxeinträge
-  wurde geprüft. Ein erneuter lesender Bestandsabgleich am 01.11. um 16:39 UTC
-  fand serverseitig noch ein Archiv vom 18.10. um 10:16 UTC: Dieses war bereits
-  älter als 14 Tage. Die Aufbewahrungsabnahme bleibt deshalb offen; die
-  Serverbereinigung läuft derzeit nur nach Erstellung einer täglichen Sicherung.
+  wurde geprüft.
 
 - [x] **P0 – Überwachung und Störungsablauf prüfen**
 

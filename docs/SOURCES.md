@@ -1,3 +1,16 @@
+## 02.11.2026 · Release-Koordination und P0-Abnahmen
+
+Die Absicherung paralleler Betriebsabläufe (`deploy/release_lock.py`,
+`deploy/stage_release.py`, `deploy/activate.py`, `deploy/prune_releases.py`)
+schließt konkurrierende Deployments, Pruning, Aktivierungen und Rollbacks
+gegenseitig aus und übersteht SSH-Abbrüche durch `/proc`-Kindprozessprüfung.
+Der Serverbestand auf `schulpilot.dorfspy.de` wurde auf Notenlöschungs- und
+Slot-Integrität sowie Backup-Aufbewahrung (363 Archive, ältestes 13,66 Tage)
+auditiert. Betrieblicher Spitzenbedarf (< 610 MB) und Alarmzustellung via
+IMAP wurden nachgewiesen. Details stehen in [STORAGE_AND_ALERTS.md](STORAGE_AND_ALERTS.md)
+und [ROADMAP.md](../ROADMAP.md).
+
+
 ## 01.11.2026 · Sicherheits- und Toolchainprüfung
 
 Die Untersuchung von OSV-Meldungen, PyPI-Paketständen und Lizenzen
