@@ -949,8 +949,14 @@ Bestandteil des bestehenden Buildvertrags.
     nach Token- und Releaseprüfung; eine abgelaufene Lease wird nicht allein
     anhand von Zeit, PID oder gerade offenen Dateien freigegeben. Ein echter
     separater Testprozess öffnete nach simuliertem Abbruch verzögert eine neue
-    Datei; Staging und Sperre blieben erhalten. Ein solcher Prozessabbruch ist
-    weiterhin kein echter SSH-Abbruch. Vorbereitung/Bootstrap liegen nun unter
+    Datei; Staging und Sperre blieben erhalten. Zusätzlich bestand ein echter
+    SSH-Abbruch bei einem künstlichen Upload über einen isolierten lokalen
+    SSH-Server: Trotz künstlich abgelaufener Metadaten und verzögertem
+    Dateiöffnen blieben Staging und Lease erhalten; ein zweites Deployment und
+    Prune wurden blockiert. Reproduzierbar mit `SCHULPILOT_TEST_REAL_SSH=1
+    python -m pytest -q scripts/tests/test_deploy_real_ssh.py`. Das belegt noch
+    keinen Abbruch während Aktivierung oder das Verhalten alter Installationen.
+    Vorbereitung/Bootstrap liegen nun unter
     der Lease; Aktivierung liest und sichert Caddy/Releasezeiger erst nach deren
     Erwerb. Die Lease wird nach erfolgreicher Aktivierung erst nach den weiteren
     Reparaturdienst-Schritten und Prüfung des aktiven Release freigegeben.
