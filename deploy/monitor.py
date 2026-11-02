@@ -20,6 +20,14 @@ import uuid
 from email.message import EmailMessage
 from pathlib import Path
 
+try:
+    from release_lock import check_lock
+except ImportError:
+    try:
+        from deploy.release_lock import check_lock
+    except ImportError:
+        check_lock = None
+
 RESTORE_MAX_AGE = 14 * 86400
 RESTORE_TABLES = ("families", "children", "materials", "learning_units", "attempts", "unit_coaching")
 
@@ -191,42 +199,54 @@ def main():
     os.umask(0o077)
     config = environment("/etc/schulpilot/environment")
     failures = []
+    deployment_in_progress = False
+    if check_lock is not None:
+        try:
+            lock = check_lock(Path("/opt/schulpilot"))
+            if lock and lock.get("stage") in ("activating", "published") and time.time() - lock.get("updated_at", 0) < 180:
+                deployment_in_progress = True
+        except Exception:
+            pass
+
     for service in ("schulpilot-api", "schulpilot-worker", "schulpilot-backup.timer", "schulpilot-backup-retention.timer"):
         if subprocess.run(["systemctl", "is-active", "--quiet", service]).returncode:
-            failures.append(service + "_inactive")
+            if not (deployment_in_progress and service in ("schulpilot-api", "schulpilot-worker")):
+                failures.append(service + "_inactive")
     try:
         with urllib.request.urlopen("http://127.0.0.1:3240/api/health", timeout=10) as response:
-            if response.status != 200:
+            if response.status != 200 and not deployment_in_progress:
                 failures.append("api_health")
     except Exception:
-        failures.append("api_health")
-    try:
-        result = subprocess.run(
-            [
-                "runuser",
-                "-u",
-                "schulpilot",
-                "--",
-                "/opt/schulpilot/current/venv/bin/python",
-                "-m",
-                "schulpilot.operations",
-            ],
-            cwd="/opt/schulpilot/current/backend",
-            env={**config, "PATH": "/usr/sbin:/usr/bin:/sbin:/bin"},
-            timeout=20,
-            capture_output=True,
-            check=True,
-            text=True,
-        )
-        metrics = json.loads(result.stdout)
-        if metrics["worker_age_seconds"] is None or metrics["worker_age_seconds"] > 240:
-            failures.append("worker_heartbeat")
-        if metrics["stalled_queued"] or metrics["stalled_running"]:
-            failures.append("jobs_stalled")
-        if metrics["pending_erasure_journal"]:
-            failures.append("erasure_journal_pending")
-    except Exception:
-        failures.append("database_metrics")
+        if not deployment_in_progress:
+            failures.append("api_health")
+    if not deployment_in_progress:
+        try:
+            result = subprocess.run(
+                [
+                    "runuser",
+                    "-u",
+                    "schulpilot",
+                    "--",
+                    "/opt/schulpilot/current/venv/bin/python",
+                    "-m",
+                    "schulpilot.operations",
+                ],
+                cwd="/opt/schulpilot/current/backend",
+                env={**config, "PATH": "/usr/sbin:/usr/bin:/sbin:/bin"},
+                timeout=20,
+                capture_output=True,
+                check=True,
+                text=True,
+            )
+            metrics = json.loads(result.stdout)
+            if metrics["worker_age_seconds"] is None or metrics["worker_age_seconds"] > 240:
+                failures.append("worker_heartbeat")
+            if metrics["stalled_queued"] or metrics["stalled_running"]:
+                failures.append("jobs_stalled")
+            if metrics["pending_erasure_journal"]:
+                failures.append("erasure_journal_pending")
+        except Exception:
+            failures.append("database_metrics")
     try:
         backups = list(Path("/var/backups/schulpilot").glob("*.tar.enc"))
         if not backups or time.time() - max(p.stat().st_mtime for p in backups) > 30 * 3600:
@@ -289,6 +309,7 @@ def main():
                 "dry_run": args.dry_run,
                 "alert_error": state.get("alert_error"),
                 "restore_rehearsal_initializing": restore_initializing,
+                "deployment_in_progress": deployment_in_progress,
             }
         )
     )

@@ -1,4 +1,4 @@
-"""Remove obsolete immutable releases while retaining current and rollback code."""
+"""Remove obsolete immutable releases while retaining current, rollback, and in-flight code."""
 
 from __future__ import annotations
 
@@ -7,7 +7,13 @@ import re
 import shutil
 import subprocess
 import sys
+import time
 from pathlib import Path
+
+try:
+    from release_lock import ReleaseLockError, check_lock, release_operation
+except ImportError:
+    from deploy.release_lock import ReleaseLockError, check_lock, release_operation
 
 BASE = Path("/opt/schulpilot")
 RELEASES = BASE / "releases"
@@ -41,13 +47,34 @@ def plan_prune(releases_root: Path, current_link: Path, previous_link: Path) -> 
     if len(keep) != 1 + (previous is not None):
         raise PruneError("current and previous must refer to different releases")
 
+    # Protect in-flight releases from an active deployment lock or staging
+    base = root.parent
+    try:
+        active_lock = check_lock(base)
+    except Exception:
+        active_lock = None
+
+    if active_lock and active_lock.get("release_id"):
+        locked_target = root / active_lock["release_id"]
+        if locked_target.is_dir():
+            keep.add(locked_target)
+
     entries = sorted(root.iterdir())
     for entry in entries:
         if entry.is_symlink() or not entry.is_dir() or not RELEASE_ID.fullmatch(entry.name):
             raise PruneError(f"unexpected entry in release root: {entry.name}")
         if entry.resolve(strict=True).parent != root:
             raise PruneError(f"release escapes release root: {entry.name}")
-    if not keep.issubset(set(entries)):
+
+        # Protect any release that is newer than current (e.g. published but unactivated)
+        if current and entry.name > current.name:
+            keep.add(entry)
+
+        # Protect any release with an active staging directory
+        if (base / "staging" / entry.name).is_dir():
+            keep.add(entry)
+
+    if not {target for target in (current, previous) if target is not None}.issubset(set(entries)):
         raise PruneError("current or previous release is missing from the release root")
     return [entry for entry in entries if entry not in keep]
 
@@ -87,6 +114,15 @@ def main() -> int:
     args = parser.parse_args()
 
     try:
+        active_lock = check_lock(BASE)
+        if active_lock and active_lock.get("operation") != "prune":
+            print(
+                f"Release cleanup skipped: release operation in progress "
+                f"({active_lock.get('operation')}, release_id={active_lock.get('release_id')}, stage={active_lock.get('stage')})",
+                file=sys.stderr,
+            )
+            return 2
+
         root = RELEASES.resolve(strict=True)
         current = _pointer_target(BASE / "current", root, required=True)
         previous = _pointer_target(BASE / "previous", root, required=False)
@@ -98,14 +134,15 @@ def main() -> int:
                 print(release.name)
             return 0
 
-        _assert_services_use_kept_releases(kept)
-        for release in removals:
-            _assert_no_nested_mounts(release)
-        for release in removals:
-            shutil.rmtree(release)
+        with release_operation(BASE, "prune", None, stage="pruning"):
+            _assert_services_use_kept_releases(kept)
+            for release in removals:
+                _assert_no_nested_mounts(release)
+            for release in removals:
+                shutil.rmtree(release)
         print(f"Removed {len(removals)} obsolete releases; current and previous remain available.")
         return 0
-    except (OSError, PruneError, subprocess.CalledProcessError, ValueError) as exc:
+    except (OSError, PruneError, ReleaseLockError, subprocess.CalledProcessError, ValueError) as exc:
         print(f"Release cleanup skipped: {exc}", file=sys.stderr)
         return 2
 

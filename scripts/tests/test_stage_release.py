@@ -53,8 +53,8 @@ def test_unfinished_upload_is_invisible_to_old_prune_then_published_atomically(r
     published = root / 'releases' / RELEASE
     assert (published / 'upload-in-progress').read_text() == 'verified'
     assert stat.S_IMODE(published.stat().st_mode) == 0o755
-    # An old prune can still remove a published but not yet activated release.
-    assert prune.plan_prune(root / 'releases', root / 'current', root / 'previous') == [published]
+    # A published but not yet activated release is protected against premature pruning.
+    assert prune.plan_prune(root / 'releases', root / 'current', root / 'previous') == []
 
 
 def test_prune_during_paused_upload_cannot_delete_staging(root, monkeypatch):
@@ -79,8 +79,9 @@ def test_prune_during_paused_upload_cannot_delete_staging(root, monkeypatch):
         monkeypatch.setattr(prune, 'RELEASES', root / 'releases')
         monkeypatch.setattr(prune, '_assert_services_use_kept_releases', lambda *_: None)
         monkeypatch.setattr(prune.sys, 'argv', ['prune', '--apply'])
-        assert prune.main() == 0
-        assert not stale.exists()
+        # Release coordination ensures prune skips mutating cleanup while upload is active
+        assert prune.main() == 2
+        assert stale.exists()
         assert (partial / 'part').read_text() == 'first'
     finally:
         proceed.set()
@@ -103,7 +104,7 @@ def test_collision_preserves_existing_release_and_staging(root):
 
 def test_same_release_is_not_prepared_twice(root):
     stage.prepare(root, RELEASE, os.geteuid())
-    with pytest.raises(FileExistsError):
+    with pytest.raises((FileExistsError, stage.ReleaseLockError)):
         stage.prepare(root, RELEASE, os.geteuid())
 
 

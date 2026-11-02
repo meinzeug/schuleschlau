@@ -16,7 +16,21 @@ ssh -o BatchMode=yes dorfspy python3 - < deploy/bootstrap_host.py
 # Incomplete uploads stay outside the tree traversed by even older prune scripts.
 # This is not a deployment lock: publication/activation still need coordination.
 remote_stage="/opt/schulpilot/staging/$release"
-ssh dorfspy python3 - prepare "$release" < deploy/stage_release.py
+lock_token="$(ssh dorfspy python3 - prepare "$release" < deploy/stage_release.py)"
+deploy_aborted=true
+repair_restart_done=false
+
+cleanup_deployment() {
+  if [[ "$deploy_aborted" == true ]]; then
+    echo "Deployment failed or aborted; releasing stage and lock on server..." >&2
+    ssh dorfspy python3 - abort "$release" "$lock_token" < deploy/stage_release.py 2>/dev/null || true
+  fi
+  if [[ "$repair_restart_done" != true ]]; then
+    echo "Repair services remain stopped: verify source/schema and restart explicitly after resolving deployment failure." >&2
+  fi
+}
+trap cleanup_deployment EXIT
+
 rsync -a --chown=root:root --chmod=Dgo-w,Fgo-w --exclude='__pycache__' --exclude='.pytest_cache' backend deploy workers "dorfspy:$remote_stage/"
 rsync -a --chown=root:root --chmod=Dgo=rx,Fgo=rX app/build/web/ "dorfspy:$remote_stage/web/"
 ssh dorfspy "mkdir -m 755 $remote_stage/downloads"
@@ -52,12 +66,10 @@ if installed:
 print(base64.b64encode(json.dumps(state,separators=(',',':')).encode()).decode('ascii'))
 PY
 )"
-repair_restart_done=false
-trap 'if [[ "$repair_restart_done" != true ]]; then echo "Repair services remain stopped: verify source/schema and restart explicitly after resolving deployment failure." >&2; fi' EXIT
 ssh dorfspy python3 - staged "$remote_stage" "$release_apk_sha" "$release_proof" "$release_android_sha" "$repair_sha" < scripts/release_attestation.py
-ssh dorfspy python3 - publish "$release" < deploy/stage_release.py
+ssh dorfspy python3 - publish "$release" "$lock_token" < deploy/stage_release.py
 ssh dorfspy python3 - staged "/opt/schulpilot/releases/$release" "$release_apk_sha" "$release_proof" "$release_android_sha" "$repair_sha" < scripts/release_attestation.py
-ssh dorfspy "python3 /opt/schulpilot/releases/$release/deploy/activate.py $release"
+ssh dorfspy "python3 /opt/schulpilot/releases/$release/deploy/activate.py $release --token $lock_token"
 ssh dorfspy "if test -f /etc/systemd/system/schulpilot-codex.service; then python3 /opt/schulpilot/releases/$release/deploy/install_codex.py; fi"
 curl --retry 10 --retry-all-errors --retry-delay 3 --fail --silent --show-error https://schulpilot.dorfspy.de/api/health
 ssh dorfspy python3 - "$release" "$repair_state_encoded" <<'PY'
@@ -85,6 +97,7 @@ for name in ('schulpilot-repair.service','schulpilot-repair-dispatcher.service')
         subprocess.run(['systemctl','start',name],check=True)
 PY
 repair_restart_done=true
+deploy_aborted=false
 trap - EXIT
 if ! ssh -o BatchMode=yes dorfspy sudo -n python3 /opt/schulpilot/current/deploy/prune_releases.py --apply; then
   echo "WARNING: deployment is healthy, but obsolete release cleanup was skipped; inspect the cleanup message above." >&2

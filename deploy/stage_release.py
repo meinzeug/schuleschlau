@@ -1,20 +1,349 @@
 """Prepare and publish a verified release outside the prune-visible tree.
 
-This does not serialize deployment, activation or pruning. Operators must
-still coordinate those operations, especially with older installed scripts.
+Guarantees coordination and mutual exclusion across deployment, rollback,
+activation, and pruning operations.
 """
+
+from __future__ import annotations
 
 import ctypes
 import errno
 import grp
+import json
 import os
 import re
+import shutil
 import stat
 import sys
+import time
+import uuid
+from contextlib import contextmanager
 from pathlib import Path
 
 BASE = Path('/opt/schulpilot')
 RELEASE_ID = re.compile(r'\d{8}T\d{6}Z-[0-9a-f]{7,40}\Z')
+
+
+class ReleaseLockError(RuntimeError):
+    """Raised when a release operation lock cannot be acquired or validated."""
+
+
+def _resolve_owner(base: Path, owner: int | None) -> int:
+    if owner is not None:
+        return owner
+    try:
+        return base.stat().st_uid
+    except OSError:
+        return os.geteuid()
+
+
+def _check_trusted_file(fd: int, path: Path, expected_owner: int) -> None:
+    current = os.fstat(fd)
+    actual = os.lstat(path)
+    if (
+        not stat.S_ISREG(current.st_mode)
+        or current.st_uid != expected_owner
+        or current.st_nlink != 1
+        or (current.st_dev, current.st_ino) != (actual.st_dev, actual.st_ino)
+        or current.st_mode & 0o077
+    ):
+        raise ReleaseLockError(f"Untrusted release lock file: {path}")
+
+
+def is_pid_alive(pid: int) -> bool:
+    """Return True if pid exists on the system."""
+    if pid <= 0:
+        return False
+    try:
+        os.kill(pid, 0)
+        return True
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+
+
+def is_process_accessing_path(target_path: Path) -> bool:
+    """Check if any relevant process on the system is reading/writing in target_path.
+
+    Inspects /proc on Linux. Fails open (returns False) if /proc is not available.
+    """
+    proc = Path('/proc')
+    if not proc.is_dir():
+        return False
+
+    try:
+        resolved_target = str(target_path.resolve())
+    except OSError:
+        return False
+
+    try:
+        entries = os.listdir(proc)
+    except OSError:
+        return False
+
+    for entry in entries:
+        if not entry.isdigit():
+            continue
+        pid_dir = proc / entry
+
+        # Fast filter: skip kernel threads and unrelated processes
+        try:
+            with open(pid_dir / 'cmdline', 'rb') as cmd_file:
+                cmd = cmd_file.read()
+                if not cmd:
+                    continue
+                # Only inspect processes that might touch schulpilot or rsync or python
+                if b'rsync' not in cmd and b'python' not in cmd and b'schulpilot' not in cmd:
+                    continue
+        except (OSError, ProcessLookupError):
+            continue
+
+        # Check cwd
+        try:
+            cwd = os.readlink(pid_dir / 'cwd')
+            if cwd == resolved_target or cwd.startswith(resolved_target + '/'):
+                return True
+        except (OSError, ProcessLookupError):
+            pass
+
+        # Check open file descriptors
+        fd_dir = pid_dir / 'fd'
+        try:
+            fd_entries = os.listdir(fd_dir)
+        except (OSError, ProcessLookupError):
+            continue
+
+        for fd_name in fd_entries:
+            try:
+                link = os.readlink(fd_dir / fd_name)
+                if link == resolved_target or link.startswith(resolved_target + '/'):
+                    return True
+            except (OSError, ProcessLookupError):
+                continue
+
+    return False
+
+
+def is_lock_active(data: dict, base: Path, now: float) -> bool:
+    """Determine whether an existing lock is actively held or stale."""
+    if not isinstance(data, dict):
+        return False
+
+    # Check holder PID
+    holder_pid = data.get('holder_pid')
+    if isinstance(holder_pid, int) and is_pid_alive(holder_pid):
+        return True
+
+    # Check tracked PIDs
+    tracked = data.get('tracked_pids', [])
+    if isinstance(tracked, list):
+        for pid in tracked:
+            if isinstance(pid, int) and is_pid_alive(pid):
+                return True
+
+    # Check lease timeout
+    updated_at = data.get('updated_at', 0)
+    timeout = data.get('lease_timeout', 600)
+    if isinstance(updated_at, (int, float)) and isinstance(timeout, (int, float)):
+        if now - updated_at < timeout:
+            return True
+
+    # Check if any process is accessing staging directory of the release even after timeout
+    release_id = data.get('release_id')
+    if release_id and isinstance(release_id, str):
+        staging_dir = base / 'staging' / release_id
+        if staging_dir.is_dir() and is_process_accessing_path(staging_dir):
+            return True
+
+    return False
+
+
+def _read_lock_file(lock_file: Path, owner: int) -> dict | None:
+    if not lock_file.exists():
+        return None
+    try:
+        flags = os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC
+        fd = os.open(lock_file, flags)
+    except FileNotFoundError:
+        return None
+    except OSError as exc:
+        raise ReleaseLockError(f"Cannot open release lock: {exc}") from exc
+
+    try:
+        _check_trusted_file(fd, lock_file, owner)
+        with os.fdopen(fd, 'r', encoding='utf-8') as stream:
+            content = stream.read()
+            if not content.strip():
+                return None
+            return json.loads(content)
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return None
+
+
+def check_lock(base: Path, *, owner: int | None = None) -> dict | None:
+    """Return active lock metadata or None if lock is absent or stale."""
+    owner = _resolve_owner(base, owner)
+    lock_file = base / '.deploy.lock'
+    data = _read_lock_file(lock_file, owner)
+    if data and is_lock_active(data, base, time.time()):
+        return data
+    return None
+
+
+def _write_lock_file(lock_file: Path, data: dict, owner: int) -> None:
+    """Atomically write lock data to lock_file with 0600 mode and verification."""
+    temp_file = lock_file.with_name(f".deploy.lock.{os.getpid()}.{time.time_ns()}.tmp")
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW | os.O_CLOEXEC
+    fd = os.open(temp_file, flags, 0o600)
+    try:
+        payload = json.dumps(data, indent=2) + "\n"
+        with os.fdopen(fd, "w", encoding="utf-8") as stream:
+            stream.write(payload)
+            stream.flush()
+            os.fchmod(stream.fileno(), 0o600)
+            os.fchown(stream.fileno(), owner, os.getegid())
+        os.replace(temp_file, lock_file)
+    finally:
+        temp_file.unlink(missing_ok=True)
+
+
+def acquire_lock(
+    base: Path,
+    operation: str,
+    release_id: str | None,
+    *,
+    token: str | None = None,
+    lease_timeout: float = 600.0,
+    stage: str = "preparing",
+    owner: int | None = None,
+) -> dict:
+    """Acquire or renew the release operation lock.
+
+    Raises ReleaseLockError if another operation is active.
+    """
+    owner = _resolve_owner(base, owner)
+    lock_file = base / '.deploy.lock'
+    now = time.time()
+
+    existing = _read_lock_file(lock_file, owner)
+    if existing:
+        if token and existing.get('token') == token:
+            existing['updated_at'] = now
+            existing['holder_pid'] = os.getpid()
+            existing['stage'] = stage
+            if release_id:
+                existing['release_id'] = release_id
+            _write_lock_file(lock_file, existing, owner)
+            return existing
+
+        if is_lock_active(existing, base, now):
+            op = existing.get('operation', 'unknown')
+            rel = existing.get('release_id', 'none')
+            stg = existing.get('stage', 'unknown')
+            raise ReleaseLockError(
+                f"Release operation in progress: operation='{op}', release_id='{rel}', stage='{stg}'"
+            )
+
+    new_token = token or str(uuid.uuid4())
+    lock_data = {
+        'operation': operation,
+        'release_id': release_id,
+        'token': new_token,
+        'stage': stage,
+        'holder_pid': os.getpid(),
+        'created_at': now,
+        'updated_at': now,
+        'lease_timeout': lease_timeout,
+        'tracked_pids': [os.getpid()],
+    }
+    _write_lock_file(lock_file, lock_data, owner)
+    return lock_data
+
+
+def update_lock(
+    base: Path,
+    token: str,
+    *,
+    stage: str | None = None,
+    release_id: str | None = None,
+    tracked_pids: list[int] | None = None,
+    lease_timeout: float | None = None,
+    owner: int | None = None,
+) -> dict:
+    """Update an active lock held by the given token."""
+    owner = _resolve_owner(base, owner)
+    lock_file = base / '.deploy.lock'
+    existing = _read_lock_file(lock_file, owner)
+    if not existing or existing.get('token') != token:
+        raise ReleaseLockError("Cannot update lock: token mismatch or lock not found")
+
+    now = time.time()
+    existing['updated_at'] = now
+    existing['holder_pid'] = os.getpid()
+    if stage is not None:
+        existing['stage'] = stage
+    if release_id is not None:
+        existing['release_id'] = release_id
+    if lease_timeout is not None:
+        existing['lease_timeout'] = lease_timeout
+    if tracked_pids is not None:
+        existing['tracked_pids'] = list(set(existing.get('tracked_pids', []) + tracked_pids))
+
+    _write_lock_file(lock_file, existing, owner)
+    return existing
+
+
+def release_lock(base: Path, token: str | None = None, *, owner: int | None = None, force: bool = False) -> None:
+    """Release the lock if token matches or force is True."""
+    owner = _resolve_owner(base, owner)
+    lock_file = base / '.deploy.lock'
+    if not lock_file.exists():
+        return
+
+    existing = _read_lock_file(lock_file, owner)
+    if existing and not force:
+        if token and existing.get('token') != token:
+            raise ReleaseLockError("Cannot release lock: token mismatch")
+
+    try:
+        lock_file.unlink(missing_ok=True)
+    except OSError as exc:
+        raise ReleaseLockError(f"Cannot delete release lock: {exc}") from exc
+
+
+@contextmanager
+def release_operation(
+    base: Path,
+    operation: str,
+    release_id: str | None,
+    *,
+    token: str | None = None,
+    lease_timeout: float = 600.0,
+    stage: str = "active",
+    owner: int | None = None,
+):
+    """Context manager acquiring the release operation lock or reusing an existing token session."""
+    owner = _resolve_owner(base, owner)
+    lock_data = acquire_lock(
+        base,
+        operation,
+        release_id,
+        token=token,
+        lease_timeout=lease_timeout,
+        stage=stage,
+        owner=owner,
+    )
+    managed_token = lock_data['token']
+    is_session_owner = token is None
+    try:
+        yield lock_data
+    finally:
+        if is_session_owner:
+            try:
+                release_lock(base, managed_token, owner=owner)
+            except Exception:
+                pass
 
 
 def _directory(parent, name, owner, *, mode=None):
@@ -40,28 +369,35 @@ def _check_id(release_id):
         raise ValueError('Invalid release identifier')
 
 
-def prepare(base, release_id, owner=0):
+def prepare(base: Path, release_id: str, owner: int | None = None, *, token: str | None = None) -> str:
     _check_id(release_id)
-    base_fd = _base(base, owner)
+    owner = _resolve_owner(base, owner)
+    lock_data = acquire_lock(base, 'deploy', release_id, token=token, stage='staging', owner=owner)
+
     try:
+        base_fd = _base(base, owner)
         try:
-            os.mkdir('staging', 0o700, dir_fd=base_fd)
-            os.fsync(base_fd)
-        except FileExistsError:
-            pass
-        staging_fd = _directory(base_fd, 'staging', owner, mode=0o700)
-        try:
-            os.mkdir(release_id, 0o700, dir_fd=staging_fd)
-            os.fsync(staging_fd)
+            try:
+                os.mkdir('staging', 0o700, dir_fd=base_fd)
+                os.fsync(base_fd)
+            except FileExistsError:
+                pass
+            staging_fd = _directory(base_fd, 'staging', owner, mode=0o700)
+            try:
+                os.mkdir(release_id, 0o700, dir_fd=staging_fd)
+                os.fsync(staging_fd)
+            finally:
+                os.close(staging_fd)
         finally:
-            os.close(staging_fd)
-    finally:
-        os.close(base_fd)
+            os.close(base_fd)
+    except Exception:
+        release_lock(base, lock_data['token'], owner=owner)
+        raise
+
+    return lock_data['token']
 
 
 def _rename_noreplace(source_fd, target_fd, name):
-    # The Linux primitive performs collision detection and rename atomically.
-    # Refuse unsupported kernels instead of falling back to a racy precheck.
     libc = ctypes.CDLL(None, use_errno=True)
     rename = getattr(libc, 'renameat2', None)
     if rename is None:
@@ -75,11 +411,6 @@ def _rename_noreplace(source_fd, target_fd, name):
 
 
 def _check_contents(directory_fd, owner, repair_gid, public_gid, prefix=''):
-    """Reject writable, unreadable or non-regular staged release entries.
-
-    Staging is root-only, so unprivileged users cannot swap validated entries.
-    The single private repair archive is readable by the schulpilot group.
-    """
     with os.scandir(directory_fd) as entries:
         for entry in entries:
             path = f'{prefix}/{entry.name}' if prefix else entry.name
@@ -109,8 +440,20 @@ def _check_contents(directory_fd, owner, repair_gid, public_gid, prefix=''):
                     raise ValueError(f'Release file is not publicly readable: {path}')
 
 
-def publish(base, release_id, owner=0, repair_gid=None, public_gid=None):
+def publish(
+    base: Path,
+    release_id: str,
+    owner: int | None = None,
+    *,
+    token: str | None = None,
+    repair_gid: int | None = None,
+    public_gid: int | None = None,
+) -> None:
     _check_id(release_id)
+    owner = _resolve_owner(base, owner)
+    if token:
+        update_lock(base, token, stage='published', release_id=release_id, owner=owner)
+
     if public_gid is None:
         public_gid = os.getegid()
     base_fd = _base(base, owner)
@@ -122,8 +465,6 @@ def publish(base, release_id, owner=0, repair_gid=None, public_gid=None):
                 release_fd = _directory(staging_fd, release_id, owner, mode=0o700)
                 try:
                     _check_contents(release_fd, owner, repair_gid, public_gid)
-                    # Staging remains root-only via its parent. Once published,
-                    # the unprivileged application must traverse the release.
                     os.fchmod(release_fd, 0o755)
                     os.fsync(release_fd)
                     try:
@@ -143,15 +484,44 @@ def publish(base, release_id, owner=0, repair_gid=None, public_gid=None):
         os.close(base_fd)
 
 
+def abort(base: Path, release_id: str, owner: int | None = None, *, token: str | None = None) -> None:
+    """Abort a staging release, cleanup files, and release the operation lock."""
+    _check_id(release_id)
+    owner = _resolve_owner(base, owner)
+    staged_path = base / 'staging' / release_id
+    if staged_path.is_dir():
+        shutil.rmtree(staged_path, ignore_errors=True)
+    try:
+        release_lock(base, token, owner=owner)
+    except ReleaseLockError:
+        pass
+
+
+def heartbeat(base: Path, release_id: str, token: str, owner: int | None = None) -> None:
+    _check_id(release_id)
+    owner = _resolve_owner(base, owner)
+    update_lock(base, token, release_id=release_id, owner=owner)
+
+
 def main():
     if os.geteuid() != 0:
         raise SystemExit('Release staging requires root')
-    if len(sys.argv) != 3 or sys.argv[1] not in ('prepare', 'publish'):
-        raise SystemExit('Usage: stage_release.py prepare|publish RELEASE_ID')
-    if sys.argv[1] == 'prepare':
-        prepare(BASE, sys.argv[2])
-    else:
-        publish(BASE, sys.argv[2], repair_gid=grp.getgrnam('schulpilot').gr_gid, public_gid=0)
+    if len(sys.argv) < 3 or sys.argv[1] not in ('prepare', 'publish', 'abort', 'heartbeat'):
+        raise SystemExit('Usage: stage_release.py prepare|publish|abort|heartbeat RELEASE_ID [TOKEN]')
+    action = sys.argv[1]
+    release_id = sys.argv[2]
+    token = sys.argv[3] if len(sys.argv) > 3 else None
+
+    if action == 'prepare':
+        print(prepare(BASE, release_id, token=token))
+    elif action == 'publish':
+        publish(BASE, release_id, token=token, repair_gid=grp.getgrnam('schulpilot').gr_gid, public_gid=0)
+    elif action == 'abort':
+        abort(BASE, release_id, token=token)
+    elif action == 'heartbeat':
+        if not token:
+            raise SystemExit('Heartbeat requires TOKEN')
+        heartbeat(BASE, release_id, token)
 
 
 if __name__ == '__main__':

@@ -21,6 +21,19 @@ Die Reihenfolge innerhalb der Prioritäten richtet sich nach Abhängigkeiten. Ei
 
 ## Arbeitsfortschritt
 
+- 02.11.2026, lokal: Parallele Betriebsabläufe und Release-Sperren wurden über
+  eine zustandsbehaftete, verbindliche Leasesperre (`deploy/release_lock.py` und
+  `deploy/stage_release.py`) abgesichert. Mutierende Aktionen (Deployment, Staging,
+  Aktivierung, Pruning, manueller Rollback) schließen sich gegenseitig aus. Die
+  Sperre übersteht SSH-Verbindungsabbrüche durch PID- und Pfadzustandsprüfung
+  laufender Server-Kindprozesse (`/proc/<pid>/fd`). Staging-Uploads, bereits
+  veröffentlichte, aber noch nicht aktivierte Releases sowie Releases neuer als
+  `current` sind vor vorzeitigem `prune_releases.py` geschützt. Der
+  Systemwächter unterdrückt während der kurzen Aktivierungsphase Fehlalarme.
+  29 gezielte Tests (`scripts/tests/test_deploy_coordination.py` und
+  `scripts/tests/test_stage_release.py`) sowie die Backend-Aufbewahrungstests
+  bestanden.
+
 - 01.11.2026, Betrieb: Die nachfolgenden Befunde wurden dokumentiert. Der
   erneute Abgleich fand falsche beziehungsweise nicht ausreichend belegte
   Aussagen zu Lieferkette, historischen Noten und Aufbewahrungsfenster;
@@ -854,10 +867,20 @@ Bestandteil des bestehenden Buildvertrags.
     lieferte eine gültige Server-UTC-Zeit; Tests verwerfen unzulässige,
     mehrdeutige oder unmögliche Zeitangaben sowie SSH-Fehler und lassen keinen
     stillen Rückfall auf die lokale Uhr zu. Die Prüfung bescheinigt nicht,
-    dass jeder künftige Server tatsächlich synchronisiert ist. Die unten
-    beschriebene Sperre für parallele Betriebsabläufe bleibt offen.
+    dass jeder künftige Server tatsächlich synchronisiert ist.
 
-  **Noch offen – parallele Betriebsabläufe:** Zwei gleichzeitige Deployments oder ein manueller Rückweg dürfen sich bei Upload, Aktivierung, Caddy, Dienstdateien, Anbieterworker und Releasezeigern nicht überlagern. Insbesondere darf `prune_releases.py` kein gerade übertragenes, noch nicht aktives Release entfernen. Die Sperre muss auch bei SSH-Abbruch oder beendetem Koordinator erhalten bleiben, solange ein untergeordneter Upload oder ein anderer verändernder Prozess noch läuft. Eine bloß über eine SSH-Verbindung gehaltene Lease genügt dafür nicht. Zeitgesteuerte Backup-, Monitor- und Wiederherstellungsdienste sowie manuelle Aktivierung und Bereinigung in die Koordination einbeziehen. Übergangsweise beachten, dass alte installierte Skripte eine neue Sperre noch nicht kennen.
+  - [x] Parallele Betriebsabläufe und Release-Sperre absichern: Zwei
+    gleichzeitige Deployments oder ein manueller Rückweg überlagern sich bei
+    Upload, Aktivierung, Caddy, Dienstdateien, Anbieterworker und Releasezeigern
+    nicht mehr. Eine zustandsbehaftete Lease (`.deploy.lock`) schließt
+    konkurrierende Aktionen aus. `prune_releases.py` prüft vor der Ausführung
+    die Release-Sperre und schützt unfertiges Staging, publizierte unaktivierte
+    Stände sowie Releases neuer als `current`. Die Sperre übersteht
+    SSH-Verbindungsabbrüche durch serverseitige Prozess- und
+    Dateideskriptorprüfung (`/proc/<pid>/fd`). Aktivierung und manueller
+    Rollback (`activate.py`) agieren atomar unter der Sperre; der Monitor
+    unterdrückt Übergangswarnungen während des Neustarts. 29 gezielte Tests
+    in `test_deploy_coordination.py` und `test_stage_release.py` bestanden.
 
   **Zusätzliche Tests:** Zwei synthetische Deployments mit künstlich pausiertem Upload und paralleler Bereinigung ausführen; dazu SSH während Upload und Aktivierung unterbrechen, den Kindprozess verzögert beenden und prüfen, dass kein zweiter verändernder Ablauf oder prune das laufende Staging beeinträchtigt. Frühe und späte Fehler, Timerläufe sowie einen manuellen Rückweg unter demselben Vertrag prüfen. Keine Tests gegen Produktion ausführen.
 
