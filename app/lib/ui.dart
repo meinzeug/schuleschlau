@@ -38,6 +38,48 @@ const warningSurface = Color(0xFFFFF1DA);
 const dangerInk = Color(0xFFA82D40);
 const dangerSurface = Color(0xFFFFF0F2);
 
+/// A one-shot action, not a selectable chip. Flutter's web ActionChip
+/// otherwise exposes an unchecked checkbox to assistive technology.
+class AccessibleActionChip extends StatelessWidget {
+  const AccessibleActionChip({
+    super.key,
+    required this.label,
+    required this.semanticsLabel,
+    required this.onPressed,
+    this.backgroundColor,
+    this.disabledColor,
+    this.labelStyle,
+    this.materialTapTargetSize,
+  });
+
+  final Widget label;
+  final String semanticsLabel;
+  final VoidCallback? onPressed;
+  final Color? backgroundColor;
+  final Color? disabledColor;
+  final TextStyle? labelStyle;
+  final MaterialTapTargetSize? materialTapTargetSize;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    container: true,
+    button: true,
+    enabled: onPressed != null,
+    label: semanticsLabel,
+    onTap: onPressed,
+    child: ExcludeSemantics(
+      child: ActionChip(
+        label: label,
+        onPressed: onPressed,
+        backgroundColor: backgroundColor,
+        disabledColor: disabledColor,
+        labelStyle: labelStyle,
+        materialTapTargetSize: materialTapTargetSize,
+      ),
+    ),
+  );
+}
+
 enum PanelTone { neutral, subtle, accent, info, success, warning, danger }
 
 Color panelColor(PanelTone tone) => switch (tone) {

@@ -711,6 +711,22 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
 
   **Abnahme:** Die nächste Hauptaktion bleibt sichtbar und erreichbar, Feedback bleibt bis zur bewussten Fortsetzung stehen, Tastatur und Navigation verdecken keine Aktion; normale Texte erreichen mindestens 4,5:1 und notwendige Kontrollmerkmale 3:1. Geräte, Schriftgröße, Messungen und offene Befunde dokumentieren; Farbtests allein sind keine vollständige WCAG-Abnahme.
 
+  **02.11.2026, lokale Teilkorrektur:** In der Heftansicht bei 390 × 844
+  Pixeln gab der produktive Browser die sofort ausführbaren Schulbuddy-
+  Frageideen als nicht aktivierte Kontrollkästchen aus. Die gemeinsame
+  Aktionschip-Darstellung stellt nun eine beschriftete Schaltfläche mit nur
+  einer Aktivierungsaktion bereit. Sie wird auch für Tutor-Frageideen,
+  Aufgabenanzahl in der Klassenarbeitsplanung, jüngste Suchbegriffe und
+  Wortbausteine verwendet; deaktivierte Aktionen bleiben deaktiviert. Die
+  bestehenden Funktionen und die sichtbare Darstellung bleiben erhalten.
+  78 Flutter-Widgetfälle für die betroffenen Bereiche bestanden; zwei neue
+  Fälle prüften Semantik, Deaktivierung, genau eine Aktion und Tastatur auch
+  im Chrome-Webrunner. Ein zusätzlicher Chrome-Test prüfte die Semantik der
+  Schulbuddy-Frageideen. Die produktive Webausgabe nach Deployment ist damit
+  noch nicht überprüft.
+  Die Prüfung der tatsächlichen assistiven Ausgabe in den weiteren Ansichten
+  und eine vollständige mobile Barrierefreiheitsabnahme stehen noch aus.
+
 - [ ] **P1 – 30-Schultage-Test als reproduzierbaren Regressionstest fortführen**
 
   Der in `docs/EVERYDAY_QA_2026_10_30.md` beschriebene isolierte Test dokumentiert bereits 30 Schultage und 32 künstliche Materialseiten; er belegt keine tägliche Mindestzeit, vollständige Lehrplanabdeckung oder langfristige Lernwirkung. Für den nächsten Release einen eigenen Testplan mit festem Code-/Konfigurationsstand, künstlichen Familien und Fotos, isolierter Datenbank und Testuhr erstellen. Pro Tag Quelle, Plan, ausdrücklich gestartete Runde, Antwort-/Hilfestatus, Fehler, Provideraufträge und bekannte/unbekannte Kosten erfassen; Ferien, Fehl- und Nachholtage, Mitternacht, Netzverlust, Quellrevision, Mehrgeräte und freiwillige Fortsetzung einplanen.

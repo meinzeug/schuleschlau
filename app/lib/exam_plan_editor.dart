@@ -465,7 +465,8 @@ class _ExamPlanEditorState extends State<ExamPlanEditor> {
                 runSpacing: 8,
                 children: [
                   for (final count in [3, 5, 10])
-                    ActionChip(
+                    AccessibleActionChip(
+                      semanticsLabel: '$count Aufgaben',
                       label: Text('$count'),
                       onPressed: saving || uncertain
                           ? null

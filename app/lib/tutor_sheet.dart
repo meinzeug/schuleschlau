@@ -699,7 +699,8 @@ class _TutorSheetState extends State<_TutorSheet> with WidgetsBindingObserver {
                                 'Zeig mir ein Beispiel',
                                 'Warum ist das so?',
                               ])
-                                ActionChip(
+                                AccessibleActionChip(
+                                  semanticsLabel: starter,
                                   backgroundColor: context.palette.mint,
                                   disabledColor: cream,
                                   labelStyle: TextStyle(

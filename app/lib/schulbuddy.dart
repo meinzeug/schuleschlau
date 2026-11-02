@@ -1752,7 +1752,8 @@ class _SchulbuddyChatState extends State<_SchulbuddyChat>
               runSpacing: 8,
               children: [
                 for (final suggestion in visibleSuggestions)
-                  ActionChip(
+                  AccessibleActionChip(
+                    semanticsLabel: suggestion,
                     label: Text(suggestion),
                     onPressed: sending ? null : () => starter(suggestion),
                   ),

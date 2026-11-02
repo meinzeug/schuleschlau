@@ -1,6 +1,6 @@
 # Übergabe an die nächste Coding-KI
 
-Stand: 1. November 2026. Diese Datei ist eine Arbeitsübergabe, kein Ersatz für die aktuellen Nutzeraufträge oder `AGENTS.md`. Prüfe alle Zustände erneut; insbesondere Server, Git, laufende Jobs und Roadmap können sich inzwischen geändert haben. Keine Zugangsdaten, Tokens, privaten Schülerdaten oder Bildinhalte in diese Datei, Logs oder Git schreiben.
+Stand: 2. November 2026. Diese Datei ist eine Arbeitsübergabe, kein Ersatz für die aktuellen Nutzeraufträge oder `AGENTS.md`. Prüfe alle Zustände erneut; insbesondere Server, Git, laufende Jobs und Roadmap können sich inzwischen geändert haben. Keine Zugangsdaten, Tokens, privaten Schülerdaten oder Bildinhalte in diese Datei, Logs oder Git schreiben.
 
 ## Auftrag und Arbeitsweise
 
@@ -24,6 +24,12 @@ Diese Dateien nicht überschreiben oder ungeprüft committen. Für unabhängige 
 Zu Beginn mindestens `git status --short --branch`, `git log -5 --oneline`, den Status des Worktrees und die aktuellen CI-Ergebnisse prüfen. Nutzeränderungen und gegebenenfalls von anderer Arbeit stammende Dateien erhalten.
 
 ## Offener Fehlerauftrag: Lernrundenvorbereitung
+
+Die jüngste lokale Arbeit korrigiert die Web-Semantik der Aktionschips in
+Schulbuddy, Tutor, Klassenarbeitsplanung, Sammlungssuche und Wortbausteinen.
+Der produktive Browser zeigte den Ausgangsfehler bei 390 Pixeln; der globale
+Barrierefreiheitspunkt bleibt offen. Die zwei unveränderten lokalen Dateien
+aus dem Git-Abschnitt weiterhin aussparen und den Releasezustand prüfen.
 
 Am 02.11.2026 wurde der vom Nutzer verlinkte eigene Lernrundenauftrag
 datensparsam geprüft und der Zugriff auditiert. Der Anbieter hatte mit

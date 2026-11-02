@@ -1,7 +1,9 @@
+import 'dart:ui' show CheckedState;
 import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
@@ -191,6 +193,25 @@ Future<void> tap(WidgetTester t, Finder f) async {
 
 void main() {
   setUp(() => FlutterSecureStorage.setMockInitialValues({}));
+  testWidgets(
+    'starter questions have button semantics, not checkbox semantics',
+    (t) async {
+      final semantics = t.ensureSemantics();
+      try {
+        await open(t);
+        await tap(t, find.text('Buddy öffnen'));
+        final node = t.getSemantics(find.text('Wie kann ich selbst anfangen?'));
+        expect(node.getSemanticsData().flagsCollection.isButton, isTrue);
+        expect(
+          node.getSemanticsData().flagsCollection.isChecked,
+          CheckedState.none,
+        );
+        expect(node.getSemanticsData().hasAction(SemanticsAction.tap), isTrue);
+      } finally {
+        semantics.dispose();
+      }
+    },
+  );
   test('context resolver excludes arbitrary query contents and all admin child references', () {
     final state = AppState()
       ..user = {'id': 'u', 'role': 'child', 'child_id': child};

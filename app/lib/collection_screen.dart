@@ -1232,7 +1232,8 @@ class _PagedCollectionState extends State<_PagedCollectionBody> {
                           runSpacing: 8,
                           children: [
                             for (final term in recentQueries)
-                              ActionChip(
+                              AccessibleActionChip(
+                                semanticsLabel: 'Nach $term suchen',
                                 label: Text(term),
                                 onPressed: () =>
                                     change(() => search.text = term),

@@ -2611,7 +2611,8 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
               runSpacing: 8,
               children: [
                 for (final entry in bank.indexed)
-                  ActionChip(
+                  AccessibleActionChip(
+                    semanticsLabel: entry.$2,
                     materialTapTargetSize: MaterialTapTargetSize.padded,
                     label: MathText(entry.$2),
                     onPressed: actionBusy || usedBank.contains(entry.$1)
