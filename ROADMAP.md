@@ -501,6 +501,10 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
 
 - [ ] **P1 – Abruf und Lernplanung nachvollziehbar abnehmen**
 
+  **Teilprüfung 02.11.2026:** 13 synthetische SQLite-Fälle und der
+  kombinierte Mehrtagesfall auf PostgreSQL bestanden; weitere Grenzen und
+  Befehle: [Regressionsbericht](docs/ROADMAP_REGRESSION_2026_11_02.md#abruf-und-lernplanung).
+
   Mit künstlichen Quellen, Revisionen und Elternaufträgen mehrere eigenständige Prüftage über mindestens sieben simulierte Tage sowie freiwillige Zusatzrunden durchspielen.
 
   **01.11.2026:** Die Fälle für mindestens drei Prüftage, mehr als sieben
@@ -1103,11 +1107,19 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Ausgabelängen, Schemafehler und Providerstörungen systematisch behandeln**
 
+  **Teilprüfung 02.11.2026:** 49 synthetische SQLite-Fälle und der dort
+  übersprungene Parallelitätsfall auf PostgreSQL bestanden; Umfang und Grenzen:
+  [Regressionsbericht](docs/ROADMAP_REGRESSION_2026_11_02.md#ausgabelängen-schemafehler-und-providerstörungen).
+
   Lange Quellen und mehrseitige Pakete mit festgelegten Größen stufenweise und quellgebunden verarbeiten; zulässige Auftrags- und Tokenbudgets sowie Reservierungen vor jedem Schritt prüfen. Abgeschnittene Antworten, fehlerhafte Schemata, 400/429/5xx, Zeitüberschreitungen und Worker-Neustarts in isolierten Tests auslösen. Unvollständige Ergebnisse nicht als vollständig übernehmen; bereits gespeicherte Teilergebnisse und Antworten sichern, verständlichen Status und einen begrenzten, bewusst gestarteten Wiederholungsweg anbieten. Keine automatischen Providerwechsel oder unbegrenzten Wiederholungen einführen.
 
   **Abnahme:** Mehrseitenfall und Fehlermatrix belegen eindeutige Phasenzuordnung, normale Kosten-/Versuchsgrenzen, keine Doppelaufträge und sichere Fortsetzung; zusätzlich mit künstlichen Inhalten echte freigegebene Anbieteraufrufe durchführen und deren Umfang, Kosten und Restrisiken dokumentieren.
 
 - [ ] **P1 – Referenzdatenbank und Medienauswahl wirksam prüfen**
+
+  **Teilprüfung 02.11.2026:** 109 synthetische SQLite-Fälle zu Auswahl,
+  Quellen- und Referenzbindung bestanden; Umfang und Grenzen:
+  [Regressionsbericht](docs/ROADMAP_REGRESSION_2026_11_02.md#referenzdatenbank-und-medienauswahl).
 
   Vorhandene Fach-, Themen-, Klassen- und Kompetenzzuordnungen sowie Versionen der Referenzen überprüfen. Für repräsentative Erklärungen nachvollziehen, welche Vorlagen und tatsächlich vorhandenen Medien ausgewählt, an die KI übergeben, parametrisiert und bis ins Frontend transportiert werden. Fehlende Treffer und ungültige Zuordnungen unterscheiden; Medien nur mit gültigen erlaubten Verweisen und tatsächlichen Metadaten anzeigen. Weitere Referenzen versioniert ergänzen, keine Videos erfinden und keinen KI-Aufruf durch bloßes Listen auslösen.
 
@@ -1115,11 +1127,19 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Erklärgrafiken und Animationen fachlich und technisch abnehmen**
 
+  **Teilprüfung 02.11.2026:** 50 synthetische SQLite-Fälle zu Szenen und
+  Positionen bestanden; Umfang und Grenzen:
+  [Regressionsbericht](docs/ROADMAP_REGRESSION_2026_11_02.md#erklärgrafiken-und-animationen).
+
   Für den vereinbarten Startumfang jeden Erklärungsschritt auf eine fachlich passende Grafik prüfen. Vorhandene Renderer und versionierte deklarative Szenen verwenden; Modelltexte dürfen keinen ausführbaren Code, keine fremden ausführbaren Inhalte und keine ungeprüften Koordinaten einschleusen. Zahlen, Beziehungen, Beschriftungen und sichtbare Zustände gegen dieselben geprüften Daten validieren. Geeignete Interaktionen und Animationen erhalten Start/Pause, Zurücksetzen und gegebenenfalls Schrittsteuerung sowie verständliche Alternativen für Tastatur, Screenreader und reduzierte Bewegung.
 
   **Abnahme:** Fachkundige Prüfung und tatsächliche Webdarstellung decken ausgewählte Mathematik-, Sprach-, Natur- und Gesellschaftsfachfälle ab; fehlerhafte oder fehlende Grafik wird sicher korrigiert beziehungsweise nicht als vollständig ausgegeben. Erkunden allein erzeugt keinen Leistungsnachweis.
 
 - [ ] **P1 – Schulbuddy als sicheren kontextbezogenen Lernbegleiter prüfen**
+
+  **Teilprüfung 02.11.2026:** 44 synthetische SQLite-Fälle und die zwei dort
+  übersprungenen Parallelitätsfälle auf PostgreSQL bestanden; Umfang und
+  Grenzen: [Regressionsbericht](docs/ROADMAP_REGRESSION_2026_11_02.md#schulbuddy).
 
   Aktuelle Heftseite, Lernziel, Aufgabe, sichtbaren Grafikzustand und zulässige Hilfen revisionsgebunden übergeben; Schnellaktionen tatsächlich absenden. Antworten auf unklare Quellen, fachliche Fragen, Manipulationsversuche in hochgeladenen Bildern und unangemessene Eingaben mit künstlichen Fällen prüfen. Keine menschliche Identität, emotionale Abhängigkeit, Diagnosen oder zugesicherte Lernerfolge vortäuschen. Bei deutlichem Unterstützungsbedarf eine verständliche, altersgerechte Hilfeoption vorsehen.
 
