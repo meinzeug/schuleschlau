@@ -118,6 +118,43 @@ def test_child_reply_bell_does_not_require_push_consent_and_is_bounded(api, hous
     assert api.get("/api/notifications/inbox").status_code == 401
 
 
+def test_own_messages_do_not_crowd_other_notices_out_of_the_bell(api, household):
+    owner, child = household
+    current = int(now())
+    with DB.begin() as db:
+        notice = Message(id=uid(), child_id=child["id"], kind="help",
+                         body="Synthetic request", created=current - 60)
+        db.add(notice)
+        for index in range(55):
+            db.add(Message(child_id=child["id"], sender_id=owner["id"], kind="help",
+                           body="Own synthetic message", created=current - index))
+        expected = "message:" + notice.id
+    result = api.get("/api/notifications/inbox")
+    assert result.status_code == 200
+    assert [row["id"] for row in result.json()["items"]] == [expected]
+    assert api.post("/api/notifications/inbox/read", json={"ids": [expected]}).status_code == 200
+
+
+def test_childs_own_messages_do_not_hide_parent_reply(api, household):
+    owner, child = household
+    current = int(now())
+    with DB.begin() as db:
+        child_user_id = db.get(Child, child["id"]).user_id
+        reply = Message(id=uid(), child_id=child["id"], sender_id=owner["id"],
+                        kind="reply", body="Synthetic reply", created=current - 60)
+        db.add(reply)
+        for index in range(55):
+            db.add(Message(child_id=child["id"], sender_id=child_user_id, kind="reply",
+                           body="Own synthetic message", created=current - index))
+        expected = "message:" + reply.id
+    login = api.post("/api/auth/login", json={"username": "test-child", "password": "secure-child-pass-123"}).json()
+    api.headers["Authorization"] = "Bearer " + login["token"]
+    result = api.get("/api/notifications/inbox")
+    assert result.status_code == 200
+    assert [row["id"] for row in result.json()["items"]] == [expected]
+    assert api.post("/api/notifications/inbox/read", json={"ids": [expected]}).status_code == 200
+
+
 def test_completed_word_import_notifies_with_consent_quiet_and_source_session_recheck(api, household, tmp_path):
     owner, child = household
     enable(tmp_path)

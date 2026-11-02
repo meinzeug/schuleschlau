@@ -90,7 +90,13 @@ def recent_events(db, user, current=None, *, direct_messages=False, direct_exams
     messages = list(db.scalars(
         select(Message)
         .options(load_only(Message.id, Message.child_id, Message.created, Message.kind, Message.sender_id, Message.context))
-        .where(Message.child_id.in_(ids), Message.kind.in_(kinds), Message.created > cutoff, Message.created <= current)
+        .where(
+            Message.child_id.in_(ids), Message.kind.in_(kinds),
+            Message.created > cutoff, Message.created <= current,
+            # Apply before LIMIT, otherwise one's own messages can hide
+            # older notices that the account is actually meant to receive.
+            (Message.sender_id.is_(None) | (Message.sender_id != user.id)),
+        )
         .order_by(Message.created.desc(), Message.id.desc())
         .limit(LIMIT)
     ))
@@ -98,8 +104,6 @@ def recent_events(db, user, current=None, *, direct_messages=False, direct_exams
 
     targets = message_context_targets(db, messages)
     for row in messages:
-        if row.sender_id == user.id:
-            continue
         route = f"/child/{row.child_id}" if user.role == "parent" else "/settings"
         if user.role == "child":
             route = (

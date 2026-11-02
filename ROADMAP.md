@@ -1150,6 +1150,17 @@ Bestandteil des bestehenden Buildvertrags.
   Lazy Loading. Ein Ausbau muss alle Ereignisquellen, stabile Sortierung,
   Berechtigungs- und Lesemarkierungsprüfungen sowie den Kontowechsel abdecken.
 
+  **02.11.2026, Teilkorrektur:** Eigene Nachrichten wurden bisher erst nach
+  dem begrenzten Datenbankabruf ausgefiltert. Viele eigene Nachrichten konnten
+  deshalb ältere relevante Meldungen vollständig aus der Glocke verdrängen.
+  Der Filter greift jetzt bereits vor der Begrenzung. Künstliche Eltern- und
+  Kinderfälle mit jeweils 55 eigenen Nachrichten prüfen auch die anschließende
+  Lesemarkierung. Die zugehörigen Inbox-, Lernrunden- und Prüfungsmeldungstests
+  bestanden auf isoliertem PostgreSQL mit 77 Fällen und auf SQLite mit 76
+  Fällen; ein Zeilensperrentest wird dort bewusst übersprungen und ist im
+  PostgreSQL-Lauf enthalten. Die vollständige Cursor-Fortsetzung ist weiterhin
+  offen.
+
 - [ ] **P1 – Familienanrufe und optionale Medien nur im freigegebenen Umfang abnehmen**
 
   Falls für die gewählte Startstufe vorgesehen, Eltern-/Kinderrollen, ausdrückliche Kamera-/Mikrofon-/Bildschirmfreigaben, Verbindungsaufbau, Abbruch, Widerruf und Gerätewechsel mit synthetischen Konten prüfen. Medienlinks auf passende katalogisierte Inhalte und Rückkehr zum Lernkontext testen; kein privater Kontext in URL oder Referrer.
