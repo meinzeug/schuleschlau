@@ -1,15 +1,8 @@
 """Comprehensive integration and isolation tests for release deployment coordination.
 
-Verifies:
-1. Two parallel deployments collide and cannot overwrite staging or releases.
-2. Paused upload blocks parallel prune and prevents deletion of staging.
-3. Lease activity for simulated expired metadata and an open staging file.
-4. Manual rollback participates in the lease.
-5. Published, unactivated releases are never pruned.
-6. Manual rollback acquires exclusive lock and blocks concurrent deploy/prune.
-7. Early failure (staging error) cleans up the lock.
-8. Late failure (health check failure in activate) rolls back and releases lock.
-9. Monitor watchdog coordinates with active deployment and avoids false alarms.
+Exercises lease races, simulated interruptions, delayed local child processes,
+pruning, the rollback lease and monitor behavior. It does not run an SSH
+disconnect, a real service activation, or a full migration/rollback.
 """
 
 from __future__ import annotations
@@ -54,6 +47,85 @@ def _race_for_lease(base, start, results):
         results.put("acquired")
     except stage.ReleaseLockError:
         results.put("blocked")
+
+
+def _delayed_upload(path, ready, resume):
+    ready.set()
+    if not resume.wait(10):
+        raise RuntimeError("Test upload was not resumed")
+    (path / "later.txt").write_text("completed")
+
+
+def test_interrupted_delayed_upload_preserves_staging_and_lease(env):
+    token = stage.prepare(env, RELEASE_1)
+    partial = env / "staging" / RELEASE_1
+    ctx = multiprocessing.get_context("fork")
+    ready, resume = ctx.Event(), ctx.Event()
+    process = ctx.Process(target=_delayed_upload, args=(partial, ready, resume))
+    process.start()
+    try:
+        assert ready.wait(5)
+        # No file in staging is open while the child waits. An abort must not
+        # remove the directory or release the lease based on /proc or timeout.
+        stage.abort(env, RELEASE_1, token=token)
+        lock_path = env / ".deploy.lock"
+        data = json.loads(lock_path.read_text())
+        data.update(holder_pid=99999999, tracked_pids=[], updated_at=time.time() - 3600)
+        lock_path.write_text(json.dumps(data))
+        with pytest.raises(stage.ReleaseLockError):
+            stage.prepare(env, RELEASE_2)
+        with pytest.raises(stage.ReleaseLockError, match="Interrupted"):
+            stage.heartbeat(env, RELEASE_1, token)
+        assert partial.is_dir()
+        resume.set()
+        process.join(5)
+        assert process.exitcode == 0
+        assert (partial / "later.txt").read_text() == "completed"
+        with pytest.raises(stage.ReleaseLockError):
+            stage.prepare(env, RELEASE_2)
+    finally:
+        resume.set()
+        process.join(5)
+        if process.is_alive():
+            process.terminate()
+            process.join()
+
+
+def test_abort_and_release_reject_missing_wrong_or_mismatched_tokens(env):
+    token = stage.prepare(env, RELEASE_1)
+    staged = env / "staging" / RELEASE_1
+    (staged / "keep.txt").write_text("partial")
+    for release_id, candidate in [(RELEASE_1, None), (RELEASE_1, "wrong"), (RELEASE_2, token)]:
+        with pytest.raises(stage.ReleaseLockError):
+            stage.abort(env, release_id, token=candidate)
+        assert (staged / "keep.txt").read_text() == "partial"
+    with pytest.raises(stage.ReleaseLockError):
+        stage.release_lock(env)
+    with pytest.raises(stage.ReleaseLockError):
+        stage.acquire_lock(env, "activate", RELEASE_2, token=token)
+    with pytest.raises(stage.ReleaseLockError):
+        stage.heartbeat(env, RELEASE_2, token)
+    assert stage.check_lock(env)["release_id"] == RELEASE_1
+
+
+def test_finish_requires_matching_active_release_and_completed_followup(env):
+    token = stage.prepare(env, RELEASE_1)
+    with pytest.raises(stage.ReleaseLockError, match="not activated"):
+        stage.finish(env, RELEASE_1, token)
+    stage.publish(env, RELEASE_1, token=token)
+    stage.acquire_lock(env, "activate", RELEASE_1, token=token, stage="activating")
+    stage.update_lock(env, token, stage="activated", release_id=RELEASE_1)
+    with pytest.raises(stage.ReleaseLockError, match="active release"):
+        stage.finish(env, RELEASE_1, token)
+    with pytest.raises(stage.ReleaseLockError):
+        stage.prepare(env, RELEASE_2)
+    (env / "current").unlink()
+    (env / "current").symlink_to(env / "releases" / RELEASE_1)
+    with pytest.raises(stage.ReleaseLockError, match="not activated"):
+        stage.finish(env, RELEASE_1, "wrong")
+    stage.finish(env, RELEASE_1, token)
+    assert stage.check_lock(env) is None
+    assert stage.prepare(env, RELEASE_2)
 
 
 def test_simultaneous_processes_cannot_both_acquire_lease(env):

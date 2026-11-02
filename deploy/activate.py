@@ -14,9 +14,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 try:
-    from release_lock import ReleaseLockError, release_lock, release_operation
+    from release_lock import ReleaseLockError, release_operation, update_lock
 except ImportError:
-    from deploy.release_lock import ReleaseLockError, release_lock, release_operation
+    from deploy.release_lock import ReleaseLockError, release_operation, update_lock
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("release_id")
@@ -34,14 +34,8 @@ release = base / "releases" / release_id
 if not (release / "web/index.html").is_file() or not (release / "backend/requirements.lock").is_file():
     raise SystemExit("Release is incomplete")
 current = base / "current"
-previous = current.resolve() if current.is_symlink() else None
 caddy = Path("/etc/caddy/Caddyfile")
-stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-backup = Path(str(caddy) + ".before-schulpilot-" + stamp)
-shutil.copy2(caddy, backup)
-before = caddy.read_text()
 fragment = Path("/etc/caddy/schulpilot.caddy")
-fragment_before = fragment.read_text() if fragment.exists() else None
 migration_started = False
 new_writers_may_have_started = False
 schema_before = None
@@ -129,6 +123,12 @@ def database_revision():
 operation = "activate" if token else "rollback"
 try:
     with release_operation(base, operation, release_id, token=token, stage="activating"):
+        previous = current.resolve() if current.is_symlink() else None
+        stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        backup = Path(str(caddy) + ".before-schulpilot-" + stamp)
+        shutil.copy2(caddy, backup)
+        before = caddy.read_text()
+        fragment_before = fragment.read_text() if fragment.exists() else None
         try:
             if not (release / "venv/bin/pip").exists():
                 subprocess.run(["python3", "-m", "venv", str(release / "venv")], check=True)
@@ -236,7 +236,7 @@ try:
                 prior.unlink(missing_ok=True)
                 prior.symlink_to(previous)
             if token:
-                release_lock(base, token)
+                update_lock(base, token, stage="activated", release_id=release_id)
             print("SCHULPILOT activated: " + release_id)
         except Exception:
             if new_writers_may_have_started:

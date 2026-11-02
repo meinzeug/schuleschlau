@@ -12,9 +12,7 @@ read -r release_apk_sha release_proof release_android_sha <<< "$release_binding"
 repair_sha="$(printf '%s' "$repair_binding" | python3 scripts/release_attestation.py bind-repair "$release_proof" "$build_commit")"
 release_stamp="$(python3 scripts/release_timestamp.py)"
 release="${release_stamp}-$(git rev-parse --short "$build_commit")"
-ssh -o BatchMode=yes dorfspy python3 - < deploy/bootstrap_host.py
 # Incomplete uploads stay outside the tree traversed by even older prune scripts.
-# This is not a deployment lock: publication/activation still need coordination.
 remote_stage="/opt/schulpilot/staging/$release"
 lock_token="$(ssh dorfspy python3 - prepare "$release" < deploy/stage_release.py)"
 deploy_aborted=true
@@ -22,7 +20,7 @@ repair_restart_done=false
 
 cleanup_deployment() {
   if [[ "$deploy_aborted" == true ]]; then
-    echo "Deployment failed or aborted; releasing stage and lock on server..." >&2
+    echo "Deployment failed or aborted; preserving stage and lease for operator inspection..." >&2
     ssh dorfspy python3 - abort "$release" "$lock_token" < deploy/stage_release.py 2>/dev/null || true
   fi
   if [[ "$repair_restart_done" != true ]]; then
@@ -31,6 +29,7 @@ cleanup_deployment() {
 }
 trap cleanup_deployment EXIT
 
+ssh -o BatchMode=yes dorfspy python3 - < deploy/bootstrap_host.py
 rsync -a --chown=root:root --chmod=Dgo-w,Fgo-w --exclude='__pycache__' --exclude='.pytest_cache' backend deploy workers "dorfspy:$remote_stage/"
 rsync -a --chown=root:root --chmod=Dgo=rx,Fgo=rX app/build/web/ "dorfspy:$remote_stage/web/"
 ssh dorfspy "mkdir -m 755 $remote_stage/downloads"
@@ -97,6 +96,7 @@ for name in ('schulpilot-repair.service','schulpilot-repair-dispatcher.service')
         subprocess.run(['systemctl','start',name],check=True)
 PY
 repair_restart_done=true
+ssh dorfspy python3 - finish "$release" "$lock_token" < deploy/stage_release.py
 deploy_aborted=false
 trap - EXIT
 if ! ssh -o BatchMode=yes dorfspy sudo -n python3 /opt/schulpilot/current/deploy/prune_releases.py --apply; then

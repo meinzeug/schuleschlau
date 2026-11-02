@@ -16,7 +16,6 @@ import json
 import math
 import os
 import re
-import shutil
 import stat
 import sys
 import time
@@ -130,37 +129,12 @@ def is_process_accessing_path(target_path: Path) -> bool:
 
 
 def is_lock_active(data: dict, base: Path, now: float) -> bool:
-    """Determine whether an existing lock is actively held or stale."""
-    if not isinstance(data, dict):
-        return False
+    """A persistent lease needs explicit release, even after owner disconnect.
 
-    # Check holder PID
-    holder_pid = data.get('holder_pid')
-    if isinstance(holder_pid, int) and is_pid_alive(holder_pid):
-        return True
-
-    # Check tracked PIDs
-    tracked = data.get('tracked_pids', [])
-    if isinstance(tracked, list):
-        for pid in tracked:
-            if isinstance(pid, int) and is_pid_alive(pid):
-                return True
-
-    # Check lease timeout
-    updated_at = data.get('updated_at', 0)
-    timeout = data.get('lease_timeout', 600)
-    if isinstance(updated_at, (int, float)) and isinstance(timeout, (int, float)):
-        if now - updated_at < timeout:
-            return True
-
-    # Check if any process is accessing staging directory of the release even after timeout
-    release_id = data.get('release_id')
-    if release_id and isinstance(release_id, str):
-        staging_dir = base / 'staging' / release_id
-        if staging_dir.is_dir() and is_process_accessing_path(staging_dir):
-            return True
-
-    return False
+    PIDs and open files are not proof that a delayed child is finished: a
+    sleeping child may open its next file only after a timeout has passed.
+    """
+    return isinstance(data, dict)
 
 
 def _read_lock_file(lock_file: Path, owner: int) -> dict | None:
@@ -204,7 +178,7 @@ def _read_lock_file(lock_file: Path, owner: int) -> dict | None:
 
 
 def check_lock(base: Path, *, owner: int | None = None) -> dict | None:
-    """Return active lock metadata or None if lock is absent or stale."""
+    """Return validated lock metadata or None only when the lock is absent."""
     owner = _resolve_owner(base, owner)
     lock_file = base / '.deploy.lock'
     data = _read_lock_file(lock_file, owner)
@@ -278,8 +252,15 @@ def acquire_lock(
     now = time.time()
 
     existing = _read_lock_file(lock_file, owner)
+    if token and not existing:
+        raise ReleaseLockError("Cannot reuse lock: lease not found")
     if existing:
         if token and existing.get('token') == token:
+            if existing.get('stage') == 'interrupted':
+                raise ReleaseLockError("Interrupted release requires operator recovery")
+            if existing.get('release_id') != release_id or (existing.get('operation') != operation
+                    and not (existing.get('operation') == 'deploy' and operation == 'activate')):
+                raise ReleaseLockError("Cannot reuse lock for a different release or operation")
             existing['updated_at'] = now
             existing['holder_pid'] = os.getpid()
             existing['stage'] = stage
@@ -329,6 +310,10 @@ def update_lock(
     existing = _read_lock_file(lock_file, owner)
     if not existing or existing.get('token') != token:
         raise ReleaseLockError("Cannot update lock: token mismatch or lock not found")
+    if existing.get('stage') == 'interrupted':
+        raise ReleaseLockError("Interrupted release requires operator recovery")
+    if release_id is not None and existing.get('release_id') != release_id:
+        raise ReleaseLockError("Cannot update lock for a different release")
 
     now = time.time()
     existing['updated_at'] = now
@@ -355,9 +340,8 @@ def release_lock(base: Path, token: str | None = None, *, owner: int | None = No
         return
 
     existing = _read_lock_file(lock_file, owner)
-    if existing and not force:
-        if token and existing.get('token') != token:
-            raise ReleaseLockError("Cannot release lock: token mismatch")
+    if existing and not force and (not token or existing.get('token') != token):
+        raise ReleaseLockError("Cannot release lock: token mismatch")
 
     try:
         lock_file.unlink(missing_ok=True)
@@ -424,6 +408,8 @@ def _check_id(release_id):
 
 def prepare(base: Path, release_id: str, owner: int | None = None, *, token: str | None = None) -> str:
     _check_id(release_id)
+    if token is not None:
+        raise ReleaseLockError("Preparing a release requires a new lease")
     owner = _resolve_owner(base, owner)
     lock_data = acquire_lock(base, 'deploy', release_id, token=token, stage='staging', owner=owner)
 
@@ -537,17 +523,34 @@ def publish(
         os.close(base_fd)
 
 
+@_serialize_lock_mutation
 def abort(base: Path, release_id: str, owner: int | None = None, *, token: str | None = None) -> None:
-    """Abort a staging release, cleanup files, and release the operation lock."""
+    """Retain the staged files and lease for operator recovery after failure."""
     _check_id(release_id)
     owner = _resolve_owner(base, owner)
-    staged_path = base / 'staging' / release_id
-    if staged_path.is_dir():
-        shutil.rmtree(staged_path, ignore_errors=True)
-    try:
-        release_lock(base, token, owner=owner)
-    except ReleaseLockError:
-        pass
+    lock_file = base / '.deploy.lock'
+    existing = _read_lock_file(lock_file, owner)
+    if not token or not existing or existing.get('token') != token or existing.get('release_id') != release_id:
+        raise ReleaseLockError("Cannot abort release: token or release mismatch")
+    existing['stage'] = 'interrupted'
+    existing['updated_at'] = time.time()
+    _write_lock_file(lock_file, existing, owner)
+
+
+@_serialize_lock_mutation
+def finish(base: Path, release_id: str, token: str, owner: int | None = None) -> None:
+    """Release only a successfully activated lease after deployment follow-up."""
+    _check_id(release_id)
+    owner = _resolve_owner(base, owner)
+    lock_file = base / '.deploy.lock'
+    existing = _read_lock_file(lock_file, owner)
+    if (not token or not existing or existing.get('token') != token
+            or existing.get('release_id') != release_id or existing.get('stage') != 'activated'):
+        raise ReleaseLockError("Cannot finish release: lease is not activated")
+    current = base / 'current'
+    if not current.is_symlink() or current.resolve(strict=True) != (base / 'releases' / release_id).resolve(strict=True):
+        raise ReleaseLockError("Cannot finish release: active release changed")
+    lock_file.unlink()
 
 
 def heartbeat(base: Path, release_id: str, token: str, owner: int | None = None) -> None:
@@ -559,22 +562,27 @@ def heartbeat(base: Path, release_id: str, token: str, owner: int | None = None)
 def main():
     if os.geteuid() != 0:
         raise SystemExit('Release staging requires root')
-    if len(sys.argv) < 3 or sys.argv[1] not in ('prepare', 'publish', 'abort', 'heartbeat'):
-        raise SystemExit('Usage: stage_release.py prepare|publish|abort|heartbeat RELEASE_ID [TOKEN]')
+    if len(sys.argv) < 3 or sys.argv[1] not in ('prepare', 'publish', 'abort', 'heartbeat', 'finish'):
+        raise SystemExit('Usage: stage_release.py prepare|publish|abort|heartbeat|finish RELEASE_ID [TOKEN]')
     action = sys.argv[1]
     release_id = sys.argv[2]
     token = sys.argv[3] if len(sys.argv) > 3 else None
+    if action != 'prepare' and not token:
+        raise SystemExit('This action requires TOKEN')
 
     if action == 'prepare':
+        # First installation needs only the release root before it can take a
+        # lease. The remaining bootstrap runs after that lease is acquired.
+        BASE.mkdir(mode=0o755, exist_ok=True)
         print(prepare(BASE, release_id, token=token))
     elif action == 'publish':
         publish(BASE, release_id, token=token, repair_gid=grp.getgrnam('schulpilot').gr_gid, public_gid=0)
     elif action == 'abort':
         abort(BASE, release_id, token=token)
     elif action == 'heartbeat':
-        if not token:
-            raise SystemExit('Heartbeat requires TOKEN')
         heartbeat(BASE, release_id, token)
+    elif action == 'finish':
+        finish(BASE, release_id, token)
 
 
 if __name__ == '__main__':

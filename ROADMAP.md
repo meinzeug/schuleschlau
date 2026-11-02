@@ -945,6 +945,18 @@ Bestandteil des bestehenden Buildvertrags.
     und gegebenenfalls repariert werden. Bis dahin die neue Koordination nicht
     als produktiv abgenommen betrachten.
 
+    **Weitere Teilkorrektur 02.11.2026:** Abbrüche behalten Staging und Lease
+    nach Token- und Releaseprüfung; eine abgelaufene Lease wird nicht allein
+    anhand von Zeit, PID oder gerade offenen Dateien freigegeben. Ein echter
+    separater Testprozess öffnete nach simuliertem Abbruch verzögert eine neue
+    Datei; Staging und Sperre blieben erhalten. Ein solcher Prozessabbruch ist
+    weiterhin kein echter SSH-Abbruch. Vorbereitung/Bootstrap liegen nun unter
+    der Lease; Aktivierung liest und sichert Caddy/Releasezeiger erst nach deren
+    Erwerb. Die Lease wird nach erfolgreicher Aktivierung erst nach den weiteren
+    Reparaturdienst-Schritten und Prüfung des aktiven Release freigegeben.
+    Unterbrochene Abläufe erfordern eine bewusste Betreiberprüfung; automatische
+    Aufräum- oder Wiederaufnahmesicherheit wird nicht behauptet.
+
   **Zusätzliche Tests:** Zwei synthetische Deployments mit künstlich pausiertem Upload und paralleler Bereinigung ausführen; dazu SSH während Upload und Aktivierung unterbrechen, den Kindprozess verzögert beenden und prüfen, dass kein zweiter verändernder Ablauf oder prune das laufende Staging beeinträchtigt. Frühe und späte Fehler, Timerläufe sowie einen manuellen Rückweg unter demselben Vertrag prüfen. Keine Tests gegen Produktion ausführen.
 
   **Abnahme:** HTTPS/Health den erwarteten Quellstand zeigen, Web-Direktlinks und anonyme Schutzgrenzen geprüft sind, öffentlich ausgelieferte APK und Manifest aus tatsächlicher Datei zu Größe/Hash/Version passen und ein migrationsbewusster Rückweg dokumentiert ist.
