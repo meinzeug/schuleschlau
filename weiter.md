@@ -14,7 +14,7 @@ Der Nutzer möchte die offene `ROADMAP.md` vollständig und nachweisbar abarbeit
 
 ## Git und Arbeitsverzeichnis
 
-Das Hauptverzeichnis ist `/home/dennis/schulpilot`, Branch `main`, Remote `origin`. Zuletzt wurde Release `20261102T174319Z-ed0d89e` (Version `1.38.60+215`) produktiv geprüft. Das Hauptverzeichnis wurde wegen der unten genannten lokalen Änderungen nicht auf den neuen Versionscommit aktualisiert; den tatsächlichen Stand von `main` und Remote zuerst prüfen. Im Hauptverzeichnis liegen zwei bereits vorhandene, nicht zu dieser Arbeit gehörende Änderungen:
+Das Hauptverzeichnis ist `/home/dennis/schulpilot`, Branch `main`, Remote `origin`. Zuletzt wurde Release `20261102T185729Z-947d5a8` (Version `1.38.61+216`) produktiv geprüft. Das Hauptverzeichnis wurde wegen der unten genannten lokalen Änderungen nicht auf den neuen Versionscommit aktualisiert; den tatsächlichen Stand von `main` und Remote zuerst prüfen. Im Hauptverzeichnis liegen zwei bereits vorhandene, nicht zu dieser Arbeit gehörende Änderungen:
 
 - `app/pubspec.yaml`, SHA-256 bei Übergabe: `0f1581c5f623adac6a49c7837e7c080fb4c98b82065587db7124c7c3772a0d30`
 - `backend/schulpilot/__init__.py`, SHA-256 bei Übergabe: `313b5053897d6953cf386f4157d66d3527e6e161ba497053f9927762482e45e0`
@@ -31,10 +31,12 @@ Der produktive Browser zeigte den Ausgangsfehler bei 390 Pixeln; der globale
 Barrierefreiheitspunkt bleibt offen. Die zwei unveränderten lokalen Dateien
 aus dem Git-Abschnitt weiterhin aussparen und den Releasezustand prüfen.
 
-Eine weitere lokale Korrektur erlaubt es, angezeigte Nachrichten auch nach
-Verdrängung aus den neuesten 50 Ereignissen zu quittieren; aktuelle Rechte,
-Fristen und Quellen werden erneut geprüft. Andere Ereignistypen und das echte
-serverseitige Nachladen bleiben offen. Die Tests verwenden künstliche Daten.
+Eine weitere Korrektur erlaubt es, angezeigte Nachrichten auch nach Verdrängung
+aus den neuesten 50 Ereignissen zu quittieren; aktuelle Rechte, Fristen und
+Quellen werden erneut geprüft. Familienanrufe, Eltern-Tageschecks, Wortimporte
+und Sprachprojekte werden jetzt ebenfalls gezielt geprüft. Für Lernrunden- und
+Prüfungsmeldungen sowie das echte serverseitige Nachladen bleibt die Arbeit
+offen. Die Tests verwenden künstliche Daten.
 
 Am 02.11.2026 wurde der vom Nutzer verlinkte eigene Lernrundenauftrag
 datensparsam geprüft und der Zugriff auditiert. Der Anbieter hatte mit

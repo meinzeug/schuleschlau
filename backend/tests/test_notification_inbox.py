@@ -9,7 +9,9 @@ from schulpilot import notifications as n
 from schulpilot.db import (
     DB,
     Child,
+    FamilyCall,
     Job,
+    LanguageProject,
     Membership,
     Message,
     NotificationRead,
@@ -200,6 +202,83 @@ def test_displaced_message_cannot_be_acknowledged_after_membership_revocation(ap
     assert api.post("/api/notifications/inbox/read", json={"ids": [key]}).status_code == 404
     with DB() as db:
         assert db.scalar(select(func.count()).select_from(NotificationRead)) == 0
+
+
+def test_displaced_saved_notices_keep_ownership_and_source_validity(api, household, mailbox):
+    from schulpilot.parent_reminder_models import ParentGoalReminderEvent
+
+    owner, child = household
+    current = int(now())
+    with DB.begin() as db:
+        session = db.scalar(select(Session).where(Session.user_id == owner["id"]))
+        call = FamilyCall(id=uid(), family_id=owner["families"][0]["id"], child_id=child["id"],
+            caller_session_id=session.id, idempotency=uid(), instance=uid(), context_kind="general",
+            status="ended", created=current - 10, ring_expires=current - 5, expires=current,
+            caller_seen=current - 5)
+        goal = ParentGoalReminderEvent(id=uid(), user_id=owner["id"], child_id=child["id"],
+            rule_revision=1, date="2026-01-01", scheduled=current - 10, created=current - 10,
+            daily_remaining_seconds=60, exam_sessions=[])
+        word_job = Job(id=uid(), child_id=child["id"], kind="vocabulary_import", status="completed",
+            payload={}, result={}, finished=current - 10, idempotency=uid())
+        language_job = Job(id=uid(), child_id=child["id"], kind="language_project", status="completed",
+            payload={}, result={}, finished=current - 10, idempotency=uid())
+        db.add_all([call, goal, word_job, language_job])
+        db.flush()
+        word = VocabularyImport(id=uid(), child_id=child["id"], user_id=owner["id"], request_key=uid(),
+            request_digest="x" * 64, target_locale="en-GB", title="Synthetic", status="review", job_id=word_job.id)
+        language = LanguageProject(id=uid(), child_id=child["id"], user_id=owner["id"], request_key=uid(),
+            request_digest="x" * 64, target_locale="en-GB", mode="dialog", inputs={},
+            status="ready", job_id=language_job.id)
+        db.add_all([word, language])
+        keys = ["family_call:" + call.id, "parent_goal:" + goal.id,
+                "words_ready:" + word.id, "language_ready:" + language.id]
+        word_id, language_job_id = word.id, language_job.id
+    loaded = {row["id"] for row in api.get("/api/notifications/inbox").json()["items"]}
+    assert set(keys) <= loaded
+    with DB.begin() as db:
+        for _ in range(55):
+            db.add(Message(id=uid(), child_id=child["id"], kind="help", body="Synthetic", created=current))
+    loaded = {row["id"] for row in api.get("/api/notifications/inbox").json()["items"]}
+    assert not set(keys) & loaded
+    assert api.post("/api/notifications/inbox/read", json={"ids": keys}).status_code == 200
+    assert api.post("/api/notifications/inbox/read", json={"ids": keys}).status_code == 200
+    with DB() as db:
+        assert db.scalar(select(func.count()).select_from(NotificationRead)) == 4
+    with DB.begin() as db:
+        db.get(VocabularyImport, word_id).status = "confirmed"
+        db.get(Job, language_job_id).result = {"deleted": True}
+    assert api.post("/api/notifications/inbox/read", json={"ids": [keys[2]]}).status_code == 404
+    assert api.post("/api/notifications/inbox/read", json={"ids": [keys[3]]}).status_code == 404
+    register(api, mailbox, "other-displaced-notices@example.org")
+    for key in keys:
+        assert api.post("/api/notifications/inbox/read", json={"ids": [key]}).status_code == 404
+
+
+def test_displaced_word_notice_remains_bound_to_the_current_child(api, household):
+    owner, child = household
+    sibling = create_child(api, owner, "word-notice-sibling")
+    current = int(now())
+    with DB.begin() as db:
+        keys = []
+        for entry in (child, sibling):
+            job = Job(id=uid(), child_id=entry["id"], kind="vocabulary_import", status="completed",
+                      payload={}, result={}, finished=current - 10, idempotency=uid())
+            db.add(job)
+            db.flush()
+            word = VocabularyImport(id=uid(), child_id=entry["id"], user_id=owner["id"], request_key=uid(),
+                request_digest="x" * 64, target_locale="en-GB", title="Synthetic", status="review", job_id=job.id)
+            db.add(word)
+            keys.append("words_ready:" + word.id)
+    login = api.post("/api/auth/login", json={"username": "test-child", "password": "secure-child-pass-123"}).json()
+    api.headers["Authorization"] = "Bearer " + login["token"]
+    loaded = {row["id"] for row in api.get("/api/notifications/inbox").json()["items"]}
+    assert keys[0] in loaded and keys[1] not in loaded
+    with DB.begin() as db:
+        for _ in range(55):
+            db.add(Message(id=uid(), child_id=child["id"], kind="reply", body="Synthetic", created=current))
+    assert keys[0] not in {row["id"] for row in api.get("/api/notifications/inbox").json()["items"]}
+    assert api.post("/api/notifications/inbox/read", json={"ids": [keys[0]]}).status_code == 200
+    assert api.post("/api/notifications/inbox/read", json={"ids": [keys[1]]}).status_code == 404
 
 
 def test_childs_own_messages_do_not_hide_parent_reply(api, household):

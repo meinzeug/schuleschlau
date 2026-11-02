@@ -199,11 +199,13 @@ def schedule(db, current=None):
             created=current, **facts).on_conflict_do_nothing(index_elements=["user_id", "child_id", "date"]))
 
 
-def events(db, user_id, current=None):
+def events(db, user_id, current=None, *, event_ids=None):
     current = int(now()) if current is None else current
-    return list(db.scalars(select(ParentGoalReminderEvent).where(ParentGoalReminderEvent.user_id == user_id,
+    query = select(ParentGoalReminderEvent).where(ParentGoalReminderEvent.user_id == user_id,
         ParentGoalReminderEvent.created > current - RETENTION, ParentGoalReminderEvent.created <= current)
-        .order_by(ParentGoalReminderEvent.created.desc(), ParentGoalReminderEvent.id).limit(50)))
+    if event_ids is not None:
+        query = query.where(ParentGoalReminderEvent.id.in_(event_ids))
+    return list(db.scalars(query.order_by(ParentGoalReminderEvent.created.desc(), ParentGoalReminderEvent.id).limit(50)))
 
 
 def same_child_day(event, child, current):

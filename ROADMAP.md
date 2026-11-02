@@ -1288,6 +1288,18 @@ Bestandteil des bestehenden Buildvertrags.
   Inbox, Lernrunden- und Prüfungsmeldungen bestand mit 78 SQLite-Fällen (ein
   PostgreSQL-Fall übersprungen) und 79 PostgreSQL-Fällen.
 
+  **Weitere Teilkorrektur:** Dasselbe Verdrängungsproblem ist nun auch für
+  Familienanrufe, Eltern-Tageschecks, Wortimporte und Sprachprojekte behoben.
+  Für die angeforderten Kennungen werden aktuelle Mitgliedschaft, Ereignisfrist
+  und die geltenden Quell-/Statusbedingungen erneut geprüft. Die Tests umfassen
+  wiederholte Quittierung, Geschwistertrennung, bestätigte Importe und
+  gelöschte Ergebnisse. Fünf gezielte Fälle bestanden auf SQLite und
+  isoliertem PostgreSQL; die breitere Regression für Inbox, Lernrunden,
+  Prüfungen, Eltern-Erinnerungen und Familienanrufe bestand mit 179
+  SQLite-Fällen (drei PostgreSQL-only übersprungen) und 182 PostgreSQL-Fällen.
+  Für Lernrunden-/Prüfungsmeldungen und serverseitige Cursor-Fortsetzung bleibt
+  die Arbeit offen.
+
 - [ ] **P1 – Familienanrufe und optionale Medien nur im freigegebenen Umfang abnehmen**
 
   Falls für die gewählte Startstufe vorgesehen, Eltern-/Kinderrollen, ausdrückliche Kamera-/Mikrofon-/Bildschirmfreigaben, Verbindungsaufbau, Abbruch, Widerruf und Gerätewechsel mit synthetischen Konten prüfen. Medienlinks auf passende katalogisierte Inhalte und Rückkehr zum Lernkontext testen; kein privater Kontext in URL oder Referrer.

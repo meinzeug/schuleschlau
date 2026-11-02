@@ -32,7 +32,7 @@ router = APIRouter(prefix="/notifications", tags=["Neuigkeiten"])
 
 
 def recent_events(db, user, current=None, *, direct_messages=False, direct_exams=False,
-                  message_ids=None):
+                  event_keys=None):
     if user.role not in ("child", "parent"):
         if user.role == "admin":
             audit(db, user.id, "admin.private_access_denied", "notification-inbox")
@@ -48,6 +48,12 @@ def recent_events(db, user, current=None, *, direct_messages=False, direct_exams
     )
     cutoff = current - RETENTION_DAYS * 86400
     result = []
+
+    def requested(prefix):
+        if event_keys is None:
+            return None
+        marker = prefix + ":"
+        return {key[len(marker):] for key in event_keys if key.startswith(marker)}
 
     def add(key, child_id, stamp, title, route, kind):
         result.append(
@@ -76,11 +82,15 @@ def recent_events(db, user, current=None, *, direct_messages=False, direct_exams
         "plan_change": "Ein Wunsch zum Lernplan",
     }
     seen_preparations = set()
-    if user.role == "parent" and message_ids is None:
+    call_ids = requested("family_call")
+    if user.role == "parent" and (call_ids is None or call_ids):
         from .family_calls import effective, eligible_parents
 
-        for call in db.scalars(select(FamilyCall).where(FamilyCall.child_id.in_(ids),
-            FamilyCall.created > cutoff, FamilyCall.created <= current).order_by(FamilyCall.created.desc()).limit(LIMIT)):
+        calls = select(FamilyCall).where(FamilyCall.child_id.in_(ids),
+            FamilyCall.created > cutoff, FamilyCall.created <= current)
+        if call_ids is not None:
+            calls = calls.where(FamilyCall.id.in_(call_ids))
+        for call in db.scalars(calls.order_by(FamilyCall.created.desc()).limit(LIMIT)):
             if user.id not in eligible_parents(db, call.family_id):
                 continue
             status, _ = effective(db, call, current)
@@ -100,6 +110,7 @@ def recent_events(db, user, current=None, *, direct_messages=False, direct_exams
         )
         .order_by(Message.created.desc(), Message.id.desc())
     )
+    message_ids = requested("message")
     if message_ids is not None:
         message_query = message_query.where(Message.id.in_(message_ids))
     messages = list(db.scalars(message_query.limit(LIMIT)))
@@ -157,23 +168,21 @@ def recent_events(db, user, current=None, *, direct_messages=False, direct_exams
             title = f"{prefix} · {suffix}"
         add("message:" + row.id, row.child_id, row.created, title, route, row.kind)
 
-    # Acknowledgements may refer to a message that was visible when loaded,
-    # but has since fallen outside the latest page. Rebuild only the requested
-    # message events under the same current membership and source checks.
-    if message_ids is not None:
-        return sorted(result, key=lambda row: (row["created"], row["id"]), reverse=True)
-
     from .ready_notifications import events_for_child as round_events
 
-    for child in children.values():
-        for event in round_events(db, child, current, retention=RETENTION_DAYS*86400):
-            add(event["id"], child.id, event["created"], event["title"], event["route"], event["kind"])
+    if event_keys is None:
+        for child in children.values():
+            for event in round_events(db, child, current, retention=RETENTION_DAYS*86400):
+                add(event["id"], child.id, event["created"], event["title"], event["route"], event["kind"])
 
     for model, kind, title in (
         (LanguageProject, "language_ready", "Deine Sprachübung ist bereit"),
         (VocabularyImport, "words_ready", "Deine Wörter sind bereit zum Prüfen"),
     ):
-        rows = db.execute(
+        model_ids = requested(kind)
+        if model_ids is not None and not model_ids:
+            continue
+        query = (
             select(model, Job)
             .options(load_only(model.id, model.child_id, model.status), load_only(Job.status, Job.finished))
             .join(Job, Job.id == model.job_id)
@@ -184,9 +193,10 @@ def recent_events(db, user, current=None, *, direct_messages=False, direct_exams
                 Job.finished <= current,
                 Job.result["deleted"].as_boolean().is_not(True),
             )
-            .order_by(Job.finished.desc(), Job.id.desc())
-            .limit(LIMIT)
         )
+        if model_ids is not None:
+            query = query.where(model.id.in_(model_ids))
+        rows = db.execute(query.order_by(Job.finished.desc(), Job.id.desc()).limit(LIMIT))
         for row, job in rows:
             if model == VocabularyImport and row.status == "confirmed":
                 continue
@@ -207,20 +217,22 @@ def recent_events(db, user, current=None, *, direct_messages=False, direct_exams
                 route,
                 "failed" if failed else kind,
             )
-    if user.role == "parent":
+    goal_ids = requested("parent_goal")
+    if user.role == "parent" and (goal_ids is None or goal_ids):
         from .parent_goal_reminders import events
 
-        for event in events(db, user.id, current):
+        for event in events(db, user.id, current, event_ids=goal_ids):
             if event.child_id in children:
                 # A dated, saved check, not a claim that work remains open now.
                 add("parent_goal:" + event.id, event.child_id, event.created,
                     "Tagescheck: Lernziele waren noch offen", f"/child/{event.child_id}", "parent_goal")
     from .exam_notifications import events_for_child
 
-    for child in children.values():
-        for event in events_for_child(db, child, current):
-            route = event["route"] if direct_exams else f"/child/{child.id}" if user.role == "parent" else "/app"
-            add(event["id"], child.id, event["created"], event["title"], route, event["kind"])
+    if event_keys is None:
+        for child in children.values():
+            for event in events_for_child(db, child, current):
+                route = event["route"] if direct_exams else f"/child/{child.id}" if user.role == "parent" else "/app"
+                add(event["id"], child.id, event["created"], event["title"], route, event["kind"])
     return sorted(result, key=lambda row: (row["created"], row["id"]), reverse=True)[:LIMIT]
 
 
@@ -251,13 +263,10 @@ class Acknowledge(s.Strict):
 @router.post("/inbox/read")
 def acknowledge(data: Acknowledge, p=Depends(authenticated), db=Depends(get_db)):
     events = {row["id"]: row for row in recent_events(db, p.user)}
-    missing_messages = {
-        key.removeprefix("message:") for key in data.ids
-        if key not in events and key.startswith("message:")
-    }
-    if missing_messages:
+    missing = set(data.ids) - events.keys()
+    if missing:
         events.update({row["id"]: row for row in recent_events(
-            db, p.user, message_ids=missing_messages
+            db, p.user, event_keys=missing
         )})
     if any(key not in events for key in data.ids):
         raise HTTPException(404, "Diese Neuigkeit ist nicht mehr verfügbar.")
