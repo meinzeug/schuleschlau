@@ -635,6 +635,9 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
 
 - [ ] **P1 – Klassenarbeitsvorbereitung und Nacharbeit fachlich abnehmen**
 
+  **Teilprüfung 02.11.2026:** 45 künstliche SQLite-Fälle zu Quellbindung,
+  Nacharbeit und Transport bestanden; [Prüfbericht](docs/ROADMAP_MODULE_CHECKS_2026_11_02.md#klassenarbeiten-und-nacharbeit).
+
   Künstliche Arbeiten mit mehreren Themen, optionalem Termin, individuell vorgegebenen Aufgabenzahlen je Lerntag, geänderten Plänen, unklarer Lehrkraftzuordnung und schriftlichen Altantworten testen.
 
   **01.11.2026, offene Zuordnungslücke:** Die wörtliche Quellenprüfung
@@ -750,6 +753,9 @@ Die folgenden Punkte beschreiben ausstehende, wiederholbare Betriebs- und Freiga
   decken Elternexport, fremde Familien, Adminlogin und Sperren ab. Diese
   automatisierte Freigabeprüfung ersetzt keinen unabhängigen Sicherheitstest.
 - [ ] **P1 – Datenlebenszyklus und Löschung pro Datenart prüfen**
+
+  **Teilprüfung 02.11.2026:** 21 künstliche SQLite-Fälle zu Aufbewahrung und
+  Notenwiederherstellung bestanden; [Prüfbericht](docs/ROADMAP_MODULE_CHECKS_2026_11_02.md#datenlebenszyklus-und-löschung).
 
   Aufbewahrung, Export und Löschkaskaden für Quellen samt Tutor-Zitaten, Fotos, Antworten, Wortschatz, Noten/Importbelege, Nachrichten und Zahlungsbelege gegen die jeweiligen Verträge prüfen.
 
@@ -1155,6 +1161,10 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Hefte, Materialarten und Suche im digitalen Ranzen abnehmen**
 
+  **Teilprüfung 02.11.2026:** 34 künstliche SQLite-Fälle und drei dort
+  übersprungene Sperrentests auf PostgreSQL bestanden;
+  [Prüfbericht](docs/ROADMAP_MODULE_CHECKS_2026_11_02.md#hefte-und-digitaler-ranzen).
+
   Fotos von Arbeitsblättern, Heftern, Arbeitsheften, Buchseiten und Tests im künstlichen Konto prüfen: Fachauswahl, unzugeordnete Seiten, Blättern, Zoom, Suche, Filter, Lazy Loading und Berechtigungen. Eine und mehrere gewählte Heftseiten als bewusste Grundlage einer neuen Übung verwenden. Löschvorschau und Neu-Einlesen gegen die aktuellen Regeln für betroffene Runden und Antworten prüfen. Bedarfsgerechte Fotoauslieferung und Cachebereinigung beim Konto- oder Gerätewechsel erhalten.
 
   **Abnahme:** Berechtigte sehen nur eigene Quellen, auch bei vielen Seiten und Netzunterbrechung; Blättern und Suchen erzeugen keine KI-Kosten oder Lernzeit, und eine bewusst gestartete Übung ist den richtigen Quellenrevisionen zugeordnet.
@@ -1174,11 +1184,18 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Elternübersicht, Noten und Planung gegen echte gespeicherte Fakten prüfen**
 
+  **Teilprüfung 02.11.2026:** 45 künstliche SQLite-Fälle zu Notenfiltern und
+  PDF-Import bestanden; [Prüfbericht](docs/ROADMAP_MODULE_CHECKS_2026_11_02.md#elternübersicht-noten-und-planung).
+
   Mit einer künstlichen Familie mehrere Kinder, Lerntage, Hilfen, Aufgaben, Versuche, Lernzeit, verbindliche Termine und Freizeiten durchspielen. Berechtigte Elternansichten auf Smartphone und Desktop vergleichen; PDF-Notenimport nur lokal, mit Vorschau, eindeutiger Zuordnung und ohne Roh-PDF-Speicherung testen. Elternlesen darf keine Kinderzeit oder Antworten erzeugen; Noten und private Bemerkungen dürfen nicht automatisch an KI-Anbieter gelangen.
 
   **Abnahme:** Alle Anzeigen lassen sich auf dieselben gespeicherten Daten zurückführen, Familienmitglieder sehen nur Berechtigtes, Import und Wiederholung sind idempotent und es entstehen keine erfundenen Diagnosen oder Notenprognosen.
 
 - [ ] **P1 – Adminoberfläche und laufende Betriebsentscheidungen abnehmen**
+
+  **Teilprüfung 02.11.2026:** 47 künstliche SQLite-Fälle zu Nutzerverwaltung,
+  Filterung und Revisionen bestanden; außerdem liefen Admin-Parallelitätsfälle
+  auf PostgreSQL. [Prüfbericht](docs/ROADMAP_MODULE_CHECKS_2026_11_02.md#administration).
 
   Familien- und Kontoverwaltung, Kindertages-/Monatsbudgets einschließlich unbegrenzt, Familien-/Systemgrenzen, Providerstatus, Kostenbelege, Notfallstopp und revisionsgebundene Einstellungen mit künstlichen Konten testen. Adminrechte im Backend durchsetzen; Betriebsadministratoren erhalten keinen Zugriff auf private Kinderinhalte. Abschnittswechsel dürfen Entwürfe nicht verwerfen und Lesezugriffe keine Änderungen oder Anbieteraufrufe auslösen.
 
