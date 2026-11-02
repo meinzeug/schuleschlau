@@ -31,6 +31,11 @@ Der produktive Browser zeigte den Ausgangsfehler bei 390 Pixeln; der globale
 Barrierefreiheitspunkt bleibt offen. Die zwei unveränderten lokalen Dateien
 aus dem Git-Abschnitt weiterhin aussparen und den Releasezustand prüfen.
 
+Eine weitere lokale Korrektur erlaubt es, angezeigte Nachrichten auch nach
+Verdrängung aus den neuesten 50 Ereignissen zu quittieren; aktuelle Rechte,
+Fristen und Quellen werden erneut geprüft. Andere Ereignistypen und das echte
+serverseitige Nachladen bleiben offen. Die Tests verwenden künstliche Daten.
+
 Am 02.11.2026 wurde der vom Nutzer verlinkte eigene Lernrundenauftrag
 datensparsam geprüft und der Zugriff auditiert. Der Anbieter hatte mit
 `finish_reason=stop` abgeschlossen; die anschließende visuelle Prüfung meldete

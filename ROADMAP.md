@@ -1275,6 +1275,19 @@ Bestandteil des bestehenden Buildvertrags.
   PostgreSQL-Lauf enthalten. Die vollständige Cursor-Fortsetzung ist weiterhin
   offen.
 
+  **02.11.2026, weitere Teilkorrektur:** Eine bereits sichtbare
+  Nachricht konnte beim Quittieren aus den neuesten 50 Ereignissen verdrängt
+  worden sein und wurde dann fälschlich mit 404 abgewiesen. Für solche
+  Nachrichten prüft die Quittierung die angeforderten IDs erneut gegen die
+  aktuelle Familienzugehörigkeit, Empfängerrolle, Aufbewahrungsfrist und
+  gegebenenfalls gültige Quellen. Das ersetzt weder die Cursor-Fortsetzung
+  noch die entsprechende Prüfung anderer Ereignistypen. Die drei neuen
+  künstlichen Fälle bestanden auf SQLite und isoliertem PostgreSQL; sie decken
+  Verdrängung, wiederholte Quittierung, fremde/ungültige Quellen und einen
+  zwischenzeitlichen Mitgliedschaftsentzug ab. Die bestehende Gesamtsuite für
+  Inbox, Lernrunden- und Prüfungsmeldungen bestand mit 78 SQLite-Fällen (ein
+  PostgreSQL-Fall übersprungen) und 79 PostgreSQL-Fällen.
+
 - [ ] **P1 – Familienanrufe und optionale Medien nur im freigegebenen Umfang abnehmen**
 
   Falls für die gewählte Startstufe vorgesehen, Eltern-/Kinderrollen, ausdrückliche Kamera-/Mikrofon-/Bildschirmfreigaben, Verbindungsaufbau, Abbruch, Widerruf und Gerätewechsel mit synthetischen Konten prüfen. Medienlinks auf passende katalogisierte Inhalte und Rückkehr zum Lernkontext testen; kein privater Kontext in URL oder Referrer.

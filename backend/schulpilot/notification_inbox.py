@@ -31,7 +31,8 @@ LIMIT = 50
 router = APIRouter(prefix="/notifications", tags=["Neuigkeiten"])
 
 
-def recent_events(db, user, current=None, *, direct_messages=False, direct_exams=False):
+def recent_events(db, user, current=None, *, direct_messages=False, direct_exams=False,
+                  message_ids=None):
     if user.role not in ("child", "parent"):
         if user.role == "admin":
             audit(db, user.id, "admin.private_access_denied", "notification-inbox")
@@ -75,7 +76,7 @@ def recent_events(db, user, current=None, *, direct_messages=False, direct_exams
         "plan_change": "Ein Wunsch zum Lernplan",
     }
     seen_preparations = set()
-    if user.role == "parent":
+    if user.role == "parent" and message_ids is None:
         from .family_calls import effective, eligible_parents
 
         for call in db.scalars(select(FamilyCall).where(FamilyCall.child_id.in_(ids),
@@ -87,7 +88,7 @@ def recent_events(db, user, current=None, *, direct_messages=False, direct_exams
                 "missed": "Ein Familienanruf wurde verpasst", "declined": "Familienanruf abgelehnt",
                 "ended": "Familienanruf beendet"}[status]
             add("family_call:" + call.id, call.child_id, call.created, title, "/family-call/" + call.id, "family_call")
-    messages = list(db.scalars(
+    message_query = (
         select(Message)
         .options(load_only(Message.id, Message.child_id, Message.created, Message.kind, Message.sender_id, Message.context))
         .where(
@@ -98,8 +99,10 @@ def recent_events(db, user, current=None, *, direct_messages=False, direct_exams
             (Message.sender_id.is_(None) | (Message.sender_id != user.id)),
         )
         .order_by(Message.created.desc(), Message.id.desc())
-        .limit(LIMIT)
-    ))
+    )
+    if message_ids is not None:
+        message_query = message_query.where(Message.id.in_(message_ids))
+    messages = list(db.scalars(message_query.limit(LIMIT)))
     from .learning import message_context_targets
 
     targets = message_context_targets(db, messages)
@@ -153,6 +156,12 @@ def recent_events(db, user, current=None, *, direct_messages=False, direct_exams
                 suffix = f"Lernpaket bereit · {count - ready_count} von {count} Fotos noch offen"
             title = f"{prefix} · {suffix}"
         add("message:" + row.id, row.child_id, row.created, title, route, row.kind)
+
+    # Acknowledgements may refer to a message that was visible when loaded,
+    # but has since fallen outside the latest page. Rebuild only the requested
+    # message events under the same current membership and source checks.
+    if message_ids is not None:
+        return sorted(result, key=lambda row: (row["created"], row["id"]), reverse=True)
 
     from .ready_notifications import events_for_child as round_events
 
@@ -242,6 +251,14 @@ class Acknowledge(s.Strict):
 @router.post("/inbox/read")
 def acknowledge(data: Acknowledge, p=Depends(authenticated), db=Depends(get_db)):
     events = {row["id"]: row for row in recent_events(db, p.user)}
+    missing_messages = {
+        key.removeprefix("message:") for key in data.ids
+        if key not in events and key.startswith("message:")
+    }
+    if missing_messages:
+        events.update({row["id"]: row for row in recent_events(
+            db, p.user, message_ids=missing_messages
+        )})
     if any(key not in events for key in data.ids):
         raise HTTPException(404, "Diese Neuigkeit ist nicht mehr verfügbar.")
     rate_limit(db, "notification-read:" + p.user.id, 120, 3600, commit=False)

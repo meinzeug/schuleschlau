@@ -135,6 +135,73 @@ def test_own_messages_do_not_crowd_other_notices_out_of_the_bell(api, household)
     assert api.post("/api/notifications/inbox/read", json={"ids": [expected]}).status_code == 200
 
 
+def test_visible_message_can_be_acknowledged_after_new_events_displace_it(api, household):
+    _, child = household
+    current = int(now())
+    with DB.begin() as db:
+        old = Message(id=uid(), child_id=child["id"], kind="help",
+                      body="Synthetic request", created=current - 1)
+        db.add(old)
+        key = "message:" + old.id
+    assert key in [row["id"] for row in api.get("/api/notifications/inbox").json()["items"]]
+    with DB.begin() as db:
+        for _ in range(55):
+            db.add(Message(id=uid(), child_id=child["id"], kind="help",
+                           body="Synthetic request", created=current))
+    assert key not in [row["id"] for row in api.get("/api/notifications/inbox").json()["items"]]
+    assert api.post("/api/notifications/inbox/read", json={"ids": [key]}).status_code == 200
+    assert api.post("/api/notifications/inbox/read", json={"ids": [key]}).status_code == 200
+    with DB() as db:
+        assert db.scalar(select(func.count()).select_from(NotificationRead).where(
+            NotificationRead.event_key == key)) == 1
+
+
+def test_displaced_message_acknowledgement_keeps_family_and_source_checks(api, household):
+    owner, child = household
+    sibling = create_child(api, owner, "other-notification-child")
+    current = int(now())
+    with DB.begin() as db:
+        other = Message(id=uid(), child_id=sibling["id"], kind="reply",
+                        body="Synthetic", created=current - 1)
+        expired = Message(id=uid(), child_id=child["id"], kind="reply",
+                          body="Synthetic", created=current - 31 * 86400)
+        invalid = Message(id=uid(), child_id=child["id"], kind="preparation",
+                          body="Synthetic", context={"material_id": uid()}, created=current - 1)
+        db.add_all([other, expired, invalid])
+        keys = ["message:" + row.id for row in (other, expired, invalid)]
+    login = api.post("/api/auth/login", json={"username": "test-child", "password": "secure-child-pass-123"}).json()
+    api.headers["Authorization"] = "Bearer " + login["token"]
+    for key in keys:
+        assert api.post("/api/notifications/inbox/read", json={"ids": [key]}).status_code == 404
+    with DB() as db:
+        assert db.scalar(select(func.count()).select_from(NotificationRead)) == 0
+
+
+def test_displaced_message_cannot_be_acknowledged_after_membership_revocation(api, household, mailbox):
+    owner, child = household
+    current = int(now())
+    with DB.begin() as db:
+        old = Message(id=uid(), child_id=child["id"], kind="help",
+                      body="Synthetic", created=current - 1)
+        db.add(old)
+        key = "message:" + old.id
+    register(api, mailbox, "temporary-notification-reader@example.org")
+    with DB.begin() as db:
+        reader = db.scalar(select(User).where(User.email == "temporary-notification-reader@example.org"))
+        reader_id = reader.id
+        db.add(Membership(user_id=reader_id, family_id=owner["families"][0]["id"], permission="view"))
+    assert key in [row["id"] for row in api.get("/api/notifications/inbox").json()["items"]]
+    with DB.begin() as db:
+        for _ in range(55):
+            db.add(Message(id=uid(), child_id=child["id"], kind="help",
+                           body="Synthetic", created=current))
+        db.execute(delete(Membership).where(Membership.user_id == reader_id,
+                                          Membership.family_id == owner["families"][0]["id"]))
+    assert api.post("/api/notifications/inbox/read", json={"ids": [key]}).status_code == 404
+    with DB() as db:
+        assert db.scalar(select(func.count()).select_from(NotificationRead)) == 0
+
+
 def test_childs_own_messages_do_not_hide_parent_reply(api, household):
     owner, child = household
     current = int(now())
