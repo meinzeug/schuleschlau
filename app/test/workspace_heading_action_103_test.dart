@@ -143,6 +143,33 @@ void main() {
     }
   });
   for (final width in [320.0, 390.0]) {
+    testWidgets(
+      'mobile subpage brand stays legible at double text size $width',
+      (tester) async {
+        await _workspace(
+          tester,
+          title: 'Standardansicht',
+          width: width,
+          scale: 2,
+          actions: const [],
+          check: (requests) async {
+            final brand = find.byKey(const ValueKey('workspace-brand-home'));
+            final logo = find.descendant(
+              of: brand,
+              matching: find.byType(Image),
+            );
+            final box = tester.renderObject<RenderBox>(logo);
+            final visibleLogo = MatrixUtils.transformRect(
+              box.getTransformTo(null),
+              box.paintBounds,
+            );
+            expect(visibleLogo.width, greaterThanOrEqualTo(40));
+            expect(brand.hitTestable(), findsOneWidget);
+            expect(tester.takeException(), isNull);
+          },
+        );
+      },
+    );
     for (final scale in [1.0, 2.0]) {
       for (final title in [
         'Übungsbelege',
@@ -446,6 +473,17 @@ void main() {
           );
           expect(find.byType(AppBar), findsOneWidget);
           expect(find.byType(NavigationBar), findsOneWidget);
+          final logo = find.descendant(
+            of: find.byKey(const ValueKey('workspace-brand-home')),
+            matching: find.byType(Image),
+          );
+          expect(logo, findsOneWidget);
+          final logoBox = tester.renderObject<RenderBox>(logo);
+          final visibleLogo = MatrixUtils.transformRect(
+            logoBox.getTransformTo(null),
+            logoBox.paintBounds,
+          );
+          expect(visibleLogo.width, greaterThanOrEqualTo(40));
           expect(
             find.byKey(const ValueKey('workspace-context-return')),
             findsNothing,

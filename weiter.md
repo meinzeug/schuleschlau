@@ -14,7 +14,7 @@ Der Nutzer möchte die offene `ROADMAP.md` vollständig und nachweisbar abarbeit
 
 ## Git und Arbeitsverzeichnis
 
-Das Hauptverzeichnis ist `/home/dennis/schulpilot`, Branch `main`, Remote `origin`. Zuletzt wurde Release `20261102T185729Z-947d5a8` (Version `1.38.61+216`) produktiv geprüft. Das Hauptverzeichnis wurde wegen der unten genannten lokalen Änderungen nicht auf den neuen Versionscommit aktualisiert; den tatsächlichen Stand von `main` und Remote zuerst prüfen. Im Hauptverzeichnis liegen zwei bereits vorhandene, nicht zu dieser Arbeit gehörende Änderungen:
+Das Hauptverzeichnis ist `/home/dennis/schulpilot`, Branch `main`, Remote `origin`. Zuletzt wurde Release `20261102T191312Z-ebdcb3b` (Version `1.38.62+217`) produktiv geprüft. Das Hauptverzeichnis wurde wegen der unten genannten lokalen Änderungen nicht auf den neuen Versionscommit aktualisiert; den tatsächlichen Stand von `main` und Remote zuerst prüfen. Im Hauptverzeichnis liegen zwei bereits vorhandene, nicht zu dieser Arbeit gehörende Änderungen:
 
 - `app/pubspec.yaml`, SHA-256 bei Übergabe: `0f1581c5f623adac6a49c7837e7c080fb4c98b82065587db7124c7c3772a0d30`
 - `backend/schulpilot/__init__.py`, SHA-256 bei Übergabe: `313b5053897d6953cf386f4157d66d3527e6e161ba497053f9927762482e45e0`
@@ -37,6 +37,12 @@ Quellen werden erneut geprüft. Familienanrufe, Eltern-Tageschecks, Wortimporte
 und Sprachprojekte werden jetzt ebenfalls gezielt geprüft. Für Lernrunden- und
 Prüfungsmeldungen sowie das echte serverseitige Nachladen bleibt die Arbeit
 offen. Die Tests verwenden künstliche Daten.
+
+Die Kopfzeile wurde für schmale Unterseiten und vergrößerte Schrift angepasst,
+damit das Logo nicht stark schrumpft. Außerdem wurde die doppelte
+Web-Screenreader-Beschriftung der Glocke korrigiert; die produktive Ausgabe
+nach dem folgenden Release ist gesondert zu prüfen. Die vollständigen
+Roadmap-Punkte zu Kinderführung und Barrierefreiheit bleiben offen.
 
 Am 02.11.2026 wurde der vom Nutzer verlinkte eigene Lernrundenauftrag
 datensparsam geprüft und der Zugriff auditiert. Der Anbieter hatte mit

@@ -107,6 +107,9 @@ void main() {
       )..user = _user(role);
       await _open(tester, state);
       final bell = find.byKey(ValueKey('notification-bell'));
+      final tooltip = find.ancestor(of: bell, matching: find.byType(Tooltip));
+      expect(tooltip, findsOneWidget);
+      expect(tester.widget<Tooltip>(tooltip).excludeFromSemantics, isTrue);
       if (role != 'admin') {
         expect(
           tester.getSemantics(bell).getSemanticsData().label,

@@ -1710,7 +1710,12 @@ class _WorkspaceShellState extends State<WorkspaceShell>
                               icon: const Icon(Icons.arrow_back_rounded),
                             ),
                       title: brand(
-                        compact: width < 360,
+                        compact:
+                            width < 360 ||
+                            (!focusedMobile &&
+                                returnEntry != null &&
+                                width < 440) ||
+                            MediaQuery.textScalerOf(context).scale(1) > 1.3,
                         onPressed: _workspaceLink(
                           context,
                           state,
@@ -3094,41 +3099,44 @@ class _NotificationBellState extends State<NotificationBell> {
             ),
           ),
         ],
-        builder: (context, menu, _) => IconButton(
-          key: ValueKey('notification-bell'),
-          tooltip: state.isAdmin ? 'Push-Status' : 'Benachrichtigungen',
-          style:
-              IconButton.styleFrom(
-                minimumSize: const Size(48, 48),
-                backgroundColor: Colors.transparent,
-                foregroundColor: context.palette.ink,
-              ).copyWith(
-                side: WidgetStateProperty.resolveWith(
-                  (states) => states.contains(WidgetState.focused)
-                      ? BorderSide(color: context.palette.teal, width: 2)
-                      : BorderSide.none,
+        builder: (context, menu, _) => Tooltip(
+          message: state.isAdmin ? 'Push-Status' : 'Benachrichtigungen',
+          excludeFromSemantics: true,
+          child: IconButton(
+            key: ValueKey('notification-bell'),
+            style:
+                IconButton.styleFrom(
+                  minimumSize: const Size(48, 48),
+                  backgroundColor: Colors.transparent,
+                  foregroundColor: context.palette.ink,
+                ).copyWith(
+                  side: WidgetStateProperty.resolveWith(
+                    (states) => states.contains(WidgetState.focused)
+                        ? BorderSide(color: context.palette.teal, width: 2)
+                        : BorderSide.none,
+                  ),
                 ),
-              ),
-          onPressed: () => menu.isOpen ? menu.close() : menu.open(),
-          icon: Semantics(
-            label: state.isAdmin
-                ? 'Push-Status'
-                : state.inbox.unread > 0
-                ? 'Benachrichtigungen, ${state.inbox.unread} ungelesen'
-                : 'Benachrichtigungen',
-            excludeSemantics: true,
-            child: Badge(
-              isLabelVisible: !state.isAdmin && state.inbox.unread > 0,
-              label: ExcludeSemantics(
-                child: Text(
-                  '${state.inbox.unread > 99 ? '99+' : state.inbox.unread}',
+            onPressed: () => menu.isOpen ? menu.close() : menu.open(),
+            icon: Semantics(
+              label: state.isAdmin
+                  ? 'Push-Status'
+                  : state.inbox.unread > 0
+                  ? 'Benachrichtigungen, ${state.inbox.unread} ungelesen'
+                  : 'Benachrichtigungen',
+              excludeSemantics: true,
+              child: Badge(
+                isLabelVisible: !state.isAdmin && state.inbox.unread > 0,
+                label: ExcludeSemantics(
+                  child: Text(
+                    '${state.inbox.unread > 99 ? '99+' : state.inbox.unread}',
+                  ),
                 ),
-              ),
-              child: Image.asset(
-                'assets/brand/schulpilot-bell-header.png',
-                width: 36,
-                height: 36,
-                excludeFromSemantics: true,
+                child: Image.asset(
+                  'assets/brand/schulpilot-bell-header.png',
+                  width: 36,
+                  height: 36,
+                  excludeFromSemantics: true,
+                ),
               ),
             ),
           ),

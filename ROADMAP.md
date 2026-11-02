@@ -699,6 +699,13 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
   dunklem Design auf mindestens 4,5:1 Textkontrast und 48-Pixel-Trefferflächen.
   Der Gesamtpunkt bleibt offen.
 
+  **02.11.2026, mobile Teilkorrektur:** Bei 390 Pixeln wurde das Logo auf
+  Unterseiten mit Zurück-Pfeil durch die anderen Kopfaktionen stark
+  herunterskaliert. Auf schmalen Unterseiten und bei vergrößerter Schrift wird
+  die kompakte Logovariante verwendet; die Startseitenaktion bleibt erreichbar.
+  Widgettests prüfen die transformierte Logogröße bei 320 und 390 Pixeln und
+  doppelter Schriftgröße. Die Abnahme aller Kinderansichten bleibt offen.
+
 - [ ] **P1 – Alters- und situationsgerechte Bedienung beobachten**
 
   Für unterschiedliche bestätigte Klassen-/Altersgruppen repräsentative Aufgaben in schmalem Smartphone-Web, großem Web und auf Android mit künstlichem Material durchführen; fachlich und datenschutzrechtlich geeignete begleitete Nutzertests separat planen und freigeben.
@@ -726,6 +733,13 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
   noch nicht überprüft.
   Die Prüfung der tatsächlichen assistiven Ausgabe in den weiteren Ansichten
   und eine vollständige mobile Barrierefreiheitsabnahme stehen noch aus.
+
+  **Weitere Teilkorrektur:** Die Glocke wurde im mobilen Web als
+  „Benachrichtigungen Benachrichtigungen“ ausgegeben. Der visuelle Tooltip
+  liefert keine zusätzliche Screenreader-Beschriftung mehr; der Button nennt
+  weiterhin die Anzahl ungelesener Meldungen. Die Kopfmenü-, Inhalts- und
+  Sichtbarkeitsprüfungen bestanden mit 51 Flutterfällen; eine vollständige
+  Screenreader- und Geräteabnahme steht noch aus.
 
 - [ ] **P1 – 30-Schultage-Test als reproduzierbaren Regressionstest fortführen**
 
