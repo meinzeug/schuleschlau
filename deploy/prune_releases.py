@@ -7,7 +7,6 @@ import re
 import shutil
 import subprocess
 import sys
-import time
 from pathlib import Path
 
 try:
@@ -135,6 +134,12 @@ def main() -> int:
             return 0
 
         with release_operation(BASE, "prune", None, stage="pruning"):
+            # The release pointers may have changed after the initial dry-run
+            # plan. Recompute only after holding the same lease as deployment.
+            current = _pointer_target(BASE / "current", root, required=True)
+            previous = _pointer_target(BASE / "previous", root, required=False)
+            kept = {target for target in (current, previous) if target is not None}
+            removals = plan_prune(root, BASE / "current", BASE / "previous")
             _assert_services_use_kept_releases(kept)
             for release in removals:
                 _assert_no_nested_mounts(release)

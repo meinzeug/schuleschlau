@@ -915,7 +915,7 @@ Bestandteil des bestehenden Buildvertrags.
     stillen Rückfall auf die lokale Uhr zu. Die Prüfung bescheinigt nicht,
     dass jeder künftige Server tatsächlich synchronisiert ist.
 
-  - [x] Parallele Betriebsabläufe und Release-Sperre absichern: Zwei
+  - [ ] Parallele Betriebsabläufe und Release-Sperre absichern: Zwei
     gleichzeitige Deployments oder ein manueller Rückweg überlagern sich bei
     Upload, Aktivierung, Caddy, Dienstdateien, Anbieterworker und Releasezeigern
     nicht mehr. Eine zustandsbehaftete Lease (`.deploy.lock`) schließt
@@ -927,6 +927,20 @@ Bestandteil des bestehenden Buildvertrags.
     Rollback (`activate.py`) agieren atomar unter der Sperre; der Monitor
     unterdrückt Übergangswarnungen während des Neustarts. 29 gezielte Tests
     in `test_deploy_coordination.py` und `test_stage_release.py` bestanden.
+
+    **Korrektur 02.11.2026:** Die obige Beschreibung ist ein Ziel, kein
+    vollständiger Nachweis. Der bisherige Lese-/Schreibablauf der Lease war
+    nicht atomar; außerdem plant die Bereinigung vor dem Erwerb der Sperre.
+    Ein zusätzlicher Dateilock serialisiert nun die Lease-Änderungen, und die
+    Bereinigung berechnet ihren Plan unter der Lease erneut. Ein Test mit zwölf
+    gleichzeitig startenden Prozessen prüft die exklusive Lease. Der vorhandene
+    vermeintliche SSH-Abbruchtest simuliert keinen SSH-Abbruch und belegt das
+    Überleben verzögerter Kindprozesse nicht. Das Entfernen des Stagings beim
+    Abbruch, die Freigabe während der Aktivierung, Bootstrap und Arbeiten nach
+    der Aktivierung sowie die vollständige Koordination mit laufenden alten
+    Versionen müssen noch unter realistischen isolierten Bedingungen geprüft
+    und gegebenenfalls repariert werden. Bis dahin die neue Koordination nicht
+    als produktiv abgenommen betrachten.
 
   **Zusätzliche Tests:** Zwei synthetische Deployments mit künstlich pausiertem Upload und paralleler Bereinigung ausführen; dazu SSH während Upload und Aktivierung unterbrechen, den Kindprozess verzögert beenden und prüfen, dass kein zweiter verändernder Ablauf oder prune das laufende Staging beeinträchtigt. Frühe und späte Fehler, Timerläufe sowie einen manuellen Rückweg unter demselben Vertrag prüfen. Keine Tests gegen Produktion ausführen.
 

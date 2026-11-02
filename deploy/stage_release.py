@@ -8,7 +8,10 @@ from __future__ import annotations
 
 import ctypes
 import errno
+import fcntl
+import functools
 import grp
+import inspect
 import json
 import os
 import re
@@ -208,6 +211,35 @@ def _write_lock_file(lock_file: Path, data: dict, owner: int) -> None:
         temp_file.unlink(missing_ok=True)
 
 
+def _serialize_lock_mutation(function):
+    """Serialize read/modify/write of the lease across independent processes."""
+    signature = inspect.signature(function)
+
+    @functools.wraps(function)
+    def guarded(*args, **kwargs):
+        bound = signature.bind(*args, **kwargs)
+        base = bound.arguments['base']
+        owner = _resolve_owner(base, bound.arguments.get('owner'))
+        base_fd = _base(base, owner)
+        try:
+            fd = os.open('.deploy.guard', os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW | os.O_CLOEXEC,
+                         0o600, dir_fd=base_fd)
+            try:
+                _check_trusted_file(fd, base / '.deploy.guard', owner)
+                fcntl.flock(fd, fcntl.LOCK_EX)
+                try:
+                    return function(*args, **kwargs)
+                finally:
+                    fcntl.flock(fd, fcntl.LOCK_UN)
+            finally:
+                os.close(fd)
+        finally:
+            os.close(base_fd)
+
+    return guarded
+
+
+@_serialize_lock_mutation
 def acquire_lock(
     base: Path,
     operation: str,
@@ -261,6 +293,7 @@ def acquire_lock(
     return lock_data
 
 
+@_serialize_lock_mutation
 def update_lock(
     base: Path,
     token: str,
@@ -294,6 +327,7 @@ def update_lock(
     return existing
 
 
+@_serialize_lock_mutation
 def release_lock(base: Path, token: str | None = None, *, owner: int | None = None, force: bool = False) -> None:
     """Release the lock if token matches or force is True."""
     owner = _resolve_owner(base, owner)

@@ -3,8 +3,8 @@
 Verifies:
 1. Two parallel deployments collide and cannot overwrite staging or releases.
 2. Paused upload blocks parallel prune and prevents deletion of staging.
-3. SSH disconnect during upload with delayed child process keeps the lock held.
-4. SSH disconnect during activation with running process keeps the lock held.
+3. Lease activity for simulated expired metadata and an open staging file.
+4. Manual rollback participates in the lease.
 5. Published, unactivated releases are never pruned.
 6. Manual rollback acquires exclusive lock and blocks concurrent deploy/prune.
 7. Early failure (staging error) cleans up the lock.
@@ -16,14 +16,14 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import multiprocessing
 import os
 import stat
-import subprocess
-import tempfile
 import threading
 import time
+from contextlib import contextmanager
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -45,6 +45,37 @@ CURRENT = "20261030T200000Z-abcdef1"
 PREVIOUS = "20261029T200000Z-abcdef2"
 RELEASE_1 = "20261102T010000Z-1111111"
 RELEASE_2 = "20261102T020000Z-2222222"
+
+
+def _race_for_lease(base, start, results):
+    start.wait(10)
+    try:
+        stage.acquire_lock(base, "deploy", RELEASE_1)
+        results.put("acquired")
+    except stage.ReleaseLockError:
+        results.put("blocked")
+
+
+def test_simultaneous_processes_cannot_both_acquire_lease(env):
+    ctx = multiprocessing.get_context("fork")
+    start = ctx.Event()
+    results = ctx.Queue()
+    processes = [ctx.Process(target=_race_for_lease, args=(env, start, results)) for _ in range(12)]
+    for process in processes:
+        process.start()
+    try:
+        start.set()
+        outcomes = [results.get(timeout=10) for _ in processes]
+        assert outcomes.count("acquired") == 1
+        assert outcomes.count("blocked") == len(processes) - 1
+    finally:
+        for process in processes:
+            process.join(timeout=10)
+            if process.is_alive():
+                process.terminate()
+                process.join()
+            assert process.exitcode == 0
+        results.close()
 
 
 @pytest.fixture
@@ -140,10 +171,34 @@ def test_paused_upload_blocks_prune_and_preserves_staging(env, monkeypatch):
     assert (env / "releases" / RELEASE_1).is_dir()
 
 
-def test_ssh_disconnect_during_upload_with_active_child_process(env, tmp_path):
-    """If SSH connection drops while a server-side process is still accessing staging, lock remains held."""
+def test_prune_replans_after_lease_when_release_pointers_change(env, monkeypatch):
+    older = env / "releases" / "20261028T200000Z-abcdef0"
+    older.mkdir()
+    real_operation = prune.release_operation
+
+    @contextmanager
+    def operation_after_rollback(*args, **kwargs):
+        (env / "current").unlink()
+        (env / "current").symlink_to(older)
+        (env / "previous").unlink()
+        (env / "previous").symlink_to(env / "releases" / CURRENT)
+        with real_operation(*args, **kwargs) as lease:
+            yield lease
+
+    monkeypatch.setattr(prune, "BASE", env)
+    monkeypatch.setattr(prune, "RELEASES", env / "releases")
+    monkeypatch.setattr(prune, "release_operation", operation_after_rollback)
+    monkeypatch.setattr(prune, "_assert_services_use_kept_releases", lambda *_: None)
+    monkeypatch.setattr(prune.sys, "argv", ["prune", "--apply"])
+    assert prune.main() == 0
+    assert older.is_dir()
+    assert (env / "releases" / CURRENT).is_dir()
+
+
+def test_simulated_expired_lease_with_open_staging_file(env):
+    """Exercise simulated metadata; this is not an SSH disconnect test."""
     owner = os.geteuid()
-    token = stage.prepare(env, RELEASE_1, owner)
+    stage.prepare(env, RELEASE_1, owner)
     staging_file = env / "staging" / RELEASE_1 / "transfer.dat"
 
     # Simulate a child process (e.g. rsync) keeping an open file descriptor in staging

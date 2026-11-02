@@ -6,11 +6,10 @@ Coordinating operations:
 - Release pruning (prune_releases.py)
 - Operational watchdog and timers (monitor, backup, restore-check)
 
-Guarantees:
-- Only one mutating release operation can proceed at a time.
-- Lock is held across multi-step SSH commands via persistent lock file + server PID/path tracking.
-- If SSH drops, lock remains held as long as server-side child processes (e.g. rsync) are running or accessing staging.
-- In-flight releases (staged, published, or newer than current) are protected from pruning.
+The persistent lease coordinates participating code paths. Lease metadata
+mutations are serialized by a separate file lock. End-to-end coordination
+across SSH disconnects, old installed versions and all deployment steps still
+requires integration testing; see ROADMAP.md before production use.
 """
 
 from __future__ import annotations

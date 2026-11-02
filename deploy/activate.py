@@ -14,9 +14,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 try:
-    from release_lock import ReleaseLockError, release_lock, release_operation, update_lock
+    from release_lock import ReleaseLockError, release_lock, release_operation
 except ImportError:
-    from deploy.release_lock import ReleaseLockError, release_lock, release_operation, update_lock
+    from deploy.release_lock import ReleaseLockError, release_lock, release_operation
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("release_id")
