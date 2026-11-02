@@ -817,7 +817,7 @@ Die folgenden Punkte beschreiben ausstehende, wiederholbare Betriebs- und Freiga
   Bestehende Checks für API, Worker, festhängende Jobs, Lösch-Outbox, Backups, Speicher, öffentliche Erreichbarkeit und Offsite-Frische sowie zuständige Alarmwege kontrollieren.
 
   **Abnahme:** ein isolierter, ausdrücklich autorisierter Test die Erkennung und Zuordnung einer Störung belegt, Meldungen keine privaten Inhalte enthalten und Runbook, Eskalation und Wiederanlauf aktuell sind.
-- [ ] **P1 – Anbieter- und Kostenkontrollen revisionsgebunden nachweisen**
+- [x] **P1 – Anbieter- und Kostenkontrollen revisionsgebunden nachweisen**
 
   Tatsächlich aktive Konfiguration und spätere dokumentierte Betreiberentscheidungen prüfen (`docs/APPROVALS.md`, `docs/STATUS.md`); historische Standards nicht als aktuelle Einstellung behandeln. Mit ausschließlich freigegebenen künstlichen Vorlagen den regulären Ablauf und atomare Reservierung bei Erfolg, Fehler, Parallelität und Widerruf testen.
 
@@ -843,6 +843,18 @@ Die folgenden Punkte beschreiben ausstehende, wiederholbare Betriebs- und Freiga
     KI-Funktionen oder vollständige fachliche OCR-Richtigkeit.
 
   **Abnahme:** feste Adapter/Upstreams, Schema- und Quellenprüfung, Grenzen, Audit, ehrliche unbekannte Kosten und Verzicht auf automatische Providerwechsel oder Wiederholungen belegbar sind; Konfiguration und Freigaben werden nicht still gelockert.
+
+  **Nachweis 02.11.2026:** Der lesende Serverabgleich bestätigte OpenRouter,
+  aktive Konfigurationsrevision 37, eingeschaltetes Routing, gespeicherte
+  Datenschutzfreigaben und keinen Notstopp. Die oben dokumentierte echte
+  künstliche Bildprüfung gehört zu dieser Revision. Je 104 Fälle auf SQLite
+  und isoliertem PostgreSQL prüften Anbieter-/Upstreambindung, Schemafehler,
+  Freigaben, Kosten, Reservierungen, Parallelität und fehlende Kostenbelege;
+  weitere je elf Fälle prüften Widerruf, Quellenänderung, Notstopp und
+  Providerrevision während eines Auftrags. Die neuen Tests verwendeten
+  ausschließlich künstliche Daten und simulierte Anbietertransporte. Der
+  echte Bildtest beweist keine fachliche Qualität aller Modelle oder die
+  Erreichbarkeit jeder Route; eine unabhängige Datenschutzprüfung bleibt offen.
 - [x] **P1 – Google- und Geheimnisbetrieb überprüfen**
 
   OIDC-State, Nonce, serverseitiges PKCE, Cookie-Webfluss, native Geräte-Proof-/Callback-Ticket-Bindung, ausdrückliche Kontoverknüpfung und zusätzliche Mailbestätigung bei Bedarf prüfen.
