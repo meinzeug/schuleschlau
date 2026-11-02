@@ -949,6 +949,17 @@ Bestandteil des bestehenden Buildvertrags.
 
   Betroffene Konfigurationen und Daten vorher sichern, Migrations- und Rückwärtskompatibilität prüfen, nur SCHULPILOT aktualisieren und vorheriges Release erhalten.
 
+  **02.11.2026, weiterer Release:** `1.38.60+215` aus Commit `ed0d89e`
+  ist auf `schulpilot.dorfspy.de` aktiviert. Web, Direct-APK und Play-AAB
+  wurden mit der fixierten Toolchain gebaut; eine Storeveröffentlichung fand
+  nicht statt. Health und Direktlink liefern den erwarteten Stand, eine
+  anonyme private Materialliste wird mit 401 abgewiesen. Die öffentlich
+  heruntergeladene APK stimmt hinsichtlich Größe und SHA-256 mit dem Manifest
+  überein. API, Worker, Codex- und Reparaturdienste sowie Sicherungstimer sind
+  aktiv. In der produktiven 390-Pixel-Webansicht werden die Schulbuddy-
+  Frageideen nun als Schaltflächen ausgegeben. Das ist keine vollständige
+  Screenreader- oder Android-Abnahme und ersetzt keinen echten Rollbacktest.
+
   **02.11.2026, produktiver Release:** `1.38.59+214` aus Commit `6f1e113`
   wurde auf `schulpilot.dorfspy.de` aktiviert; vorheriges Release ist
   `20261101T193953Z-534009f`. Der Deployablauf meldete erfolgreiche

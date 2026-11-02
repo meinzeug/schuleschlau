@@ -14,7 +14,7 @@ Der Nutzer möchte die offene `ROADMAP.md` vollständig und nachweisbar abarbeit
 
 ## Git und Arbeitsverzeichnis
 
-Das Hauptverzeichnis ist `/home/dennis/schulpilot`, Branch `main`, Remote `origin`. Der zuletzt geprüfte produktive App-Quellstand war `534009f`; danach folgten weitere Commits für den unabhängigen Watchdog, den Offsite-Client und Dokumentation. Den tatsächlichen Stand von `main` und Remote zuerst prüfen. Im Hauptverzeichnis liegen zwei bereits vorhandene, nicht zu dieser Arbeit gehörende Änderungen:
+Das Hauptverzeichnis ist `/home/dennis/schulpilot`, Branch `main`, Remote `origin`. Zuletzt wurde Release `20261102T174319Z-ed0d89e` (Version `1.38.60+215`) produktiv geprüft. Das Hauptverzeichnis wurde wegen der unten genannten lokalen Änderungen nicht auf den neuen Versionscommit aktualisiert; den tatsächlichen Stand von `main` und Remote zuerst prüfen. Im Hauptverzeichnis liegen zwei bereits vorhandene, nicht zu dieser Arbeit gehörende Änderungen:
 
 - `app/pubspec.yaml`, SHA-256 bei Übergabe: `0f1581c5f623adac6a49c7837e7c080fb4c98b82065587db7124c7c3772a0d30`
 - `backend/schulpilot/__init__.py`, SHA-256 bei Übergabe: `313b5053897d6953cf386f4157d66d3527e6e161ba497053f9927762482e45e0`
