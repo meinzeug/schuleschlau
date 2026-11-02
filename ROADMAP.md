@@ -747,6 +747,14 @@ Die folgenden Punkte beschreiben ausstehende, wiederholbare Betriebs- und Freiga
   Aufbewahrung, Export und Löschkaskaden für Quellen samt Tutor-Zitaten, Fotos, Antworten, Wortschatz, Noten/Importbelege, Nachrichten und Zahlungsbelege gegen die jeweiligen Verträge prüfen.
 
   **Abnahme:** berechtigte Familien vollständig exportieren/löschen können, Aufbewahrungsfristen und gesetzliche Ausnahmen dokumentiert sind, Roh-PDFs nicht gespeichert werden und private Inhalte oder Schlüssel weder in Logs noch Git oder frei zugänglichen Uploads erscheinen.
+
+  **Teilprüfung 02.11.2026:** Je 15 künstliche Fälle bestanden auf SQLite und
+  isoliertem PostgreSQL. Sie umfassen unter anderem Kontolöschung, Heftseiten
+  mit zugehörigen Runden, Tutor-Zitate, Wortschatz, Noten/PDF-Import,
+  Prüfungsdaten, Zahlungsbelege, Aufbewahrung und vertrauliche Fehlerlogs.
+  Die Prüfung belegt nicht alle Datenarten oder tatsächliche externe
+  Anbieter-/Support-/Proxylogfristen; diese und die vollständige Export- und
+  Löschmatrix bleiben offen.
 - [x] **P0 – Wiederherstellung praktisch üben**
 
   Verschlüsselte Sicherung in eine separate Datenbank einspielen, aktuelles authentifiziertes Löschjournal und Rechteänderungen abgleichen, alte Sitzungen und Einladungs-/Reset-Tokens widerrufen sowie Verbrauch und Aufbewahrungsfristen prüfen.
@@ -985,6 +993,15 @@ Bestandteil des bestehenden Buildvertrags.
     manuellen Rückweg oder fehlgeschlagener Bereinigung; die Tests prüfen, dass
     danach kein konkurrierendes Staging startet. Der konkrete Anlagenzustand
     muss vor einer manuellen Freigabe jeweils geprüft werden.
+
+    Das noch installierte alte Bereinigungsprogramm berücksichtigt keine neue
+    Lease und würde ein bereits publiziertes neues Release sonst als löschbar
+    ansehen. Ein geschützter Marker im Releaseverzeichnis lässt dessen
+    vorhandene Eingabeprüfung vor der Bereinigung abbrechen; er bleibt nach
+    Unterbrechung erhalten und wird erst beim Abschluss unter der Lease geprüft
+    und entfernt. Das tatsächlich aus Git geladene Bereinigungsprogramm des
+    Produktionsstands `534009f` wurde isoliert dagegen geprüft. Das schützt
+    nicht vor beliebigen alten Deploy- oder Rollbackskripten.
 
   **Zusätzliche Tests:** Zwei synthetische Deployments mit künstlich pausiertem Upload und paralleler Bereinigung ausführen; dazu SSH während Upload und Aktivierung unterbrechen, den Kindprozess verzögert beenden und prüfen, dass kein zweiter verändernder Ablauf oder prune das laufende Staging beeinträchtigt. Frühe und späte Fehler, Timerläufe sowie einen manuellen Rückweg unter demselben Vertrag prüfen. Keine Tests gegen Produktion ausführen.
 

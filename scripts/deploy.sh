@@ -30,6 +30,7 @@ cleanup_deployment() {
 trap cleanup_deployment EXIT
 
 ssh -o BatchMode=yes dorfspy python3 - < deploy/bootstrap_host.py
+ssh dorfspy python3 - guard "$release" "$lock_token" < deploy/stage_release.py
 rsync -a --chown=root:root --chmod=Dgo-w,Fgo-w --exclude='__pycache__' --exclude='.pytest_cache' backend deploy workers "dorfspy:$remote_stage/"
 rsync -a --chown=root:root --chmod=Dgo=rx,Fgo=rX app/build/web/ "dorfspy:$remote_stage/web/"
 ssh dorfspy "mkdir -m 755 $remote_stage/downloads"

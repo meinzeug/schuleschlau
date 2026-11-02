@@ -540,6 +540,32 @@ def abort(base: Path, release_id: str, owner: int | None = None, *, token: str |
 
 
 @_serialize_lock_mutation
+def guard_legacy_prune(base: Path, release_id: str, token: str, owner: int | None = None) -> None:
+    """Make older cleanup tools fail closed until the deployment is finished."""
+    _check_id(release_id)
+    owner = _resolve_owner(base, owner)
+    existing = _read_lock_file(base / '.deploy.lock', owner)
+    if (not token or not existing or existing.get('token') != token
+            or existing.get('release_id') != release_id or existing.get('stage') != 'staging'):
+        raise ReleaseLockError("Cannot guard release: invalid staging lease")
+    base_fd = _base(base, owner)
+    try:
+        releases_fd = _directory(base_fd, 'releases', owner)
+        try:
+            fd = os.open('.deploy-in-progress', os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
+                         0o600, dir_fd=releases_fd)
+            with os.fdopen(fd, 'w', encoding='utf-8') as stream:
+                stream.write(release_id + '\n')
+                stream.flush()
+                os.fsync(stream.fileno())
+            os.fsync(releases_fd)
+        finally:
+            os.close(releases_fd)
+    finally:
+        os.close(base_fd)
+
+
+@_serialize_lock_mutation
 def finish(base: Path, release_id: str, token: str, owner: int | None = None) -> None:
     """Release only a successfully activated lease after deployment follow-up."""
     _check_id(release_id)
@@ -552,6 +578,13 @@ def finish(base: Path, release_id: str, token: str, owner: int | None = None) ->
     current = base / 'current'
     if not current.is_symlink() or current.resolve(strict=True) != (base / 'releases' / release_id).resolve(strict=True):
         raise ReleaseLockError("Cannot finish release: active release changed")
+    guard_file = base / 'releases' / '.deploy-in-progress'
+    fd = os.open(guard_file, os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC)
+    with os.fdopen(fd, 'r', encoding='utf-8') as stream:
+        _check_trusted_file(stream.fileno(), guard_file, owner)
+        if stream.read(128) != release_id + '\n':
+            raise ReleaseLockError("Cannot finish release: legacy prune guard mismatch")
+    guard_file.unlink()
     lock_file.unlink()
 
 
@@ -564,8 +597,8 @@ def heartbeat(base: Path, release_id: str, token: str, owner: int | None = None)
 def main():
     if os.geteuid() != 0:
         raise SystemExit('Release staging requires root')
-    if len(sys.argv) < 3 or sys.argv[1] not in ('prepare', 'publish', 'abort', 'heartbeat', 'finish'):
-        raise SystemExit('Usage: stage_release.py prepare|publish|abort|heartbeat|finish RELEASE_ID [TOKEN]')
+    if len(sys.argv) < 3 or sys.argv[1] not in ('prepare', 'guard', 'publish', 'abort', 'heartbeat', 'finish'):
+        raise SystemExit('Usage: stage_release.py prepare|guard|publish|abort|heartbeat|finish RELEASE_ID [TOKEN]')
     action = sys.argv[1]
     release_id = sys.argv[2]
     token = sys.argv[3] if len(sys.argv) > 3 else None
@@ -577,6 +610,8 @@ def main():
         # lease. The remaining bootstrap runs after that lease is acquired.
         BASE.mkdir(mode=0o755, exist_ok=True)
         print(prepare(BASE, release_id, token=token))
+    elif action == 'guard':
+        guard_legacy_prune(BASE, release_id, token)
     elif action == 'publish':
         publish(BASE, release_id, token=token, repair_gid=grp.getgrnam('schulpilot').gr_gid, public_gid=0)
     elif action == 'abort':

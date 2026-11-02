@@ -12,6 +12,7 @@ import json
 import multiprocessing
 import os
 import stat
+import subprocess
 import threading
 import time
 from contextlib import contextmanager
@@ -110,6 +111,7 @@ def test_abort_and_release_reject_missing_wrong_or_mismatched_tokens(env):
 
 def test_finish_requires_matching_active_release_and_completed_followup(env):
     token = stage.prepare(env, RELEASE_1)
+    stage.guard_legacy_prune(env, RELEASE_1, token)
     with pytest.raises(stage.ReleaseLockError, match="not activated"):
         stage.finish(env, RELEASE_1, token)
     stage.publish(env, RELEASE_1, token=token)
@@ -125,7 +127,49 @@ def test_finish_requires_matching_active_release_and_completed_followup(env):
         stage.finish(env, RELEASE_1, "wrong")
     stage.finish(env, RELEASE_1, token)
     assert stage.check_lock(env) is None
+    assert not (env / "releases" / ".deploy-in-progress").exists()
     assert stage.prepare(env, RELEASE_2)
+
+
+def test_legacy_prune_refuses_guard_even_after_interruption(env):
+    result = subprocess.run(["git", "show", "534009f:deploy/prune_releases.py"], cwd=ROOT,
+                            capture_output=True, text=True)
+    if result.returncode:
+        pytest.skip("historical production revision unavailable in this checkout")
+    namespace = {"__name__": "legacy_prune_fixture"}
+    exec(compile(result.stdout, "legacy_prune_fixture", "exec"), namespace)
+    token = stage.prepare(env, RELEASE_1)
+    with pytest.raises(stage.ReleaseLockError):
+        stage.guard_legacy_prune(env, RELEASE_1, "wrong")
+    stage.guard_legacy_prune(env, RELEASE_1, token)
+    for interrupted in (False, True):
+        if interrupted:
+            stage.abort(env, RELEASE_1, token=token)
+        with pytest.raises(namespace["PruneError"], match="unexpected entry"):
+            namespace["plan_prune"](env / "releases", env / "current", env / "previous")
+        assert (env / "staging" / RELEASE_1).exists()
+
+
+@pytest.mark.parametrize("damage", ["missing", "wrong_contents", "symlink"])
+def test_finish_refuses_missing_or_altered_legacy_guard(env, tmp_path, damage):
+    token = stage.prepare(env, RELEASE_1)
+    stage.guard_legacy_prune(env, RELEASE_1, token)
+    stage.publish(env, RELEASE_1, token=token)
+    stage.acquire_lock(env, "activate", RELEASE_1, token=token, stage="activating")
+    stage.update_lock(env, token, stage="activated", release_id=RELEASE_1)
+    (env / "current").unlink()
+    (env / "current").symlink_to(env / "releases" / RELEASE_1)
+    marker = env / "releases" / ".deploy-in-progress"
+    if damage == "missing":
+        marker.unlink()
+    elif damage == "wrong_contents":
+        marker.write_text(RELEASE_2 + "\n")
+    else:
+        marker.unlink()
+        marker.symlink_to(tmp_path / "outside")
+    with pytest.raises((stage.ReleaseLockError, OSError)):
+        stage.finish(env, RELEASE_1, token)
+    assert stage.check_lock(env)["stage"] == "activated"
 
 
 def test_simultaneous_processes_cannot_both_acquire_lease(env):

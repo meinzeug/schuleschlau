@@ -36,6 +36,7 @@ class Activation:
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_text(content)
         self.base.chmod(0o755)
+        (self.base / "releases").chmod(0o755)
         self.current = self.base / "current"
         self.current.symlink_to(self.old)
         self.prior = self.base / "previous"
@@ -196,10 +197,11 @@ def test_success_activates_new_release_and_preserves_previous_pointer(tmp_path, 
 
 
 def test_deployment_activation_retains_lease_until_followup_finishes(tmp_path, monkeypatch):
-    from deploy.stage_release import acquire_lock, check_lock, finish
+    from deploy.stage_release import acquire_lock, check_lock, finish, guard_legacy_prune
 
     activation = Activation(tmp_path)
-    token = acquire_lock(activation.base, "deploy", NEW)["token"]
+    token = acquire_lock(activation.base, "deploy", NEW, stage="staging")["token"]
+    guard_legacy_prune(activation.base, NEW, token)
     activation.execute(monkeypatch, token=token)
     assert check_lock(activation.base)["stage"] == "activated"
     finish(activation.base, NEW, token)

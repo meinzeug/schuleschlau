@@ -157,6 +157,7 @@ def test_deploy_checks_verified_archive_after_upload_and_immediately_before_acti
     assert 'remote_stage="/opt/schulpilot/staging/$release"' in script
     assert 'python3 - prepare "$release" < deploy/stage_release.py' in script
     assert script.index('python3 - prepare "$release"') < script.index('deploy/bootstrap_host.py')
+    assert script.index('deploy/bootstrap_host.py') < script.index('python3 - guard "$release"') < upload
     assert script.index('repair_restart_done=true') < script.index('python3 - finish "$release"')
     assert script.count('"$release_android_sha" "$repair_sha" < scripts/release_attestation.py') == 3
     assert 'rsync -a --chown=root:root --chmod=Dgo=rx,Fgo=rX app/build/web/' in script
