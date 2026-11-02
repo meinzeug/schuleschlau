@@ -480,6 +480,7 @@ def _check_contents(directory_fd, owner, repair_gid, public_gid, prefix=''):
                     raise ValueError(f'Release file is not publicly readable: {path}')
 
 
+@_serialize_lock_mutation
 def publish(
     base: Path,
     release_id: str,
@@ -493,7 +494,13 @@ def publish(
     owner = _resolve_owner(base, owner)
     if not token:
         raise ReleaseLockError('Publishing requires a deployment lease')
-    acquire_lock(base, 'deploy', release_id, token=token, stage='published', owner=owner)
+    lock_file = base / '.deploy.lock'
+    existing = _read_lock_file(lock_file, owner)
+    if (not existing or existing.get('token') != token or existing.get('operation') != 'deploy'
+            or existing.get('release_id') != release_id or existing.get('stage') not in ('staging', 'published')):
+        raise ReleaseLockError('Publishing requires the active staging lease for this release')
+    existing.update(stage='published', holder_pid=os.getpid(), updated_at=time.time())
+    _write_lock_file(lock_file, existing, owner)
 
     if public_gid is None:
         public_gid = os.getegid()

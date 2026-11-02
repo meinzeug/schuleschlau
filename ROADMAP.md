@@ -1029,6 +1029,16 @@ Bestandteil des bestehenden Buildvertrags.
     beider Loopback-SSH-Tests bestand mit 106 Fällen und 13 Unterfällen. Die
     Koordination alter Werkzeuge und der produktive Rückweg bleiben offen.
 
+    Ein anschließender Parallelitätstest zeigte, dass ein Abbruch bereits
+    quittiert werden konnte, während eine Veröffentlichung noch beim Verschieben
+    pausierte. Prüfung und Veröffentlichung stehen nun zusammen unter dem
+    Dateilock; ein Abbruch wartet auf ihren Abschluss und erhält anschließend
+    die unterbrochene Lease und den Schutzmarker. Nach Beginn einer Aktivierung
+    kann dieselbe Lease nicht erneut veröffentlichen. Der reproduzierte Fehler
+    und beide Aktivierungszustände sind getestet. Die Release-Suite bestand
+    nach der Korrektur mit 109 Fällen und 13 Unterfällen. Das belegt keine
+    Koordination mit nicht teilnehmenden alten Skripten.
+
   **Zusätzliche Tests:** Zwei synthetische Deployments mit künstlich pausiertem Upload und paralleler Bereinigung ausführen; dazu SSH während Upload und Aktivierung unterbrechen, den Kindprozess verzögert beenden und prüfen, dass kein zweiter verändernder Ablauf oder prune das laufende Staging beeinträchtigt. Frühe und späte Fehler, Timerläufe sowie einen manuellen Rückweg unter demselben Vertrag prüfen. Keine Tests gegen Produktion ausführen.
 
   **Abnahme:** HTTPS/Health den erwarteten Quellstand zeigen, Web-Direktlinks und anonyme Schutzgrenzen geprüft sind, öffentlich ausgelieferte APK und Manifest aus tatsächlicher Datei zu Größe/Hash/Version passen und ein migrationsbewusster Rückweg dokumentiert ist.

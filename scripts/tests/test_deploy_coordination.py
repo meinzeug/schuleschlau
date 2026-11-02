@@ -150,6 +150,56 @@ def test_legacy_prune_refuses_guard_even_after_interruption(env):
         assert (env / "staging" / RELEASE_1).exists()
 
 
+def test_abort_waits_for_inflight_publication(env, monkeypatch):
+    token = stage.prepare(env, RELEASE_1)
+    stage.guard_legacy_prune(env, RELEASE_1, token)
+    at_rename, resume, abort_started, aborted = (threading.Event() for _ in range(4))
+    errors = []
+    rename = stage._rename_noreplace
+
+    def paused_rename(*args):
+        at_rename.set()
+        if not resume.wait(5):
+            raise RuntimeError("Publication was not resumed")
+        return rename(*args)
+
+    def publish():
+        try:
+            stage.publish(env, RELEASE_1, token=token)
+        except Exception as exc:
+            errors.append(exc)
+
+    def abort():
+        abort_started.set()
+        try:
+            stage.abort(env, RELEASE_1, token=token)
+        except Exception as exc:
+            errors.append(exc)
+        finally:
+            aborted.set()
+
+    monkeypatch.setattr(stage, "_rename_noreplace", paused_rename)
+    publication = threading.Thread(target=publish)
+    interruption = threading.Thread(target=abort)
+    publication.start()
+    try:
+        assert at_rename.wait(5)
+        interruption.start()
+        assert abort_started.wait(5)
+        returned_early = aborted.wait(.3)
+    finally:
+        resume.set()
+        publication.join(timeout=5)
+        if interruption.ident is not None:
+            interruption.join(timeout=5)
+    assert not publication.is_alive() and not interruption.is_alive()
+    assert not errors
+    assert not returned_early
+    assert stage.check_lock(env)["stage"] == "interrupted"
+    assert (env / "releases" / RELEASE_1).is_dir()
+    assert (env / "releases" / ".deploy-in-progress").is_file()
+
+
 @pytest.mark.parametrize("damage", ["missing", "wrong_contents", "symlink"])
 def test_finish_refuses_missing_or_altered_legacy_guard(env, tmp_path, damage):
     token = stage.prepare(env, RELEASE_1)

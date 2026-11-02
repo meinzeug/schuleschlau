@@ -83,6 +83,16 @@ def test_publish_rejects_non_deployment_lease(root):
     assert not (root / 'releases' / RELEASE).exists()
 
 
+@pytest.mark.parametrize('later_stage', ['activating', 'activated'])
+def test_publish_rejects_lease_after_activation_started(root, later_stage):
+    token = stage.prepare(root, RELEASE, os.geteuid())
+    stage.update_lock(root, token, stage=later_stage)
+    with pytest.raises(stage.ReleaseLockError):
+        stage.publish(root, RELEASE, os.geteuid(), token=token)
+    assert (root / 'staging' / RELEASE).is_dir()
+    assert stage.check_lock(root)['stage'] == later_stage
+
+
 def test_prune_during_paused_upload_cannot_delete_staging(root, monkeypatch):
     owner = os.geteuid()
     stage.prepare(root, RELEASE, owner)
