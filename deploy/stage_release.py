@@ -491,8 +491,9 @@ def publish(
 ) -> None:
     _check_id(release_id)
     owner = _resolve_owner(base, owner)
-    if token:
-        update_lock(base, token, stage='published', release_id=release_id, owner=owner)
+    if not token:
+        raise ReleaseLockError('Publishing requires a deployment lease')
+    acquire_lock(base, 'deploy', release_id, token=token, stage='published', owner=owner)
 
     if public_gid is None:
         public_gid = os.getegid()

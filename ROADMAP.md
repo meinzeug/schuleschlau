@@ -1020,6 +1020,15 @@ Bestandteil des bestehenden Buildvertrags.
     Sperrdateien geben ihren Dateideskriptor wieder frei. Die entsprechenden
     Tests verwenden ausschließlich temporäre künstliche Dateien.
 
+    **Weitere Teilkorrektur 02.11.2026:** Die Kommandozeile verlangte bereits
+    ein Sperrtoken, der interne Veröffentlichungsaufruf konnte aber ohne
+    Token ein vorbereitetes Release verschieben. Auch dieser Aufruf verlangt
+    nun eine passende laufende Deployment-Lease und weist fehlende, falsche,
+    unterbrochene, andersartige oder einem anderen Release zugeordnete
+    Sperren vor dem Verschieben ab. Die isolierte Release-Suite einschließlich
+    beider Loopback-SSH-Tests bestand mit 106 Fällen und 13 Unterfällen. Die
+    Koordination alter Werkzeuge und der produktive Rückweg bleiben offen.
+
   **Zusätzliche Tests:** Zwei synthetische Deployments mit künstlich pausiertem Upload und paralleler Bereinigung ausführen; dazu SSH während Upload und Aktivierung unterbrechen, den Kindprozess verzögert beenden und prüfen, dass kein zweiter verändernder Ablauf oder prune das laufende Staging beeinträchtigt. Frühe und späte Fehler, Timerläufe sowie einen manuellen Rückweg unter demselben Vertrag prüfen. Keine Tests gegen Produktion ausführen.
 
   **Abnahme:** HTTPS/Health den erwarteten Quellstand zeigen, Web-Direktlinks und anonyme Schutzgrenzen geprüft sind, öffentlich ausgelieferte APK und Manifest aus tatsächlicher Datei zu Größe/Hash/Version passen und ein migrationsbewusster Rückweg dokumentiert ist.
