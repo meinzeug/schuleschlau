@@ -1006,6 +1006,20 @@ Bestandteil des bestehenden Buildvertrags.
     Produktionsstands `534009f` wurde isoliert dagegen geprüft. Das schützt
     nicht vor beliebigen alten Deploy- oder Rollbackskripten.
 
+    **Ergänzung 02.11.2026:** Ein zweiter isolierter Loopback-SSH-Test
+    unterbricht eine echte SSH-Verbindung während der pausierten Ausführung
+    des Aktivierungsskripts. Die künstliche Aktivierung läuft absichtlich in
+    einem abgekoppelten Prozess mit simulierten Diensten und Migrationen;
+    neues Staging, Rückweg und Prune bleiben bis zu ihrem Abschluss gesperrt.
+    Die Lease bleibt auch nach erfolgreicher Aktivierung bis zur Nacharbeit
+    erhalten. Der Test belegt kein bestimmtes Signalverhalten des produktiven
+    SSH-Servers und keine echte Dienstumschaltung. Außerdem wurde ein Fehler
+    korrigiert, bei dem eine hängende symbolische Verknüpfung auf die
+    Lease-Datei als fehlende Sperre galt; hängende und gültige Symlinks
+    blockieren nun Status, Erwerb, Freigabe und Bereinigung. Abgewiesene
+    Sperrdateien geben ihren Dateideskriptor wieder frei. Die entsprechenden
+    Tests verwenden ausschließlich temporäre künstliche Dateien.
+
   **Zusätzliche Tests:** Zwei synthetische Deployments mit künstlich pausiertem Upload und paralleler Bereinigung ausführen; dazu SSH während Upload und Aktivierung unterbrechen, den Kindprozess verzögert beenden und prüfen, dass kein zweiter verändernder Ablauf oder prune das laufende Staging beeinträchtigt. Frühe und späte Fehler, Timerläufe sowie einen manuellen Rückweg unter demselben Vertrag prüfen. Keine Tests gegen Produktion ausführen.
 
   **Abnahme:** HTTPS/Health den erwarteten Quellstand zeigen, Web-Direktlinks und anonyme Schutzgrenzen geprüft sind, öffentlich ausgelieferte APK und Manifest aus tatsächlicher Datei zu Größe/Hash/Version passen und ein migrationsbewusster Rückweg dokumentiert ist.

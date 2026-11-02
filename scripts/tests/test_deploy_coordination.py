@@ -209,6 +209,38 @@ def test_corrupt_lease_refuses_acquire_and_prune(env, monkeypatch, content):
     assert (env / "releases" / PREVIOUS).is_dir()
 
 
+@pytest.mark.parametrize("target_exists", [False, True])
+def test_symlink_lease_fails_closed_for_all_operations(env, tmp_path, monkeypatch, target_exists):
+    target = tmp_path / "outside-lease"
+    if target_exists:
+        target.write_text("not a lease")
+    lease = env / ".deploy.lock"
+    lease.symlink_to(target)
+    with pytest.raises(stage.ReleaseLockError):
+        stage.check_lock(env)
+    with pytest.raises(stage.ReleaseLockError):
+        stage.prepare(env, RELEASE_1)
+    with pytest.raises(stage.ReleaseLockError):
+        stage.release_lock(env, force=True)
+    monkeypatch.setattr(prune, "BASE", env)
+    monkeypatch.setattr(prune, "RELEASES", env / "releases")
+    monkeypatch.setattr(prune.sys, "argv", ["prune", "--apply"])
+    assert prune.main() == 2
+    assert lease.is_symlink()
+    assert target.exists() == target_exists
+
+
+def test_untrusted_lease_does_not_leak_file_descriptors(env):
+    lease = env / ".deploy.lock"
+    lease.write_text("invalid")
+    lease.chmod(0o644)
+    before = len(os.listdir("/proc/self/fd"))
+    for _ in range(32):
+        with pytest.raises(stage.ReleaseLockError):
+            stage.check_lock(env)
+    assert len(os.listdir("/proc/self/fd")) == before
+
+
 @pytest.mark.parametrize("field,value", [
     ("updated_at", float("nan")), ("lease_timeout", -1), ("holder_pid", True),
     ("tracked_pids", [0]), ("release_id", "../../elsewhere"),

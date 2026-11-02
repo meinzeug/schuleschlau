@@ -138,8 +138,6 @@ def is_lock_active(data: dict, base: Path, now: float) -> bool:
 
 
 def _read_lock_file(lock_file: Path, owner: int) -> dict | None:
-    if not lock_file.exists():
-        return None
     try:
         flags = os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC
         fd = os.open(lock_file, flags)
@@ -149,8 +147,10 @@ def _read_lock_file(lock_file: Path, owner: int) -> dict | None:
         raise ReleaseLockError(f"Cannot open release lock: {exc}") from exc
 
     try:
-        _check_trusted_file(fd, lock_file, owner)
         with os.fdopen(fd, 'r', encoding='utf-8') as stream:
+            # Own the descriptor before validating: a rejected file must not
+            # leak one descriptor on every failed status or acquisition check.
+            _check_trusted_file(stream.fileno(), lock_file, owner)
             content = stream.read()
             if not content.strip():
                 raise ReleaseLockError("Empty release lock metadata")
@@ -336,10 +336,9 @@ def release_lock(base: Path, token: str | None = None, *, owner: int | None = No
     """Release the lock if token matches or force is True."""
     owner = _resolve_owner(base, owner)
     lock_file = base / '.deploy.lock'
-    if not lock_file.exists():
-        return
-
     existing = _read_lock_file(lock_file, owner)
+    if existing is None:
+        return
     if existing and not force and (not token or existing.get('token') != token):
         raise ReleaseLockError("Cannot release lock: token mismatch")
 
