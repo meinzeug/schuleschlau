@@ -164,6 +164,19 @@ def test_actual_worker_native_schema_uses_full_output_contract_and_reserved_sol(
     assert {source["material_id"] for source in payload["visual_context"]["sources"] if source.get("material_id")} == {routed.refs[0]["id"]}
     schema = sent["response_format"]["json_schema"]["schema"]
     questions = schema["properties"]["questions"]
+    if entry and not review and kind == "free":
+        # Inspect the actual submitted, deduplicated wire schema, including
+        # entry-specific question variants and references introduced later.
+        from test_unit_reference_graphics_135 import branches
+
+        formats = list(branches(schema, questions["items"]))
+        assert formats
+        for question in formats:
+            assert "explanation_steps" in question["required"]
+            step_options = list(branches(schema, question["properties"]["explanation_steps"]))
+            assert len(step_options) == 1
+            assert step_options[0]["type"] == "array"
+            assert step_options[0]["minItems"] >= 1
     if entry and not review:
         assert payload["learning_entry"]["units"][0]["entry_mode"] != "existing_contract"
         assert questions["minItems"] == questions["maxItems"] and 4 <= questions["maxItems"] <= 5

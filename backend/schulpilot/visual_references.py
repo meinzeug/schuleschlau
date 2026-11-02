@@ -262,7 +262,19 @@ def bind_schema(schema, payload):
     if not context or not context["required"]:
         return
     definitions = schema.get("$defs", {})
-    for node in [schema, *definitions.values()]:
+    def nodes(node):
+        if not isinstance(node, dict):
+            return
+        yield node
+        for key in ("properties", "$defs"):
+            for child in node.get(key, {}).values():
+                yield from nodes(child)
+        for key in ("anyOf", "oneOf", "allOf"):
+            for child in node.get(key, []):
+                yield from nodes(child)
+        yield from nodes(node.get("items"))
+
+    for node in nodes(schema):
         props = node.get("properties", {})
         if "explanation_steps" not in props:
             continue

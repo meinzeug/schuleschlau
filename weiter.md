@@ -23,6 +23,26 @@ Diese Dateien nicht überschreiben oder ungeprüft committen. Für unabhängige 
 
 Zu Beginn mindestens `git status --short --branch`, `git log -5 --oneline`, den Status des Worktrees und die aktuellen CI-Ergebnisse prüfen. Nutzeränderungen und gegebenenfalls von anderer Arbeit stammende Dateien erhalten.
 
+## Offener Fehlerauftrag: Lernrundenvorbereitung
+
+Am 02.11.2026 wurde der vom Nutzer verlinkte eigene Lernrundenauftrag
+datensparsam geprüft und der Zugriff auditiert. Der Anbieter hatte mit
+`finish_reason=stop` abgeschlossen; die anschließende visuelle Prüfung meldete
+`visual_steps_required`. Die Originalantwort wurde nicht gespeichert, daher
+ist der betroffene Erklärungsteil nicht rekonstruierbar. Reproduziert wurde
+eine zugehörige Anfrageschema-Lücke: `explanation_steps` blieb in verschachtelten
+Auswahl-/Antwortvarianten optional. `visual_references.bind_schema` bindet die
+Pflicht jetzt rekursiv; Tests prüfen normale Runden, Folgeübungen und Pakete
+sowie das tatsächliche Anfrageschema. Bestehende Inhaltsprüfungen bleiben
+erhalten. Die Belege stehen in `docs/GRAPHIC_TRANSPORT_RELIABILITY.md`.
+
+Der Codefix ist noch nicht produktiv abgenommen. Vor der konkreten Reparatur
+Deployment-Koordination und sicheren Releasepfad abschließen; nach Installation
+ist auf ausdrücklichen Nutzerauftrag höchstens ein separater auditierter,
+normal reservierter Reparaturauftrag für den exakt betroffenen vorhandenen
+Auftrag zulässig. Alte Fehler und Kosten erhalten, keine Antworten eintragen.
+Danach Ergebnis und Browserstatus prüfen; keinen Erfolg vorwegnehmen.
+
 ## Aktuell laufende Arbeit: Backup-Aufbewahrung
 
 Die letzte Bestandsaufnahme ergab ein serverseitiges Archiv älter als 14 Tage, weil die bisherige Bereinigung nur nach der täglichen Sicherung stattfindet. Die Offsite-Seite wurde in Commit `6f1ef41` verbessert und lokal installiert: Sie überträgt nur noch innerhalb der Frist liegende Archive, prüft Inventar und Prüfsummen und löscht abgelaufene lokale Kopien erst nach erfolgreichem Journal-Transfer und Remote-Bestätigung. Das schließt die serverseitige Aufbewahrungslücke noch nicht.

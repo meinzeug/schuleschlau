@@ -122,6 +122,37 @@ def test_required_schema_requires_steps_in_intro_and_every_question_without_chan
     assert "math.fraction.part_whole" in schema["$defs"]["VisualReferenceChoice"]["properties"]["id"]["enum"]
 
 
+@pytest.mark.parametrize("bounded_matches", [False, True])
+def test_required_steps_survive_indexed_question_branches(bounded_matches):
+    from schulpilot.providers import indexed_choice_schema, strict_schema
+
+    schema = strict_schema(UnitOutput, preserve_limits=True)
+    indexed_choice_schema(schema, bounded_matches=bounded_matches)
+    with DB() as db:
+        bind_schema(schema, {"visual_context": context(db)})
+    assert schema["properties"]["explanation_steps"]["minItems"] == 1
+    branches = schema["$defs"]["Question"]["anyOf"]
+    assert len(branches) >= 2
+    for branch in branches:
+        steps = branch["properties"]["explanation_steps"]
+        assert steps["type"] == "array" and steps["minItems"] == 1 and steps["maxItems"] == 2
+        assert "explanation_steps" in branch["required"]
+
+
+@pytest.mark.parametrize("model,question_name", [("PracticeUnitOutput", "PracticeQuestion"), ("PackageOutput", "Question")])
+def test_required_steps_bind_indexed_followup_and_package_formats(model, question_name):
+    from schulpilot import schemas
+    from schulpilot.providers import indexed_choice_schema, strict_schema
+
+    schema = strict_schema(getattr(schemas, model), preserve_limits=True)
+    indexed_choice_schema(schema, bounded_matches=True)
+    with DB() as db:
+        bind_schema(schema, {"visual_context": context(db)})
+    for branch in schema["$defs"][question_name]["anyOf"]:
+        steps = branch["properties"]["explanation_steps"]
+        assert steps["type"] == "array" and steps["minItems"] == 1
+
+
 def test_valid_fraction_intro_and_solution_use_real_references_and_original_source():
     value = {"subject": "Mathematik", "topic": "Brüche", "explanation": SOURCE,
              "explanation_steps": [step()], "questions": [question()]}

@@ -2,6 +2,24 @@
 
 Stand: 28.10.2026, Version1.37.1+152. Keine Schema-/Datenmigration.
 
+## Nachprüfung 02.11.2026: Pflichtgrafiken in Aufgabenvarianten
+
+Ein neuer regulärer Auftrag erhielt eine abgeschlossene Anbieterantwort; die
+nachgelagerte visuelle Prüfung verwarf sie, weil mindestens ein verpflichtender
+Erklärschritt fehlte. Die inhaltsfreie Diagnose speichert nicht, ob Einführung
+oder welche Aufgabe betroffen war; die ursprüngliche Antwort wird nicht
+gespeichert. Eine genauere Rekonstruktion ist daher nicht möglich.
+
+Die reproduzierte Schemalücke: Bei indizierten Auswahlantworten stehen die
+Aufgabenformate unter `anyOf`. Die Grafikbindung bearbeitete zuvor nur direkte
+Definitionen und ließ in diesen Zweigen `explanation_steps` nullable. Die
+Bindung besucht nun verschachtelte Schemaobjekte und setzt die Pflicht auf alle
+betroffenen Formate; die anschließenden fachlichen Quellen-, Grafik- und
+Antwortprüfungen gelten unverändert. Regressionen prüfen die Varianten für
+normale Runden, Folgeübungen und Pakete sowie das tatsächlich erzeugte
+Anfrageschema. Das korrigiert eine belegte mögliche Ursache, garantiert jedoch
+keine gültige Anbieterantwort oder erfolgreiche Erstellung jeder Runde.
+
 ## Befund
 
 Ein gemeldeter normaler Heft-Rundenauftrag wurde nach etwa zwei Sekunden mit einer Fehlerhülle innerhalb einer HTTP200-Antwort abgebrochen. Es gab weder Aufgaben noch einen verifizierten Kostenbeleg. Die bisherige Fehlerbehandlung speicherte bei diesem Transportfall keine geschlossene Anbieter-Fehlerkategorie. Der nachträgliche Generierungsabruf lieferte404; das beweist keine Gebührenfreiheit. Eine genaue ursprüngliche Anbieterbegründung ist damit nicht rekonstruierbar.
