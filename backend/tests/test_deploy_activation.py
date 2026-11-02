@@ -12,6 +12,9 @@ import pytest
 
 SCRIPT = Path(__file__).parents[2] / "deploy/activate.py"
 WRITERS = ["schulpilot-api", "schulpilot-worker"]
+OLDER = "20261028T200000Z-abcdef0"
+OLD = "20261029T200000Z-abcdef1"
+NEW = "20261030T200000Z-abcdef2"
 
 
 class Activation:
@@ -19,8 +22,8 @@ class Activation:
         self.root, self.failure, self.changed_schema = root, failure, changed_schema
         self.commands, self.command_releases, self.schema_reads, self.restarts, self.backup_checks = [], [], 0, [], 0
         self.base = root / "opt/schulpilot"
-        self.old = self.base / "releases/old98"
-        self.new = self.base / "releases/new99"
+        self.old = self.base / "releases" / OLD
+        self.new = self.base / "releases" / NEW
         for release in (self.old, self.new):
             for name, content in {
                 "web/index.html": "synthetic web",
@@ -32,10 +35,11 @@ class Activation:
                 path = release / name
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_text(content)
+        self.base.chmod(0o755)
         self.current = self.base / "current"
         self.current.symlink_to(self.old)
         self.prior = self.base / "previous"
-        self.prior.symlink_to(self.base / "releases/older97")
+        self.prior.symlink_to(self.base / "releases" / OLDER)
         self.caddy = root / "etc/caddy/Caddyfile"
         self.caddy.parent.mkdir(parents=True)
         self.caddy.write_text("import /etc/caddy/schulpilot.caddy\n")
@@ -93,7 +97,7 @@ class Activation:
             raise OSError("synthetic health unavailable")
         return SimpleNamespace(__enter__=lambda self: self, __exit__=lambda *_: None, status=200)
 
-    def execute(self, monkeypatch, rollback_compatible=False):
+    def execute(self, monkeypatch, rollback_compatible=False, token=None):
         real_import = builtins.__import__
 
         class Health:
@@ -116,7 +120,8 @@ class Activation:
         def imports(name, globals=None, locals=None, fromlist=(), level=0):
             return replacements.get(name) or real_import(name, globals, locals, fromlist, level)
 
-        monkeypatch.setattr(sys, "argv", [str(SCRIPT), "new99", *(["--rollback-compatible"] if rollback_compatible else [])])
+        monkeypatch.setattr(sys, "argv", [str(SCRIPT), NEW, *(["--rollback-compatible"] if rollback_compatible else []),
+                                         *(["--token", token] if token else [])])
         return runpy.run_path(str(SCRIPT), init_globals={"__builtins__": {**vars(builtins), "__import__": imports}})
 
 
@@ -172,7 +177,7 @@ def test_possible_new_writer_always_stops_and_retains_new_reader(tmp_path, monke
                          else cmd == ["systemctl", "reload", "caddy"])))
     assert activation.commands[failure_index + 1] == stop
     assert activation.fragment.read_text() == "old fragment"
-    assert activation.prior.readlink() == activation.base / "releases/older97"
+    assert activation.prior.readlink() == activation.base / "releases" / OLDER
     message = capsys.readouterr().err
     assert "current release retained" in message and "compatible forward fix" in message
     assert "--rollback-compatible are not sufficient" in message
@@ -187,7 +192,29 @@ def test_success_activates_new_release_and_preserves_previous_pointer(tmp_path, 
     assert activation.fragment.read_text() == "new fragment"
     assert activation.schema_reads == (0 if rollback_compatible else 1)
     assert activation.commands[-1] == ["systemctl", "reload", "caddy"]
-    assert "SCHULPILOT activated: new99" in capsys.readouterr().out
+    assert f"SCHULPILOT activated: {NEW}" in capsys.readouterr().out
+
+
+def test_deployment_activation_retains_lease_until_followup_finishes(tmp_path, monkeypatch):
+    from deploy.stage_release import acquire_lock, check_lock, finish
+
+    activation = Activation(tmp_path)
+    token = acquire_lock(activation.base, "deploy", NEW)["token"]
+    activation.execute(monkeypatch, token=token)
+    assert check_lock(activation.base)["stage"] == "activated"
+    finish(activation.base, NEW, token)
+    assert check_lock(activation.base) is None
+
+
+def test_failed_deployment_activation_keeps_existing_lease(tmp_path, monkeypatch):
+    from deploy.stage_release import acquire_lock, check_lock
+
+    activation = Activation(tmp_path, "validate")
+    token = acquire_lock(activation.base, "deploy", NEW)["token"]
+    with pytest.raises(subprocess.CalledProcessError):
+        activation.execute(monkeypatch, token=token)
+    assert check_lock(activation.base)["stage"] == "activating"
+    assert activation.current.resolve() == activation.old
 
 
 @pytest.mark.parametrize("rollback_compatible", [False, True])

@@ -963,6 +963,13 @@ Bestandteil des bestehenden Buildvertrags.
     Unterbrochene Abläufe erfordern eine bewusste Betreiberprüfung; automatische
     Aufräum- oder Wiederaufnahmesicherheit wird nicht behauptet.
 
+    Die bestehende isolierte Aktivierungs-/Rückweg-Suite verwendet nun gültige
+    Releasekennungen und explizite sichere Verzeichnisrechte. 26 Fälle bestehen,
+    darunter Fehler vor und nach möglichem Start neuer Schreibdienste. Zwei
+    ergänzte Fälle prüfen, dass die Deployment-Lease bei erfolgreicher oder
+    fehlgeschlagener Aktivierung bis zur ausdrücklichen Nacharbeit bestehen
+    bleibt. Systemdienste und Migrationen sind dabei Testdoubles, keine Live-Abnahme.
+
   **Zusätzliche Tests:** Zwei synthetische Deployments mit künstlich pausiertem Upload und paralleler Bereinigung ausführen; dazu SSH während Upload und Aktivierung unterbrechen, den Kindprozess verzögert beenden und prüfen, dass kein zweiter verändernder Ablauf oder prune das laufende Staging beeinträchtigt. Frühe und späte Fehler, Timerläufe sowie einen manuellen Rückweg unter demselben Vertrag prüfen. Keine Tests gegen Produktion ausführen.
 
   **Abnahme:** HTTPS/Health den erwarteten Quellstand zeigen, Web-Direktlinks und anonyme Schutzgrenzen geprüft sind, öffentlich ausgelieferte APK und Manifest aus tatsächlicher Datei zu Größe/Hash/Version passen und ein migrationsbewusster Rückweg dokumentiert ist.
