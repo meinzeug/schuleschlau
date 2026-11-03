@@ -75,8 +75,7 @@ bleibt lesbar und kann durch eine kleinere Seitenauswahl besprochen werden. Kein
 Pro Aufgabe werden getrennt angezeigt:
 
 - die wörtliche Originalaufgabe,
-- die alte Antwort des Kindes,
-- sichtbare Rückmeldungen/Punkte der Lehrkraft,
+- erkannte Ausschnitte für alte Antwort und mögliche Rückmeldung oder Punkte,
 - ein ausdrücklich als solcher ausgewiesener KI-Vorschlag,
 - der eigene neue Verbesserungsversuch und bewusst angeforderte Hilfe.
 
@@ -85,9 +84,17 @@ behandelt unabhängig lesbare Teilzeilen einer Sammelaufgabe einzeln. Unsichere
 Nachbarzeilen dürfen klare Zeilen nicht pauschal ausschließen. Dabei bleibt die
 Aufgabenzeile wörtlich erhalten; eine gemeinsame Überschrift ist Kontext oder
 zusätzlicher Quellenbeleg. Sichtbare alte Antworten werden nicht korrigiert.
-Lehrerrückmeldungen brauchen eine ausdrücklich belegte Zuordnung zur Lehrkraft;
-Farbe oder Handschrift allein genügen nicht. Fehlende Zuordnungen bleiben offen.
-Die KI
+Das wörtliche Vorkommen belegt keine Urheberschaft. Eltern mit Schreibrecht
+können für einen erkannten Ausschnitt nach Vergleich mit der Originalseite
+„Antwort des Kindes“, „Hinweis der Lehrkraft“ oder „Noch unklar“ auswählen.
+Diese Einschätzung wird als Elternzuordnung gekennzeichnet, nicht als
+unabhängiger Beweis. Sie ist an Arbeit, Aufgabe, zitierten Ausschnitt und
+bestätigte Seitenrevision gebunden. Bei einem Quellenwechsel veraltet sie;
+gespeicherte Aufgaben und Antworten werden nicht umgeschrieben. Die KI erhält
+für die Aufgabe nur aktuell gültige Elternzuordnungen und ansonsten neutrale
+Ausschnitte. Lesen und Zuordnen erzeugen keine Lernnachweise oder KI-Aufträge.
+Ältere Clients zeigen die bisherigen, ausdrücklich als ungeprüft markierten
+Ausschnitte; sie können die neue Zuordnung nicht bearbeiten. Die KI
 ändert keine Lehrernote und erzeugt aus Papierantworten oder ihren eigenen
 Urteilen keine Attempts, Lernerfolge oder Kompetenznachweise. Neue Übungen
 verwenden bestätigte **Heftgrundlagen** desselben Fachs und den ausgewählten

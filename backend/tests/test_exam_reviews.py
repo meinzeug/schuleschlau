@@ -221,6 +221,139 @@ def test_review_tutor_receives_unattributed_excerpts_without_changing_saved_repo
     no_learning()
 
 
+def role_request(paper, view, *, excerpt="Nenner bleibt 4.", role="teacher", role_revision=0):
+    return {
+        "revision": view["revision"], "context_revision": view["context_revision"],
+        "analysis_revision": view["analysis_revision"], "role_revision": role_revision,
+        "material_id": paper["material_id"], "source_revision": view["source_revisions"][0]["revision"],
+        "excerpt": excerpt, "role": role,
+    }
+
+
+def test_parent_role_confirmation_is_revision_bound_idempotent_and_used_by_tutor(api, paper, transport):
+    ready(paper, transport)
+    view = api.get(paper["path"]).json()
+    task = view["tasks"][0]
+    path = paper["path"] + f"/tasks/{task['id']}/role"
+    body = role_request(paper, view)
+    assert paper["client"].put(path, json=body).status_code == 403
+    bad = api.put(path, json={**body, "excerpt": "nicht auf der Seite"})
+    assert bad.status_code == 409
+    bad = api.put(path, json={**body, "source_revision": 999})
+    assert bad.status_code == 409
+    result = api.put(path, json=body)
+    assert result.status_code == 200, result.text
+    assert result.json()["role_revision"] == 1
+    assert api.put(path, json=body).json()["role_revision"] == 1
+    assert api.put(path, json={**body, "role": "student"}).status_code == 409
+    after = paper["client"].get(paper["path"]).json()
+    assert after["tasks"][0]["original_answer"] == task["original_answer"]
+    assert after["tasks"][0]["teacher_feedback"] == task["teacher_feedback"]
+    assert after["tasks"][0]["role_confirmations"][0]["role"] == "teacher"
+    response = paper["client"].post(
+        path.replace("/role", "/help"), json={**context(paper), "action": "hint", "draft": ""},
+        headers={"Idempotency-Key": uuid.uuid4().hex},
+    )
+    assert response.status_code == 202, response.text
+    assert api.put(path, json={**body, "role_revision": 1, "role": "uncertain"}).status_code == 409
+    finish()
+    sent = transport["calls"][-1]["exam_context"]["task"]
+    assert sent["parent_confirmed_excerpts"] == [{"excerpt": body["excerpt"], "role": "teacher", "material_id": paper["material_id"]}]
+    assert "1/8" in sent["unverified_excerpts"]
+    changed = api.put(path, json={**body, "role_revision": 1, "role": "uncertain"})
+    assert changed.status_code == 200, changed.text
+    assert changed.json()["role_revision"] == 2
+    assert paper["client"].get(paper["path"]).json()["tasks"][0]["role_confirmations"][0]["role"] == "uncertain"
+    no_learning()
+    with DB.begin() as db:
+        page = db.get(Material, paper["material_id"])
+        page.revision += 1
+    assert paper["client"].get(paper["path"]).json()["status"] == "stale"
+    assert api.put(path, json={**body, "role_revision": 2}).status_code == 409
+
+
+def test_role_confirmation_rechecks_parent_role_after_lock(api, paper, transport, monkeypatch):
+    ready(paper, transport)
+    view = api.get(paper["path"]).json()
+    original = exams.lock_child
+
+    def change_role(db, p, child_id, *, write=True):
+        db.execute(update(User).where(User.id == p.user.id).values(role="child"))
+        db.flush()
+        return original(db, p, child_id, write=write)
+
+    monkeypatch.setattr(exams, "lock_child", change_role)
+    result = api.put(paper["path"] + f"/tasks/{paper['task_id']}/role", json=role_request(paper, view))
+    assert result.status_code in (403, 404), result.text
+    no_learning()
+
+
+def test_read_only_parent_cannot_confirm_role(api, paper, transport):
+    ready(paper, transport)
+    view = api.get(paper["path"]).json()
+    body = role_request(paper, view)
+    with DB.begin() as db:
+        membership = db.scalar(select(Membership).where(
+            Membership.family_id == paper["parent"]["families"][0]["id"]
+        ))
+        membership.permission = "view"
+    assert api.get(paper["path"]).json()["can_confirm_roles"] is False
+    result = api.put(paper["path"] + f"/tasks/{paper['task_id']}/role", json=body)
+    assert result.status_code == 403, result.text
+    no_learning()
+
+
+def test_parallel_parent_role_confirmations_have_one_winner(api, paper, transport):
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Barrier
+
+    with DB() as db:
+        if db.bind.dialect.name != "postgresql":
+            pytest.skip("Requires PostgreSQL row locks")
+    ready(paper, transport)
+    view = api.get(paper["path"]).json()
+    body = role_request(paper, view)
+    path = paper["path"] + f"/tasks/{paper['task_id']}/role"
+    headers = {**HEADERS, "Authorization": api.headers["Authorization"]}
+    gate = Barrier(2)
+
+    def send(role):
+        with TestClient(app, headers=headers) as client:
+            gate.wait(timeout=5)
+            return client.put(path, json={**body, "role": role}).status_code
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        assert sorted(pool.map(send, ("student", "teacher"))) == [200, 409]
+    view = api.get(paper["path"]).json()
+    assert view["role_revision"] == 1
+    assert len(view["tasks"][0]["role_confirmations"]) == 1
+    no_learning()
+
+
+def test_unrelated_or_stale_role_rows_are_never_projected_as_confirmed(api, paper, transport):
+    ready(paper, transport)
+    with DB.begin() as db:
+        row = db.scalar(select(ExamReview).where(ExamReview.exam_id == paper["exam_id"]))
+        report = copy.deepcopy(row.report)
+        report["role_confirmations"] = [
+            {"task_id": paper["task_id"], "material_id": paper["material_id"], "source_revision": 999,
+             "excerpt": "Nenner bleibt 4.", "role": "teacher", "confirmed_by": "example"},
+            {"task_id": paper["task_id"], "material_id": paper["book_id"], "source_revision": 1,
+             "excerpt": "Nenner bleibt 4.", "role": "teacher", "confirmed_by": "example"},
+        ]
+        row.report = report
+    assert api.get(paper["path"]).json()["tasks"][0]["role_confirmations"] == []
+    response = paper["client"].post(
+        paper["path"] + f"/tasks/{paper['task_id']}/help",
+        json={**context(paper), "action": "hint", "draft": ""},
+        headers={"Idempotency-Key": uuid.uuid4().hex},
+    )
+    assert response.status_code == 202
+    finish()
+    assert transport["calls"][-1]["exam_context"]["task"]["parent_confirmed_excerpts"] == []
+    no_learning()
+
+
 def test_false_student_equation_is_reported_without_rewriting_the_saved_analysis(api, paper, transport):
     question = "Kürze 6/8 vollständig."
     answer = r"\(\frac{6}{8}=\frac{2}{4}\) weiter kürzen"

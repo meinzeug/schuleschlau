@@ -382,6 +382,166 @@ class _ExamReviewPanelState extends State<ExamReviewPanel> {
     'revision': data!['revision'],
     'context_revision': data!['context_revision'],
   };
+
+  Future<void> confirmRole(String excerpt) async {
+    final current = task;
+    if (!editable || data?['can_confirm_roles'] != true || current == null) {
+      return;
+    }
+    final cited = examObjects(current['sources'])
+        .map((s) => s['material_id'])
+        .toSet();
+    final sources = examObjects(data?['source_revisions'])
+        .where((s) => cited.contains(s['id']) && s['revision'] is int)
+        .toList();
+    if (sources.isEmpty) return;
+    final taskId = current['id'], original = jsonEncode(data);
+    String? sourceId, role;
+    final choice = await scope.dialog<Map<String, String>>(
+      context,
+      (ctx) => StatefulBuilder(
+        builder: (ctx, update) => AlertDialog(
+          scrollable: true,
+          title: const Text('Ausschnitt zuordnen'),
+          content: SizedBox(
+            width: 480,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text(
+                  'Vergleiche den Text mit der Originalseite. Wer hat ihn geschrieben?',
+                ),
+                const SizedBox(height: 12),
+                SelectableText(excerpt),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  initialValue: sourceId,
+                  decoration: const InputDecoration(labelText: 'Originalseite'),
+                  items: [
+                    for (final source in sources)
+                      DropdownMenuItem(
+                        value: '${source['id']}',
+                        child: Text('${source['label']}'),
+                      ),
+                  ],
+                  onChanged: (value) => update(() => sourceId = value),
+                ),
+                DropdownButtonFormField<String>(
+                  initialValue: role,
+                  decoration: const InputDecoration(labelText: 'Zuordnung'),
+                  items: const [
+                    DropdownMenuItem(
+                      value: 'student',
+                      child: Text('Antwort des Kindes'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'teacher',
+                      child: Text('Hinweis der Lehrkraft'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'uncertain',
+                      child: Text('Noch unklar'),
+                    ),
+                  ],
+                  onChanged: (value) => update(() => role = value),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Abbrechen'),
+            ),
+            FilledButton(
+              onPressed: sourceId == null || role == null
+                  ? null
+                  : () {
+                      if (scope.active &&
+                          ModalRoute.of(ctx)?.isCurrent == true) {
+                        Navigator.pop(ctx, {
+                          'source': sourceId!,
+                          'role': role!,
+                        });
+                      }
+                    },
+              child: const Text('Zuordnung speichern'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (!mounted ||
+        !scope.current ||
+        choice == null ||
+        jsonEncode(data) != original ||
+        selectedId != taskId) {
+      return;
+    }
+    final source = sources.firstWhere((s) => s['id'] == choice['source']);
+    final stamp = scope.epoch;
+    final body = {
+      ...snapshot(),
+      'analysis_revision': data!['analysis_revision'],
+      'role_revision': data!['role_revision'],
+      'material_id': source['id'],
+      'source_revision': source['revision'],
+      'excerpt': excerpt,
+      'role': choice['role'],
+    };
+    setState(() {
+      busy = true;
+      error = null;
+    });
+    try {
+      await state.api.put('$path/tasks/$taskId/role', body);
+      if (scope.valid(stamp)) await load();
+    } catch (value) {
+      if (scope.valid(stamp)) setState(() => error = examError(value));
+    } finally {
+      if (mounted && scope.active) setState(() => busy = false);
+    }
+  }
+
+  String roleSource(Json item) {
+    final source = examObjects(data?['source_revisions'])
+        .where((s) => s['id'] == item['material_id'])
+        .firstOrNull;
+    return source == null ? '' : ' · ${source['label']}';
+  }
+
+  Widget roleExcerpt(String label, dynamic value) {
+    final excerpt = value is String ? value : '';
+    if (excerpt.isEmpty) return const SizedBox.shrink();
+    final confirmations = examObjects(task?['role_confirmations'])
+        .where((item) => item['excerpt'] == excerpt);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        written(label, excerpt),
+        for (final item in confirmations)
+          Text(
+            'Von Eltern zugeordnet: ${switch (item['role']) {
+              'student' => 'Antwort des Kindes',
+              'teacher' => 'Hinweis der Lehrkraft',
+              _ => 'noch unklar',
+            }}${roleSource(item)}',
+            style: TextStyle(color: context.palette.muted),
+          ),
+        if (data?['can_confirm_roles'] == true)
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: editable ? () => confirmRole(excerpt) : null,
+              icon: const Icon(Icons.fact_check_outlined),
+              label: const Text('Zuordnung prüfen'),
+            ),
+          ),
+      ],
+    );
+  }
+
   Future<bool> saveDraft() async {
     if (!scope.current ||
         !child ||
@@ -989,19 +1149,22 @@ class _ExamReviewPanelState extends State<ExamReviewPanel> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     written('Aufgabe aus deiner Arbeit', task!['question']),
-                    written(
+                    roleExcerpt(
                       'Erkannte Antwort · Zuordnung prüfen',
                       task!['original_answer'],
                     ),
                     for (final warning
                         in (task!['arithmetic_warnings'] as List? ?? []))
                       if (warning is Map) Notice('${warning['message']}'),
-                    written(
+                    roleExcerpt(
                       'Erkannter Hinweis · Zuordnung prüfen',
                       task!['teacher_feedback'],
                     ),
                     if ((task!['score_label'] ?? '').toString().isNotEmpty)
-                      Text('${task!['score_label']}'),
+                      roleExcerpt(
+                        'Erkannte Punkte · Zuordnung prüfen',
+                        task!['score_label'],
+                      ),
                     for (final uncertainty
                         in (task!['uncertainties'] as List? ?? []))
                       Notice('$uncertainty'),

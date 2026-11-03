@@ -227,6 +227,14 @@ class Fixture {
         'draft': {'text': body['text'], 'revision': 1, 'updated': 1},
       });
     }
+    if (request.method == 'PUT' && path.endsWith('/tasks/task/role')) {
+      final body = jsonDecode(request.body) as Map;
+      report['role_revision'] = 1;
+      report['tasks'][0]['role_confirmations'] = [
+        {'excerpt': body['excerpt'], 'role': body['role']},
+      ];
+      return reply({'role_revision': 1});
+    }
     if (request.method == 'POST' && path.endsWith('/tasks/task/help')) {
       return reply({
         'id': 'turn',
@@ -575,6 +583,35 @@ void main() {
       );
     },
   );
+  testWidgets('parent explicitly assigns an excerpt to a cited source', (
+    tester,
+  ) async {
+    final fixture = Fixture(role: 'parent');
+    fixture.report['can_confirm_roles'] = true;
+    fixture.report['role_revision'] = 0;
+    fixture.report['source_revisions'] = [
+      {'id': sourceId, 'revision': 3, 'label': 'Seite 1'},
+    ];
+    await fixture.mount(tester, selected: 'exam', tab: 'review');
+    await tap(tester, find.text('Zuordnung prüfen').first);
+    expect(find.text('Ein Viertel.'), findsNWidgets(2));
+    await tap(tester, find.text('Originalseite'));
+    await tap(tester, find.text('Seite 1').last);
+    await tap(tester, find.text('Zuordnung'));
+    await tap(tester, find.text('Antwort des Kindes').last);
+    await tap(tester, find.text('Zuordnung speichern'));
+    final request = fixture.writes.single;
+    final body = jsonDecode(request.body);
+    expect(request.url.path, '/api/exams/exam/review/tasks/task/role');
+    expect(body['excerpt'], 'Ein Viertel.');
+    expect(body['material_id'], sourceId);
+    expect(body['source_revision'], 3);
+    expect(body['role'], 'student');
+    expect(
+      find.text('Von Eltern zugeordnet: Antwort des Kindes'),
+      findsOneWidget,
+    );
+  });
   for (final savedText in ['', 'Ein eigener gespeicherter Versuch.']) {
     testWidgets(
       savedText.isEmpty

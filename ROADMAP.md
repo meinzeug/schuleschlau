@@ -678,6 +678,21 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
   können weiterhin eigene Rollenhinweise enthalten; eine Bestätigung durch
   Erwachsene und eine fachliche Modellabnahme sind dadurch nicht ersetzt.
 
+  **03.11.2026, weitere Umsetzung:** Eltern mit Bearbeitungsrecht können
+  einzelne wörtliche Ausschnitte einer zitierten bestätigten Originalseite
+  ausdrücklich als Kinderantwort, Lehrkrafthinweis oder unklar zuordnen.
+  Diese Elternangabe ist keine unabhängige Gewissheit. Quell- und
+  Analyseversionen sowie eine eigene konkurrierende Versionsnummer schützen
+  Änderungen; während eines laufenden Nacharbeitsauftrags ist keine Änderung
+  möglich. Alte Texte und Antworten bleiben erhalten. Nur gültige Zuordnungen
+  werden beim Tutor als Elternangaben mitgegeben; Quellenwechsel lassen sie
+  veralten. Neue Clients zeigen die Zuordnung, alte behalten die Markierung
+  „Zuordnung prüfen“. Die Nacharbeitssuite bestand mit 45 künstlichen Fällen
+  auf SQLite und 46 auf isoliertem PostgreSQL; der echte Zeilensperrentest wird
+  auf SQLite ausgelassen. 31 Flutterfälle und die statische Analyse bestanden.
+  Eine fachliche Modellabnahme ersetzt das nicht. Der Hauptpunkt bleibt offen,
+  bis seine vollständigen übrigen Abnahmekriterien belegt sind.
+
   **Abnahme:** Jede Runde wird einzeln bewusst vorbereitet, enthält höchstens fünf Aufgaben und vermeidet gespeicherte Wiederholungen; Zeitangaben bleiben Empfehlungen. Aufgabenauszüge belegen die Originalzeile, trennen alte Antwort, gesicherte Lehrkraft-Rückmeldung und KI-Vorschlag und behaupten weder Vollständigkeit noch Benotung. Alte Antworten erzeugen keine Attempts oder Kompetenznachweise.
 
 - [x] **P1 – Schul- und Klassenkontext als Produktentscheidung klären**

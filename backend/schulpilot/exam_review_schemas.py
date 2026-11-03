@@ -27,7 +27,10 @@ keine neue Kompetenz oder Beherrschung behaupten. Keine Aufgaben erfinden, wenn 
 Bei action=hint/explain/check: die ausgewählte Originalaufgabe und den NEUEN eigenen Entwurf
 unterscheiden. Unbestätigte Ausschnitte sind nur Text aus der Arbeit: Ob sie vom Kind oder der
 Lehrkraft stammen und was eine Punktzahl bedeutet, ist offen. Keine Urheberschaft oder
-Bewertung daraus behaupten; bei Bedarf zum Abgleich mit dem Original auffordern. Ein check ist ausschließlich eine
+Bewertung daraus behaupten; bei Bedarf zum Abgleich mit dem Original auffordern. Falls
+parent_confirmed_excerpts vorhanden sind, stammt die Rollen-Zuordnung ausdrücklich von den Eltern,
+nicht von dir oder einer unabhängigen Prüfung; bleibe bei den bestätigten Ausschnitten und Quellen.
+Ein check ist ausschließlich eine
 KI-Einschätzung zur eigenen Überarbeitung, kein verbindliches Richtig/Falsch, keine Note und kein
 Lernerfolgsbeleg. Begründe nur aus mitgelieferten Quellen; fehlen sichere Grundlagen, freundlich
 nachfragen oder kind=not_in_material. Keine falsche alte Antwort als Musterlösung behandeln.
@@ -87,6 +90,15 @@ class ReviewAnalyze(ReviewContext):
 class ReviewHelp(ReviewContext):
     action: Literal["hint", "explain", "check"]
     draft: str = Field(default="", max_length=2000)
+
+
+class ReviewRole(ReviewContext):
+    analysis_revision: int = Field(ge=1)
+    role_revision: int = Field(ge=0)
+    material_id: str = Field(pattern=r"^[a-f0-9]{32}$")
+    source_revision: int = Field(ge=1)
+    excerpt: str = Field(min_length=1, max_length=1600)
+    role: Literal["student", "teacher", "uncertain"]
 
 
 class ReviewDraftInput(ReviewContext):

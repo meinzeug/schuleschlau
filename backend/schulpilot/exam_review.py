@@ -28,6 +28,7 @@ from .exam_review_schemas import (
     ReviewDraftInput,
     ReviewHelp,
     ReviewPractice,
+    ReviewRole,
 )
 from .model_routing import job_config
 from .providers import ProviderError, Result, external_allowed, request_provider, reserve, settle
@@ -219,6 +220,7 @@ def projection(db, p, exam, child):
     tasks = report.get("tasks", [])
     for task in tasks:
         task["arithmetic_warnings"] = arithmetic_warnings(task.get("original_answer"))
+        task["role_confirmations"] = valid_role_confirmations(task, report, pages)
     batches = (row.report or {}).get("analysis_batches", []) if row and row.context_revision == signature else []
     # The first model summary remains an immutable part of the saved report.
     # Describe the current aggregate from persisted facts instead of presenting
@@ -290,6 +292,8 @@ def projection(db, p, exam, child):
         "source_revisions": refs,
         "analysis_id": row.id if row else None,
         "analysis_revision": row.revision if row else 0,
+        "role_revision": report.get("role_revision", 0),
+        "can_confirm_roles": p.user.role == "parent" and manage and status == "ready",
         "summary": summary,
         "report_summary": report.get("summary", ""),
         "task_count": len(tasks),
@@ -397,6 +401,62 @@ def task_for(db, p, exam_id, task_id, data):
     if any(not page.confirmed or not page.content.strip() for page in pages if page.id in cited_ids):
         raise HTTPException(409, "Bitte die aktuellen Originalseiten dieser Aufgabe bestätigen.")
     return exam, child, signature, refs, pages, review, task
+
+
+@router.put("/exams/{exam_id}/review/tasks/{task_id}/role")
+def confirm_role(exam_id: str, task_id: str, data: ReviewRole, p=Depends(authenticated), db=Depends(get_db)):
+    """Parent-confirmed authorship of a literal, revision-bound excerpt."""
+    if p.user.role != "parent":
+        raise HTTPException(403, "Die Zuordnung können deine Eltern prüfen.")
+    # guard_context acquires the child lock and rechecks session and membership.
+    exam, child, signature, _, pages = guard_context(db, p, exam_id, data)
+    actor = db.get(User, p.user.id, populate_existing=True)
+    if not actor or actor.role != "parent":
+        raise HTTPException(403, "Die Zuordnung können deine Eltern prüfen.")
+    review = db.scalar(select(ExamReview).where(ExamReview.exam_id == exam.id))
+    if not review or review.status != "ready" or review.context_revision != signature or review.revision != data.analysis_revision:
+        raise HTTPException(409, "Die Aufgabenbesprechung wurde geändert. Bitte neu laden.")
+    task = next((item for item in (review.report or {}).get("tasks", []) if item.get("id") == task_id), None)
+    if not task:
+        raise HTTPException(404, "Aufgabe nicht gefunden.")
+    excerpt = normalized(data.excerpt)
+    literal = next((task.get(field, "") for field in ("original_answer", "teacher_feedback", "score_label")
+                    if task.get(field) and normalized(task[field]) == excerpt), None)
+    source = next((page for page in pages if page.id == data.material_id), None)
+    cited = {item.get("material_id") for item in task.get("sources", [])}
+    if (not excerpt or literal is None or not source or source.id not in cited or not source.confirmed
+            or source.revision != data.source_revision or excerpt not in normalized(source.content or "")):
+        raise HTTPException(409, "Der Ausschnitt oder seine bestätigte Originalseite wurde geändert. Bitte neu laden.")
+    report = copy.deepcopy(review.report)
+    revision = report.get("role_revision", 0)
+    if type(revision) is not int or revision < 0:
+        raise HTTPException(409, "Die Zuordnungen können gerade nicht sicher geprüft werden.")
+    confirmations = report.setdefault("role_confirmations", [])
+    if not isinstance(confirmations, list) or not all(isinstance(item, dict) for item in confirmations):
+        raise HTTPException(409, "Die Zuordnungen können gerade nicht sicher geprüft werden.")
+    existing = next((item for item in confirmations if item.get("task_id") == task_id
+                     and item.get("material_id") == source.id and normalized(item.get("excerpt", "")) == excerpt), None)
+    # A repeated identical PUT is harmless, including after a lost response.
+    if existing and existing.get("role") == data.role and existing.get("source_revision") == source.revision:
+        return {"role_revision": revision, "confirmation": existing}
+    if revision != data.role_revision:
+        raise HTTPException(409, "Die Zuordnungen wurden inzwischen geändert. Bitte neu laden.")
+    active = db.scalar(select(Job.id).where(Job.child_id == child.id, Job.kind == "exam_review",
+        Job.status.in_(["queued", "running"]), Job.payload["exam_id"].as_string() == exam.id).limit(1))
+    if active:
+        raise HTTPException(409, "Eine Besprechung läuft noch. Bitte danach die Zuordnung bestätigen.")
+    if existing:
+        confirmations.remove(existing)
+    if len(confirmations) >= 288:
+        raise HTTPException(409, "Für diese Arbeit sind keine weiteren Zuordnungen möglich.")
+    confirmation = {"task_id": task_id, "material_id": source.id, "source_revision": source.revision,
+                    "excerpt": literal, "role": data.role, "confirmed_by": p.user.id, "confirmed_at": int(now())}
+    confirmations.append(confirmation)
+    report["role_revision"] = revision + 1
+    review.report, review.updated = report, int(now())
+    audit(db, p.user.id, "exam.review_role_confirmed", exam.id)
+    db.commit()
+    return {"role_revision": revision + 1, "confirmation": confirmation}
 
 
 def job_request(db, p, exam, child, signature, refs, action, key, *, review, turn=None, request=None, batch=None):
@@ -665,6 +725,31 @@ def normalized(value):
     return " ".join(unicodedata.normalize("NFC", value).split())
 
 
+def valid_role_confirmations(task, report, pages):
+    """Never elevate a model guess or a stale, unrelated source into a parent assertion."""
+    rows = report.get("role_confirmations", [])
+    if not isinstance(rows, list):
+        return []
+    sources = {page.id: page for page in pages}
+    cited = {row.get("material_id") for row in task.get("sources", []) if isinstance(row, dict)}
+    candidates = {normalized(task[field]) for field in ("original_answer", "teacher_feedback", "score_label")
+                  if isinstance(task.get(field), str) and task[field]}
+    result = []
+    for row in rows:
+        if not isinstance(row, dict) or row.get("task_id") != task.get("id"):
+            continue
+        page = sources.get(row.get("material_id"))
+        excerpt = row.get("excerpt")
+        if (not page or page.id not in cited or not page.confirmed or page.revision != row.get("source_revision")
+                or not isinstance(excerpt, str) or not normalized(excerpt) or normalized(excerpt) not in candidates
+                or normalized(excerpt) not in normalized(page.content or "")
+                or row.get("role") not in ("student", "teacher", "uncertain")
+                or not isinstance(row.get("confirmed_by"), str)):
+            continue
+        result.append(row)
+    return result
+
+
 def checked_report(data, sources, refs):
     try:
         report = ExamReviewOutput.model_validate(data).model_dump()
@@ -759,7 +844,7 @@ def authority(db, job):
             ),
             **(
                 {
-                    "task": tutor_task(next((task for task in review.report.get("tasks", []) if task["id"] == turn.task_id), None)),
+                    "task": tutor_task(task, valid_role_confirmations(task, review.report, pages)),
                     "draft": turn.draft,
                 }
                 if turn
@@ -772,7 +857,7 @@ def authority(db, job):
     return review, turn, payload, refs
 
 
-def tutor_task(task):
+def tutor_task(task, confirmations=()):
     """Do not transport model-guessed authorship as an established fact."""
     if task is None:
         return None
@@ -784,7 +869,11 @@ def tutor_task(task):
         "id": task["id"],
         "question": task["question"],
         "unverified_excerpts": excerpts,
-        "uncertainties": ["Die Urheberschaft und Bedeutung der Auszüge sind nicht bestätigt."],
+        "parent_confirmed_excerpts": [
+            {"excerpt": row["excerpt"], "role": row["role"], "material_id": row["material_id"]}
+            for row in confirmations if row.get("task_id") == task["id"] and row.get("role") in ("student", "teacher")
+        ],
+        "uncertainties": ["Nicht bestätigte Auszüge haben keine gesicherte Urheberschaft oder Bedeutung."],
         "sources": task.get("sources", []),
     }
 
