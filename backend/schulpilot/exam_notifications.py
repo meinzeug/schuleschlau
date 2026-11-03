@@ -3,7 +3,7 @@
 import re
 
 from fastapi import HTTPException
-from sqlalchemy import select
+from sqlalchemy import select, tuple_
 
 from .db import Job, LearningUnit, Session, User
 from .exam_models import Exam, ExamRound, ExamSession
@@ -61,19 +61,31 @@ def valid_review(db, exam, child, review, current):
         and refs == review.source_revisions == job.payload.get("material_revisions"))
 
 
-def events_for_child(db, child, current, *, retention=30 * 86400):
+def events_for_child(db, child, current, *, retention=30 * 86400, event_ids=None):
     cutoff, result = current - retention, []
+    ready_pairs = set()
+    if event_ids is not None:
+        for key in event_ids:
+            parts = key.split(":")
+            if len(parts) == 3 and parts[0] == "exam_ready" and all(parts[1:]):
+                ready_pairs.add((parts[1], parts[2]))
     for row in due_reminders(db, child, current):
-        result.append({"id": f"exam_reminder:{row['session_id']}:{row['revision']}", "child_id": child.id,
+        key = f"exam_reminder:{row['session_id']}:{row['revision']}"
+        if event_ids is not None and key not in event_ids:
+            continue
+        result.append({"id": key, "child_id": child.id,
             "created": row["created"], "title": "Dein geplanter Lerntag steht an", "route": row["route"],
             "kind": "exam_reminder"})
-    prepared = db.execute(select(Exam, ExamSession, ExamRound, LearningUnit, Job)
+    prepared_query = (select(Exam, ExamSession, ExamRound, LearningUnit, Job)
         .join(ExamSession, ExamSession.exam_id == Exam.id)
         .join(ExamRound, ExamRound.session_id == ExamSession.id)
         .join(LearningUnit, LearningUnit.id == ExamRound.unit_id).join(Job, Job.id == ExamRound.job_id)
         .where(Exam.child_id == child.id, Exam.archived.is_(False), ExamSession.exam_revision == Exam.plan_revision,
             LearningUnit.child_id == child.id, LearningUnit.status != "completed", Job.status == "completed",
-            Job.finished > cutoff, Job.finished <= current).order_by(Job.finished.desc(), Job.id).limit(100))
+            Job.finished > cutoff, Job.finished <= current))
+    if event_ids is not None:
+        prepared_query = prepared_query.where(tuple_(ExamRound.id, Job.id).in_(ready_pairs))
+    prepared = db.execute(prepared_query.order_by(Job.finished.desc(), Job.id).limit(100))
     for exam, session, row, unit, job in prepared:
         if not live_request(db, child, job.payload.get("exam_actor_id"), job.payload.get("exam_actor_session_id"),
                 job.payload.get("exam_family_id"), current):
@@ -85,23 +97,27 @@ def events_for_child(db, child, current, *, retention=30 * 86400):
         result.append({"id": f"exam_ready:{row.id}:{job.id}", "child_id": child.id, "created": job.finished,
             "title": "Deine Lernrunde ist bereit", "route": f"/unit/{unit.id}",
             "kind": "exam_ready"})
-    reviewed = db.execute(select(Exam, ExamReview, Job).join(ExamReview, ExamReview.exam_id == Exam.id)
+    reviewed_query = (select(Exam, ExamReview, Job).join(ExamReview, ExamReview.exam_id == Exam.id)
         .join(Job, Job.id == ExamReview.job_id).where(Exam.child_id == child.id, Exam.archived.is_(False),
-            ExamReview.status == "ready", Job.status == "completed", Job.finished > cutoff, Job.finished <= current)
-        .order_by(Job.finished.desc(), Job.id).limit(100))
+            ExamReview.status == "ready", Job.status == "completed", Job.finished > cutoff, Job.finished <= current))
+    if event_ids is not None:
+        reviewed_query = reviewed_query.where(tuple_(ExamReview.id, Job.id).in_(ready_pairs))
+    reviewed = db.execute(reviewed_query.order_by(Job.finished.desc(), Job.id).limit(100))
     for exam, review, job in reviewed:
         if valid_review(db, exam, child, review, current):
             result.append({"id": f"exam_ready:{review.id}:{job.id}", "child_id": child.id,
                 "created": job.finished, "title": "Deine Arbeitsbesprechung ist bereit",
                 "route": f"/exams/{child.id}?exam={exam.id}&tab=review", "kind": "exam_ready"})
-    practices = db.execute(select(Exam, ExamReview, ExamReviewPractice, Job, LearningUnit)
+    practices_query = (select(Exam, ExamReview, ExamReviewPractice, Job, LearningUnit)
         .join(ExamReview, ExamReview.exam_id == Exam.id)
         .join(ExamReviewPractice, ExamReviewPractice.review_id == ExamReview.id)
         .join(Job, Job.id == ExamReviewPractice.job_id).join(LearningUnit, LearningUnit.id == ExamReviewPractice.unit_id)
         .where(Exam.child_id == child.id, Exam.archived.is_(False), ExamReview.status == "ready",
             Job.status == "completed", Job.finished > cutoff, Job.finished <= current,
-            LearningUnit.child_id == child.id, LearningUnit.status != "completed")
-        .order_by(Job.finished.desc(), Job.id).limit(100))
+            LearningUnit.child_id == child.id, LearningUnit.status != "completed"))
+    if event_ids is not None:
+        practices_query = practices_query.where(tuple_(ExamReviewPractice.id, Job.id).in_(ready_pairs))
+    practices = db.execute(practices_query.order_by(Job.finished.desc(), Job.id).limit(100))
     for exam, review, link, job, unit in practices:
         context = job.payload.get("exam_review_practice") or {}
         task = next((task for task in (review.report or {}).get("tasks", []) if task.get("id") == link.task_id), None)

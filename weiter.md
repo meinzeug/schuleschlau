@@ -1,6 +1,6 @@
 # Übergabe an die nächste Coding-KI
 
-Stand: 2. November 2026. Diese Datei ist eine Arbeitsübergabe, kein Ersatz für die aktuellen Nutzeraufträge oder `AGENTS.md`. Prüfe alle Zustände erneut; insbesondere Server, Git, laufende Jobs und Roadmap können sich inzwischen geändert haben. Keine Zugangsdaten, Tokens, privaten Schülerdaten oder Bildinhalte in diese Datei, Logs oder Git schreiben.
+Stand: 3. November 2026. Diese Datei ist eine Arbeitsübergabe, kein Ersatz für die aktuellen Nutzeraufträge oder `AGENTS.md`. Prüfe alle Zustände erneut; insbesondere Server, Git, laufende Jobs und Roadmap können sich inzwischen geändert haben. Keine Zugangsdaten, Tokens, privaten Schülerdaten oder Bildinhalte in diese Datei, Logs oder Git schreiben.
 
 ## Auftrag und Arbeitsweise
 
@@ -14,7 +14,7 @@ Der Nutzer möchte die offene `ROADMAP.md` vollständig und nachweisbar abarbeit
 
 ## Git und Arbeitsverzeichnis
 
-Das Hauptverzeichnis ist `/home/dennis/schulpilot`, Branch `main`, Remote `origin`. Zuletzt wurde Release `20261102T191312Z-ebdcb3b` (Version `1.38.62+217`) produktiv geprüft. Das Hauptverzeichnis wurde wegen der unten genannten lokalen Änderungen nicht auf den neuen Versionscommit aktualisiert; den tatsächlichen Stand von `main` und Remote zuerst prüfen. Im Hauptverzeichnis liegen zwei bereits vorhandene, nicht zu dieser Arbeit gehörende Änderungen:
+Das Hauptverzeichnis ist `/home/dennis/schulpilot`, Branch `main`, Remote `origin`. Der vor dieser Arbeit zuletzt geprüfte Release war `20261102T194135Z-dcd65c8` (Version `1.38.63+218`); den tatsächlichen produktiven Stand nach der Übergabe erneut prüfen. Das Hauptverzeichnis wurde wegen der unten genannten lokalen Änderungen nicht auf den neuen Versionscommit aktualisiert. Im Hauptverzeichnis liegen zwei bereits vorhandene, nicht zu dieser Arbeit gehörende Änderungen:
 
 - `app/pubspec.yaml`, SHA-256 bei Übergabe: `0f1581c5f623adac6a49c7837e7c080fb4c98b82065587db7124c7c3772a0d30`
 - `backend/schulpilot/__init__.py`, SHA-256 bei Übergabe: `313b5053897d6953cf386f4157d66d3527e6e161ba497053f9927762482e45e0`
@@ -34,9 +34,12 @@ aus dem Git-Abschnitt weiterhin aussparen und den Releasezustand prüfen.
 Eine weitere Korrektur erlaubt es, angezeigte Nachrichten auch nach Verdrängung
 aus den neuesten 50 Ereignissen zu quittieren; aktuelle Rechte, Fristen und
 Quellen werden erneut geprüft. Familienanrufe, Eltern-Tageschecks, Wortimporte
-und Sprachprojekte werden jetzt ebenfalls gezielt geprüft. Für Lernrunden- und
-Prüfungsmeldungen sowie das echte serverseitige Nachladen bleibt die Arbeit
-offen. Die Tests verwenden künstliche Daten.
+und Sprachprojekte werden jetzt ebenfalls gezielt geprüft. Dies gilt nun auch
+für Lernrunden- und Prüfungsmeldungen. Überholte Wortimporte und nicht mehr
+berechtigte Tageschecks oder Anrufe verdrängen keine gültigen Ereignisse mehr.
+Sechs neue künstliche Fälle bestanden auf SQLite und PostgreSQL; sie sind für
+PostgreSQL zusätzlich in der CI vorgesehen. Das echte serverseitige Nachladen
+über 50 Meldungen hinaus bleibt offen.
 
 Die Kopfzeile wurde für schmale Unterseiten und vergrößerte Schrift angepasst,
 damit das Logo nicht stark schrumpft. Außerdem wurde die doppelte

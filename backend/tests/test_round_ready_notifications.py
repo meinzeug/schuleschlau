@@ -99,6 +99,22 @@ def test_inbox_is_created_once_after_real_saved_completion_without_push_opt_in(a
         assert "Sitzung" not in message.body
 
 
+def test_displaced_round_receipt_rechecks_source_and_session(api, case):
+    with DB.begin() as db:
+        db.get(Job, case["job"]).finished = int(now()) - 60
+    assert remember(case)
+    item = next(x for x in api.get("/api/notifications/inbox").json()["items"] if x["kind"] == "round_ready")
+    with DB.begin() as db:
+        for _ in range(55):
+            db.add(Message(child_id=case["child"], kind="help", body="Synthetic", created=int(now())))
+    assert item["id"] not in {x["id"] for x in api.get("/api/notifications/inbox").json()["items"]}
+    assert api.post("/api/notifications/inbox/read", json={"ids": [item["id"]]}).status_code == 200
+    assert api.post("/api/notifications/inbox/read", json={"ids": [item["id"]]}).status_code == 200
+    with DB.begin() as db:
+        db.get(Material, case["material"]).revision += 1
+    assert api.post("/api/notifications/inbox/read", json={"ids": [item["id"]]}).status_code == 404
+
+
 @pytest.mark.parametrize(
     "change",
     [

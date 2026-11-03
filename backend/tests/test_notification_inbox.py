@@ -281,6 +281,71 @@ def test_displaced_word_notice_remains_bound_to_the_current_child(api, household
     assert api.post("/api/notifications/inbox/read", json={"ids": [keys[1]]}).status_code == 404
 
 
+def test_confirmed_word_imports_do_not_hide_unreviewed_import(api, household):
+    owner, child = household
+    current = int(now())
+    with DB.begin() as db:
+        for index in range(56):
+            job = Job(id=uid(), child_id=child["id"], kind="vocabulary_import", status="completed",
+                      payload={}, result={}, finished=current - (60 if index == 0 else 0), idempotency=uid())
+            db.add(job)
+            db.flush()
+            word = VocabularyImport(id=uid(), child_id=child["id"], user_id=owner["id"], request_key=uid(),
+                request_digest="x" * 64, target_locale="en-GB", title="Synthetic",
+                status="review" if index == 0 else "confirmed", job_id=job.id)
+            db.add(word)
+            if index == 0:
+                key = "words_ready:" + word.id
+    assert key in {x["id"] for x in api.get("/api/notifications/inbox").json()["items"]}
+    assert api.post("/api/notifications/inbox/read", json={"ids": [key]}).status_code == 200
+
+
+def test_foreign_view_only_calls_do_not_hide_eligible_call(api, household, mailbox):
+    owner, child = household
+    with TestClient(app, headers=HEADERS) as other_api:
+        other = register(other_api, mailbox, "other-call-family@example.org")
+        foreign_child = create_child(other_api, other, "other-call-child")
+    current = int(now())
+    with DB.begin() as db:
+        db.add(Membership(user_id=owner["id"], family_id=other["families"][0]["id"], permission="view"))
+        session = db.scalar(select(Session).where(Session.user_id == owner["id"]))
+        for index in range(56):
+            call = FamilyCall(id=uid(), family_id=owner["families"][0]["id"] if index == 0 else other["families"][0]["id"],
+                child_id=child["id"] if index == 0 else foreign_child["id"], caller_session_id=session.id,
+                idempotency=uid(), instance=uid(), context_kind="general", status="ended",
+                created=current - (60 if index == 0 else 0), ring_expires=current, expires=current, caller_seen=current)
+            db.add(call)
+            if index == 0:
+                key = "family_call:" + call.id
+    items = api.get("/api/notifications/inbox").json()["items"]
+    assert [x["id"] for x in items if x["kind"] == "family_call"] == [key]
+    assert api.post("/api/notifications/inbox/read", json={"ids": [key]}).status_code == 200
+
+
+def test_revoked_child_goal_events_do_not_hide_current_events(api, household, mailbox):
+    from datetime import date, timedelta
+
+    from schulpilot.parent_reminder_models import ParentGoalReminderEvent
+
+    owner, child = household
+    with TestClient(app, headers=HEADERS) as other_api:
+        other = register(other_api, mailbox, "other-goal-family@example.org")
+        foreign_child = create_child(other_api, other, "other-goal-child")
+    current = int(now())
+    with DB.begin() as db:
+        for index in range(56):
+            event = ParentGoalReminderEvent(id=uid(), user_id=owner["id"],
+                child_id=child["id"] if index == 0 else foreign_child["id"],
+                rule_revision=1, date=(date(2026, 1, 1) + timedelta(days=index)).isoformat(), scheduled=current - 60,
+                created=current - (60 if index == 0 else 0), daily_remaining_seconds=60, exam_sessions=[])
+            db.add(event)
+            if index == 0:
+                key = "parent_goal:" + event.id
+    items = api.get("/api/notifications/inbox").json()["items"]
+    assert [x["id"] for x in items if x["kind"] == "parent_goal"] == [key]
+    assert api.post("/api/notifications/inbox/read", json={"ids": [key]}).status_code == 200
+
+
 def test_childs_own_messages_do_not_hide_parent_reply(api, household):
     owner, child = household
     current = int(now())

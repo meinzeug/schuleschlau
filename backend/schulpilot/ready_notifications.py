@@ -135,8 +135,19 @@ def remember(db, job):
     return True
 
 
-def events_for_child(db, child, current, *, retention=86400):
+def events_for_child(db, child, current, *, retention=86400, message_ids=None):
     result = []
+    # A displayed event can leave the recent window before it is acknowledged.
+    # Its saved message supplies bounded candidate timestamps, not authority:
+    # the job, receipt, session, source and unit are all revalidated below.
+    if message_ids is not None:
+        messages = list(db.scalars(select(Message).where(
+            Message.id.in_(message_ids), Message.child_id == child.id,
+            Message.kind == KIND, Message.sender_id.is_(None),
+            Message.created > current - retention, Message.created <= current)))
+        if not messages:
+            return []
+        timestamps = {message.created for message in messages}
     query = (
         select(Job)
         .where(
@@ -147,18 +158,26 @@ def events_for_child(db, child, current, *, retention=86400):
             Job.payload[RECEIPTS][0]["message_id"].as_string().is_not(None),
         )
         .order_by(Job.finished.desc(), Job.id)
-        .limit(100)
     )
+    if message_ids is None:
+        query = query.limit(100)
+    else:
+        query = query.where(Job.finished.in_(timestamps))
     for job in db.scalars(query):
+        receipts = (job.payload.get(RECEIPTS) or [])[:24]
+        if message_ids is not None and not any(r.get("message_id") in message_ids for r in receipts):
+            continue
         try:
             if not authority(db, job, child):
                 continue
         except (ProviderError, HTTPException):
             continue
         allowed = set(unit_ids(job))
-        for receipt in (job.payload.get(RECEIPTS) or [])[:24]:
+        for receipt in receipts:
             identifier = receipt.get("unit_id")
             mid = receipt.get("message_id")
+            if message_ids is not None and mid not in message_ids:
+                continue
             if identifier not in allowed or mid != digest([KIND, job.id, identifier])[:32]:
                 continue
             unit, message = db.get(LearningUnit, identifier), db.get(Message, mid)

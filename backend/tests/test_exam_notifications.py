@@ -13,7 +13,20 @@ from schulpilot import exam_notifications as notices
 from schulpilot import exams
 from schulpilot import notifications as n
 from schulpilot.config import settings
-from schulpilot.db import DB, Child, Job, LearningUnit, NotificationRead, PushDelivery, PushDevice, Session, Usage, now
+from schulpilot.db import (
+    DB,
+    Child,
+    Job,
+    LearningUnit,
+    Message,
+    NotificationRead,
+    PushDelivery,
+    PushDevice,
+    Session,
+    Usage,
+    User,
+    now,
+)
 from schulpilot.exam_models import Exam
 from sqlalchemy import func, select
 from test_exam_reviews import analyze, finish
@@ -88,6 +101,25 @@ def test_ready_round_is_revision_bound_private_and_read_only(api, book):
         assert db.scalar(select(func.count()).select_from(Usage)) == 1
         db.get(Exam, exam["id"]).plan_revision += 1
     assert not book["client"].get(route).json()["items"]
+
+
+@pytest.mark.parametrize("kind", ["ready", "reminder"])
+def test_displaced_exam_notice_rechecks_revision(api, book, kind):
+    exam = ready_round(api, book) if kind == "ready" else planned(api, book)
+    client = book["client"]
+    item = client.get("/api/notifications/inbox").json()["items"][0]
+    with DB.begin() as db:
+        for _ in range(55):
+            db.add(Message(child_id=book["child"]["id"], kind="reply", body="Synthetic", created=int(now())))
+    # Same-second notices may sort in either order; use the targeted lookup directly.
+    with DB() as db:
+        from schulpilot.notification_inbox import recent_events
+        user = db.get(Child, book["child"]["id"])
+        assert item["id"] in {x["id"] for x in recent_events(db, db.get(User, user.user_id), event_keys={item["id"]})}
+    assert client.post("/api/notifications/inbox/read", json={"ids": [item["id"]]}).status_code == 200
+    with DB.begin() as db:
+        db.get(Exam, exam["id"]).plan_revision += 1
+    assert client.post("/api/notifications/inbox/read", json={"ids": [item["id"]]}).status_code == 404
 
 
 def test_photo_attachment_keeps_saved_preparation_plan_and_today_link(api, book):

@@ -1314,6 +1314,17 @@ Bestandteil des bestehenden Buildvertrags.
   Für Lernrunden-/Prüfungsmeldungen und serverseitige Cursor-Fortsetzung bleibt
   die Arbeit offen.
 
+  **03.11.2026, weitere Teilkorrektur:** Bestätigte Wortimporte, Anrufe aus
+  ausschließlich lesend zugänglichen Familien und Tageschecks nicht mehr
+  zugänglicher Kinder werden vor der jeweiligen Abrufbegrenzung gefiltert.
+  Bereits angezeigte Lernrunden- und Prüfungsmeldungen können auch nach
+  Verdrängung quittiert werden; aktuelle Quellen, Sitzung, Zugehörigkeit und
+  Prüfungsrevision bleiben für die gezielte Abfrage bindend. Sechs künstliche
+  Regressionsfälle bestanden auf SQLite und isoliertem PostgreSQL. Die Prüfung
+  ergänzt den PostgreSQL-CI-Auftrag und seine Ergebnisprüfung. Der eigentliche
+  Cursor für mehr als 50 Ereignisse, ein vollständiger mobiler Glockenablauf
+  und eine sichtbar zugestellte native Pushmeldung bleiben offen.
+
 - [ ] **P1 – Familienanrufe und optionale Medien nur im freigegebenen Umfang abnehmen**
 
   Falls für die gewählte Startstufe vorgesehen, Eltern-/Kinderrollen, ausdrückliche Kamera-/Mikrofon-/Bildschirmfreigaben, Verbindungsaufbau, Abbruch, Widerruf und Gerätewechsel mit synthetischen Konten prüfen. Medienlinks auf passende katalogisierte Inhalte und Rückkehr zum Lernkontext testen; kein privater Kontext in URL oder Referrer.

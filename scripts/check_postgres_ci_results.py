@@ -4,8 +4,17 @@ import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
+REQUIRED_NOTICE_TESTS = {
+    "test_confirmed_word_imports_do_not_hide_unreviewed_import",
+    "test_foreign_view_only_calls_do_not_hide_eligible_call",
+    "test_revoked_child_goal_events_do_not_hide_current_events",
+    "test_displaced_round_receipt_rechecks_source_and_session",
+    "test_displaced_exam_notice_rechecks_revision[ready]",
+    "test_displaced_exam_notice_rechecks_revision[reminder]",
+}
 
-def verify(path, minimum=13):
+
+def verify(path, minimum=19):
     root = ET.parse(path).getroot()
     if root.tag not in {"testsuite", "testsuites"}:
         raise ValueError("Not a JUnit test report")
@@ -15,6 +24,8 @@ def verify(path, minimum=13):
         raise ValueError("The expected distinct PostgreSQL tests did not all run")
     if any(not all(identity) for identity in identities):
         raise ValueError("A PostgreSQL test has no identity")
+    if not REQUIRED_NOTICE_TESTS.issubset({name for _, name in identities}):
+        raise ValueError("A required PostgreSQL notification regression is missing")
     if any(next(root.iter(tag), None) is not None for tag in ("skipped", "failure", "error")):
         raise ValueError("A PostgreSQL test was skipped or failed")
     return len(cases)

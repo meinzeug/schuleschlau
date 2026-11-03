@@ -15,6 +15,7 @@ from .db import (
     Job,
     LanguageProject,
     Material,
+    Membership,
     Message,
     NotificationRead,
     SchoolDay,
@@ -87,7 +88,9 @@ def recent_events(db, user, current=None, *, direct_messages=False, direct_exams
         from .family_calls import effective, eligible_parents
 
         calls = select(FamilyCall).where(FamilyCall.child_id.in_(ids),
-            FamilyCall.created > cutoff, FamilyCall.created <= current)
+            FamilyCall.created > cutoff, FamilyCall.created <= current,
+            FamilyCall.family_id.in_(select(Membership.family_id).where(
+                Membership.user_id == user.id, Membership.permission.in_(["owner", "manage"]))))
         if call_ids is not None:
             calls = calls.where(FamilyCall.id.in_(call_ids))
         for call in db.scalars(calls.order_by(FamilyCall.created.desc()).limit(LIMIT)):
@@ -170,9 +173,10 @@ def recent_events(db, user, current=None, *, direct_messages=False, direct_exams
 
     from .ready_notifications import events_for_child as round_events
 
-    if event_keys is None:
+    round_ids = requested("round_ready")
+    if round_ids is None or round_ids:
         for child in children.values():
-            for event in round_events(db, child, current, retention=RETENTION_DAYS*86400):
+            for event in round_events(db, child, current, retention=RETENTION_DAYS*86400, message_ids=round_ids):
                 add(event["id"], child.id, event["created"], event["title"], event["route"], event["kind"])
 
     for model, kind, title in (
@@ -196,6 +200,8 @@ def recent_events(db, user, current=None, *, direct_messages=False, direct_exams
         )
         if model_ids is not None:
             query = query.where(model.id.in_(model_ids))
+        if model == VocabularyImport:
+            query = query.where(VocabularyImport.status != "confirmed")
         rows = db.execute(query.order_by(Job.finished.desc(), Job.id.desc()).limit(LIMIT))
         for row, job in rows:
             if model == VocabularyImport and row.status == "confirmed":
@@ -221,16 +227,17 @@ def recent_events(db, user, current=None, *, direct_messages=False, direct_exams
     if user.role == "parent" and (goal_ids is None or goal_ids):
         from .parent_goal_reminders import events
 
-        for event in events(db, user.id, current, event_ids=goal_ids):
+        for event in events(db, user.id, current, event_ids=goal_ids, child_ids=ids):
             if event.child_id in children:
                 # A dated, saved check, not a claim that work remains open now.
                 add("parent_goal:" + event.id, event.child_id, event.created,
                     "Tagescheck: Lernziele waren noch offen", f"/child/{event.child_id}", "parent_goal")
     from .exam_notifications import events_for_child
 
-    if event_keys is None:
+    exam_ids = {key for key in event_keys if key.startswith(("exam_ready:", "exam_reminder:"))} if event_keys is not None else None
+    if exam_ids is None or exam_ids:
         for child in children.values():
-            for event in events_for_child(db, child, current):
+            for event in events_for_child(db, child, current, event_ids=exam_ids):
                 route = event["route"] if direct_exams else f"/child/{child.id}" if user.role == "parent" else "/app"
                 add(event["id"], child.id, event["created"], event["title"], route, event["kind"])
     return sorted(result, key=lambda row: (row["created"], row["id"]), reverse=True)[:LIMIT]

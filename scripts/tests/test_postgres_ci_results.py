@@ -17,12 +17,13 @@ class PostgresCiResultsTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             report = Path(directory) / "results.xml"
             cases = [f'<testcase classname="suite" name="case{i}" />' for i in range(13)]
+            cases += [f'<testcase classname="suite" name="{name}" />' for name in sorted(check.REQUIRED_NOTICE_TESTS)]
 
             def write(rows):
                 report.write_text("<testsuites><testsuite>" + "".join(rows) + "</testsuite></testsuites>")
 
             write(cases)
-            self.assertEqual(check.verify(report), 13)
+            self.assertEqual(check.verify(report), 19)
             for invalid in (
                 cases[:-1],
                 cases[:-1] + [cases[0]],
@@ -30,6 +31,7 @@ class PostgresCiResultsTest(unittest.TestCase):
                 cases[:-1] + ['<testcase classname="suite" name="failed"><failure /></testcase>'],
                 cases[:-1] + ['<testcase classname="suite" name="errored"><error /></testcase>'],
                 cases[:-1] + ['<testcase classname="suite" />'],
+                cases[:-1] + ['<testcase classname="suite" name="replacement" />'],
             ):
                 with self.subTest(invalid=invalid[-1]), self.assertRaises(ValueError):
                     write(invalid)
