@@ -27,7 +27,7 @@ from schulpilot.db import (
     User,
     now,
 )
-from schulpilot.exam_models import Exam
+from schulpilot.exam_models import Exam, ExamRound, ExamSession
 from sqlalchemy import func, select
 from test_exam_reviews import analyze, finish
 from test_exam_reviews import paper as paper
@@ -101,6 +101,39 @@ def test_ready_round_is_revision_bound_private_and_read_only(api, book):
         assert db.scalar(select(func.count()).select_from(Usage)) == 1
         db.get(Exam, exam["id"]).plan_revision += 1
     assert not book["client"].get(route).json()["items"]
+
+
+def test_expired_newer_exam_jobs_do_not_hide_an_older_ready_round(api, book, monkeypatch):
+    exam = ready_round(api, book)
+    stamp = int(now())
+    with DB.begin() as db:
+        session = db.scalar(select(ExamSession).where(ExamSession.exam_id == exam["id"]))
+        real = db.scalar(select(ExamRound).where(ExamRound.session_id == session.id))
+        db.get(Job, real.job_id).finished = stamp - 1
+        expected = f"exam_ready:{real.id}:{real.job_id}"
+        for index in range(110):
+            unit = LearningUnit(child_id=book["child"]["id"], subject="Mathematik", topic="Künstlich",
+                explanation="Test", questions=[], provider="fixture", status="not_started")
+            job = Job(child_id=book["child"]["id"], kind="exam_round", status="completed",
+                payload={}, result={}, idempotency=uuid.uuid4().hex, finished=stamp)
+            db.add_all([unit, job])
+            db.flush()
+            db.add(ExamRound(session_id=session.id, ordinal=index + 10, topic_id="test", topic_label="Test",
+                question_count=3, source_revisions=[], unit_id=unit.id, job_id=job.id))
+    client = book["client"]
+    monkeypatch.setattr(notices, "SCAN_LIMIT", 100)
+    limited = client.get("/api/notifications/inbox", headers={"X-Schulpilot-Capabilities": "exams-v1"})
+    assert expected not in [item["id"] for item in limited.json()["items"]]
+    # Targeted acknowledgement does not stop at the bounded discovery window.
+    assert client.post("/api/notifications/inbox/read", json={"ids": [expected]}).status_code == 200
+    monkeypatch.setattr(notices, "SCAN_LIMIT", 500)
+    response = client.get("/api/notifications/inbox", headers={"X-Schulpilot-Capabilities": "exams-v1"})
+    assert response.status_code == 200
+    assert expected in [item["id"] for item in response.json()["items"]]
+    assert client.post("/api/notifications/inbox/read", json={"ids": [expected]}).status_code == 200
+    with DB.begin() as db:
+        db.get(Exam, exam["id"]).plan_revision += 1
+    assert client.post("/api/notifications/inbox/read", json={"ids": [expected]}).status_code == 404
 
 
 @pytest.mark.parametrize("kind", ["ready", "reminder"])

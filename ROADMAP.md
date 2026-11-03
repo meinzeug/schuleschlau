@@ -188,6 +188,18 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
 
 - [x] **P0 – Speicherplatz prüfen und rechtzeitig absichern**
 
+  **03.11.2026, Offsite-Unterbrechung:** Ein nach einer unterbrochenen
+  Journalübertragung liegengebliebener Prüfmarker blockierte den regulären
+  Offsite-Pull; Aufbewahrung und Monitor meldeten fehlendes frisches ACK.
+  Marker und vorherige verschlüsselte Kopie wurden unter der Pull-Sperre nach
+  Abgleich der vorhandenen Stände gesichert und der reguläre Pull erneut
+  gestartet. Für einen nachweislich vor der Quittung abgelehnten veralteten
+  Backupstand ist ein eng begrenztes Protokoll ergänzt: nur die exakte
+  Serverantwort erlaubt einen späteren regulären Wiederholungsversuch. Bei
+  Timeout oder unklarer Antwort bleibt die Abgleichspflicht erhalten. 78
+  isolierte Tests und 23 gezielte Nachtests bestanden; Server und Client müssen
+  koordiniert aktualisiert und der tatsächliche Pull erneut geprüft werden.
+
   **02.11.2026, Spitzenbedarfsabnahme:** Der betriebliche Spitzenbedarf wurde
   nachvollziehbar gemessen und berechnet: Die isolierte Wiederherstellungsprobe
   belegt höchstens 193 MB temporäre Dateien auf `/` (Messung vom 01.11.2026),
@@ -508,6 +520,16 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
   Bruchdarstellung und bestehende Nachweise; Modelltransporte sind simuliert.
 
 - [ ] **P1 – Abruf und Lernplanung nachvollziehbar abnehmen**
+
+  **03.11.2026, Lernbegleitung:** Ungeklärte Selbstständigkeit erzeugt keinen
+  selbstständigen Prüftag und löscht allein keine bereits gültigen Prüftage.
+  Bekannte Aufgaben zählen auch bei geänderter Formulierung einer gleichen
+  Bruchoperation nicht erneut als neue Abrufprobe. In anderen Fächern bleibt
+  fachlich bedeutsame Groß-/Kleinschreibung erhalten. Bereits gespeicherte
+  Versuche und Übungszahlen bleiben erhalten. Neun gezielte Fälle bestanden
+  auf SQLite und isoliertem PostgreSQL; die breite SQLite-Regression des
+  vorherigen Zwischenstands bestand mit 117 Fällen. Eine vollständig
+  beobachtete mobile Mehrtagesabnahme ist damit nicht belegt.
 
   **03.11.2026, Wiederholungsabstand:** Fach- und Quellenauswertung planen
   den nächsten Abruf anhand selbstständiger Prüftage nach der letzten
@@ -1367,6 +1389,17 @@ Bestandteil des bestehenden Buildvertrags.
   **Abnahme:** Fehlerzustände und tatsächlich wirksame Limits sind verständlich; Notfallstopp bleibt bei gestörter Providerabfrage erreichbar, Änderungen sind auditiert, parallele Bearbeitung und widerrufene Sitzungen werden korrekt behandelt.
 
 - [ ] **P1 – Benachrichtigung und direkte Zielnavigation vollständig prüfen**
+
+  **03.11.2026, Klassenarbeiten und Sichtbarkeit:** Bereitmeldungen prüfen pro
+  Ergebnistyp bis zu 500 Kandidaten in stabiler Reihenfolge auf bestehende
+  Rechte und Quellen; ältere gültige Hinweise werden nicht bereits durch 100
+  ungültige Aufträge verdeckt. Gezielte Lesemarkierungen prüfen ihre Berechtigung
+  weiterhin separat. 31 künstliche Klassenarbeitsfälle bestanden auf SQLite
+  und isoliertem PostgreSQL; der Fall mit begrenztem Suchfenster wurde auf
+  beiden Datenbanken gesondert geprüft. Sehr hohe Meldungskarten werden nach
+  Sichtbarkeit des erreichbaren Kartenausschnitts quittiert; 24 Fluttertests
+  und 13 Tests im Chrome-Webrunner bestanden. Die 500er-Suchgrenze, das
+  fehlende Cursor-Nachladen und native Zustellungsnachweise bleiben offen.
 
   **03.11.2026, Bereitmeldungen und Sortierung:** Der Abruf überprüft bis zu
   500 gespeicherte Lernrundenaufträge, damit ungültige neue Aufträge ältere

@@ -91,6 +91,12 @@ def observations(db, unit):
     ]
 
 
+def uncertain_independence(question):
+    """A correct first attempt may have been exposed without proof of help."""
+    attempts = question["attempts"]
+    return len(attempts) == 1 and bool(attempts[0].get("independence_uncertain"))
+
+
 def independently_correct(db, unit):
     if unit.status != "completed":
         return False
@@ -120,6 +126,7 @@ def independently_correct(db, unit):
             len(q["attempts"]) == 1
             and q["attempts"][0]["outcome"] == "correct"
             and not q["attempts"][0]["assisted"]
+            and not uncertain_independence(q)
             and not q["hints_used"]
             for q in items
         )
@@ -235,6 +242,7 @@ def goal_states(db, unit):
     goals = goals_for(db, root)
     labels = {g["id"]: g["label"] for g in goals}
     dates = {g["id"]: [] for g in goals}
+    seen_checks = {g["id"]: set() for g in goals}
     practice = {g["id"]: {"practiced_tasks": 0, "independent_tasks": 0, "assisted_tasks": 0,
                            "needs_practice_tasks": 0, "uncertain_tasks": 0, "attempts": 0} for g in goals}
     child = db.get(Child, unit.child_id)
@@ -261,7 +269,7 @@ def goal_states(db, unit):
                 count["practiced_tasks"] += 1
                 count["attempts"] += len(attempts)
                 last = attempts[-1]
-                key = ("uncertain_tasks" if last.get("independence_uncertain") else "independent_tasks" if len(attempts) == 1 and not last["assisted"] else "assisted_tasks") if last["outcome"] == "correct" else "needs_practice_tasks" if last["outcome"] == "incorrect" else "uncertain_tasks"
+                key = ("uncertain_tasks" if uncertain_independence(item) else "independent_tasks" if len(attempts) == 1 and not last["assisted"] else "assisted_tasks") if last["outcome"] == "correct" else "needs_practice_tasks" if last["outcome"] == "incorrect" else "uncertain_tasks"
                 count[key] += 1
         if old.status != "completed":
             continue
@@ -288,15 +296,34 @@ def goal_states(db, unit):
                     len(q["attempts"]) == 1
                     and q["deterministic_outcome"] == "correct"
                     and not q["attempts"][0]["assisted"]
+                    and not uncertain_independence(q)
                     and not q["hints_used"]
                     for q in items
                 )
             )
-            if not clean:
+            # An uncertain verdict or possibly exposed first answer is not
+            # an independent check, but neither proves a new difficulty.
+            difficulty = helped or hard or any(
+                q["hints_used"] or len(q["attempts"]) > 1
+                or any(a["outcome"] == "incorrect" or (a["assisted"] and not uncertain_independence(q))
+                       for a in q["attempts"])
+                for q in items
+            )
+            if old.subject.casefold() in ("mathe", "mathematik"):
+                signatures = {fraction_task_signature(q["prompt"]) or normalized_prompt(q["prompt"]) for q in items}
+            else:
+                # CO and Co describe different chemical substances. NFC and
+                # whitespace normalization do not erase that distinction.
+                signatures = {" ".join(unicodedata.normalize("NFC", q["prompt"]).split()) for q in items}
+            fresh = bool(signatures - seen_checks[goal_id])
+            # Previously exposed practice questions, including wrong answers,
+            # are not independent new retrieval questions on a later day.
+            seen_checks[goal_id].update(signatures)
+            if difficulty:
                 dates[goal_id] = []
-            elif old.round_kind in CHECK_KINDS:
+            elif clean and old.round_kind in CHECK_KINDS:
                 stamp = datetime.fromtimestamp(old.completed, zone).date().isoformat()
-                if stamp not in dates[goal_id]:
+                if fresh and stamp not in dates[goal_id]:
                     dates[goal_id].append(stamp)
     return [
         {
@@ -347,8 +374,13 @@ def persistent_errors(db, units):
 
 
 def open_assessment_only(db, unit):
-    outcomes = [q["deterministic_outcome"] for q in observations(db, unit)]
-    return "uncertain" in outcomes and "incorrect" not in outcomes
+    items = observations(db, unit)
+    outcomes = [q["deterministic_outcome"] for q in items]
+    return "incorrect" not in outcomes and (
+        "uncertain" in outcomes or any(
+            q["deterministic_outcome"] == "correct" and uncertain_independence(q) for q in items
+        )
+    )
 
 
 def progress(db, unit, *, ledger=None):
@@ -482,7 +514,7 @@ def plan_review(db, unit):
         "spaced": "Diese Abrufprobe ist selbstständig gelungen. Wir prüfen den Stoff an einem späteren Tag erneut.",
     }[action]
     if open_assessment_only(db, unit):
-        reason = "Die Prüfung einzelner Antworten ist offen. Das ist kein nachgewiesener Fehler. Die Lernhilfe kann die Antwort klären; eine neue kurze Runde bietet einen weiteren Versuch ohne die vorige Vorlage."
+        reason = "Die Bewertung oder Selbstständigkeit einzelner Antworten ist offen. Das ist kein nachgewiesener Fehler. Die Lernhilfe kann die Antwort klären; eine neue kurze Runde bietet einen weiteren Versuch ohne die vorige Vorlage."
     from .daily_planner import period_starts
 
     start, _ = period_starts(today, prefs.timezone)
@@ -717,7 +749,7 @@ def report_projection(db, unit, stored):
         if not attempts:
             continue
         if q["deterministic_outcome"] == "correct":
-            if attempts[-1].get("independence_uncertain"):
+            if uncertain_independence(q):
                 independence_uncertain += 1
             elif len(attempts) == 1 and not attempts[-1]["assisted"]:
                 independent += 1
@@ -1063,9 +1095,10 @@ def save_report(
         if len(q["attempts"]) == 1
         and q["deterministic_outcome"] == "correct"
         and not q["attempts"][0]["assisted"]
+        and not uncertain_independence(q)
         and not q["hints_used"]
     ]
-    possible_exposure = [q for q in values if q["attempts"] and q["attempts"][-1].get("independence_uncertain")]
+    possible_exposure = [q for q in values if q["deterministic_outcome"] == "correct" and uncertain_independence(q)]
     supported = [q for q in values if q["deterministic_outcome"] == "correct" and q not in independent and q not in possible_exposure]
     unresolved = [q for q in values if q["deterministic_outcome"] != "correct" or q in possible_exposure]
     data.update(

@@ -224,7 +224,7 @@ def test_ack_refuses_missing_unavailable_invalid_or_legacy_backup_status(tmp_pat
     export_ledger.require_backup_journal(tmp_path, archive.name, digest)
 
 
-def test_ack_never_records_success_for_missing_journal_or_changed_backup(tmp_path, monkeypatch):
+def test_ack_never_records_success_for_missing_journal_or_changed_backup(tmp_path, monkeypatch, capsys):
     def mapped(value):
         path = Path(value)
         return path if path.is_relative_to(tmp_path) else tmp_path / str(path).lstrip("/")
@@ -254,8 +254,19 @@ def test_ack_never_records_success_for_missing_journal_or_changed_backup(tmp_pat
     newer = directory / "20261031T120001Z.tar.enc"
     newer.write_bytes(b"synthetic-newer-archive")
     backup.write_status(newer, "present")
-    with pytest.raises(RuntimeError, match="changed"):
+    with pytest.raises(export_ledger.NewerBackupAvailable, match="changed"):
         export_ledger.acknowledge(archive.name, digest)
+    assert marker.read_bytes() == previous
+
+    # The command emits its narrowly scoped rejection only before modifying
+    # the acknowledgement. Generic errors retain their ordinary failure mode.
+    monkeypatch.setattr(export_ledger, "guarded_operation", nullcontext)
+    monkeypatch.setattr(export_ledger.os, "geteuid", lambda: 0)
+    monkeypatch.setattr(sys, "argv", ["export_ledger.py", "--ack", archive.name, digest])
+    with pytest.raises(SystemExit) as rejected:
+        export_ledger.main()
+    assert rejected.value.code == 75
+    assert capsys.readouterr().err == "offsite_ack_rejected_backup_changed_v1\n"
     assert marker.read_bytes() == previous
 
 

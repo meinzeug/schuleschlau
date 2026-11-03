@@ -129,7 +129,10 @@ Einträge über das bestehende ausdrückliche POST als gelesen markiert.
 Die große Ansicht verwendet dieselbe Sichtbarkeitsprüfung. Vorgeladene oder
 außerhalb des Viewports liegende Karten zählen nicht; ein verdeckender Dialog,
 anderes Konto oder Hintergrundzustand verhindert neue Lesebelege. Eine teilweise
-sichtbare Karte benötigt konservativ mindestens die halbe Fläche und48Pixel Höhe.
+sichtbare Karte benötigt konservativ mindestens 48 Pixel Höhe und die Hälfte
+der maximal gleichzeitig im geclippten Sichtbereich erreichbaren Kartenfläche.
+Damit können auch Karten, die höher als der Bildschirm sind, durch tatsächliches
+Sichtbarmachen quittiert werden; ein bloßes Vorladen reicht weiterhin nicht.
 
 Die Markierung folgt erst auf eine erfolgreiche Serverantwort; Fehler lassen
 den Eintrag ungelesen. Gleichzeitiges Anzeigen und Anklicken teilen denselben
@@ -207,6 +210,13 @@ beide Ruhezeiten, aktuelle Sitzung/Mitgliedschaft und Quellenrevisionen bleiben
 Pflicht. Ein ausdrücklich aktivierter Exam-Termin braucht nicht zusätzlich
 den allgemeinen Tageserinnerungsschalter. Fertigmeldungen nach einem bewusst
 angeforderten Auftrag folgen dem vorhandenen Geräte-Erinnerungsopt-in.
+
+Für jede Art gespeicherter Prüfungsergebnisse werden höchstens 500 Kandidaten
+in absteigender Zeit-/Kennungsfolge auf aktuelle Berechtigung und Quellen
+geprüft. Nach 100 gültigen Meldungen je Art stoppt die Suche. Einem bereits
+angezeigten Ereignis gilt die gezielte Rechteprüfung unabhängig vom Suchfenster.
+Bei mehr als 500 ungültigen Kandidaten können ältere gültige Hinweise weiterhin
+außerhalb des Fensters liegen; dies ersetzt keine Cursor-Fortsetzung.
 
 Das Glocken-Capability `exams-v1` ermöglicht den gezielten App-Einstieg.
 FCM `data.route` bleibt `/app`; ein optionales `exam_path` nimmt ausschließlich

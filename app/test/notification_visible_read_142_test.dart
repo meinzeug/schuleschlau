@@ -10,6 +10,7 @@ import 'package:http/testing.dart';
 import 'package:schulpilot/api.dart';
 import 'package:schulpilot/notification_inbox.dart';
 import 'package:schulpilot/notification_panel.dart';
+import 'package:schulpilot/notification_visibility.dart';
 import 'package:schulpilot/push_transport.dart';
 import 'package:schulpilot/ui.dart';
 
@@ -274,6 +275,61 @@ void main() {
       }
     },
   );
+
+  testWidgets('a tall card is read only after a meaningful part is visible', (
+    tester,
+  ) async {
+    final f = NoticeFixture(1);
+    final scroll = ScrollController();
+    f.state.inbox.activate(f.owner);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: SizedBox(
+              width: 300,
+              height: 160,
+              child: NotificationReadScope(
+                inbox: f.state.inbox,
+                scope: 'synthetic',
+                isCurrent: () => true,
+                onError: () => fail('Lesemarkierung fehlgeschlagen'),
+                child: ListView(
+                  key: const ValueKey('tall-notice-scroll'),
+                  controller: scroll,
+                  children: [
+                    const SizedBox(height: 200),
+                    NotificationExposure(
+                      id: 'own:0',
+                      unread: true,
+                      child: GestureDetector(
+                        onTap: () {},
+                        child: const SizedBox(
+                          height: 600,
+                          child: ColoredBox(color: Colors.blue),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(f.reads, isEmpty);
+    scroll.jumpTo(100);
+    await tester.pumpAndSettle();
+    expect(f.reads, isEmpty);
+    scroll.jumpTo(130);
+    await tester.pumpAndSettle();
+    expect(f.reads, {'own:0'});
+    await tester.pumpWidget(const SizedBox());
+    scroll.dispose();
+    f.state.inbox.dispose();
+  });
 
   testWidgets(
     'unread filter retains its snapshot and cannot drain unseen rows',

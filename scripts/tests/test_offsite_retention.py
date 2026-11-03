@@ -27,7 +27,7 @@ def inventory(names):
     return {"server_now": NOW, "backups": [{"name": name, "size": len(ARCHIVE), "sha256": HASH} for name in names]}
 
 
-def transport(monkeypatch, data, *, fail_ack=False):
+def transport(monkeypatch, data, *, fail_ack=False, ack_error=None):
     calls = []
 
     def fake(args, **kwargs):
@@ -40,6 +40,8 @@ def transport(monkeypatch, data, *, fail_ack=False):
         elif command.endswith("export_ledger.py"):
             kwargs["stdout"].write(b"SPB1" + b"x" * 28)
         elif "export_ledger.py --ack " in command:
+            if ack_error is not None:
+                raise ack_error
             if fail_ack:
                 raise subprocess.CalledProcessError(1, args)
         else:
@@ -48,6 +50,44 @@ def transport(monkeypatch, data, *, fail_ack=False):
 
     monkeypatch.setattr(offsite, "run", fake)
     return calls
+
+
+def test_explicit_stale_backup_rejection_preserves_old_state_and_allows_next_pull(tmp_path, monkeypatch):
+    ledger = tmp_path / "erasure-ledger.enc"
+    marker = tmp_path / "last-success.json"
+    ledger.write_bytes(b"prior-journal")
+    marker.write_text('{"checked_at":1}\n')
+    error = subprocess.CalledProcessError(75, "ssh", output=b"", stderr=b"offsite_ack_rejected_backup_changed_v1\n")
+    transport(monkeypatch, inventory([LATEST]), ack_error=error)
+    with pytest.raises(offsite.AcknowledgementRejected):
+        offsite.pull(tmp_path)
+    assert ledger.read_bytes() == b"prior-journal"
+    assert marker.read_text() == '{"checked_at":1}\n'
+    assert not (tmp_path / ".erasure-ledger.pending").exists()
+    assert not (tmp_path / ".erasure-ledger.previous").exists()
+    transport(monkeypatch, inventory([LATEST]))
+    offsite.pull(tmp_path)
+    assert ledger.read_bytes() == b"SPB1" + b"x" * 28
+
+
+@pytest.mark.parametrize("error", [
+    subprocess.TimeoutExpired("ssh", 120),
+    subprocess.CalledProcessError(1, "ssh", output=b"", stderr=b"offsite_ack_rejected_backup_changed_v1\n"),
+    subprocess.CalledProcessError(75, "ssh", output=b"", stderr=b"offsite_ack_rejected_backup_changed_v1\nextra"),
+    subprocess.CalledProcessError(75, "ssh", output=b"untrusted", stderr=b"offsite_ack_rejected_backup_changed_v1\n"),
+    subprocess.CalledProcessError(75, "ssh", output=None, stderr=b"offsite_ack_rejected_backup_changed_v1\n"),
+    subprocess.CalledProcessError(255, "ssh", output=b"", stderr=b""),
+])
+def test_ambiguous_ssh_results_always_keep_reconciliation_marker(tmp_path, monkeypatch, error):
+    ledger = tmp_path / "erasure-ledger.enc"
+    ledger.write_bytes(b"prior-journal")
+    transport(monkeypatch, inventory([LATEST]), ack_error=error)
+    with pytest.raises((subprocess.CalledProcessError, subprocess.TimeoutExpired)):
+        offsite.pull(tmp_path)
+    assert ledger.read_bytes() == b"prior-journal"
+    assert (tmp_path / ".erasure-ledger.pending").exists()
+    with pytest.raises(offsite.InterruptedTransfer):
+        offsite.pull(tmp_path)
 
 
 def test_expired_remote_backup_is_never_retransferred_and_only_removed_after_success(tmp_path, monkeypatch):

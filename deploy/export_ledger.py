@@ -17,6 +17,10 @@ from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from ledger_snapshot import backup_lock, locked_journal, status_path
 
 
+class NewerBackupAvailable(RuntimeError):
+    """The proposed backup became stale before any acknowledgement was written."""
+
+
 def require_backup_journal(directory, expected_name, expected_hash):
     """Bind acknowledgement to the newest archive verified by the receiver."""
     if (not re.fullmatch(r"\d{8}T\d{6}Z\.tar\.enc", expected_name)
@@ -27,7 +31,7 @@ def require_backup_journal(directory, expected_name, expected_hash):
         raise RuntimeError("No backup available")
     latest = backups[-1]
     if latest.name != expected_name:
-        raise RuntimeError("Backup changed during offsite transfer")
+        raise NewerBackupAvailable("Backup changed during offsite transfer")
     try:
         value = json.loads(status_path(latest).read_text())
     except (OSError, UnicodeError, ValueError):
@@ -76,7 +80,14 @@ def main():
         raise SystemExit("Operator access required")
     with guarded_operation():
         if len(sys.argv[1:]) == 3 and sys.argv[1] == "--ack":
-            acknowledge(sys.argv[2], sys.argv[3])
+            try:
+                acknowledge(sys.argv[2], sys.argv[3])
+            except NewerBackupAvailable:
+                # This exception can only arise during the locked identity check,
+                # before acknowledgement or offsite-enabled is written. Keep a
+                # protocol distinct from generic failures and SSH disconnects.
+                print("offsite_ack_rejected_backup_changed_v1", file=sys.stderr)
+                raise SystemExit(75) from None
         elif not sys.argv[1:]:
             export(Path("/var/lib/schulpilot/erasure-ledger.jsonl"), Path("/etc/schulpilot/backup.key"), sys.stdout.buffer)
         else:

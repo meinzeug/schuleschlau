@@ -27,6 +27,10 @@ class InterruptedTransfer(RuntimeError):
     """A previous transfer needs an operator to reconcile both hosts."""
 
 
+class AcknowledgementRejected(RuntimeError):
+    """The server explicitly rejected a stale backup before writing its ACK."""
+
+
 def run(args, **kwargs):
     return subprocess.run(args, check=True, timeout=120, **kwargs)
 
@@ -70,7 +74,7 @@ def commit_ledger(destination, partial, acknowledge, success):
         except Exception:
             status.unlink(missing_ok=True)
             raise
-    except Exception:
+    except Exception as error:
         # Preserve the old success marker and restore exactly the prior bytes.
         # If rollback fails, leave the transaction files for operator recovery.
         if installed:
@@ -83,7 +87,7 @@ def commit_ledger(destination, partial, acknowledge, success):
         # A remote failure or timeout may follow a successful server ACK; the
         # prior snapshot is restored but its relationship to the remote marker
         # is unknown. Retain the marker and require human reconciliation.
-        if not ack_started:
+        if not ack_started or isinstance(error, AcknowledgementRejected):
             pending.unlink(missing_ok=True)
         raise
     previous.unlink(missing_ok=True)
@@ -208,11 +212,20 @@ def pull(destination):
         latest_item = max(retained, key=lambda item: item["name"])
 
         def acknowledge():
-            run(
-                [*ssh, "/opt/schulpilot/current/venv/bin/python /opt/schulpilot/current/deploy/export_ledger.py --ack "
-                 + latest_item["name"] + " " + latest_item["sha256"]],
-                capture_output=True,
-            )
+            try:
+                run(
+                    [*ssh, "/opt/schulpilot/current/venv/bin/python /opt/schulpilot/current/deploy/export_ledger.py --ack "
+                     + latest_item["name"] + " " + latest_item["sha256"]],
+                    capture_output=True,
+                )
+            except subprocess.CalledProcessError as error:
+                # No generic SSH failure or unrecognised server response proves
+                # that the remote ACK was not written; leave those pending.
+                if (error.returncode == 75
+                        and error.stderr == b"offsite_ack_rejected_backup_changed_v1\n"
+                        and error.stdout == b""):
+                    raise AcknowledgementRejected("A newer backup appeared before acknowledgement") from None
+                raise
 
         commit_ledger(destination, partial, acknowledge, {
                 "checked_at": int(time.time()),

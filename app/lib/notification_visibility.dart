@@ -95,8 +95,9 @@ class _ReadScope extends InheritedWidget {
       context.getInheritedWidgetOfExactType<_ReadScope>();
 }
 
-/// Conservative exposure: at least half the card and 48 logical pixels must be
-/// painted within every ancestor clip. Hit testing excludes an overlying menu.
+/// Conservative exposure: at least half the visible viewport-sized portion of
+/// the card and 48 logical pixels must be painted within every ancestor clip.
+/// Hit testing excludes an overlying menu.
 class NotificationExposure extends StatefulWidget {
   final String id;
   final bool unread;
@@ -203,9 +204,8 @@ class _NotificationExposureState extends State<NotificationExposure>
       Offset.zero & box.size,
     );
     final view = View.of(context);
-    var visible = whole.intersect(
-      Offset.zero & (view.physicalSize / view.devicePixelRatio),
-    );
+    var available = Offset.zero & (view.physicalSize / view.devicePixelRatio);
+    var visible = whole.intersect(available);
     RenderObject child = box;
     for (
       RenderObject? parent = box.parent;
@@ -219,15 +219,25 @@ class _NotificationExposureState extends State<NotificationExposure>
       }
       final clip = parent.describeApproximatePaintClip(child);
       if (clip != null) {
-        visible = visible.intersect(
-          MatrixUtils.transformRect(parent.getTransformTo(null), clip),
+        final globalClip = MatrixUtils.transformRect(
+          parent.getTransformTo(null),
+          clip,
         );
+        available = available.intersect(globalClip);
+        visible = visible.intersect(globalClip);
       }
       child = parent;
     }
+    final eligibleWidth = whole.width < available.width
+        ? whole.width
+        : available.width;
+    final eligibleHeight = whole.height < available.height
+        ? whole.height
+        : available.height;
     if (visible.isEmpty ||
+        available.isEmpty ||
         visible.height < 48 ||
-        visible.width * visible.height < whole.width * whole.height * .5) {
+        visible.width * visible.height < eligibleWidth * eligibleHeight * .5) {
       return false;
     }
     final hits = HitTestResult();

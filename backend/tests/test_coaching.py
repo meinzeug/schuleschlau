@@ -390,9 +390,15 @@ def test_three_check_days_must_span_a_week_and_cover_every_goal(normal_unit, goa
                 },
             )
         )
-        for days in (oldest_days, 1 if oldest_days == 2 else 5, 0, 0):
+        for index, days in enumerate((oldest_days, 1 if oldest_days == 2 else 5, 0, 0)):
             stamp = int(datetime.combine(today - timedelta(days=days), datetime.min.time(), zone).timestamp()) + 100
-            data = sample_unit(days % 3)
+            # A new check needs a new question, not only a different day.
+            data = sample_unit(index % 3)
+            denominator = index + 9
+            data["questions"][0]["prompt"] = f"Was ergibt 1/{denominator} + 1/{denominator}?"
+            data["questions"][0]["answer"] = f"2/{denominator}"
+            data["questions"][0]["options"] = [f"2/{denominator}", f"2/{denominator * 2}", f"1/{denominator * 2}"]
+            data["questions"][0]["explanation"] = f"1 + 1 = 2, der Nenner bleibt {denominator}."
             for q in data["questions"]:
                 q["learning_goal_id"] = "g1"
             unit = LearningUnit(

@@ -13,6 +13,9 @@ from .providers import ProviderError
 from .security import Principal, child_access
 
 EXAM_PATH_PATTERN = r"(?:/exams/[a-f0-9]{32}\?exam=[a-f0-9]{32}(?:&session=[a-f0-9]{32})?(?:&tab=review)?|/unit/[a-f0-9]{32})"
+SCAN_LIMIT = 500
+BATCH_SIZE = 100
+VALID_LIMIT = 100
 
 
 def valid_exam_path(value):
@@ -76,6 +79,29 @@ def events_for_child(db, child, current, *, retention=30 * 86400, event_ids=None
         result.append({"id": key, "child_id": child.id,
             "created": row["created"], "title": "Dein geplanter Lerntag steht an", "route": row["route"],
             "kind": "exam_reminder"})
+
+    def candidates(query, model, model_index, job_index):
+        # The suffix of each notification ID is model.id:job.id. Use that
+        # same descending order for ties before applying a candidate limit.
+        query = query.order_by(Job.finished.desc(), model.id.desc(), Job.id.desc())
+        if event_ids is not None:
+            yield from db.execute(query.limit(VALID_LIMIT))
+            return
+        remaining, cursor = SCAN_LIMIT, None
+        while remaining:
+            page = query
+            if cursor is not None:
+                page = page.where(tuple_(Job.finished, model.id, Job.id) < cursor)
+            rows = list(db.execute(page.limit(min(BATCH_SIZE, remaining))))
+            if not rows:
+                return
+            yield from rows
+            remaining -= len(rows)
+            if len(rows) < BATCH_SIZE:
+                return
+            last = rows[-1]
+            cursor = (last[job_index].finished, last[model_index].id, last[job_index].id)
+
     prepared_query = (select(Exam, ExamSession, ExamRound, LearningUnit, Job)
         .join(ExamSession, ExamSession.exam_id == Exam.id)
         .join(ExamRound, ExamRound.session_id == ExamSession.id)
@@ -85,7 +111,8 @@ def events_for_child(db, child, current, *, retention=30 * 86400, event_ids=None
             Job.finished > cutoff, Job.finished <= current))
     if event_ids is not None:
         prepared_query = prepared_query.where(tuple_(ExamRound.id, Job.id).in_(ready_pairs))
-    prepared = db.execute(prepared_query.order_by(Job.finished.desc(), Job.id).limit(100))
+    prepared = candidates(prepared_query, ExamRound, 2, 4)
+    valid_prepared = 0
     for exam, session, row, unit, job in prepared:
         if not live_request(db, child, job.payload.get("exam_actor_id"), job.payload.get("exam_actor_session_id"),
                 job.payload.get("exam_family_id"), current):
@@ -97,17 +124,24 @@ def events_for_child(db, child, current, *, retention=30 * 86400, event_ids=None
         result.append({"id": f"exam_ready:{row.id}:{job.id}", "child_id": child.id, "created": job.finished,
             "title": "Deine Lernrunde ist bereit", "route": f"/unit/{unit.id}",
             "kind": "exam_ready"})
+        valid_prepared += 1
+        if valid_prepared == VALID_LIMIT:
+            break
     reviewed_query = (select(Exam, ExamReview, Job).join(ExamReview, ExamReview.exam_id == Exam.id)
         .join(Job, Job.id == ExamReview.job_id).where(Exam.child_id == child.id, Exam.archived.is_(False),
             ExamReview.status == "ready", Job.status == "completed", Job.finished > cutoff, Job.finished <= current))
     if event_ids is not None:
         reviewed_query = reviewed_query.where(tuple_(ExamReview.id, Job.id).in_(ready_pairs))
-    reviewed = db.execute(reviewed_query.order_by(Job.finished.desc(), Job.id).limit(100))
+    reviewed = candidates(reviewed_query, ExamReview, 1, 2)
+    valid_reviewed = 0
     for exam, review, job in reviewed:
         if valid_review(db, exam, child, review, current):
             result.append({"id": f"exam_ready:{review.id}:{job.id}", "child_id": child.id,
                 "created": job.finished, "title": "Deine Arbeitsbesprechung ist bereit",
                 "route": f"/exams/{child.id}?exam={exam.id}&tab=review", "kind": "exam_ready"})
+            valid_reviewed += 1
+            if valid_reviewed == VALID_LIMIT:
+                break
     practices_query = (select(Exam, ExamReview, ExamReviewPractice, Job, LearningUnit)
         .join(ExamReview, ExamReview.exam_id == Exam.id)
         .join(ExamReviewPractice, ExamReviewPractice.review_id == ExamReview.id)
@@ -117,7 +151,8 @@ def events_for_child(db, child, current, *, retention=30 * 86400, event_ids=None
             LearningUnit.child_id == child.id, LearningUnit.status != "completed"))
     if event_ids is not None:
         practices_query = practices_query.where(tuple_(ExamReviewPractice.id, Job.id).in_(ready_pairs))
-    practices = db.execute(practices_query.order_by(Job.finished.desc(), Job.id).limit(100))
+    practices = candidates(practices_query, ExamReviewPractice, 2, 3)
+    valid_practices = 0
     for exam, review, link, job, unit in practices:
         context = job.payload.get("exam_review_practice") or {}
         task = next((task for task in (review.report or {}).get("tasks", []) if task.get("id") == link.task_id), None)
@@ -132,6 +167,9 @@ def events_for_child(db, child, current, *, retention=30 * 86400, event_ids=None
         result.append({"id": f"exam_ready:{link.id}:{job.id}", "child_id": child.id, "created": job.finished,
             "title": "Deine Anschlussübung ist bereit", "route": f"/unit/{unit.id}",
             "kind": "exam_ready"})
+        valid_practices += 1
+        if valid_practices == VALID_LIMIT:
+            break
     return sorted(result, key=lambda row: (row["created"], row["id"]), reverse=True)[:100]
 
 

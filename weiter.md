@@ -2,6 +2,14 @@
 
 Stand: 3. November 2026. Diese Datei ist eine Arbeitsübergabe, kein Ersatz für die aktuellen Nutzeraufträge oder `AGENTS.md`. Prüfe alle Zustände erneut; insbesondere Server, Git, laufende Jobs und Roadmap können sich inzwischen geändert haben. Keine Zugangsdaten, Tokens, privaten Schülerdaten oder Bildinhalte in diese Datei, Logs oder Git schreiben.
 
+**Aktuelle Ergänzung:** Die Lernbegleitung behandelt ungeklärte
+Selbstständigkeit und wiederholte Fragen konservativ. Klassenarbeitsmeldungen
+prüfen bis zu 500 Kandidaten; hohe Glockenkarten lassen sich nach tatsächlicher
+Sichtbarkeit als gelesen markieren. Das ersetzt kein Cursor-Nachladen und keine
+mobile Mehrtagesabnahme. Der Offsite-Abgleich wurde nach einem unterbrochenen
+Journalwechsel gesondert untersucht; tatsächlichen Dienst-, ACK-, CI- und
+Releasezustand vor der nächsten Arbeit erneut prüfen.
+
 **Aktuelle Ergänzung:** Wiederholungsintervalle betrachten Prüftage seit der
 letzten Schwierigkeit. Lernrundenmeldungen durchsuchen begrenzt weitere gültige
 Aufträge; andere Inboxquellen sortieren vor der Begrenzung stabil. Der lokale
