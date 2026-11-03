@@ -3,6 +3,7 @@ import copy
 import importlib.util
 import json
 import os
+import re
 import subprocess
 import tempfile
 import unittest
@@ -66,6 +67,26 @@ sys.exit(1 if mode == 'failure' else 0)
 
 
 class FlutterShardTests(unittest.TestCase):
+    def assert_workflow_action_pins(self, text):
+        expected = {
+            'actions/checkout': '3d3c42e5aac5ba805825da76410c181273ba90b1',
+            'actions/setup-python': '5fda3b95a4ea91299a34e894583c3862153e4b97',
+            'actions/upload-artifact': 'ea165f8d65b6e75b540449e92b4886f43607fa02',
+            'actions/download-artifact': 'd3f86a106a0bac45b974a628896c90dbdf5c8093',
+        }
+        observed = set()
+        for line in text.splitlines():
+            if 'uses:' not in line:
+                continue
+            match = re.fullmatch(r'\s*-?\s*uses:\s*([^\s#]+)\s*(?:#.*)?', line)
+            self.assertIsNotNone(match, f'Unrecognized action declaration: {line}')
+            name, sep, commit = match.group(1).partition('@')
+            self.assertEqual(sep, '@', f'Unpinned action: {line}')
+            self.assertIn(name, expected, f'Unapproved action: {line}')
+            self.assertEqual(commit, expected[name], f'Wrong pin for {name}')
+            observed.add(name)
+        self.assertEqual(observed, set(expected))
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix='flutter-ci-fake-')
         self.addCleanup(self.temp.cleanup)
@@ -292,9 +313,24 @@ class FlutterShardTests(unittest.TestCase):
         self.assertNotIn('continue-on-error', text)
         self.assertNotIn('--run-skipped', text)
         self.assertIn('--require-job-results', text)
-        for line in text.splitlines():
-            if 'uses:' in line:
-                self.assertRegex(line, r'@(3d3c42e5aac5ba805825da76410c181273ba90b1|5fda3b95a4ea91299a34e894583c3862153e4b97) ')
+        self.assert_workflow_action_pins(text)
+
+    def test_action_pin_contract_rejects_wrong_name_pin_and_missing_action(self):
+        text = (SCRIPT.parents[1] / '.github/workflows/checks.yml').read_text()
+        upload = 'actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02'
+        replacements = (
+            'actions/upload-artifact@v4',
+            'actions/upload-artifact@3d3c42e5aac5ba805825da76410c181273ba90b1',
+            'someone/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02',
+            'actions/upload-artifact-fake@ea165f8d65b6e75b540449e92b4886f43607fa02',
+            'actions/upload-artifact',
+        )
+        self.assertEqual(text.count(upload), 1)
+        for replacement in replacements:
+            with self.subTest(replacement=replacement), self.assertRaises(AssertionError):
+                self.assert_workflow_action_pins(text.replace(upload, replacement))
+        with self.assertRaises(AssertionError):
+            self.assert_workflow_action_pins(text.replace(upload, 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'))
 
     def test_unique_github_output_names_round_trip_without_shell_or_multiline_injection(self):
         output = self.root / 'github-output'

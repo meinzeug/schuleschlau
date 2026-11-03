@@ -1506,8 +1506,17 @@ Bestandteil des bestehenden Buildvertrags.
   Skip, XFAIL und XPASS bleiben gesondert sichtbar. Der PostgreSQL-Auftrag
   enthält jetzt auch den Elternzuordnungs-Rennentest. Lokal bestanden 27
   Vertrags-/Runnerprüfungen mit 45 Untertests und die 20 Fälle der isolierten
-  PostgreSQL-Auswahl. Der erste GitHub-Lauf der Änderung muss noch abgewartet
-  werden; diese Ergänzung ersetzt die übrigen Browser-E2E-Abnahmen nicht.
+  PostgreSQL-Auswahl. Der erste GitHub-Lauf zeigte den nachfolgend beschriebenen
+  Prüfvertragsfehler; diese Ergänzung ersetzt die übrigen Browser-E2E-Abnahmen
+  nicht.
+
+  **CI-Korrektur:** Im ersten Lauf der Erweiterung
+  [41590653428](https://github.com/meinzeug/schulpilot/actions/runs/41590653428)
+  scheiterte der Flutter-Prüfvertrag, weil er nur die bisherigen zwei gepinnten
+  Actions zuließ und die beiden neuen Artifact-Actions nicht kannte. Die
+  Prüfung wird auf die genauen Action-/Commit-Paare erweitert; der fehlgeschlagene
+  Lauf bleibt als Befund bestehen. Ein späterer CI-Gesamterfolg muss separat
+  beobachtet werden.
 
   **03.11.2026, CI-Befund:** Der GitHub-Lauf
   [41574805970](https://github.com/meinzeug/schulpilot/actions/runs/41574805970)
