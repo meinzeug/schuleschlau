@@ -20,6 +20,10 @@ String noticeKindLabel(String kind) => switch (kind) {
   'plan_change' => 'Wünsche zum Lernplan',
   'preparation' => 'Heftvorbereitung',
   'reminder' => 'Lernplan bereit',
+  'round_ready' => 'Lernrunden bereit',
+  'exam_ready' => 'Klassenarbeit: Vorbereitung bereit',
+  'exam_reminder' => 'Klassenarbeit: Lerntage',
+  'parent_goal' => 'Tageschecks zu Lernzielen',
   'language_ready' => 'Sprachübungen bereit',
   'words_ready' => 'Wörter zum Prüfen',
   'failed' => 'Vorbereitung noch offen',
@@ -1349,6 +1353,13 @@ class _NotificationPanelState extends State<NotificationPanel>
       final preferenceFamily = widget.state.familyId;
       final preferenceToken = widget.state.api.token;
       final preferenceVersion = version;
+      bool preferencesCurrent() =>
+          !busy &&
+          isCurrentAccount(preferenceOwner) &&
+          widget.state.familyId == preferenceFamily &&
+          widget.state.api.token == preferenceToken &&
+          version == preferenceVersion &&
+          ModalRoute.of(context)?.isCurrent == true;
       final devices = data['devices'] as List;
       final current = devices.where((device) => device['current'] == true);
       final enabled = current.isNotEmpty;
@@ -1469,10 +1480,13 @@ class _NotificationPanelState extends State<NotificationPanel>
                   value: familyCalls,
                   onChanged: busy
                       ? null
-                      : (value) => setState(() {
-                          familyCalls = value;
-                          dirty = true;
-                        }),
+                      : (value) {
+                          if (!preferencesCurrent()) return;
+                          setState(() {
+                            familyCalls = value;
+                            dirty = true;
+                          });
+                        },
                 ),
                 if (enabled && familyCalls && data['calls']['channel'] == false)
                   Notice(
@@ -1525,10 +1539,13 @@ class _NotificationPanelState extends State<NotificationPanel>
                         value: reminders,
                         onChanged: busy
                             ? null
-                            : (value) => setState(() {
-                                reminders = value;
-                                dirty = true;
-                              }),
+                            : (value) {
+                                if (!preferencesCurrent()) return;
+                                setState(() {
+                                  reminders = value;
+                                  dirty = true;
+                                });
+                              },
                       ),
                     if (widget.state.isParent)
                       SwitchListTile(
@@ -1542,13 +1559,7 @@ class _NotificationPanelState extends State<NotificationPanel>
                         onChanged: busy
                             ? null
                             : (value) {
-                                if (!isCurrentAccount(preferenceOwner) ||
-                                    widget.state.familyId != preferenceFamily ||
-                                    widget.state.api.token != preferenceToken ||
-                                    version != preferenceVersion ||
-                                    ModalRoute.of(context)?.isCurrent != true) {
-                                  return;
-                                }
+                                if (!preferencesCurrent()) return;
                                 setState(() {
                                   reminders = value;
                                   dirty = true;
@@ -1565,10 +1576,13 @@ class _NotificationPanelState extends State<NotificationPanel>
                       value: help,
                       onChanged: busy
                           ? null
-                          : (value) => setState(() {
-                              help = value;
-                              dirty = true;
-                            }),
+                          : (value) {
+                              if (!preferencesCurrent()) return;
+                              setState(() {
+                                help = value;
+                                dirty = true;
+                              });
+                            },
                     ),
                     if (widget.state.isParent)
                       SwitchListTile(
@@ -1577,10 +1591,13 @@ class _NotificationPanelState extends State<NotificationPanel>
                         value: summaries,
                         onChanged: busy
                             ? null
-                            : (value) => setState(() {
-                                summaries = value;
-                                dirty = true;
-                              }),
+                            : (value) {
+                                if (!preferencesCurrent()) return;
+                                setState(() {
+                                  summaries = value;
+                                  dirty = true;
+                                });
+                              },
                       ),
                     SizedBox(height: 12),
                     Row(
@@ -1599,10 +1616,16 @@ class _NotificationPanelState extends State<NotificationPanel>
                             ],
                             onChanged: busy
                                 ? null
-                                : (value) => setState(() {
-                                    start = value!;
-                                    dirty = true;
-                                  }),
+                                : (value) {
+                                    if (!preferencesCurrent() ||
+                                        value == null) {
+                                      return;
+                                    }
+                                    setState(() {
+                                      start = value;
+                                      dirty = true;
+                                    });
+                                  },
                           ),
                         ),
                         SizedBox(width: 12),
@@ -1620,10 +1643,16 @@ class _NotificationPanelState extends State<NotificationPanel>
                             ],
                             onChanged: busy
                                 ? null
-                                : (value) => setState(() {
-                                    end = value!;
-                                    dirty = true;
-                                  }),
+                                : (value) {
+                                    if (!preferencesCurrent() ||
+                                        value == null) {
+                                      return;
+                                    }
+                                    setState(() {
+                                      end = value;
+                                      dirty = true;
+                                    });
+                                  },
                           ),
                         ),
                       ],

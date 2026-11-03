@@ -65,14 +65,18 @@ def read_ledger(db, child_id, unit_ids=None, *, category: EvidenceCategory | Non
         return []
     reflection = latest.c.evaluation_method == "open_learning_v1"
     correct = latest.c.outcome == "correct"
-    uncertain_independence = and_(correct, ~reflection, latest.c.independence_uncertain.is_(True))
-    independent = and_(correct, latest.c.assisted.is_(False), latest.c.attempts == 1, ~uncertain_independence)
-    supported = and_(correct, ~independent, ~uncertain_independence)
+    # Possible exposure cannot erase a recorded earlier attempt. A later
+    # correct answer is a retry, even when its independence marker is stale.
+    uncertain_independence = and_(correct, ~reflection, latest.c.attempts == 1,
+                                  latest.c.independence_uncertain.is_(True))
+    independent = and_(correct, ~reflection, latest.c.assisted.is_(False), latest.c.attempts == 1, ~uncertain_independence)
+    supported = and_(correct, ~reflection, ~independent, ~uncertain_independence)
+    needs_practice = and_(latest.c.outcome == "incorrect", ~reflection)
     uncertain = or_(and_(latest.c.outcome.not_in(("correct", "incorrect")), ~reflection), uncertain_independence)
     categories = {
         "independent": independent,
         "assisted": supported,
-        "needs_practice": latest.c.outcome == "incorrect",
+        "needs_practice": needs_practice,
         "uncertain": uncertain,
         "reflection": reflection,
     }
@@ -90,7 +94,7 @@ def read_ledger(db, child_id, unit_ids=None, *, category: EvidenceCategory | Non
             func.sum(latest.c.attempts).label("attempts"),
             func.sum(case((independent, 1), else_=0)).label("independent_tasks"),
             func.sum(case((supported, 1), else_=0)).label("assisted_tasks"),
-            func.sum(case((latest.c.outcome == "incorrect", 1), else_=0)).label("needs_practice_tasks"),
+            func.sum(case((needs_practice, 1), else_=0)).label("needs_practice_tasks"),
             func.sum(case((uncertain, 1), else_=0)).label("uncertain_tasks"),
             func.sum(case((reflection, 1), else_=0)).label("reflection_tasks"),
             func.max(latest.c.created).label("last_activity"),

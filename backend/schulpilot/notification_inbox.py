@@ -6,7 +6,7 @@ Membership is checked again on every read and acknowledgement.
 
 from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import Field
-from sqlalchemy import select
+from sqlalchemy import select, tuple_
 from sqlalchemy.orm import load_only
 
 from . import schemas as s
@@ -29,6 +29,9 @@ from .security import audit, authenticated, rate_limit
 
 RETENTION_DAYS = 30
 LIMIT = 50
+# A deleted or superseded preparation can no longer be shown. Scan bounded
+# batches so a burst of those records does not conceal other recent notices.
+MESSAGE_SCAN_LIMIT = 500
 router = APIRouter(prefix="/notifications", tags=["Neuigkeiten"])
 
 
@@ -116,11 +119,28 @@ def recent_events(db, user, current=None, *, direct_messages=False, direct_exams
     message_ids = requested("message")
     if message_ids is not None:
         message_query = message_query.where(Message.id.in_(message_ids))
-    messages = list(db.scalars(message_query.limit(LIMIT)))
     from .learning import message_context_targets
 
-    targets = message_context_targets(db, messages)
-    for row in messages:
+    def message_candidates():
+        cursor = None
+        remaining = MESSAGE_SCAN_LIMIT
+        while remaining:
+            query = message_query
+            if cursor is not None:
+                query = query.where(tuple_(Message.created, Message.id) < cursor)
+            messages = list(db.scalars(query.limit(min(LIMIT, remaining))))
+            if not messages:
+                break
+            targets = message_context_targets(db, messages)
+            for message in messages:
+                yield message, targets
+            remaining -= len(messages)
+            if len(messages) < LIMIT:
+                break
+            cursor = (messages[-1].created, messages[-1].id)
+
+    message_count = 0
+    for row, targets in message_candidates():
         route = f"/child/{row.child_id}" if user.role == "parent" else "/settings"
         if user.role == "child":
             route = (
@@ -170,6 +190,9 @@ def recent_events(db, user, current=None, *, direct_messages=False, direct_exams
                 suffix = f"Lernpaket bereit · {count - ready_count} von {count} Fotos noch offen"
             title = f"{prefix} · {suffix}"
         add("message:" + row.id, row.child_id, row.created, title, route, row.kind)
+        message_count += 1
+        if message_count == LIMIT:
+            break
 
     from .ready_notifications import events_for_child as round_events
 

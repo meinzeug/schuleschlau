@@ -63,6 +63,41 @@ def test_exact_timestamp_ties_use_saved_attempt_order_not_random_ids(api, outcom
             ("0" * 32, outcome, True, 100.25), ("f" * 32, "incorrect", False, 100.25)]
 
 
+@pytest.mark.parametrize("outcome", ["correct", "incorrect", "uncertain"])
+def test_reflection_is_only_a_reflection_even_with_legacy_verdicts(api, outcome):
+    demo, unit_id = prepared(api)
+    with DB.begin() as db:
+        db.add(Attempt(unit_id=unit_id, question_id="reflection", answer="synthetic", outcome=outcome,
+            assisted=False, evaluation={"method": "open_learning_v1"}))
+    with DB() as db:
+        all_rows = totals(read_ledger(db, demo["child_id"]))
+        assert all_rows["practiced_tasks"] == all_rows["reflection_tasks"] == 1
+        assert all_rows["independent_tasks"] == all_rows["assisted_tasks"] == 0
+        assert all_rows["uncertain_tasks"] == all_rows["needs_practice_tasks"] == 0
+        assert totals(read_ledger(db, demo["child_id"], category="reflection"))["practiced_tasks"] == 1
+        for category in ("independent", "assisted", "uncertain", "needs_practice"):
+            assert not read_ledger(db, demo["child_id"], category=category)
+
+
+@pytest.mark.parametrize("initial_outcome,initial_uncertain,final_assisted", [
+    ("incorrect", False, True), ("uncertain", True, False), ("correct", True, True),
+])
+def test_retried_success_with_legacy_possible_exposure_is_supported(api, initial_outcome, initial_uncertain, final_assisted):
+    demo, unit_id = prepared(api)
+    with DB.begin() as db:
+        db.add(Attempt(unit_id=unit_id, question_id="sum", answer="synthetic first", outcome=initial_outcome,
+            assisted=False, created=100, evaluation={"attempt_number": 1, "independence_uncertain": initial_uncertain}))
+        db.add(Attempt(unit_id=unit_id, question_id="sum", answer="synthetic correct", outcome="correct",
+            assisted=final_assisted, created=101, evaluation={"attempt_number": 2, "independence_uncertain": True}))
+    with DB() as db:
+        result = totals(read_ledger(db, demo["child_id"]))
+        assert result["practiced_tasks"] == result["assisted_tasks"] == 1
+        assert result["attempts"] == 2 and result["independent_tasks"] == result["uncertain_tasks"] == 0
+        assert totals(read_ledger(db, demo["child_id"], category="assisted"))["practiced_tasks"] == 1
+        assert not read_ledger(db, demo["child_id"], category="uncertain")
+        assert db.scalar(select(Attempt).where(Attempt.unit_id == unit_id, Attempt.created == 101)).evaluation["independence_uncertain"]
+
+
 def test_real_timestamp_order_remains_authoritative_for_legacy_attempts(api):
     demo, unit_id = prepared(api)
     with DB.begin() as db:

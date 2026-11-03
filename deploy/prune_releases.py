@@ -18,6 +18,7 @@ BASE = Path("/opt/schulpilot")
 RELEASES = BASE / "releases"
 RELEASE_ID = re.compile(r"\d{8}T\d{6}Z-[0-9a-f]{7,40}\Z")
 SERVICES = ("schulpilot-api.service", "schulpilot-worker.service")
+OPTIONAL_RELEASE_SERVICES = ("schulpilot-repair-dispatcher.service",)
 
 
 class PruneError(RuntimeError):
@@ -99,6 +100,35 @@ def _assert_services_use_kept_releases(kept: set[Path]) -> None:
         pid = int(result.stdout.strip() or "0")
         if pid <= 0:
             raise PruneError(f"{service} has no running main process")
+        cwd = Path(f"/proc/{pid}/cwd").resolve(strict=True)
+        if not any(release == cwd or release in cwd.parents for release in kept):
+            raise PruneError(f"{service} is using a release outside current/previous")
+
+    # Unlike the isolated repair broker, the optional dispatcher executes from
+    # current/backend. A still-running old dispatcher must not lose its code.
+    for service in OPTIONAL_RELEASE_SERVICES:
+        result = subprocess.run(
+            ["systemctl", "show", "--property=LoadState", "--property=ActiveState", "--property=MainPID", service],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        fields = {}
+        for line in result.stdout.splitlines():
+            key, separator, value = line.partition("=")
+            if not separator or key in fields:
+                raise PruneError(f"{service} has invalid systemd state")
+            fields[key] = value
+        if set(fields) != {"LoadState", "ActiveState", "MainPID"}:
+            raise PruneError(f"{service} has incomplete systemd state")
+        try:
+            pid = int(fields["MainPID"])
+        except ValueError:
+            raise PruneError(f"{service} has invalid main process") from None
+        if fields["ActiveState"] == "inactive" and fields["LoadState"] in {"loaded", "not-found"} and pid == 0:
+            continue
+        if fields["LoadState"] != "loaded" or fields["ActiveState"] != "active" or pid <= 0:
+            raise PruneError(f"{service} is not in a stable state")
         cwd = Path(f"/proc/{pid}/cwd").resolve(strict=True)
         if not any(release == cwd or release in cwd.parents for release in kept):
             raise PruneError(f"{service} is using a release outside current/previous")

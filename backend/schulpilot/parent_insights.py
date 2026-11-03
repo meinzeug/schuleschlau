@@ -141,7 +141,7 @@ def goal_evidence(db, child_id, unit_ids):
         goals = grouped.setdefault(task["unit_id"], {})
         goal = goals.setdefault(label.casefold(), {"label": label, **dict.fromkeys(GOAL_COUNTERS, 0)})
         independent = task["outcome"] == "correct" and not task["assisted"] and task["attempts"] == 1
-        bucket = ("uncertain_tasks" if task["outcome"] == "correct" and task["independence_uncertain"]
+        bucket = ("uncertain_tasks" if task["outcome"] == "correct" and task["attempts"] == 1 and task["independence_uncertain"]
                   else "independent_tasks" if independent else "assisted_tasks" if task["outcome"] == "correct"
                   else "needs_practice_tasks" if task["outcome"] == "incorrect" else "uncertain_tasks")
         goal["practiced_tasks"] += 1

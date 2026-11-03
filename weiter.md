@@ -2,6 +2,15 @@
 
 Stand: 3. November 2026. Diese Datei ist eine Arbeitsübergabe, kein Ersatz für die aktuellen Nutzeraufträge oder `AGENTS.md`. Prüfe alle Zustände erneut; insbesondere Server, Git, laufende Jobs und Roadmap können sich inzwischen geändert haben. Keine Zugangsdaten, Tokens, privaten Schülerdaten oder Bildinhalte in diese Datei, Logs oder Git schreiben.
 
+**Aktuelle Ergänzung:** Die Lernstandszähler behandeln Reflexionen und
+Wiederholungsversuche einheitlicher, die Gerätehinweise schützen veraltete
+Callbacks und die Glocke überspringt veraltete Nachrichten in begrenzten Blöcken.
+Die Release-Bereinigung schützt auch einen laufenden Reparatur-Dispatcher. Der
+vollständige GitHub-Lauf 41626364796 zu `ac067f4` war erfolgreich. Die
+Glocke lädt weiterhin nicht über ihre sichtbare 50er-Grenze hinaus, und ein
+produktiver Rollback oder native Pushzustellung wurde damit nicht getestet.
+Vor der nächsten Arbeit tatsächlichen Release- und CI-Stand erneut prüfen.
+
 **Aktuelle Ergänzung:** Lernplanung unterscheidet gleichnamige Themen nach
 Fach. Elternhinweise für heutige Prüfungssitzungen werden nicht mehr durch
 100 ältere Pläne verdeckt. Die CI-Ergebnisprüfung berücksichtigt zusätzliche

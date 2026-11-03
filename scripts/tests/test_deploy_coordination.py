@@ -420,6 +420,107 @@ def test_prune_replans_after_lease_when_release_pointers_change(env, monkeypatch
     assert (env / "releases" / CURRENT).is_dir()
 
 
+@pytest.mark.parametrize("dispatcher_state", [
+    "MainPID=0\nLoadState=not-found\nActiveState=inactive\n",
+    "MainPID=0\nLoadState=loaded\nActiveState=inactive\n",
+    "MainPID=103\nLoadState=loaded\nActiveState=active\n",
+])
+def test_prune_checks_optional_dispatcher_and_allows_safe_states(env, monkeypatch, dispatcher_state):
+    current = env / "releases" / CURRENT
+    previous = env / "releases" / PREVIOUS
+    old = env / "releases" / "20261028T200000Z-abcdef0"
+    old.mkdir()
+    real_resolve = Path.resolve
+
+    def resolve(path, *args, **kwargs):
+        if str(path) in ("/proc/101/cwd", "/proc/102/cwd"):
+            return current / "backend"
+        if str(path) == "/proc/103/cwd":
+            return previous / "backend"
+        return real_resolve(path, *args, **kwargs)
+
+    def systemctl(args, **kwargs):
+        service = args[-1]
+        if service == "schulpilot-repair-dispatcher.service":
+            return subprocess.CompletedProcess(args, 0, stdout=dispatcher_state)
+        return subprocess.CompletedProcess(args, 0, stdout={
+            "schulpilot-api.service": "101\n", "schulpilot-worker.service": "102\n",
+        }[service])
+
+    monkeypatch.setattr(Path, "resolve", resolve)
+    monkeypatch.setattr(prune.subprocess, "run", systemctl)
+    monkeypatch.setattr(prune, "BASE", env)
+    monkeypatch.setattr(prune, "RELEASES", env / "releases")
+    monkeypatch.setattr(prune.sys, "argv", ["prune", "--apply"])
+    assert prune.main() == 0
+    assert not old.exists()
+    assert current.is_dir() and previous.is_dir()
+
+
+@pytest.mark.parametrize("dispatcher_state, old_process", [
+    ("MainPID=103\nLoadState=loaded\nActiveState=active\n", True),
+    ("MainPID=0\nLoadState=loaded\nActiveState=activating\n", False),
+    ("MainPID=103\nLoadState=loaded\nActiveState=inactive\n", False),
+    ("MainPID=0\nLoadState=loaded\nActiveState=failed\n", False),
+    ("MainPID=0\nLoadState=loaded\n", False),
+    ("MainPID=invalid\nLoadState=loaded\nActiveState=active\n", False),
+])
+def test_prune_refuses_stale_or_uncertain_dispatcher(env, monkeypatch, dispatcher_state, old_process):
+    current = env / "releases" / CURRENT
+    old = env / "releases" / "20261028T200000Z-abcdef0"
+    old.mkdir()
+    real_resolve = Path.resolve
+
+    def resolve(path, *args, **kwargs):
+        if str(path) in ("/proc/101/cwd", "/proc/102/cwd"):
+            return current / "backend"
+        if str(path) == "/proc/103/cwd" and old_process:
+            return old / "backend"
+        return real_resolve(path, *args, **kwargs)
+
+    def systemctl(args, **kwargs):
+        service = args[-1]
+        if service == "schulpilot-repair-dispatcher.service":
+            return subprocess.CompletedProcess(args, 0, stdout=dispatcher_state)
+        return subprocess.CompletedProcess(args, 0, stdout={
+            "schulpilot-api.service": "101\n", "schulpilot-worker.service": "102\n",
+        }[service])
+
+    monkeypatch.setattr(Path, "resolve", resolve)
+    monkeypatch.setattr(prune.subprocess, "run", systemctl)
+    monkeypatch.setattr(prune, "BASE", env)
+    monkeypatch.setattr(prune, "RELEASES", env / "releases")
+    monkeypatch.setattr(prune.sys, "argv", ["prune", "--apply"])
+    assert prune.main() == 2
+    assert old.is_dir()
+    assert stage.check_lock(env)["operation"] == "prune"
+
+
+def test_prune_checks_real_dispatcher_process_directory(env, monkeypatch):
+    current = env / "releases" / CURRENT
+    old = env / "releases" / "20261028T200000Z-abcdef0"
+    (current / "backend").mkdir()
+    (old / "backend").mkdir(parents=True)
+    api = subprocess.Popen(["sleep", "30"], cwd=current / "backend")
+    dispatcher = subprocess.Popen(["sleep", "30"], cwd=old / "backend")
+    try:
+        def systemctl(args, **kwargs):
+            if args[-1] == "schulpilot-repair-dispatcher.service":
+                value = f"MainPID={dispatcher.pid}\nLoadState=loaded\nActiveState=active\n"
+            else:
+                value = f"{api.pid}\n"
+            return subprocess.CompletedProcess(args, 0, stdout=value)
+
+        monkeypatch.setattr(prune.subprocess, "run", systemctl)
+        with pytest.raises(prune.PruneError, match="repair-dispatcher.*outside current/previous"):
+            prune._assert_services_use_kept_releases({current})
+        assert old.is_dir()
+    finally:
+        for process in (api, dispatcher):
+            process.terminate()
+            process.wait(timeout=5)
+
+
 def test_simulated_expired_lease_with_open_staging_file(env):
     """Exercise simulated metadata; this is not an SSH disconnect test."""
     owner = os.geteuid()

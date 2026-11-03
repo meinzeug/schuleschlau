@@ -81,6 +81,27 @@ def test_goal_context_is_bounded_and_excluded_mappings_remain_explicitly_unknown
         assert all("Teilfertigkeit 5" not in g["label"] for g in topic["learning_goals"])
 
 
+def test_retried_success_with_possible_exposure_is_consistent_for_parent_goals(api, book):
+    unit_id = seed(book)
+    with DB.begin() as db:
+        db.add(report(unit_id))
+        # q0 already has an incorrect attempt; add a later correct one carrying
+        # the historical uncertainty marker. The earlier retry is known.
+        previous = db.scalar(select(Attempt).where(Attempt.unit_id == unit_id, Attempt.question_id == "q0"))
+        previous.created = 100
+        db.add(Attempt(unit_id=unit_id, question_id="q0", answer="synthetic correction", outcome="correct",
+            assisted=True, created=101, evaluation={"attempt_number": 2, "independence_uncertain": True}))
+    with DB() as db:
+        _, payload, _, _ = parent_insights.facts(db, db.get(Child, book["child"]["id"]))
+        topic = payload["topics"][0]
+        goal = topic["learning_goals"][0]
+        assert goal["practiced_tasks"] == topic["practiced_tasks"] == 3
+        assert goal["assisted_tasks"] == topic["assisted_tasks"] == 2
+        assert goal["uncertain_tasks"] == topic["uncertain_tasks"] == 1
+        assert goal["independent_tasks"] == topic["independent_tasks"] == 0
+        assert db.scalar(select(func.count()).select_from(Attempt)) == 4
+
+
 def test_prior_strategy_reports_stay_readable_without_driving_new_goal_context(api, book):
     seed(book)
     with DB.begin() as db:

@@ -132,6 +132,141 @@ class PreferencesFixture {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   testWidgets(
+    'stale child device controls cannot change a rotated session draft',
+    (tester) async {
+      final f = PreferencesFixture();
+      await f.show(tester);
+      await f.expand(tester);
+      final reminder = find.widgetWithText(
+        SwitchListTile,
+        'Fertige Lernrunden & Lernzeit',
+      );
+      final help = find.widgetWithText(
+        SwitchListTile,
+        'Wenn meine Eltern antworten',
+      );
+      final oldReminder = tester.widget<SwitchListTile>(reminder).onChanged!;
+      final oldHelp = tester.widget<SwitchListTile>(help).onChanged!;
+      final times = find.byType(DropdownButtonFormField<int>);
+      final oldStart = tester
+          .widget<DropdownButtonFormField<int>>(times.at(0))
+          .onChanged!;
+      final oldEnd = tester
+          .widget<DropdownButtonFormField<int>>(times.at(1))
+          .onChanged!;
+      f.state.api.token = 'synthetic-replacement-session';
+      oldReminder(false);
+      oldHelp(false);
+      oldStart(3);
+      oldEnd(4);
+      await tester.pump();
+      expect(tester.widget<SwitchListTile>(reminder).value, isTrue);
+      expect(tester.widget<SwitchListTile>(help).value, isTrue);
+      expect(find.text('Ruhezeit: 20:00–08:00'), findsWidgets);
+      expect(find.text('Noch nicht gespeichert'), findsNothing);
+      expect(f.state.settingsPush.saves, isEmpty);
+      await f.close(tester);
+    },
+  );
+  testWidgets(
+    'stale parent device controls cannot change a rotated session draft',
+    (tester) async {
+      final f = PreferencesFixture();
+      f.state.user = {'id': 'synthetic-parent', 'role': 'parent'};
+      f.state.settingsPush.nativeSettings = true;
+      await f.show(tester);
+      await f.expand(tester);
+      final calls = find.widgetWithText(
+        SwitchListTile,
+        'Familienanrufe auf diesem Gerät',
+      );
+      final summaries = find.widgetWithText(SwitchListTile, 'Tagesüberblick');
+      final oldCalls = tester.widget<SwitchListTile>(calls).onChanged!;
+      final oldSummaries = tester.widget<SwitchListTile>(summaries).onChanged!;
+      f.state.api.token = 'synthetic-replacement-session';
+      oldCalls(true);
+      oldSummaries(true);
+      await tester.pump();
+      expect(tester.widget<SwitchListTile>(calls).value, isFalse);
+      expect(tester.widget<SwitchListTile>(summaries).value, isFalse);
+      expect(find.text('Noch nicht gespeichert'), findsNothing);
+      expect(f.state.settingsPush.saves, isEmpty);
+      await f.close(tester);
+    },
+  );
+  testWidgets(
+    'old controls cannot change another account after a real account switch',
+    (tester) async {
+      final f = PreferencesFixture();
+      await f.show(tester);
+      await f.expand(tester);
+      final reminder = find.widgetWithText(
+        SwitchListTile,
+        'Fertige Lernrunden & Lernzeit',
+      );
+      final oldReminder = tester.widget<SwitchListTile>(reminder).onChanged!;
+      final times = find.byType(DropdownButtonFormField<int>);
+      final oldStart = tester
+          .widget<DropdownButtonFormField<int>>(times.first)
+          .onChanged!;
+      f.state.user = {'id': 'other-synthetic-child', 'role': 'child'};
+      f.state.notifyListeners();
+      await tester.pumpAndSettle();
+      await f.expand(tester);
+      oldReminder(false);
+      oldStart(3);
+      await tester.pump();
+      expect(tester.widget<SwitchListTile>(reminder).value, isTrue);
+      expect(find.text('Ruhezeit: 20:00–08:00'), findsWidgets);
+      expect(find.text('Noch nicht gespeichert'), findsNothing);
+      expect(f.state.settingsPush.saves, isEmpty);
+      await f.close(tester);
+    },
+  );
+  testWidgets(
+    'controls from a covered route or pending save cannot alter the draft',
+    (tester) async {
+      final f = PreferencesFixture();
+      await f.show(tester);
+      await f.expand(tester);
+      final reminder = find.widgetWithText(
+        SwitchListTile,
+        'Fertige Lernrunden & Lernzeit',
+      );
+      final oldReminder = tester.widget<SwitchListTile>(reminder).onChanged!;
+      final navigator = tester.state<NavigatorState>(
+        find.byType(Navigator).first,
+      );
+      unawaited(
+        navigator.push(
+          MaterialPageRoute<void>(
+            builder: (_) => const Scaffold(body: Text('Andere Seite')),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      oldReminder(false);
+      await tester.pump();
+      navigator.pop();
+      await tester.pumpAndSettle();
+      expect(tester.widget<SwitchListTile>(reminder).value, isTrue);
+      f.state.settingsPush.pending = Completer<void>();
+      final save = find.widgetWithText(ActionButton, 'Änderungen speichern');
+      await tester.ensureVisible(save);
+      await tester.tap(save);
+      await tester.pump();
+      oldReminder(false);
+      await tester.pump();
+      expect(f.state.settingsPush.saves.single['reminders'], isTrue);
+      expect(find.text('Noch nicht gespeichert'), findsNothing);
+      f.state.settingsPush.pending!.complete();
+      await tester.pumpAndSettle();
+      await f.expand(tester);
+      expect(tester.widget<SwitchListTile>(reminder).value, isTrue);
+      await f.close(tester);
+    },
+  );
+  testWidgets(
     'device edits survive resume while a clean view refreshes server preferences',
     (tester) async {
       final f = PreferencesFixture();

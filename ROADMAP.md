@@ -487,6 +487,14 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
 
 - [x] **P1 – Bewertung und Lernfortschritt über den gesamten Lebenszyklus prüfen**
 
+  **03.11.2026, Ergänzung:** Eine nach einem weiteren gespeicherten Versuch
+  richtig gelöste Aufgabe zählt auch bei einem älteren Unsicherheitsmerkmal
+  als unterstützt. Reflexionen werden getrennt geführt und nicht zusätzlich
+  als richtig oder falsch gezählt. Fach- und Elternauswertung verwenden diese
+  Unterscheidung konsistent, ohne frühere Antworten zu verändern. Sieben
+  gezielte künstliche Fälle bestanden auf SQLite und isoliertem PostgreSQL;
+  die breite Regression bestand auf beiden Datenbanken mit je 86 Fällen.
+
   Für richtige, falsche, unklare, unterstützte und erneut richtige Antworten sowie mehrere Runden und Geräte nachvollziehen, welche Aufgaben und Versuche gespeichert und wie sie gezählt werden. Brucherweiterung, verlangte Zähler-/Nennerdarstellung, eindeutige Faktoren, Auswahlindex und ausgeschöpfte neue Zahlenbeispiele gezielt prüfen.
 
   **Abnahme:** Ausgangsantworten und Hilfen bleiben erhalten, jede Aufgabe zählt genau einmal als Aufgabe und jeder Versuch als Versuch; unklare Modellurteile werden nicht als gesicherter Lernerfolg ausgegeben, und ein fehlender Beleg führt nicht zu erfundenen Aufgaben.
@@ -1017,6 +1025,14 @@ Bestandteil des bestehenden Buildvertrags.
   Toolchain-Warnungen sind dadurch nicht ersetzt.
 - [ ] **P0 – Deployment und Rückkehr belegen**
 
+  **03.11.2026, Bereinigung:** Vor dem Entfernen alter Releases wird nun auch
+  der optionale Reparatur-Dispatcher geprüft. Ein aktiver Dienst muss aus dem
+  aktuellen oder vorherigen Release laufen; instabile oder nicht ermittelbare
+  Zustände blockieren die Bereinigung. 77 isolierte Betriebs- und Stagingtests
+  mit 13 Untertests bestanden, einschließlich eines echten lokalen Prozesses
+  in einem künstlichen alten Release. Der produktive Rückweg und die vollständige
+  Koordination mit älteren Skripten bleiben offen.
+
   Betroffene Konfigurationen und Daten vorher sichern, Migrations- und Rückwärtskompatibilität prüfen, nur SCHULPILOT aktualisieren und vorheriges Release erhalten.
 
   **02.11.2026, weiterer Release:** `1.38.60+215` aus Commit `ed0d89e`
@@ -1336,6 +1352,21 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Benachrichtigung und direkte Zielnavigation vollständig prüfen**
 
+  **03.11.2026, Geräte und Filter:** Arten für Lernrunden, Klassenarbeiten,
+  Lerntage und Tageschecks sind im Filter unterscheidbar. Alte Schalter- und
+  Ruhezeit-Callbacks werden bei Konto-/Sitzungswechsel, verdeckter Route oder
+  laufendem Speichern verworfen. 59 Flutter-Widgettests bestanden, darunter
+  wirkliche Konto- und Routenwechsel innerhalb der Testumgebung. Dies belegt
+  weder eine native Pushzustellung noch ein Nachladen jenseits des Fensters.
+
+  **03.11.2026, veraltete Meldungen:** Ungültige oder bereits zusammengefasste
+  Vorbereitungen werden beim Nachrichtenabruf vor der sichtbaren Grenze
+  aussortiert. Stabile Blöcke prüfen höchstens 500 Nachrichten; ein künstlicher
+  Fall mit 60 ungültigen Meldungen und gleichem Zeitstempel zeigte anschließend
+  die korrekten 50 gültigen Nachrichten. 24 SQLite-Fälle sowie zwei gezielte
+  Fälle auf isoliertem PostgreSQL bestanden. Die feste Prüfgrenze kann weiterhin
+  ältere Einträge verdecken; eine echte Cursor-Fortsetzung bleibt offen.
+
   **03.11.2026, Elternhinweise:** Die Auswahl für den Prüfungstagescheck
   begrenzt sich auf Sitzungen nahe dem aktuellen UTC-Tag und berücksichtigt
   den tatsächlichen Kalendertag in der Zeitzone des jeweiligen Prüfungsplans.
@@ -1516,6 +1547,11 @@ Bestandteil des bestehenden Buildvertrags.
   **Abnahme:** Bericht mit nachvollziehbaren Fundstellen, Risikoeinstufung und Nachtests liegt vor; kritische und hohe Befunde sind behoben beziehungsweise vor jeglicher Freigabe durch die verantwortliche Stelle nachvollziehbar entschieden.
 
 - [ ] **P1 – Abnahmen systematisch und wiederholbar automatisieren**
+
+  **CI-Ergebnis:** Der vollständige GitHub-Lauf
+  [41626364796](https://github.com/meinzeug/schulpilot/actions/runs/41626364796)
+  für `ac067f4` war erfolgreich. Weitere Release- und Browserabnahmen bleiben
+  getrennt zu prüfen.
 
   **03.11.2026, CI-Untertests:** Im GitHub-Lauf
   [41591639492](https://github.com/meinzeug/schulpilot/actions/runs/41591639492)

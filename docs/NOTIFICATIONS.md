@@ -7,6 +7,12 @@ Kinder und berechtigte Eltern sehen bis zu 50 gespeicherte Neuigkeiten aus den
 letzten 30 Tagen. Beim Betriebsadmin öffnet sie ausschließlich `/admin/push`.
 Die Übersicht funktioniert ohne Geräte-Push und ohne Firebase-Initialisierung.
 
+Für Nachrichten werden zur Prüfung veralteter Quellen bis zu 500 Einträge in
+stabil sortierten Blöcken von höchstens 50 gelesen. Ungültige Vorbereitungen
+belegen keinen der 50 sichtbaren Plätze. Wird die Prüfgrenze erreicht, können
+ältere gültige Nachrichten weiterhin fehlen; dieser begrenzte Abruf ist keine
+Cursor-Fortsetzung für die Nutzeransicht.
+
 Die Prüfung vom 22.10.2026 trennt Googlekonfiguration, serverseitige Anmeldung
 und tatsächliche Geräteanzeige. Befunde, Korrekturen und Abnahme stehen in
 [FIREBASE_EVALUATION_2026_10_22.md](FIREBASE_EVALUATION_2026_10_22.md).

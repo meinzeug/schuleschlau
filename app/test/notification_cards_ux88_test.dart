@@ -428,4 +428,37 @@ void main() {
       expect(gets, 1);
     },
   );
+
+  scenario('notice filters distinguish round, exam and parent goal events', (
+    tester,
+  ) async {
+    var gets = 0;
+    await display(tester, (request) async {
+      expect(request.method, 'GET');
+      gets++;
+      return reply({
+        'items': [
+          {...notice('round', read: true), 'kind': 'round_ready'},
+          {...notice('exam', read: true), 'kind': 'exam_ready'},
+          {...notice('day', read: true), 'kind': 'exam_reminder'},
+          {...notice('goal', read: true), 'kind': 'parent_goal'},
+        ],
+        'unread': 0,
+      });
+    });
+    await openParentDetails103(tester, 'Suche & Neuigkeitenfilter');
+    await tester.tap(find.text('Alle Arten'));
+    await tester.pumpAndSettle();
+    expect(find.text('Lernrunden bereit'), findsOneWidget);
+    expect(find.text('Klassenarbeit: Vorbereitung bereit'), findsOneWidget);
+    expect(find.text('Klassenarbeit: Lerntage'), findsOneWidget);
+    expect(find.text('Tageschecks zu Lernzielen'), findsOneWidget);
+    await tester.tap(find.text('Tageschecks zu Lernzielen').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Künstliche Meldung goal'), findsOneWidget);
+    expect(find.text('Künstliche Meldung round'), findsNothing);
+    expect(find.text('Künstliche Meldung exam'), findsNothing);
+    expect(find.text('Künstliche Meldung day'), findsNothing);
+    expect(gets, 1);
+  });
 }
