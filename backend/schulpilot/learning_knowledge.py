@@ -144,7 +144,7 @@ def evidence(db, unit, sources):
         state["confidence"] = "repeated_recall" if secure else "initial_evidence" if state["independent"] else "support_needed" if state["needs_practice"] or state["supported"] else "unverified"
         stamp = review_anchors.get(state["id"])
         anchor = datetime.fromtimestamp(stamp, zone).date() if stamp else None
-        state["review_due"] = planned_review(child, unit.subject, days,
+        state["review_due"] = planned_review(child, unit.subject, recent_days,
             difficult=not secure and bool(state["needs_practice"] or state["supported"]), anchor=anchor) if stamp else None
         state["evidence_total"] = len(state["evidence_refs"])
         state["evidence_refs"] = state["evidence_refs"][-12:]

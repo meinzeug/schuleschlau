@@ -115,6 +115,73 @@ def test_displaced_round_receipt_rechecks_source_and_session(api, case):
     assert api.post("/api/notifications/inbox/read", json={"ids": [item["id"]]}).status_code == 404
 
 
+def test_invalid_newer_jobs_do_not_hide_a_real_ready_notice(api, case):
+    # A valid older notice can be behind more than one page of invalid jobs.
+    # Jobs sharing the same second also exercise the deterministic ID cursor.
+    with DB.begin() as db:
+        db.get(Job, case["job"]).finished = int(now()) - 10
+    assert remember(case)
+    stamp = int(now())
+    with DB.begin() as db:
+        db.add_all([
+            Job(child_id=case["child"], kind="unit", status="completed", finished=stamp,
+                idempotency=uid(), payload={ready.RECEIPTS: [{"message_id": uid()}]}, result={})
+            for _ in range(110)
+        ])
+    response = api.get("/api/notifications/inbox")
+    assert response.status_code == 200
+    notice = next(item for item in response.json()["items"] if item["kind"] == "round_ready")
+    assert notice["route"] == "/unit/" + case["unit"]
+    assert api.post("/api/notifications/inbox/read", json={"ids": [notice["id"]]}).status_code == 200
+    with DB() as db:
+        assert db.scalar(select(func.count()).select_from(Message)) == 1
+
+
+def test_ready_notice_scan_is_bounded(api, case, monkeypatch):
+    monkeypatch.setattr(ready, "READY_JOB_SCAN_LIMIT", 100)
+    with DB.begin() as db:
+        db.get(Job, case["job"]).finished = int(now()) - 10
+    assert remember(case)
+    with DB.begin() as db:
+        db.add_all([
+            Job(child_id=case["child"], kind="unit", status="completed", finished=int(now()),
+                idempotency=uid(), payload={ready.RECEIPTS: [{"message_id": uid()}]}, result={})
+            for _ in range(101)
+        ])
+    assert not any(item["kind"] == "round_ready" for item in api.get("/api/notifications/inbox").json()["items"])
+    # A bounded listing still permits a previously displayed valid notice to
+    # be acknowledged after rechecking its actual source and authority.
+    with DB() as db:
+        mid = db.get(Job, case["job"]).payload[ready.RECEIPTS][0]["message_id"]
+    assert api.post("/api/notifications/inbox/read", json={"ids": ["round_ready:" + mid]}).status_code == 200
+
+
+def test_ready_notices_use_event_id_for_same_second_across_job_batches(api, case):
+    # Jobs and their derived message IDs have unrelated sort orders. More than
+    # 100 valid jobs in one second must not truncate before sorting receipts.
+    with DB.begin() as db:
+        original = db.get(Job, case["job"])
+        stamp = int(now())
+        original.finished = stamp
+        origin = original.payload[ready.ORIGIN]
+        jobs = [original]
+        for _ in range(105):
+            job = Job(child_id=case["child"], kind="unit", status="completed", finished=stamp,
+                idempotency=uid(), payload={ready.ORIGIN: origin}, result={"unit_id": case["unit"]})
+            db.add(job)
+            jobs.append(job)
+        db.flush()
+        for job in jobs:
+            assert ready.remember(db, job)
+        expected = sorted(
+            ("round_ready:" + job.payload[ready.RECEIPTS][0]["message_id"] for job in jobs),
+            reverse=True,
+        )[:50]
+    response = api.get("/api/notifications/inbox")
+    assert response.status_code == 200
+    assert [item["id"] for item in response.json()["items"]] == expected
+
+
 @pytest.mark.parametrize(
     "change",
     [

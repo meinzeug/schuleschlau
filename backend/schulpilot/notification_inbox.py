@@ -96,7 +96,7 @@ def recent_events(db, user, current=None, *, direct_messages=False, direct_exams
                 Membership.user_id == user.id, Membership.permission.in_(["owner", "manage"]))))
         if call_ids is not None:
             calls = calls.where(FamilyCall.id.in_(call_ids))
-        for call in db.scalars(calls.order_by(FamilyCall.created.desc()).limit(LIMIT)):
+        for call in db.scalars(calls.order_by(FamilyCall.created.desc(), FamilyCall.id.desc()).limit(LIMIT)):
             if user.id not in eligible_parents(db, call.family_id):
                 continue
             status, _ = effective(db, call, current)
@@ -225,7 +225,9 @@ def recent_events(db, user, current=None, *, direct_messages=False, direct_exams
             query = query.where(model.id.in_(model_ids))
         if model == VocabularyImport:
             query = query.where(VocabularyImport.status != "confirmed")
-        rows = db.execute(query.order_by(Job.finished.desc(), Job.id.desc()).limit(LIMIT))
+        # The merged inbox sorts ties by the notification ID (the model ID),
+        # not by its separate processing-job ID. Limit only after that order.
+        rows = db.execute(query.order_by(Job.finished.desc(), model.id.desc()).limit(LIMIT))
         for row, job in rows:
             if model == VocabularyImport and row.status == "confirmed":
                 continue

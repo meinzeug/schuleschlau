@@ -212,7 +212,7 @@ def events(db, user_id, current=None, *, event_ids=None, child_ids=None):
         query = query.where(ParentGoalReminderEvent.id.in_(event_ids))
     if child_ids is not None:
         query = query.where(ParentGoalReminderEvent.child_id.in_(child_ids))
-    return list(db.scalars(query.order_by(ParentGoalReminderEvent.created.desc(), ParentGoalReminderEvent.id).limit(50)))
+    return list(db.scalars(query.order_by(ParentGoalReminderEvent.created.desc(), ParentGoalReminderEvent.id.desc()).limit(50)))
 
 
 def same_child_day(event, child, current):

@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 import pytest
+from schulpilot import coaching
 from schulpilot.db import DB, Attempt, Child, LearningUnit, Material, UnitSource, now
 from schulpilot.learning_knowledge import evidence
 from sqlalchemy import select
@@ -148,6 +149,35 @@ def test_uncertain_independence_does_not_postpone_source_scoped_recall(profile):
         assert after["review_due"] == before["review_due"]
         assert after["successful_check_dates"] == before["successful_check_dates"]
         assert after["confidence"] == "repeated_recall"
+
+
+def test_source_scoped_spacing_uses_only_check_days_after_latest_difficulty(profile):
+    _, uid, mid, _, _, child = profile
+    with DB.begin() as db:
+        stamp = int(now())
+        root, source = db.get(LearningUnit, uid), db.get(Material, mid)
+        template = copy.deepcopy(root.questions[0])
+        db.add(Attempt(unit_id=uid, question_id="sum", answer="fixture", outcome="incorrect",
+            assisted=False, created=stamp - 10 * 86400))
+        for index, days in enumerate((40, 35, 30, 25, 20, 9, 5, 1)):
+            question = dict(template, id="recall", prompt=f"Berechne 1/{index + 3} + 1/{index + 4}.")
+            unit = LearningUnit(child_id=child["id"], material_id=mid, subject="Mathematik", topic="Brüche",
+                explanation="Künstliche Wiederholung.", questions=[question], learning_root_id=uid,
+                followup_of=uid, round_kind="spaced_review", provider="synthetic-fixture")
+            db.add(unit)
+            db.flush()
+            db.add(UnitSource(unit_id=unit.id, material_id=mid, revision=source.revision))
+            db.add(Attempt(unit_id=unit.id, question_id="recall", answer="fixture", outcome="correct",
+                assisted=False, created=stamp - days * 86400))
+        db.flush()
+        state = next(row for row in evidence(db, root, [source]) if row["label"] == "Brüche addieren")
+        assert state["confidence"] == "repeated_recall" and len(state["successful_check_dates"]) == 8
+        zone = ZoneInfo(db.get(Child, child["id"]).preferences.get("timezone", "Europe/Berlin"))
+        anchor = datetime.fromtimestamp(stamp - 86400, zone).date()
+        assert state["review_due"] == coaching.planned_review(db.get(Child, child["id"]), "Mathematik",
+            state["successful_check_dates"][-3:], anchor=anchor)
+        assert state["review_due"] != coaching.planned_review(db.get(Child, child["id"]), "Mathematik",
+            state["successful_check_dates"], anchor=anchor)
 
 
 def test_earliest_answer_not_unit_creation_sets_duplicate_recall_day(profile):

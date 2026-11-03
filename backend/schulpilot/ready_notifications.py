@@ -8,7 +8,7 @@ import copy
 import re
 
 from fastapi import HTTPException
-from sqlalchemy import select
+from sqlalchemy import select, tuple_
 
 from .db import DB, Assignment, Child, Job, LearningUnit, Material, Message, SchoolDay, UnitSource, now
 from .providers import ProviderError
@@ -20,6 +20,11 @@ ORIGIN = "completion_origin"
 RECEIPTS = "ready_notice_receipts"
 UNIT_PATH_PATTERN = r"/unit/[a-f0-9]{32}"
 ROUND_KINDS = ("unit", "coach_practice", "study_block", "controller_check")
+# Invalidated source/session bindings must not fill the whole visible window.
+# Bound the work on each read and delivery pass, even for corrupted histories.
+READY_JOB_SCAN_LIMIT = 500
+READY_JOB_BATCH = 100
+READY_VALID_JOB_LIMIT = 100
 
 
 def valid_unit_path(value):
@@ -157,13 +162,37 @@ def events_for_child(db, child, current, *, retention=86400, message_ids=None):
             Job.finished <= current,
             Job.payload[RECEIPTS][0]["message_id"].as_string().is_not(None),
         )
-        .order_by(Job.finished.desc(), Job.id)
+        .order_by(Job.finished.desc(), Job.id.desc())
     )
-    if message_ids is None:
-        query = query.limit(100)
-    else:
+    if message_ids is not None:
         query = query.where(Job.finished.in_(timestamps))
-    for job in db.scalars(query):
+
+    def candidate_jobs():
+        if message_ids is not None:
+            yield from db.scalars(query)
+            return
+        remaining, cursor = READY_JOB_SCAN_LIMIT, None
+        while remaining:
+            batch_query = query
+            if cursor is not None:
+                batch_query = batch_query.where(tuple_(Job.finished, Job.id) < cursor)
+            jobs = list(db.scalars(batch_query.limit(min(READY_JOB_BATCH, remaining))))
+            if not jobs:
+                return
+            for job in jobs:
+                yield job
+            remaining -= len(jobs)
+            if len(jobs) < READY_JOB_BATCH:
+                return
+            cursor = (jobs[-1].finished, jobs[-1].id)
+
+    valid_jobs, last_valid_timestamp = 0, None
+    for job in candidate_jobs():
+        # Receipt IDs are derived independently of job IDs. Once the valid
+        # job target is reached, finish the whole boundary second (within the
+        # scan limit) so the inbox can select its true newest IDs for ties.
+        if last_valid_timestamp is not None and job.finished < last_valid_timestamp:
+            break
         receipts = (job.payload.get(RECEIPTS) or [])[:24]
         if message_ids is not None and not any(r.get("message_id") in message_ids for r in receipts):
             continue
@@ -173,6 +202,7 @@ def events_for_child(db, child, current, *, retention=86400, message_ids=None):
         except (ProviderError, HTTPException):
             continue
         allowed = set(unit_ids(job))
+        previous_count = len(result)
         for receipt in receipts:
             identifier = receipt.get("unit_id")
             mid = receipt.get("message_id")
@@ -203,7 +233,11 @@ def events_for_child(db, child, current, *, retention=86400, message_ids=None):
                         "route": route,
                     }
                 )
-    return result
+        if len(result) > previous_count:
+            valid_jobs += 1
+        if message_ids is None and valid_jobs >= READY_VALID_JOB_LIMIT and last_valid_timestamp is None:
+            last_valid_timestamp = job.finished
+    return sorted(result, key=lambda item: (item["created"], item["id"]), reverse=True)
 
 
 def delivery_key(device, event):

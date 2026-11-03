@@ -11,6 +11,27 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend"))
 
+LIVE_UPLOADS = Path("/var/lib/schulpilot/uploads")
+
+
+def isolated_uploads(path: Path) -> Path:
+    """Reject the live tree and its parents, including through path aliases."""
+    if path.is_symlink():
+        raise ValueError("The restore upload directory must not be a symlink")
+    try:
+        resolved = path.resolve(strict=True)
+        live_paths = {LIVE_UPLOADS.resolve()}
+        if os.environ.get("DATA_DIR"):
+            live_paths.add((Path(os.environ["DATA_DIR"]) / "uploads").resolve())
+    except (OSError, RuntimeError) as exc:
+        raise ValueError("Cannot resolve restore upload directory") from exc
+    if not resolved.is_dir():
+        raise ValueError("Restore uploads must be an existing directory")
+    for live in live_paths:
+        if resolved == live or live in resolved.parents or resolved in live.parents:
+            raise ValueError("The live upload tree is not accepted; use a separate restore copy")
+    return resolved
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -19,8 +40,10 @@ def main():
     parser.add_argument("--master-key-file", type=Path, required=True)
     parser.add_argument("--uploads", type=Path, required=True)
     args = parser.parse_args()
-    if args.uploads.resolve() == Path("/var/lib/schulpilot/uploads") or args.uploads.is_symlink():
-        parser.error("The live upload directory is not accepted; use a separate restore copy")
+    try:
+        args.uploads = isolated_uploads(args.uploads)
+    except ValueError as exc:
+        parser.error(str(exc))
     from sqlalchemy.engine import make_url
 
     if not (make_url(args.database_url).database or "").endswith("_restore_test"):

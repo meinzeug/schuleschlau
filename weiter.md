@@ -2,6 +2,15 @@
 
 Stand: 3. November 2026. Diese Datei ist eine Arbeitsübergabe, kein Ersatz für die aktuellen Nutzeraufträge oder `AGENTS.md`. Prüfe alle Zustände erneut; insbesondere Server, Git, laufende Jobs und Roadmap können sich inzwischen geändert haben. Keine Zugangsdaten, Tokens, privaten Schülerdaten oder Bildinhalte in diese Datei, Logs oder Git schreiben.
 
+**Aktuelle Ergänzung:** Wiederholungsintervalle betrachten Prüftage seit der
+letzten Schwierigkeit. Lernrundenmeldungen durchsuchen begrenzt weitere gültige
+Aufträge; andere Inboxquellen sortieren vor der Begrenzung stabil. Der lokale
+Restoreabgleich schützt auch Alias-, Unter- und Oberpfade des bekannten
+produktiven Uploadverzeichnisses. Das beweist weder getrennte Datenbanken noch
+das vollständige Nachladen älterer Meldungen. Der vollständige GitHub-Lauf
+41653037943 für `169fe59` war erfolgreich. Den tatsächlichen Release- und
+CI-Stand vor der nächsten Arbeit erneut prüfen.
+
 **Aktuelle Ergänzung:** Die Lernstandszähler behandeln Reflexionen und
 Wiederholungsversuche einheitlicher, die Gerätehinweise schützen veraltete
 Callbacks und die Glocke überspringt veraltete Nachrichten in begrenzten Blöcken.

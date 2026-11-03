@@ -234,8 +234,8 @@ def evidence(db, child_id, competence_ids=None):
         secure = len(current) >= 3 and (date.fromisoformat(current[-1]) - date.fromisoformat(current[0])).days >= 7
         subject = db.get(Subject, identity(rows[state["id"]]["subject_key"]))
         stamp = review_anchors.get(state["id"])
-        state["review_due"] = planned_review(child, subject.title if subject else "", days,
-            difficult=bool(state["needs_practice"] or state["supported"]),
+        state["review_due"] = planned_review(child, subject.title if subject else "", current,
+            difficult=not secure and bool(state["needs_practice"] or state["supported"]),
             anchor=datetime.fromtimestamp(stamp, zone).date()) if stamp else None
         today = datetime.now(zone).date().isoformat()
         state["status"] = "review_due" if secure and state["review_due"] and state["review_due"] <= today else "repeated_independent" if secure else "building" if state["tasks"] - state["reflection_tasks"] else "unknown"

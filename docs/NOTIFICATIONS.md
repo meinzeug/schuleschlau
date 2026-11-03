@@ -280,6 +280,13 @@ nicht weiter als bereit angeboten. Lesen der Glocke erzeugt weder Hinweise,
 KI-Aufträge noch Lernnachweise. Lesemarkierungen bleiben ausdrücklich und
 kontogebunden.
 
+Für Rundenvorbereitungen werden je Kind höchstens 500 abgeschlossene Aufträge
+in Blöcken geprüft. Ungültige Quellen- oder Sitzungsbindungen verdecken dabei
+nicht schon nach den ersten 100 Aufträgen gültige ältere Hinweise. Bei gleichem
+Abschlusszeitpunkt wird innerhalb dieses Suchfensters nach Meldungskennung
+sortiert. Mehr als 500 Kandidaten können weiterhin ältere oder bei gleichem
+Zeitpunkt andere Meldungen verdecken; eine Cursor-Fortsetzung ist das nicht.
+
 Auch die Fertigmeldung des Foto-Tages kann direkt die erste noch nicht
 gestartete, verwendbare Runde aus genau dessen abgeschlossenem Paket öffnen.
 Fehlt ein solches Ziel, bleibt der passende ursprüngliche Schultag erreichbar;

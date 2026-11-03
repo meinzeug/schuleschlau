@@ -370,6 +370,49 @@ def test_later_difficulty_then_one_success_does_not_restore_secure_entry(source)
         assert db.query(Attempt).count() == 5
 
 
+def test_review_spacing_recovers_after_new_independent_checks_and_reacts_to_new_difficulty(source):
+    _, child, mid = source
+    with DB.begin() as db:
+        stamp = int(now())
+        zone = ZoneInfo(db.get(Child, child["id"]).preferences.get("timezone", "Europe/Berlin"))
+        original = dated_expansion_attempt(db, child["id"], mid, 0, stamp - 10 * 86400, outcome="incorrect")
+        attempts = [dated_expansion_attempt(db, child["id"], mid, index, stamp - days * 86400)
+            for index, days in enumerate((9, 5, 1), start=1)]
+        state = competences.evidence(db, child["id"], ["math.fractions.expand"])[0]
+        assert state["confidence"] == "repeated_recall"
+        assert state["needs_practice"] == 1 and len(state["successful_check_dates"]) == 3
+        anchor = datetime.fromtimestamp(attempts[-1].created, zone).date()
+        assert state["review_due"] == coaching.planned_review(db.get(Child, child["id"]), "Mathematik",
+            state["successful_check_dates"], anchor=anchor)
+        assert state["review_due"] != coaching.planned_review(db.get(Child, child["id"]), "Mathematik",
+            state["successful_check_dates"], difficult=True, anchor=anchor)
+        later = dated_expansion_attempt(db, child["id"], mid, 4, stamp, outcome="incorrect")
+        updated = competences.evidence(db, child["id"], ["math.fractions.expand"])[0]
+        assert updated["confidence"] == "initial_evidence" and updated["needs_practice"] == 2
+        assert updated["review_due"] == coaching.planned_review(db.get(Child, child["id"]), "Mathematik",
+            updated["successful_check_dates"], difficult=True, anchor=datetime.fromtimestamp(stamp, zone).date())
+        assert {"attempt:" + a.id for a in [original, *attempts, later]} == set(updated["evidence_refs"])
+
+
+def test_review_spacing_ignores_check_days_from_before_a_later_difficulty(source):
+    _, child, mid = source
+    with DB.begin() as db:
+        stamp = int(now())
+        for index, days in enumerate((40, 35, 30, 25, 20)):
+            dated_expansion_attempt(db, child["id"], mid, index, stamp - days * 86400)
+        dated_expansion_attempt(db, child["id"], mid, 5, stamp - 10 * 86400, outcome="incorrect")
+        for index, days in enumerate((9, 5, 1), start=6):
+            dated_expansion_attempt(db, child["id"], mid, index, stamp - days * 86400)
+        state = competences.evidence(db, child["id"], ["math.fractions.expand"])[0]
+        assert state["confidence"] == "repeated_recall" and len(state["successful_check_dates"]) == 8
+        zone = ZoneInfo(db.get(Child, child["id"]).preferences.get("timezone", "Europe/Berlin"))
+        anchor = datetime.fromtimestamp(stamp - 86400, zone).date()
+        assert state["review_due"] == coaching.planned_review(db.get(Child, child["id"]), "Mathematik",
+            state["successful_check_dates"][-3:], anchor=anchor)
+        assert state["review_due"] != coaching.planned_review(db.get(Child, child["id"]), "Mathematik",
+            state["successful_check_dates"], anchor=anchor)
+
+
 @pytest.mark.parametrize("assisted", [True, False])
 def test_possible_solution_exposure_is_uncertain_and_preserves_prior_evidence(source, assisted):
     _, child, mid = source

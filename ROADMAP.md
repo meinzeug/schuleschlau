@@ -509,6 +509,15 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
 
 - [ ] **P1 – Abruf und Lernplanung nachvollziehbar abnehmen**
 
+  **03.11.2026, Wiederholungsabstand:** Fach- und Quellenauswertung planen
+  den nächsten Abruf anhand selbstständiger Prüftage nach der letzten
+  Schwierigkeit. Alte Schwierigkeiten verkürzen ein nach drei Prüftagen über
+  sieben Tage erneut gefestigtes Thema nicht dauerhaft; alte Prüftage vor
+  einer späteren Schwierigkeit verlängern das neue Intervall nicht. Die
+  ursprünglichen Nachweise bleiben unverändert. Je 70 künstliche Fälle
+  bestanden auf SQLite und isoliertem PostgreSQL; die mobile Mehrtagesabnahme
+  bleibt offen.
+
   **03.11.2026, Fachzuordnung:** Gleichnamige Themen verschiedener Fächer
   unterdrücken einander bei fälligen Wiederholungen und bestätigten Heftseiten
   nicht mehr. Wiederholungen verweisen nur auf eine abgeschlossene Runde des
@@ -863,6 +872,13 @@ Die folgenden Punkte beschreiben ausstehende, wiederholbare Betriebs- und Freiga
   und isoliertem PostgreSQL. Dies ergänzt die Datenmatrix, schließt aber die
   ungeprüften externen Aufbewahrungsfristen nicht.
 - [x] **P0 – Wiederherstellung praktisch üben**
+
+  **03.11.2026, ergänzende Schutzprüfung:** Der lokale Löschjournalabgleich
+  lehnt das produktive Uploadverzeichnis und dessen Eltern-/Unterverzeichnisse
+  auch nach Auflösung von Pfad-Aliasen ab. Ein beim Aufruf gesetztes `DATA_DIR`
+  wird ebenso berücksichtigt. 17 isolierte Tests bestanden; die Erkennung ist
+  kein Beweis für eine getrennte Datenbank oder für unbekannte Datenpfade.
+  Ein erneuter produktiver Wiederherstellungslauf wurde nicht durchgeführt.
 
   Verschlüsselte Sicherung in eine separate Datenbank einspielen, aktuelles authentifiziertes Löschjournal und Rechteänderungen abgleichen, alte Sitzungen und Einladungs-/Reset-Tokens widerrufen sowie Verbrauch und Aufbewahrungsfristen prüfen.
 
@@ -1352,6 +1368,16 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Benachrichtigung und direkte Zielnavigation vollständig prüfen**
 
+  **03.11.2026, Bereitmeldungen und Sortierung:** Der Abruf überprüft bis zu
+  500 gespeicherte Lernrundenaufträge, damit ungültige neue Aufträge ältere
+  gültige Hinweise nicht schon nach 100 Kandidaten verdecken. Bei identischer
+  Sekunde wird innerhalb dieser Grenze nach Meldungskennung sortiert. Drei
+  künstliche Fälle bestanden auf SQLite und isoliertem PostgreSQL. Bei Eltern-
+  Tageschecks, Sprachprojekten und Familienanrufen wird die Kennung vor der
+  Begrenzung entsprechend der gemeinsamen Anzeige sortiert; drei gezielte
+  Fälle bestanden ebenfalls auf beiden Datenbanken. Die Begrenzung auf 500
+  Kandidaten und fehlendes Cursor-Nachladen bleiben ausdrücklich offen.
+
   **03.11.2026, Geräte und Filter:** Arten für Lernrunden, Klassenarbeiten,
   Lerntage und Tageschecks sind im Filter unterscheidbar. Alte Schalter- und
   Ruhezeit-Callbacks werden bei Konto-/Sitzungswechsel, verdeckter Route oder
@@ -1547,6 +1573,11 @@ Bestandteil des bestehenden Buildvertrags.
   **Abnahme:** Bericht mit nachvollziehbaren Fundstellen, Risikoeinstufung und Nachtests liegt vor; kritische und hohe Befunde sind behoben beziehungsweise vor jeglicher Freigabe durch die verantwortliche Stelle nachvollziehbar entschieden.
 
 - [ ] **P1 – Abnahmen systematisch und wiederholbar automatisieren**
+
+  **CI-Ergebnis:** Der vollständige GitHub-Lauf
+  [41653037943](https://github.com/meinzeug/schulpilot/actions/runs/41653037943)
+  für `169fe59` war erfolgreich. Der Operationsjob enthält zusätzlich die
+  neuen isolierten Prüfungen für den Uploadpfad des Wiederherstellungsabgleichs.
 
   **CI-Ergebnis:** Der vollständige GitHub-Lauf
   [41626364796](https://github.com/meinzeug/schulpilot/actions/runs/41626364796)
