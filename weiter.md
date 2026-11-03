@@ -2,6 +2,14 @@
 
 Stand: 3. November 2026. Diese Datei ist eine Arbeitsübergabe, kein Ersatz für die aktuellen Nutzeraufträge oder `AGENTS.md`. Prüfe alle Zustände erneut; insbesondere Server, Git, laufende Jobs und Roadmap können sich inzwischen geändert haben. Keine Zugangsdaten, Tokens, privaten Schülerdaten oder Bildinhalte in diese Datei, Logs oder Git schreiben.
 
+**Aktuelle Ergänzung:** Lernplanung unterscheidet gleichnamige Themen nach
+Fach. Elternhinweise für heutige Prüfungssitzungen werden nicht mehr durch
+100 ältere Pläne verdeckt. Die CI-Ergebnisprüfung berücksichtigt zusätzliche
+pytest-9-Untertestmeldungen; der GitHub-Lauf 41591639492 bleibt fehlgeschlagen,
+bis ein späterer vollständiger Lauf beobachtet wird. Die zugehörigen großen
+Roadmap-Abnahmen bleiben offen. Produktivstand und CI vor der nächsten Arbeit
+erneut prüfen; keinen erfolgreichen Release allein aus dieser Notiz ableiten.
+
 **Neu seit dem Release f09bce0:** Die Lernstandsauswertung behandelt unklare
 Selbstständigkeit und wiederholte Bruchaufgaben konservativer; die Adminansicht
 schützt Kostenentwürfe vor verspäteten Antworten und erzeugt im Web gültige

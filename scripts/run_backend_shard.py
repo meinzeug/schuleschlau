@@ -102,8 +102,19 @@ class ShardPlugin:
         self._external_deselection = False
         self._partition_ready = False
         self.terminal_reports = []
+        self.failed_subtests = False
+        self.incomplete_subtests = set()
 
     def pytest_runtest_logreport(self, report):
+        # pytest 9 emits an additional call report for every unittest/pytest
+        # subtest. These reports share the enclosing item's node ID and are
+        # not separate collected items. A failed subtest still invalidates the
+        # receipt even if another plugin were to alter the final exit code.
+        if isinstance(report, pytest.SubtestReport):
+            self.failed_subtests |= report.failed
+            if report.skipped:
+                self.incomplete_subtests.add(report.nodeid)
+            return
         # A test may finish at setup (skip/error) or at the call phase. A
         # teardown failure still makes pytest return nonzero. Keep identities,
         # not test content or private fixture data, in the in-memory record.
@@ -111,6 +122,8 @@ class ShardPlugin:
             outcome = report.outcome
             if hasattr(report, "wasxfail"):
                 outcome = {"skipped": "xfailed", "passed": "xpassed"}.get(outcome, outcome)
+            if report.nodeid in self.incomplete_subtests and outcome in {"passed", "xpassed"}:
+                outcome = "skipped"
             self.terminal_reports.append((report.nodeid, outcome))
 
     def pytest_deselected(self, items):
@@ -186,6 +199,10 @@ def main(argv=None):
         return exit_code
     if exit_code or plugin.partition is None:
         return exit_code or 2
+
+    if plugin.failed_subtests:
+        print("Backend shard contains a failing subtest", file=sys.stderr)
+        return 2
 
     partition = plugin.partition
     terminal_ids = [nodeid for nodeid, _ in plugin.terminal_reports]

@@ -86,9 +86,9 @@ def activity(child, clock, seconds):
         db.add(Activity(child_id=child["id"], kind="active_time", detail={"seconds": seconds}, created=clock - 60))
 
 
-def exam(child, clock, *, completed=0, rounds=2, offset=0, archived=False):
+def exam(child, clock, *, completed=0, rounds=2, offset=0, archived=False, exam_id=None):
     with DB.begin() as db:
-        value = Exam(child_id=child["id"], title="PRIVATE TITLE", purpose="preparation", kind="test",
+        value = Exam(id=exam_id or uuid.uuid4().hex, child_id=child["id"], title="PRIVATE TITLE", purpose="preparation", kind="test",
             subject="Mathematik", timezone="Europe/Berlin", revision=4, plan_revision=2, minutes=15,
             topics=[], schedule={}, reminders=False, archived=archived, create_key=uuid.uuid4().hex,
             request_digest="synthetic")
@@ -259,6 +259,40 @@ def test_plan_revision_replacement_excludes_old_session(api, household, clock):
     assert event_count() == 0
 
 
+def test_open_exam_is_not_hidden_by_more_than_100_older_plans(api, household, clock):
+    save(api, household, daily_minimum=False)
+    child = household[1]
+    with DB.begin() as db:
+        for number in range(101):
+            db.add(Exam(id=f"{number:032x}", child_id=child["id"], title="Old synthetic plan",
+                purpose="preparation", kind="test", subject="Mathematik", timezone="Europe/Berlin",
+                revision=1, plan_revision=1, minutes=15, topics=[], schedule={}, reminders=False,
+                archived=False, create_key=f"old-plan-{number}", request_digest="synthetic"))
+    exam_id, session_id = exam(child, clock, exam_id="f" * 32)
+    sweep(clock)
+    with DB() as db:
+        event = db.scalar(select(ParentGoalReminderEvent))
+        assert event and event.exam_sessions == [{"exam_id": exam_id, "session_id": session_id, "plan_revision": 2}]
+        assert db.scalar(select(func.count()).select_from(Job)) == 0
+        assert db.scalar(select(func.count()).select_from(Usage)) == 0
+
+
+@pytest.mark.parametrize("zone,hour", [("Pacific/Kiritimati", 17), ("Pacific/Pago_Pago", 0)])
+def test_exam_session_today_uses_exam_timezone_at_utc_day_boundary(api, household, clock, zone, hour):
+    clock = int(datetime(2026, 10, 27, hour, 5, tzinfo=ZoneInfo("UTC")).timestamp())
+    child = household[1]
+    exam_id, session_id = exam(child, clock)
+    with DB.begin() as db:
+        value = db.get(Exam, exam_id)
+        value.timezone = zone
+        slot = db.get(ExamSession, session_id)
+        slot.date = datetime.fromtimestamp(clock, ZoneInfo(zone)).date().isoformat()
+        rule = ParentGoalReminder(user_id=household[0]["id"], child_id=child["id"],
+            daily_minimum=False, exam_sessions=True)
+        facts = reminders.open_facts(db, db.get(Child, child["id"]), rule, clock)
+        assert facts["exam_sessions"] == [{"exam_id": exam_id, "session_id": session_id, "plan_revision": 2}]
+
+
 def test_schedule_day_time_dedupe_and_no_catchup(api, household, clock):
     owner, child = household
     save(api, household, time="18:10")
@@ -408,6 +442,28 @@ def test_exam_finished_or_plan_replaced_before_send_suppresses_warning(api, hous
     with DB() as db:
         assert db.scalar(select(PushDelivery)).status == "suppressed"
         assert db.get(ExamSession, slot_id).exam_revision == 2
+
+
+def test_finishing_all_exam_rounds_before_delivery_suppresses_reminder(api, household, clock, tmp_path, monkeypatch):
+    enable(tmp_path)
+    save(api, household, daily_minimum=False)
+    _, slot_id = exam(household[1], clock)
+    device(api)
+    sweep(clock)
+    with DB.begin() as db:
+        rows = list(db.scalars(select(ExamRound).where(ExamRound.session_id == slot_id)))
+        assert len(rows) == 2
+        for row in rows:
+            unit = LearningUnit(child_id=household[1]["id"], subject="Mathematik", topic="Synthetic topic",
+                explanation="Synthetic explanation", questions=[], status="completed", provider="synthetic")
+            db.add(unit)
+            db.flush()
+            row.unit_id = unit.id
+    sent = []
+    monkeypatch.setattr(push, "send_fcm", lambda *a, **kw: sent.append(a))
+    assert push.deliver_one(DB) and not sent
+    with DB() as db:
+        assert db.scalar(select(PushDelivery)).status == "suppressed"
 
 
 def test_multiple_children_are_deduped_and_unrelated_child_quiet_is_not_target_ttl(api, household, clock, tmp_path, monkeypatch):

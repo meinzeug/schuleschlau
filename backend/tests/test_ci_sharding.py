@@ -203,3 +203,37 @@ def test_ci_summary_is_absent_for_strict_unexpected_pass(tmp_path):
         text=True, capture_output=True, timeout=20,
     )
     assert result.returncode != 0 and not summary.exists()
+
+
+@pytest.mark.parametrize("case", ["pass", "fail", "skip", "xfail", "xpass"])
+def test_ci_summary_counts_each_parent_once_and_rejects_failed_subtests(tmp_path, case):
+    for index in range(3):
+        (tmp_path / f"test_fixture_{index}.py").write_text(
+            "import unittest\nimport pytest\nclass TestSample(unittest.TestCase):\n"
+            + ("    @pytest.mark.xfail(reason='unexpected pass')\n" if case == "xpass" else "")
+            +
+            "    def test_subtests(self):\n"
+            "        for value in range(3):\n"
+            "            with self.subTest(value=value):\n"
+            + ("                if value == 1: self.skipTest('deliberate')\n" if case == "skip" else "")
+            + ("                if value == 1: pytest.xfail('expected issue')\n" if case == "xfail" else "")
+            + f"                self.assertLess(value, {2 if case == 'fail' else 3})\n"
+        )
+    summary = tmp_path / "summary.json"
+    result = subprocess.run(
+        [sys.executable, str(RUNNER), "--shard-index", "0", "--receipt", str(tmp_path / "receipt.json"),
+         "--ci-summary", str(summary), "--", "-q", "--noconftest", "-p", "no:cacheprovider",
+         "--rootdir", str(tmp_path), str(tmp_path)],
+        cwd=ROOT, env={**os.environ, "PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1", "GITHUB_SHA": "a" * 40},
+        text=True, capture_output=True, timeout=20,
+    )
+    if case == "fail":
+        assert result.returncode != 0 and not summary.exists()
+        assert "1 failed" in result.stdout
+    else:
+        assert result.returncode == 0, result.stdout + result.stderr
+        row = json.loads(summary.read_text())
+        assert row["selected_count"] == row["executed_count"] == 1
+        assert row["passed_count"] == (case == "pass")
+        assert row["skipped_count"] == (case in {"skip", "xfail"})
+        assert row["xpassed_count"] == (case == "xpass")

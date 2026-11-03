@@ -1,7 +1,7 @@
 """Explicit personal parent checks, server scheduled without AI or progress writes."""
 
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Annotated
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -137,14 +137,19 @@ def open_facts(db, child, rule, current):
         remaining = max(0, prefs.daily_minutes * 60 - seconds)
     sessions = []
     if rule.exam_sessions:
-        for exam in db.scalars(select(Exam).where(Exam.child_id == child.id, Exam.archived.is_(False))
-                .order_by(Exam.id).limit(100)):
+        # Exam plans have their own timezones. Only dates within one day of
+        # today's UTC date can be today in a supported timezone. Restrict the
+        # join before inspecting plans, but never cap by arbitrary exam ID:
+        # otherwise a child with older plans could lose a current reminder.
+        utc_day = datetime.fromtimestamp(current, timezone.utc).date()
+        candidate_days = [(utc_day + timedelta(days=offset)).isoformat() for offset in (-1, 0, 1)]
+        candidates = db.execute(select(Exam, ExamSession).join(ExamSession, (
+            (ExamSession.exam_id == Exam.id) & (ExamSession.exam_revision == Exam.plan_revision)))
+            .where(Exam.child_id == child.id, Exam.archived.is_(False), ExamSession.date.in_(candidate_days))
+            .order_by(Exam.id, ExamSession.id))
+        for exam, session in candidates:
             today = datetime.fromtimestamp(current, ZoneInfo(exam.timezone)).date().isoformat()
-            if exam.exam_date and exam.exam_date < today:
-                continue
-            session = db.scalar(select(ExamSession).where(ExamSession.exam_id == exam.id,
-                ExamSession.exam_revision == exam.plan_revision, ExamSession.date == today))
-            if not session:
+            if session.date != today or (exam.exam_date and exam.exam_date < today):
                 continue
             statuses = list(db.execute(select(ExamRound.unit_id, LearningUnit.status, LearningUnit.child_id)
                 .outerjoin(LearningUnit, LearningUnit.id == ExamRound.unit_id)

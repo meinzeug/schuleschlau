@@ -910,11 +910,16 @@ def plan(db, child, *, learning_paths=None, include_language=True):
             }
         )
     for mastery in reviews:
-        if any(p["subject"] == mastery.subject and p["topic"] == mastery.topic for p in learning_paths):
+        # A topic title is not globally unique: e.g. "Zeit" may occur in
+        # both history and mathematics. Keep the existing subject aliases,
+        # but never suppress or attach a review across different subjects.
+        mastery_subject = subject_key(mastery.subject)
+        if any(subject_key(p["subject"]) == mastery_subject and p["topic"] == mastery.topic for p in learning_paths):
             continue
-        if any(x["topic"] == mastery.topic for x in candidates):
+        if any(subject_key(x["subject"]) == mastery_subject and x["topic"] == mastery.topic for x in candidates):
             continue
-        old = next((u for u in reversed(units) if u.topic == mastery.topic and u.status == "completed"), None)
+        old = next((u for u in reversed(units) if subject_key(u.subject) == mastery_subject
+                    and u.topic == mastery.topic and u.status == "completed"), None)
         if old:
             candidates.append(
                 {
@@ -940,7 +945,8 @@ def plan(db, child, *, learning_paths=None, include_language=True):
     for m in confirmed_materials:
         if m.school_day_id:
             continue
-        if not any(x["topic"] == m.topic for x in candidates) and not any(u.material_id == m.id for u in units):
+        if not any(subject_key(x["subject"]) == subject_key(m.subject) and x["topic"] == m.topic
+                   for x in candidates) and not any(u.material_id == m.id for u in units):
             candidates.append(
                 {
                     "kind": "material",

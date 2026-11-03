@@ -501,6 +501,14 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
 
 - [ ] **P1 – Abruf und Lernplanung nachvollziehbar abnehmen**
 
+  **03.11.2026, Fachzuordnung:** Gleichnamige Themen verschiedener Fächer
+  unterdrücken einander bei fälligen Wiederholungen und bestätigten Heftseiten
+  nicht mehr. Wiederholungen verweisen nur auf eine abgeschlossene Runde des
+  passenden Fachs; die bestehende Zuordnung Mathe/Mathematik bleibt erhalten.
+  Eine breite Regression bestand mit je 36 Fällen auf SQLite und isoliertem
+  PostgreSQL; vier gezielte Fälle bestanden zusätzlich auf beiden Datenbanken.
+  Die mobile Mehrtagesabnahme bleibt offen.
+
   **Teilprüfung 02.11.2026:** 13 synthetische SQLite-Fälle und der
   kombinierte Mehrtagesfall auf PostgreSQL bestanden; weitere Grenzen und
   Befehle: [Regressionsbericht](docs/ROADMAP_REGRESSION_2026_11_02.md#abruf-und-lernplanung).
@@ -1328,6 +1336,15 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Benachrichtigung und direkte Zielnavigation vollständig prüfen**
 
+  **03.11.2026, Elternhinweise:** Die Auswahl für den Prüfungstagescheck
+  begrenzt sich auf Sitzungen nahe dem aktuellen UTC-Tag und berücksichtigt
+  den tatsächlichen Kalendertag in der Zeitzone des jeweiligen Prüfungsplans.
+  Eine beliebige Grenze von 100 älteren Plänen kann aktuelle Sitzungen nicht
+  mehr verdecken. Erledigte Runden unterdrücken weiterhin den Hinweis vor dem
+  Versand. 69 künstliche Fälle bestanden auf SQLite und isoliertem PostgreSQL;
+  eine physische Pushzustellung und die vollständige Bedienungsabnahme sind
+  damit nicht nachgewiesen.
+
   **03.11.2026, Kindergerät:** Die Freigabe auf Kontoebene und das bewusste
   Einschalten auf dem Kindergerät sind getrennt beschrieben. Nach einer
   späteren Elternfreigabe kann das Kind den Status ohne erneute Anmeldung
@@ -1499,6 +1516,16 @@ Bestandteil des bestehenden Buildvertrags.
   **Abnahme:** Bericht mit nachvollziehbaren Fundstellen, Risikoeinstufung und Nachtests liegt vor; kritische und hohe Befunde sind behoben beziehungsweise vor jeglicher Freigabe durch die verantwortliche Stelle nachvollziehbar entschieden.
 
 - [ ] **P1 – Abnahmen systematisch und wiederholbar automatisieren**
+
+  **03.11.2026, CI-Untertests:** Im GitHub-Lauf
+  [41591639492](https://github.com/meinzeug/schulpilot/actions/runs/41591639492)
+  bestanden die Tests der Partition `backend-1`, deren Ergebnisbeleg scheiterte
+  aber an zusätzlichen pytest-9-Untertestmeldungen mit gleicher Testkennung.
+  Der Runner verarbeitet Untertests gesondert und weist unvollständig
+  ausgeführte beziehungsweise fehlgeschlagene Untertests aus. Der fehlende
+  Partitionbeleg verursachte folgerichtig auch das Scheitern von
+  `backend-complete`. Ein neuer erfolgreicher GitHub-Gesamtlauf ist separat
+  nachzuweisen; dieser historische Lauf bleibt fehlgeschlagen.
 
   **03.11.2026, Backend-Testpartitionen:** Ein zusätzlicher CI-Auftrag prüft
   drei getrennte Ergebnisartefakte auf gleiche Quellrevision und Sammlung,
