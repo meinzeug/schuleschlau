@@ -72,7 +72,8 @@ def evidence(db, unit, sources):
         grouped.setdefault((attempt.unit_id, attempt.question_id), []).append(attempt)
     child = db.get(Child, unit.child_id)
     zone = ZoneInfo(Preferences(**child.preferences).timezone)
-    seen_checks = {}
+    check_candidates = []
+    review_anchors = {}
     for old in sorted(units, key=lambda item: (item.created, item.id)):
         # A legacy material_id only identifies a page, not the revision used by
         # that old exercise. Keep its original practice, but never attribute it
@@ -105,27 +106,35 @@ def evidence(db, unit, sources):
                 continue
             last = values[-1]
             reflection = (last.evaluation or {}).get("method") == "open_learning_v1"
-            independent = not reflection and len(values) == 1 and last.outcome == "correct" and not last.assisted
+            possible_exposure = len(values) == 1 and bool((last.evaluation or {}).get("independence_uncertain"))
+            independent = (not reflection and len(values) == 1 and last.outcome == "correct"
+                and not last.assisted and not possible_exposure)
             state["tasks"] += 1
             state["attempts"] += len(values)
             state["last_observation"] = max(state["last_observation"] or 0, last.created)
-            possible_exposure = bool((last.evaluation or {}).get("independence_uncertain"))
             bucket = "reflection_tasks" if reflection else "uncertain" if possible_exposure and last.outcome == "correct" else "independent" if independent else "supported" if last.outcome == "correct" else "needs_practice" if last.outcome == "incorrect" else "uncertain"
             state[bucket] += 1
             if not reflection:
                 state["last_assessment_observation"] = max(state["last_assessment_observation"] or 0, last.created)
+                if not (possible_exposure and last.outcome == "correct"):
+                    review_anchors[goal] = max(review_anchors.get(goal, 0), last.created)
             if not reflection and not independent and not (possible_exposure and last.outcome == "correct"):
                 state["last_difficulty"] = max(state["last_difficulty"] or 0, last.created)
             state["evidence_refs"].extend("attempt:" + a.id for a in values)
             if independent:
                 state["last_independent_success"] = max(state["last_independent_success"] or 0, last.created)
             if independent and old.round_kind in CHECK_KINDS:
-                stamp = datetime.fromtimestamp(last.created, zone).date().isoformat()
                 signature = fraction_task_signature(q["prompt"]) or normalized_prompt(q["prompt"])
-                if signature not in seen_checks.setdefault(goal, set()):
-                    seen_checks[goal].add(signature)
-                    if stamp not in state["successful_check_dates"]:
-                        state["successful_check_dates"].append(stamp)
+                check_candidates.append((last.created, goal, signature))
+    # A unit can be answered long after a newer unit. Choose the earliest
+    # actual observation for repeated questions, not the unit creation order.
+    seen_checks = {}
+    for created, goal, signature in sorted(check_candidates, key=lambda item: item[0]):
+        if signature not in seen_checks.setdefault(goal, set()):
+            seen_checks[goal].add(signature)
+            stamp = datetime.fromtimestamp(created, zone).date().isoformat()
+            if stamp not in result[goal]["successful_check_dates"]:
+                result[goal]["successful_check_dates"].append(stamp)
     for state in result.values():
         days = sorted(state["successful_check_dates"])
         state["successful_check_dates"] = days
@@ -133,7 +142,7 @@ def evidence(db, unit, sources):
         recent_days = [day for day in days if difficulty_day is None or day > difficulty_day]
         secure = len(recent_days) >= 3 and (date.fromisoformat(recent_days[-1]) - date.fromisoformat(recent_days[0])).days >= 7
         state["confidence"] = "repeated_recall" if secure else "initial_evidence" if state["independent"] else "support_needed" if state["needs_practice"] or state["supported"] else "unverified"
-        stamp = state["last_assessment_observation"]
+        stamp = review_anchors.get(state["id"])
         anchor = datetime.fromtimestamp(stamp, zone).date() if stamp else None
         state["review_due"] = planned_review(child, unit.subject, days,
             difficult=not secure and bool(state["needs_practice"] or state["supported"]), anchor=anchor) if stamp else None

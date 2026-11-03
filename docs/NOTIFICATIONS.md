@@ -32,8 +32,11 @@ Laden und eine tatsächlich leere Liste sind sichtbare unterschiedliche Zuständ
 
 1. Eltern erlauben beim Kind unter Lernvorgaben → Erinnerungen & Ruhezeiten
    „Push am Kindergerät erlauben“ und speichern die Vorgaben.
-2. Am jeweiligen Kindergerät die Glocke öffnen und „Auf diesem Gerät
-   einschalten“ wählen. Die Android-/Browsererlaubnis ausdrücklich bestätigen.
+2. Am jeweiligen Kindergerät die Glocke und „Alle anzeigen“ öffnen, dann
+   „Gerät einstellen“ und „Auf diesem Gerät einschalten“ wählen. Das Kind
+   bestätigt die Android-/Browsererlaubnis selbst auf diesem Gerät. Wird die
+   Elternfreigabe erst später erteilt, lädt „Status erneut prüfen“ sie ohne
+   erneute Anmeldung; die Prüfung allein aktiviert oder registriert nichts.
 3. Ruhezeit und Kategorien auf Wunsch einstellen und speichern. Eltern geben
    ihren eigenen Geräten dieselbe gesonderte Freigabe über die Glocke.
 

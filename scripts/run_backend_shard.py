@@ -101,6 +101,17 @@ class ShardPlugin:
         self._own_deselection = False
         self._external_deselection = False
         self._partition_ready = False
+        self.terminal_reports = []
+
+    def pytest_runtest_logreport(self, report):
+        # A test may finish at setup (skip/error) or at the call phase. A
+        # teardown failure still makes pytest return nonzero. Keep identities,
+        # not test content or private fixture data, in the in-memory record.
+        if report.when == "call" or (report.when == "setup" and report.outcome != "passed"):
+            outcome = report.outcome
+            if hasattr(report, "wasxfail"):
+                outcome = {"skipped": "xfailed", "passed": "xpassed"}.get(outcome, outcome)
+            self.terminal_reports.append((report.nodeid, outcome))
 
     def pytest_deselected(self, items):
         if items and not self._own_deselection:
@@ -149,12 +160,19 @@ def main(argv=None):
     parser.add_argument("--shard-count", type=int, default=3, choices=(3,))
     parser.add_argument("--receipt", type=Path, required=True)
     parser.add_argument("--collect-only", action="store_true")
+    parser.add_argument("--ci-summary", type=Path)
     parser.add_argument("pytest_args", nargs=argparse.REMAINDER)
     args = parser.parse_args(argv)
     if args.receipt.suffix != ".json" or args.receipt.is_symlink():
         parser.error("--receipt must be a regular JSON output path")
+    if args.collect_only and args.ci_summary:
+        parser.error("--ci-summary requires actual execution")
+    if args.ci_summary and (args.ci_summary.suffix != ".json" or args.ci_summary.is_symlink()):
+        parser.error("--ci-summary must be a regular JSON output path")
     # No stale receipt from an earlier selection may survive a failed run.
     args.receipt.unlink(missing_ok=True)
+    if args.ci_summary:
+        args.ci_summary.unlink(missing_ok=True)
     arguments = args.pytest_args
     if arguments[:1] == ["--"]:
         arguments = arguments[1:]
@@ -163,7 +181,45 @@ def main(argv=None):
     if args.collect_only:
         arguments = ["--collect-only", *arguments]
     plugin = ShardPlugin(args.shard_index, args.shard_count, args.receipt)
-    return int(pytest.main(arguments, plugins=[plugin]))
+    exit_code = int(pytest.main(arguments, plugins=[plugin]))
+    if not args.ci_summary:
+        return exit_code
+    if exit_code or plugin.partition is None:
+        return exit_code or 2
+
+    partition = plugin.partition
+    terminal_ids = [nodeid for nodeid, _ in plugin.terminal_reports]
+    selected_ids = [nodeid for _, nodeid in partition.selected]
+    if len(terminal_ids) != len(set(terminal_ids)) or sorted(terminal_ids) != sorted(selected_ids):
+        print("Backend shard did not execute every selected test exactly once", file=sys.stderr)
+        return 2
+    if any(outcome not in {"passed", "skipped", "xfailed", "xpassed"} for _, outcome in plugin.terminal_reports):
+        print("Backend shard contains a failing test", file=sys.stderr)
+        return 2
+
+    expected = [partition_nodes(partition.all_nodes, index, args.shard_count)
+                for index in range(args.shard_count)]
+    summary = {
+        "version": 1,
+        "kind": "backend_pytest_shard",
+        "source_revision": os.environ.get("GITHUB_SHA", ""),
+        "shard_index": args.shard_index,
+        "shard_count": args.shard_count,
+        "collection_count": len(partition.all_nodes),
+        "collection_sha256": _digest(partition.all_nodes),
+        "expected_counts": [len(part.selected) for part in expected],
+        "expected_sha256": [_digest(part.selected) for part in expected],
+        "selected_count": len(partition.selected),
+        "selected_sha256": _digest(partition.selected),
+        "executed_count": len(terminal_ids),
+        "passed_count": sum(outcome == "passed" for _, outcome in plugin.terminal_reports),
+        "skipped_count": sum(outcome == "skipped" for _, outcome in plugin.terminal_reports),
+        "xfailed_count": sum(outcome == "xfailed" for _, outcome in plugin.terminal_reports),
+        "xpassed_count": sum(outcome == "xpassed" for _, outcome in plugin.terminal_reports),
+        "pytest_exit_code": exit_code,
+    }
+    _write_receipt(args.ci_summary, summary)
+    return 0
 
 
 if __name__ == "__main__":

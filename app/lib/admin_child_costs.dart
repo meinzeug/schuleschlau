@@ -6,6 +6,14 @@ import 'package:flutter/material.dart';
 import 'api.dart';
 import 'ui.dart';
 
+// 1 << 32 evaluates to zero in the JavaScript runner. Generate each byte
+// separately so the same secure request key works on web and Android.
+String _requestKey(String prefix) {
+  final random = Random.secure();
+  final bytes = List.generate(16, (_) => random.nextInt(256));
+  return '${prefix}_${bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join()}';
+}
+
 /// Operator controls only. Reading or editing a draft never starts learning.
 class AdminChildCosts extends StatefulWidget {
   final AppState state;
@@ -129,7 +137,8 @@ class _AdminChildCostsState extends State<AdminChildCosts>
       : 'Der Stand konnte nicht geladen werden. Bitte erneut versuchen.';
 
   Future<void> load({bool more = false}) async {
-    if (!current || loading) return;
+    // A late read must never replace the result of an in-flight save.
+    if (!current || loading || saving) return;
     final request = ++epoch;
     setState(() {
       loading = true;
@@ -198,7 +207,9 @@ class _AdminChildCostsState extends State<AdminChildCosts>
   }
 
   Future<void> save() async {
-    if (!current || saving || saved == null) return;
+    // Refresh and save share the editor state. Serializing them keeps an old
+    // GET from rebinding a policy after a successful revision update.
+    if (!current || saving || loading || saved == null) return;
     final day = unlimitedDay ? null : parseAmount(daily.text);
     final month = unlimitedMonth ? null : parseAmount(monthly.text);
     if (configured &&
@@ -219,8 +230,7 @@ class _AdminChildCostsState extends State<AdminChildCosts>
     final signature = jsonEncode(body);
     if (pendingBody != signature) {
       pendingBody = signature;
-      pendingKey =
-          'costs_${DateTime.now().microsecondsSinceEpoch}_${Random.secure().nextInt(1 << 32)}';
+      pendingKey = _requestKey('costs');
     }
     final request = epoch;
     setState(() {
@@ -376,8 +386,18 @@ class _AdminChildCostsState extends State<AdminChildCosts>
                   ),
                   textInputAction: TextInputAction.search,
                   onSubmitted: (value) {
+                    if (!current || selected != null || saving) return;
                     FocusScope.of(context).unfocus();
-                    query = value.trim();
+                    final next = value.trim();
+                    if (query != next) {
+                      // A slow earlier search must not hide this submission or
+                      // later replace its results with a different query.
+                      epoch++;
+                      loading = false;
+                      items.clear();
+                      cursor = null;
+                      query = next;
+                    }
                     load();
                   },
                 ),
@@ -547,7 +567,7 @@ class _AdminChildCostsState extends State<AdminChildCosts>
                       await save();
                     }
                   },
-                  enabled: !saving,
+                  enabled: !saving && !loading,
                 ),
                 TextButton(
                   onPressed: saving || loading ? null : load,
@@ -715,11 +735,7 @@ class _AdminCostCallsState extends State<AdminCostCalls>
     }
     final request = epoch;
     final id = row['id'].toString();
-    final key = refreshKeys.putIfAbsent(
-      id,
-      () =>
-          'receipt_${DateTime.now().microsecondsSinceEpoch}_${Random.secure().nextInt(1 << 32)}',
-    );
+    final key = refreshKeys.putIfAbsent(id, () => _requestKey('receipt'));
     setState(() {
       loading = true;
       error = notice = null;

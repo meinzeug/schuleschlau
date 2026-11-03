@@ -150,6 +150,7 @@ def binding_current(db, binding, unit, question):
 
 
 def evidence(db, child_id, competence_ids=None):
+    from .coaching import fraction_task_signature
     from .competence_models import QuestionCompetence
 
     rows = catalogue()
@@ -171,9 +172,15 @@ def evidence(db, child_id, competence_ids=None):
     grouped = {}
     for attempt in attempts:
         grouped.setdefault((attempt.unit_id, attempt.question_id), []).append(attempt)
+    # Pick the first occurrence of a repeated question consistently regardless
+    # of database row order, preserving its actual earliest check day.
+    bindings.sort(key=lambda row: (
+        min((a.created for a in grouped.get((row.unit_id, row.question_id), [])), default=0),
+        row.unit_id, row.question_id))
     child = db.get(Child, child_id)
     zone = ZoneInfo(Preferences(**child.preferences).timezone)
     checks = {}
+    review_anchors = {}
     for binding in bindings:
         unit = units.get(binding.unit_id)
         question = next((q for q in unit.questions if q["id"] == binding.question_id), None) if unit else None
@@ -187,25 +194,34 @@ def evidence(db, child_id, competence_ids=None):
             continue
         last = values[-1]
         reflection = (last.evaluation or {}).get("method") == "open_learning_v1"
-        independent = not reflection and len(values) == 1 and last.outcome == "correct" and not last.assisted
+        possible_exposure = len(values) == 1 and bool((last.evaluation or {}).get("independence_uncertain"))
+        independent = (not reflection and len(values) == 1 and last.outcome == "correct"
+            and not last.assisted and not possible_exposure)
         state["tasks"] += 1
         state["attempts"] += len(values)
-        bucket = "reflection_tasks" if reflection else "independent" if independent else "supported" if last.outcome == "correct" else "needs_practice" if last.outcome == "incorrect" else "uncertain"
+        bucket = "reflection_tasks" if reflection else "uncertain" if possible_exposure and last.outcome == "correct" else "independent" if independent else "supported" if last.outcome == "correct" else "needs_practice" if last.outcome == "incorrect" else "uncertain"
         state[bucket] += 1
         state["last_observation"] = max(state["last_observation"] or 0, last.created)
         if not reflection:
             state["last_assessment_observation"] = max(state["last_assessment_observation"] or 0, last.created)
+            if not (possible_exposure and last.outcome == "correct"):
+                review_anchors[binding.competence_id] = max(review_anchors.get(binding.competence_id, 0), last.created)
         state["evidence_refs"].extend("attempt:" + value.id for value in values)
         if independent:
             state["last_independent_success"] = max(state["last_independent_success"] or 0, last.created)
             if binding.role == "recall" and unit.round_kind in ("check", "spaced_review", "study_recall"):
-                signature = normalized(question["prompt"])
+                # Mathematical wording changes do not make the same exercise
+                # a new recall question. Share the reviewed operation signature
+                # with the source-scoped learning memory; other subjects retain
+                # their case-sensitive normalized text.
+                signature = (fraction_task_signature(question["prompt"])
+                    if binding.competence_id.startswith("math.") else None) or normalized(question["prompt"])
                 if signature not in checks.setdefault(binding.competence_id, set()):
                     checks[binding.competence_id].add(signature)
                     day = datetime.fromtimestamp(last.created, zone).date().isoformat()
                     if day not in state["successful_check_dates"]:
                         state["successful_check_dates"].append(day)
-        elif not reflection:
+        elif not reflection and not (possible_exposure and last.outcome == "correct"):
             state["last_difficulty"] = max(state["last_difficulty"] or 0, last.created)
     from .coaching import planned_review
     from .subject_registry import identity
@@ -217,7 +233,7 @@ def evidence(db, child_id, competence_ids=None):
         current = [day for day in days if difficulty is None or day > difficulty]
         secure = len(current) >= 3 and (date.fromisoformat(current[-1]) - date.fromisoformat(current[0])).days >= 7
         subject = db.get(Subject, identity(rows[state["id"]]["subject_key"]))
-        stamp = state["last_assessment_observation"]
+        stamp = review_anchors.get(state["id"])
         state["review_due"] = planned_review(child, subject.title if subject else "", days,
             difficult=bool(state["needs_practice"] or state["supported"]),
             anchor=datetime.fromtimestamp(stamp, zone).date()) if stamp else None

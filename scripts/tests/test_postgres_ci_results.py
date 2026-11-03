@@ -18,12 +18,14 @@ class PostgresCiResultsTest(unittest.TestCase):
             report = Path(directory) / "results.xml"
             cases = [f'<testcase classname="suite" name="case{i}" />' for i in range(13)]
             cases += [f'<testcase classname="suite" name="{name}" />' for name in sorted(check.REQUIRED_NOTICE_TESTS)]
+            classname, name = check.REQUIRED_EXAM_ROLE_TEST
+            cases += [f'<testcase classname="{classname}" name="{name}" />']
 
             def write(rows):
                 report.write_text("<testsuites><testsuite>" + "".join(rows) + "</testsuite></testsuites>")
 
             write(cases)
-            self.assertEqual(check.verify(report), 19)
+            self.assertEqual(check.verify(report), 20)
             for invalid in (
                 cases[:-1],
                 cases[:-1] + [cases[0]],
@@ -32,6 +34,7 @@ class PostgresCiResultsTest(unittest.TestCase):
                 cases[:-1] + ['<testcase classname="suite" name="errored"><error /></testcase>'],
                 cases[:-1] + ['<testcase classname="suite" />'],
                 cases[:-1] + ['<testcase classname="suite" name="replacement" />'],
+                cases[:-1] + [f'<testcase classname="other.suite" name="{name}" />'],
             ):
                 with self.subTest(invalid=invalid[-1]), self.assertRaises(ValueError):
                     write(invalid)

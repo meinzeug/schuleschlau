@@ -9,6 +9,7 @@ from pathlib import Path
 import pytest
 
 from scripts.run_backend_shard import partition_nodes
+from scripts.verify_backend_shards import load_artifacts, verify
 
 ROOT = Path(__file__).resolve().parents[2]
 RUNNER = ROOT / "scripts/run_backend_shard.py"
@@ -129,3 +130,76 @@ def test_runner_executes_selected_items_with_existing_marks_fixtures_and_failfas
     assert "1 passed" in result.stdout and "1 skipped" in result.stdout and "4 deselected" in result.stdout
     selected = json.loads(receipt.read_text())["selected_nodeids"]
     assert selected == ["test_run_1.py::test_pass", "test_run_1.py::test_skip"]
+
+
+def test_ci_summaries_require_real_execution_and_cover_the_same_collection(tmp_path):
+    for index in range(6):
+        (tmp_path / f"test_fixture_{index}.py").write_text(
+            "import pytest\ndef test_pass(): pass\n"
+            "@pytest.mark.skip(reason='deliberate')\ndef test_skip(): pass\n"
+            "@pytest.mark.xfail(reason='expected failure')\ndef test_xfail(): assert False\n"
+            "@pytest.mark.xfail(reason='unexpected pass')\ndef test_xpass(): pass\n"
+        )
+    env = {**os.environ, "PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1", "GITHUB_SHA": "a" * 40}
+    rows = []
+    artifact_dir = tmp_path / "downloaded-artifacts"
+    artifact_dir.mkdir()
+    for index in range(3):
+        receipt = tmp_path / f"receipt-{index}.json"
+        summary = tmp_path / f"summary-{index}.json"
+        result = subprocess.run(
+            [sys.executable, str(RUNNER), "--shard-index", str(index), "--receipt", str(receipt),
+             "--ci-summary", str(summary), "--", "-q", "--noconftest",
+             "-p", "no:cacheprovider", "--rootdir", str(tmp_path), str(tmp_path)],
+            cwd=ROOT, env=env, text=True, capture_output=True, timeout=20,
+        )
+        assert result.returncode == 0, result.stdout + result.stderr
+        row = json.loads(summary.read_text())
+        artifact = artifact_dir / f"backend-shard-{index}"
+        artifact.mkdir()
+        (artifact / f"backend-summary-{index}.json").write_text(summary.read_text())
+        rows.append(row)
+    assert load_artifacts(artifact_dir) == rows
+    assert verify(rows, "a" * 40, "success")["skipped_count"] == 6
+    assert verify(rows, "a" * 40, "success")["passed_count"] == 6
+    assert verify(rows, "a" * 40, "success")["xfailed_count"] == 6
+    assert verify(rows, "a" * 40, "success")["xpassed_count"] == 6
+
+
+def test_ci_summary_is_absent_when_tests_fail_or_only_collect(tmp_path):
+    for index in range(3):
+        (tmp_path / f"test_fixture_{index}.py").write_text("def test_failure(): assert False\n")
+    summary = tmp_path / "summary.json"
+    summary.write_text('{"stale":true}')
+    args = [sys.executable, str(RUNNER), "--shard-index", "0", "--receipt", str(tmp_path / "receipt.json"),
+            "--ci-summary", str(summary)]
+    env = {**os.environ, "PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1"}
+    result = subprocess.run(
+        [*args, "--", "-q", "--noconftest", "-p", "no:cacheprovider", "--rootdir", str(tmp_path), str(tmp_path)],
+        cwd=ROOT, env=env, text=True, capture_output=True, timeout=20,
+    )
+    assert result.returncode != 0 and not summary.exists()
+    result = subprocess.run([*args, "--collect-only"], cwd=ROOT, env=env, text=True, capture_output=True, timeout=20)
+    assert result.returncode != 0 and not summary.exists()
+    result = subprocess.run(
+        [*args, "--", "--collect-only", "-q", "--noconftest", "-p", "no:cacheprovider",
+         "--rootdir", str(tmp_path), str(tmp_path)],
+        cwd=ROOT, env=env, text=True, capture_output=True, timeout=20,
+    )
+    assert result.returncode != 0 and not summary.exists()
+
+
+def test_ci_summary_is_absent_for_strict_unexpected_pass(tmp_path):
+    for index in range(3):
+        (tmp_path / f"test_fixture_{index}.py").write_text(
+            "import pytest\n@pytest.mark.xfail(strict=True)\ndef test_xpass(): pass\n"
+        )
+    summary = tmp_path / "summary.json"
+    result = subprocess.run(
+        [sys.executable, str(RUNNER), "--shard-index", "0", "--receipt", str(tmp_path / "receipt.json"),
+         "--ci-summary", str(summary), "--", "-q", "--noconftest", "-p", "no:cacheprovider",
+         "--rootdir", str(tmp_path), str(tmp_path)],
+        cwd=ROOT, env={**os.environ, "PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1"},
+        text=True, capture_output=True, timeout=20,
+    )
+    assert result.returncode != 0 and not summary.exists()

@@ -2,6 +2,17 @@
 
 Stand: 3. November 2026. Diese Datei ist eine Arbeitsübergabe, kein Ersatz für die aktuellen Nutzeraufträge oder `AGENTS.md`. Prüfe alle Zustände erneut; insbesondere Server, Git, laufende Jobs und Roadmap können sich inzwischen geändert haben. Keine Zugangsdaten, Tokens, privaten Schülerdaten oder Bildinhalte in diese Datei, Logs oder Git schreiben.
 
+**Neu seit dem Release f09bce0:** Die Lernstandsauswertung behandelt unklare
+Selbstständigkeit und wiederholte Bruchaufgaben konservativer; die Adminansicht
+schützt Kostenentwürfe vor verspäteten Antworten und erzeugt im Web gültige
+Speicherschlüssel. Die Kindergeräteansicht kann die Elternfreigabe erneut
+prüfen; das Kind löst die Geräteberechtigung selbst aus. Eine sichtbare native
+Pushzustellung wurde dabei nicht beobachtet. Neue CI-Belege prüfen die
+vollständige Ausführung aller drei Backend-Partitionen; deren ersten tatsächlichen
+GitHub-Lauf und den aktuellen Serverstand nach dieser Übergabe prüfen. Die
+übergeordneten Roadmap-Abnahmen und die Cursor-Fortsetzung der Glocke bleiben
+offen; Teilfortschritt nicht als Abschluss markieren.
+
 ## Auftrag und Arbeitsweise
 
 Der Nutzer möchte die offene `ROADMAP.md` vollständig und nachweisbar abarbeiten, Probleme selbstständig lösen und erledigte Punkte erst nach Erfüllung ihrer gesamten Abnahmekriterien abhaken. Ein physischer Android-Gerätetest ist nach Nutzerwunsch optional; fehlende native Nachweise trotzdem als Grenze benennen. Die Kinderoberfläche soll auf kleinen Bildschirmen klar, verständlich und textarm sein. Ergebnisse wahrheitsgemäß berichten; Teilfortschritte nicht als vollständige Abnahme ausgeben. Den zwischenzeitlich abgebrochenen Auftrag für 100 Lernrunden nicht wieder aufnehmen.
@@ -14,7 +25,7 @@ Der Nutzer möchte die offene `ROADMAP.md` vollständig und nachweisbar abarbeit
 
 ## Git und Arbeitsverzeichnis
 
-Das Hauptverzeichnis ist `/home/dennis/schulpilot`, Branch `main`, Remote `origin`. Der vor dieser Arbeit zuletzt geprüfte Release war `20261103T040153Z-c244864` (Version `1.38.64+219`); den tatsächlichen produktiven Stand nach der Übergabe erneut prüfen. Das Hauptverzeichnis wurde wegen der unten genannten lokalen Änderungen nicht auf den neuen Versionscommit aktualisiert. Im Hauptverzeichnis liegen zwei bereits vorhandene, nicht zu dieser Arbeit gehörende Änderungen:
+Das Hauptverzeichnis ist `/home/dennis/schulpilot`, Branch `main`, Remote `origin`. Vor dieser Arbeit war `20261103T045117Z-f09bce0` (Version `1.38.66+221`) produktiv; der vollständige GitHub-Lauf `41579977350` dafür war erfolgreich. Den tatsächlichen produktiven Stand, neue Commits und CI nach dieser Übergabe erneut prüfen. Das Hauptverzeichnis wurde wegen der unten genannten lokalen Änderungen nicht auf den neuen Versionscommit aktualisiert. Im Hauptverzeichnis liegen zwei bereits vorhandene, nicht zu dieser Arbeit gehörende Änderungen:
 
 - `app/pubspec.yaml`, SHA-256 bei Übergabe: `0f1581c5f623adac6a49c7837e7c080fb4c98b82065587db7124c7c3772a0d30`
 - `backend/schulpilot/__init__.py`, SHA-256 bei Übergabe: `313b5053897d6953cf386f4157d66d3527e6e161ba497053f9927762482e45e0`

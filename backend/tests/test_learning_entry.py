@@ -2,6 +2,8 @@
 
 import copy
 import json
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 import pytest
 from schulpilot import coaching, competences, learning_entry
@@ -366,6 +368,96 @@ def test_later_difficulty_then_one_success_does_not_restore_secure_entry(source)
         assert plan["entry_mode"] == "prerequisite_probe" and plan["probes"]
         assert not learning_entry._known(proof)
         assert db.query(Attempt).count() == 5
+
+
+@pytest.mark.parametrize("assisted", [True, False])
+def test_possible_solution_exposure_is_uncertain_and_preserves_prior_evidence(source, assisted):
+    _, child, mid = source
+    with DB.begin() as db:
+        stamp = int(now())
+        previous = [dated_expansion_attempt(db, child["id"], mid, index, stamp - days * 86400)
+            for index, days in enumerate((20, 16, 12))]
+        before = competences.evidence(db, child["id"], ["math.fractions.expand"])[0]
+        assert before["confidence"] == "repeated_recall"
+        uncertain = dated_expansion_attempt(db, child["id"], mid, 3, stamp - 86400)
+        uncertain.assisted = assisted
+        uncertain.evaluation = {"independence_uncertain": True}
+        db.flush()
+        original = (uncertain.id, uncertain.answer, uncertain.outcome, uncertain.assisted, dict(uncertain.evaluation))
+        state = competences.evidence(db, child["id"], ["math.fractions.expand"])[0]
+        assert state["tasks"] == state["attempts"] == 4
+        assert state["independent"] == 3 and state["uncertain"] == 1 and state["supported"] == 0
+        assert state["last_difficulty"] is None
+        assert state["successful_check_dates"] == before["successful_check_dates"]
+        assert state["confidence"] == "repeated_recall"
+        assert state["review_due"] == before["review_due"]
+        assert set(state["evidence_refs"]) == {"attempt:" + row.id for row in [*previous, uncertain]}
+        assert (uncertain.id, uncertain.answer, uncertain.outcome, uncertain.assisted, uncertain.evaluation) == original
+        plan = payload(db, child["id"], mid)["learning_entry"]["units"][0]
+        proof = next(row for row in plan["evidence"] if row["id"] == "math.fractions.expand")
+        assert proof["confidence"] == "repeated_recall" and proof["uncertain"] == 1
+
+
+@pytest.mark.parametrize("assisted", [True, False])
+def test_possible_solution_exposure_cannot_establish_competence(source, assisted):
+    _, child, mid = source
+    with DB.begin() as db:
+        stamp = int(now())
+        for index, days in enumerate((1, 5, 9)):
+            attempt = dated_expansion_attempt(db, child["id"], mid, index, stamp - days * 86400)
+            attempt.assisted = assisted
+            attempt.evaluation = {"independence_uncertain": True}
+        db.flush()
+        state = competences.evidence(db, child["id"], ["math.fractions.expand"])[0]
+        assert state["uncertain"] == 3 and state["independent"] == state["supported"] == 0
+        assert state["successful_check_dates"] == [] and state["last_independent_success"] is None
+        assert state["confidence"] == "unverified" and state["last_difficulty"] is None
+        assert state["review_due"] is None
+        plan = payload(db, child["id"], mid)["learning_entry"]["units"][0]
+        assert plan["entry_mode"] == "prerequisite_probe"
+
+
+def test_paraphrasing_identical_fraction_task_is_not_fresh_recall(source):
+    _, child, mid = source
+    with DB.begin() as db:
+        stamp = int(now())
+        attempts = []
+        for index, days in enumerate((1, 5, 9)):
+            attempt = dated_expansion_attempt(db, child["id"], mid, index, stamp - days * 86400)
+            unit = db.get(LearningUnit, attempt.unit_id)
+            # The same fraction and requested factor, expressed three ways.
+            # Deliberately use independently persisted units and answers.
+            question = dict(unit.questions[0],
+                prompt=("Erweitere 1/2 mit 2.", "Erweitere 1/2 mit dem Faktor 2.",
+                    "Erweitere 1/2 mit 2. Gib den Bruch an.")[index],
+                answer="2/4", options=["2/4", "0/1", "1/1", "2/1"])
+            unit.questions = [question]
+            attempt.answer = "2/4"
+            attempts.append(attempt)
+        db.flush()
+        state = competences.evidence(db, child["id"], ["math.fractions.expand"])[0]
+        assert state["independent"] == 3 and state["attempts"] == 3
+        assert len(state["successful_check_dates"]) == 1
+        zone = ZoneInfo(db.get(Child, child["id"]).preferences.get("timezone", "Europe/Berlin"))
+        assert state["successful_check_dates"][0] == datetime.fromtimestamp(stamp - 9 * 86400, zone).date().isoformat()
+        assert state["confidence"] == "initial_evidence"
+        assert {ref for ref in state["evidence_refs"]} == {"attempt:" + row.id for row in attempts}
+        assert payload(db, child["id"], mid)["learning_entry"]["units"][0]["entry_mode"] == "prerequisite_probe"
+
+
+def test_a_prior_wrong_attempt_still_counts_as_support_with_legacy_exposure_flag(source):
+    _, child, mid = source
+    with DB.begin() as db:
+        stamp = int(now())
+        later = dated_expansion_attempt(db, child["id"], mid, 0, stamp)
+        later.evaluation = {"independence_uncertain": True, "attempt_number": 2}
+        db.add(Attempt(unit_id=later.unit_id, question_id=later.question_id, answer="1/3",
+            outcome="incorrect", assisted=False, created=stamp - 1, evaluation={"attempt_number": 1}))
+        db.flush()
+        state = competences.evidence(db, child["id"], ["math.fractions.expand"])[0]
+        assert state["attempts"] == 2 and state["tasks"] == state["supported"] == 1
+        assert state["uncertain"] == state["independent"] == 0
+        assert state["last_difficulty"] == stamp and state["successful_check_dates"] == []
 
 
 @pytest.mark.parametrize("fault", ["source_revision", "source_quality", "answer_evidence"])

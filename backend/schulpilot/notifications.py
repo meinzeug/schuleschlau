@@ -91,7 +91,7 @@ def config(request: Request, db=Depends(get_db)):
                 return {
                     "available": False,
                     "firebase": {},
-                    "notice": "Deine Eltern können Benachrichtigungen für deinen Zugang erlauben.",
+                    "notice": "Bitte deine Eltern, Benachrichtigungen für dich zu erlauben. Danach kannst du sie hier selbst einschalten.",
                 }
         if test_allowed(db, p.user.id):
             return {**public_config(testing=True), "test_access": True}
@@ -199,7 +199,7 @@ def register(data: DeviceRequest, p=Depends(authenticated), db=Depends(get_db)):
     if p.user.role == "child":
         child = db.scalar(select(Child).where(Child.user_id == p.user.id))
         if not child or not s.Preferences(**child.preferences).push_consent:
-            raise HTTPException(403, "Deine Eltern müssen Benachrichtigungen für deinen Zugang zuerst erlauben.")
+            raise HTTPException(403, "Bitte deine Eltern, Benachrichtigungen für dich zu erlauben. Danach kannst du sie hier selbst einschalten.")
     config = public_config(testing=test_allowed(db, p.user.id))
     if not config["available"]:
         raise HTTPException(503, config["notice"])
@@ -208,7 +208,7 @@ def register(data: DeviceRequest, p=Depends(authenticated), db=Depends(get_db)):
         db.execute(update(Child).where(Child.user_id == p.user.id).values(grade=Child.grade))
         db.refresh(child)
         if not s.Preferences(**child.preferences).push_consent:
-            raise HTTPException(403, "Deine Eltern haben Benachrichtigungen für deinen Zugang nicht freigegeben.")
+            raise HTTPException(403, "Deine Eltern haben Benachrichtigungen für dich noch nicht erlaubt. Danach kannst du sie hier selbst einschalten.")
     token_hash = digest(data.token)
     # One token can belong to one session only. Moving accounts on a shared
     # device destroys all queued deliveries for its former registration.

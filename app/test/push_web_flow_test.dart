@@ -79,6 +79,8 @@ class _Fixture {
         if (request.url.path.endsWith('/config')) {
           return _reply({
             'available': available,
+            if (!available)
+              'notice': 'Deine Eltern können Benachrichtigungen erlauben.',
             'firebase': {'vapidKey': 'synthetic-public-web-key'},
           });
         }
@@ -371,6 +373,150 @@ void main() {
     },
   );
 
+  testWidgets(
+    'a child rechecks parental approval and explicitly enables this device',
+    (tester) async {
+      final f = _Fixture();
+      f.owner = {'id': 'synthetic-child', 'role': 'child'};
+      f.available = false;
+      f.transport.allowed = false;
+      final state = _State(f.api, f.push)..user = f.owner;
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: appTheme(),
+          home: Scaffold(
+            body: SingleChildScrollView(child: NotificationPanel(state)),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Deine Eltern können'), findsOneWidget);
+      expect(find.text('Auf diesem Gerät einschalten'), findsNothing);
+      expect(f.transport.calls, isNot(contains('initialize')));
+      expect(f.registrations, isEmpty);
+      // Parent approval changes on the server, not by the child's action.
+      f.available = true;
+      await tester.tap(find.text('Status erneut prüfen'));
+      await tester.pumpAndSettle();
+      expect(find.text('Auf diesem Gerät einschalten'), findsOneWidget);
+      expect(f.transport.calls, isNot(contains('initialize')));
+      await tester.ensureVisible(find.text('Auf diesem Gerät einschalten'));
+      await tester.tap(find.text('Auf diesem Gerät einschalten'));
+      await tester.pumpAndSettle();
+      expect(f.registrations, isEmpty);
+      await tester.tap(find.byKey(const ValueKey('push-browser-permission')));
+      await tester.pumpAndSettle();
+      expect(f.registrations.length, 1);
+      expect(f.registrations.single['platform'], 'web');
+      expect(f.transport.calls, contains('permission:true'));
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+      await tester.runAsync(f.close);
+    },
+  );
+  testWidgets(
+    'an old status callback cannot reload after a session-token change',
+    (tester) async {
+      final f = _Fixture();
+      f.owner = {'id': 'synthetic-child', 'role': 'child'};
+      f.available = false;
+      f.api.token = 'old-session';
+      final state = _State(f.api, f.push)..user = f.owner;
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: appTheme(),
+          home: Scaffold(body: NotificationPanel(state)),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final oldCallback = tester
+          .widget<TextButton>(
+            find.widgetWithText(TextButton, 'Status erneut prüfen'),
+          )
+          .onPressed!;
+      final before = f.requests.length;
+      f.api.token = 'new-session';
+      oldCallback();
+      await tester.pumpAndSettle();
+      expect(f.requests.length, before);
+      expect(f.registrations, isEmpty);
+      await tester.pumpWidget(const SizedBox());
+      await tester.runAsync(f.close);
+    },
+  );
+  testWidgets(
+    'a child explicitly opts in on an Android transport after parent approval',
+    (tester) async {
+      final transport = FakePush();
+      var available = false;
+      final registrations = <Json>[];
+      final account = {'id': 'synthetic-child', 'role': 'child'};
+      final api = Api(
+        base: 'https://example.invalid/api',
+        client: MockClient((request) async {
+          if (request.url.path.endsWith('/config')) {
+            return _reply({
+              'available': available,
+              'notice': 'Deine Eltern können Benachrichtigungen erlauben.',
+              'firebase': <String, dynamic>{},
+            });
+          }
+          if (request.url.path.endsWith('/devices')) return _reply([]);
+          if (request.url.path.endsWith('/device')) {
+            registrations.add(Json.from(jsonDecode(request.body)));
+            return _reply({});
+          }
+          fail('Unexpected synthetic request');
+        }),
+      )..currentAccount = () => account;
+      final push = PushClient(api, transport: transport, webPlatform: false);
+      final state = _State(api, push)..user = account;
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: appTheme(),
+          home: Scaffold(
+            body: SingleChildScrollView(child: NotificationPanel(state)),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(transport.calls, isNot(contains('initialize')));
+      expect(registrations, isEmpty);
+      available = true;
+      await tester.tap(find.text('Status erneut prüfen'));
+      await tester.pumpAndSettle();
+      expect(registrations, isEmpty);
+      transport.channelAllowed = false;
+      await tester.ensureVisible(find.text('Auf diesem Gerät einschalten'));
+      await tester.tap(find.text('Auf diesem Gerät einschalten'));
+      await tester.pumpAndSettle();
+      expect(registrations, isEmpty);
+      expect(transport.calls, isNot(contains('auto:true')));
+      transport.channelAllowed = true;
+      await tester.ensureVisible(find.text('Auf diesem Gerät einschalten'));
+      await tester.tap(find.text('Auf diesem Gerät einschalten'));
+      await tester.pumpAndSettle();
+      expect(
+        transport.calls,
+        containsAllInOrder([
+          'initialize',
+          'permission:true',
+          'auto:true',
+          'token',
+        ]),
+      );
+      expect(registrations.single['platform'], 'android');
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+      await tester.runAsync(() async {
+        await push.forget();
+        push.dispose();
+        await transport.changes.close();
+        await transport.incoming.close();
+        await transport.opened.close();
+      });
+    },
+  );
   testWidgets(
     'Browser opt-in prompts only on its explicit confirmation; cancel stays off',
     (tester) async {

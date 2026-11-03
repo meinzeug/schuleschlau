@@ -505,6 +505,17 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
   kombinierte Mehrtagesfall auf PostgreSQL bestanden; weitere Grenzen und
   Befehle: [Regressionsbericht](docs/ROADMAP_REGRESSION_2026_11_02.md#abruf-und-lernplanung).
 
+  **03.11.2026, weitere Korrektur:** Bei unklarer Selbstständigkeit entsteht
+  kein selbstständiger Prüftag und keine neue Schwierigkeit; der Termin einer
+  fälligen Wiederholung wird dadurch nicht verschoben. Bekannte Fehlversuche
+  bleiben berücksichtigt. Mathematisch gleiche Bruchaufgaben mit umgestellter
+  Formulierung zählen nicht mehrfach als neue Abrufaufgabe. Bei doppelt
+  gestellten Aufgaben entscheidet die tatsächliche Antwortzeit, nicht die
+  Anlagezeit der Runde. Die breite künstliche Regression bestand mit je
+  65 Fällen auf SQLite und PostgreSQL; elf gezielte Fälle bestanden zusätzlich
+  auf beiden Datenbanken. Der mobil beobachtete, vollständig vom Planer
+  erzeugte Mehrtagesablauf bleibt noch offen.
+
   Mit künstlichen Quellen, Revisionen und Elternaufträgen mehrere eigenständige Prüftage über mindestens sieben simulierte Tage sowie freiwillige Zusatzrunden durchspielen.
 
   **01.11.2026:** Die Fälle für mindestens drei Prüftage, mehr als sieben
@@ -826,6 +837,15 @@ Die folgenden Punkte beschreiben ausstehende, wiederholbare Betriebs- und Freiga
   Die Prüfung belegt nicht alle Datenarten oder tatsächliche externe
   Anbieter-/Support-/Proxylogfristen; diese und die vollständige Export- und
   Löschmatrix bleiben offen.
+
+  **03.11.2026, Prüfungszuordnungen:** Die Elternbestätigung eines wörtlichen
+  Ausschnitts wird im regulären Familienexport ausgegeben. Beim ausdrücklichen
+  Löschen der zugehörigen Originalseite und beim Abgleich des Löschjournals
+  nach einer Wiederherstellung wird auch der abgeleitete Nacharbeitsbericht
+  samt dieser Zuordnung entfernt; Kostenbelege und eine andere Heftquelle
+  bleiben erhalten. Je 14 künstliche Lebenszyklusfälle bestanden auf SQLite
+  und isoliertem PostgreSQL. Dies ergänzt die Datenmatrix, schließt aber die
+  ungeprüften externen Aufbewahrungsfristen nicht.
 - [x] **P0 – Wiederherstellung praktisch üben**
 
   Verschlüsselte Sicherung in eine separate Datenbank einspielen, aktuelles authentifiziertes Löschjournal und Rechteänderungen abgleichen, alte Sitzungen und Einladungs-/Reset-Tokens widerrufen sowie Verbrauch und Aufbewahrungsfristen prüfen.
@@ -1295,11 +1315,27 @@ Bestandteil des bestehenden Buildvertrags.
   Filterung und Revisionen bestanden; außerdem liefen Admin-Parallelitätsfälle
   auf PostgreSQL. [Prüfbericht](docs/ROADMAP_MODULE_CHECKS_2026_11_02.md#administration).
 
+  **03.11.2026, Kinderkosten:** Suche und Speichern verwerfen überholte
+  Antworten und alte Bediencallbacks; laufendes Laden und Speichern können
+  einander nicht mehr überschreiben. Ein im Web zu null ausgewerteter
+  32-Bit-Shift beim Erzeugen des Speicherschlüssels wurde durch sichere
+  Zufallsbytes ersetzt; Kontingentgrenzen und Prüfpflichten bleiben bestehen.
+  Die übrige Adminabnahme bleibt offen.
+
   Familien- und Kontoverwaltung, Kindertages-/Monatsbudgets einschließlich unbegrenzt, Familien-/Systemgrenzen, Providerstatus, Kostenbelege, Notfallstopp und revisionsgebundene Einstellungen mit künstlichen Konten testen. Adminrechte im Backend durchsetzen; Betriebsadministratoren erhalten keinen Zugriff auf private Kinderinhalte. Abschnittswechsel dürfen Entwürfe nicht verwerfen und Lesezugriffe keine Änderungen oder Anbieteraufrufe auslösen.
 
   **Abnahme:** Fehlerzustände und tatsächlich wirksame Limits sind verständlich; Notfallstopp bleibt bei gestörter Providerabfrage erreichbar, Änderungen sind auditiert, parallele Bearbeitung und widerrufene Sitzungen werden korrekt behandelt.
 
 - [ ] **P1 – Benachrichtigung und direkte Zielnavigation vollständig prüfen**
+
+  **03.11.2026, Kindergerät:** Die Freigabe auf Kontoebene und das bewusste
+  Einschalten auf dem Kindergerät sind getrennt beschrieben. Nach einer
+  späteren Elternfreigabe kann das Kind den Status ohne erneute Anmeldung
+  aktualisieren und die Geräteberechtigung selbst anfordern. Die Prüfung des
+  Status allein initialisiert Firebase nicht und registriert kein Gerät. Die
+  künstlichen Push-Tests unterscheiden Web- und Android-Transport; sie belegen
+  keine sichtbare Zustellung auf einem physischen Gerät. Die Cursor-Fortsetzung
+  und die übrigen Kriterien dieses Hauptpunkts bleiben offen.
 
   Bereitschaft von Seitenverarbeitung und Lernrunden sowie optional fehlende Tages- oder Prüfungsvorbereitung testen. In-App-Glocke mit scrollendem Nachladen, sichtbarkeitsbezogener Lesemarkierung, Wiederaufnahme und berechtigtem Direktlink prüfen; Push folgt denselben neutralen Ziel- und Berechtigungsregeln. Ruhezeiten, Duplikate, Logout, deaktiviertes Push und fehlgeschlagene Zustellung berücksichtigen.
 
@@ -1463,6 +1499,15 @@ Bestandteil des bestehenden Buildvertrags.
   **Abnahme:** Bericht mit nachvollziehbaren Fundstellen, Risikoeinstufung und Nachtests liegt vor; kritische und hohe Befunde sind behoben beziehungsweise vor jeglicher Freigabe durch die verantwortliche Stelle nachvollziehbar entschieden.
 
 - [ ] **P1 – Abnahmen systematisch und wiederholbar automatisieren**
+
+  **03.11.2026, Backend-Testpartitionen:** Ein zusätzlicher CI-Auftrag prüft
+  drei getrennte Ergebnisartefakte auf gleiche Quellrevision und Sammlung,
+  die erwarteten disjunkten Partitionen sowie tatsächlich ausgeführte Tests;
+  Skip, XFAIL und XPASS bleiben gesondert sichtbar. Der PostgreSQL-Auftrag
+  enthält jetzt auch den Elternzuordnungs-Rennentest. Lokal bestanden 27
+  Vertrags-/Runnerprüfungen mit 45 Untertests und die 20 Fälle der isolierten
+  PostgreSQL-Auswahl. Der erste GitHub-Lauf der Änderung muss noch abgewartet
+  werden; diese Ergänzung ersetzt die übrigen Browser-E2E-Abnahmen nicht.
 
   **03.11.2026, CI-Befund:** Der GitHub-Lauf
   [41574805970](https://github.com/meinzeug/schulpilot/actions/runs/41574805970)

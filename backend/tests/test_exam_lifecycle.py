@@ -18,7 +18,7 @@ from schulpilot.main import app
 from schulpilot.security import digest
 from schulpilot.worker import maintenance
 from sqlalchemy import func, select
-from test_exam_reviews import context, finish, ready
+from test_exam_reviews import context, finish, ready, role_request
 from test_exam_reviews import paper as paper
 from test_exam_reviews import transport as transport
 
@@ -163,6 +163,49 @@ def test_actual_source_delete_and_restore_replay_remove_private_review_derived_r
         assert db.scalar(select(func.count()).select_from(ExamReview)) == 0
         assert db.scalar(select(func.count()).select_from(ExamReviewDraft)) == 0
         assert db.get(Material, paper["book_id"]) is not None
+        assert db.scalar(select(func.count()).select_from(Usage)) == 1
+
+
+@pytest.mark.parametrize("removal", ["parent_delete", "restore_journal"])
+def test_parent_excerpt_confirmation_is_exported_and_erased_with_source(api, paper, transport, removal):
+    ready(paper, transport)
+    view = api.get(paper["path"]).json()
+    route = paper["path"] + f"/tasks/{paper['task_id']}/role"
+    saved = api.put(route, json=role_request(paper, view))
+    assert saved.status_code == 200, saved.text
+
+    def export():
+        response = api.get(f"/api/children/{paper['child_id']}/export?include_photos=false")
+        assert response.status_code == 200, response.text
+        with zipfile.ZipFile(io.BytesIO(response.content)) as archive:
+            return json.loads(archive.read("child.json"))
+
+    exported = export()
+    confirmations = exported["exam_reviews"][0]["report"]["role_confirmations"]
+    assert len(confirmations) == 1
+    assert confirmations[0]["excerpt"] == "Nenner bleibt 4."
+    assert confirmations[0]["role"] == "teacher"
+    assert confirmations[0]["material_id"] == paper["material_id"]
+
+    if removal == "parent_delete":
+        path = f"/api/children/{paper['child_id']}/materials"
+        preview = api.post(path + "/delete-preview", json={"ids": [paper["material_id"]]})
+        assert preview.status_code == 200, preview.text
+        result = api.post(path + "/bulk-delete", json={
+            "selection_token": preview.json()["selection_token"], "delete_linked_units": True,
+        })
+        assert result.status_code == 200, result.text
+    else:
+        with DB.begin() as db:
+            assert reconcile(db, [{"scope": "material", "target": paper["material_id"]}]) == []
+
+    after = export()
+    assert after["exam_reviews"] == []
+    assert "Nenner bleibt 4." not in json.dumps(after, ensure_ascii=False)
+    with DB() as db:
+        assert db.get(Material, paper["material_id"]) is None
+        assert db.get(Material, paper["book_id"]) is not None
+        assert db.scalar(select(func.count()).select_from(ExamReview)) == 0
         assert db.scalar(select(func.count()).select_from(Usage)) == 1
 
 

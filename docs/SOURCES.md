@@ -1,9 +1,24 @@
+## 03.11.2026 · Backend-CI
+
+Die Backend-CI überträgt Ergebnisse der Testpartitionen mit den fest auf
+Commits gebundenen GitHub-Actions
+[upload-artifact v4.6.2](https://github.com/actions/upload-artifact/tree/ea165f8d65b6e75b540449e92b4886f43607fa02)
+und [download-artifact v4.3.0](https://github.com/actions/download-artifact/tree/d3f86a106a0bac45b974a628896c90dbdf5c8093).
+Der lokale Prüfvertrag und seine Grenzen stehen in
+[BACKEND_CI_RECEIPTS.md](BACKEND_CI_RECEIPTS.md). Ein lokaler Test ersetzt
+keinen erfolgreichen Lauf des geänderten GitHub-Workflows.
+
 ## 02.11.2026 · Release-Koordination und P0-Abnahmen
 
 Die Absicherung paralleler Betriebsabläufe (`deploy/release_lock.py`,
 `deploy/stage_release.py`, `deploy/activate.py`, `deploy/prune_releases.py`)
-schließt konkurrierende Deployments, Pruning, Aktivierungen und Rollbacks
-gegenseitig aus und übersteht SSH-Abbrüche durch `/proc`-Kindprozessprüfung.
+verwendet eine gemeinsame Lease für teilnehmende Deployments, Pruning,
+Aktivierungen und Rollbacks. Isolierte Tests prüfen unter anderem abgebrochene
+SSH-Verbindungen; eine unterbrochene Lease bleibt bis zur Betreiberprüfung
+bestehen. Die Koordination beliebiger alter, nicht teilnehmender Skripte und
+ein produktiver Rückweg sind damit nicht nachgewiesen. Der frühere allgemeine
+Anspruch, SSH-Abbrüche seien durch eine `/proc`-Kindprozessprüfung vollständig
+abgesichert, war zu weitgehend; der aktuelle Prüfstand steht in der Roadmap.
 Der Serverbestand auf `schulpilot.dorfspy.de` wurde auf Notenlöschungs- und
 Slot-Integrität sowie Backup-Aufbewahrung (363 Archive, ältestes 13,66 Tage)
 auditiert. Betrieblicher Spitzenbedarf (< 610 MB) und Alarmzustellung via

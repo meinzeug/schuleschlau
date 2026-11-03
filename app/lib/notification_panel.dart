@@ -465,9 +465,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                         Padding(
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           child: Text(
-                            widget.state.isChild
-                                ? 'Noch keine Neuigkeiten.'
-                                : 'Hier erscheint Neues zu deinen Lernrunden und deiner Familie.',
+                            widget.state.isChild ? 'Noch keine Neuigkeiten.' : 'Hier erscheint Neues zu deinen Lernrunden und deiner Familie.',
                           ),
                         ),
                       if ((onlyUnread || filtered) &&
@@ -591,7 +589,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 );
               },
             ),
-            SizedBox(height: 12),
+            const SizedBox(height: 12),
             KeyedSubtree(
               key: _devicePanel,
               child: NotificationPanel(widget.state),
@@ -1397,7 +1395,7 @@ class _NotificationPanelState extends State<NotificationPanel>
               ],
             ),
             SizedBox(height: 16),
-            if (!available)
+            if (!available) ...[
               Text(
                 widget.state.isChild &&
                         (data['config']['notice'] as String? ?? '').contains(
@@ -1406,8 +1404,24 @@ class _NotificationPanelState extends State<NotificationPanel>
                     ? data['config']['notice']
                     : 'Benachrichtigungen sind noch nicht verfügbar. Deine Neuigkeiten findest du hier in der App.',
                 style: TextStyle(color: context.palette.muted),
-              )
-            else ...[
+              ),
+              if (widget.state.isChild)
+                TextButton.icon(
+                  onPressed: busy
+                      ? null
+                      : () {
+                          if (isCurrentAccount(preferenceOwner) &&
+                              widget.state.familyId == preferenceFamily &&
+                              widget.state.api.token == preferenceToken &&
+                              version == preferenceVersion &&
+                              ModalRoute.of(context)?.isCurrent == true) {
+                            setState(() => version++);
+                          }
+                        },
+                  icon: const Icon(Icons.refresh_rounded),
+                  label: const Text('Status erneut prüfen'),
+                ),
+            ] else ...[
               Text(
                 ready
                     ? 'Für dieses Gerät eingeschaltet.'

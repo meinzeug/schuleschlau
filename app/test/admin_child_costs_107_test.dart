@@ -41,6 +41,7 @@ class Fixture {
   Json server = policy();
   bool conflict = false;
   Completer<http.Response>? pending;
+  Completer<http.Response>? pendingList;
   Completer<http.Response>? pendingPut;
   final enabled = ValueNotifier(true);
   Fixture() {
@@ -51,8 +52,17 @@ class Fixture {
           requests.add(r);
           if (r.method == 'GET' &&
               r.url.path.endsWith('/admin/child-cost-controls')) {
+            if (pendingList != null) return pendingList!.future;
+            final query = r.url.queryParameters['query'] ?? '';
             return http.Response(
-              jsonEncode({'items': children, 'next_cursor': null}),
+              jsonEncode({
+                'items': children
+                    .where(
+                      (child) => child['username'].toString().contains(query),
+                    )
+                    .toList(),
+                'next_cursor': null,
+              }),
               200,
             );
           }
@@ -192,6 +202,45 @@ void main() {
     expect(f.writes, isEmpty);
     expect(tester.takeException(), isNull);
   });
+  testWidgets('a new child search supersedes a delayed earlier search', (
+    tester,
+  ) async {
+    final f = Fixture();
+    f.children.add({
+      'child_id': 'second',
+      'username': 'second-child',
+      'mode': 'configured',
+    });
+    await f.mount(tester);
+    await tester.tap(find.byTooltip('Kinderzugang suchen'));
+    await tester.pumpAndSettle();
+    final input = find.widgetWithText(TextField, 'Kinderzugang suchen');
+    f.pendingList = Completer<http.Response>();
+    final old = f.pendingList!;
+    await tester.enterText(input, 'artificial');
+    await tester.testTextInput.receiveAction(TextInputAction.search);
+    await tester.pump();
+    expect(find.text('artificial-child'), findsNothing);
+    f.pendingList = null;
+    await tester.enterText(input, 'second');
+    await tester.testTextInput.receiveAction(TextInputAction.search);
+    await tester.pumpAndSettle();
+    expect(find.text('second-child'), findsOneWidget);
+    old.complete(
+      http.Response(
+        jsonEncode({
+          'items': [f.children.first],
+          'next_cursor': null,
+        }),
+        200,
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('artificial-child'), findsNothing);
+    expect(find.text('second-child'), findsOneWidget);
+    expect(f.writes, isEmpty);
+    expect(tester.takeException(), isNull);
+  });
   testWidgets(
     'unlimited is explicit null and decimal amounts use exact integer micros',
     (tester) async {
@@ -259,6 +308,109 @@ void main() {
     await tap(tester, find.text('Grenzen speichern'));
     expect(f.writes, isEmpty);
     expect(find.textContaining('Gib einen Betrag ab 0'), findsOneWidget);
+  });
+  testWidgets('a pending refresh cannot race a save or lose edited limits', (
+    tester,
+  ) async {
+    final f = Fixture();
+    await f.mount(tester);
+    await f.open(tester);
+    await tester.ensureVisible(
+      find.widgetWithText(TextField, 'Monatslimit in Euro'),
+    );
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Monatslimit in Euro'),
+      '9,50',
+    );
+    f.pending = Completer<http.Response>();
+    await tester.ensureVisible(find.text('Gespeicherten Stand prüfen'));
+    await tester.tap(find.text('Gespeicherten Stand prüfen'));
+    await tester.pump();
+    final button = tester.widget<ActionButton>(
+      find.widgetWithText(ActionButton, 'Grenzen speichern'),
+    );
+    expect(button.enabled, isFalse);
+    // Even a captured callback must be inert while the read is running.
+    await button.onPressed();
+    await tester.pump();
+    expect(f.writes, isEmpty);
+    f.pending!.complete(http.Response(jsonEncode(policy()), 200));
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<TextField>(
+            find.widgetWithText(TextField, 'Monatslimit in Euro'),
+          )
+          .controller!
+          .text,
+      '9,50',
+    );
+    await tap(tester, find.text('Grenzen speichern'));
+    expect(
+      jsonDecode(f.writes.single.body)['monthly_limit_eur_micros'],
+      9500000,
+    );
+    expect(find.textContaining('Gespeichert.'), findsOneWidget);
+  });
+  testWidgets('a captured refresh cannot start while a save is pending', (
+    tester,
+  ) async {
+    final f = Fixture();
+    await f.mount(tester);
+    await f.open(tester);
+    final refresh = tester
+        .widget<TextButton>(
+          find.widgetWithText(TextButton, 'Gespeicherten Stand prüfen'),
+        )
+        .onPressed!;
+    f.pendingPut = Completer<http.Response>();
+    await tester.ensureVisible(find.text('Grenzen speichern'));
+    await tester.tap(find.text('Grenzen speichern'));
+    await tester.pump();
+    final before = f.requests.where((r) => r.method == 'GET').length;
+    refresh();
+    await tester.pump();
+    expect(f.requests.where((r) => r.method == 'GET').length, before);
+    expect(f.writes.length, 1);
+    f.pendingPut!.complete(http.Response(jsonEncode(policy(revision: 2)), 200));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Gespeichert.'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+  testWidgets('an old list search cannot invalidate an editor save', (
+    tester,
+  ) async {
+    final f = Fixture();
+    await f.mount(tester);
+    await tester.tap(find.byTooltip('Kinderzugang suchen'));
+    await tester.pumpAndSettle();
+    final oldSearch = tester
+        .widget<TextField>(
+          find.widgetWithText(TextField, 'Kinderzugang suchen'),
+        )
+        .onSubmitted!;
+    await f.open(tester);
+    f.pendingPut = Completer<http.Response>();
+    await tester.ensureVisible(find.text('Grenzen speichern'));
+    await tester.tap(find.text('Grenzen speichern'));
+    await tester.pump();
+    final before = f.requests.where((r) => r.method == 'GET').length;
+    oldSearch('outdated-list-search');
+    await tester.pump();
+    expect(f.requests.where((r) => r.method == 'GET').length, before);
+    f.pendingPut!.complete(http.Response(jsonEncode(policy(revision: 2)), 200));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Gespeichert.'), findsOneWidget);
+    expect(
+      tester
+          .widget<ActionButton>(
+            find.widgetWithText(ActionButton, 'Grenzen speichern'),
+          )
+          .enabled,
+      isTrue,
+    );
+    expect(f.writes.length, 1);
+    expect(tester.takeException(), isNull);
   });
   testWidgets('a saved callback is inert after a replacement operator login', (
     tester,

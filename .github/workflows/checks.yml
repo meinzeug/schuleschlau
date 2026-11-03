@@ -49,10 +49,41 @@ jobs:
       - run: python -m pip install -r backend/requirements-dev.lock
       - run: ruff check backend deploy scripts
       - name: Run complete backend partition
-        run: python scripts/run_backend_shard.py --shard-index ${{ matrix.shard }} --shard-count 3 --receipt artifacts/backend-shard-${{ matrix.shard }}.json -- -q
+        run: python scripts/run_backend_shard.py --shard-index ${{ matrix.shard }} --shard-count 3 --receipt artifacts/backend-shard-${{ matrix.shard }}.json --ci-summary artifacts/backend-summary-${{ matrix.shard }}.json -- -q
       - name: Record collection and partition
         if: always()
         run: cat artifacts/backend-shard-${{ matrix.shard }}.json
+      - name: Save actual partition result
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: backend-shard-${{ matrix.shard }}
+          path: artifacts/backend-summary-${{ matrix.shard }}.json
+          if-no-files-found: error
+          retention-days: 7
+  backend_complete:
+    name: backend-complete
+    needs: [backend]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12.3'
+      - name: Verify backend partition contract
+        run: python -m unittest discover -s scripts/tests -p test_verify_backend_shards.py
+      - name: Retrieve distinct backend partition results from this run
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          pattern: backend-shard-*
+          path: ${{ runner.temp }}/backend-receipts
+      - name: Require all backend partitions from the same collection
+        env:
+          BACKEND_JOB_RESULT: ${{ needs.backend.result }}
+        run: python scripts/verify_backend_shards.py "${{ runner.temp }}/backend-receipts"
   postgres_concurrency:
     name: postgres-concurrency
     runs-on: ubuntu-24.04
@@ -76,6 +107,7 @@ jobs:
           backend/tests/test_notification_inbox.py::test_revoked_child_goal_events_do_not_hide_current_events
           backend/tests/test_round_ready_notifications.py::test_displaced_round_receipt_rechecks_source_and_session
           backend/tests/test_exam_notifications.py::test_displaced_exam_notice_rechecks_revision
+          backend/tests/test_exam_reviews.py::test_parallel_parent_role_confirmations_have_one_winner
           backend/tests/test_grade_pdf_imports.py::test_parallel_confirm_and_parallel_repeat_upload_do_not_duplicate
           backend/tests/test_grade_pdf_imports.py::test_parallel_preview_upload_rechecks_idempotency_after_unlocked_parsing
           backend/tests/test_recall_planning_journey.py

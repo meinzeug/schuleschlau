@@ -92,6 +92,104 @@ def test_repeated_failure_after_help_finishes_without_a_fourth_attempt(profile):
     assert client.post(f"/api/units/{uid}/questions/{fresh}/answer", json={"answer": "3/8"}).status_code == 409
 
 
+@pytest.mark.parametrize("assisted", [True, False])
+def test_uncertain_independence_never_creates_source_scoped_check_days(profile, assisted):
+    _, uid, mid, _, _, child = profile
+    with DB.begin() as db:
+        template = copy.deepcopy(db.get(LearningUnit, uid).questions[0])
+        revision = db.get(Material, mid).revision
+        for index, days in enumerate((9, 5, 1)):
+            prompt = f"Berechne 1/{index + 3} + 1/{index + 4}."
+            question = dict(template, id="recall", prompt=prompt)
+            unit = LearningUnit(child_id=child["id"], material_id=mid, subject="Mathematik", topic="Brüche",
+                explanation="Künstliche Wiederholung.", questions=[question], learning_root_id=uid,
+                followup_of=uid, round_kind="spaced_review", provider="synthetic-fixture")
+            db.add(unit)
+            db.flush()
+            db.add(UnitSource(unit_id=unit.id, material_id=mid, revision=revision))
+            db.add(Attempt(unit_id=unit.id, question_id="recall", answer=question["answer"], outcome="correct",
+                assisted=assisted, evaluation={"independence_uncertain": True}, created=int(now()) - days * 86400))
+        db.flush()
+        state = next(row for row in evidence(db, db.get(LearningUnit, uid), [db.get(Material, mid)])
+            if row["label"] == "Brüche addieren")
+        assert state["tasks"] == state["attempts"] == state["uncertain"] == 3
+        assert state["independent"] == state["supported"] == 0
+        assert state["successful_check_dates"] == [] and state["last_independent_success"] is None
+        assert state["last_difficulty"] is None and state["confidence"] == "unverified"
+        assert state["review_due"] is None
+
+
+def test_uncertain_independence_does_not_postpone_source_scoped_recall(profile):
+    _, uid, mid, _, _, child = profile
+    with DB.begin() as db:
+        template = copy.deepcopy(db.get(LearningUnit, uid).questions[0])
+        source = db.get(Material, mid)
+        for days, prompt in ((9, "Berechne 2/5 + 1/10."), (5, "Berechne 1/4 + 1/6."),
+                (1, "Berechne 1/3 + 1/12.")):
+            unit = LearningUnit(child_id=child["id"], material_id=mid, subject="Mathematik", topic="Brüche",
+                explanation="Künstliche Wiederholung.", questions=[dict(template, id="recall", prompt=prompt)],
+                learning_root_id=uid, followup_of=uid, round_kind="spaced_review", provider="synthetic-fixture")
+            db.add(unit)
+            db.flush()
+            db.add(UnitSource(unit_id=unit.id, material_id=mid, revision=source.revision))
+            db.add(Attempt(unit_id=unit.id, question_id="recall", answer="fixture", outcome="correct",
+                assisted=False, created=int(now()) - days * 86400))
+        db.flush()
+        def get_state():
+            return next(row for row in evidence(db, db.get(LearningUnit, uid), [source])
+                if row["label"] == "Brüche addieren")
+        before = get_state()
+        assert before["confidence"] == "repeated_recall" and before["review_due"]
+        db.add(Attempt(unit_id=uid, question_id="sum", answer="fixture", outcome="correct", assisted=True,
+            evaluation={"independence_uncertain": True}, created=int(now())))
+        db.flush()
+        after = get_state()
+        assert after["uncertain"] == 1 and after["last_difficulty"] is None
+        assert after["review_due"] == before["review_due"]
+        assert after["successful_check_dates"] == before["successful_check_dates"]
+        assert after["confidence"] == "repeated_recall"
+
+
+def test_earliest_answer_not_unit_creation_sets_duplicate_recall_day(profile):
+    _, uid, mid, _, _, child = profile
+    with DB.begin() as db:
+        root, source = db.get(LearningUnit, uid), db.get(Material, mid)
+        stamp = int(now())
+        template = copy.deepcopy(root.questions[0])
+        prompt = "Berechne 2/5 + 1/10."
+        for unit_age, answer_age in ((10, 1), (8, 7)):
+            unit = LearningUnit(child_id=child["id"], material_id=mid, subject="Mathematik", topic="Brüche",
+                explanation="Künstliche Wiederholung.", questions=[dict(template, id="recall", prompt=prompt)],
+                learning_root_id=uid, followup_of=uid, round_kind="spaced_review", provider="synthetic-fixture",
+                created=stamp - unit_age * 86400)
+            db.add(unit)
+            db.flush()
+            db.add(UnitSource(unit_id=unit.id, material_id=mid, revision=source.revision))
+            db.add(Attempt(unit_id=unit.id, question_id="recall", answer="1/2", outcome="correct",
+                assisted=False, created=stamp - answer_age * 86400))
+        db.flush()
+        state = next(row for row in evidence(db, root, [source]) if row["label"] == "Brüche addieren")
+        zone = ZoneInfo(db.get(Child, child["id"]).preferences.get("timezone", "Europe/Berlin"))
+        assert state["successful_check_dates"] == [datetime.fromtimestamp(stamp - 7 * 86400, zone).date().isoformat()]
+        assert state["independent"] == state["attempts"] == 2
+
+
+def test_uncertainty_flag_cannot_hide_an_actual_retry(profile):
+    _, uid, mid, _, _, _ = profile
+    with DB.begin() as db:
+        stamp = int(now())
+        db.add(Attempt(unit_id=uid, question_id="sum", answer="wrong", outcome="incorrect", assisted=False,
+            created=stamp - 1, evaluation={"attempt_number": 1}))
+        db.add(Attempt(unit_id=uid, question_id="sum", answer="right", outcome="correct", assisted=False,
+            created=stamp, evaluation={"attempt_number": 2, "independence_uncertain": True}))
+        db.flush()
+        state = next(row for row in evidence(db, db.get(LearningUnit, uid), [db.get(Material, mid)])
+            if row["label"] == "Brüche addieren")
+        assert state["tasks"] == state["supported"] == 1 and state["attempts"] == 2
+        assert state["uncertain"] == state["independent"] == 0
+        assert state["last_difficulty"] == stamp and state["successful_check_dates"] == []
+
+
 def test_legacy_answers_without_source_revision_remain_practice_not_current_mastery(profile):
     from fractions import Fraction
 

@@ -12,9 +12,12 @@ REQUIRED_NOTICE_TESTS = {
     "test_displaced_exam_notice_rechecks_revision[ready]",
     "test_displaced_exam_notice_rechecks_revision[reminder]",
 }
+REQUIRED_EXAM_ROLE_TEST = (
+    "backend.tests.test_exam_reviews", "test_parallel_parent_role_confirmations_have_one_winner"
+)
 
 
-def verify(path, minimum=19):
+def verify(path, minimum=20):
     root = ET.parse(path).getroot()
     if root.tag not in {"testsuite", "testsuites"}:
         raise ValueError("Not a JUnit test report")
@@ -26,6 +29,8 @@ def verify(path, minimum=19):
         raise ValueError("A PostgreSQL test has no identity")
     if not REQUIRED_NOTICE_TESTS.issubset({name for _, name in identities}):
         raise ValueError("A required PostgreSQL notification regression is missing")
+    if REQUIRED_EXAM_ROLE_TEST not in identities:
+        raise ValueError("The PostgreSQL exam-role concurrency regression is missing")
     if any(next(root.iter(tag), None) is not None for tag in ("skipped", "failure", "error")):
         raise ValueError("A PostgreSQL test was skipped or failed")
     return len(cases)
