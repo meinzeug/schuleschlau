@@ -139,6 +139,7 @@ void main() {
         }),
       ),
     )..user = {'id': 'own-user', 'role': 'child', 'child_id': 'child'};
+    state.api.token = 'old-session';
     await tester.pumpWidget(
       MaterialApp(
         theme: appTheme(),
@@ -148,6 +149,12 @@ void main() {
       ),
     );
     await tester.pump();
+    expect(
+      find.byWidgetPredicate(
+        (widget) => widget.key?.toString().contains('old-session') ?? false,
+      ),
+      findsNothing,
+    );
     state.api.token = 'new-session';
     // ignore: invalid_use_of_protected_member, invalid_use_of_visible_for_testing_member
     state.notifyListeners();

@@ -38,6 +38,12 @@ void main() {
       MaterialApp.router(theme: appTheme(), routerConfig: router),
     );
     await t.pump();
+    expect(
+      find.byWidgetPredicate(
+        (widget) => widget.key?.toString().contains('old-session') ?? false,
+      ),
+      findsNothing,
+    );
     state.api.token = 'new-session';
     // Simulate the account-state notification after replacing a session.
     // ignore: invalid_use_of_protected_member, invalid_use_of_visible_for_testing_member

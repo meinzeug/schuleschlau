@@ -1039,7 +1039,6 @@ class TopicBrowser extends StatelessWidget {
     key: ValueKey((
       state,
       ObjectKey(state.user),
-      state.api.token,
       childId,
       subjectId,
       selected != null,

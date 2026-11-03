@@ -27,7 +27,6 @@ class LearningPreparationScreen extends StatelessWidget {
       state,
       ObjectKey(state.user),
       state.familyId,
-      state.api.token,
       childId,
       jobId,
     )),
