@@ -21,7 +21,8 @@ def interrupted_offsite_transaction(base):
     independent watchdog on a running pull, and do not treat a dangling
     symlink as an absent marker.
     """
-    markers = (base / '.erasure-ledger.pending', base / '.erasure-ledger.previous')
+    markers = (base / '.erasure-ledger.pending', base / '.erasure-ledger.previous',
+               base / '.offsite-status.previous')
     if not any(os.path.lexists(path) for path in markers):
         return False
     try:

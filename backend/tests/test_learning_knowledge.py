@@ -6,7 +6,7 @@ from zoneinfo import ZoneInfo
 
 import pytest
 from schulpilot import coaching
-from schulpilot.db import DB, Attempt, Child, LearningUnit, Material, UnitSource, now
+from schulpilot.db import DB, Attempt, Child, LearningUnit, Material, UnitCoaching, UnitSource, now
 from schulpilot.learning_knowledge import evidence
 from sqlalchemy import select
 from test_adaptive_plan import action, session, submit
@@ -269,3 +269,70 @@ def test_deliberate_skip_is_idempotent_and_never_an_answer(profile):
     with DB() as db:
         assert not db.scalar(select(Attempt.id).where(Attempt.unit_id == uid))
         assert db.get(LearningUnit, uid).completed is None
+
+@pytest.mark.parametrize("prior_kind,prior_outcome,prior_assisted,prior_uncertain", [
+    ("learning", "incorrect", False, False),
+    ("check", "correct", True, False),
+    ("learning", "correct", False, True),
+])
+def test_previously_answered_question_is_not_fresh_source_recall(
+        profile, prior_kind, prior_outcome, prior_assisted, prior_uncertain):
+    _, uid, mid, _, _, child = profile
+    with DB.begin() as db:
+        root, source = db.get(LearningUnit, uid), db.get(Material, mid)
+        stamp = int(now())
+        template = copy.deepcopy(root.questions[0])
+        prompts = ["Berechne 2/5 + 1/10.", "Berechne 1/4 + 1/6.", "Berechne 1/3 + 1/12."]
+        attempts = []
+        for days, prompt, kind, outcome, assisted, uncertain in [
+            (11, prompts[0], prior_kind, prior_outcome, prior_assisted, prior_uncertain),
+            *[(days, prompt, "spaced_review", "correct", False, False)
+              for days, prompt in zip((9, 5, 1), prompts, strict=True)],
+        ]:
+            unit = LearningUnit(child_id=child["id"], material_id=mid, subject="Mathematik", topic="Brüche",
+                explanation="Künstliche Wiederholung.", questions=[dict(template, id="recall", prompt=prompt)],
+                learning_root_id=uid, followup_of=uid, round_kind=kind, provider="synthetic-fixture")
+            db.add(unit)
+            db.flush()
+            db.add(UnitSource(unit_id=unit.id, material_id=mid, revision=source.revision))
+            attempt = Attempt(unit_id=unit.id, question_id="recall", answer="fixture", outcome=outcome,
+                assisted=assisted, evaluation={"independence_uncertain": uncertain}, created=stamp - days * 86400)
+            db.add(attempt)
+            attempts.append(attempt)
+        db.flush()
+        state = next(row for row in evidence(db, root, [source]) if row["label"] == "Brüche addieren")
+        zone = ZoneInfo(db.get(Child, child["id"]).preferences.get("timezone", "Europe/Berlin"))
+        expected = [datetime.fromtimestamp(stamp - days * 86400, zone).date().isoformat() for days in (5, 1)]
+        assert state["successful_check_dates"] == expected
+        assert state["confidence"] != "repeated_recall"
+        assert state["tasks"] == state["attempts"] == 4
+        assert set(state["evidence_refs"]) == {"attempt:" + row.id for row in attempts}
+
+
+def test_non_math_source_recall_preserves_chemistry_case(profile):
+    _, uid, mid, _, _, child = profile
+    with DB.begin() as db:
+        root, source = db.get(LearningUnit, uid), db.get(Material, mid)
+        root.subject, root.topic = "Chemie", "Chemische Zeichen"
+        source.subject, source.topic = root.subject, root.topic
+        source.content = "CO steht für Kohlenmonoxid und Co für Cobalt."
+        source.source_blocks = []
+        root.questions = [{**copy.deepcopy(root.questions[0]), "learning_goal_id": "symbols",
+            "prompt": "Welche Stoffe gehören zu den Zeichen?"}]
+        db.add(UnitCoaching(unit_id=uid, status="ready", report={"learning_goals": [
+            {"id": "symbols", "label": "Chemische Zeichen zuordnen", "source_excerpt": source.content}]}))
+        stamp = int(now())
+        for days, notation in ((5, "CO"), (1, "Co")):
+            question = dict(root.questions[0], id="recall", prompt=f"Welcher Stoff wird mit {notation} bezeichnet?")
+            unit = LearningUnit(child_id=child["id"], material_id=mid, subject=root.subject, topic=root.topic,
+                explanation="Künstliche Wiederholung.", questions=[question], learning_root_id=uid,
+                followup_of=uid, round_kind="spaced_review", provider="synthetic-fixture")
+            db.add(unit)
+            db.flush()
+            db.add(UnitSource(unit_id=unit.id, material_id=mid, revision=source.revision))
+            db.add(Attempt(unit_id=unit.id, question_id="recall", answer="fixture", outcome="correct",
+                assisted=False, created=stamp - days * 86400))
+        db.flush()
+        state = next(row for row in evidence(db, root, [source]) if row["label"] == "Chemische Zeichen zuordnen")
+        assert len(state["successful_check_dates"]) == 2
+        assert state["independent"] == state["attempts"] == 2

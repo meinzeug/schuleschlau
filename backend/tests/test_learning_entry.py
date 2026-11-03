@@ -697,3 +697,28 @@ def test_package_keeps_excluded_group_visible_but_never_reserves_it(source, api)
         assert len(job.payload["sources"]) == 2  # Original revision context retained.
         assert job.payload["learning_entry_enabled"] is True
         assert db.query(Usage).count() == 1
+
+@pytest.mark.parametrize("prior_kind,prior_outcome,prior_assisted,prior_uncertain", [
+    ("learning", "incorrect", False, False),
+    ("check", "correct", True, False),
+    ("learning", "correct", False, True),
+])
+def test_previously_answered_question_is_not_fresh_competence_recall(
+        source, prior_kind, prior_outcome, prior_assisted, prior_uncertain):
+    _, child, mid = source
+    with DB.begin() as db:
+        stamp = int(now())
+        prior = dated_expansion_attempt(db, child["id"], mid, 0, stamp - 11 * 86400, outcome=prior_outcome)
+        prior.assisted = prior_assisted
+        prior.evaluation = {"independence_uncertain": prior_uncertain}
+        db.get(LearningUnit, prior.unit_id).round_kind = prior_kind
+        attempts = [dated_expansion_attempt(db, child["id"], mid, index, stamp - days * 86400)
+            for index, days in enumerate((9, 5, 1))]
+        db.flush()
+        state = competences.evidence(db, child["id"], ["math.fractions.expand"])[0]
+        zone = ZoneInfo(db.get(Child, child["id"]).preferences.get("timezone", "Europe/Berlin"))
+        expected = [datetime.fromtimestamp(stamp - days * 86400, zone).date().isoformat() for days in (5, 1)]
+        assert state["successful_check_dates"] == expected
+        assert state["confidence"] != "repeated_recall"
+        assert state["tasks"] == state["attempts"] == 4
+        assert set(state["evidence_refs"]) == {"attempt:" + row.id for row in [prior, *attempts]}

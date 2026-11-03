@@ -270,6 +270,78 @@ void main() {
     },
   );
 
+  for (final bell in [false, true]) {
+    for (final familyChange in [false, true]) {
+      scenario(
+        'stale notice control cannot navigate after ${familyChange ? 'family' : 'session'} change in ${bell ? 'bell' : 'full inbox'}',
+        (tester) async {
+          final fixture = await display(
+            tester,
+            (_) async => reply({
+              'items': [notice('old', read: true)],
+              'unread': 0,
+            }),
+            bell: bell,
+          );
+          if (bell) {
+            await tester.tap(find.byKey(const ValueKey('notification-bell')));
+            await tester.pumpAndSettle();
+          }
+          final VoidCallback? open = bell
+              ? tester
+                    .widget<MenuItemButton>(
+                      find.byKey(const ValueKey('notice-preview-old')),
+                    )
+                    .onPressed
+              : tester.widget<ListTile>(noticeTile('old')).onTap;
+          expect(open, isNotNull);
+          if (familyChange) {
+            fixture.state.familyId = 'another-family';
+          } else {
+            fixture.state.api.token = 'another-session';
+          }
+          open!();
+          await tester.pumpAndSettle();
+          expect(fixture.router.state.uri.path, '/notices');
+        },
+      );
+      for (final success in [false, true]) {
+        scenario(
+          'pending notice navigation is discarded on ${familyChange ? 'family' : 'session'} change in ${bell ? 'bell' : 'full inbox'} (${success ? 'success' : 'failure'})',
+          (tester) async {
+            final pending = Completer<http.Response>();
+            final fixture = await display(tester, (request) async {
+              if (request.method == 'POST') return pending.future;
+              return reply({
+                'items': [notice('new')],
+                'unread': 1,
+              });
+            }, bell: bell);
+            if (bell) {
+              await tester.tap(find.byKey(const ValueKey('notification-bell')));
+              await tester.pumpAndSettle();
+            }
+            await tester.tap(find.text('Künstliche Meldung new'));
+            await tester.pump();
+            if (familyChange) {
+              fixture.state.familyId = 'another-family';
+            } else {
+              fixture.state.api.token = 'another-session';
+            }
+            fixture.state.notifyListeners();
+            await tester.pump();
+            pending.complete(
+              success ? reply({}) : reply({'detail': 'unavailable'}, 503),
+            );
+            await tester.pumpAndSettle();
+            expect(fixture.router.state.uri.path, '/notices');
+            expect(find.text('Ziel new'), findsNothing);
+          },
+        );
+      }
+    }
+  }
+
   for (final route in <String, String>{
     '/messages/kid': 'Nachricht ansehen',
     '/homework/kid/photo': 'Hausaufgabe ansehen',

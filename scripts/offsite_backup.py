@@ -35,6 +35,15 @@ def run(args, **kwargs):
     return subprocess.run(args, check=True, timeout=120, **kwargs)
 
 
+def sync_directory(destination):
+    """Persist directory entries before making claims about the local copy."""
+    fd = os.open(destination, os.O_RDONLY | os.O_DIRECTORY | os.O_CLOEXEC)
+    try:
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+
+
 def commit_ledger(destination, partial, acknowledge, success):
     """Keep the previous snapshot when an ordinary acknowledgement fails.
 
@@ -44,20 +53,29 @@ def commit_ledger(destination, partial, acknowledge, success):
     ledger = destination / "erasure-ledger.enc"
     previous = destination / ".erasure-ledger.previous"
     pending = destination / ".erasure-ledger.pending"
-    if pending.exists() or previous.exists():
+    marker = destination / "last-success.json"
+    marker_previous = destination / ".offsite-status.previous"
+    if any(os.path.lexists(path) for path in (pending, previous, marker_previous)):
         raise InterruptedTransfer("An interrupted journal transfer requires reconciliation")
     had_previous = ledger.exists()
     with pending.open("x") as output:
         output.write(json.dumps({"had_previous": had_previous}) + "\n")
         output.flush()
         os.fsync(output.fileno())
+    # A crash from this point must leave a reconciliation marker before the
+    # old journal is linked or replaced and especially before any remote ACK.
+    sync_directory(destination)
     installed = False
+    marker_installed = False
+    had_marker = False
     ack_started = False
     try:
         if had_previous:
             os.link(ledger, previous)
+            sync_directory(destination)
         partial.replace(ledger)
         installed = True
+        sync_directory(destination)
         ack_started = True
         acknowledge()
         with tempfile.NamedTemporaryFile(mode="w", dir=destination, prefix=".offsite-status-", delete=False) as output:
@@ -70,7 +88,15 @@ def commit_ledger(destination, partial, acknowledge, success):
                 status.unlink(missing_ok=True)
                 raise
         try:
-            status.replace(destination / "last-success.json")
+            had_marker = marker.exists()
+            if had_marker:
+                if marker.is_symlink() or not marker.is_file():
+                    raise RuntimeError("Untrusted success marker")
+                os.link(marker, marker_previous)
+                sync_directory(destination)
+            status.replace(marker)
+            marker_installed = True
+            sync_directory(destination)
         except Exception:
             status.unlink(missing_ok=True)
             raise
@@ -84,14 +110,26 @@ def commit_ledger(destination, partial, acknowledge, success):
                 ledger.unlink(missing_ok=True)
         else:
             previous.unlink(missing_ok=True)
+        if marker_installed:
+            if had_marker:
+                marker_previous.replace(marker)
+            else:
+                marker.unlink(missing_ok=True)
+        else:
+            marker_previous.unlink(missing_ok=True)
+        sync_directory(destination)
         # A remote failure or timeout may follow a successful server ACK; the
         # prior snapshot is restored but its relationship to the remote marker
         # is unknown. Retain the marker and require human reconciliation.
         if not ack_started or isinstance(error, AcknowledgementRejected):
             pending.unlink(missing_ok=True)
+            sync_directory(destination)
         raise
     previous.unlink(missing_ok=True)
+    marker_previous.unlink(missing_ok=True)
+    sync_directory(destination)
     pending.unlink()
+    sync_directory(destination)
 
 
 def main():
@@ -164,7 +202,8 @@ def retained_inventory(inventory):
 
 
 def pull(destination):
-    if (destination / ".erasure-ledger.pending").exists() or (destination / ".erasure-ledger.previous").exists():
+    if any(os.path.lexists(destination / name) for name in
+           (".erasure-ledger.pending", ".erasure-ledger.previous", ".offsite-status.previous")):
         raise InterruptedTransfer("An interrupted journal transfer requires reconciliation")
     ssh = ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=15", "dorfspy"]
     access = "/opt/schulpilot/current/venv/bin/python /opt/schulpilot/current/deploy/backup_access.py"
@@ -179,11 +218,14 @@ def pull(destination):
             try:
                 with partial.open("wb") as output:
                     run([*ssh, access + " read " + name], stdout=output, stderr=subprocess.PIPE)
+                    output.flush()
+                    os.fsync(output.fileno())
                 with partial.open("rb") as source:
                     digest = hashlib.file_digest(source, "sha256").hexdigest()
                 if partial.stat().st_size != item["size"] or digest != item["sha256"]:
                     raise RuntimeError("Offsite ciphertext checksum mismatch")
                 partial.replace(target)
+                sync_directory(destination)
                 copied += 1
             finally:
                 partial.unlink(missing_ok=True)
@@ -191,6 +233,10 @@ def pull(destination):
             with target.open("rb") as source:
                 if hashlib.file_digest(source, "sha256").hexdigest() != item["sha256"]:
                     raise RuntimeError("Existing offsite ciphertext checksum mismatch")
+                # Also make earlier copies from older clients durable before
+                # confirming them with a newer journal snapshot.
+                os.fsync(source.fileno())
+            sync_directory(destination)
     partial = destination / "erasure-ledger.partial"
     try:
         with partial.open("wb") as output:
@@ -199,6 +245,8 @@ def pull(destination):
                 stdout=output,
                 stderr=subprocess.PIPE,
             )
+            output.flush()
+            os.fsync(output.fileno())
         with partial.open("rb") as source:
             if source.read(4) != b"SPB1" or partial.stat().st_size < 32:
                 raise RuntimeError("Invalid encrypted ledger")
@@ -237,6 +285,7 @@ def pull(destination):
         # Match the 14-day retention only after a successful transfer.
         for path in set(backups) - set(available):
             path.unlink()
+        sync_directory(destination)
     finally:
         partial.unlink(missing_ok=True)
     print("Offsite backup checksums verified; encrypted journal copied without content verification; copied=" + str(copied))

@@ -2793,6 +2793,7 @@ class _NotificationBellState extends State<NotificationBell> {
   final _menu = MenuController();
   final _previewScroll = ScrollController();
   Json? _snapshot;
+  String? _family, _token;
   bool _opening = false;
   int _openRevision = 0;
 
@@ -2800,6 +2801,8 @@ class _NotificationBellState extends State<NotificationBell> {
   void initState() {
     super.initState();
     _snapshot = widget.state.user;
+    _family = widget.state.familyId;
+    _token = widget.state.api.token;
     widget.state.addListener(_changed);
   }
 
@@ -2817,7 +2820,9 @@ class _NotificationBellState extends State<NotificationBell> {
   }
 
   void _changed() {
-    if (!_sameHeaderAccount(widget.state, _snapshot)) {
+    if (!_sameHeaderAccount(widget.state, _snapshot) ||
+        widget.state.familyId != _family ||
+        widget.state.api.token != _token) {
       _menu.close();
       _opening = false;
       _openRevision++;
@@ -2825,6 +2830,8 @@ class _NotificationBellState extends State<NotificationBell> {
     if (mounted) {
       setState(() {
         _snapshot = widget.state.user;
+        _family = widget.state.familyId;
+        _token = widget.state.api.token;
       });
     }
   }
@@ -2836,11 +2843,18 @@ class _NotificationBellState extends State<NotificationBell> {
     super.dispose();
   }
 
-  Future<void> _openItem(Json item, Json? snapshot) async {
+  Future<void> _openItem(
+    Json item,
+    Json? snapshot,
+    String? family,
+    String? token,
+  ) async {
     final state = widget.state;
     final route = ModalRoute.of(context);
     if (_opening ||
         !_sameHeaderAccount(state, snapshot) ||
+        state.familyId != family ||
+        state.api.token != token ||
         route?.isCurrent == false) {
       return;
     }
@@ -2855,6 +2869,8 @@ class _NotificationBellState extends State<NotificationBell> {
           revision == _openRevision &&
           identical(widget.state, state) &&
           _sameHeaderAccount(state, snapshot) &&
+          state.familyId == family &&
+          state.api.token == token &&
           route?.isCurrent != false) {
         toast(
           context,
@@ -2865,7 +2881,9 @@ class _NotificationBellState extends State<NotificationBell> {
     if (mounted &&
         identical(widget.state, state) &&
         revision == _openRevision &&
-        _sameHeaderAccount(state, snapshot)) {
+        _sameHeaderAccount(state, snapshot) &&
+        state.familyId == family &&
+        state.api.token == token) {
       setState(() => _opening = false);
       if (route?.isCurrent != false) context.go(item['route'] as String);
     }
@@ -3023,7 +3041,12 @@ class _NotificationBellState extends State<NotificationBell> {
                               ),
                               onPressed: _opening
                                   ? null
-                                  : () => _openItem(item, snapshot),
+                                  : () => _openItem(
+                                      item,
+                                      snapshot,
+                                      family,
+                                      token,
+                                    ),
                               child: SizedBox(
                                 width: (width - 64).clamp(0, 256).toDouble(),
                                 child: Padding(
@@ -3087,7 +3110,9 @@ class _NotificationBellState extends State<NotificationBell> {
             key: ValueKey('notifications-all'),
             leadingIcon: Icon(Icons.list_alt_rounded),
             onPressed: () {
-              if (_sameHeaderAccount(state, snapshot)) {
+              if (_sameHeaderAccount(state, snapshot) &&
+                  state.familyId == family &&
+                  state.api.token == token) {
                 context.go(state.isAdmin ? '/admin/push' : '/notifications');
               }
             },

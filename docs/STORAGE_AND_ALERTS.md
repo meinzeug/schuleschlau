@@ -137,7 +137,8 @@ bleibt möglich und muss überwacht werden.
 
 Der unabhängige Wächter enthält zusätzlich eine lokal getestete Prüfung auf
 unvollständige Offsite-Journaltransaktionen. Bleiben `.erasure-ledger.pending`
-oder `.erasure-ledger.previous` nach Freigabe der Pull-Sperre liegen, meldet er
+oder `.erasure-ledger.previous` oder `.offsite-status.previous` nach Freigabe
+der Pull-Sperre liegen, meldet er
 `offsite_transaction_incomplete`. Während ein normaler Pull die exklusive
 Sperre hält, meldet er diese kurzzeitig erwarteten Dateien nicht als Fehler;
 der bestehende Frischealarm bleibt als Schutz gegen einen dauerhaft hängenden
@@ -151,6 +152,18 @@ synthetisch gehaltener Pull-Sperre blieb er ohne Fehlalarm. Es wurde keine
 Nachricht versandt. Der reale lesende Trockenlauf war fehlerfrei und
 beide lokalen Timer waren aktiv. Die Transaktionsdateien dürfen nicht
 automatisch gelöscht werden.
+
+Der Offsite-Client synchronisiert übertragene Archive und das Journal sowie
+die relevanten lokalen Verzeichniseinträge vor dem serverseitigen ACK. Ein
+Synchronisierungsfehler vor dem ACK verhindert diese Bestätigung. Für den Austausch des
+lokalen Erfolgsmarkers wird bei vorhandenem Vorgänger `.offsite-status.previous`
+angelegt; bei einem Fehler nach dem ACK werden der vorherige Marker und das
+Journal wiederhergestellt und `.erasure-ledger.pending` bleibt zur manuellen
+Abstimmung stehen. Diese Maßnahmen setzen ein Dateisystem voraus, das `fsync`
+für Dateien und Verzeichnisse unterstützt und dessen Speicherhardware die
+Synchronisierung korrekt ausführt; ein Testlauf ersetzt keine echte
+Stromausfallprüfung. Eine Bestätigung belegt weder die inhaltliche Prüfung
+des verschlüsselten Journals noch vollständigen Schutz vor späteren Fehlern.
 
 ### Uhrzeit des unabhängigen Rechners
 
@@ -220,3 +233,16 @@ zurück. Eine lesende Probe auf dem Zielserver und künstliche Fehlerfälle
 bestanden. Die Abfrage selbst beweist keine NTP-Synchronisierung; diese muss
 weiterhin im Betrieb geprüft werden. Das behebt nicht die fehlende Sperre für
 parallele Deployments.
+
+**03.11.2026, Offsite-Störung und Wiederanlauf:** Eine ungeklärte Journal-
+Transaktion hatte den Pull blockiert; Retention und Monitor meldeten das
+ausbleibende aktuelle ACK. Die vorhandenen Stände wurden unter der Pull-Sperre
+abgeglichen und der reguläre Pull neu gestartet. Nach erfolgreichem Lauf
+entfernte die reguläre Retention 41 abgelaufene Serverarchive. Anschließend
+wurden Server und Client für das eng begrenzte Ablehnungsprotokoll in dieser
+Reihenfolge auf Commit `f4e627d` aktualisiert. Der abschließende Pull prüfte
+339 verschlüsselte Kopien, kopierte zwei neue und erhielt ein Server-ACK;
+der übertragene Journalinhalt wurde dabei nicht geprüft. Timer, Retention und
+Monitor waren nach dem Lauf erfolgreich. Eine explizite Ablehnung vor dem
+ACK ist isoliert getestet; sie wurde beim abschließenden Normalfall nicht
+künstlich auf dem Produktivsystem ausgelöst.

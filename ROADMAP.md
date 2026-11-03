@@ -188,6 +188,22 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
 
 - [x] **P0 – Speicherplatz prüfen und rechtzeitig absichern**
 
+  **03.11.2026, lokale Dauerhaftigkeit:** Der Offsite-Client synchronisiert
+  Archiv-, Journal- und Verzeichniseinträge vor dem Server-ACK. Bei einem
+  fehlgeschlagenen Abschluss nach ACK bleiben Prüfmarker und vorhandener
+  vorheriger Erfolgsmarker geschützt; der unabhängige Wächter erkennt auch
+  den zusätzlichen Transaktionsmarker. 76 isolierte Offsite-, Journal- und
+  Wächtertests bestanden auf ext4. Eine tatsächliche Stromausfallprüfung
+  sowie fehlerhafte Hardware sind damit nicht abgenommen.
+
+  **03.11.2026, tatsächlicher Wiederanlauf:** Nach Release `f4e627d` wurde
+  zuerst der Server und dann der unabhängige Client aktualisiert. Ein
+  anschließender regulärer Pull prüfte 339 verschlüsselte Archive, kopierte
+  zwei neue und erhielt ein Server-ACK; das verschlüsselt übertragene Journal
+  wurde dabei nicht inhaltlich geprüft. Der Offsite-Timer ist aktiv; Sicherung,
+  Retention und Monitor meldeten anschließend Erfolg. Der Lauf belegt den
+  Normalfall, die gezielte Ablehnung eines überholten ACK ist isoliert getestet.
+
   **03.11.2026, Offsite-Unterbrechung:** Ein nach einer unterbrochenen
   Journalübertragung liegengebliebener Prüfmarker blockierte den regulären
   Offsite-Pull; Aufbewahrung und Monitor meldeten fehlendes frisches ACK.
@@ -197,8 +213,8 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
   Backupstand ist ein eng begrenztes Protokoll ergänzt: nur die exakte
   Serverantwort erlaubt einen späteren regulären Wiederholungsversuch. Bei
   Timeout oder unklarer Antwort bleibt die Abgleichspflicht erhalten. 78
-  isolierte Tests und 23 gezielte Nachtests bestanden; Server und Client müssen
-  koordiniert aktualisiert und der tatsächliche Pull erneut geprüft werden.
+  isolierte Tests und 23 gezielte Nachtests bestanden. Der anschließende
+  koordinierte Wechsel und tatsächliche Pull sind oben dokumentiert.
 
   **02.11.2026, Spitzenbedarfsabnahme:** Der betriebliche Spitzenbedarf wurde
   nachvollziehbar gemessen und berechnet: Die isolierte Wiederherstellungsprobe
@@ -520,6 +536,14 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
   Bruchdarstellung und bestehende Nachweise; Modelltransporte sind simuliert.
 
 - [ ] **P1 – Abruf und Lernplanung nachvollziehbar abnehmen**
+
+  **03.11.2026, bereits bekannte Aufgaben:** Fachkompetenz und
+  Heftquellenprojektion behandeln bereits beantwortete Fragen auch nach einem
+  Fehler, Hilfe oder unklarer Selbstständigkeit als bekannt. Eine spätere
+  identische Frage wird dadurch nicht zur neuen Abrufprobe; die tatsächlichen
+  Versuche bleiben erhalten. Sieben gezielte Fälle bestanden auf isoliertem
+  PostgreSQL; 81 künstliche Fälle und der zusätzliche Chemiefall bestanden
+  auf SQLite. Eine mobile Mehrtagesabnahme bleibt offen.
 
   **03.11.2026, Lernbegleitung:** Ungeklärte Selbstständigkeit erzeugt keinen
   selbstständigen Prüftag und löscht allein keine bereits gültigen Prüftage.
@@ -1390,6 +1414,12 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Benachrichtigung und direkte Zielnavigation vollständig prüfen**
 
+  **03.11.2026, Kontextwechsel beim Öffnen:** Glocke und Gesamtansicht
+  verwerfen überholte Klicks und verspätete Lesebestätigungen, wenn sich
+  Familie oder Sitzung geändert hat. Öffnungszustand und Filter werden bei
+  Kontextwechsel zurückgesetzt. 52 Fluttertests bestanden, darunter zwölf
+  neue Szenarien; dies ersetzt keine native Zustellungs- oder Cursorabnahme.
+
   **03.11.2026, Klassenarbeiten und Sichtbarkeit:** Bereitmeldungen prüfen pro
   Ergebnistyp bis zu 500 Kandidaten in stabiler Reihenfolge auf bestehende
   Rechte und Quellen; ältere gültige Hinweise werden nicht bereits durch 100
@@ -1606,6 +1636,11 @@ Bestandteil des bestehenden Buildvertrags.
   **Abnahme:** Bericht mit nachvollziehbaren Fundstellen, Risikoeinstufung und Nachtests liegt vor; kritische und hohe Befunde sind behoben beziehungsweise vor jeglicher Freigabe durch die verantwortliche Stelle nachvollziehbar entschieden.
 
 - [ ] **P1 – Abnahmen systematisch und wiederholbar automatisieren**
+
+  **CI-Ergebnis:** Der vollständige GitHub-Lauf
+  [41666803619](https://github.com/meinzeug/schulpilot/actions/runs/41666803619)
+  für `f4e627d` war erfolgreich. Der vorherige Lauf für `7e49c40` wurde beim
+  neuen Push abgebrochen und gilt nicht als abgeschlossene Gesamtabnahme.
 
   **CI-Ergebnis:** Der vollständige GitHub-Lauf
   [41653037943](https://github.com/meinzeug/schulpilot/actions/runs/41653037943)

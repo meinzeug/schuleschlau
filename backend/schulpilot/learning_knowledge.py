@@ -51,6 +51,7 @@ def evidence(db, unit, sources):
         normalized_prompt,
         planned_review,
     )
+    from .competences import normalized
     from .learning_controller import source_state
 
     goals = catalogue(db, unit, sources)
@@ -72,7 +73,7 @@ def evidence(db, unit, sources):
         grouped.setdefault((attempt.unit_id, attempt.question_id), []).append(attempt)
     child = db.get(Child, unit.child_id)
     zone = ZoneInfo(Preferences(**child.preferences).timezone)
-    check_candidates = []
+    observations = []
     review_anchors = {}
     for old in sorted(units, key=lambda item: (item.created, item.id)):
         # A legacy material_id only identifies a page, not the revision used by
@@ -123,15 +124,22 @@ def evidence(db, unit, sources):
             state["evidence_refs"].extend("attempt:" + a.id for a in values)
             if independent:
                 state["last_independent_success"] = max(state["last_independent_success"] or 0, last.created)
-            if independent and old.round_kind in CHECK_KINDS:
-                signature = fraction_task_signature(q["prompt"]) or normalized_prompt(q["prompt"])
-                check_candidates.append((last.created, goal, signature))
-    # A unit can be answered long after a newer unit. Choose the earliest
-    # actual observation for repeated questions, not the unit creation order.
+            # Any answered question has already been encountered, including
+            # practice, incorrect and supported responses. It cannot later
+            # become a *new* retrieval question simply by being repeated.
+            is_math = old.subject.casefold() in ("mathe", "mathematik")
+            signature = ((fraction_task_signature(q["prompt"]) or normalized_prompt(q["prompt"]))
+                if is_math else normalized(q["prompt"]))
+            observations.append((values[0].created, old.id, q["id"], last.created, goal, signature,
+                independent and old.round_kind in CHECK_KINDS))
+    # A unit can be answered long after a newer unit. Process the first actual
+    # answer, not unit creation or the time of the final retry.
     seen_checks = {}
-    for created, goal, signature in sorted(check_candidates, key=lambda item: item[0]):
-        if signature not in seen_checks.setdefault(goal, set()):
-            seen_checks[goal].add(signature)
+    for _, _, _, created, goal, signature, eligible in sorted(observations, key=lambda item: item[:3]):
+        seen = seen_checks.setdefault(goal, set())
+        fresh = signature not in seen
+        seen.add(signature)
+        if fresh and eligible:
             stamp = datetime.fromtimestamp(created, zone).date().isoformat()
             if stamp not in result[goal]["successful_check_dates"]:
                 result[goal]["successful_check_dates"].append(stamp)

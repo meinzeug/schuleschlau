@@ -2,6 +2,21 @@
 
 Stand: 3. November 2026. Diese Datei ist eine Arbeitsübergabe, kein Ersatz für die aktuellen Nutzeraufträge oder `AGENTS.md`. Prüfe alle Zustände erneut; insbesondere Server, Git, laufende Jobs und Roadmap können sich inzwischen geändert haben. Keine Zugangsdaten, Tokens, privaten Schülerdaten oder Bildinhalte in diese Datei, Logs oder Git schreiben.
 
+**Aktuelle Ergänzung:** Bekannte Aufgaben zählen in beiden Kompetenzpfaden
+auch nach Hilfe oder Fehler nicht als neue Abrufprobe. Die Glocke verwirft
+veraltete Navigation nach Familien- und Sitzungswechsel. Der Offsite-Client
+synchronisiert Dateien und Verzeichniseinträge vor dem ACK und bewahrt bei
+ungeklärtem Abschluss seine Prüfmarker; das setzt ein korrektes `fsync` des
+Dateisystems und der Hardware voraus. Vollständiger Cursor, mobile
+Mehrtagesabnahme und Stromausfallprüfung bleiben offen.
+
+**Betriebsnachtrag:** Nach der Unterbrechung wurden Server und Offsite-Client
+koordiniert auf `f4e627d` aktualisiert. Ein anschließender regulärer Pull
+prüfte 339 verschlüsselte Archive und erhielt ein Server-ACK; der Journalinhalt
+wurde dabei nicht geprüft. Backup, Retention und Monitor meldeten danach Erfolg.
+Der vollständige GitHub-Lauf 41666803619 war erfolgreich. Der aktuelle Stand
+ist vor jeder neuen Arbeit erneut zu prüfen.
+
 **Aktuelle Ergänzung:** Die Lernbegleitung behandelt ungeklärte
 Selbstständigkeit und wiederholte Fragen konservativ. Klassenarbeitsmeldungen
 prüfen bis zu 500 Kandidaten; hohe Glockenkarten lassen sich nach tatsächlicher

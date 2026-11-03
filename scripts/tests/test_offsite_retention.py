@@ -3,6 +3,7 @@
 import hashlib
 import importlib.util
 import json
+import os
 import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
@@ -176,3 +177,127 @@ def test_buffered_copy_is_removed_on_success_before_full_fourteen_days(tmp_path,
     assert not old.exists()
     assert not any(' read ' + EARLY_EXPIRED in call for call in calls)
     assert (tmp_path / BOUNDARY).exists()
+
+
+def test_data_and_directory_are_synced_before_remote_ack(tmp_path, monkeypatch):
+    calls = transport(monkeypatch, inventory([LATEST]))
+    events = []
+    real_fsync = os.fsync
+    real_run = offsite.run
+
+    def observed_sync(fd):
+        events.append(("fsync", os.readlink(f"/proc/self/fd/{fd}")))
+        return real_fsync(fd)
+
+    def observed_run(args, **kwargs):
+        if "--ack " in args[-1]:
+            events.append(("ack", ""))
+        return real_run(args, **kwargs)
+
+    monkeypatch.setattr(offsite.os, "fsync", observed_sync)
+    monkeypatch.setattr(offsite, "run", observed_run)
+    offsite.pull(tmp_path)
+    assert any("--ack " in call for call in calls)
+    ack_index = next(i for i, event in enumerate(events) if event[0] == "ack")
+    before_ack = events[:ack_index]
+    assert any(path.endswith(".tar.partial") for kind, path in before_ack if kind == "fsync")
+    assert any(path.endswith("erasure-ledger.partial") for kind, path in before_ack if kind == "fsync")
+    assert any(path.endswith(".erasure-ledger.pending") for kind, path in before_ack if kind == "fsync")
+    assert sum(path == str(tmp_path) for kind, path in before_ack if kind == "fsync") >= 3
+
+
+@pytest.mark.parametrize("failure", ["archive", "journal", "pending", "directory"])
+def test_sync_failure_before_ack_preserves_old_backup_and_journal(tmp_path, monkeypatch, failure):
+    (tmp_path / EXPIRED).write_bytes(ARCHIVE)
+    ledger = tmp_path / "erasure-ledger.enc"
+    ledger.write_bytes(b"prior-journal")
+    calls = transport(monkeypatch, inventory([LATEST]))
+    real_fsync = os.fsync
+    failed = False
+
+    def fail_once(fd):
+        nonlocal failed
+        path = os.readlink(f"/proc/self/fd/{fd}")
+        matches = {
+            "archive": path.endswith(".tar.partial"),
+            "journal": path.endswith("erasure-ledger.partial"),
+            "pending": path.endswith(".erasure-ledger.pending"),
+            "directory": path == str(tmp_path),
+        }
+        if matches[failure] and not failed:
+            failed = True
+            raise OSError("synthetic sync failure")
+        return real_fsync(fd)
+
+    monkeypatch.setattr(offsite.os, "fsync", fail_once)
+    with pytest.raises(OSError, match="synthetic sync failure"):
+        offsite.pull(tmp_path)
+    assert failed
+    assert not any("--ack " in call for call in calls)
+    assert (tmp_path / EXPIRED).read_bytes() == ARCHIVE
+    assert ledger.read_bytes() == b"prior-journal"
+    assert not (tmp_path / "last-success.json").exists()
+
+
+@pytest.mark.parametrize("had_marker", [False, True])
+def test_sync_failure_after_ack_keeps_reconciliation_and_does_not_expire_backups(tmp_path, monkeypatch, had_marker):
+    (tmp_path / EXPIRED).write_bytes(ARCHIVE)
+    ledger = tmp_path / "erasure-ledger.enc"
+    ledger.write_bytes(b"prior-journal")
+    marker = tmp_path / "last-success.json"
+    if had_marker:
+        marker.write_text('{"checked_at": 1}\n')
+    calls = transport(monkeypatch, inventory([LATEST]))
+    real_sync = offsite.sync_directory
+    failed = False
+
+    def fail_once_after_ack(destination):
+        nonlocal failed
+        if not failed and any("--ack " in call for call in calls) and marker.exists() and marker.read_text() != '{"checked_at": 1}\n':
+            failed = True
+            raise OSError("synthetic post-ack sync failure")
+        return real_sync(destination)
+
+    monkeypatch.setattr(offsite, "sync_directory", fail_once_after_ack)
+    with pytest.raises(OSError, match="synthetic post-ack sync failure"):
+        offsite.pull(tmp_path)
+    assert failed
+    assert (tmp_path / ".erasure-ledger.pending").exists()
+    assert ledger.read_bytes() == b"prior-journal"
+    assert marker.read_text() == '{"checked_at": 1}\n' if had_marker else not marker.exists()
+    assert (tmp_path / EXPIRED).read_bytes() == ARCHIVE
+    with pytest.raises(offsite.InterruptedTransfer):
+        offsite.pull(tmp_path)
+
+
+@pytest.mark.parametrize("directory_sync", [1, 2, 3, 4])
+def test_each_pre_ack_directory_sync_failure_stops_before_ack(tmp_path, monkeypatch, directory_sync):
+    (tmp_path / EXPIRED).write_bytes(ARCHIVE)
+    ledger = tmp_path / "erasure-ledger.enc"
+    ledger.write_bytes(b"prior-journal")
+    calls = transport(monkeypatch, inventory([LATEST]))
+    real_sync = offsite.sync_directory
+    count = 0
+
+    def fail_nth(destination):
+        nonlocal count
+        count += 1
+        if count == directory_sync:
+            raise OSError("synthetic directory sync failure")
+        return real_sync(destination)
+
+    monkeypatch.setattr(offsite, "sync_directory", fail_nth)
+    with pytest.raises(OSError, match="synthetic directory sync failure"):
+        offsite.pull(tmp_path)
+    assert not any("--ack " in call for call in calls)
+    assert ledger.read_bytes() == b"prior-journal"
+    assert (tmp_path / EXPIRED).read_bytes() == ARCHIVE
+
+
+@pytest.mark.parametrize("marker", [".erasure-ledger.pending", ".erasure-ledger.previous", ".offsite-status.previous"])
+def test_dangling_transaction_marker_refuses_pull(tmp_path, monkeypatch, marker):
+    (tmp_path / marker).symlink_to(tmp_path / "missing")
+    calls = transport(monkeypatch, inventory([LATEST]))
+    with pytest.raises(offsite.InterruptedTransfer):
+        offsite.pull(tmp_path)
+    assert calls == []

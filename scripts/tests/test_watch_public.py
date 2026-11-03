@@ -69,6 +69,9 @@ def test_interrupted_transaction_requires_reconciliation_only_after_pull_lock(tm
     previous = tmp_path / '.erasure-ledger.previous'
     previous.symlink_to(tmp_path / 'missing')
     assert watch.interrupted_offsite_transaction(tmp_path) is True
+    previous.unlink()
+    (tmp_path / '.offsite-status.previous').symlink_to(tmp_path / 'missing')
+    assert watch.interrupted_offsite_transaction(tmp_path) is True
 
 
 def test_interrupted_transaction_without_trustworthy_lock_fails_closed(tmp_path):

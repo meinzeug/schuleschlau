@@ -42,6 +42,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   final search = TextEditingController();
   String? selectedChild, selectedKind;
   Json? account;
+  String? accountFamily, accountToken;
   bool onlyUnread = false;
   String? opening;
   int openRevision = 0, readEpoch = 0;
@@ -51,15 +52,23 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   void initState() {
     super.initState();
     account = widget.state.user;
+    accountFamily = widget.state.familyId;
+    accountToken = widget.state.api.token;
     widget.state.addListener(accountChanged);
     widget.state.inbox.activate(widget.state.user?['id']);
     widget.state.inbox.refresh();
   }
 
   void accountChanged() {
-    if (identical(account, widget.state.user)) return;
+    if (identical(account, widget.state.user) &&
+        accountFamily == widget.state.familyId &&
+        accountToken == widget.state.api.token) {
+      return;
+    }
     setState(() {
       account = widget.state.user;
+      accountFamily = widget.state.familyId;
+      accountToken = widget.state.api.token;
       onlyUnread = false;
       unreadSelection.clear();
       readEpoch++;
@@ -77,6 +86,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       oldWidget.state.removeListener(accountChanged);
       widget.state.addListener(accountChanged);
       account = widget.state.user;
+      accountFamily = widget.state.familyId;
+      accountToken = widget.state.api.token;
       onlyUnread = false;
       unreadSelection.clear();
       readEpoch++;
@@ -95,11 +106,18 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     super.dispose();
   }
 
-  Future<void> openItem(Json item, Json? owner) async {
+  Future<void> openItem(
+    Json item,
+    Json? owner,
+    String? family,
+    String? token,
+  ) async {
     final state = widget.state;
     final route = ModalRoute.of(context);
     if (opening != null ||
         !identical(state.user, owner) ||
+        state.familyId != family ||
+        state.api.token != token ||
         route?.isCurrent == false) {
       return;
     }
@@ -112,6 +130,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           revision == openRevision &&
           identical(widget.state, state) &&
           identical(state.user, owner) &&
+          state.familyId == family &&
+          state.api.token == token &&
           route?.isCurrent != false) {
         toast(
           context,
@@ -119,7 +139,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         );
       }
     }
-    if (!mounted || revision != openRevision || !identical(state.user, owner)) {
+    if (!mounted ||
+        revision != openRevision ||
+        !identical(widget.state, state) ||
+        !identical(state.user, owner) ||
+        state.familyId != family ||
+        state.api.token != token) {
       return;
     }
     setState(() => opening = null);
@@ -338,7 +363,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                             widget.state.api.token,
                           ),
                           isCurrent: () =>
-                              mounted && identical(widget.state.user, owner),
+                              mounted &&
+                              identical(widget.state.user, owner) &&
+                              widget.state.familyId == family &&
+                              widget.state.api.token == token,
                           active: filtered,
                           summary: [
                             if (query.isNotEmpty) 'Suche: $query',
@@ -564,7 +592,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                 ),
                                 trailing: Icon(Icons.chevron_right_rounded),
                                 onTap: opening == null
-                                    ? () => openItem(item, owner)
+                                    ? () => openItem(item, owner, family, token)
                                     : null,
                               ),
                             ),

@@ -207,20 +207,20 @@ def evidence(db, child_id, competence_ids=None):
             if not (possible_exposure and last.outcome == "correct"):
                 review_anchors[binding.competence_id] = max(review_anchors.get(binding.competence_id, 0), last.created)
         state["evidence_refs"].extend("attempt:" + value.id for value in values)
+        # All answered questions, including practice and unsuccessful or
+        # supported attempts, are already encountered. Only a first encounter
+        # may later qualify as an independent new retrieval question.
+        signature = (fraction_task_signature(question["prompt"])
+            if binding.competence_id.startswith("math.") else None) or normalized(question["prompt"])
+        seen = checks.setdefault(binding.competence_id, set())
+        fresh = signature not in seen
+        seen.add(signature)
         if independent:
             state["last_independent_success"] = max(state["last_independent_success"] or 0, last.created)
-            if binding.role == "recall" and unit.round_kind in ("check", "spaced_review", "study_recall"):
-                # Mathematical wording changes do not make the same exercise
-                # a new recall question. Share the reviewed operation signature
-                # with the source-scoped learning memory; other subjects retain
-                # their case-sensitive normalized text.
-                signature = (fraction_task_signature(question["prompt"])
-                    if binding.competence_id.startswith("math.") else None) or normalized(question["prompt"])
-                if signature not in checks.setdefault(binding.competence_id, set()):
-                    checks[binding.competence_id].add(signature)
-                    day = datetime.fromtimestamp(last.created, zone).date().isoformat()
-                    if day not in state["successful_check_dates"]:
-                        state["successful_check_dates"].append(day)
+            if fresh and binding.role == "recall" and unit.round_kind in ("check", "spaced_review", "study_recall"):
+                day = datetime.fromtimestamp(last.created, zone).date().isoformat()
+                if day not in state["successful_check_dates"]:
+                    state["successful_check_dates"].append(day)
         elif not reflection and not (possible_exposure and last.outcome == "correct"):
             state["last_difficulty"] = max(state["last_difficulty"] or 0, last.created)
     from .coaching import planned_review
