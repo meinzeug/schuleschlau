@@ -52,9 +52,10 @@ class NotificationInbox extends ChangeNotifier {
   }
 
   Future<void> refresh() async {
-    if (_account == null || _loading || !_foreground) return;
+    if (_disposed || _account == null || _loading || !_foreground) return;
     final generation = _generation;
     final readRevision = _readRevision;
+    var retryAfterRead = false;
     _loading = true;
     // Refresh can begin while a sibling (the bell) is being rebuilt on navigation.
     scheduleMicrotask(() {
@@ -62,7 +63,13 @@ class NotificationInbox extends ChangeNotifier {
     });
     try {
       final data = await api.get('/notifications/inbox');
-      if (generation != _generation || readRevision != _readRevision) return;
+      if (generation != _generation) return;
+      if (readRevision != _readRevision) {
+        // The old snapshot must not undo a receipt, but discarding it alone
+        // can also hide newly arrived events until the next periodic refresh.
+        retryAfterRead = true;
+        return;
+      }
       items = (data['items'] as List? ?? [])
           .map((row) => Map<String, dynamic>.from(row))
           .toList();
@@ -81,6 +88,12 @@ class NotificationInbox extends ChangeNotifier {
       if (!_disposed && generation == _generation) {
         _loading = false;
         notifyListeners();
+        if (!_disposed &&
+            generation == _generation &&
+            retryAfterRead &&
+            _foreground) {
+          unawaited(refresh());
+        }
       }
     }
   }

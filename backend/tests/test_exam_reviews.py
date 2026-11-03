@@ -195,6 +195,32 @@ def test_verbatim_text_alone_does_not_prove_who_wrote_it(api, paper, transport):
     no_learning()
 
 
+def test_review_tutor_receives_unattributed_excerpts_without_changing_saved_report(api, paper, transport):
+    question = "Übersetze: I went home."
+    answer = "Ich ging nach Hause."
+    with DB.begin() as db:
+        page = db.get(Material, paper["material_id"])
+        page.subject = "Englisch"
+        page.content = f"{question}\nAntwort: {answer}"
+    transport["output"]["tasks"][0].update(
+        question=question, original_answer=answer, teacher_feedback=answer, score_label="",
+        sources=[{"ref": "p1", "quote": question}],
+    )
+    saved = ready(paper, transport)
+    response = paper["client"].post(
+        paper["path"] + f"/tasks/{paper['task_id']}/help",
+        json={**context(paper), "action": "hint", "draft": ""},
+        headers={"Idempotency-Key": uuid.uuid4().hex},
+    )
+    assert response.status_code == 202, response.text
+    finish()
+    task = transport["calls"][-1]["exam_context"]["task"]
+    assert task["question"] == question and task["unverified_excerpts"] == [answer]
+    assert "teacher_feedback" not in task and "original_answer" not in task and "score_label" not in task
+    assert paper["client"].get(paper["path"]).json()["tasks"][0]["teacher_feedback"] == saved["tasks"][0]["teacher_feedback"]
+    no_learning()
+
+
 def test_false_student_equation_is_reported_without_rewriting_the_saved_analysis(api, paper, transport):
     question = "Kürze 6/8 vollständig."
     answer = r"\(\frac{6}{8}=\frac{2}{4}\) weiter kürzen"

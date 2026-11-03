@@ -665,6 +665,19 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
   Neue und alte Clients sowie wiederholte und parallele Bestätigungen müssen
   getestet werden; weder Lesen noch Zuordnen darf einen Lernnachweis erzeugen.
 
+  **03.11.2026, Teilabsicherung:** Für Tutor-Nachfragen werden die bisher von
+  der KI als Schülerantwort, Lehrkrafthinweis oder Punktzahl zugeordneten
+  Ausschnitte ohne diese Rollenbezeichnungen als ungeprüfter Quelltext
+  übergeben. Die Anweisung fordert ausdrücklich, keine Urheberschaft zu
+  behaupten; gespeicherte Berichte bleiben unverändert. Ein künstlicher Fall
+  mit identischer Antwort und vermeintlichem Lehrkrafthinweis prüft den
+  tatsächlich übergebenen Auftrag sowie fehlende Lernnachweise auf SQLite und
+  PostgreSQL. Die 93 SQLite- und 123 PostgreSQL-Fälle zur Nacharbeit und
+  Prüfung bestanden vor einer abschließenden Textverschärfung; der gezielte
+  Fall wurde danach auf beiden Datenbanken wiederholt. Wörtliche Quellen
+  können weiterhin eigene Rollenhinweise enthalten; eine Bestätigung durch
+  Erwachsene und eine fachliche Modellabnahme sind dadurch nicht ersetzt.
+
   **Abnahme:** Jede Runde wird einzeln bewusst vorbereitet, enthält höchstens fünf Aufgaben und vermeidet gespeicherte Wiederholungen; Zeitangaben bleiben Empfehlungen. Aufgabenauszüge belegen die Originalzeile, trennen alte Antwort, gesicherte Lehrkraft-Rückmeldung und KI-Vorschlag und behaupten weder Vollständigkeit noch Benotung. Alte Antworten erzeugen keine Attempts oder Kompetenznachweise.
 
 - [x] **P1 – Schul- und Klassenkontext als Produktentscheidung klären**
@@ -1189,6 +1202,11 @@ Bestandteil des bestehenden Buildvertrags.
 
   **Abnahme:** Für mehrere Fächer zeigen Testbelege Auswahl, Referenz-ID/-Version und sichtbare Ausgabe; fehlende, veraltete und fachfremde Treffer führen zu einem erkennbaren sicheren Verhalten. Ein Videoklick erzeugt weder Lernzeit noch Kompetenznachweis.
 
+  **03.11.2026, Teilabsicherung:** Lernhinweise und Themenbrowser verwerfen
+  verspätete geladene Inhalte nach einem Sitzungswechsel. Zwei künstliche
+  Widgetfälle prüfen dies; 22 Fälle zu Lerntipps und Medienrückkehr bestanden.
+  Die fachübergreifende Referenz- und Medienabnahme bleibt offen.
+
 - [ ] **P1 – Erklärgrafiken und Animationen fachlich und technisch abnehmen**
 
   **Teilprüfung 02.11.2026:** 50 synthetische SQLite-Fälle zu Szenen und
@@ -1212,6 +1230,13 @@ Bestandteil des bestehenden Buildvertrags.
 ## Produktmodule und Familienalltag
 
 - [ ] **P1 – Kinderwege, Navigation und Wiederaufnahme vollständig abnehmen**
+
+  **03.11.2026, Teilabsicherung:** Lernweg und Runden-Vorbereitung beachten
+  neben Konto und Familie nun auch den Sitzungstoken. Verspätete Antworten aus
+  einer ersetzten Sitzung werden verworfen; der alte Vorbereitungsstatus
+  startet keinen Folgeabruf. Zwei künstliche Sitzungswechsel und die bestehende
+  Navigations-/Wiederaufnahmesuite bestanden mit insgesamt 30 Widgetfällen.
+  Die vollständige mobile und breite Browserabnahme bleibt offen.
 
   Heute, Lernen, Fach- und Themenübersicht, Lernweg, aktive Runde, Ergebnis und freiwilliges Weiterlernen im 320-/390-Pixel-Web sowie auf breiten Ansichten bedienen. Pro Zustand die nächste Hauptaktion, Rückweg, Warteanzeige, eigene Eingaben und Fehlermeldung prüfen; laufende Runden, Quellen und verpflichtende Elternaufträge dürfen sich nicht gegenseitig verdecken. Gerätewechsel, Reload, parallele Sitzungen, unvollständige Antworten und offene Rückmeldung einbeziehen.
 
@@ -1325,6 +1350,13 @@ Bestandteil des bestehenden Buildvertrags.
   Cursor für mehr als 50 Ereignisse, ein vollständiger mobiler Glockenablauf
   und eine sichtbar zugestellte native Pushmeldung bleiben offen.
 
+  **03.11.2026, Aktualisierungsrennen:** Wird eine Lesemarkierung gespeichert,
+  während eine ältere Statusantwort unterwegs ist, verwirft die App den alten
+  Stand und lädt im Vordergrund erneut. Tests prüfen neue Meldungen, Hintergrund,
+  Kontowechsel und sichtbarkeitsbezogenes Lesen; 19 Widgetfälle bestanden. Dies
+  ergänzt die bestehende gezielte Aktualisierung, ist aber weder ein Ausbau der
+  Cursor-Paginierung noch ein Nachweis nativer Pushzustellung.
+
 - [ ] **P1 – Familienanrufe und optionale Medien nur im freigegebenen Umfang abnehmen**
 
   Falls für die gewählte Startstufe vorgesehen, Eltern-/Kinderrollen, ausdrückliche Kamera-/Mikrofon-/Bildschirmfreigaben, Verbindungsaufbau, Abbruch, Widerruf und Gerätewechsel mit synthetischen Konten prüfen. Medienlinks auf passende katalogisierte Inhalte und Rückkehr zum Lernkontext testen; kein privater Kontext in URL oder Referrer.
@@ -1416,6 +1448,16 @@ Bestandteil des bestehenden Buildvertrags.
   **Abnahme:** Bericht mit nachvollziehbaren Fundstellen, Risikoeinstufung und Nachtests liegt vor; kritische und hohe Befunde sind behoben beziehungsweise vor jeglicher Freigabe durch die verantwortliche Stelle nachvollziehbar entschieden.
 
 - [ ] **P1 – Abnahmen systematisch und wiederholbar automatisieren**
+
+  **03.11.2026, CI-Befund:** Der GitHub-Lauf
+  [41574805970](https://github.com/meinzeug/schulpilot/actions/runs/41574805970)
+  zu `c244864` schlug in `backend-0` fehl; die übrigen Jobs bestanden. Ein
+  Test zur zufälligen Themenauswahl nahm bei identischen Zeitstempeln fälschlich
+  eine feste Einfügereihenfolge an. Der Test wählt das Ziel jetzt nach Themenname
+  und prüft weiterhin alle 31 Gruppen und gleiche Gewichtung. Die vollständige
+  betroffene Testsuite bestand auf SQLite und PostgreSQL mit je 11 Fällen. Der
+  anschließende GitHub-Gesamtlauf ist gesondert abzuwarten; der historische
+  Fehlschlag wird nicht als Erfolg umgedeutet.
 
   - [x] Einen separaten PostgreSQL-16-Testlauf für Familien-/Adminrennen,
     atomare Kontingente, parallele Lesemarkierungen, konkurrierende

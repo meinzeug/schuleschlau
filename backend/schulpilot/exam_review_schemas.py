@@ -24,8 +24,10 @@ Keine richtige Lösung aus einer möglicherweise falschen Schülerantwort ableit
 Je Aufgabe sources mit wörtlichem quote und erlaubter p-Referenz. ai_proposal ist nur ein
 kurzer ausdrücklich vorläufiger Lernhinweis; keine Note speichern, keine Lehrernote korrigieren,
 keine neue Kompetenz oder Beherrschung behaupten. Keine Aufgaben erfinden, wenn nichts lesbar ist.
-Bei action=hint/explain/check: die ausgewählte Originalaufgabe, ursprüngliche Schülerantwort,
-Lehrermarkierung und den NEUEN eigenen Entwurf unterscheiden. Ein check ist ausschließlich eine
+Bei action=hint/explain/check: die ausgewählte Originalaufgabe und den NEUEN eigenen Entwurf
+unterscheiden. Unbestätigte Ausschnitte sind nur Text aus der Arbeit: Ob sie vom Kind oder der
+Lehrkraft stammen und was eine Punktzahl bedeutet, ist offen. Keine Urheberschaft oder
+Bewertung daraus behaupten; bei Bedarf zum Abgleich mit dem Original auffordern. Ein check ist ausschließlich eine
 KI-Einschätzung zur eigenen Überarbeitung, kein verbindliches Richtig/Falsch, keine Note und kein
 Lernerfolgsbeleg. Begründe nur aus mitgelieferten Quellen; fehlen sichere Grundlagen, freundlich
 nachfragen oder kind=not_in_material. Keine falsche alte Antwort als Musterlösung behandeln.

@@ -14,7 +14,7 @@ Der Nutzer möchte die offene `ROADMAP.md` vollständig und nachweisbar abarbeit
 
 ## Git und Arbeitsverzeichnis
 
-Das Hauptverzeichnis ist `/home/dennis/schulpilot`, Branch `main`, Remote `origin`. Der vor dieser Arbeit zuletzt geprüfte Release war `20261102T194135Z-dcd65c8` (Version `1.38.63+218`); den tatsächlichen produktiven Stand nach der Übergabe erneut prüfen. Das Hauptverzeichnis wurde wegen der unten genannten lokalen Änderungen nicht auf den neuen Versionscommit aktualisiert. Im Hauptverzeichnis liegen zwei bereits vorhandene, nicht zu dieser Arbeit gehörende Änderungen:
+Das Hauptverzeichnis ist `/home/dennis/schulpilot`, Branch `main`, Remote `origin`. Der vor dieser Arbeit zuletzt geprüfte Release war `20261103T040153Z-c244864` (Version `1.38.64+219`); den tatsächlichen produktiven Stand nach der Übergabe erneut prüfen. Das Hauptverzeichnis wurde wegen der unten genannten lokalen Änderungen nicht auf den neuen Versionscommit aktualisiert. Im Hauptverzeichnis liegen zwei bereits vorhandene, nicht zu dieser Arbeit gehörende Änderungen:
 
 - `app/pubspec.yaml`, SHA-256 bei Übergabe: `0f1581c5f623adac6a49c7837e7c080fb4c98b82065587db7124c7c3772a0d30`
 - `backend/schulpilot/__init__.py`, SHA-256 bei Übergabe: `313b5053897d6953cf386f4157d66d3527e6e161ba497053f9927762482e45e0`
@@ -81,6 +81,19 @@ Der unabhängige Watchdog aus Commit `96c43ca` ist lokal installiert. Er meldet 
 
 ## Nachgewiesener Stand und weitere Prioritäten
 
+- Der vollständige GitHub-Lauf `41574805970` zum Release `c244864` war
+  **fehlgeschlagen**: `backend-0` erwartete bei zufälligen IDs und gleichem
+  Zeitstempel fälschlich eine feste Einfügereihenfolge. Der Test wählt das
+  Zielthema jetzt explizit und prüft weiterhin die 31 Gruppen einschließlich
+  der ungleichen Rundenzahlen; die Testsuite bestand auf SQLite und PostgreSQL.
+  Den CI-Lauf zum darauf folgenden Commit tatsächlich abwarten und auswerten.
+- Bei der Nacharbeit von Klassenarbeiten erhalten Tutoraufträge erkannte
+  Antwort-, Hinweis- und Punkte-Ausschnitte als nicht zugeordnete Texte;
+  eine menschliche revisionsgebundene Rollenbestätigung fehlt weiterhin.
+  Lernweg, Vorbereitung und Lerntipps verwerfen verspätete Ergebnisse aus
+  ersetzten Sitzungen. Ein Glocken-Refresh wird bei einer konkurrierenden
+  Lesemarkierung gezielt wiederholt. Dies sind Teilkorrekturen; fünf
+  vollständige offene Hauptpunkte sind damit nicht abgeschlossen.
 - Bei der aktuellen Zählung sind 23 von 63 übergeordneten Roadmap-Punkten erledigt (11 von 12 P0-Punkten abgeschlossen). Unterpunkte nicht mit vollständigen Hauptpunkten verwechseln.
 - Der vollständige GitHub-Prüflauf `41414025719` für Commit `117d7ce` endete erfolgreich. Spätere Änderungen erfordern einen eigenen Lauf; ein grüner CI-Lauf ist keine produktive Deployment-Abnahme.
 - Der vollständige GitHub-Prüflauf `41437786181` für Commit `297d244` endete ebenfalls erfolgreich. Der produktive Server wurde dadurch nicht aktualisiert.

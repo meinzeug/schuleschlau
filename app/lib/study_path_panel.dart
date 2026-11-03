@@ -42,10 +42,14 @@ class _StudyPathPanelState extends State<StudyPathPanel>
   int generation = 0;
   late Json? actor = widget.state.user;
   late String? family = widget.state.familyId;
+  late String? session = widget.state.api.token;
   AppState get state => widget.state;
   String get endpoint => '/school-days/${widget.dayId}/study-path';
   bool get ownerMatches =>
-      actor != null && identical(state.user, actor) && state.familyId == family;
+      actor != null &&
+      identical(state.user, actor) &&
+      state.familyId == family &&
+      state.api.token == session;
   bool get active => mounted && ownerMatches && foreground && routeVisible;
   List<Json> get blocks => (path?['blocks'] as List? ?? [])
       .map((block) => Json.from(block as Map))
@@ -108,6 +112,7 @@ class _StudyPathPanelState extends State<StudyPathPanel>
       keys.clear();
       actor = state.user;
       family = state.familyId;
+      session = state.api.token;
       unawaited(load());
     }
   }

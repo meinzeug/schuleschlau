@@ -759,7 +759,7 @@ def authority(db, job):
             ),
             **(
                 {
-                    "task": next((task for task in review.report.get("tasks", []) if task["id"] == turn.task_id), None),
+                    "task": tutor_task(next((task for task in review.report.get("tasks", []) if task["id"] == turn.task_id), None)),
                     "draft": turn.draft,
                 }
                 if turn
@@ -770,6 +770,23 @@ def authority(db, job):
     if turn and payload["exam_context"]["task"] is None:
         raise ProviderError("Die ursprüngliche Aufgabe wurde geändert.")
     return review, turn, payload, refs
+
+
+def tutor_task(task):
+    """Do not transport model-guessed authorship as an established fact."""
+    if task is None:
+        return None
+    excerpts = list(dict.fromkeys(
+        task.get(field, "") for field in ("original_answer", "teacher_feedback", "score_label")
+        if task.get(field)
+    ))
+    return {
+        "id": task["id"],
+        "question": task["question"],
+        "unverified_excerpts": excerpts,
+        "uncertainties": ["Die Urheberschaft und Bedeutung der Auszüge sind nicht bestätigt."],
+        "sources": task.get("sources", []),
+    }
 
 
 def previous_questions(review):

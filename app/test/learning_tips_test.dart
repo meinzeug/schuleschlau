@@ -100,6 +100,75 @@ Future<void> tap(WidgetTester tester, Finder finder) async {
 }
 
 void main() {
+  testWidgets('delayed learning tips are hidden when the session changes', (
+    tester,
+  ) async {
+    final delayed = Completer<http.Response>();
+    final calls = <String>[];
+    final state = await mount(tester, (request) async {
+      calls.add('${request.method} ${request.url.path}');
+      return delayed.future;
+    });
+    await tester.tap(find.text('Lerntipps'));
+    await tester.pump();
+    state.api.token = 'new-session';
+    // ignore: invalid_use_of_protected_member, invalid_use_of_visible_for_testing_member
+    state.notifyListeners();
+    await tester.pump();
+    delayed.complete(reply(tips()));
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('Künstlicher Lerntipp 1'), findsNothing);
+    expect(calls, hasLength(1));
+    expect(calls.single, startsWith('GET '));
+    await tester.pumpWidget(const SizedBox());
+    state.dispose();
+  });
+
+  testWidgets('delayed topic browsing is hidden when the session changes', (
+    tester,
+  ) async {
+    final delayed = Completer<http.Response>();
+    final requests = <http.Request>[];
+    final state = AppState(
+      api: Api(
+        base: 'https://example.invalid/api',
+        client: MockClient((request) async {
+          requests.add(request);
+          return delayed.future;
+        }),
+      ),
+    )..user = {'id': 'own-user', 'role': 'child', 'child_id': 'child'};
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: appTheme(),
+        home: Scaffold(
+          body: TopicBrowser(state, childId: 'child', subjectId: 'math'),
+        ),
+      ),
+    );
+    await tester.pump();
+    state.api.token = 'new-session';
+    // ignore: invalid_use_of_protected_member, invalid_use_of_visible_for_testing_member
+    state.notifyListeners();
+    await tester.pump();
+    delayed.complete(
+      reply({
+        'items': [
+          {'id': 't', 'title': 'Privates Thema'},
+        ],
+        'pages': 1,
+      }),
+    );
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('Privates Thema'), findsNothing);
+    expect(requests, hasLength(1));
+    expect(requests.single.method, 'GET');
+    await tester.pumpWidget(const SizedBox());
+    state.dispose();
+  });
+
   test(
     'Only complete HTTPS Sofatutor hosts and ordinary navigation query strings',
     () {

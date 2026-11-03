@@ -27,6 +27,7 @@ class LearningPreparationScreen extends StatelessWidget {
       state,
       ObjectKey(state.user),
       state.familyId,
+      state.api.token,
       childId,
       jobId,
     )),
@@ -54,13 +55,14 @@ class _LearningPreparationScreenState extends State<_LearningPreparationBody>
   Object? error;
   String? readingJob;
   late final Json? owner;
-  late final String? family;
+  late final String? family, session;
   bool foreground = true;
   bool get sameOwner =>
       mounted &&
       owner != null &&
       identical(widget.state.user, owner) &&
-      widget.state.familyId == family;
+      widget.state.familyId == family &&
+      widget.state.api.token == session;
   bool get waiting =>
       job == null || ['queued', 'running'].contains(job?['status']);
 
@@ -69,6 +71,7 @@ class _LearningPreparationScreenState extends State<_LearningPreparationBody>
     super.initState();
     owner = widget.state.user;
     family = widget.state.familyId;
+    session = widget.state.api.token;
     foreground =
         WidgetsBinding.instance.lifecycleState == null ||
         WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;

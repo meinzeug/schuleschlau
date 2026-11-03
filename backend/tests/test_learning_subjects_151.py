@@ -84,12 +84,15 @@ def test_random_choice_includes_all_topics_and_does_not_weight_duplicate_rounds(
 
     def choose(values):
         choices.extend(values)
-        return values[-1]
+        # Database ordering for same-second records uses random identifiers.
+        # Select the intended topic by identity rather than insertion order.
+        return next(group for group in values if group[0]["topic"] == "Thema 30")
 
     monkeypatch.setattr(library.secrets, "choice", choose)
     data = get(api, child, f"/subjects/{sid('Mathematik')}/random")
     assert len(choices) == 31
     assert sorted(map(len, choices)) == [1] * 30 + [10]
+    assert {group[0]["topic"] for group in choices} == {f"Thema {number:02}" for number in range(31)}
     assert data["item"]["topic"] == "Thema 30"
     with DB() as db:
         for model in (Job, Usage, Attempt, Activity):

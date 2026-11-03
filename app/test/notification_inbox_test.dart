@@ -128,13 +128,30 @@ void main() {
       'unread': 1,
     });
     var gets = 0;
+    var acknowledged = false;
     final inbox = NotificationInbox(
       Api(
         base: 'https://example.invalid/api',
         client: MockClient((request) async {
-          if (request.method == 'POST') return http.Response('{}', 200);
+          if (request.method == 'POST') {
+            acknowledged = true;
+            return http.Response('{}', 200);
+          }
           gets++;
-          return gets == 2 ? delayed.future : http.Response(feed, 200);
+          if (gets == 2) return delayed.future;
+          if (acknowledged) {
+            return http.Response(
+              jsonEncode({
+                'items': [
+                  {'id': 'message:new', 'read': false},
+                  {'id': 'message:one', 'read': true},
+                ],
+                'unread': 1,
+              }),
+              200,
+            );
+          }
+          return http.Response(feed, 200);
         }),
       ),
     );
@@ -144,10 +161,112 @@ void main() {
     await inbox.markRead(['message:one']);
     delayed.complete(http.Response(feed, 200));
     await pending;
-    expect(inbox.unread, 0);
-    expect(inbox.items.single['read'], isTrue);
+    await Future<void>.delayed(Duration.zero);
+    expect(gets, 3);
+    expect(inbox.unread, 1);
+    expect(inbox.items.first['id'], 'message:new');
+    expect(inbox.items.last['read'], isTrue);
     inbox.dispose();
   });
+
+  test(
+    'a discarded refresh waits for foreground before loading again',
+    () async {
+      final delayed = Completer<http.Response>();
+      var gets = 0;
+      final inbox = NotificationInbox(
+        Api(
+          base: 'https://example.invalid/api',
+          client: MockClient((request) async {
+            if (request.method == 'POST') return http.Response('{}', 200);
+            gets++;
+            if (gets == 2) return delayed.future;
+            return http.Response(
+              jsonEncode({
+                'items': [
+                  {'id': 'one', 'read': gets > 2},
+                ],
+                'unread': gets > 2 ? 0 : 1,
+              }),
+              200,
+            );
+          }),
+        ),
+      );
+      inbox.activate('own');
+      await Future<void>.delayed(Duration.zero);
+      final pending = inbox.refresh();
+      await inbox.markRead(['one']);
+      inbox.foreground(false);
+      delayed.complete(
+        http.Response(
+          jsonEncode({
+            'items': [
+              {'id': 'one', 'read': false},
+            ],
+            'unread': 1,
+          }),
+          200,
+        ),
+      );
+      await pending;
+      await Future<void>.delayed(Duration.zero);
+      expect(gets, 2);
+      inbox.foreground(true);
+      await Future<void>.delayed(Duration.zero);
+      expect(gets, 3);
+      expect(inbox.items.single['read'], isTrue);
+      inbox.dispose();
+    },
+  );
+
+  test(
+    'a discarded refresh does not retry after account replacement',
+    () async {
+      final delayed = Completer<http.Response>();
+      var gets = 0;
+      final inbox = NotificationInbox(
+        Api(
+          base: 'https://example.invalid/api',
+          client: MockClient((request) async {
+            if (request.method == 'POST') return http.Response('{}', 200);
+            gets++;
+            if (gets == 2) return delayed.future;
+            return http.Response(
+              jsonEncode({
+                'items': [
+                  {'id': gets == 1 ? 'old' : 'new', 'read': false},
+                ],
+                'unread': 1,
+              }),
+              200,
+            );
+          }),
+        ),
+      );
+      inbox.activate('old');
+      await Future<void>.delayed(Duration.zero);
+      final pending = inbox.refresh();
+      await inbox.markRead(['old']);
+      inbox.activate('new');
+      delayed.complete(
+        http.Response(
+          jsonEncode({
+            'items': [
+              {'id': 'old', 'read': false},
+            ],
+            'unread': 1,
+          }),
+          200,
+        ),
+      );
+      await pending;
+      await Future<void>.delayed(Duration.zero);
+      expect(gets, 3);
+      expect(inbox.items.single['id'], 'new');
+      inbox.dispose();
+    },
+  );
 
   for (final width in [390.0, 1280.0]) {
     testWidgets(

@@ -344,6 +344,7 @@ class _LearningTipsState extends State<LearningTips>
     with WidgetsBindingObserver {
   late final Json? owner;
   late final String? ownerFamily = widget.state.familyId;
+  late final String? ownerSession;
   final tipSearch = TextEditingController();
   String tipType = 'all';
   Set<String>? pendingSelection;
@@ -360,13 +361,15 @@ class _LearningTipsState extends State<LearningTips>
       mounted &&
       owner != null &&
       identical(owner, widget.state.user) &&
-      ownerFamily == widget.state.familyId;
+      ownerFamily == widget.state.familyId &&
+      ownerSession == widget.state.api.token;
   String get path =>
       '/children/${widget.childId}/learning-tips/${widget.kind}/${widget.resourceId}';
   @override
   void initState() {
     super.initState();
     owner = widget.state.user;
+    ownerSession = widget.state.api.token;
     revision = widget.state.revision;
     widget.state.addListener(changed);
     WidgetsBinding.instance.addObserver(this);
@@ -1036,6 +1039,7 @@ class TopicBrowser extends StatelessWidget {
     key: ValueKey((
       state,
       ObjectKey(state.user),
+      state.api.token,
       childId,
       subjectId,
       selected != null,
@@ -1064,6 +1068,7 @@ class _TopicBrowserState extends State<_TopicBrowserBody> {
   final search = TextEditingController();
   late final Json? owner;
   late final String? ownerFamily = widget.state.familyId;
+  late final String? ownerSession;
   Set<String>? clearedChoice;
   late final chosen = {...?widget.selected};
   late final chosenLabels = <String, String>{...widget.selectedLabels};
@@ -1076,12 +1081,14 @@ class _TopicBrowserState extends State<_TopicBrowserBody> {
       mounted &&
       owner != null &&
       identical(owner, widget.state.user) &&
-      ownerFamily == widget.state.familyId;
+      ownerFamily == widget.state.familyId &&
+      ownerSession == widget.state.api.token;
   String get path => '/children/${widget.childId}/subjects/${widget.subjectId}';
   @override
   void initState() {
     super.initState();
     owner = widget.state.user;
+    ownerSession = widget.state.api.token;
     widget.state.addListener(changed);
     load();
   }
@@ -1460,14 +1467,22 @@ class _TopicRow extends StatefulWidget {
 class _TopicRowState extends State<_TopicRow> {
   late final Json? owner = widget.state.user;
   late final String? family = widget.state.familyId;
+  late final String? session;
   int generation = 0;
   bool get current =>
       mounted &&
       identical(owner, widget.state.user) &&
-      family == widget.state.familyId;
+      family == widget.state.familyId &&
+      session == widget.state.api.token;
   Json? detail;
   String? error;
   bool loading = false;
+  @override
+  void initState() {
+    super.initState();
+    session = widget.state.api.token;
+  }
+
   Future<void> opened(Json item) async {
     if (!current) return;
     await widget.state.api.post(

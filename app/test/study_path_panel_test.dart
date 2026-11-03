@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -14,6 +15,39 @@ http.Response _json(Object value) => http.Response(
   200,
   headers: {'content-type': 'application/json; charset=utf-8'},
 );
+
+void sessionReplacementTest() {
+  testWidgets('a changed session cannot display a delayed study path', (
+    tester,
+  ) async {
+    final delayed = Completer<http.Response>();
+    final calls = <String>[];
+    final state = _state(
+      MockClient((request) async {
+        calls.add('${request.method} ${request.url.path}');
+        return delayed.future;
+      }),
+    );
+    state.api.token = 'old-session';
+    final router = await _open(tester, state);
+    addTearDown(() async {
+      await tester.pumpWidget(const SizedBox());
+      router.dispose();
+      state.dispose();
+    });
+    state.api.token = 'new-session';
+    // Simulate the account-state notification after replacing a session.
+    // ignore: invalid_use_of_protected_member, invalid_use_of_visible_for_testing_member
+    state.notifyListeners();
+    await tester.pump();
+    delayed.complete(_json(_path()));
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('Brüche first'), findsNothing);
+    expect(calls, ['GET /api/school-days/day/study-path']);
+    expect(tester.takeException(), isNull);
+  });
+}
 
 AppState _state(MockClient client, {String role = 'child'}) => AppState(
   api: Api(base: 'https://example.invalid/api', client: client),
@@ -150,6 +184,7 @@ void _pause(WidgetTester tester) {
 }
 
 void main() {
+  sessionReplacementTest();
   testWidgets('A completed prior check offers the actual topic explicitly', (
     tester,
   ) async {
