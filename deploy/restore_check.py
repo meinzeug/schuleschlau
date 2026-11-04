@@ -20,9 +20,18 @@ from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from ledger_snapshot import backup_lock, locked_journal
 from monitor import environment
 
+# Always use the application that accompanies this particular checker. This
+# also permits an independently staged recovery runtime to be checked before
+# the production application begins writing a new erasure-ledger format.
+RUNTIME_ROOT = Path(__file__).resolve().parent.parent
+
 
 def command(args, **kwargs):
     return subprocess.run(args, check=True, timeout=120, capture_output=True, **kwargs)
+
+
+def runtime_command(code):
+    return ['runuser', '-u', 'schulpilot', '--', str(RUNTIME_ROOT / 'venv/bin/python'), '-c', code]
 
 
 def decrypt(backup, destination):
@@ -78,8 +87,8 @@ with DB() as db:
  print('pending' if db.scalar(select(ErasureRequest.id).where(ErasureRequest.published.is_(False)).limit(1)) else 'clean')
 """
     result = command(
-        ['runuser', '-u', 'schulpilot', '--', '/opt/schulpilot/current/venv/bin/python', '-c', code],
-        cwd='/opt/schulpilot/current/backend',
+        runtime_command(code),
+        cwd=RUNTIME_ROOT / 'backend',
         env={**config, 'PATH': '/usr/sbin:/usr/bin:/sbin:/bin'},
     )
     state = result.stdout.decode().strip()
@@ -161,8 +170,8 @@ with DB.begin() as db:
 print(json.dumps({'schema':version,'before':before,'after':after,'paths':paths,'retained_images':retained,'verified_erasure_records':len(records)}))
 """
             result = command(
-                ["runuser", "-u", "schulpilot", "--", "/opt/schulpilot/current/venv/bin/python", "-c", code],
-                cwd="/opt/schulpilot/current/backend",
+                runtime_command(code),
+                cwd=RUNTIME_ROOT / "backend",
                 env={**config, "PATH": "/usr/sbin:/usr/bin:/sbin:/bin"},
                 input=contents.encode(),
             )

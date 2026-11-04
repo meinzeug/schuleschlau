@@ -31,6 +31,10 @@ Sicherungen vorliegen. Der Offsite-Client überträgt das verschlüsselte Journa
 eine erfolgreiche Übertragung belegt weder dessen Interpretation noch eine
 Wiederherstellung. Keine Änderungen an produktiven Diensten erfolgten.
 
+Die konkrete Reihenfolge für eine separat gepinnte Restore-Runtime, ihren
+synthetischen Vorabtest und den Rückweg steht in
+[RESTORE_RUNTIME_UPGRADE_2026_11_04.md](RESTORE_RUNTIME_UPGRADE_2026_11_04.md).
+
 Das Journal wird nach 35 Tagen bereinigt; zulässige Sicherungen sind höchstens
 14 Tage alt. Die künstlichen Tests prüfen einen 15 Tage alten Beleg, einen
 abgelaufenen 36 Tage alten Beleg und wiederholtes Rückspielen in eine getrennte

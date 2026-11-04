@@ -25,6 +25,22 @@ import restore_check  # noqa: E402
 from ledger_snapshot import backup_lock  # noqa: E402
 
 
+def test_restore_interpreter_and_backend_use_the_same_immutable_runtime(tmp_path, monkeypatch):
+    runtime = tmp_path / 'recovery-release'
+    monkeypatch.setattr(restore_check, 'RUNTIME_ROOT', runtime)
+    calls = []
+
+    def fake_command(args, **kwargs):
+        calls.append((args, kwargs))
+        return SimpleNamespace(stdout=b'clean\n')
+
+    monkeypatch.setattr(restore_check, 'command', fake_command)
+    assert restore_check.live_outbox_pending({}) is False
+    assert calls[0][0][4] == str(runtime / 'venv/bin/python')
+    assert calls[0][1]['cwd'] == runtime / 'backend'
+    assert restore_check.runtime_command('pass')[4] == str(runtime / 'venv/bin/python')
+
+
 def test_restore_holds_publication_lock_and_missing_lock_fails_closed(tmp_path, monkeypatch):
     monkeypatch.setattr(restore_check, "guarded_operation", nullcontext)
     monkeypatch.setattr(restore_check.os, "geteuid", lambda: 0)

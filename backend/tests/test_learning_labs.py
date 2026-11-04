@@ -312,7 +312,8 @@ def test_buddy_intro_cannot_bypass_pending_entry_probe_redaction(api, household)
         safe = learning_source(db, material)
         source = {"material_id": mid, "revision": material.revision, "content": safe["content"], "source_refs": safe["source_refs"]}
         hidden = fraction_step()
-        hidden["source_refs"] = [visual_references.source_binding(source)]
+        hidden = visual_references._hydrate([hidden], {"sources": [{**source, "ref": "p1"}],
+            "references": visual_references.candidates(db, "Mathematik", safe["content"])})[0]
         db.add(UnitVisualSnapshot(unit_id=unit.id, source_signature="f" * 64, status="ready", steps=[hidden],
             question_steps={}, source_bindings=[visual_references.source_binding(source)], receipts=[]))
         db.flush()

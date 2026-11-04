@@ -54,7 +54,8 @@ class RecipeLookup:
         return self
     def __exit__(self, *_args):
         return False
-    def get(self, model, key):
+    def get(self, model, key, **kwargs):
+        assert not kwargs or kwargs == {'populate_existing': True}
         assert model is VisualReference
         return RECIPES.get(key)
 
@@ -110,10 +111,10 @@ def config():
 class ContextLookup(RecipeLookup):
     def __init__(self, previous):
         self.previous = previous
-    def get(self, model, key):
+    def get(self, model, key, **kwargs):
         if model is LearningUnit:
             return self.previous if key == self.previous.id else None
-        return super().get(model, key)
+        return super().get(model, key, **kwargs)
 
 
 @pytest.fixture

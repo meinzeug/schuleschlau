@@ -12,7 +12,7 @@ from pydantic import ValidationError
 from schulpilot import package_output_transport, package_part_output, package_transport, providers
 from schulpilot.schemas import PackageOutput
 from schulpilot.subject_content import PROFILES, Graphic, bind_graphic_schema, generation_context
-from test_package_part_output import part
+from test_package_part_output import part, raw_graphic_binding  # noqa: F401
 from test_presentation_capability_paths import _config, _submitted, _transport
 
 DATA = Path(__file__).parents[2] / "testdata"
@@ -171,6 +171,7 @@ def test_only_new_part_request_changes_schema_and_old_validated_outputs_still_va
 
 
 @pytest.mark.parametrize("provider", ["openai", "openrouter", "codex"])
+@pytest.mark.usefixtures("raw_graphic_binding")
 def test_real_adapter_selected_branch_codec_and_bounds_guide_remain_consistent(monkeypatch, provider):
     data, payload = part()
     calls = _transport(monkeypatch, provider, data)
@@ -194,3 +195,38 @@ def test_real_adapter_selected_branch_codec_and_bounds_guide_remain_consistent(m
                 visit(child)
     visit(schema)
     assert objects and all(node["additionalProperties"] is False and set(node["required"]) == set(node["properties"]) for node in objects)
+
+
+def test_real_generated_package_context_keeps_subject_and_recipe_digest_for_adapter_validation(household, monkeypatch):
+    from schulpilot import visual_references
+    from schulpilot.db import DB, Child, Material
+    from schulpilot.visual_reference_models import VisualReference
+    from test_package_prepared_graphics import bind, prepared, wire_step
+
+    data, payload, _ = prepared()
+    source = payload["visual_context"]["sources"][0]
+    unit = data["units"][0]
+    with DB.begin() as db:
+        child = db.get(Child, household[1]["id"])
+        material = Material(child_id=child.id, title="Künstliche Seite", subject=unit["subject"],
+            topic="Brüche", content=source["content"], confirmed=True, status="confirmed")
+        db.add(material)
+        db.flush()
+        payload = visual_references.with_visual_context(db, child, {**payload, "function": "package"},
+            [material], groups=[{"id": unit["group_id"], "material_ids": [material.id]}])
+        reference = next(ref for ref in payload["visual_context"]["references"]
+            if ref["id"] == "math.fraction.part_whole")
+        recipe = db.get(VisualReference, (reference["id"], reference["version"]))
+        assert reference["subject"] == unit["subject"]
+        assert reference["digest"] == recipe.digest == visual_references.digest(recipe.recipe)
+    _, binding = bind(payload)
+    intro = next(row for row in binding.candidates if row["kind"] == "fraction" and row["disclosure"] == "given")
+    solutions = [row for row in binding.candidates if row["kind"] == "fraction" and row["disclosure"] == "solution"]
+    data["units"][0]["explanation_steps"] = [wire_step(intro)]
+    for index, question in enumerate(data["units"][0]["questions"]):
+        question["explanation_steps"] = [wire_step(solutions[index])]
+    calls = _transport(monkeypatch, "openrouter", data)
+    config = _config("openrouter")
+    config.max_output_tokens, config.reserve_micros = 8000, 250000
+    result = providers.request_provider(config, "package", payload)
+    assert len(calls) == 1 and len(result.data["units"][0]["questions"]) == 2

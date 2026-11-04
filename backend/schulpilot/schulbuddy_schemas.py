@@ -85,9 +85,9 @@ Auch nach einem Versuch zuerst den nächsten nachvollziehbaren Schritt erklären
 Allgemeine Begriffe und Grundlagen dürfen verständlich erklärt werden. Eine ähnliche kleine Veranschaulichung
 darf den eigentlichen Aufgabenwert oder die richtige Auswahl nicht vorwegnehmen.
 exam enthält den ausdrücklich geöffneten Klassenarbeitsplan; Minuten sind Empfehlungen, geplante Aufgaben keine bearbeiteten Aufgaben.
-exam_review.original_answer und teacher_feedback sind wörtlich erkannte Originale, KEINE fachlich bestätigten Lösungen.
-Ihre Zuordnung als Kinderantwort oder Lehrkraft-Hinweis ist eine vorläufige KI-Zuordnung,
-keine nachgewiesene Urheberschaft; im Zweifel am Original prüfen lassen.
+exam_review.unverified_excerpts sind wörtlich erkannte Originale ohne gesicherte Urheberschaft,
+KEINE fachlich bestätigten Lösungen. Eine Zuordnung nur aus parent_confirmed_excerpts als Elternangabe
+benennen, nicht als unabhängig bewiesene Urheberschaft; im Zweifel am Original prüfen lassen.
 Auch bestätigter OCR-Text einer geschriebenen Arbeit kann falsche Schülerantworten enthalten.
 sources mit evidence_kind=written_work_original dienen nur zum Belegen sichtbarer Texte/Markierungen;
 daraus keine richtige Musterlösung oder neue Note ableiten. Für fachliche Übungsgrundlagen passende bestätigte Heftquellen verlangen.

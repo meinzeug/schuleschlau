@@ -7,7 +7,7 @@ import pytest
 from package_output_helpers import PackageOutputCapture
 from schulpilot import package_prepared_graphics, providers
 from schulpilot.visual_reference_schemas import ExplanationStep
-from test_package_part_output import part
+from test_package_part_output import part, raw_graphic_binding  # noqa: F401
 from test_package_prepared_graphics import prepared, wire_step
 from test_package_transport import config
 
@@ -113,6 +113,7 @@ def test_requested_ids_hydrate_before_canonical_validation_and_keep_one_reported
     assert billed.input_tokens == 111 and billed.output_tokens == 2223
 
 
+@pytest.mark.usefixtures("raw_graphic_binding")
 def test_nonmath_part_keeps_canonical_graphic_request_and_answer_contract(monkeypatch):
     data, payload = part()
     output, real_client, calls = PackageOutputCapture(monkeypatch), httpx.Client, []

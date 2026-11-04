@@ -64,6 +64,9 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
   String? savedDraftSignature;
   String? pendingDraftKey, pendingDraftSignature;
   bool loading = false;
+  bool reloadAfterResume = false;
+  bool loadRateLimited = false;
+  int loadEpoch = 0;
   late DateTime lastInteraction;
   bool visible = true;
   int explanationScopeRevision = 0;
@@ -79,6 +82,7 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
   bool clockWasRunning = false;
   Json? ownerAccount;
   String? ownerFamily;
+  String? ownerToken;
   Json? resetInput;
   String? parentQuestionFilter, parentExactQuestion;
   bool parentSearchAnswers = false;
@@ -144,7 +148,8 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
       widget.unitId == id &&
       identical(ownerAccount, requestedOwner) &&
       identical(state.user, requestedOwner) &&
-      state.familyId == ownerFamily;
+      state.familyId == ownerFamily &&
+      state.api.token == ownerToken;
   final explanationPositions = <(String, String), int>{};
   final privateRoutes = <PopupRoute<dynamic>, ({String id, Json? account})>{};
   void closePrivateRoutes() {
@@ -211,6 +216,7 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
     super.initState();
     ownerAccount = state.user;
     ownerFamily = state.familyId;
+    ownerToken = state.api.token;
     readParentView();
     lastInteraction = interactionNow;
     visible =
@@ -265,6 +271,9 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
       unit = null;
       error = null;
       loading = false;
+      reloadAfterResume = false;
+      loadRateLimited = false;
+      loadEpoch++;
       explanation = hint = questionId = choice = null;
       matches = {};
       answeredQuestion = null;
@@ -277,6 +286,7 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
       instructionalRequestKey = null;
       ownerAccount = state.user;
       ownerFamily = state.familyId;
+      ownerToken = state.api.token;
       savedDraftSignature = pendingDraftKey = pendingDraftSignature = null;
       draftOffline = draftConflict = false;
       needsTimeBaseline = true;
@@ -325,7 +335,16 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
     needsTimeBaseline = true;
     if (visible) {
       lastInteraction = interactionNow;
-      unawaited(load());
+      if (loadRateLimited) {
+        return;
+      } else if (loading) {
+        // The in-flight response may predate changes on another device.
+        // Refresh once it finishes instead of silently dropping the resume.
+        reloadAfterResume = true;
+      } else {
+        reloadAfterResume = false;
+        unawaited(load());
+      }
     } else {
       unawaited(saveDraft());
     }
@@ -552,7 +571,8 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
   void accountChanged() {
     if (!mounted ||
         (identical(state.user, ownerAccount) &&
-            state.familyId == ownerFamily)) {
+            state.familyId == ownerFamily &&
+            state.api.token == ownerToken)) {
       return;
     }
     resetInput = null;
@@ -568,6 +588,10 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
     timer?.cancel();
     liveClock?.cancel();
     coachingPoll?.cancel();
+    reloadAfterResume = false;
+    loadRateLimited = false;
+    loadEpoch++;
+    loading = false;
     draftTimer?.cancel();
     needsTimeBaseline = true;
     updatingDraft = true;
@@ -821,6 +845,7 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
       mounted &&
       state.isChild &&
       identical(state.user, ownerAccount) &&
+      state.api.token == ownerToken &&
       visible &&
       routeVisible &&
       unit?['status'] == 'active' &&
@@ -858,7 +883,7 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
   Future<void> beat() async {
     if (!mounted ||
         !state.isChild ||
-        !identical(state.user, ownerAccount) ||
+        !requestIsCurrent(widget.unitId, ownerAccount) ||
         !visible ||
         !routeVisible ||
         unit?['status'] != 'active' ||
@@ -891,9 +916,7 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
         'baseline': baseline,
       });
       heartbeatSucceeded = true;
-      if (mounted &&
-          requestedId == widget.unitId &&
-          identical(requestedOwner, state.user) &&
+      if (requestIsCurrent(requestedId, requestedOwner) &&
           unit?['status'] == 'active') {
         setState(() {
           unit!['status'] = result['status'] ?? unit!['status'];
@@ -913,7 +936,7 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
     } catch (_) {
       heartbeatSucceeded = false;
       needsTimeBaseline = true;
-      if (mounted && requestedId == widget.unitId) {
+      if (requestIsCurrent(requestedId, requestedOwner)) {
         setState(() {
           clockOffline = true;
           clockAnchor = null;
@@ -928,14 +951,19 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
   }
 
   Future<void> load() async {
-    if (loading) return;
+    if (loading || loadRateLimited) return;
     loading = true;
     final requestedId = widget.unitId;
     final requestedOwner = ownerAccount;
+    final requestedEpoch = loadEpoch;
+    bool currentLoad() =>
+        loadEpoch == requestedEpoch &&
+        requestIsCurrent(requestedId, requestedOwner);
+    bool retrySuppressed = false;
     try {
-      if (!requestIsCurrent(requestedId, requestedOwner)) return;
+      if (!currentLoad()) return;
       final data = await state.api.get('/units/$requestedId');
-      if (requestIsCurrent(requestedId, requestedOwner)) {
+      if (currentLoad() && !reloadAfterResume) {
         setState(() {
           unit = data;
           restoreFeedback(data);
@@ -947,12 +975,46 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
         if (needsTimeBaseline) await beat();
       }
     } catch (e) {
-      if (requestIsCurrent(requestedId, requestedOwner)) {
-        setState(() => error = e);
+      retrySuppressed = e is ApiError && [403, 404, 429].contains(e.status);
+      if (currentLoad()) {
+        setState(() {
+          if (retrySuppressed) {
+            loadRateLimited = e is ApiError && e.status == 429;
+            coachingPoll?.cancel();
+            coachingPoll = null;
+          }
+          if (e is ApiError && (e.status == 403 || e.status == 404)) {
+            // Rights may have changed on another device. Keep saved drafts on
+            // the server/local store but remove the no-longer-authorized view.
+            unit = null;
+            answeredQuestion = null;
+            answeredText = explanation = hint = choice = null;
+            matches = {};
+            draftTimer?.cancel();
+            updatingDraft = true;
+            text.clear();
+            updatingDraft = false;
+            coachingPoll?.cancel();
+            coachingPoll = null;
+            closePrivateRoutes();
+          }
+          error = e;
+        });
       }
     } finally {
-      if (requestedId == widget.unitId) loading = false;
+      if (currentLoad()) {
+        loading = false;
+        if (reloadAfterResume && visible && currentLoad()) {
+          reloadAfterResume = false;
+          if (!retrySuppressed) unawaited(load());
+        }
+      }
     }
+  }
+
+  Future<void> retryLoad() async {
+    loadRateLimited = false;
+    await load();
   }
 
   void watchCoaching() {
@@ -1013,7 +1075,7 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    if (!identical(state.user, ownerAccount) || state.familyId != ownerFamily) {
+    if (!requestIsCurrent(widget.unitId, ownerAccount)) {
       return Scaffold(
         body: SafeArea(
           child: Center(child: MathText('Bitte melde dich erneut an.')),
@@ -1030,7 +1092,7 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
               ActionButton(
                 label: 'Erneut versuchen',
                 icon: Icons.refresh_rounded,
-                onPressed: load,
+                onPressed: retryLoad,
               ),
             ],
           )
@@ -1070,13 +1132,6 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
               ),
             content,
           ],
-        ),
-      );
-    }
-    if (!identical(state.user, ownerAccount) || state.familyId != ownerFamily) {
-      return Scaffold(
-        body: SafeArea(
-          child: Center(child: MathText('Bitte melde dich erneut an.')),
         ),
       );
     }

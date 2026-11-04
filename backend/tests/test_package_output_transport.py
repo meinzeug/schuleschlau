@@ -12,6 +12,8 @@ from schulpilot.schemas import PackageOutput
 
 SCENES = json.loads((Path(__file__).parents[2] / "testdata/learning_scenes_v1.json").read_text())["cases"]
 FIELDS = json.loads((Path(__file__).parents[2] / "testdata/learning_fields_v1.json").read_text())["cases"][0]
+RECIPES = json.loads(visual_references.BUNDLE.read_text())["references"]
+SCENE_RECIPE = next(row for row in RECIPES if row["id"] == "general.source_relation.phases" and row["version"] == 1)
 
 
 def fixture(groups=2, steps=1):
@@ -35,7 +37,8 @@ def fixture(groups=2, steps=1):
         units.append({"group_id": group, "subject": subject, "topic": "Künstlicher Transporttest",
                       "explanation": case["source"], "explanation_steps": [step("given")], "questions": questions})
         sources.append({"ref": ref, "subject": subject, "group_id": group, "content": case["source"]})
-        references.append({"id": "general.source_relation.phases", "version": 1, "subject": subject})
+        references.append({"id": "general.source_relation.phases", "version": 1, "subject": subject,
+                           "digest": visual_references.digest(SCENE_RECIPE)})
     data = PackageOutput.model_validate({"units": units}).model_dump(mode="json")
     context = {"visual_context": {"required": True, "sources": sources, "references": references}}
     schema = providers.strict_schema(PackageOutput, preserve_limits=True)

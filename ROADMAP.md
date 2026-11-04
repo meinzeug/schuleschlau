@@ -762,6 +762,12 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
 
 - [ ] **P1 – Klassenarbeitsvorbereitung und Nacharbeit fachlich abnehmen**
 
+  **04.11.2026, Schulbuddy-Kontext:** Nicht bestätigte Ausschnitte aus der
+  geschriebenen Arbeit werden neutral übergeben; nur gültige, revisions-
+  gebundene Elternzuordnungen erscheinen als Elternangabe. Bei Änderung
+  während des Auftrags wird dessen Antwort verworfen. Die lokale Prüfung
+  ersetzt keine unabhängige fachliche oder Urheberschaftsabnahme.
+
   - [x] **04.11.2026, Belegdeckung neuer Aufgaben:** Die angegebene
     Originalaufgabe muss vollständig durch ihre eigenen wörtlichen
     Quellenzitate gedeckt sein; bei langen Aufgaben sind mehrere überlappende
@@ -1464,6 +1470,13 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Kinderwege, Navigation und Wiederaufnahme vollständig abnehmen**
 
+  **04.11.2026, aktive Runde:** Ein bei Rückkehr noch laufender GET führt
+  einen gezielten Folgeabruf aus; eine ausgetauschte Sitzung kann keine alte
+  Antwort anzeigen. Nach 403/404 verschwindet die private Ansicht; 429 wird
+  nicht automatisch umgangen. Gespeicherte Entwürfe und Antworten bleiben
+  erhalten. Widget- und Chrome-Fälle prüfen die Zustandswechsel künstlich;
+  die vollständige Mehrgeräte- und Browserabnahme bleibt offen.
+
   **03.11.2026, Teilabsicherung:** Lernweg und Runden-Vorbereitung beachten
   neben Konto und Familie nun auch den Sitzungstoken. Verspätete Antworten aus
   einer ersetzten Sitzung werden verworfen; der alte Vorbereitungsstatus
@@ -1842,6 +1855,17 @@ Bestandteil des bestehenden Buildvertrags.
   **Abnahme:** Bericht mit nachvollziehbaren Fundstellen, Risikoeinstufung und Nachtests liegt vor; kritische und hohe Befunde sind behoben beziehungsweise vor jeglicher Freigabe durch die verantwortliche Stelle nachvollziehbar entschieden.
 
 - [ ] **P1 – Abnahmen systematisch und wiederholbar automatisieren**
+
+  **04.11.2026, CI-Korrektur:** Der vollständige Lauf
+  [41784051628](https://github.com/meinzeug/schulpilot/actions/runs/41784051628)
+  für `eae5955` scheiterte in allen drei Backendpartitionen; die übrigen
+  Ergebnisse wurden nicht als Gesamterfolg ausgegeben. Veraltete künstliche
+  Grafikfixtures und ein Datenbank-Doppelgänger wurden an die wirksamen
+  Referenz- und Providerverträge angepasst. Alle neun betroffenen Testdateien
+  bestanden lokal mit 419 Fällen und einem PostgreSQL-Skip; relevante echte
+  Paketkontext-/Adapter- und Sidecar-Pfade wurden zusätzlich einschließlich
+  18 Fällen auf isoliertem PostgreSQL geprüft. Ein neuer vollständiger
+  GitHub-Lauf des korrigierten Commits bleibt erforderlich.
 
   **04.11.2026, CI-Ergebnis:** Der vollständige GitHub-Lauf
   [41779877406](https://github.com/meinzeug/schulpilot/actions/runs/41779877406)

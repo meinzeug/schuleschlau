@@ -11,6 +11,17 @@ from test_package_output_transport import fixture
 from test_package_transport import config
 
 
+@pytest.fixture
+def raw_graphic_binding(monkeypatch):
+    """Exercise the raw-graphic schema separately from prepared-ID binding.
+
+    Real source-bound prepared requests are covered by the provider tests in
+    test_package_prepared_graphics and test_prepared_graphics_provider.
+    """
+    monkeypatch.setattr("schulpilot.package_prepared_graphics.bind_schema", lambda schema, payload: None)
+    monkeypatch.setattr("schulpilot.package_prepared_scenes.bind_schema", lambda schema, payload: None)
+
+
 def part():
     data, context, _ = fixture()
     data["units"] = data["units"][:1]
@@ -31,7 +42,7 @@ def part():
 
 
 @pytest.mark.parametrize("fault", [None, "three_questions", "two_steps", "long_prompt", "three_phases", "mixed_scene_numbers", "solution_visual_prompt"])
-def test_actual_part_adapter_uses_two_questions_one_graphic_step_and_rejects_oversize(monkeypatch, fault):
+def test_actual_part_adapter_uses_two_questions_one_graphic_step_and_rejects_oversize(monkeypatch, raw_graphic_binding, fault):
     data, payload = part()
     if fault == "three_questions":
         data["units"][0]["questions"].append({**copy.deepcopy(data["units"][0]["questions"][0]), "id": "extra"})

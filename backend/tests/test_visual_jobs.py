@@ -73,6 +73,15 @@ def test_parent_prepares_legacy_graphics_without_child_activity_or_modifying_sav
         assert visible["visual_preparation"]["status"] == "completed"
         assert db.get(UnitVisualSnapshot, uid).question_steps["q1"][0]["disclosure"] == "solution"
     assert len(calls["provider"]) == 1
+    with DB() as db:
+        from schulpilot.visual_reference_models import VisualReference
+        from schulpilot.visual_references import digest
+
+        refs = calls["provider"][0][1]["visual_context"]["references"]
+        selected = next(ref for ref in refs if ref["id"] == "math.fraction.part_whole")
+        stored = db.get(VisualReference, (selected["id"], selected["version"]))
+        assert selected["subject"] == "Mathematik"
+        assert selected["digest"] == stored.digest == digest(stored.recipe)
     assert start(api, uid).status_code == 409
     assert len(calls["reserve"]) == 1
 

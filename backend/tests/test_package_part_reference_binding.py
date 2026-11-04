@@ -14,7 +14,13 @@ from schulpilot.subject_content import bind_graphic_schema, generation_context
 from schulpilot.visual_reference_models import VisualReference
 from test_package_output_transport import fixture
 from test_package_part_graphics import CASES, normalized
-from test_package_part_output import part
+from test_package_part_output import part, raw_graphic_binding  # noqa: F401
+
+
+@pytest.fixture(autouse=True)
+def _raw_graphic_contract(request):
+    """These cases verify raw recipe/disclosure binding, not prepared IDs."""
+    request.getfixturevalue("raw_graphic_binding")
 
 
 def request(groups=1):
@@ -52,8 +58,10 @@ def binding(payload, *, coupled=True):
 def test_previous_schema_allowed_the_exact_reference_kind_mismatch_new_request_rejects_it():
     data, payload = request()
     context = payload["visual_context"]
-    context["references"].append({"id": "geography.compass.direction", "version": 1,
-        "kind": "compass", "subject": "Geographie"})
+    with DB() as db:
+        compass = db.get(VisualReference, ("geography.compass.direction", 1))
+        context["references"].append({"id": compass.id, "version": compass.version,
+            "kind": "compass", "subject": "Geographie", "digest": compass.digest})
     data["units"][0]["questions"][0]["explanation_steps"][0]["reference"]["id"] = "geography.compass.direction"
     old = binding(payload, coupled=False)
     assert old.decode(old.encode(data)) == data

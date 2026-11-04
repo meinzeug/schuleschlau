@@ -445,10 +445,12 @@ def test_parallel_local_notice_recovery_creates_exactly_one_receipt(case):
 @pytest.mark.parametrize("creator_kind", ["unit", "coach_practice", "study_block", "controller_check"])
 def test_visual_sidecar_completion_notifies_original_round_immediately(case, monkeypatch, creator_kind):
     from schulpilot.visual_reference_models import UnitVisualSnapshot
+    from test_visual_references import SOURCE
 
     with DB.begin() as db:
         original = db.get(Job, case["job"])
         original.kind, original.finished = creator_kind, int(now()) - 2
+        db.get(Material, case["material"]).content = SOURCE
         db.add(UnitVisualSnapshot(
             unit_id=case["unit"], source_signature="v" * 64, status="incomplete", steps=[],
             question_steps={}, receipts=[],
@@ -466,7 +468,18 @@ def test_visual_sidecar_completion_notifies_original_round_immediately(case, mon
     def finish_graphic(identifier):
         assert identifier == sidecar_id
         with DB.begin() as db:
-            db.get(UnitVisualSnapshot, case["unit"]).status = "ready"
+            from schulpilot import visual_references
+            from test_visual_references import step
+
+            snapshot = db.get(UnitVisualSnapshot, case["unit"])
+            material = db.get(Material, case["material"])
+            source = {"ref": "p1", "material_id": material.id, "revision": material.revision,
+                      "subject": "Mathematik", "group_id": None,
+                      "content": material.content, "source_refs": []}
+            context = {"sources": [source], "references": visual_references.candidates(db, "Mathematik", material.content)}
+            checked = visual_references.validate_steps(db, [step()], "Mathematik", context, introduction=True)
+            snapshot.steps = visual_references._hydrate(checked, context)
+            snapshot.status = "ready"
             job = db.get(Job, identifier)
             job.status, job.finished = "completed", int(now())
             # The sidecar has the same output unit_id and a later finish time.

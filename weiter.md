@@ -2,6 +2,17 @@
 
 Stand: 4. November 2026. Diese Datei ist eine Arbeitsübergabe, kein Ersatz für die aktuellen Nutzeraufträge oder `AGENTS.md`. Prüfe alle Zustände erneut; insbesondere Server, Git, laufende Jobs und Roadmap können sich inzwischen geändert haben. Keine Zugangsdaten, Tokens, privaten Schülerdaten oder Bildinhalte in diese Datei, Logs oder Git schreiben.
 
+**Auftragswechsel 04.11.2026:** Der Nutzer hat die frühere Anweisung
+„kein Deployment“ aufgehoben und ausdrücklich die Aktualisierung der Restore-
+und Prüfwerkzeuge mit anschließender Roadmap-Arbeit, Commit, Push und Deployment
+beauftragt. Neue Vokabel-Journaltypen verlangen die Reihenfolge in
+`docs/RESTORE_RUNTIME_UPGRADE_2026_11_04.md`. Der aktuelle Server-, Backup-,
+Restore-, Offsite- und CI-Stand muss vor jedem Schritt erneut geprüft werden;
+Einträge darunter sind historische Übergaben und keine aktuelle Freigabe.
+Der GitHub-Lauf 41784051628 für `eae5955` schlug fehl. Die betroffenen Tests
+wurden lokal korrigiert und erneut geprüft; nur ein neuer vollständiger CI-Lauf
+belegt den gesamten korrigierten Stand.
+
 **Neue Übergabe 04.11.2026:** Der Nutzer verlangt weiterhin ausschließlich
 Commit und Push nach `main`, kein Deployment. Produktiv meldete Health zuletzt
 `1.38.74+229` / `178f633`; der vollständige CI-Lauf 41779877406 für

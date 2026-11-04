@@ -1,5 +1,6 @@
 """Current-page binding; artificial families and a mocked existing provider only."""
 
+import copy
 import uuid
 
 import pytest
@@ -146,9 +147,9 @@ def test_written_paper_separates_original_error_and_teacher_annotation(api, book
     assert response.status_code == 202, response.text
     finish()
     payload = transport["calls"][0]
-    assert payload["exam_review"]["original_answer"] == "Erde."
-    assert payload["exam_review"]["teacher_feedback"] == "Bezeichnung prüfen."
-    assert "Zuordnung von Antwort und Hinweis ist vorläufig" in payload["exam_review"]["notice"]
+    assert payload["exam_review"]["unverified_excerpts"] == ["Erde.", "Bezeichnung prüfen.", "0/1 Punkte"]
+    assert payload["exam_review"]["parent_confirmed_excerpts"] == []
+    assert "original_answer" not in payload["exam_review"] and "teacher_feedback" not in payload["exam_review"]
     assert "belegt nicht" in payload["exam_review"]["notice"]
     assert "ai_proposal" not in payload["exam_review"] and "draft" not in payload["exam_review"]
     assert payload["sources"][0]["evidence_kind"] == "written_work_original"
@@ -156,6 +157,49 @@ def test_written_paper_separates_original_error_and_teacher_annotation(api, book
     assert "KEINE fachlich bestätigten Lösungen" in SYSTEM
     with DB() as db:
         assert db.get(SchulbuddyTurn, response.json()["id"]).source_revisions[0]["id"] == material_id
+
+
+def test_exam_buddy_exposes_only_current_parent_confirmations_as_parent_claims(api, book, transport):
+    exam = make_exam(api, book)
+    material_id = paper(book, exam)
+    with DB.begin() as db:
+        row = db.query(ExamReview).filter(ExamReview.exam_id == exam["id"]).one()
+        material = db.get(Material, material_id)
+        report = copy.deepcopy(row.report)
+        report["role_revision"] = 1
+        report["role_confirmations"] = [
+            {"task_id": "task", "material_id": material_id, "source_revision": material.revision,
+             "excerpt": "Bezeichnung prüfen.", "role": "teacher", "confirmed_by": "parent"},
+            {"task_id": "task", "material_id": material_id, "source_revision": material.revision - 1,
+             "excerpt": "Erde.", "role": "student", "confirmed_by": "parent"},
+        ]
+        row.report = report
+    response = request(book, exam, exam_tab="review", review_task_id="task")
+    assert response.status_code == 202, response.text
+    finish()
+    task = transport["calls"][0]["exam_review"]
+    assert task["parent_confirmed_excerpts"] == [
+        {"excerpt": "Bezeichnung prüfen.", "role": "teacher", "material_id": material_id}]
+    assert "Eltern" in task["notice"] and "keine unabhängige Gewissheit" in task["notice"]
+    assert "Erde." in task["unverified_excerpts"]
+
+
+def test_exam_buddy_discards_reply_if_parent_role_changes_during_provider_call(api, book, transport):
+    exam = make_exam(api, book)
+    paper(book, exam)
+    def change():
+        with DB.begin() as db:
+            row = db.query(ExamReview).filter(ExamReview.exam_id == exam["id"]).one()
+            report = copy.deepcopy(row.report)
+            report["role_revision"] = 1
+            row.report = report
+    transport["effect"] = change
+    response = request(book, exam, exam_tab="review", review_task_id="task")
+    assert response.status_code == 202, response.text
+    finish()
+    with DB() as db:
+        turn = db.get(SchulbuddyTurn, response.json()["id"])
+        assert turn.status == "failed" and not turn.reply
 
 
 def test_unconfirmed_visible_page_offers_review_guidance_without_forwarding_ocr(api, book, transport):

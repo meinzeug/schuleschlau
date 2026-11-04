@@ -55,13 +55,13 @@ def bind(db, p, child, scope, exam, payload, normalized, guards):
                        "archived": exam.archived, "tab": scope.exam_tab or "prepare"}
     guards.append(["exam", exam.id, exam.revision, exam.archived])
     if scope.exam_tab == "review":
-        from .exam_review import source_context
+        from .exam_review import source_context, tutor_task, valid_role_confirmations
         from .exam_review_models import ExamReview
 
         signature, refs, pages = source_context(db, exam, child)
         row = db.scalar(select(ExamReview).where(ExamReview.exam_id == exam.id))
         guards.append(["exam_review", signature, row.id if row else None, row.revision if row else None,
-                       row.status if row else None])
+                       row.status if row else None, (row.report or {}).get("role_revision", 0) if row else None])
         if any(not page.confirmed or not (page.content or "").strip() for page in pages):
             payload["source_review"] = {"confirmation_required": True,
                 "notice": "Die Arbeit ist noch nicht vollständig geprüft. Erst den erkannten Originaltext prüfen und bestätigen; keine fachliche Erklärung ungeprüfter Inhalte."}
@@ -72,12 +72,11 @@ def bind(db, p, child, scope, exam, payload, normalized, guards):
             task = next((task for task in row.report.get("tasks", []) if task["id"] == scope.review_task_id), None)
             if not task:
                 raise HTTPException(404, "Aufgabe in dieser Arbeit nicht gefunden.")
-            payload["exam_review"] = {key: task.get(key, "") for key in
-                ("id", "question", "original_answer", "teacher_feedback", "score_label", "uncertainties")}
+            payload["exam_review"] = tutor_task(task, valid_role_confirmations(task, row.report, pages))
             payload["exam_review"]["notice"] = (
-                "Die KI-Zuordnung von Antwort und Hinweis ist vorläufig: Wörtliche Übereinstimmung belegt nicht, "
-                "wer den Text geschrieben hat. Keine Urheberschaft behaupten; bei Bedarf das Original prüfen lassen. "
-                "Originalantwort und Hinweis sind keine bestätigten richtigen Lösungen. "
+                "Ungeprüfte Ausschnitte haben keine gesicherte Urheberschaft: Wörtliche Übereinstimmung belegt nicht, "
+                "wer den Text geschrieben hat. Elternzuordnungen sind ausdrückliche Angaben der Eltern, "
+                "keine unabhängige Gewissheit. Die Ausschnitte sind keine bestätigten richtigen Lösungen. "
                 "Keine Note ändern, keine Beherrschung behaupten; eigene Überarbeitung und Heftgrundlagen getrennt behandeln.")
             ids = {source["material_id"] for source in task.get("sources", []) if source.get("material_id")}
             pages = [page for page in pages if page.id in ids]
