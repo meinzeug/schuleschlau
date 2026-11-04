@@ -270,6 +270,41 @@ void main() {
     },
   );
 
+  for (final contextField in ['family', 'session']) {
+    scenario('full inbox clears cached rows when the $contextField changes', (
+      tester,
+    ) async {
+      final fresh = Completer<http.Response>();
+      var gets = 0;
+      final fixture = await display(tester, (request) async {
+        if (request.method != 'GET') return reply({});
+        gets++;
+        if (gets > 1) return fresh.future;
+        return reply({
+          'items': [notice('old', read: true)],
+          'unread': 0,
+        });
+      });
+      expect(find.text('Künstliche Meldung old'), findsOneWidget);
+      if (contextField == 'family') {
+        fixture.state.familyId = 'new-family';
+      } else {
+        fixture.state.api.token = 'new-session';
+      }
+      fixture.state.notifyListeners();
+      await tester.pump();
+      expect(find.text('Künstliche Meldung old'), findsNothing);
+      fresh.complete(
+        reply({
+          'items': [notice('new', read: true)],
+          'unread': 0,
+        }),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Künstliche Meldung new'), findsOneWidget);
+    });
+  }
+
   for (final bell in [false, true]) {
     for (final familyChange in [false, true]) {
       scenario(

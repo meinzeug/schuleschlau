@@ -37,6 +37,15 @@ als Integritätsschutz erzwungen. Die Abfrage enthält keine Kontodaten oder
 Lerninhalte. Zuständig für die Wiederholung bei SDK-Updates und mindestens im
 Rahmen der regelmäßigen Lieferkettenprüfung ist der Betreiber.
 
+Die [OSV-Abfrage](https://google.github.io/osv.dev/post-v1-query/) darf bei
+null Treffern ein leeres Objekt und bei einer zeitlich begrenzten Seite nur
+einen Fortsetzungstoken liefern. Der Prüfer akzeptiert diese Fälle, verwirft
+aber fehlerhafte Ergebnisobjekte, IDs und Seitentokens und begrenzt die
+Paginierung auf 500 Seiten. Ein Fehlerobjekt mit HTTP 200 wird damit nicht als
+trefferfreie Abfrage ausgegeben. Eine leere, formal gültige Antwort allein
+beweist weiterhin weder die Verfügbarkeit aller Datenquellen noch eine
+vollständige Sicherheitsprüfung.
+
 Nicht abgedeckt: die tatsächlich bei autorisiertem Checkout dynamisch
 bezogenen und vom jeweiligen Zahlungsanbieter veränderbaren PayPal-/Google-Pay-
 Skripte, deren Abhängigkeiten und Lizenzen, weitere Laufzeit-Skripte und

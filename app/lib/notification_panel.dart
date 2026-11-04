@@ -55,7 +55,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     accountFamily = widget.state.familyId;
     accountToken = widget.state.api.token;
     widget.state.addListener(accountChanged);
-    widget.state.inbox.activate(widget.state.user?['id']);
+    widget.state.inbox.activate(
+      widget.state.user?['id'],
+      family: widget.state.familyId,
+      session: widget.state.api.token,
+    );
     widget.state.inbox.refresh();
   }
 
@@ -65,6 +69,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         accountToken == widget.state.api.token) {
       return;
     }
+    widget.state.inbox.activate(
+      widget.state.user?['id'],
+      family: widget.state.familyId,
+      session: widget.state.api.token,
+    );
     setState(() {
       account = widget.state.user;
       accountFamily = widget.state.familyId;
@@ -95,7 +104,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       selectedChild = selectedKind = null;
       opening = null;
       openRevision++;
-      widget.state.inbox.activate(widget.state.user?['id']);
+      widget.state.inbox.activate(
+        widget.state.user?['id'],
+        family: widget.state.familyId,
+        session: widget.state.api.token,
+      );
     }
   }
 

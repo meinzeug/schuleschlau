@@ -2920,7 +2920,7 @@ class _NotificationBellState extends State<NotificationBell> {
         ),
         onOpen: () {
           if (!state.isAdmin) {
-            inbox.activate(account);
+            inbox.activate(account, family: family, session: token);
             inbox.refresh();
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (mounted &&

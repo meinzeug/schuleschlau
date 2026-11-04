@@ -6,7 +6,18 @@ from zoneinfo import ZoneInfo
 
 import pytest
 from schulpilot import coaching
-from schulpilot.db import DB, Attempt, Child, LearningUnit, Material, UnitCoaching, UnitSource, now
+from schulpilot.db import (
+    DB,
+    Attempt,
+    Child,
+    LearningUnit,
+    Material,
+    Subject,
+    SubjectAlias,
+    UnitCoaching,
+    UnitSource,
+    now,
+)
 from schulpilot.learning_knowledge import evidence
 from sqlalchemy import select
 from test_adaptive_plan import action, session, submit
@@ -314,6 +325,7 @@ def test_non_math_source_recall_preserves_chemistry_case(profile):
     with DB.begin() as db:
         root, source = db.get(LearningUnit, uid), db.get(Material, mid)
         root.subject, root.topic = "Chemie", "Chemische Zeichen"
+        root.subject_id = None
         source.subject, source.topic = root.subject, root.topic
         source.content = "CO steht für Kohlenmonoxid und Co für Cobalt."
         source.source_blocks = []
@@ -336,3 +348,57 @@ def test_non_math_source_recall_preserves_chemistry_case(profile):
         state = next(row for row in evidence(db, root, [source]) if row["label"] == "Chemische Zeichen zuordnen")
         assert len(state["successful_check_dates"]) == 2
         assert state["independent"] == state["attempts"] == 2
+
+
+def test_source_evidence_uses_subject_identity_and_keeps_other_subjects_separate(profile):
+    from schulpilot.subject_registry import alias_key, identity, resolve
+
+    _, uid, mid, _, _, child = profile
+    with DB.begin() as db:
+        root, source = db.get(LearningUnit, uid), db.get(Material, mid)
+        family_id = db.get(Child, child["id"]).family_id
+        maths = resolve(db, "Mathematik", family_id)
+        german = resolve(db, "Deutsch", family_id)
+        assert maths and german and maths.id != german.id
+        root.subject, root.subject_id = "Mathematik", maths.id
+        private = Subject(id=identity("custom-private-maths-test", family_id), key="custom-private-maths-test",
+            title="Mathematik", owner_family_id=family_id, cover_key="other",
+            active=True, sort_order=100)
+        db.add(private)
+        db.flush()
+        db.add(SubjectAlias(key=alias_key("Mathematik", family_id), subject_id=private.id,
+            family_id=family_id, normalized="mathematik"))
+        db.flush()
+        template = copy.deepcopy(root.questions[0])
+        stamps = int(now())
+        cases = [
+            ("Mathe", None, "Berechne 2/5 + 1/10.", True),
+            ("Mathematik", maths.id, "Berechne 1/4 + 1/6.", True),
+            ("Mathematik", None, "Berechne 1/11 + 1/22.", False),  # ambiguous historic label
+            ("Deutsch", german.id, "Berechne 1/3 + 1/12.", False),
+            # A stale display label is not a substitute for its stored identity.
+            ("Mathematik", german.id, "Berechne 2/7 + 1/14.", False),
+            ("Mathematik", private.id, "Berechne 2/9 + 1/18.", False),
+        ]
+        expected = set()
+        for index, (label, subject_id, prompt, included) in enumerate(cases):
+            question = dict(template, id="recall", prompt=prompt)
+            other = LearningUnit(child_id=child["id"], material_id=mid, subject=label, subject_id=subject_id,
+                topic="Brüche", explanation="Künstliche Wiederholung.", questions=[question],
+                learning_root_id=uid, followup_of=uid, round_kind="spaced_review", provider="synthetic-fixture")
+            db.add(other)
+            db.flush()
+            # Simulate legacy rows and existing stored IDs independently of the
+            # normal insert hook, which derives the ID from today's label.
+            other.subject_id = subject_id
+            db.add(UnitSource(unit_id=other.id, material_id=mid, revision=source.revision))
+            attempt = Attempt(unit_id=other.id, question_id="recall", answer="fixture", outcome="correct",
+                assisted=False, created=stamps - (10 - index) * 86400)
+            db.add(attempt)
+            db.flush()
+            if included:
+                expected.add("attempt:" + attempt.id)
+        state = next(row for row in evidence(db, root, [source]) if row["label"] == "Brüche addieren")
+        assert state["tasks"] == state["attempts"] == state["independent"] == 2
+        assert set(state["evidence_refs"]) == expected
+        assert len(state["successful_check_dates"]) == 2

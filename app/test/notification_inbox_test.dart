@@ -61,6 +61,90 @@ void main() {
     },
   );
 
+  for (final changedField in ['family', 'session']) {
+    test(
+      'a delayed response is discarded after the $changedField changes',
+      () async {
+        final oldResponse = Completer<http.Response>();
+        var gets = 0;
+        final inbox = NotificationInbox(
+          Api(
+            base: 'https://example.invalid/api',
+            client: MockClient((request) async {
+              gets++;
+              if (gets == 1) return oldResponse.future;
+              return http.Response(
+                jsonEncode({
+                  'items': [
+                    {'id': 'current', 'read': false},
+                  ],
+                  'unread': 1,
+                }),
+                200,
+              );
+            }),
+          ),
+        );
+        inbox.activate('same', family: 'family1', session: 'session1');
+        await Future<void>.delayed(Duration.zero);
+        inbox.activate(
+          'same',
+          family: changedField == 'family' ? 'family2' : 'family1',
+          session: changedField == 'session' ? 'session2' : 'session1',
+        );
+        oldResponse.complete(
+          http.Response(
+            jsonEncode({
+              'items': [
+                {'id': 'old', 'read': false},
+              ],
+              'unread': 1,
+            }),
+            200,
+          ),
+        );
+        await Future<void>.delayed(Duration.zero);
+        expect(gets, 2);
+        expect(inbox.items.single['id'], 'current');
+        inbox.dispose();
+      },
+    );
+  }
+
+  test('a delayed read receipt cannot change the new session', () async {
+    final oldRead = Completer<http.Response>();
+    var gets = 0;
+    final inbox = NotificationInbox(
+      Api(
+        base: 'https://example.invalid/api',
+        client: MockClient((request) async {
+          if (request.method == 'POST') return oldRead.future;
+          gets++;
+          return http.Response(
+            jsonEncode({
+              'items': [
+                {'id': 'same-notice', 'read': false},
+              ],
+              'unread': 1,
+            }),
+            200,
+          );
+        }),
+      ),
+    );
+    inbox.activate('same', family: 'family1', session: 'old');
+    await Future<void>.delayed(Duration.zero);
+    final pending = inbox.markRead(['same-notice']);
+    inbox.activate('same', family: 'family1', session: 'new');
+    await Future<void>.delayed(Duration.zero);
+    oldRead.complete(http.Response('{}', 200));
+    await pending;
+    expect(gets, 2);
+    expect(inbox.items.single['read'], false);
+    expect(inbox.unread, 1);
+    inbox.dispose();
+  });
+
   testWidgets(
     'a server registration is not displayed as enabled when Android blocks it',
     (tester) async {

@@ -8,7 +8,7 @@ import 'api.dart';
 class NotificationInbox extends ChangeNotifier {
   final Api api;
   NotificationInbox(this.api);
-  String? _account;
+  String? _account, _family, _session;
   int _generation = 0;
   int _readRevision = 0;
   final _readsInFlight = <String, Future<void>>{};
@@ -22,12 +22,18 @@ class NotificationInbox extends ChangeNotifier {
   bool hasLoaded = false;
   bool get loading => _loading;
 
-  void activate(String? account) {
-    if (_account == account) return;
+  void activate(String? account, {String? family, String? session}) {
+    if (account == null) {
+      family = null;
+      session = null;
+    }
+    if (_account == account && _family == family && _session == session) return;
     _generation++;
     _readRevision = 0;
     _readsInFlight.clear();
     _account = account;
+    _family = account == null ? null : family;
+    _session = account == null ? null : session;
     items = [];
     unread = 0;
     retentionDays = 30;

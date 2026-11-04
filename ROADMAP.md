@@ -537,6 +537,14 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
 
 - [ ] **P1 – Abruf und Lernplanung nachvollziehbar abnehmen**
 
+  **04.11.2026, Fachidentität:** Quellengebundene Lernbelege werden anhand
+  gespeicherter Fachkennungen zusammengeführt. Alte Runden ohne Kennung
+  verwenden bekannte Aliasnamen; fremde und unbekannte Kennungen bleiben
+  getrennt; mehrdeutige historische Bezeichnungen werden nicht geraten.
+  Je 38 künstliche Lernstands-, Tutor- und Controllerfälle bestanden auf
+  SQLite und isoliertem PostgreSQL. Eine vollständige Mehrtagesabnahme bleibt
+  offen.
+
   **04.11.2026, Lerncontroller:** Ungeklärte Selbstständigkeit, Reflexionen
   und Wiederholungen zählen nicht als selbstständige Erstlösung und begründen
   keine positiven Abrufvorschläge. Gespeicherte Antworten bleiben erhalten.
@@ -1420,6 +1428,13 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Benachrichtigung und direkte Zielnavigation vollständig prüfen**
 
+  **04.11.2026, Inbox-Cache:** Auch beim Familien- oder Sitzungswechsel
+  desselben Kontos werden alte Meldungen und verspätete Antworten verworfen;
+  die Gesamtansicht leert alte Inhalte sofort. 53 Widget- und Headertests und
+  fünf gezielte Chrome-Webfälle bestanden; ein Android-spezifischer Kanaltest
+  ist im Webrunner nicht anwendbar. Die Cursor-Fortsetzung und sichtbare native
+  Zustellung bleiben offen.
+
   **04.11.2026, gezielte Lesebestätigung:** Nur die ausdrücklich quittierten
   Ereignisse werden erneut projiziert und auf Berechtigung sowie Quellen
   geprüft. Der vollständige Inboxscan entfällt bei dieser Aktion; ungültige
@@ -1630,6 +1645,12 @@ Bestandteil des bestehenden Buildvertrags.
     `docs/EXTERNAL_WEB_SCRIPTS_2026_11_04.md`; transitive Abhängigkeiten,
     Bundlezuordnung, Checkout, Host und vollständige Lizenzen bleiben offen.
 
+  **04.11.2026, Prüferhärtung:** Fehlerhafte OSV-Antworten und unendlich viele
+  Seitentokens führen zum Fehler statt zum Ergebnis „keine Treffer“. Gültige
+  leere und reine Fortsetzungsseiten bleiben möglich. 22 Offlinefälle für
+  Firebase und Maven bestanden; die lesende Abfrage der drei dokumentierten
+  Firebase-Paketversionen war erfolgreich. Der Gesamtpunkt bleibt offen.
+
 - [ ] **P1 – Datenschutz und Anbieterunterlagen fachkundig prüfen lassen**
 
   Verzeichnis der Datenarten und Datenflüsse für Kinder, Eltern, Fotos, Lernstände, KI-Anbieter, Hosting, Firebase und Support erstellen. Tatsächliche Auftragsverarbeiter, Unterauftragsverarbeiter, Speicherorte, internationale Übermittlungen, Löschfristen und vertragliche Grundlagen dokumentieren. Eine qualifizierte Stelle prüft Rechtsgrundlagen, altersgerechte Informationen, Elternrechte, Widerruf und ob eine Datenschutz-Folgenabschätzung erforderlich ist; bestehende Betreiberfreigaben nicht mit einer unabhängigen Rechtsprüfung verwechseln. Für KI-Funktionen den konkret anwendbaren Rechtsrahmen und die Risikoeinstufung bewerten lassen.
@@ -1655,6 +1676,11 @@ Bestandteil des bestehenden Buildvertrags.
   **Abnahme:** Bericht mit nachvollziehbaren Fundstellen, Risikoeinstufung und Nachtests liegt vor; kritische und hohe Befunde sind behoben beziehungsweise vor jeglicher Freigabe durch die verantwortliche Stelle nachvollziehbar entschieden.
 
 - [ ] **P1 – Abnahmen systematisch und wiederholbar automatisieren**
+
+  **04.11.2026, CI-Ergebnis:** Der vollständige GitHub-Lauf
+  [41767812665](https://github.com/meinzeug/schulpilot/actions/runs/41767812665)
+  für `178f633` war erfolgreich. Dies belegt den automatisierten Umfang des
+  Laufs, nicht die noch ausstehenden Browser- und Geräteabnahmen.
 
   **04.11.2026, CI-Zeitfenster:** Der Lauf
   [41683281166](https://github.com/meinzeug/schulpilot/actions/runs/41683281166)

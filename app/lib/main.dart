@@ -176,6 +176,8 @@ class _SchulpilotAppState extends State<SchulpilotApp>
       (widget.state.isChild || widget.state.isParent)
           ? (widget.state.user?['id'])
           : null,
+      family: widget.state.familyId,
+      session: widget.state.api.token,
     );
     widget.state.familyCalls.activate(widget.state.user);
   }

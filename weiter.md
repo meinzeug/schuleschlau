@@ -2,6 +2,14 @@
 
 Stand: 4. November 2026. Diese Datei ist eine Arbeitsübergabe, kein Ersatz für die aktuellen Nutzeraufträge oder `AGENTS.md`. Prüfe alle Zustände erneut; insbesondere Server, Git, laufende Jobs und Roadmap können sich inzwischen geändert haben. Keine Zugangsdaten, Tokens, privaten Schülerdaten oder Bildinhalte in diese Datei, Logs oder Git schreiben.
 
+**Aktuelle Ergänzung:** Die quellengebundene Lernstandsauswertung verknüpft
+historische Fachaliasnamen mit bekannten Fachkennungen und trennt abweichende
+oder fremde Kennungen. Die Glocke verwirft auch bei Familien- und
+Sitzungswechsel desselben Kontos überholte Cacheantworten. Die OSV-Prüfung
+weist ungültige Ergebnisse und unendliche Pagination zurück. Cursor-Nachladen,
+die breite Lieferkettenprüfung und die mobile Mehrtagesabnahme bleiben offen.
+GitHub-Lauf 41767812665 für `178f633` war vollständig erfolgreich.
+
 **Aktuelle Ergänzung:** Der Lerncontroller wertet Reflexionen, mehrfache
 Versuche und unklare Selbstständigkeit nicht als unabhängige Erstlösung.
 Lesebestätigungen prüfen gezielt die angeforderten eigenen Ereignisse. Die

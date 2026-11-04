@@ -6,6 +6,9 @@ inline scrollbar nutzbare Liste aller bereits geladenen Neuigkeiten;
 Kinder und berechtigte Eltern sehen bis zu 50 gespeicherte Neuigkeiten aus den
 letzten 30 Tagen. Beim Betriebsadmin öffnet sie ausschließlich `/admin/push`.
 Die Übersicht funktioniert ohne Geräte-Push und ohne Firebase-Initialisierung.
+Der lokale Inbox-Cache ist an Konto, ausgewählte Familie und Sitzungsstand
+gebunden. Bei einem Kontextwechsel wird er geleert; verspätete Antworten und
+Lesebestätigungen des vorherigen Kontexts werden nicht übernommen.
 
 Für Nachrichten werden zur Prüfung veralteter Quellen bis zu 500 Einträge in
 stabil sortierten Blöcken von höchstens 50 gelesen. Ungültige Vorbereitungen

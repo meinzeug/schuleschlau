@@ -9,7 +9,7 @@ from zoneinfo import ZoneInfo
 
 from sqlalchemy import func, or_, select
 
-from .db import Attempt, Child, LearningUnit, UnitCoaching, UnitSource
+from .db import Attempt, Child, LearningUnit, Subject, SubjectAlias, UnitCoaching, UnitSource
 from .schemas import Preferences
 
 
@@ -53,6 +53,8 @@ def evidence(db, unit, sources):
     )
     from .competences import normalized
     from .learning_controller import source_state
+    from .subject_registry import alias_key
+    from .subject_registry import normalized as subject_label
 
     goals = catalogue(db, unit, sources)
     by_label = {g["label"]: g["id"] for g in goals}
@@ -63,15 +65,39 @@ def evidence(db, unit, sources):
     source_ids = [m.id for m in sources]
     related = select(UnitSource.unit_id).where(UnitSource.material_id.in_(source_ids))
     source_bound_ids = set(db.scalars(related))
-    units = list(db.scalars(select(LearningUnit).where(LearningUnit.child_id == unit.child_id,
-        LearningUnit.subject == unit.subject, or_(LearningUnit.id.in_(related), LearningUnit.material_id.in_(source_ids)))))
+    child = db.get(Child, unit.child_id)
+    subjects = {}
+
+    def subject_identity(value):
+        # An explicit stored identity takes precedence over a historical label.
+        # Never let an inaccessible/unknown ID collapse to another subject.
+        key = (value.subject_id, value.subject)
+        if key not in subjects:
+            if value.subject_id:
+                subject = db.get(Subject, value.subject_id)
+                subjects[key] = ("id", subject.id) if subject and subject.owner_family_id in (None, child.family_id) else (
+                    "unknown-id", value.subject_id)
+            else:
+                # A global and a family-private alias may have the same label.
+                # In that case the historical text cannot establish identity.
+                ids = set(db.scalars(select(Subject.id).join(SubjectAlias, SubjectAlias.subject_id == Subject.id).where(
+                    SubjectAlias.key.in_((alias_key(value.subject), alias_key(value.subject, child.family_id))),
+                    or_(Subject.owner_family_id.is_(None), Subject.owner_family_id == child.family_id))))
+                subjects[key] = (("id", next(iter(ids))) if len(ids) == 1 else
+                    ("ambiguous-label" if ids else "label", subject_label(value.subject)))
+        return subjects[key]
+
+    current_subject = subject_identity(unit)
+    candidates = db.scalars(select(LearningUnit).where(LearningUnit.child_id == unit.child_id,
+        or_(LearningUnit.id.in_(related), LearningUnit.material_id.in_(source_ids))))
+    units = [candidate for candidate in candidates if candidate.id == unit.id or
+        (current_subject[0] not in ("unknown-id", "ambiguous-label") and subject_identity(candidate) == current_subject)]
     attempts = list(db.scalars(select(Attempt).where(Attempt.unit_id.in_([u.id for u in units])).order_by(
         Attempt.created, func.coalesce(Attempt.evaluation["attempt_number"].as_integer(), 0), Attempt.id)))
     reports = {r.unit_id: r for r in db.scalars(select(UnitCoaching).where(UnitCoaching.unit_id.in_([u.id for u in units])))}
     grouped = {}
     for attempt in attempts:
         grouped.setdefault((attempt.unit_id, attempt.question_id), []).append(attempt)
-    child = db.get(Child, unit.child_id)
     zone = ZoneInfo(Preferences(**child.preferences).timezone)
     observations = []
     review_anchors = {}

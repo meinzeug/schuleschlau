@@ -48,3 +48,39 @@ def test_osv_pagination_and_repeated_tokens():
     assert requests[1]['page_token'] == 'next'
     with pytest.raises(ValueError, match='repeated'):
         osv_findings('firebase', '12.19.0', lambda *_: b'{"next_page_token":"same"}')
+
+
+@pytest.mark.parametrize('response', [
+    b'{"error":{"message":"unavailable"}}',
+    b'[]',
+    b'{"vulns":null}',
+    b'{"vulns":{}}',
+    b'{"vulns":[null]}',
+    b'{"vulns":[{"id":""}]}',
+    b'{"vulns":[{"id":42}]}',
+    b'{"next_page_token":null}',
+    b'{"next_page_token":""}',
+    b'{"next_page_token":false}',
+])
+def test_malformed_osv_results_fail_closed(response):
+    with pytest.raises(ValueError, match='Invalid OSV'):
+        osv_findings('firebase', '12.19.0', lambda *_: response)
+
+
+def test_osv_accepts_no_findings_and_token_only_page():
+    responses = iter((b'{"next_page_token":"next"}', b'{}'))
+    assert osv_findings('firebase', '12.19.0', lambda *_: next(responses)) == []
+
+
+def test_osv_unique_page_tokens_are_bounded(monkeypatch):
+    monkeypatch.setattr('scripts.audit_firebase_web.MAX_OSV_PAGES', 3)
+    count = 0
+
+    def fake(_url, _data):
+        nonlocal count
+        count += 1
+        return json.dumps({'next_page_token': str(count)}).encode()
+
+    with pytest.raises(ValueError, match='page limit'):
+        osv_findings('firebase', '12.19.0', fake)
+    assert count == 3
