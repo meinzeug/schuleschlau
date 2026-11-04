@@ -197,7 +197,8 @@ def test_real_adapter_selected_branch_codec_and_bounds_guide_remain_consistent(m
     assert objects and all(node["additionalProperties"] is False and set(node["required"]) == set(node["properties"]) for node in objects)
 
 
-def test_real_generated_package_context_keeps_subject_and_recipe_digest_for_adapter_validation(household, monkeypatch):
+@pytest.mark.parametrize("provider", ["openrouter", "openai", "codex"])
+def test_real_generated_package_context_keeps_subject_and_recipe_digest_for_adapter_validation(household, monkeypatch, provider):
     from schulpilot import visual_references
     from schulpilot.db import DB, Child, Material
     from schulpilot.visual_reference_models import VisualReference
@@ -225,8 +226,53 @@ def test_real_generated_package_context_keeps_subject_and_recipe_digest_for_adap
     data["units"][0]["explanation_steps"] = [wire_step(intro)]
     for index, question in enumerate(data["units"][0]["questions"]):
         question["explanation_steps"] = [wire_step(solutions[index])]
-    calls = _transport(monkeypatch, "openrouter", data)
-    config = _config("openrouter")
+    calls = _transport(monkeypatch, provider, data)
+    config = _config(provider)
     config.max_output_tokens, config.reserve_micros = 8000, 250000
     result = providers.request_provider(config, "package", payload)
     assert len(calls) == 1 and len(result.data["units"][0]["questions"]) == 2
+    submitted, _, instructions = _submitted(provider, calls[0])
+    assert submitted["prepared_graphics"]["candidates"]
+    assert "package-prepared-graphics" in instructions
+    assert [q["answer"] for q in result.data["units"][0]["questions"]] == [
+        q["answer"] for q in data["units"][0]["questions"]]
+    with DB() as db:
+        visual_references.validate_output(db, result.data, payload)
+
+
+@pytest.mark.parametrize("provider", ["openrouter", "openai", "codex"])
+@pytest.mark.parametrize("subject,source", [
+    ("Deutsch", "Vorsilbe (Präfix) | + | Wortstamm | + | Nachsilbe (Suffix)"),
+    ("Biologie", "Raupe → Puppe → Schmetterling."),
+])
+def test_generated_source_graphics_are_hydrated_and_validated_by_each_adapter(
+    household, monkeypatch, provider, subject, source
+):
+    from schulpilot import visual_references
+    from schulpilot.db import DB, Child, Material
+    from test_package_prepared_graphics import bind, payload_for
+    from test_package_source_graphics import response
+
+    payload = payload_for(source, subject)
+    with DB.begin() as db:
+        child = db.get(Child, household[1]["id"])
+        page = Material(child_id=child.id, title="Künstliche Seite", subject=subject,
+            topic="Eigene Bausteine", content=source, confirmed=True, status="confirmed")
+        db.add(page)
+        db.flush()
+        payload = visual_references.with_visual_context(db, child, {**payload, "function": "package"},
+            [page], groups=[{"id": "g1", "material_ids": [page.id]}])
+    _, binding = bind(payload)
+    data = response(payload, binding)
+    calls = _transport(monkeypatch, provider, data)
+    config = _config(provider)
+    config.max_output_tokens, config.reserve_micros = 8000, 250000
+    result = providers.request_provider(config, "package", payload)
+    assert len(calls) == 1
+    submitted, _, instructions = _submitted(provider, calls[0])
+    assert submitted["prepared_graphics"]["candidates"]
+    assert "package-source-graphics" in instructions
+    assert [q["answer"] for q in result.data["units"][0]["questions"]] == [
+        q["answer"] for q in data["units"][0]["questions"]]
+    with DB() as db:
+        visual_references.validate_output(db, result.data, payload)
