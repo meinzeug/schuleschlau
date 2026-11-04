@@ -1,4 +1,4 @@
-"""Exercise signed vocabulary erasures using synthetic, in-memory data only.
+"""Exercise restore erasures and message retention using synthetic data only.
 
 Run with this runtime's interpreter and backend on PYTHONPATH. This does not
 connect to the application's database, access its journal, or validate backup
@@ -15,9 +15,10 @@ def main():
             or os.environ.get("MASTER_KEY") != SYNTHETIC_KEY or not os.environ.get("DATA_DIR")):
         raise RuntimeError("Explicit synthetic test environment is required")
 
-    from schulpilot.db import Base, Child, Family, User, VocabularyCollection, VocabularyImport, VocabularyItem
+    from schulpilot.db import Base, Child, Family, Message, User, VocabularyCollection, VocabularyImport, VocabularyItem
     from schulpilot.db import engine as app_engine
     from schulpilot.erasure import reconcile, signed, verify
+    from schulpilot.message_retention import RETENTION_SECONDS, purge_expired
     from sqlalchemy import create_engine, event
     from sqlalchemy.orm import Session
 
@@ -61,7 +62,17 @@ def main():
                     raise RuntimeError(f"Synthetic {kind} deletion failed")
             if db.get(VocabularyItem, kept_id) is None:
                 raise RuntimeError("Unrelated synthetic vocabulary item was deleted")
+            current = 1_900_000_000
+            old_message = Message(child_id=child.id, kind="help", body="Synthetic", created=current - RETENTION_SECONDS - 1)
+            kept_message = Message(child_id=child.id, kind="reply", body="Synthetic", created=current - RETENTION_SECONDS)
+            db.add_all((old_message, kept_message))
+            db.flush()
+            old_id, kept_message_id = old_message.id, kept_message.id
+            purge_expired(db, current)
+            if db.get(Message, old_id) is not None or db.get(Message, kept_message_id) is None:
+                raise RuntimeError("Synthetic message retention failed")
         print("Synthetic signed vocabulary erasures: OK (isolated in-memory database).")
+        print("Synthetic restored-message retention: OK (isolated in-memory database).")
     finally:
         engine.dispose()
 

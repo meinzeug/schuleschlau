@@ -2,6 +2,7 @@
 
 import importlib.util
 import sys
+import time
 from pathlib import Path
 
 import pytest
@@ -77,6 +78,7 @@ def test_cli_rejects_live_child_before_database_or_file_changes(monkeypatch, upl
     monkeypatch.setattr(sys, "argv", [
         "reconcile_restore.py", "--database-url", "sqlite:///unsafe_restore_test",
         "--ledger", "missing-ledger", "--master-key-file", "missing-key", "--uploads", str(child),
+        "--retention-as-of", str(int(time.time())),
     ])
     with pytest.raises(SystemExit) as error:
         reconcile_restore.main()
@@ -117,6 +119,7 @@ def test_cli_rejects_overridden_target_before_environment_or_files_change(monkey
         "reconcile_restore.py", "--database-url",
         "postgresql+psycopg://localhost/safe_restore_test?dbname=production",
         "--ledger", "missing-ledger", "--master-key-file", "missing-key", "--uploads", str(separate),
+        "--retention-as-of", str(int(time.time())),
     ])
     with pytest.raises(SystemExit) as error:
         reconcile_restore.main()

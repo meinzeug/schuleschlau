@@ -9,7 +9,8 @@ import json
 import re
 
 from fastapi import HTTPException
-from sqlalchemy import case, literal, select, tuple_, union_all
+from sqlalchemy import and_, case, cast, func, literal, select, tuple_, union_all
+from sqlalchemy.dialects.postgresql import JSONB
 
 from .db import FamilyCall, Job, LanguageProject, Message, VocabularyImport
 from .exam_models import ExamRound
@@ -84,20 +85,29 @@ def _newest_preparation(db, user, item, current, cutoff):
     context = message.context if message and isinstance(message.context, dict) else {}
     if len(context) != 1 or not isinstance(context.get("day_id"), str):
         return True
-    # Candidates with identical day binding have the same current source and
-    # permissions. Restrict to exactly that shape before choosing the newest.
-    candidates = db.execute(select(Message.id, Message.context).where(
+    # Compare the *whole* context in SQL before limiting the result. Filtering
+    # by day_id alone lets an arbitrary number of extra-key contexts hide the
+    # newest exact match, yielding duplicate day notices across pages. JSONB
+    # equality is structural on PostgreSQL. SQLite must compare decoded
+    # values and object size: json() alone preserves Unicode escape spelling.
+    if db.bind.dialect.name == "postgresql":
+        same_context = cast(Message.context, JSONB) == cast(context, JSONB)
+    else:
+        members = func.json_each(Message.context).table_valued("key")
+        count = select(func.count()).select_from(members).scalar_subquery()
+        same_context = and_(
+            func.json_type(Message.context) == "object",
+            func.json_type(Message.context, "$.day_id") == "text",
+            func.json_extract(Message.context, "$.day_id") == context["day_id"],
+            count == 1,
+        )
+    newest = db.execute(select(Message.id).where(
         Message.child_id == message.child_id, Message.kind == "preparation",
         Message.created > cutoff, Message.created <= current,
         (Message.sender_id.is_(None) | (Message.sender_id != user.id)),
-        Message.context["day_id"].as_string() == context["day_id"],
-    ).order_by(Message.created.desc(), Message.id.desc()).limit(SCAN_LIMIT + 1))
-    for candidate_id, candidate_context in candidates:
-        if candidate_context == context:
-            return candidate_id == message.id
-    # A pathological run of malformed contexts must not hide a valid page.
-    # Conservatively show it; the client may see a duplicate day notification.
-    return True
+        same_context,
+    ).order_by(Message.created.desc(), Message.id.desc()).limit(1)).scalar_one_or_none()
+    return newest == message.id
 
 
 def page(db, user, current, before, *, direct_messages=False, direct_exams=False):

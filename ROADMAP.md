@@ -960,6 +960,15 @@ Die folgenden Punkte beschreiben ausstehende, wiederholbare Betriebs- und Freiga
   automatisierte Freigabeprüfung ersetzt keinen unabhängigen Sicherheitstest.
 - [ ] **P1 – Datenlebenszyklus und Löschung pro Datenart prüfen**
 
+  - [x] **Abgelaufene Nachrichten im Restore erneut bereinigen.** Der
+    Wiederherstellungsabgleich verwendet dieselbe 365-Tage-Grenze wie der
+    Worker, nach der Journalprüfung und nur in der separaten Datenbank. Die
+    automatische Probe verlangt einen bestätigten Systemd-Zeitsynchronstatus;
+    der Offline-Aufruf verlangt einen explizit geprüften UTC-Zeitpunkt. Die
+    isolierten Fälle prüfen Grenzwert, Wiederholung, manipuliertes Journal,
+    fehlende Zeit und unveränderte Originaldaten. Alte Restore-Werkzeuge und
+    andere Datenarten bleiben gesondert zu beachten; siehe `docs/OPERATIONS.md`.
+
   - [x] **Vokabeln nach Löschung und Ablauf vor Wiederherstellung schützen.**
     Einzelwörter, Vorschläge und Sammlungen erhalten signierte Belege;
     idempotentes Replay und Kaskaden sind künstlich geprüft. Alte Restoretools
@@ -1458,6 +1467,12 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Schulbuddy als sicheren kontextbezogenen Lernbegleiter prüfen**
 
+  - [x] **Laufende Antworten an die sichtbare Aufgabenrevision binden.**
+    Änderungen an Wortlaut, Optionen oder Lösung verwerfen verspätete
+    Tutorantworten für aktive und archivierte Aufgaben. Künstliche SQLite- und
+    PostgreSQL-Fälle prüfen den bestehenden Fehlerpfad. Die konservative
+    Hilfeanrechnung und die noch offene fachliche Abnahme bleiben unverändert.
+
   **Teilprüfung 02.11.2026:** 44 synthetische SQLite-Fälle und die zwei dort
   übersprungenen Parallelitätsfälle auf PostgreSQL bestanden; Umfang und
   Grenzen: [Regressionsbericht](docs/ROADMAP_REGRESSION_2026_11_02.md#schulbuddy).
@@ -1545,6 +1560,14 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Benachrichtigung und direkte Zielnavigation vollständig prüfen**
 
+  - [x] **Tageskarten auch bei vielen anderen Kontextformen deduplizieren.**
+    Der vollständige Kontext wird vor der Auswahl der neuesten Karte
+    strukturell verglichen; SQLite- und PostgreSQL-Fälle prüfen mehr als 500
+    andere Kontexte und unterschiedliche Unicode-Escapes. Beim Wiederaufnehmen
+    während eines laufenden Inboxabrufs folgt genau eine aktuelle Abfrage;
+    Flutterfälle prüfen Konto- und Hintergrundwechsel. Der Scrollsprung beim
+    Austausch des begrenzten Cachefensters sowie native Zustellung bleiben offen.
+
   **04.11.2026, Ungelesenfilter:** Der Filter berücksichtigt neu geladene
   und eintreffende ungelesene Karten, ohne unbekannte ältere Seiten als
   gelesen auszugeben. 59 Widgetfälle und zwei Chrome-Fälle, einer bei
@@ -1561,9 +1584,10 @@ Bestandteil des bestehenden Buildvertrags.
     Cursorfälle bestanden auf SQLite und PostgreSQL; die breite bestehende
     Backendregression bestand mit 167 Fällen und einem Skip auf SQLite sowie
     168 Fällen auf PostgreSQL. 97 Flutterfälle und gezielte Chrome-Fälle,
-    darunter 390 × 760 Pixel bei doppelter Schrift, bestanden. Bei extrem
-    vielen untypischen Tagesmeldungen kann eine Tageskarte doppelt erscheinen;
-    beim Entladen unterschiedlich hoher Karten ist ein Scrollsprung möglich.
+    darunter 390 × 760 Pixel bei doppelter Schrift, bestanden. Die damals
+    beobachtete doppelte Tageskarte ist durch die spätere oben dokumentierte
+    Kontextprüfung behoben; beim Entladen unterschiedlich hoher Karten ist
+    weiterhin ein Scrollsprung möglich.
     Dies belegt keine native Pushzustellung und keine gesamte Freigabe des
     übergeordneten Punktes.
 
@@ -1821,6 +1845,12 @@ Bestandteil des bestehenden Buildvertrags.
   **Abnahme:** Dokumentation, Bewertung, gegebenenfalls Folgenabschätzung, vereinbarte Maßnahmen und Zuständigkeiten liegen für den vorgesehenen Freigabeumfang vor; offene Risiken sind vor der jeweiligen Freigabe entschieden.
 
 - [ ] **P1 – Echtzeitstatus gezielt und zuverlässig bereitstellen**
+
+  - [x] **Tutorstatus und Entwurf sitzungsgebunden wiederaufnehmen.** Ein
+    laufender GET erhält nach Vordergrund- oder Routenrückkehr eine gezielte
+    Folgeabfrage; bei 4xx stoppt die automatische Abfrage. Sitzungswechsel
+    entfernt die alte Ansicht und Entwürfe. Künstliche Widget- und
+    Chrome-Tests prüfen die Übergänge; eine vollständige Geräteabnahme bleibt offen.
 
   - [x] **Wiederaufnahme laufender Vorbereitungs-, Foto- und Lernwegansichten
     gegen überholte GETs absichern.** Nach Rückkehr folgen gezielte GETs,

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -103,6 +104,213 @@ void _pause(WidgetTester tester) {
 }
 
 void main() {
+  testWidgets('returning from another route revalidates a running tutor read', (
+    tester,
+  ) async {
+    _viewport(tester);
+    final pending = Completer<http.Response>();
+    var reads = 0;
+    final state = _state(
+      MockClient((request) async {
+        expectSync(request.method, 'GET');
+        reads++;
+        if (reads == 2) return pending.future;
+        return _json({
+          'questions': [_turn(status: reads == 1 ? 'queued' : 'ready')],
+          'next_cursor': null,
+        });
+      }),
+    );
+    await _open(tester, state);
+    await tester.pump(const Duration(seconds: 3));
+    expect(reads, 2);
+    final navigator = Navigator.of(
+      tester.element(find.text('Ich schaue in deinem Stoff nach.')),
+    );
+    navigator.push(
+      MaterialPageRoute<void>(
+        builder: (_) => const Scaffold(body: Text('Andere Ansicht')),
+      ),
+    );
+    await tester.pumpAndSettle();
+    navigator.pop();
+    await tester.pumpAndSettle();
+    pending.complete(
+      _json({
+        'questions': [_turn(status: 'queued')],
+        'next_cursor': null,
+      }),
+    );
+    await tester.pump();
+    await tester.pump();
+    expect(reads, 3);
+    expect(find.textContaining('Die Teile sind gleich groß'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('resume also revalidates a still pending initial tutor read', (
+    tester,
+  ) async {
+    _viewport(tester);
+    final pending = Completer<http.Response>();
+    var reads = 0;
+    final state = _state(
+      MockClient((request) async {
+        expectSync(request.method, 'GET');
+        reads++;
+        if (reads == 1) return pending.future;
+        return _json({
+          'questions': [_turn()],
+          'next_cursor': null,
+        });
+      }),
+    );
+    addTearDown(() => _resume(tester));
+    await _open(tester, state);
+    _pause(tester);
+    _resume(tester);
+    pending.complete(_json({'questions': [], 'next_cursor': null}));
+    await tester.pump();
+    await tester.pump();
+    expect(reads, 2);
+    expect(find.textContaining('Die Teile sind gleich groß'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('resume waits for an older tutor GET then reads current status', (
+    tester,
+  ) async {
+    _viewport(tester);
+    final pending = Completer<http.Response>();
+    var reads = 0;
+    final state = _state(
+      MockClient((request) async {
+        expectSync(request.method, 'GET');
+        reads++;
+        if (reads == 2) return pending.future;
+        return _json({
+          'questions': [_turn(status: reads == 1 ? 'queued' : 'ready')],
+          'next_cursor': null,
+        });
+      }),
+    );
+    addTearDown(() => _resume(tester));
+    await _open(tester, state);
+    await tester.pump(const Duration(seconds: 3));
+    expect(reads, 2);
+    _pause(tester);
+    _resume(tester);
+    await tester.pump();
+    expect(reads, 2);
+    pending.complete(
+      _json({
+        'questions': [_turn(status: 'queued')],
+        'next_cursor': null,
+      }),
+    );
+    await tester.pump();
+    await tester.pump();
+    expect(reads, 3);
+    expect(find.textContaining('Die Teile sind gleich groß'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets(
+    'rate limited tutor GET stops automatic polling and permits deliberate refresh',
+    (tester) async {
+      _viewport(tester);
+      var reads = 0;
+      final state = _state(
+        MockClient((request) async {
+          expectSync(request.method, 'GET');
+          reads++;
+          if (reads == 2) {
+            return _json({'detail': 'Zu viele Anfragen'}, status: 429);
+          }
+          return _json({
+            'questions': [_turn(status: reads == 1 ? 'queued' : 'ready')],
+            'next_cursor': null,
+          });
+        }),
+      );
+      addTearDown(() => _resume(tester));
+      await _open(tester, state);
+      await tester.pump(const Duration(seconds: 3));
+      await tester.pump();
+      expect(reads, 2);
+      _pause(tester);
+      _resume(tester);
+      await tester.pump(const Duration(seconds: 9));
+      expect(reads, 2);
+      await tester.tap(find.byTooltip('Fragen aktualisieren'));
+      await tester.pump();
+      expect(reads, 3);
+      expect(find.textContaining('Die Teile sind gleich groß'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
+  testWidgets(
+    'session replacement clears tutor history and rejects delayed GET',
+    (tester) async {
+      _viewport(tester);
+      final pending = Completer<http.Response>();
+      var reads = 0;
+      final state = _state(
+        MockClient((request) async {
+          expectSync(request.method, 'GET');
+          reads++;
+          if (reads == 2) return pending.future;
+          return _json({
+            'questions': [_turn(status: 'queued')],
+            'next_cursor': null,
+          });
+        }),
+      );
+      state.api.token = 'synthetic-old';
+      await _open(tester, state);
+      await tester.pump(const Duration(seconds: 3));
+      expect(reads, 2);
+      state.api.token = 'synthetic-new';
+      state.notifyListeners();
+      await tester.pump();
+      pending.complete(
+        _json({
+          'questions': [_turn()],
+          'next_cursor': null,
+        }),
+      );
+      await tester.pump();
+      expect(find.textContaining('Die Teile sind gleich groß'), findsNothing);
+      expect(find.text('Warum bleibt der Nenner gleich?'), findsNothing);
+      expect(find.text('Bitte melde dich erneut an.'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
+  testWidgets('tutor draft cannot cross a replaced session', (tester) async {
+    _viewport(tester);
+    final state = _state(
+      MockClient((request) async {
+        expectSync(request.method, 'GET');
+        return _json({'questions': [], 'next_cursor': null});
+      }),
+    );
+    state.api.token = 'synthetic-old';
+    await _open(tester, state);
+    await tester.enterText(find.byType(TextField), 'Ein persönlicher Entwurf');
+    await tester.pump();
+    await tester.pumpWidget(const SizedBox());
+    state.api.token = 'synthetic-new';
+    state.notifyListeners();
+    await _open(tester, state);
+    expect(
+      tester.widget<TextField>(find.byType(TextField)).controller!.text,
+      isEmpty,
+    );
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets(
     'The first focus and editable input survive keyboard resize and closing at 320px',
     (tester) async {

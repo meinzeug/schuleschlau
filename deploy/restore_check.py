@@ -12,6 +12,7 @@ import re
 import subprocess
 import tarfile
 import tempfile
+import time
 import uuid
 from pathlib import Path
 
@@ -32,6 +33,18 @@ def command(args, **kwargs):
 
 def runtime_command(code):
     return ['runuser', '-u', 'schulpilot', '--', str(RUNTIME_ROOT / 'venv/bin/python'), '-c', code]
+
+
+def synchronized_retention_time():
+    """Fail closed if systemd does not report a synchronized server clock."""
+    result = command(['/usr/bin/timedatectl', 'show', '--property=NTPSynchronized', '--value'],
+                     env={'PATH': '/usr/bin:/bin', 'LC_ALL': 'C'})
+    if result.stdout != b'yes\n':
+        raise RuntimeError('Server clock synchronization is not confirmed')
+    current = int(time.time())
+    if current < 0:
+        raise RuntimeError('Invalid server clock')
+    return current
 
 
 def decrypt(backup, destination):
@@ -148,11 +161,13 @@ def restore():
             # must not be silently treated as a verified, empty journal.
             contents = current_journal(Path("/var/lib/schulpilot/erasure-ledger.jsonl"),
                                        lambda: live_outbox_pending(config))
+            retention_as_of = synchronized_retention_time()
             config["DATABASE_URL"] = "postgresql+psycopg://schulpilot@/" + name + "?host=/var/run/postgresql"
-            code = """import json,sys
+            code = """import json,os,sys
 from sqlalchemy import select,func,text,update
 from schulpilot.db import DB,Family,Child,Material,LearningUnit,Attempt,UnitCoaching,Session,Token,ProviderConfig
 from schulpilot.erasure import verify,reconcile,retained_image_names
+from schulpilot.message_retention import purge_expired as purge_expired_messages
 from schulpilot.config import settings
 from schulpilot.migrate import upgrade
 upgrade()
@@ -161,6 +176,7 @@ models=(Family,Child,Material,LearningUnit,Attempt,UnitCoaching)
 with DB.begin() as db:
  before={m.__tablename__:db.scalar(select(func.count()).select_from(m)) for m in models}
  paths=reconcile(db,records)
+ purge_expired_messages(db,int(os.environ['SCHULPILOT_RESTORE_RETENTION_AS_OF']))
  db.execute(update(Session).values(revoked=True))
  db.execute(update(Token).values(used=True))
  db.execute(update(ProviderConfig).values(emergency_stop=True))
@@ -172,7 +188,8 @@ print(json.dumps({'schema':version,'before':before,'after':after,'paths':paths,'
             result = command(
                 runtime_command(code),
                 cwd=RUNTIME_ROOT / "backend",
-                env={**config, "PATH": "/usr/sbin:/usr/bin:/sbin:/bin"},
+                env={**config, "PATH": "/usr/sbin:/usr/bin:/sbin:/bin",
+                     "SCHULPILOT_RESTORE_RETENTION_AS_OF": str(retention_as_of)},
                 input=contents.encode(),
             )
             data = json.loads(result.stdout)

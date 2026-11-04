@@ -96,6 +96,8 @@ def test_real_offline_reconcile_keeps_retained_avatars_and_deletes_only_signed_u
                 str(key),
                 "--uploads",
                 str(restored),
+                "--retention-as-of",
+                str(int(now())),
             ],
             cwd=tmp_path,
             env={**os.environ, "DATA_DIR": str(tmp_path / "isolated-data"), "ENVIRONMENT": "test"},

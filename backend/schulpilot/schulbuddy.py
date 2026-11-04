@@ -192,6 +192,7 @@ def scope_context(db, p, scope):
                 payload["archived_question"] = {k: question[k] for k in ("id", "type", "prompt", "options") if k in question}
                 payload["archived_question"].update(own_work_attempted=True, read_only=True)
                 current_guard.append(["archived_question", question_id, unit.completed,
+                    fingerprint(question),
                     [[attempt.id, attempt.created, attempt.outcome, attempt.assisted] for attempt in answered]])
             else:
                 payload["current_question"] = {k: question[k] for k in ("id", "type", "prompt", "options") if k in question}
@@ -199,7 +200,11 @@ def scope_context(db, p, scope):
                 payload["current_question"]["feedback_pending"] = pending is not None
                 if pending:
                     payload["current_question"]["observed_outcome"] = pending["outcome"]
-                current_guard.append(["visible_question", question_id, pending["attempt_id"] if pending else None])
+                # A stable ID alone does not bind the prompt, answer or
+                # choices. Reject a late reply if the stored question was
+                # corrected while the provider was working.
+                current_guard.append(["visible_question", question_id, fingerprint(question),
+                                      pending["attempt_id"] if pending else None])
     elif material := by_kind.get("material_id"):
         payload["material_page"] = True
         payload["source_view"] = {"original_photo_visible_to_user": True, "provider_has_photo": False}

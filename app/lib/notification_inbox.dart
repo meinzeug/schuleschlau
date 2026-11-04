@@ -23,7 +23,7 @@ class NotificationInbox extends ChangeNotifier {
   int _readRevision = 0;
   final _readsInFlight = <String, Future<void>>{};
   bool _foreground = true, _loading = false, _loadingMore = false;
-  bool _disposed = false;
+  bool _disposed = false, _resumeRefreshPending = false;
   // The newest page stays visible; at most two older consecutive pages are
   // retained. Their starting cursor survives eviction and bounded refreshes.
   static const maxCachedPages = 3;
@@ -64,6 +64,7 @@ class NotificationInbox extends ChangeNotifier {
     hasLoaded = false;
     _loading = false;
     _loadingMore = false;
+    _resumeRefreshPending = false;
     _pages = [];
     _seenCursors.clear();
     historyTrimmed = false;
@@ -82,7 +83,16 @@ class NotificationInbox extends ChangeNotifier {
   void foreground(bool value) {
     final resume = value && !_foreground;
     _foreground = value;
-    if (resume) unawaited(refresh());
+    if (resume) {
+      if (_loading || _loadingMore) {
+        // The response in flight may predate the background interval. Queue
+        // one fresh head request instead of silently dropping the resume.
+        _resumeRefreshPending = true;
+      } else {
+        _resumeRefreshPending = false;
+        unawaited(refresh());
+      }
+    }
   }
 
   Future<void> refresh() async {
@@ -170,8 +180,9 @@ class NotificationInbox extends ChangeNotifier {
         notifyListeners();
         if (!_disposed &&
             generation == _generation &&
-            retryAfterRead &&
+            (retryAfterRead || _resumeRefreshPending) &&
             _foreground) {
+          _resumeRefreshPending = false;
           unawaited(refresh());
         }
       }
@@ -237,6 +248,13 @@ class NotificationInbox extends ChangeNotifier {
       if (!_disposed && generation == _generation) {
         _loadingMore = false;
         notifyListeners();
+        if (!_disposed &&
+            generation == _generation &&
+            _resumeRefreshPending &&
+            _foreground) {
+          _resumeRefreshPending = false;
+          unawaited(refresh());
+        }
       }
     }
   }

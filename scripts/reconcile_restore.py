@@ -9,6 +9,7 @@ import os
 import re
 import stat
 import sys
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend"))
@@ -93,7 +94,14 @@ def main():
     parser.add_argument("--ledger", type=Path, required=True)
     parser.add_argument("--master-key-file", type=Path, required=True)
     parser.add_argument("--uploads", type=Path, required=True)
+    parser.add_argument("--retention-as-of", type=int, required=True,
+                        help="Verified UTC Unix time from a trusted clock, not an unchecked offline host")
     args = parser.parse_args()
+    local_now = int(time.time())
+    # This bound catches obviously stale or future operator input. It does not
+    # certify the local clock or replace the required independent verification.
+    if not local_now - 86400 <= args.retention_as_of <= local_now + 300:
+        parser.error("Retention time must be independently verified and close to the local clock")
     try:
         args.uploads = isolated_uploads(args.uploads)
     except ValueError as exc:
@@ -105,6 +113,7 @@ def main():
     os.environ["DATABASE_URL"] = args.database_url
     from schulpilot.db import DB, ProviderConfig, Session, Token
     from schulpilot.erasure import reconcile, retained_image_names, valid_image_name, verify
+    from schulpilot.message_retention import purge_expired as purge_expired_messages
     from sqlalchemy import update
 
     key = args.master_key_file.read_text().strip()
@@ -112,6 +121,9 @@ def main():
     with DB.begin() as db:
         verify_connected_database(db, database_kind, database_target)
         paths = reconcile(db, records)
+        # A snapshot can contain messages that expired after it was taken.
+        # The journal does not currently contain per-message retention events.
+        purge_expired_messages(db, args.retention_as_of)
         # A backup must never resurrect sessions or device push authorizations.
         db.execute(update(Session).values(revoked=True))
         db.execute(update(Token).values(used=True))

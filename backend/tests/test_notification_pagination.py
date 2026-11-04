@@ -199,3 +199,60 @@ def test_preparation_day_is_deduplicated_across_pages_but_old_receipt_remains_va
     preparations = [row for row in items if row["kind"] == "preparation"]
     assert [row["id"] for row in preparations] == ["message:" + newer]
     assert api.post("/api/notifications/inbox/read", json={"ids": ["message:" + older]}).status_code == 200
+
+
+def test_preparation_dedup_ignores_more_than_500_other_context_shapes(api, household):
+    from schulpilot.db import Material, SchoolDay, uid
+
+    _, child = household
+    stamp = int(now())
+    with DB.begin() as db:
+        day = SchoolDay(id=uid(), child_id=child["id"], school_date="2026-10-20",
+            preparation={"status": "needs_review"})
+        db.add(day)
+        db.flush()
+        db.add(Material(child_id=child["id"], school_day_id=day.id,
+            title="Synthetic", subject="Mathematik"))
+        newest, older = uid(), uid()
+        db.add_all([
+            Message(id=newest, child_id=child["id"], kind="preparation", body="Synthetic",
+                context={"day_id": day.id}, created=stamp - 1),
+            Message(id=older, child_id=child["id"], kind="preparation", body="Synthetic",
+                context={"day_id": day.id}, created=stamp - 2),
+            *[Message(child_id=child["id"], kind="preparation", body="Synthetic",
+                context={"day_id": day.id, "extra": index}, created=stamp)
+              for index in range(501)],
+        ])
+    items, counts = collect(api)
+    assert len(counts) >= 2
+    assert [row["id"] for row in items if row["kind"] == "preparation"] == ["message:" + newest]
+    assert api.post("/api/notifications/inbox/read", json={"ids": ["message:" + older]}).status_code == 200
+
+
+def test_preparation_dedup_compares_decoded_json_not_escape_spelling(api, household):
+    from schulpilot.db import Material, SchoolDay, uid
+    from sqlalchemy import text
+
+    _, child = household
+    stamp = int(now())
+    with DB.begin() as db:
+        day = SchoolDay(id=uid(), child_id=child["id"], school_date="2026-10-20",
+            preparation={"status": "needs_review"})
+        db.add(day)
+        db.flush()
+        db.add(Material(child_id=child["id"], school_day_id=day.id,
+            title="Synthetic", subject="Mathematik"))
+        newer, older = uid(), uid()
+        db.add_all([
+            Message(id=newer, child_id=child["id"], kind="preparation", body="Synthetic",
+                context={"day_id": day.id}, created=stamp),
+            Message(id=older, child_id=child["id"], kind="preparation", body="Synthetic",
+                context={"day_id": day.id}, created=stamp - 1),
+        ])
+        db.flush()
+        encoded_id = "\\u%04x" % ord(day.id[0]) + day.id[1:]
+        raw_json = '{ "day_id" : "' + encoded_id + '" }'
+        db.execute(text("UPDATE messages SET context = :raw WHERE id = :id"),
+            {"raw": raw_json, "id": newer})
+    items, _ = collect(api)
+    assert [row["id"] for row in items if row["kind"] == "preparation"] == ["message:" + newer]

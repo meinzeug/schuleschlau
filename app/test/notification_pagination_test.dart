@@ -63,6 +63,116 @@ void main() {
     },
   );
 
+  for (final duringPage in [false, true]) {
+    test(
+      'resume refreshes after an in-flight ${duringPage ? 'history page' : 'head'}',
+      () async {
+        final delayed = Completer<http.Response>();
+        var heads = 0;
+        final inbox = NotificationInbox(
+          Api(
+            base: 'https://example.invalid/api',
+            client: MockClient((request) async {
+              if (request.url.queryParameters['cursor'] != null) {
+                return delayed.future;
+              }
+              heads++;
+              if (!duringPage && heads == 1) {
+                return delayed.future;
+              }
+              return response([
+                {'id': heads == 1 ? 'before' : 'after', 'read': true},
+              ], duringPage && heads == 1 ? 'older' : null);
+            }),
+          ),
+        );
+        inbox.activate('child', family: 'family', session: 'session');
+        await Future<void>.delayed(Duration.zero);
+        Future<void>? pending;
+        if (duringPage) pending = inbox.loadMore();
+        inbox.foreground(false);
+        inbox.foreground(true);
+        delayed.complete(
+          response([
+            {'id': 'stale', 'read': true},
+          ]),
+        );
+        if (pending != null) await pending;
+        await Future<void>.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero);
+        expect(heads, 2);
+        expect(inbox.items.first['id'], 'after');
+        inbox.dispose();
+      },
+    );
+  }
+
+  test('resume defers the retry if the app returns to background', () async {
+    final delayed = Completer<http.Response>();
+    var heads = 0;
+    final inbox = NotificationInbox(
+      Api(
+        base: 'https://example.invalid/api',
+        client: MockClient((_) async {
+          heads++;
+          return heads == 1
+              ? delayed.future
+              : response([
+                  {'id': 'fresh'},
+                ]);
+        }),
+      ),
+    );
+    inbox.activate('child');
+    inbox.foreground(false);
+    inbox.foreground(true);
+    inbox.foreground(false);
+    delayed.complete(
+      response([
+        {'id': 'stale'},
+      ]),
+    );
+    await Future<void>.delayed(Duration.zero);
+    expect(heads, 1);
+    inbox.foreground(true);
+    await Future<void>.delayed(Duration.zero);
+    expect(heads, 2);
+    expect(inbox.items.single['id'], 'fresh');
+    inbox.dispose();
+  });
+
+  test('queued resume refresh cannot cross an account change', () async {
+    final old = Completer<http.Response>();
+    var heads = 0;
+    final inbox = NotificationInbox(
+      Api(
+        base: 'https://example.invalid/api',
+        client: MockClient((_) async {
+          heads++;
+          return heads == 1
+              ? old.future
+              : response([
+                  {'id': 'new-account'},
+                ]);
+        }),
+      ),
+    );
+    inbox.activate('old');
+    inbox.foreground(false);
+    inbox.foreground(true);
+    inbox.activate('new');
+    await Future<void>.delayed(Duration.zero);
+    old.complete(
+      response([
+        {'id': 'old-private'},
+      ]),
+    );
+    await Future<void>.delayed(Duration.zero);
+    expect(heads, 2);
+    expect(inbox.items.single['id'], 'new-account');
+    inbox.dispose();
+  });
+
   test('old backend without a cursor remains usable', () async {
     var calls = 0;
     final inbox = NotificationInbox(

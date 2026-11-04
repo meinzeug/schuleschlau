@@ -131,6 +131,28 @@ def test_archived_worker_keeps_answers_mastery_time_and_other_active_source_unit
     assert evidence() == before
 
 
+def test_archived_question_change_during_provider_call_discards_reply(archived, transport):
+    response(transport)
+    sent = ask_scope(archived, archived_scope(archived))
+    assert sent.status_code == 202, sent.text
+
+    def change_question():
+        with DB.begin() as db:
+            unit = db.get(LearningUnit, archived["unit_id"])
+            questions = copy.deepcopy(unit.questions)
+            questions[0]["prompt"] = "Eine nachträglich korrigierte künstliche Frage?"
+            unit.questions = questions
+
+    transport["effect"] = change_question
+    finish()
+    value = archived["client"].get("/api/schulbuddy/questions/" + sent.json()["id"]).json()
+    assert value["status"] == "failed" and value["answer"] is None
+    with DB() as db:
+        attempt = db.scalar(select(Attempt))
+        assert attempt.answer == "1/2" and attempt.outcome == "correct"
+        assert list(db.scalars(select(Activity).where(Activity.kind == "explanation"))) == []
+
+
 def test_actual_codex_wire_explains_archive_without_weakening_open_question_rules(archived, monkeypatch):
     calls = []
 

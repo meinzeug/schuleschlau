@@ -44,7 +44,7 @@ final _tutorDrafts = Expando<_TutorDraftMemory>();
 class _TutorDraftMemory {
   final AppState state;
   Json? account;
-  String? family;
+  String? family, session;
   final drafts =
       <
         String,
@@ -57,14 +57,18 @@ class _TutorDraftMemory {
       >{};
   _TutorDraftMemory(this.state)
     : account = state.user,
-      family = state.familyId {
+      family = state.familyId,
+      session = state.api.token {
     state.addListener(changed);
   }
   void changed() {
-    if (!identical(account, state.user) || family != state.familyId) {
+    if (!identical(account, state.user) ||
+        family != state.familyId ||
+        session != state.api.token) {
       drafts.clear();
       account = state.user;
       family = state.familyId;
+      session = state.api.token;
     }
   }
 
@@ -142,7 +146,9 @@ class _TutorSheetState extends State<_TutorSheet> with WidgetsBindingObserver {
   String? cursor, replyTo, readError, sendError;
   late final Json? actor = widget.state.user;
   late final family = widget.state.familyId;
+  late final session = widget.state.api.token;
   bool loading = true, reading = false, sending = false;
+  bool refreshAfterRead = false, automaticReadBlocked = false;
   bool historyWindow = false;
   bool sourceUnavailable = false;
   ({String text, String? replyTo, bool newQuestion})? replacedDraft;
@@ -166,7 +172,10 @@ class _TutorSheetState extends State<_TutorSheet> with WidgetsBindingObserver {
   _TutorSubmission? unconfirmed;
   AppState get state => widget.state;
   bool get ownerMatches =>
-      actor != null && identical(state.user, actor) && family == state.familyId;
+      actor != null &&
+      identical(state.user, actor) &&
+      family == state.familyId &&
+      session == state.api.token;
   bool get active => mounted && ownerMatches && foreground && routeVisible;
   bool get hasPending =>
       turns.any((turn) => ['queued', 'running'].contains(turn['status']));
@@ -196,7 +205,11 @@ class _TutorSheetState extends State<_TutorSheet> with WidgetsBindingObserver {
     if (current != routeVisible) {
       routeVisible = current;
       if (current && foreground) {
-        schedule();
+        if (reading && !automaticReadBlocked) {
+          refreshAfterRead = true;
+        } else if (hasPending && !automaticReadBlocked) {
+          unawaited(load());
+        }
       } else {
         poll?.cancel();
         poll = null;
@@ -209,8 +222,16 @@ class _TutorSheetState extends State<_TutorSheet> with WidgetsBindingObserver {
     foreground = lifecycle == AppLifecycleState.resumed;
     poll?.cancel();
     poll = null;
-    if (foreground && routeVisible && ownerMatches && hasPending) {
-      unawaited(load());
+    if (foreground &&
+        routeVisible &&
+        ownerMatches &&
+        !automaticReadBlocked &&
+        (hasPending || reading)) {
+      if (reading) {
+        refreshAfterRead = true;
+      } else {
+        unawaited(load());
+      }
     }
   }
 
@@ -219,6 +240,7 @@ class _TutorSheetState extends State<_TutorSheet> with WidgetsBindingObserver {
       poll?.cancel();
       poll = null;
       generation++;
+      refreshAfterRead = false;
       question.clear();
       historySearch.clear();
       replyTo = null;
@@ -251,7 +273,7 @@ class _TutorSheetState extends State<_TutorSheet> with WidgetsBindingObserver {
   void schedule() {
     poll?.cancel();
     poll = null;
-    if (!active || !hasPending) return;
+    if (!active || !hasPending || automaticReadBlocked) return;
     poll = Timer(Duration(seconds: 3), () {
       poll = null;
       if (active && hasPending) unawaited(load());
@@ -310,6 +332,7 @@ class _TutorSheetState extends State<_TutorSheet> with WidgetsBindingObserver {
             data['next_cursor'] as String?;
         loading = false;
         readError = null;
+        automaticReadBlocked = false;
         if (replyTo != null) {
           final related = turns.where((t) => t['id'] == replyTo).firstOrNull;
           if (related == null ||
@@ -340,6 +363,9 @@ class _TutorSheetState extends State<_TutorSheet> with WidgetsBindingObserver {
         setState(() {
           loading = false;
           readError = _message(error);
+          if (error is ApiError && error.status >= 400 && error.status < 500) {
+            automaticReadBlocked = true;
+          }
           if (error is ApiError && [401, 403, 404].contains(error.status)) {
             turns.clear();
             sourceUnavailable = true;
@@ -350,7 +376,13 @@ class _TutorSheetState extends State<_TutorSheet> with WidgetsBindingObserver {
     } finally {
       if (mounted && version == generation) {
         setState(() => reading = false);
-        schedule();
+        if (refreshAfterRead && active && !automaticReadBlocked) {
+          refreshAfterRead = false;
+          unawaited(load());
+        } else {
+          refreshAfterRead = false;
+          schedule();
+        }
       } else {
         reading = false;
       }

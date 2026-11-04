@@ -13,7 +13,7 @@ Statusabfrage ist kein Auftrag zur KI-Erzeugung.
 | Lernweg | `app/lib/study_path_panel.dart` | Laufende Etappe nach 3 s prüfen; bei Rückkehr Status neu lesen. HTTP-4xx stoppen automatische Wiederholung, 403/404 entfernen die bisherige private Anzeige. |
 | Einzelne Lernrunde | `app/lib/learning_preparation_screen.dart` | Bereits reservierter Auftrag alle 3 s, solange er läuft. Nach Rückkehr und vorübergehendem Lesefehler ein GET; keine automatische Auftragserstellung. |
 | Glocke und Gesamtansicht | `app/lib/notification_inbox.dart` | Erste Seite und begrenzt gespeicherte Folgeseiten per GET, Vordergrundaktualisierung nach 45 s und bei Rückkehr; Lesebelege nur für sichtbare Meldungen. |
-| Schulbuddy | `app/lib/tutor_sheet.dart` | Bei ausstehender Antwort aktiver Dialog nach 3 s. Kontowechsel verwirft Anzeige und Entwurf. |
+| Schulbuddy | `app/lib/tutor_sheet.dart` | Bei ausstehender Antwort aktiver Dialog nach 3 s. Konto-, Familien- oder Tokenwechsel verwirft Anzeige und Entwurf. Eine Rückkehr während eines laufenden GETs löst anschließend einen erneuten GET aus; bei HTTP 4xx erst nach bewusstem Aktualisieren erneut lesen. |
 | Klassenarbeitsnacharbeit | `app/lib/exam_review_panel.dart` | Bei laufender Analyse oder Erkennung nach 3 s; Anzeige und Entwürfe sind an den aktuellen Kontext gebunden. |
 | Sprachwerkstatt | `app/lib/language_workshop.dart` | Aktive Projektverarbeitung nach 3 s; beim Zurückkehren erneut lesen. |
 
@@ -35,8 +35,10 @@ die geprüften Wiederaufnahmen senden keine POSTs und starten keine KI-Aufträge
 Die zugehörigen mobilen Fälle wurden auch im Chrome-Webrunner ausgeführt.
 
 Diese Fälle beweisen weder eine vollständige Abnahme aller Geräte- und
-Mehrkontoszenarien noch einen flächendeckenden Echtzeitkanal. Insbesondere
-Schulbuddy, Klassenarbeiten und Sprachwerkstatt benötigen eigene systematische
+Mehrkontoszenarien noch einen flächendeckenden Echtzeitkanal. Der Schulbuddy
+besitzt künstliche Widgetprüfungen für die Rückkehr während eines laufenden
+GETs, HTTP 429 und den Wechsel des Sitzungstokens. Insbesondere
+Klassenarbeiten und Sprachwerkstatt benötigen weitere systematische
 Offline-, Routenwechsel- und konkurrierende Geräteprüfungen. Ob und wo ein
 ereignisbasierter Kanal gegenüber den bestehenden GETs einen belegbaren Nutzen
 bringt, ist separat zu entscheiden. Kein Android-Gerätetest wird hier behauptet.

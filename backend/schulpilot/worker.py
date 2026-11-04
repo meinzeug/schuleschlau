@@ -950,7 +950,9 @@ def maintenance():
             for identifier in expired_ids:
                 request_erasure(db, scope, identifier)
         db.execute(delete(Activity).where(Activity.created < int(now()) - 365 * 86400))
-        db.execute(delete(Message).where(Message.created < int(now()) - 365 * 86400))
+        from .message_retention import purge_expired as purge_expired_messages
+
+        purge_expired_messages(db, int(now()))
         db.execute(delete(TutorTurn).where(TutorTurn.created < int(now()) - 365 * 86400))
         from .db import SchulbuddyTurn
 

@@ -41,6 +41,19 @@ def test_restore_interpreter_and_backend_use_the_same_immutable_runtime(tmp_path
     assert restore_check.runtime_command('pass')[4] == str(runtime / 'venv/bin/python')
 
 
+@pytest.mark.parametrize('response', [b'no\n', b'', b'yes', b'yes\nextra\n'])
+def test_restore_rejects_unconfirmed_clock_before_retention(monkeypatch, response):
+    monkeypatch.setattr(restore_check, 'command', lambda *_a, **_kw: SimpleNamespace(stdout=response))
+    with pytest.raises(RuntimeError, match='clock synchronization'):
+        restore_check.synchronized_retention_time()
+
+
+def test_restore_accepts_confirmed_clock_and_captures_one_cutoff(monkeypatch):
+    monkeypatch.setattr(restore_check, 'command', lambda *_a, **_kw: SimpleNamespace(stdout=b'yes\n'))
+    monkeypatch.setattr(restore_check.time, 'time', lambda: 1900000000.9)
+    assert restore_check.synchronized_retention_time() == 1900000000
+
+
 def test_restore_holds_publication_lock_and_missing_lock_fails_closed(tmp_path, monkeypatch):
     monkeypatch.setattr(restore_check, "guarded_operation", nullcontext)
     monkeypatch.setattr(restore_check.os, "geteuid", lambda: 0)
