@@ -39,7 +39,21 @@ import time
 from pathlib import Path
 
 import httpx
-from android_smoke import ARTIFACTS, BASE, HEADERS, PACKAGE, adb, check, login, nodes, press, screenshot, tap_node, wait
+from android_smoke import (
+    ARTIFACTS,
+    BASE,
+    HEADERS,
+    PACKAGE,
+    adb,
+    check,
+    login,
+    nodes,
+    press,
+    screenshot,
+    tap_node,
+    wait,
+    wait_any,
+)
 from PIL import Image
 
 PRIVATE = ARTIFACTS / ".school-day-qa-account.json"
@@ -80,7 +94,7 @@ def save_probe(probe):
     temporary.replace(PRIVATE)
 
 
-def prepare_child(parent, data):
+def prepare_child(parent, data, use_original_empty_child=False):
     credentials = data["credentials"]
     response = check(
         parent.post(
@@ -102,6 +116,15 @@ def prepare_child(parent, data):
         raise QaError("A regular QA-family owner is required; no permissions or limits will be changed.")
     if not any(child["id"] == data["child_id"] for child in family["children"]):
         raise QaError("The original prepared child does not belong to this authenticated QA family.")
+    if use_original_empty_child:
+        username = credentials.get("child_username", "")
+        matches = [child for child in family["children"] if child["id"] == data["child_id"] and child["username"] == username]
+        if not re.fullmatch(r"normal-child-[a-f0-9]{12}", username) or len(matches) != 1:
+            raise QaError("The original synthetic fixture child could not be verified.")
+        probe = {"family_id": family["id"], "parent_id": user["id"], "child_id": data["child_id"],
+                 "username": username, "password": credentials["child_password"]}
+        save_probe(probe)
+        return probe
     probe = data.get(KEY)
     if probe is None:
         probe = {
@@ -337,6 +360,7 @@ def main():
     global PHASE
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--expected-version-code", type=int, default=11)
+    parser.add_argument("--use-original-empty-child", action="store_true", help="Use this fixture's original child after the existing empty-data checks")
     args = parser.parse_args()
     data = read_private()
     if adb("get-state").strip() != b"device" or adb("shell", "getprop", "ro.build.version.sdk").strip() != b"36":
@@ -352,7 +376,7 @@ def main():
         if release.get("version_code") != args.expected_version_code:
             raise QaError("Public APK and installed test APK differ; finish the updater/deployment test first.")
         PHASE = "prepare-own-child"
-        probe = prepare_child(parent, data)
+        probe = prepare_child(parent, data, use_original_empty_child=args.use_original_empty_child)
         before = check(parent.get("/children/" + probe["child_id"] + "/overview"))
         if before["materials"] or before["units"]:
             raise QaError(
@@ -370,7 +394,8 @@ def main():
         if not any(node.get("class") == "android.widget.EditText" for node in nodes()):
             press("Anmelden")
         login(probe["username"], probe["password"])
-        press("Heftfotos")
+        action, _ = wait_any(("Heftfotos", "Heutige Seiten scannen"))
+        press(action)
         PHASE = "system-picker"
         press("Fotos auswählen", scroll=True)
         choose_two_in_system_picker()

@@ -232,4 +232,60 @@ void main() {
     expect(find.text('Anderer Qualitätshinweis'), findsNothing);
     expect(requests, isEmpty);
   });
+  testWidgets(
+    'Überlappende widersprüchliche Hinweise bleiben einzeln prüfbar',
+    (tester) async {
+      data['visual_observations'] = [
+        {
+          'description': 'Zwei blaue Felder',
+          'image_region': {'left': 69, 'top': 563, 'right': 729, 'bottom': 640},
+          'uncertainty': '',
+        },
+        {
+          'description': 'Drei blaue Felder',
+          'image_region': {'left': 68, 'top': 534, 'right': 733, 'bottom': 610},
+          'uncertainty': '',
+        },
+      ];
+      await mount(tester);
+      expect(find.text('2 Hinweise zu einem Bildbereich'), findsOneWidget);
+      expect(requests, isEmpty);
+      await tester.tap(find.text('2 Hinweise zu einem Bildbereich'));
+      await tester.pumpAndSettle();
+      expect(find.text('Zwei blaue Felder'), findsOneWidget);
+      expect(find.text('Drei blaue Felder'), findsOneWidget);
+      await tester.tap(find.text('Stimmt').last);
+      await tester.pumpAndSettle();
+      expect(
+        requests.single.url.path,
+        '/api/materials/page/visual-observations/1/review',
+      );
+      expect(
+        (jsonDecode(requests.single.body) as Map)['observation']['description'],
+        'Drei blaue Felder',
+      );
+    },
+  );
+
+  test('Gruppierung hält entfernte, ungültige und nur indirekt überlappende Bereiche getrennt', () {
+    Map<String, dynamic> item(int left, int right) => {
+      'description': 'x',
+      'image_region': {'left': left, 'top': 0, 'right': right, 'bottom': 100},
+    };
+    expect(
+      visualObservationGroups([
+        item(0, 100),
+        item(30, 130),
+        item(50, 150),
+        item(800, 900),
+        {'description': 'ohne Region'},
+      ]),
+      [
+        [0, 1],
+        [2],
+        [3],
+        [4],
+      ],
+    );
+  });
 }

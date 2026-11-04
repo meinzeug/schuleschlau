@@ -2,6 +2,65 @@ import 'package:flutter/material.dart';
 
 import 'api.dart';
 
+/// Group only strongly overlapping image regions. This does not infer semantic
+/// equivalence: contradictory descriptions remain separate reviewable items.
+List<List<int>> visualObservationGroups(List<dynamic> observations) {
+  List<int>? region(dynamic value) {
+    if (value is! Map || value['image_region'] is! Map) return null;
+    final r = value['image_region'] as Map;
+    final coords = [r['left'], r['top'], r['right'], r['bottom']];
+    if (coords.any((x) => x is! int || x < 0 || x > 1000)) return null;
+    final result = coords.cast<int>();
+    if (result[2] <= result[0] || result[3] <= result[1]) return null;
+    return result;
+  }
+
+  bool sameArea(List<int> a, List<int> b) {
+    final left = a[0] > b[0] ? a[0] : b[0];
+    final top = a[1] > b[1] ? a[1] : b[1];
+    final right = a[2] < b[2] ? a[2] : b[2];
+    final bottom = a[3] < b[3] ? a[3] : b[3];
+    if (right <= left || bottom <= top) return false;
+    final overlap = (right - left) * (bottom - top);
+    final areaA = (a[2] - a[0]) * (a[3] - a[1]);
+    final areaB = (b[2] - b[0]) * (b[3] - b[1]);
+    final smaller = areaA < areaB ? areaA : areaB;
+    final larger = areaA > areaB ? areaA : areaB;
+    return overlap * 100 >= smaller * 60 && smaller * 2 >= larger;
+  }
+
+  final groups = <List<int>>[];
+  for (var i = 0; i < observations.length; i++) {
+    final value = observations[i];
+    if (value is! Map ||
+        value['description'] is! String ||
+        (value['description'] as String).trim().isEmpty) {
+      continue;
+    }
+    final candidate = region(value);
+    List<int>? matching;
+    if (candidate != null) {
+      for (final group in groups) {
+        // Every member must overlap, preventing a chain of adjacent regions
+        // from merging a whole page into one misleading group.
+        if (group.every((index) {
+          final existing = region(observations[index]);
+          return existing != null && sameArea(candidate, existing);
+        })) {
+          matching = group;
+          break;
+        }
+      }
+    }
+    if (matching == null) {
+      groups.add([i]);
+    } else {
+      matching.add(i);
+    }
+  }
+  return groups;
+}
+
 /// Separates a human review from both the OCR transcript and the learning source.
 class MaterialVisualReview extends StatefulWidget {
   const MaterialVisualReview({
@@ -91,7 +150,7 @@ class _MaterialVisualReviewState extends State<MaterialVisualReview> {
         widget.data['fixture_id'] == null &&
         widget.data['synthetic'] != true &&
         (!widget.state.isParent || widget.state.canManage);
-    final entries = <Widget>[];
+    final entries = <int, Widget>{};
     for (var i = 0; i < observations.length; i++) {
       final value = observations[i];
       if (value is! Map ||
@@ -104,51 +163,49 @@ class _MaterialVisualReviewState extends State<MaterialVisualReview> {
           .where((r) => r['index'] == i)
           .toList();
       final review = matched.isEmpty ? null : matched.first;
-      entries.add(
-        _VisualItem(
-          key: ValueKey((
-            widget.data['id'],
-            widget.data['revision'],
-            widget.data['visual_observations_digest'],
-            i,
-            ObjectKey(account),
-          )),
-          original: Map<String, dynamic>.from(value),
-          review: review == null ? null : Map<String, dynamic>.from(review),
-          enabled: canReview,
-          submit: (decision, observation, version) async {
-            if (!current) throw ApiError('Bitte neu anmelden.');
-            final snapshotId = widget.data['id'];
-            final snapshotRevision = widget.data['revision'];
-            final snapshotDigest = widget.data['visual_observations_digest'];
-            final result = await widget.state.api.put(
-              '/materials/$snapshotId/visual-observations/$i/review',
-              {
-                'revision': snapshotRevision,
-                'image_digest': widget.data['image_digest'],
-                'observations_digest': snapshotDigest,
-                'review_version': version,
-                'decision': decision,
-                'observation': observation,
-              },
+      entries[i] = _VisualItem(
+        key: ValueKey((
+          widget.data['id'],
+          widget.data['revision'],
+          widget.data['visual_observations_digest'],
+          i,
+          ObjectKey(account),
+        )),
+        original: Map<String, dynamic>.from(value),
+        review: review == null ? null : Map<String, dynamic>.from(review),
+        enabled: canReview,
+        submit: (decision, observation, version) async {
+          if (!current) throw ApiError('Bitte neu anmelden.');
+          final snapshotId = widget.data['id'];
+          final snapshotRevision = widget.data['revision'];
+          final snapshotDigest = widget.data['visual_observations_digest'];
+          final result = await widget.state.api.put(
+            '/materials/$snapshotId/visual-observations/$i/review',
+            {
+              'revision': snapshotRevision,
+              'image_digest': widget.data['image_digest'],
+              'observations_digest': snapshotDigest,
+              'review_version': version,
+              'decision': decision,
+              'observation': observation,
+            },
+          );
+          if (!current ||
+              widget.data['id'] != snapshotId ||
+              widget.data['revision'] != snapshotRevision ||
+              widget.data['visual_observations_digest'] != snapshotDigest) {
+            return;
+          }
+          if (result['visual_observation_reviews'] is List) {
+            setState(
+              () => localReviews = result['visual_observation_reviews'] as List,
             );
-            if (!current ||
-                widget.data['id'] != snapshotId ||
-                widget.data['revision'] != snapshotRevision ||
-                widget.data['visual_observations_digest'] != snapshotDigest) {
-              return;
-            }
-            if (result['visual_observation_reviews'] is List) {
-              setState(
-                () =>
-                    localReviews = result['visual_observation_reviews'] as List,
-              );
-            }
-            widget.onRefresh();
-          },
-        ),
+          }
+          widget.onRefresh();
+        },
       );
     }
+    final groups = visualObservationGroups(observations);
     if (entries.isEmpty && !hasOverflow) return const SizedBox.shrink();
     return ExpansionTile(
       tilePadding: EdgeInsets.zero,
@@ -164,7 +221,24 @@ class _MaterialVisualReviewState extends State<MaterialVisualReview> {
         const Text(
           'Prüfe die Bildhinweise am Foto. „Stimmt, weiter“ bestätigt nur den Text. Bildhinweise werden nicht zum Lernen verwendet.',
         ),
-        ...entries,
+        for (final group in groups)
+          if (group.length == 1)
+            entries[group.first]!
+          else
+            ExpansionTile(
+              key: ValueKey((
+                'visual-area',
+                widget.data['id'],
+                widget.data['revision'],
+                group.join(','),
+              )),
+              tilePadding: EdgeInsets.zero,
+              title: Text('${group.length} Hinweise zu einem Bildbereich'),
+              subtitle: const Text(
+                'Hinweise können abweichen · einzeln prüfen',
+              ),
+              children: [for (final index in group) entries[index]!],
+            ),
       ],
     );
   }

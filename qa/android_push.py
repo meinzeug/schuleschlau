@@ -104,13 +104,24 @@ def seek_label(label, *, prefix=False):
     raise PushQaError("expected_native_push_control_missing")
 
 
+def login_fields(minimum=2, timeout=35):
+    """Wait for Flutter semantics to expose the complete login form."""
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        fields = [node for node in nodes() if node.get("class") == "android.widget.EditText"]
+        if len(fields) >= minimum:
+            return fields
+        time.sleep(0.5)
+    raise PushQaError("native_login_fields_not_ready")
+
+
 def native_login(credentials):
     wait("Willkommen zurück")
     for index, name in enumerate(("child_username", "child_password")):
         value = credentials[name]
         if not re.fullmatch(r"[A-Za-z0-9_.-]+", value):
             raise PushQaError("fixture_input_requires_unsupported_native_keyboard_characters")
-        fields = [node for node in nodes() if node.get("class") == "android.widget.EditText"]
+        fields = login_fields(index + 1)
         tap_node(fields[index])
         # Existing own emulator login forms can retain an unfinished value.
         # Hardware Ctrl+A is not handled by this Flutter field on API36; use
@@ -126,11 +137,29 @@ def native_login(credentials):
         if result.returncode:
             raise PushQaError("protected_native_input_failed")
         adb("shell", "input", "keyevent", "4")
-    fields = [node for node in nodes() if node.get("class") == "android.widget.EditText"]
+    fields = login_fields(1)
     if fields[0].get("text") != credentials["child_username"]:
         raise PushQaError("fixture_username_not_transferred_exactly")
     press("Anmelden")
     wait("Heute")
+
+
+def synthetic_home_matches(tree, user):
+    name = user.get("display_name")
+    values = labels(tree)
+    return bool(
+        user.get("synthetic") is True
+        and isinstance(name, str)
+        and name
+        and "Demo · nur Beispieldaten" in values
+        and any(f"Hallo, {name}!" in value for value in values)
+    )
+
+
+def confirm_synthetic_home(user):
+    press("Heute")
+    if not synthetic_home_matches(nodes(), user):
+        raise PushQaError("native_identity_mismatch")
 
 
 def open_device_panel():

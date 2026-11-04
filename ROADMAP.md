@@ -1395,6 +1395,15 @@ Bestandteil des bestehenden Buildvertrags.
   **Abnahme:** Gerät/Androidversion, konkrete Abläufe, Beobachtungen, Fehler und Korrekturen dokumentiert und Testdaten regulär bereinigt sind.
 - [ ] **P1 – Benachrichtigungen auf echtem Gerät sichtbar prüfen**
 
+  - [x] **Android-Emulator: sichtbare Hintergrundzustellung nach App-Stopp.**
+    Mit einem künstlichen Kinderkonto wurde eine neutrale Firebase-Nachricht
+    nach nachgewiesenem Stopp des App-Prozesses sichtbar angezeigt und in der
+    App geöffnet. Der Emulator ersetzt die vom Betreiber gewünschte technische
+    Android-Prüfung; Rückschlüsse auf herstellerspezifisches Energiesparen oder
+    physische Hardware sind daraus nicht möglich. Vordergrund, geschütztes
+    Lernrundenziel und Bereinigung sind gesondert abzunehmen.
+    [Beobachtungen](docs/ANDROID_EMULATOR_ACCEPTANCE_2026_11_04.md).
+
   Im bestehenden Firebase-Projekt ausschließlich eigene künstliche Konten mit zeitlich begrenzter Testfreigabe verwenden; Elternfreigabe, ausdrückliches Geräte-Opt-in, Kanal-/Betriebssystemberechtigung, Ruhezeiten und Widerruf kontrollieren. Vordergrundanzeige sowie einen Versand nach nachgewiesenem Android-Hintergrundzustand beobachten, geschützten Zielaufruf prüfen und Registrierungen bereinigen.
 
   **Abnahme:** sichtbare Anzeige und Ziel tatsächlich dokumentiert sind; FCM-Annahme oder Validierung allein reichen nicht. In-App-Neuigkeiten bleiben ohne Push nutzbar.

@@ -13,6 +13,31 @@ import android_push_background
 
 
 class AndroidPushGuardsTest(unittest.TestCase):
+    def test_home_identity_requires_synthetic_marker_and_matching_greeting(self):
+        def node(text):
+            return {"text": text, "content-desc": ""}
+        demo = node("Demo · nur Beispieldaten")
+        greeting = node("Hallo, Mika (Beispiel)!")
+        user = {"synthetic": True, "display_name": "Mika (Beispiel)"}
+        self.assertTrue(android_push.synthetic_home_matches([demo, greeting], user))
+        self.assertFalse(android_push.synthetic_home_matches([greeting], user))
+        self.assertFalse(android_push.synthetic_home_matches([demo, greeting], {**user, "synthetic": False}))
+        self.assertFalse(android_push.synthetic_home_matches([demo, greeting], {**user, "display_name": "Andere"}))
+
+    def test_login_fields_wait_for_complete_semantics_tree(self):
+        field = {"class": "android.widget.EditText"}
+        with patch.object(android_push, "nodes", side_effect=[[], [field], [field, field]]), patch.object(
+            android_push.time, "sleep"
+        ):
+            self.assertEqual(len(android_push.login_fields()), 2)
+
+    def test_login_fields_fail_safely_if_form_never_appears(self):
+        with patch.object(android_push, "nodes", return_value=[]), patch.object(
+            android_push.time, "monotonic", side_effect=[0, 0, 2]
+        ), patch.object(android_push.time, "sleep"):
+            with self.assertRaisesRegex(android_push.PushQaError, "native_login_fields_not_ready"):
+                android_push.login_fields(timeout=1)
+
     def test_credentials_accept_old_and_explicit_synthetic_wrapped_fixture(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "fixture.json"

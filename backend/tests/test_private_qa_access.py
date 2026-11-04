@@ -65,17 +65,19 @@ if __name__ == "__main__":
     test_private_qa_grant_is_scoped_and_idempotent()
     print("Private artificial QA access guards and idempotence passed")
 
-@pytest.mark.parametrize("case", ["pair", "all", "mixed", "duplicate", "unknown"])
+@pytest.mark.parametrize("case", ["pair", "all", "mixed", "duplicate", "unknown", "android_pair", "android_mixed", "android_wrong"])
 def test_private_qa_accepts_only_whole_reviewed_reference_sets(case, monkeypatch):
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     family, parent, child, child_user = [f"{n:032x}" for n in range(1, 5)]
     pair = sorted(access.REFERENCE_PAIR)
     all_four = sorted(access.REFERENCE_DIGESTS)
+    android = sorted(access.ANDROID_CROPPED_PAIR)
     digests = {"pair": pair, "all": all_four,
                "mixed": [pair[0], sorted(access.ARTIFICIAL_DIGESTS)[0]],
                "duplicate": [pair[0], pair[1], pair[0], pair[1]],
-               "unknown": [pair[0], "0" * 64]}[case]
+               "unknown": [pair[0], "0" * 64], "android_pair": android,
+               "android_mixed": [android[0], pair[0]], "android_wrong": [android[0], "0" * 64]}[case]
     pages = [f"{n:032x}" for n in range(10, 10 + len(digests))]
     request = {"family_id": family, "parent_id": parent, "child_id": child, "material_ids": pages}
     monkeypatch.setattr(access, "store", lambda _db: (SimpleNamespace(trial_enabled=False), 0))
@@ -91,13 +93,22 @@ def test_private_qa_accepts_only_whole_reviewed_reference_sets(case, monkeypatch
               for mid, digest in zip(pages, digests)],
         ])
     with Session(engine) as db, db.begin():
-        if case in ("pair", "all"):
+        if case in ("pair", "all", "android_pair"):
             assert access.grant(db, request)["call_limit"] == 100
         else:
             with pytest.raises(ValueError, match="künstlichen Fotos"):
                 access.grant(db, request)
             assert db.get(FamilyTrial, family) is None
     engine.dispose()
+
+
+def test_reviewed_android_crop_fixtures_match_pinned_bytes():
+    import hashlib
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[2] / "testdata" / "android_ocr_synthetic"
+    actual = {hashlib.sha256((root / name).read_bytes()).hexdigest() for name in ("erweitern.jpg", "kuerzen.jpg")}
+    assert frozenset(actual) == access.ANDROID_CROPPED_PAIR
 
 
 def test_reviewed_fixture_normalization_matches_server_allowlist():

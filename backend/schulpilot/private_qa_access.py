@@ -32,7 +32,13 @@ REFERENCE_PAIR = frozenset({
     "ac9e7f0f980715c528c8c1522a204ea963213fd196251ce535e0ce58f2f62c1a",
     "62c23950a8ef1ccb06558116690b146824602ca76724c7075a1dd3a88982c4eb",
 })
-APPROVED_SETS = frozenset({ARTIFICIAL_DIGESTS, REFERENCE_PAIR, REFERENCE_DIGESTS})
+# Independently reviewed synthetic class-6 pages after Android picker, crop and
+# server-side JPEG processing. Only this complete pair may receive the grant.
+ANDROID_CROPPED_PAIR = frozenset({
+    "7fdc935adc7c5915b13a44c0a74a2f8726ce7901801c6eb774fc3fb0146a59ed",
+    "ac22cde79e084ecf453df766d106242a68d33a4e236a7cbe1d2140b7db6d5ff8",
+})
+APPROVED_SETS = frozenset({ARTIFICIAL_DIGESTS, REFERENCE_PAIR, REFERENCE_DIGESTS, ANDROID_CROPPED_PAIR})
 
 
 

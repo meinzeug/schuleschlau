@@ -23,7 +23,7 @@ from android_push import (
     ROOT,
     PushQaError,
     api_json,
-    choose_hour,
+    confirm_synthetic_home,
     labels,
     load_credentials,
     native_login,
@@ -262,15 +262,13 @@ def main():
             press("Alle anzeigen")
         wait("Deine Neuigkeiten")
         report["bell_visible"] = True
-        press("Konto")
-        if credentials["child_username"] not in labels(nodes()):
-            raise PushQaError("native_identity_mismatch")
+        confirm_synthetic_home(user)
         open_device_panel()
         report["phase"] = "native_opt_in"
         safe_write(report_file, report)
-        tap_node(seek_label("Zeiten & Auswahl", prefix=True))
-        choose_hour("Ruhe ab")
-        choose_hour("Ruhe bis")
+        tap_node(seek_label("Gerät einstellen"))
+        if "Ruhezeit: 20:00–08:00" not in labels(nodes()):
+            raise PushQaError("fixture_device_quiet_hours_not_observed")
         tap_node(seek_label("Auf diesem Gerät einschalten"))
         until = time.monotonic() + 65
         while time.monotonic() < until:
@@ -285,7 +283,7 @@ def main():
             ]
             if len(new) == 1:
                 device_id = new[0]["id"]
-                if new[0]["quiet_start"] != 0 or new[0]["quiet_end"] != 0:
+                if new[0]["quiet_start"] != 20 or new[0]["quiet_end"] != 8:
                     raise PushQaError("only_fixture_device_quiet_hours_not_saved")
                 report["native_registration"] = True
                 break
@@ -343,9 +341,7 @@ def main():
             raise PushQaError("android_background_notification_not_visible")
         tap_node(seek_label(BACKGROUND_BODY))
         wait("Deine Neuigkeiten")
-        press("Konto")
-        if credentials["child_username"] not in labels(nodes()):
-            raise PushQaError("notification_opened_wrong_or_unauthenticated_account")
+        confirm_synthetic_home(user)
         report["notification_opens_correct_child"] = True
         if args.foreground:
             # The background message above was queued only AFTER STOPPED was
