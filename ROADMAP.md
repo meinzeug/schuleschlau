@@ -1429,6 +1429,12 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Ausgabelängen, Schemafehler und Providerstörungen systematisch behandeln**
 
+  - [x] **Mehrseitige Pakete bei künstlichen Fehlern und Workerabbruch erhalten.**
+    Fehlerklassen, explizite Wiederaufnahme und unbekannte Kosten nach Abbruch
+    wurden auf SQLite und PostgreSQL geprüft.
+    [Prüfbericht und Grenzen](docs/PACKAGE_FAILURE_MATRIX_2026_11_04.md).
+    Echter Anbieter und vollständige HTTP-/Schemafehlermatrix bleiben offen.
+
   **Teilprüfung 02.11.2026:** 49 synthetische SQLite-Fälle und der dort
   übersprungene Parallelitätsfall auf PostgreSQL bestanden; Umfang und Grenzen:
   [Regressionsbericht](docs/ROADMAP_REGRESSION_2026_11_02.md#ausgabelängen-schemafehler-und-providerstörungen).
@@ -1517,6 +1523,12 @@ Bestandteil des bestehenden Buildvertrags.
   **Abnahme:** Jede getestete Route erreicht ihr tatsächliches Ziel ohne festhängende Schleife; Feedback bleibt bis zur bewussten Fortsetzung sichtbar, Antworten und Position überleben Wiederaufnahme und angezeigte Zeit beruht auf gespeicherten Aktivitätssekunden.
 
 - [ ] **P1 – Hefte, Materialarten und Suche im digitalen Ranzen abnehmen**
+
+  - [x] **Viele künstliche Quellen, Wiederaufnahme und Auswahlrevisionen prüfen.**
+    Getrennte Familien, paginierte Lesezugriffe, gezieltes Wiederholen nach
+    Netzfehler und ausgewählte Quellenrevisionen sind synthetisch geprüft.
+    [Prüfbericht und Grenzen](docs/NOTEBOOK_ACCEPTANCE_2026_11_04.md).
+    Reale Erkennung repräsentativer Materialfotos bleibt offen.
 
   **04.11.2026, laufende Abfrage:** Eine Materialänderung während eines
   Seitenabrufs verwirft das überholte Ergebnis und bündelt Änderungen in
@@ -1872,6 +1884,11 @@ Bestandteil des bestehenden Buildvertrags.
   **Abnahme:** Dokumentation, Bewertung, gegebenenfalls Folgenabschätzung, vereinbarte Maßnahmen und Zuständigkeiten liegen für den vorgesehenen Freigabeumfang vor; offene Risiken sind vor der jeweiligen Freigabe entschieden.
 
 - [ ] **P1 – Echtzeitstatus gezielt und zuverlässig bereitstellen**
+
+  - [x] **Fotoverarbeitungsstatus über zwei künstliche Sitzungen prüfen.**
+    Beide Sitzungen sehen den Fortschritt; eine fremde Familie wird abgewiesen.
+    GETs erzeugen keine Aufträge oder Lernbelege. SQLite und PostgreSQL
+    bestanden; [Einzelheiten](docs/REALTIME_STATUS.md).
 
   - [x] **Sprachprojekte und Nacharbeiten bei Rückkehr und Rechteverlust
     absichern.** Sitzungsgebundene Wiederaufnahme, ältere GETs und manuelle

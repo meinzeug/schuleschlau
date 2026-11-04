@@ -1,5 +1,21 @@
 # Produktions- und Prüfstand
 
+**Lesend geprüft am 04.11.2026 um 15:39 UTC (Serverzeit):** Aktiv ist
+`20261104T124823Z-529c8d5`, Version `1.38.77+232`, Quellcommit
+`529c8d586cfa0d7097b815388189f9737c91aa4e`. API, Worker und Backup-,
+Aufbewahrungs-, Wiederherstellungs- und Monitortimer meldeten aktiv; der
+Server meldete synchronisierte Zeit. Das öffentliche APK-Manifest meldet
+137.868.020 Bytes und SHA-256
+`4e33eb58a1f7d83853cd8ab59ed929965e0c641771b20031f23d2a3f3c44a654`.
+Das ist ein lesender Manifestbefund; der Dateihash wurde bei der Aktivierung
+serverseitig abgeglichen. Der vollständige
+[CI-Lauf 41830939068](https://github.com/meinzeug/schulpilot/actions/runs/41830939068)
+für diesen Commit war erfolgreich. Der Offsite-Abgleich nach Aktivierung
+meldete Erfolg und einen bestätigten Stand; die Journalinhalte wurden nicht
+geprüft. Physische Android- und unabhängige Sicherheitsabnahmen bleiben offen.
+
+## Historischer Stand · 1.38.74+229
+
 **Lesend geprüft am 04.11.2026 um 05:41 UTC:** Die Installation unter
 `schulpilot.dorfspy.de` meldet Release `20261104T034507Z-178f633`, Version
 `1.38.74+229` und Quellcommit `178f6335e90a6cc3f92ce3e15fc531fa55d2cfbb`.
@@ -12,8 +28,8 @@ Der vollständige [CI-Lauf 41767812665](https://github.com/meinzeug/schulpilot/a
 für diesen Quellstand war erfolgreich. Dies belegt keine native Zustellung
 auf Android und keine vollständige fachliche oder unabhängige Sicherheitsabnahme.
 
-Der spätere Commit `1a6e310` liegt auf `main`, wurde aber auf ausdrücklichen
-Nutzerwunsch **nicht deployt**. Web, Play-Paket und Direct-APK wurden gebaut;
+Der damalige Commit `1a6e310` lag bereits auf `main`, wurde zum damaligen
+Prüfzeitpunkt auf ausdrücklichen Nutzerwunsch **nicht deployt**. Web, Play-Paket und Direct-APK wurden gebaut;
 die abschließende Releasebindung scheiterte, weil die neue Arbeit den
 Arbeitsbaum inzwischen verändert hatte. Die Artefakte sind damit kein geprüfter
 oder auslieferbarer Release. Der separate

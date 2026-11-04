@@ -63,3 +63,40 @@ def test_two_child_sessions_see_same_saved_job_and_other_child_is_denied(api, no
     assert after_worker[1] == before_reads[1]
     assert after_worker[2] == before_reads[2] + 1
     assert after_worker[3:] == before_reads[3:]
+
+
+def test_two_sessions_follow_photo_preparation_without_creating_jobs(api, household, monkeypatch):
+    from test_school_preparation import capture, step, submit
+
+    parent, child = household
+    day, calls = capture(api, child, monkeypatch, count=1)
+    create_child(api, parent, username='other-child')
+    api.cookies.clear()
+    child_login(api)
+    first = api.headers['Authorization']
+    submit(api, day, 'multidevice-photo')
+    api.headers.pop('Authorization')
+    api.cookies.clear()
+    child_login(api)
+    second = api.headers['Authorization']
+    api.headers.pop('Authorization')
+    api.cookies.clear()
+    child_login(api, username='other-child')
+    stranger = api.headers['Authorization']
+    route = f"/api/school-days/{day['id']}"
+    before = counts()
+    for token in (first, second):
+        response = api.get(route, headers={'Authorization': token})
+        assert response.status_code == 200
+        assert response.json()['preparation']['status'] == 'processing'
+    assert api.get(route, headers={'Authorization': stranger}).status_code in (403, 404)
+    assert counts() == before and calls == []
+    assert step()
+    after = counts()
+    for token in (second, first, second):
+        response = api.get(route, headers={'Authorization': token})
+        assert response.status_code == 200
+        assert response.json()['preparation']['status'] == 'needs_review'
+        assert response.json()['preparation']['completed_pages'] == 1
+    assert api.get(route, headers={'Authorization': stranger}).status_code in (403, 404)
+    assert counts() == after and calls == ['extract']

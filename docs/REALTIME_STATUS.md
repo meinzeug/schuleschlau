@@ -82,3 +82,14 @@ sieht sie nicht. Dieser Test prüft die Client-Wiederaufnahme, nicht den
 FCM-Transport oder zwei gleichzeitig installierte Apps. Zusammen mit der
 Backendprüfung ist dies ein gezielter Mehrgerätebeleg für Sprachstatus und
 Glockencache; eine durchgehende Geräteabnahme sämtlicher Ansichten bleibt offen.
+
+## Mehrsitzungstest für Fotoverarbeitung
+
+`test_two_sessions_follow_photo_preparation_without_creating_jobs` prüft den
+realen Foto-Vorbereitungsworker mit einer künstlichen Seite und simuliertem
+Provider. Zwei unabhängige Sitzungen desselben Kindes lesen zunächst
+`processing`, nach der ausdrücklich gestarteten Verarbeitung `needs_review`
+mit einer erkannten Seite. Eine fremde Kindersitzung wird abgewiesen. Wiederholte
+GETs verändern weder Auftrags- und Kostenbelege noch Lernrunden, Antworten oder
+Aktivitäten. Der Test bestand mit SQLite und isoliertem PostgreSQL; er belegt
+weder echte parallele Geräte noch sichtbare Pushzustellung.

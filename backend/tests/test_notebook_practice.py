@@ -218,9 +218,9 @@ def test_exact_two_pages_across_days_publish_once_without_day_expansion(notebook
     with DB() as db:
         unit = db.get(LearningUnit, result["result"]["unit_id"])
         assert len(unit.questions) == 3 and unit.subject_id == identity("mathematik")
-        assert set(db.scalars(select(UnitSource.material_id).where(UnitSource.unit_id == unit.id))) == {
-            x["id"] for x in notebook.refs[:2]
-        }
+        assert {(source.material_id, source.revision) for source in db.scalars(
+            select(UnitSource).where(UnitSource.unit_id == unit.id)
+        )} == {(ref["id"], ref["revision"]) for ref in notebook.refs[:2]}
         assert (
             db.scalar(select(Attempt).where(Attempt.unit_id == notebook.old_id)).answer
             == "Eigene künstliche Altantwort"
@@ -462,3 +462,19 @@ def test_legacy_material_request_still_needs_no_account_header(notebook):
     assert first.status_code == 202, first.text
     replay = notebook.client.post(path, json=value, headers=headers)
     assert replay.status_code == 202 and replay.json()["id"] == first.json()["id"]
+
+
+def test_single_selected_page_publish_keeps_exact_revision(notebook, monkeypatch):
+    with DB.begin() as db:
+        db.get(Material, notebook.refs[0]["id"]).revision = 3
+    selection = {"material_id": notebook.refs[0]["id"],
+                 "notebook_sources": [{"id": notebook.refs[0]["id"], "revision": 3}],
+                 "question_count": 2}
+    response = post(notebook, selection)
+    assert response.status_code == 202, response.text
+    result, calls = process(notebook, monkeypatch, response.json()["id"])
+    assert result["status"] == "completed", result
+    assert len(calls) == 1
+    with DB() as db:
+        sources = list(db.scalars(select(UnitSource).where(UnitSource.unit_id == result["result"]["unit_id"])))
+        assert [(source.material_id, source.revision) for source in sources] == [(selection["material_id"], 3)]

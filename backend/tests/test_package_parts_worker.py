@@ -122,9 +122,10 @@ def artificial_day(api, household):
     return day_id, child, identities
 
 
-@pytest.mark.parametrize("fail_second", [False, True], ids=["complete-path", "fail-stop-explicit-retry"])
+@pytest.mark.parametrize("fault", [None, "invalid_output", "provider_busy", "provider_timeout", "provider_unavailable", "interrupted"],
+    ids=["complete-path", "invalid-output", "busy", "timeout", "unavailable", "interrupted"])
 def test_normal_parts_stage_privately_then_publish_once_with_graphics_and_preserved_history(
-    api, household, monkeypatch, fail_second
+    api, household, monkeypatch, fault
 ):
     day_id, child, old = artificial_day(api, household)
     calls, failed_once = [], False
@@ -134,10 +135,10 @@ def test_normal_parts_stage_privately_then_publish_once_with_graphics_and_preser
         assert function == "package" and image_bytes is None and synthetic_fixture is False
         assert len(payload["selected_groups"]) == 1 and 1 <= len(payload["materials"]) <= 3
         calls.append(copy.deepcopy(payload))
-        if fail_second and payload["package_partition"] == 1 and not failed_once:
+        if fault and payload["package_partition"] == 1 and not failed_once:
             failed_once = True
             raise ProviderError("Künstlicher abgerechneter Teilfehler, kein automatischer Retry.",
-                code="invalid_output", billing_result=Result({}, 10, 20, 137, cost_source="reported"))
+                code=fault, billing_result=Result({}, 10, 20, 137, cost_source="reported"))
         return Result(bounded_output(payload), 20, 40, 101, cost_source="reported")
 
     monkeypatch.setattr(worker, "request_provider", provider)
@@ -172,9 +173,12 @@ def test_normal_parts_stage_privately_then_publish_once_with_graphics_and_preser
 
     second_job = run_one()
     assert second_job and [call["package_partition"] for call in calls] == [0, 1]
-    if fail_second:
+    if fault:
         failed_state = snapshot(day_id)
         assert failed_state["status"] == "failed"
+        public_failed = api.get(f"/api/school-days/{day_id}").json()["preparation"]
+        assert public_failed["error_code"] == fault
+        assert public_failed["completed_parts"] == 1 and public_failed["total_parts"] == 3
         assert failed_state["package_outputs"]["0"] == first_receipt
         for _ in range(3):
             assert run_one() is None
@@ -190,7 +194,7 @@ def test_normal_parts_stage_privately_then_publish_once_with_graphics_and_preser
         assert run_one()
         assert [call["package_partition"] for call in calls] == [0, 1, 1]
     assert run_one()
-    expected = [0, 1, 1, 2] if fail_second else [0, 1, 2]
+    expected = [0, 1, 1, 2] if fault else [0, 1, 2]
     assert [call["package_partition"] for call in calls] == expected
     assert "learning_entry" in calls[0] and all("learning_entry" not in call for call in calls[1:])
     ready = api.get(f"/api/school-days/{day_id}").json()
@@ -224,3 +228,40 @@ def test_normal_parts_stage_privately_then_publish_once_with_graphics_and_preser
         assert db.scalar(select(func.count()).select_from(Job)) == jobs_before
         assert db.scalar(select(func.count()).select_from(Usage)) == usages_before
         assert db.scalar(select(func.count()).select_from(LearningUnit)) == 4
+
+
+def test_worker_interruption_does_not_repeat_provider_or_lose_completed_part(api, household, monkeypatch):
+    day_id, _, _ = artificial_day(api, household)
+    calls = []
+
+    def provider(config, function, payload, image_bytes=None, *, synthetic_fixture=False):
+        calls.append(payload['package_partition'])
+        return Result(bounded_output(payload), 20, 40, 101, cost_source='reported')
+
+    monkeypatch.setattr(worker, 'request_provider', provider)
+    preparation(api, day_id, 'interruption-first')
+    assert run_one() and calls == [0]
+    first_receipt = snapshot(day_id)['package_outputs']['0']
+    school_preparation.advance_one()
+    with DB() as db:
+        interrupted_id = worker.claim(db)
+    assert interrupted_id
+    with DB.begin() as db:
+        job = db.get(Job, interrupted_id)
+        assert job.status == 'running' and job.payload['package_partition'] == 1
+        job.started = 1
+    worker.maintenance()
+    school_preparation.advance_one()
+    state = snapshot(day_id)
+    assert state['status'] == 'failed' and state['package_outputs']['0'] == first_receipt
+    assert api.get(f'/api/school-days/{day_id}').json()['preparation']['error_code'] == 'interrupted'
+    with DB() as db:
+        assert db.get(Job, interrupted_id).status == 'failed'
+        usage = db.scalar(select(Usage).where(Usage.job_id == interrupted_id))
+        assert usage.status == 'failed_unknown' and usage.cost_micros is None
+        assert usage.reserved_micros > 0
+    assert run_one() is None and calls == [0]
+    preparation(api, day_id, 'interruption-explicit-retry')
+    assert run_one() and calls == [0, 1]
+    assert run_one() and calls == [0, 1, 2]
+    assert api.get(f'/api/school-days/{day_id}').json()['preparation']['status'] == 'ready'

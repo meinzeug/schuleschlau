@@ -1031,6 +1031,29 @@ void main() {
     },
   );
 
+  testWidgets('notebook recovers from a network interruption without writes', (
+    tester,
+  ) async {
+    var pageGets = 0;
+    final (_, _, requests) = await open(
+      tester,
+      respond: (request) async {
+        if (request.url.path.endsWith('/subjects'))
+          return jsonReply(subjects());
+        pageGets++;
+        if (pageGets == 1) throw http.ClientException('synthetic offline');
+        return jsonReply(pages(request, photos: false));
+      },
+    );
+    expect(find.text('Erneut laden'), findsOneWidget);
+    await tap(tester, find.text('Erneut laden'));
+    expect(find.text('Lernstoff 0'), findsOneWidget);
+    expect(pageGets, 2);
+    expect(requests.every((request) => request.method == 'GET'), isTrue);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('notebook refreshes after a change during a pending page GET', (
     tester,
   ) async {
