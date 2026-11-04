@@ -675,8 +675,8 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
   - [ ] **Unbeschriftete Zeichnungen getrennt erfassen und überprüfen.**
     Ein echter künstlicher OpenRouter-Fall ließ einen markierten Bruchbalken
     aus. Ein getrennter vorläufiger Befund mit revisionsgebundener Prüfung
-    ist technisch implementiert und isoliert getestet; die Anbieterabnahme
-    des neuen Schemas und die tatsächliche Erkennung stehen noch aus.
+    ist technisch implementiert und isoliert getestet. Ein künstlicher
+    Anbieterfall erfasste den Balken; die breitere Erkennungsabnahme bleibt offen.
     [Befund und Grenzen](docs/OCR_VISUAL_OBSERVATION_PLAN_2026_11_04.md).
 
   - [x] **Vier künstliche Referenzseiten samt Prüfsummen bereitstellen.**
@@ -1452,13 +1452,12 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Ausgabelängen, Schemafehler und Providerstörungen systematisch behandeln**
 
-  - [ ] **Echten künstlichen Zweiquellen-Paketlauf vollständig nachweisen.**
-    Nach einem sicher abgewehrten Grafikfehler wurden zwei künstliche Seiten
-    in zwei Paketteilen verarbeitet. Zwei Einheiten mit je einer Quellen-ID
-    entstanden; die exakte Zuordnung zu den Seiten wurde nicht gesondert
-    geprüft. Ein unbeschrifteter Bruchbalken fehlte in der OCR. Modell-,
-    Kosten- und Ergebnisgrenzen stehen im
-    [Testbericht](docs/OPENROUTER_PACKAGE_SMOKE_2026_11_04.md).
+  - [x] **Echten künstlichen Zweiquellen-Paketlauf nachweisen.**
+    Zwei feste künstliche Seiten wurden in zwei Paketteilen verarbeitet;
+    die Quellenzuordnung beider Einheiten wurde vor der Bereinigung geprüft.
+    Das neue Schema erfasste den zuvor fehlenden Bruchbalken als vorläufigen
+    Bildbefund. [Ergebnis und Grenzen](docs/OPENROUTER_VISUAL_TEST_2026_11_04.md).
+    Die vollständige fachliche und Fehlerabnahme bleibt offen.
 
   - [x] **Mehrseitige Pakete bei künstlichen Fehlern und Workerabbruch erhalten.**
     Fehlerklassen, explizite Wiederaufnahme und unbekannte Kosten nach Abbruch

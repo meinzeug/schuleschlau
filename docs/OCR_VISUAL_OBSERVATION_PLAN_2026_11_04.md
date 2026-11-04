@@ -67,3 +67,12 @@ Bilderkennung; ausgelassene Zeichnungen können weiterhin unentdeckt bleiben.
 Der Arbeitsstand ist nicht produktiv freigegeben. Vor einer Ausrollung müssen
 Restore-Runtime und Offsite-Client mit den Migrationen koordiniert und die
 aktuelle Web-/APK-Version mit echter künstlicher Anbieterprobe geprüft werden.
+
+## Ergänzung nach Deployment
+
+Release `9d26453` wurde mit dem erweiterten Schema und zwei festen künstlichen
+Seiten auf OpenRouter geprüft. Der zuvor fehlende Balken wurde als vorläufiger
+Bildbefund erfasst; ein Befund ließ sich einzeln bestätigen. Beide erzeugten
+Einheiten waren vor der Bereinigung den passenden Quellen zugeordnet.
+[Einzelheiten und Grenzen](OPENROUTER_VISUAL_TEST_2026_11_04.md). Zwei ähnliche
+Beobachtungen bleiben getrennt; eine vollständige OCR-Abnahme steht aus.
