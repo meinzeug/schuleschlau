@@ -54,6 +54,10 @@ Ein berechtigtes Elternkonto findet unter **Einstellungen → Kinderzugänge und
 Passwörter** beim jeweiligen Kind **Daten dieses Kindes exportieren**. Im Dialog
 lassen sich persönliche Bilder ein- oder ausschließen. Die ZIP-Datei enthält
 private Daten und gehört an einen sicheren Speicherort. Der Export löscht nichts.
+Wenn ein gespeichertes Foto nicht gelesen werden kann, enthält die ZIP zusätzlich
+die Datei `fehlende-fotos.json` mit den betroffenen Materialkennungen oder Profilbildern. Die Kopie
+ist dann hinsichtlich dieser Fotos unvollständig; bitte Originale sichern und
+die Ursache prüfen lassen. Ein Export ohne Fotos weist diese bewusst nicht aus.
 
 Unter **Einstellungen → Export und Kontoverwaltung** steht der Familienexport.
 Ein verwaltungsberechtigtes Elternteil kann im Bereich der Kinderzugänge ein

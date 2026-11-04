@@ -518,9 +518,11 @@ def remove_page(day_id: str, material_id: str, p=Depends(authenticated), db=Depe
     sources_removed(db, day)
     record(db, child.id, "school_day_page_removed")
     db.commit()
-    if path:
-        (settings.data_dir / "uploads" / path).unlink(missing_ok=True)
     flush_journal()
+    if path:
+        from .private_images import remove
+
+        remove(path)
     return day_data(db, day, child, p)
 
 

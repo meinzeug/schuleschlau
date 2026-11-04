@@ -416,11 +416,13 @@ def _process(job_id):
             if unit_novelty.applies(job, material):
                 novelty_prompts = unit_novelty.previous_prompts(db, child.id, source_pages)
                 payload["previous_prompts"] = unit_novelty.provider_context(novelty_prompts)
-            image_bytes = (
-                (settings.data_dir / "uploads" / material.path).read_bytes()
-                if job.kind == "extract" and material and material.path
-                else None
-            )
+            image_bytes = None
+            if job.kind == "extract" and material and material.path:
+                from .private_images import read
+
+                image_bytes = read(material.path)
+                if image_bytes is None:
+                    raise ProviderError("Das Heftfoto ist nicht verfügbar. Bitte fotografiere die Seite erneut.")
             synthetic = bool(material and material.synthetic)
             fixture = bool(synthetic and material.fixture_id in LIVE_FIXTURE_IDS and family.synthetic)
             fixture_value = (True if material.fixture_id == FIXTURE_ID else material.fixture_id) if fixture else False
@@ -941,8 +943,12 @@ def maintenance():
             VocabularyItem,
         )
 
-        for model in (LanguageProject, VocabularyImport, VocabularyItem, VocabularyCollection):
-            db.execute(delete(model).where(model.created < int(now()) - 365 * 86400))
+        db.execute(delete(LanguageProject).where(LanguageProject.created < int(now()) - 365 * 86400))
+        for model, scope in ((VocabularyImport, "vocab_import"), (VocabularyItem, "vocab_item"),
+                             (VocabularyCollection, "vocab_set")):
+            expired_ids = db.scalars(delete(model).where(model.created < int(now()) - 365 * 86400).returning(model.id))
+            for identifier in expired_ids:
+                request_erasure(db, scope, identifier)
         db.execute(delete(Activity).where(Activity.created < int(now()) - 365 * 86400))
         db.execute(delete(Message).where(Message.created < int(now()) - 365 * 86400))
         db.execute(delete(TutorTurn).where(TutorTurn.created < int(now()) - 365 * 86400))
@@ -1005,6 +1011,9 @@ def maintenance():
                         body="Dein Lernplan ist bereit. Öffne ihn, wenn es für dich passt.",
                     )
                 )
+    from .erasure import flush_journal, prune_journal, prune_orphan_images
+
+    flush_journal()
     unlink_uploads(paths)
     # Only our fixed flat patch namespace, never an arbitrary stored path.
     repair_root = (settings.data_dir / "operator-repairs").resolve()
@@ -1012,9 +1021,6 @@ def maintenance():
         path = Path(value)
         if not path.is_symlink() and path.resolve().parent == repair_root and re.fullmatch(r"[a-f0-9]{32}\.patch", path.name):
             path.unlink(missing_ok=True)
-    from .erasure import flush_journal, prune_journal, prune_orphan_images
-
-    flush_journal()
     with DB() as db:
         prune_orphan_images(db)
         state = db.get(ServiceState, "erasure_compaction")

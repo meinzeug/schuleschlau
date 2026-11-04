@@ -576,6 +576,78 @@ void main() {
     },
   );
 
+  testWidgets('resume during a school-day read fetches the current status', (
+    tester,
+  ) async {
+    mobile(tester);
+    final server = PreparationServer()
+      ..delayedRead = Completer<http.Response>();
+    final delayed = server.delayedRead!;
+    final oldDay = response({'day': server.day});
+    final state = server.state();
+    final navigation = router(state);
+    addTearDown(navigation.dispose);
+    await tester.pumpWidget(
+      MaterialApp.router(theme: appTheme(), routerConfig: navigation),
+    );
+    await tester.pump();
+    await tester.pump();
+    expect(server.reads, 1);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    await tester.pump();
+    server.requireReview();
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pump();
+    server.delayedRead = null;
+    delayed.complete(oldDay);
+    await settleUi(tester);
+    expect(server.reads, 2);
+    expect(find.text('Seite 1 prüfen'), findsOneWidget);
+    expect(
+      server.requests.where((request) => !request.startsWith('GET ')),
+      isEmpty,
+    );
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets(
+    'resumed school-day read cannot continue in a different session',
+    (tester) async {
+      mobile(tester);
+      final server = PreparationServer()
+        ..delayedRead = Completer<http.Response>();
+      final delayed = server.delayedRead!;
+      final state = server.state()..api.token = 'session-a';
+      final navigation = router(state);
+      addTearDown(navigation.dispose);
+      await tester.pumpWidget(
+        MaterialApp.router(theme: appTheme(), routerConfig: navigation),
+      );
+      await tester.pump();
+      await tester.pump();
+      expect(server.reads, 1);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      await tester.pump();
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pump();
+      state.api.token = 'session-b';
+      state.refreshState();
+      await tester.pump();
+      server.delayedRead = null;
+      delayed.complete(response({'day': server.day}));
+      await settleUi(tester);
+      expect(server.reads, 1);
+      expect(find.text('Künstliche Bruchaufgabe 1'), findsNothing);
+      expect(
+        server.requests.where((request) => !request.startsWith('GET ')),
+        isEmpty,
+      );
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
   testWidgets(
     'Failed preparation only retries explicitly within the server bound',
     (tester) async {

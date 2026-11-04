@@ -2,6 +2,24 @@
 
 Stand: 4. November 2026. Diese Datei ist eine Arbeitsübergabe, kein Ersatz für die aktuellen Nutzeraufträge oder `AGENTS.md`. Prüfe alle Zustände erneut; insbesondere Server, Git, laufende Jobs und Roadmap können sich inzwischen geändert haben. Keine Zugangsdaten, Tokens, privaten Schülerdaten oder Bildinhalte in diese Datei, Logs oder Git schreiben.
 
+**Neue Übergabe 04.11.2026:** Der Nutzer verlangt weiterhin ausschließlich
+Commit und Push nach `main`, kein Deployment. Produktiv meldete Health zuletzt
+`1.38.74+229` / `178f633`; der vollständige CI-Lauf 41779877406 für
+`f63b054` war erfolgreich. Der darauf folgende Arbeitsstand enthält zusätzliche
+Korrekturen für Lernbegegnungen, private Fotodateien und deren Löschjournal,
+mobile Statuswiederaufnahme und Benachrichtigungen sowie ein isoliertes
+Kapazitätsprofil. Neu sind außerdem signierte Vokabel-Löschbelege und die Prüfung der
+Grafikreferenz-Fingerabdrücke. **Vor einem späteren Release müssen zuerst die
+Restore- und Prüfwerkzeuge die neuen Journaltypen verstehen**; die genaue
+Reihenfolge und historische Grenzen stehen in
+`docs/VOCABULARY_ERASURE_2026_11_04.md`. Die Statuspfade und ihre Einschränkungen
+sind in `docs/REALTIME_STATUS.md` dokumentiert.
+
+Die genauen Nachweise und verbleibenden Abnahmen stehen in
+`ROADMAP.md` und `docs/CAPACITY_PROFILE_2026_11_04.md`. Keine Änderung an
+produktivem Serverbestand aus dieser Übergabe ableiten; Git/CI/Health erneut
+prüfen. Frühere angeblich aktuelle Einträge unten sind historische Angaben.
+
 **Übergabe 04.11.2026, aktueller Auftrag:** Der Nutzer verlangt Commit und
 Push nach `main`, ausdrücklich **kein Deployment**. Produktiv war bei der
 lesenden Prüfung Version `1.38.74+229` mit Commit `178f633`; `1a6e310` wurde

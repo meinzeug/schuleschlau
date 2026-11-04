@@ -3,7 +3,7 @@ import io
 import re
 
 from fastapi import APIRouter, Depends, File, Header, HTTPException, UploadFile
-from fastapi.responses import FileResponse, Response
+from fastapi.responses import Response
 from PIL import Image, ImageFilter, ImageOps, ImageStat, UnidentifiedImageError
 from sqlalchemy import or_, select, update
 
@@ -219,12 +219,13 @@ def image(material_id: str, p=Depends(authenticated), db=Depends(get_db)):
     material, _ = get_material(db, p, material_id)
     if not material.path:
         raise HTTPException(404, "Dieses synthetische Beispiel hat keinen Foto-Upload.")
-    path = settings.data_dir / "uploads" / material.path
-    if not path.is_file():
+    from .private_images import read
+
+    data = read(material.path)
+    if data is None:
         raise HTTPException(404, "Bild nicht mehr vorhanden.")
-    return FileResponse(
-        path, media_type="image/jpeg", headers={"Cache-Control": "no-store", "X-Content-Type-Options": "nosniff"}
-    )
+    return Response(data, media_type="image/jpeg",
+        headers={"Cache-Control": "no-store", "X-Content-Type-Options": "nosniff"})
 
 
 @router.get("/materials/{material_id}")
@@ -284,11 +285,13 @@ def source_figure(material_id: str, block_index: int, revision: int,
     region = blocks[block_index].get("image_region")
     if not region:
         raise HTTPException(404, "Diesen Abschnitt findest du im vollständigen Heftfoto.")
-    path = settings.data_dir / "uploads" / material.path
-    if not path.is_file():
+    from .private_images import read
+
+    data = read(material.path)
+    if data is None:
         raise HTTPException(404, "Das Heftfoto ist nicht mehr verfügbar.")
     try:
-        with Image.open(path) as original:
+        with Image.open(io.BytesIO(data)) as original:
             # A small margin protects labels against approximate OCR bounds.
             bounds = (max(0, region["left"] - 12), max(0, region["top"] - 12),
                       min(1000, region["right"] + 12), min(1000, region["bottom"] + 12))

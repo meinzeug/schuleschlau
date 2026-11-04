@@ -524,3 +524,126 @@ def test_private_source_safety_digests_are_not_published(generated_visual_unit):
         result = projection(db, db.get(LearningUnit, uid))
         assert '_content_digest' not in json.dumps(result)
         assert '_question_source_bound' not in json.dumps(result)
+
+
+@pytest.mark.parametrize("fault", ["selection_digest", "recipe_content", "recipe_digest", "replaced_recipe"])
+def test_generic_reference_content_and_selected_digest_must_match_before_acceptance(fault):
+    with DB.begin() as db:
+        selected = context(db)
+        row = db.get(VisualReference, ("math.fraction.part_whole", 1))
+        if fault == "selection_digest":
+            next(r for r in selected["references"] if r["id"] == row.id)["digest"] = "0" * 64
+        elif fault == "recipe_content":
+            row.recipe = {**row.recipe, "purpose": "verändert"}
+            db.flush()
+        elif fault == "recipe_digest":
+            row.digest = "0" * 64
+            db.flush()
+        else:
+            from schulpilot.visual_references import digest
+
+            row.recipe = {**row.recipe, "purpose": "andere Variante"}
+            row.digest = digest(row.recipe)
+            db.flush()
+        with pytest.raises(ValueError, match="referenz"):
+            validate_steps(db, [step()], "Mathematik", selected, introduction=True)
+
+
+def test_damaged_recipe_is_not_offered_to_a_new_request():
+    with DB.begin() as db:
+        row = db.get(VisualReference, ("math.fraction.part_whole", 1))
+        row.recipe = {**row.recipe, "purpose": "verändert"}
+        db.flush()
+        assert row.id not in {ref["id"] for ref in candidates(db, "Mathematik", SOURCE)}
+
+
+@pytest.mark.parametrize("fault", ["missing_recipe", "modified_recipe", "modified_parameters", "invalid_reference"])
+def test_saved_reference_and_parameter_integrity_is_checked_without_rewriting_answers(generated_visual_unit, fault):
+    from schulpilot.db import LearningUnit
+    from schulpilot.visual_references import projection
+
+    uid, _, _ = generated_visual_unit
+    with DB.begin() as db:
+        unit = db.get(LearningUnit, uid)
+        questions = copy.deepcopy(unit.questions)
+        row = db.get(UnitVisualSnapshot, uid)
+        saved = copy.deepcopy(row.steps)
+        recipe = db.get(VisualReference, ("math.fraction.part_whole", 1))
+        if fault == "missing_recipe":
+            db.delete(recipe)
+        elif fault == "modified_recipe":
+            recipe.recipe = {**recipe.recipe, "purpose": "verändert"}
+        elif fault == "modified_parameters":
+            changed = copy.deepcopy(row.steps)
+            changed[0]["presentation"]["blocks"][0]["numbers"] = [2, 3]
+            row.steps = changed
+        else:
+            changed = copy.deepcopy(row.steps)
+            changed[0]["reference"]["version"] = {"not": "a version"}
+            row.steps = changed
+        db.flush()
+        projected = projection(db, unit)
+        assert projected["explanation_visual_status"] == "incomplete"
+        assert projected["explanation_visual_reason"] == "invalid_graphic"
+        assert projected["explanation_steps"] == []
+        assert unit.questions == questions
+        assert row.status == "ready"
+        if fault in ("missing_recipe", "modified_recipe"):
+            assert row.steps == saved
+
+
+@pytest.mark.parametrize("fault", ["null_steps", "wrong_steps", "null_question_steps", "wrong_question_steps",
+    "wrong_question_step_list", "invalid_step", "missing_source_refs", "wrong_source_refs", "invalid_source_ref",
+    "invalid_lab_ref", "invalid_foundation_ref"])
+def test_corrupted_saved_step_containers_fail_closed_without_a_server_error(generated_visual_unit, fault):
+    from schulpilot.db import LearningUnit
+    from schulpilot.visual_references import projection
+
+    uid, _, _ = generated_visual_unit
+    with DB.begin() as db:
+        row = db.get(UnitVisualSnapshot, uid)
+        if fault == "null_steps":
+            row.steps = None
+        elif fault == "wrong_steps":
+            row.steps = {"bad": []}
+        elif fault == "null_question_steps":
+            row.question_steps = None
+        elif fault == "wrong_question_steps":
+            row.question_steps = []
+        elif fault == "wrong_question_step_list":
+            row.question_steps = {"q1": "not a list"}
+        elif fault == "invalid_step":
+            row.steps = ["not a step"]
+        else:
+            changed = copy.deepcopy(row.steps)
+            if fault == "missing_source_refs":
+                changed[0].pop("source_refs")
+            elif fault == "wrong_source_refs":
+                changed[0]["source_refs"] = "not a list"
+            elif fault in ("invalid_lab_ref", "invalid_foundation_ref"):
+                changed[0]["source_refs"] = [{"source_kind": "curated_lab" if fault == "invalid_lab_ref" else
+                    "curated_foundation", "reference_id": {"bad": "id"}}]
+            else:
+                changed[0]["source_refs"] = [{"material_id": {"bad": "id"}, "revision": 1}]
+            row.steps = changed
+        db.flush()
+        value = projection(db, db.get(LearningUnit, uid))
+        assert value["explanation_visual_status"] == "incomplete"
+        assert value["explanation_visual_reason"] in ("source_changed", "invalid_graphic")
+        assert value["explanation_steps"] == []
+
+
+def test_empty_incomplete_legacy_snapshot_keeps_its_reason(generated_visual_unit):
+    from schulpilot.db import LearningUnit
+    from schulpilot.visual_references import projection
+
+    uid, _, _ = generated_visual_unit
+    with DB.begin() as db:
+        row = db.get(UnitVisualSnapshot, uid)
+        row.steps, row.question_steps = [], {}
+        row.status, row.reason = "incomplete", "missing_steps"
+        db.flush()
+        value = projection(db, db.get(LearningUnit, uid))
+        assert value["explanation_visual_status"] == "incomplete"
+        assert value["explanation_visual_reason"] == "missing_steps"
+        assert value["explanation_steps"] == []

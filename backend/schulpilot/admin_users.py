@@ -730,7 +730,9 @@ def confirm_delete(
 ):
     user, old, request_digest = start(db, p, user_id, "delete", idempotency_key, data, family_delete=True)
     if old:
-        return old.result
+        if old.result.get("cleanup_confirmed") is not True:
+            raise HTTPException(409, "Konto und Datenbankeinträge wurden gelöscht. Die Dateibereinigung ist nicht bestätigt; bitte den Betrieb prüfen.")
+        return {key: value for key, value in old.result.items() if key != "cleanup_confirmed"}
     preview = db.get(AdminUserOperation, data.preview_id, populate_existing=True)
     if (
         not preview
@@ -777,10 +779,16 @@ def confirm_delete(
     }
     # Minimal IDs/counts only; remove older previews for this deleted target.
     db.execute(delete(AdminUserOperation).where(AdminUserOperation.target_id.in_(impact["user_ids"])))
-    receipt(db, p, user_id, "delete", idempotency_key, request_digest, result)
+    # Commit an honest receipt before any irreversible filesystem operation.
+    # A crash, journal error or failed unlink leaves this pending instead of
+    # replaying a claim that the private files have definitely been removed.
+    operation = receipt(db, p, user_id, "delete", idempotency_key, request_digest,
+                        result | {"cleanup_confirmed": False})
     finish(db, result)
-    unlink_uploads(paths)
     flush_journal()
+    unlink_uploads(paths)
+    operation.result = result | {"cleanup_confirmed": True}
+    db.commit()
     return result
 
 

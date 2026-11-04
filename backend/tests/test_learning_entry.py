@@ -733,3 +733,83 @@ def test_previously_answered_question_is_not_fresh_competence_recall(
         assert state["confidence"] != "repeated_recall"
         assert state["tasks"] == state["attempts"] == 4
         assert set(state["evidence_refs"]) == {"attempt:" + row.id for row in [prior, *attempts]}
+
+
+@pytest.mark.parametrize("prior_case", ["unmapped", "historical", "other_goal", "other_subject", "other_child",
+    "ambiguous_subject", "unknown_subject", "private_subject"])
+def test_competence_recall_respects_prior_exposure_and_subject_child_boundaries(source, api, prior_case):
+    from conftest import create_child
+    from schulpilot.db import Subject, SubjectAlias
+    from schulpilot.subject_registry import alias_key
+
+    parent, child, mid = source
+    other = create_child(api, parent, username="another-test-child") if prior_case == "other_child" else None
+    with DB.begin() as db:
+        stamp = int(now())
+        current = dated_expansion_attempt(db, child["id"], mid, 0, stamp - 86400)
+        # The new exercise has an explicit public subject. Only the older
+        # exposure below may have an ambiguous or private identity.
+        db.get(LearningUnit, current.unit_id).subject_id = identity("mathematik")
+        owner_id, source_id = child["id"], mid
+        if other:
+            owner_id = other["id"]
+            page = Material(child_id=owner_id, subject="Mathematik", subject_id=identity("mathematik"),
+                title="Künstliche andere Seite", topic="Brüche", content=CONTENT, confirmed=True, status="confirmed")
+            db.add(page)
+            db.flush()
+            source_id = page.id
+        prior = dated_expansion_attempt(db, owner_id, source_id, 0, stamp - 3 * 86400)
+        unit = db.get(LearningUnit, prior.unit_id)
+        link = db.scalar(select(UnitSource).where(UnitSource.unit_id == unit.id))
+        if prior_case in ("ambiguous_subject", "private_subject"):
+            family_id = db.get(Child, owner_id).family_id
+            private = Subject(id=identity("recall-private-test", family_id), key="recall-private-test",
+                title="Mathematik", owner_family_id=family_id, cover_key="other", active=True, sort_order=100)
+            db.add(private)
+            db.flush()
+            if prior_case == "ambiguous_subject":
+                unit.subject_id = None
+                db.add(SubjectAlias(key=alias_key("Mathematik", family_id), subject_id=private.id,
+                    family_id=family_id, normalized="mathematik"))
+            else:
+                unit.subject_id = private.id
+        if prior_case == "unknown_subject":
+            unit.subject, unit.subject_id = "Unbekanntes historisches Fach", None
+        if prior_case in ("unmapped", "historical", "other_subject"):
+            # No valid current competence binding can establish this as a
+            # fresh result, but the child has still seen the old question.
+            link.revision = 0 if prior_case == "historical" else link.revision
+            if prior_case == "unmapped":
+                unit.questions = [{**unit.questions[0], "type": "unsupported-old-format"}]
+            if prior_case == "other_subject":
+                unit.subject, unit.subject_id = "Deutsch", identity("deutsch")
+        if prior_case == "other_goal":
+            db.add(QuestionCompetence(unit_id=unit.id, question_id="recall", child_id=owner_id,
+                competence_id="math.fractions.reduce", catalog_version=competences.VERSION, role="practice",
+                question_digest=competences.question_digest(unit.questions[0]),
+                source_refs=[competences.source_ref(db, db.get(Material, source_id))], reference_ids=[]))
+        db.flush()
+        if prior_case == "ambiguous_subject":
+            assert unit.subject_id is None
+            assert set(db.scalars(select(SubjectAlias.subject_id).where(
+                SubjectAlias.key.in_([alias_key("Mathematik"), alias_key("Mathematik", family_id)])))) == {
+                    identity("mathematik"), private.id}
+        before = [(current.answer, current.outcome, current.created), (prior.answer, prior.outcome, prior.created)]
+        state = competences.evidence(db, child["id"], ["math.fractions.expand"])[0]
+        assert state["tasks"] == 1
+        assert len(state["successful_check_dates"]) == int(prior_case in (
+            "other_subject", "other_child", "private_subject"))
+        assert before == [(current.answer, current.outcome, current.created), (prior.answer, prior.outcome, prior.created)]
+
+
+def test_competence_without_recall_candidate_does_not_scan_all_question_encounters(source, monkeypatch):
+    _, child, _ = source
+
+    def unexpected_scan(*_args):
+        raise AssertionError("Ohne Abrufkandidaten darf keine Gesamtsuche starten")
+
+    monkeypatch.setattr(competences, "first_question_encounters", unexpected_scan)
+    with DB() as db:
+        assert competences.evidence(db, child["id"], []) == []
+        state = competences.evidence(db, child["id"], ["math.fractions.expand"])[0]
+        assert state["tasks"] == 0 and state["successful_check_dates"] == []

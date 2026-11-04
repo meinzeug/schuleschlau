@@ -12,7 +12,7 @@ import hashlib
 from fastapi import HTTPException
 from sqlalchemy import select, update
 
-from .config import runtime_settings, settings
+from .config import runtime_settings
 from .db import (
     DB,
     Child,
@@ -580,7 +580,9 @@ def process(job_id):
             config = job_config(db, job, "extract")
             values = {c.name: getattr(config, c.name) for c in ProviderConfig.__table__.columns}
             route_snapshot = copy.deepcopy(selection(config))
-            image = (settings.data_dir / "uploads" / material.path).read_bytes() if material.path else None
+            from .private_images import read
+
+            image = read(material.path)
             if not image or hashlib.sha256(image).hexdigest() != job.payload[KEY]["image_digest"]:
                 raise ProviderError("Das gespeicherte Foto wurde seit dem Prüfauftrag geändert.")
             payload = request(snapshot)
@@ -602,10 +604,10 @@ def process(job_id):
             if job.status != "running":
                 return
             material, snapshot, _, _ = guard(db, job)
+            current_image = read(material.path)
             if (
-                not image
-                or hashlib.sha256((settings.data_dir / "uploads" / material.path).read_bytes()).hexdigest()
-                != job.payload[KEY]["image_digest"]
+                not image or current_image is None
+                or hashlib.sha256(current_image).hexdigest() != job.payload[KEY]["image_digest"]
             ):
                 raise ProviderError("Das gespeicherte Foto wurde während des Prüfauftrags geändert.")
             from .source_lineage import extraction_receipt

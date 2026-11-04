@@ -53,6 +53,7 @@ class _LearningPreparationScreenState extends State<_LearningPreparationBody>
   Timer? poll;
   Object? error;
   String? readingJob;
+  bool refreshAfterRead = false;
   late final Json? owner;
   late final String? family, session;
   bool foreground = true;
@@ -64,6 +65,11 @@ class _LearningPreparationScreenState extends State<_LearningPreparationBody>
       widget.state.api.token == session;
   bool get waiting =>
       job == null || ['queued', 'running'].contains(job?['status']);
+  bool get recoverableReadError =>
+      error == null ||
+      (error is ApiError &&
+          ((error as ApiError).status == 0 ||
+              (error as ApiError).status >= 500));
 
   @override
   void initState() {
@@ -106,9 +112,13 @@ class _LearningPreparationScreenState extends State<_LearningPreparationBody>
     if (foreground &&
         sameOwner &&
         waiting &&
-        error == null &&
+        recoverableReadError &&
         (ModalRoute.of(context)?.isCurrent ?? true)) {
-      load();
+      if (readingJob != null) {
+        refreshAfterRead = true;
+      } else {
+        unawaited(load());
+      }
     }
   }
 
@@ -153,6 +163,17 @@ class _LearningPreparationScreenState extends State<_LearningPreparationBody>
       if (mounted && sameOwner && id == widget.jobId) setState(() => error = e);
     } finally {
       if (readingJob == id) readingJob = null;
+      if (refreshAfterRead) {
+        refreshAfterRead = false;
+        if (mounted &&
+            foreground &&
+            sameOwner &&
+            waiting &&
+            recoverableReadError &&
+            (ModalRoute.of(context)?.isCurrent ?? true)) {
+          unawaited(load());
+        }
+      }
     }
   }
 

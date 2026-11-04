@@ -34,6 +34,8 @@ class _StudyPathPanelState extends State<StudyPathPanel>
   final privateRoutes = <Route<dynamic>>{};
   Timer? poll;
   bool reading = false, posting = false, polling = false;
+  bool refreshAfterRead = false;
+  int? lastReadStatus;
   bool foreground = true, routeVisible = true;
   final failedJobs = <String>{};
   final exhaustedBlocks = <String, String?>{};
@@ -106,6 +108,8 @@ class _StudyPathPanelState extends State<StudyPathPanel>
       closePrivateRoutes();
       activeJob = openingJob = readError = actionError = null;
       reading = posting = polling = false;
+      refreshAfterRead = false;
+      lastReadStatus = null;
       failedJobs.clear();
       exhaustedBlocks.clear();
       renewedFailedKeys.clear();
@@ -120,8 +124,10 @@ class _StudyPathPanelState extends State<StudyPathPanel>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    final wasVisible = routeVisible;
     routeVisible = ModalRoute.of(context)?.isCurrent ?? true;
     if (!routeVisible) openingJob = null;
+    if (!wasVisible && active) refreshVisible();
     schedule();
   }
 
@@ -131,9 +137,7 @@ class _StudyPathPanelState extends State<StudyPathPanel>
     poll?.cancel();
     poll = null;
     if (!foreground) openingJob = null;
-    if (foreground && routeVisible && ownerMatches && waiting) {
-      unawaited(load());
-    }
+    if (active) refreshVisible();
   }
 
   void identityChanged() {
@@ -160,11 +164,23 @@ class _StudyPathPanelState extends State<StudyPathPanel>
   void schedule() {
     poll?.cancel();
     poll = null;
-    if (!active || !waiting) return;
+    if (!active || !waiting || blockedRead) return;
     poll = Timer(Duration(seconds: 3), () {
       poll = null;
       if (active && waiting) unawaited(checkJob());
     });
+  }
+
+  bool get blockedRead =>
+      lastReadStatus != null && lastReadStatus! >= 400 && lastReadStatus! < 500;
+
+  void refreshVisible() {
+    if (!active || blockedRead) return;
+    if (reading) {
+      refreshAfterRead = true;
+    } else {
+      unawaited(load());
+    }
   }
 
   Future<void> load() async {
@@ -177,6 +193,7 @@ class _StudyPathPanelState extends State<StudyPathPanel>
         setState(() {
           path = data;
           readError = null;
+          lastReadStatus = null;
           final replacementPending = blocks.any(
             (block) =>
                 block['id'] == actionErrorBlock &&
@@ -214,12 +231,29 @@ class _StudyPathPanelState extends State<StudyPathPanel>
       }
     } catch (error) {
       if (mounted && version == generation && ownerMatches) {
-        setState(() => readError = _studyError(error, child: state.isChild));
+        setState(() {
+          lastReadStatus = error is ApiError ? error.status : null;
+          readError = _studyError(error, child: state.isChild);
+          if (error is ApiError &&
+              (error.status == 403 || error.status == 404)) {
+            path = null;
+            activeJob = openingJob = null;
+          }
+        });
       }
     } finally {
       if (version == generation) {
         if (mounted) setState(() => reading = false);
-        schedule();
+        if (refreshAfterRead) {
+          refreshAfterRead = false;
+          if (active && !blockedRead) {
+            unawaited(load());
+          } else {
+            schedule();
+          }
+        } else {
+          schedule();
+        }
       }
     }
   }
@@ -363,7 +397,15 @@ class _StudyPathPanelState extends State<StudyPathPanel>
       }
     } catch (error) {
       if (mounted && version == generation && ownerMatches) {
-        setState(() => readError = _studyError(error, child: state.isChild));
+        setState(() {
+          lastReadStatus = error is ApiError ? error.status : null;
+          readError = _studyError(error, child: state.isChild);
+          if (error is ApiError &&
+              (error.status == 403 || error.status == 404)) {
+            path = null;
+            activeJob = openingJob = null;
+          }
+        });
       }
     } finally {
       if (version == generation) {

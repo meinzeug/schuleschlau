@@ -510,3 +510,40 @@ def test_private_avatar_get_also_requires_matching_actor_assertion(api, mailbox)
     assert (
         api.put(URL, files={"file": ("a.png", picture())}, headers=headers(meta["avatar_revision"])).status_code == 409
     )
+
+
+def test_unavailable_avatar_is_visible_in_export_and_fifo_does_not_block(api, household):
+    user, child = household
+    parent_meta = upload(api).json()
+    parent_file = own_files(user["id"])[0]
+    parent_file.unlink()
+    with TestClient(app, headers=HEADERS) as kid:
+        token = kid.post(
+            "/api/auth/login", json={"username": child["username"], "password": "secure-child-pass-123"}
+        ).json()["token"]
+        kid.headers["Authorization"] = "Bearer " + token
+        kid_meta = upload(kid).json()
+        kid_id = kid.get("/api/auth/me").json()["id"]
+        kid_file = own_files(kid_id)[0]
+        kid_file.unlink()
+        os.mkfifo(kid_file)
+        assert kid.get("/api" + kid_meta["avatar_url"]).status_code == 404
+    assert api.get("/api" + parent_meta["avatar_url"]).status_code == 404
+    child_export = api.get(f"/api/children/{child['id']}/export")
+    assert child_export.status_code == 200
+    with zipfile.ZipFile(io.BytesIO(child_export.content)) as archive:
+        missing = json.loads(archive.read("fehlende-fotos.json"))
+        assert missing["material_ids"] == []
+        assert missing["profilbilder"] == [{"typ": "kind", "kind_id": child["id"]}]
+        assert "profile/avatar.jpg" not in archive.namelist()
+    without = api.get(f"/api/children/{child['id']}/export?include_photos=false")
+    with zipfile.ZipFile(io.BytesIO(without.content)) as archive:
+        assert archive.namelist() == ["child.json"]
+    family_export = api.get(f"/api/families/{user['families'][0]['id']}/export")
+    assert family_export.status_code == 200
+    with zipfile.ZipFile(io.BytesIO(family_export.content)) as archive:
+        missing = json.loads(archive.read("fehlende-fotos.json"))
+        assert missing["profilbilder"] == [{"typ": "konto"}, {"typ": "kind", "kind_id": child["id"]}]
+        assert "account/avatar.jpg" not in archive.namelist()
+        assert f"children/{child['id']}/avatar.jpg" not in archive.namelist()
+    kid_file.unlink()

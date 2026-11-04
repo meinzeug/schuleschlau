@@ -185,6 +185,109 @@ void _pause(WidgetTester tester) {
 
 void main() {
   sessionReplacementTest();
+  testWidgets('resuming while the first path read is pending revalidates it', (
+    tester,
+  ) async {
+    _viewport(tester);
+    final first = Completer<http.Response>();
+    final methods = <String>[];
+    var reads = 0;
+    final state = _state(
+      MockClient((request) async {
+        methods.add(request.method);
+        reads++;
+        if (reads == 1) return first.future;
+        return _json(_path(blocks: [_block('new')]));
+      }),
+    );
+    final router = await _open(tester, state);
+    addTearDown(() => _resume(tester));
+    _pause(tester);
+    await tester.pump();
+    _resume(tester);
+    await tester.pump();
+    first.complete(_json(_path()));
+    await tester.pump();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(reads, 2);
+    expect(methods, ['GET', 'GET']);
+    expect(find.text('Brüche new'), findsOneWidget);
+    expect(find.text('Brüche first'), findsNothing);
+    expect(tester.takeException(), isNull);
+    await _dispose(tester, router);
+  });
+  for (final status in [403, 404, 429]) {
+    testWidgets('resumed path respects HTTP $status and does not retry', (
+      tester,
+    ) async {
+      _viewport(tester);
+      var reads = 0;
+      final methods = <String>[];
+      final state = _state(
+        MockClient((request) async {
+          methods.add(request.method);
+          reads++;
+          if (reads == 1) {
+            return _json(_path(blocks: [_block('first')]));
+          }
+          return http.Response(
+            jsonEncode({'detail': 'Nicht verfügbar'}),
+            status,
+            headers: {'content-type': 'application/json; charset=utf-8'},
+          );
+        }),
+      );
+      final router = await _open(tester, state);
+      addTearDown(() => _resume(tester));
+      expect(find.text('Brüche first'), findsOneWidget);
+      _pause(tester);
+      await tester.pump();
+      _resume(tester);
+      await tester.pump();
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 6));
+      expect(reads, 2);
+      expect(methods, ['GET', 'GET']);
+      if (status != 429) {
+        expect(find.text('Brüche first'), findsNothing);
+      }
+      _pause(tester);
+      await tester.pump();
+      _resume(tester);
+      await tester.pump();
+      expect(reads, 2);
+      expect(tester.takeException(), isNull);
+      await _dispose(tester, router);
+    });
+  }
+  testWidgets('resumed path read never follows an old session', (tester) async {
+    _viewport(tester);
+    final first = Completer<http.Response>();
+    final methods = <String>[];
+    final state = _state(
+      MockClient((request) async {
+        methods.add(request.method);
+        return first.future;
+      }),
+    )..api.token = 'session-a';
+    final router = await _open(tester, state);
+    addTearDown(() => _resume(tester));
+    _pause(tester);
+    await tester.pump();
+    _resume(tester);
+    await tester.pump();
+    state.api.token = 'session-b';
+    state.refreshState();
+    await tester.pump();
+    first.complete(_json(_path()));
+    await tester.pump();
+    await tester.pump();
+    expect(methods, ['GET']);
+    expect(find.text('Brüche first'), findsNothing);
+    expect(tester.takeException(), isNull);
+    await _dispose(tester, router);
+  });
   testWidgets('A completed prior check offers the actual topic explicitly', (
     tester,
   ) async {

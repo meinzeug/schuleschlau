@@ -189,7 +189,7 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
 
     final wasVisible = routeVisible;
     routeVisible = ModalRoute.of(context)?.isCurrent ?? true;
-    if (!wasVisible && active) unawaited(load());
+    if (!wasVisible && active) unawaited(load(force: true));
     schedule();
   }
 
@@ -205,7 +205,9 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
     }
     poll?.cancel();
     poll = null;
-    if (active) unawaited(load());
+    // An earlier GET can have been issued before the app went to the
+    // background. Revalidate it even when it is still in flight.
+    if (active) unawaited(load(force: true));
   }
 
   void identityChanged() {

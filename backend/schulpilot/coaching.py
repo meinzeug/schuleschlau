@@ -280,19 +280,29 @@ def goal_states(db, unit):
         for goal_id, items in groups.items():
             for item in items:
                 (contribution_goals if open_contribution(item) else assessed_goals).add(goal_id)
-                bounds = attempt_bounds.get((old.id, item["question_id"]))
-                if not bounds:
-                    continue
-                signature = ((fraction_task_signature(item["prompt"]) or normalized_prompt(item["prompt"]))
-                    if old.subject.casefold() in ("mathe", "mathematik") else
-                    " ".join(unicodedata.normalize("NFC", item["prompt"]).split()))
-                encounters.setdefault((goal_id, signature), []).append((bounds[0], old.id, item["question_id"]))
+        # Exposure belongs to the question, not to the later goal mapping.
+        # Earlier unmapped, wrongly mapped and open questions still mean the
+        # child has encountered the same task. Do not turn them into a new
+        # recall test by assigning a different goal on a later round.
+        for question in old.questions:
+            item = by_id[question["id"]]
+            bounds = attempt_bounds.get((old.id, item["question_id"]))
+            if not bounds:
+                continue
+            goal_id = question.get("learning_goal_id") or mapping.get(question["id"])
+            eligible_goal = (goal_id in dates and
+                not conflicting_fraction_goal(question["prompt"], labels[goal_id]) and not open_contribution(item))
+            signature = ((fraction_task_signature(item["prompt"]) or normalized_prompt(item["prompt"]))
+                if old.subject.casefold() in ("mathe", "mathematik") else
+                " ".join(unicodedata.normalize("NFC", item["prompt"]).split()))
+            encounters.setdefault(signature, []).append((bounds[0], old.id, item["question_id"],
+                goal_id if eligible_goal else None))
     fresh_groups = set()
-    for (goal_id, _), values in encounters.items():
+    for values in encounters.values():
         first = min(value[0] for value in values)
         earliest = [value for value in values if value[0] == first]
-        if len(earliest) == 1:
-            fresh_groups.add((earliest[0][1], goal_id))
+        if len(earliest) == 1 and earliest[0][3] is not None:
+            fresh_groups.add((earliest[0][1], earliest[0][3]))
     checks = []
     for old in chain:
         groups = groups_by_unit[old.id]

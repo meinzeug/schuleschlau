@@ -179,8 +179,12 @@ def discard_import(child_id: str, import_id: str, p=Depends(authenticated), db=D
     if row.status != "review" or (job and job.status in ("queued", "running")):
         raise HTTPException(409, "Nur noch nicht übernommene Wortvorschläge können verworfen werden. Laufende Erkennungen und gespeicherte Wörter bleiben geschützt.")
     rate_limit(db, "vocabulary-discard:" + p.user.id, 30, 3600, commit=False)
+    from .erasure import flush_journal, request
+
+    request(db, "vocab_import", row.id)
     db.delete(row)
     db.commit()
+    flush_journal()
     return {"message": "Nur offene Wortvorschläge verworfen. Heftseite, Wortschatz und Übungsbelege bleiben erhalten."}
 
 
@@ -672,8 +676,12 @@ def delete_item(child_id: str, item_id: str, revision: int | None = Query(None, 
         raise HTTPException(404, "Wort nicht gefunden.")
     if revision is not None and item.revision != revision:
         raise HTTPException(409, "Das Wort wurde inzwischen geändert. Bitte die aktuelle Fassung erneut prüfen.")
+    from .erasure import flush_journal, request
+
+    request(db, "vocab_item", item.id)
     db.delete(item)
     db.commit()
+    flush_journal()
     return {"message": "Wort und Wiederholungszustand gelöscht. Bereits abgegebene Antworten bleiben im Lernverlauf."}
 
 
@@ -778,6 +786,13 @@ def create_collection(child_id: str, data: CollectionDraft, idempotency_key: str
         raise HTTPException(422, "Bitte einen Namen für die Sammlung eingeben.")
     identity_key = digest("word-collection-v1:" + p.user.id + ":" + child.id + ":" + idempotency_key)[:32]
     existing = db.get(VocabularyCollection, identity_key)
+    if not existing:
+        from .db import ErasureRequest
+
+        if db.scalar(select(ErasureRequest.id).where(
+            ErasureRequest.scope == "vocab_set", ErasureRequest.target == identity_key
+        )):
+            raise HTTPException(409, "Diese Sammlung wurde gelöscht. Bitte eine neue Sammlung anlegen.")
     if existing:
         if existing.child_id != child.id or existing.title != title or existing.target_locale != data.target_locale:
             raise HTTPException(409, "Dieser Speicherschlüssel gehört zu einer anderen Sammlung.")
@@ -821,8 +836,12 @@ def erase_collection(child_id: str, collection_id: str, data: CollectionErase,
     if collection_data(db, row)["snapshot"] != data.snapshot:
         raise HTTPException(409, "Die Sammlung wurde inzwischen geändert. Bitte ihre aktuelle Vorschau prüfen.")
     rate_limit(db, "vocabulary-collection:" + p.user.id, 30, 3600, commit=False)
+    from .erasure import flush_journal, request
+
+    request(db, "vocab_set", row.id)
     db.delete(row)
     db.commit()
+    flush_journal()
     return {"message": "Sammlung entfernt. Wörter, Wiederholungsstände und Antworten bleiben erhalten."}
 
 

@@ -8,7 +8,6 @@ rounds and answers. Reprocessing preserves them and reserves one extraction.
 
 import hashlib
 import json
-import shutil
 from datetime import date, datetime, time
 from types import SimpleNamespace
 from typing import Literal
@@ -206,10 +205,12 @@ def delete_rows(db, child, rows):
 
 def remove_files(paths):
     from .erasure import flush_journal
+    from .private_images import remove
 
-    for path in paths:
-        (settings.data_dir / "uploads" / path).unlink(missing_ok=True)
+    # Persist restore protection even if local file deletion subsequently fails.
     flush_journal()
+    for path in paths:
+        remove(path)
 
 
 def delete_preview(child_id: str, data: DeletePreview, p=Depends(authenticated), db=Depends(get_db)):
@@ -358,8 +359,10 @@ def reprocess(
         raise HTTPException(409, "Die Seite wurde inzwischen geändert. Bitte neu laden.")
     if source.synthetic or source.fixture_id or not source.path:
         raise HTTPException(409, "Diese Beispielseite hat kein eigenes Foto zum erneuten Einlesen.")
-    original = settings.data_dir / "uploads" / source.path
-    if not original.is_file():
+    from .private_images import read
+
+    original = read(source.path)
+    if original is None:
         raise HTTPException(409, "Das ursprüngliche Foto ist nicht mehr vorhanden. Bitte fotografiere die Seite neu.")
     ensure_idle(db, child.id)
     if (source.school_day_id and not source.confirmed and source.status in ("review", "unreadable")
@@ -378,7 +381,7 @@ def reprocess(
     new_path = uid() + ".jpg"
     destination = directory / new_path
     try:
-        shutil.copyfile(original, destination)
+        destination.write_bytes(original)
         destination.chmod(0o600)
         clone = Material(
             purpose=source.purpose,

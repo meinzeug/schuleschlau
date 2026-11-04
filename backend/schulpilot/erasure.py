@@ -18,7 +18,8 @@ from sqlalchemy import delete, select
 from .config import settings
 from .db import DB, Assignment, Child, ErasureRequest, Family, LearningUnit, Material, Membership, SchoolDay, User, now
 
-SCOPES = ("family", "child", "user", "material", "membership", "unit", "assignment", "grade", "grade_import", "grade_slot")
+VOCABULARY_SCOPES = ("vocab_item", "vocab_import", "vocab_set")
+SCOPES = ("family", "child", "user", "material", "membership", "unit", "assignment", "grade", "grade_import", "grade_slot", *VOCABULARY_SCOPES)
 
 
 def validate_grade_details(details):
@@ -68,7 +69,7 @@ def verify(raw, key):
     expected = json.loads(signed(record, key))["signature"]
     if not hmac.compare_digest(value["signature"], expected):
         raise ValueError("Erasure journal authentication failed")
-    if record.get("resource_kind") not in (None, "assignment", "grade", "grade_import", "grade_slot") or (
+    if record.get("resource_kind") not in (None, "assignment", "grade", "grade_import", "grade_slot", *VOCABULARY_SCOPES) or (
         record.get("resource_kind") and record["scope"] != "unit"
     ):
         raise ValueError("Invalid erasure resource kind")
@@ -76,7 +77,7 @@ def verify(raw, key):
         validate_grade_details(record.get('details'))
     elif 'details' in record:
         raise ValueError('Unexpected erasure details')
-    if record["scope"] not in SCOPES or record['scope'] in ('grade', 'grade_import', 'grade_slot'):
+    if record["scope"] not in SCOPES or record['scope'] in ('grade', 'grade_import', 'grade_slot', *VOCABULARY_SCOPES):
         raise ValueError("Invalid erasure scope")
     if not all(re.fullmatch(r"[a-f0-9]{32}", record[k]) for k in ("id", "target")):
         raise ValueError("Invalid erasure identifier")
@@ -110,7 +111,7 @@ def flush_journal():
                 if row.scope == "assignment":
                     record["scope"] = "unit"
                     record["resource_kind"] = "assignment"
-                elif row.scope in ('grade', 'grade_import', 'grade_slot'):
+                elif row.scope in ('grade', 'grade_import', 'grade_slot', *VOCABULARY_SCOPES):
                     if row.scope == 'grade':
                         validate_grade_details(row.details)
                         record['details'] = row.details
@@ -153,15 +154,26 @@ def reconcile(db, records):
 
     records = [
         {**record, "scope": record['resource_kind']}
-        if record["scope"] == "unit" and record.get("resource_kind") in ('assignment', 'grade', 'grade_import', 'grade_slot')
+        if record["scope"] == "unit" and record.get("resource_kind") in ('assignment', 'grade', 'grade_import', 'grade_slot', *VOCABULARY_SCOPES)
         else record for record in records
     ]
     paths = []
     # Collect image paths before user cascades can remove their Material rows.
     order = {"family": 0, "child": 1, "grade": 2, "grade_import": 3, "grade_slot": 4, "unit": 5,
-             "assignment": 6, "material": 7, "membership": 8, "user": 9}
+             "assignment": 6, "vocab_item": 7, "vocab_import": 8, "vocab_set": 9,
+             "material": 10, "membership": 11, "user": 12}
     for record in sorted(records, key=lambda record: order[record["scope"]]):
         scope, target = record["scope"], record["target"]
+        if scope in VOCABULARY_SCOPES:
+            from .db import VocabularyCollection, VocabularyImport, VocabularyItem
+
+            model = {"vocab_item": VocabularyItem, "vocab_import": VocabularyImport,
+                     "vocab_set": VocabularyCollection}[scope]
+            row = db.get(model, target)
+            if row is not None:
+                db.delete(row)
+                db.flush()
+            continue
         if scope in ('grade_import', 'grade_slot'):
             from .db import GradeImport, GradeSourceSlot
 

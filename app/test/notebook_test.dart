@@ -1031,6 +1031,72 @@ void main() {
     },
   );
 
+  testWidgets('notebook refreshes after a change during a pending page GET', (
+    tester,
+  ) async {
+    final first = Completer<http.Response>();
+    var pageGets = 0;
+    final (state, _, requests) = await open(
+      tester,
+      settle: false,
+      respond: (request) async {
+        if (request.url.path.endsWith('/subjects')) {
+          return jsonReply(subjects());
+        }
+        if (request.url.path.endsWith('/image')) {
+          return http.Response.bytes(
+            img.encodePng(img.Image(width: 2, height: 2)),
+            200,
+          );
+        }
+        pageGets++;
+        if (pageGets == 1) return first.future;
+        final result = pages(request, photos: false);
+        (result['items'] as List).first['topic'] = 'Neu gespeicherte Seite';
+        return jsonReply(result);
+      },
+    );
+    expect(pageGets, 1);
+    state.refreshState();
+    state.refreshState();
+    await tester.pump();
+    final request = requests.last;
+    first.complete(jsonReply(pages(request, photos: false)));
+    await tester.pumpAndSettle();
+    expect(pageGets, 2);
+    expect(find.text('Neu gespeicherte Seite'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('pending notebook refresh is cancelled at logout', (
+    tester,
+  ) async {
+    final first = Completer<http.Response>();
+    var pageGets = 0;
+    final (state, _, requests) = await open(
+      tester,
+      settle: false,
+      respond: (request) async {
+        if (request.url.path.endsWith('/subjects')) {
+          return jsonReply(subjects());
+        }
+        pageGets++;
+        return first.future;
+      },
+    );
+    state.refreshState();
+    state.user = null;
+    state.notifyListeners();
+    await tester.pump();
+    first.complete(jsonReply(pages(requests.last, photos: false)));
+    await tester.pumpAndSettle();
+    expect(pageGets, 1);
+    expect(find.text('Lernstoff 0'), findsNothing);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+  });
+
   for (final brightness in Brightness.values) {
     for (final width in [320.0, 1280.0]) {
       testWidgets(

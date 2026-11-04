@@ -537,6 +537,14 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
 
 - [ ] **P1 – Abruf und Lernplanung nachvollziehbar abnehmen**
 
+  **04.11.2026, frühere Aufgabenbegegnungen:** Persönliche Beiträge,
+  historische und anders zugeordnete Aufgaben können keine wiederholte
+  Wissensfrage zu einem neuen Abrufnachweis machen. Unklare alte Fachangaben
+  werden für diesen Zweck vorsichtig behandelt; eindeutig andere Kinder und
+  Fächer bleiben getrennt. Gespeicherte Antworten und Zuordnungen bleiben
+  erhalten. 101 künstliche SQLite-Fälle und 17 gezielte Fälle auf isoliertem
+  PostgreSQL bestanden. Die mobile Mehrtagesabnahme bleibt offen.
+
   **04.11.2026, Antwortzeiten und eigene Beiträge:** Auch beantwortete
   Aufgaben aus noch offenen Runden sind bereits bekannt; für spätere
   Abrufbelege zählt der gespeicherte Antwortzeitpunkt. Bei identischen
@@ -946,6 +954,31 @@ Die folgenden Punkte beschreiben ausstehende, wiederholbare Betriebs- und Freiga
   automatisierte Freigabeprüfung ersetzt keinen unabhängigen Sicherheitstest.
 - [ ] **P1 – Datenlebenszyklus und Löschung pro Datenart prüfen**
 
+  - [x] **Vokabeln nach Löschung und Ablauf vor Wiederherstellung schützen.**
+    Einzelwörter, Vorschläge und Sammlungen erhalten signierte Belege;
+    idempotentes Replay und Kaskaden sind künstlich geprüft. Alte Restoretools
+    verstehen die neuen Belegtypen nicht. Vor Aktivierung ist die in
+    [VOCABULARY_ERASURE_2026_11_04.md](docs/VOCABULARY_ERASURE_2026_11_04.md)
+    festgelegte Upgrade-Reihenfolge erforderlich; historisch fehlende Belege
+    werden nicht erfunden. [Datenmatrix](docs/DATA_LIFECYCLE_CHECKS_2026_11_04.md).
+
+  **04.11.2026, Schutz privater Bilddateien:** Anzeige, Exporte, OCR und
+  Wiederverarbeitung öffnen begrenzte reguläre JPG-Dateien innerhalb des
+  Uploadverzeichnisses ohne symbolische oder harte Links. Fehlende Fotos
+  werden im Export benannt. 59 künstliche SQLite-Fälle bestanden mit zwei
+  PostgreSQL-Skips; vier gezielte Fälle bestanden auf isoliertem PostgreSQL.
+  Eine sichere Dateipfadprüfung beweist bei beschädigter Datenbank keine
+  Eigentümerschaft. Externe Aufbewahrungsfristen und die vollständige
+  Löschmatrix bleiben offen. Profilbilder verwenden dieselbe sichere
+  Verzeichnisöffnung mit eigener Größen- und Hashprüfung; fehlende Profilbilder
+  sind beim Fotoexport ebenfalls aufgeführt. 33 Profil-/Dateifälle bestanden
+  auf SQLite und zwei gezielte Fälle auf isoliertem PostgreSQL.
+  Bei einer nicht sicher zugänglichen Uploadablage wird das Löschjournal
+  vor dem Dateischritt veröffentlicht. Ein Admin-Wiederholungsbeleg meldet
+  die Bereinigung erst nach bestätigtem Abschluss; alte unbelegte Belege
+  bleiben vorsichtig. Jeweils künstliche Fehlerfälle wurden auf SQLite und
+  isoliertem PostgreSQL geprüft.
+
   **Teilprüfung 02.11.2026:** 21 künstliche SQLite-Fälle zu Aufbewahrung und
   Notenwiederherstellung bestanden; [Prüfbericht](docs/ROADMAP_MODULE_CHECKS_2026_11_02.md#datenlebenszyklus-und-löschung).
 
@@ -1337,6 +1370,15 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Kapazitätsannahmen vor wachsendem Betrieb messen**
 
+  **04.11.2026, isoliertes Lastprofil:** Parallele Übersichts-GETs sowie
+  gleichzeitige Upload- und Auftragswiederholungen wurden auf temporärem
+  PostgreSQL mit künstlichen Daten gemessen. Foto und Auftrag blieben bei
+  gleichem Schlüssel jeweils einmalig. Messwerte, reproduzierbarer Aufruf und
+  Grenzen stehen in [CAPACITY_PROFILE_2026_11_04.md](docs/CAPACITY_PROFILE_2026_11_04.md).
+  Drei weitere künstliche Familien mit knapp 2 MB großen Fotos bestanden
+  denselben begrenzten Auftragsweg; größere Last, Worker, reale Netzwerkpfade
+  und Betriebsgrenzen bleiben offen.
+
   Auf isolierter, produktionsähnlicher PostgreSQL-Umgebung mit künstlichen Daten gleichzeitig aktive Sitzungen, Uploads, Listen, Jobreservierungen und Worker-Warteschlangen stufenweise prüfen; keine unautorisierten bezahlten Anbieteraufrufe auslösen.
 
   **Abnahme:** Testprofil, Parallelität, Laufzeit, Fehler, p95-Latenz, Warteschlangentiefe, Ressourcen und Engpass samt Messzeitpunkt dokumentiert sind, realistische Betriebsgrenzen und Alarmwerte daraus abgeleitet und relevante Sperren/Idempotenz unter Konkurrenz bestätigt sind. Ohne Messung keine Nutzerzahl oder Skalierungszusage behaupten.
@@ -1375,6 +1417,15 @@ Bestandteil des bestehenden Buildvertrags.
   **Abnahme:** Mehrseitenfall und Fehlermatrix belegen eindeutige Phasenzuordnung, normale Kosten-/Versuchsgrenzen, keine Doppelaufträge und sichere Fortsetzung; zusätzlich mit künstlichen Inhalten echte freigegebene Anbieteraufrufe durchführen und deren Umfang, Kosten und Restrisiken dokumentieren.
 
 - [ ] **P1 – Referenzdatenbank und Medienauswahl wirksam prüfen**
+
+  - [x] **Referenz- und Parameterintegrität bei Anzeige und Übernahme prüfen.**
+    Versions-, Rezept- und Parameter-Fingerabdrücke werden geprüft; veränderte
+    oder fehlende Vorlagen führen zu unvollständiger Darstellung und ändern
+    keine Antworten. Der künstliche Videoklick erzeugt keinen Leistungs- oder
+    Zeitbeleg. 285 breite und zehn abschließende SQLite-Fälle, 20 PostgreSQL-
+    Fälle sowie 144 Flutter-Widgetfälle bestanden. Ältere Snapshots ohne
+    Prüfsummen erscheinen unvollständig. Eine fachkundige Sichtung ist damit
+    nicht ersetzt.
 
   **Teilprüfung 02.11.2026:** 109 synthetische SQLite-Fälle zu Auswahl,
   Quellen- und Referenzbindung bestanden; Umfang und Grenzen:
@@ -1426,6 +1477,12 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Hefte, Materialarten und Suche im digitalen Ranzen abnehmen**
 
+  **04.11.2026, laufende Abfrage:** Eine Materialänderung während eines
+  Seitenabrufs verwirft das überholte Ergebnis und bündelt Änderungen in
+  einem Folgeabruf; Logout verhindert die Wiederaufnahme. 79 Widgetfälle
+  und zwei Chrome-Fälle bei 390 Pixeln bestanden. Die vollständige Quellen-,
+  Rechte- und Medienabnahme bleibt offen.
+
   **Teilprüfung 02.11.2026:** 34 künstliche SQLite-Fälle und drei dort
   übersprungene Sperrentests auf PostgreSQL bestanden;
   [Prüfbericht](docs/ROADMAP_MODULE_CHECKS_2026_11_02.md#hefte-und-digitaler-ranzen).
@@ -1474,6 +1531,12 @@ Bestandteil des bestehenden Buildvertrags.
   **Abnahme:** Fehlerzustände und tatsächlich wirksame Limits sind verständlich; Notfallstopp bleibt bei gestörter Providerabfrage erreichbar, Änderungen sind auditiert, parallele Bearbeitung und widerrufene Sitzungen werden korrekt behandelt.
 
 - [ ] **P1 – Benachrichtigung und direkte Zielnavigation vollständig prüfen**
+
+  **04.11.2026, Ungelesenfilter:** Der Filter berücksichtigt neu geladene
+  und eintreffende ungelesene Karten, ohne unbekannte ältere Seiten als
+  gelesen auszugeben. 59 Widgetfälle und zwei Chrome-Fälle, einer bei
+  390 × 760 Pixeln mit doppelter Schrift, bestanden. Das belegt keine
+  native Zustellung oder vollständige Zielnavigation.
 
   - [x] **04.11.2026, serverseitige Cursor-Fortsetzung und begrenzter
     Glockencache:** Das optionale paginierte API-Format führt Ereignisquellen
@@ -1746,6 +1809,22 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Echtzeitstatus gezielt und zuverlässig bereitstellen**
 
+  - [x] **Wiederaufnahme laufender Vorbereitungs-, Foto- und Lernwegansichten
+    gegen überholte GETs absichern.** Nach Rückkehr folgen gezielte GETs,
+    4xx/429 lösen keine unbeabsichtigte Wiederholung aus; bei Rechteverlust
+    werden private Altansichten entfernt. Künstliche Tests decken unter
+    anderem 54 Foto- und 51 Lernweg-Widgetfälle sowie Chrome-Fälle ab.
+    [Bestandsaufnahme und Grenzen](docs/REALTIME_STATUS.md). Geräteübergreifende
+    Abnahme und tatsächliche Zustellung bleiben eigenständig offen.
+
+  **04.11.2026, Statuswiederaufnahme:** Die untersuchten Ansichten verwenden
+  gezielte GET-Aktualisierungen; ein SSE-/WebSocket-Endpunkt wurde dabei nicht
+  gefunden. Die Rundenvorbereitung prüft den Status nach vorübergehendem
+  Verbindungs- oder Serverfehler bei Rückkehr erneut, auch wenn noch ein älterer
+  Abruf läuft. HTTP 429 und andere 4xx lösen keinen automatischen Versuch aus.
+  35 Widget- und vier Chrome-Fälle bei 390 Pixeln bestanden. Geräteübergreifende
+  Zustellung und vollständige Abnahme bleiben offen; GET startet keinen Auftrag.
+
   Für Fotoverarbeitung, Lernrundenvorbereitung, Benachrichtigungen und andere tatsächlich zeitkritische Ansichten die vorhandenen Aktualisierungswege erfassen. Wo sinnvoll, authentifizierte SSE- oder WebSocket-Ereignisse oder gleichwertige gezielte Aktualisierung einsetzen: Familienzuordnung, Wiederverbindung, Ereignisverlust, Gerätewechsel und Hintergrundzustand beachten. Keine komplette Seite in störenden Abständen neu laden; Statusabrufe und Wiederverbindung dürfen keine KI-Aufträge oder Kosten auslösen. Weniger kritische Ansichten nach belegtem Bedarf aktualisieren, ohne einen pauschalen Umbau als Erfolg auszugeben.
 
   **Abnahme:** Künstliche Geräte zeigen relevante Statusänderungen ohne ungewollten Voll-Refresh, verlieren weder Eingaben noch Navigation und sehen keine Ereignisse anderer Konten; Ausfall und Wiederaufnahme sind reproduzierbar getestet.
@@ -1763,6 +1842,11 @@ Bestandteil des bestehenden Buildvertrags.
   **Abnahme:** Bericht mit nachvollziehbaren Fundstellen, Risikoeinstufung und Nachtests liegt vor; kritische und hohe Befunde sind behoben beziehungsweise vor jeglicher Freigabe durch die verantwortliche Stelle nachvollziehbar entschieden.
 
 - [ ] **P1 – Abnahmen systematisch und wiederholbar automatisieren**
+
+  **04.11.2026, CI-Ergebnis:** Der vollständige GitHub-Lauf
+  [41779877406](https://github.com/meinzeug/schulpilot/actions/runs/41779877406)
+  für `f63b054` war erfolgreich. Der neuere Arbeitsstand benötigt einen
+  eigenen Prüfbeleg; dies ersetzt keine fehlende Geräte- oder Fachabnahme.
 
   **04.11.2026, CI-Ergebnis:** Der vollständige GitHub-Lauf
   [41774548325](https://github.com/meinzeug/schulpilot/actions/runs/41774548325)

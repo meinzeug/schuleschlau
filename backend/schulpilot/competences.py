@@ -13,9 +13,9 @@ from pathlib import Path
 from types import SimpleNamespace
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import select
+from sqlalchemy import func, or_, select
 
-from .db import Attempt, Child, LearningUnit, Material, Subject, UnitSource
+from .db import Attempt, Child, LearningUnit, Material, Subject, SubjectAlias, UnitSource
 from .schemas import Preferences
 
 VERSION = "competencies-1"
@@ -149,6 +149,67 @@ def binding_current(db, binding, unit, question):
     return binding.competence_id in catalogue() and binding.catalog_version == VERSION
 
 
+def first_question_encounters(db, child, subjects):
+    """Answered tasks are known regardless of their current competence binding.
+
+    Historical revisions still represent exposure, but cannot become current
+    competence evidence. Subject and child boundaries remain explicit.
+    """
+    from .coaching import fraction_task_signature
+    from .subject_registry import alias_key
+
+    if not subjects:
+        return {}
+    first = db.execute(select(Attempt.unit_id, Attempt.question_id, func.min(Attempt.created)).join(
+        LearningUnit, LearningUnit.id == Attempt.unit_id).where(LearningUnit.child_id == child.id).group_by(
+        Attempt.unit_id, Attempt.question_id)).all()
+    if not first:
+        return {}
+    answered_units = select(Attempt.unit_id).join(LearningUnit, LearningUnit.id == Attempt.unit_id).where(
+        LearningUnit.child_id == child.id).distinct()
+    units = {unit.id: unit for unit in db.scalars(select(LearningUnit).where(
+        LearningUnit.child_id == child.id, LearningUnit.id.in_(answered_units)))}
+    identities = {}
+
+    def subject_keys(unit):
+        key = (unit.subject_id, unit.subject)
+        if key not in identities:
+            if unit.subject_id:
+                matches = [db.get(Subject, unit.subject_id)]
+            else:
+                matches = list(db.scalars(select(Subject).join(SubjectAlias, SubjectAlias.subject_id == Subject.id).where(
+                    SubjectAlias.key.in_((alias_key(unit.subject), alias_key(unit.subject, child.family_id))),
+                    or_(Subject.owner_family_id.is_(None), Subject.owner_family_id == child.family_id))))
+            # An ambiguous old label can be a public subject as well as a
+            # private one; either possibility makes an identical task known.
+            # With an unknown identity, conservatively consider all selected
+            # public subjects. A known private or different public identity
+            # stays distinct and does not create cross-subject evidence.
+            matches = {subject.id: subject for subject in matches if subject is not None
+                and subject.owner_family_id in (None, child.family_id)}
+            identities[key] = ({subject.key for subject in matches.values() if subject.owner_family_id is None}
+                if matches else set(subjects))
+        return identities[key]
+
+    earliest = {}
+    for unit_id, question_id, stamp in first:
+        unit = units.get(unit_id)
+        if not unit:
+            continue
+        question = next((q for q in unit.questions if q.get("id") == question_id), None)
+        if not question or not isinstance(question.get("prompt"), str):
+            continue
+        prompt = question["prompt"]
+        for subject in subject_keys(unit) & subjects:
+            signature = (fraction_task_signature(prompt) if subject == "mathematik" else None) or normalized(prompt)
+            key = (subject, signature)
+            if key not in earliest or stamp < earliest[key][0]:
+                earliest[key] = (stamp, 1)
+            elif stamp == earliest[key][0]:
+                earliest[key] = (stamp, earliest[key][1] + 1)
+    return earliest
+
+
 def evidence(db, child_id, competence_ids=None):
     from .coaching import fraction_task_signature
     from .competence_models import QuestionCompetence
@@ -164,7 +225,11 @@ def evidence(db, child_id, competence_ids=None):
     bindings = list(db.scalars(select(QuestionCompetence).where(
         QuestionCompetence.child_id == child_id, QuestionCompetence.competence_id.in_(selected),
         QuestionCompetence.catalog_version == VERSION))) if selected else []
-    bindings += _legacy_bindings(db, child_id, selected, {(row.unit_id, row.question_id) for row in bindings})
+    # A filtered projection must not re-infer a question already bound to a
+    # different competence (or catalogue version) as a selected legacy goal.
+    existing = set(db.execute(select(QuestionCompetence.unit_id, QuestionCompetence.question_id).where(
+        QuestionCompetence.child_id == child_id))) if selected else set()
+    bindings += _legacy_bindings(db, child_id, selected, existing)
     units = {unit.id: unit for unit in db.scalars(select(LearningUnit).where(
         LearningUnit.child_id == child_id, LearningUnit.id.in_({row.unit_id for row in bindings})))}
     attempts = list(db.scalars(select(Attempt).where(Attempt.unit_id.in_(units)).order_by(
@@ -217,15 +282,10 @@ def evidence(db, child_id, competence_ids=None):
             state["last_independent_success"] = max(state["last_independent_success"] or 0, last.created)
         elif not reflection and not (possible_exposure and last.outcome == "correct"):
             state["last_difficulty"] = max(state["last_difficulty"] or 0, last.created)
-    earliest = {}
-    for competence_id, signature, first, _, _ in encounters:
-        key = (competence_id, signature)
-        if key not in earliest or first < earliest[key][0]:
-            earliest[key] = (first, 1)
-        elif first == earliest[key][0]:
-            earliest[key] = (first, earliest[key][1] + 1)
+    recall_subjects = {rows[key]["subject_key"] for key, _, _, _, eligible in encounters if eligible}
+    earliest = first_question_encounters(db, child, recall_subjects) if recall_subjects else {}
     for competence_id, signature, first, last, eligible in encounters:
-        if eligible and earliest[(competence_id, signature)] == (first, 1):
+        if eligible and earliest.get((rows[competence_id]["subject_key"], signature)) == (first, 1):
             day = datetime.fromtimestamp(last, zone).date().isoformat()
             if day not in result[competence_id]["successful_check_dates"]:
                 result[competence_id]["successful_check_dates"].append(day)
@@ -259,6 +319,7 @@ def _legacy_bindings(db, child_id, selected, existing):
     """
     from .coaching import source_goals
     from .learning_entry import verified_math_identity
+    from .subject_registry import alias_key, identity
 
     if not any(identifier.startswith("math.") for identifier in selected):
         return []
@@ -271,7 +332,21 @@ def _legacy_bindings(db, child_id, selected, existing):
     for link in links:
         refs_by_unit.setdefault(link.unit_id, []).append(link)
     result = []
+    family_id = db.get(Child, child_id).family_id
+    math_id = identity("mathematik")
+    subject_ids = {}
     for unit in units:
+        if unit.subject_id:
+            if unit.subject_id != math_id:
+                continue
+        else:
+            if unit.subject not in subject_ids:
+                subject_ids[unit.subject] = set(db.scalars(select(Subject.id).join(
+                    SubjectAlias, SubjectAlias.subject_id == Subject.id).where(
+                    SubjectAlias.key.in_((alias_key(unit.subject), alias_key(unit.subject, family_id))),
+                    or_(Subject.owner_family_id.is_(None), Subject.owner_family_id == family_id))))
+            if subject_ids[unit.subject] != {math_id}:
+                continue
         references = refs_by_unit.get(unit.id, [])
         if not references or any(link.material_id not in sources or sources[link.material_id].revision != link.revision for link in references):
             continue

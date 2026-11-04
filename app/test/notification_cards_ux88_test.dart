@@ -163,7 +163,7 @@ void main() {
     );
     await tester.tap(find.text('Ungelesen (0)'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('Alles gelesen.'), findsOneWidget);
+    expect(find.textContaining('Keine ungelesenen geladenen'), findsOneWidget);
     await tester.tap(find.text('Bisherige Neuigkeiten anzeigen'));
     await tester.pumpAndSettle();
     expect(find.text('Künstliche Meldung old'), findsOneWidget);
@@ -621,6 +621,59 @@ void main() {
     await tester.tap(button);
     await tester.pumpAndSettle();
     expect(find.text('Künstliche Meldung older'), findsOneWidget);
+  });
+
+  scenario('unread view does not claim unseen pages are read and loads them', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 760);
+    tester.view.devicePixelRatio = 1;
+    tester.platformDispatcher.textScaleFactorTestValue = 2;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    await display(tester, (request) async {
+      if (request.method == 'POST') return reply({});
+      return request.url.queryParameters['cursor'] == null
+          ? reply({
+              'items': [notice('latest', read: true)],
+              'next_cursor': 'older',
+            })
+          : reply({
+              'items': [notice('older')],
+              'next_cursor': null,
+            });
+    });
+    await tester.ensureVisible(find.text('Ungelesen (0)'));
+    await tester.tap(find.text('Ungelesen (0)'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Keine ungelesenen geladenen'), findsOneWidget);
+    expect(find.textContaining('Alles gelesen'), findsNothing);
+    final button = find.text('Weitere Neuigkeiten laden');
+    await tester.ensureVisible(button);
+    await tester.tap(button);
+    await tester.pumpAndSettle();
+    expect(find.text('Künstliche Meldung older'), findsOneWidget);
+  });
+
+  scenario('unread view includes a new arrival after background refresh', (
+    tester,
+  ) async {
+    var gets = 0;
+    final fixture = await display(tester, (request) async {
+      if (request.method == 'POST') return reply({});
+      gets++;
+      return reply({
+        'items': [if (gets > 1) notice('new'), notice('old', read: true)],
+        'next_cursor': null,
+      });
+    });
+    await tester.tap(find.text('Ungelesen (0)'));
+    await tester.pumpAndSettle();
+    await fixture.state.inbox.refresh();
+    await tester.pumpAndSettle();
+    expect(find.text('Künstliche Meldung new'), findsOneWidget);
+    expect(find.text('Künstliche Meldung old'), findsNothing);
   });
   scenario(
     'RR059 local notice search finds its target and acknowledges only displayed cards',

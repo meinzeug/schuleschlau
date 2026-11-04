@@ -110,3 +110,44 @@ def test_child_api_keeps_open_contribution_out_of_coach_assessment(normal_unit, 
     assert client.get(f"/api/units/{unit_id}").status_code == 200
     with DB() as db:
         assert db.get(UnitCoaching, unit_id).report == saved
+
+
+@pytest.mark.parametrize("new_question", [False, True])
+def test_new_open_contribution_does_not_make_repeated_question_a_new_recall(normal_unit, new_question):
+    """A fresh personal reflection is not a new knowledge-check question."""
+    _, root_id, material_id, _, _ = normal_unit
+    with DB.begin() as db:
+        root = db.get(LearningUnit, root_id)
+        stamp = int(now())
+        db.add(UnitCoaching(unit_id=root_id, status="ready", report={"learning_goals": [
+            {"id": "g1", "label": "Brüche Lernziel", "source_excerpt": CONTENT[:100]}]}))
+        assessed = dict(copy.deepcopy(root.questions[0]), id="assessed", learning_goal_id="g1",
+            prompt="Addiere 1/4 + 1/4.")
+        past = LearningUnit(child_id=root.child_id, material_id=material_id, subject=root.subject, topic=root.topic,
+            explanation="Künstliche Übung.", questions=[assessed], learning_root_id=root.id,
+            round_kind="practice", status="completed", completed=stamp - 86400 + 30,
+            provider="synthetic", synthetic=True)
+        db.add(past)
+        db.flush()
+        db.add(Attempt(unit_id=past.id, question_id="assessed", answer="1/2", outcome="correct",
+            assisted=False, created=stamp - 86400))
+        reflection = dict(copy.deepcopy(assessed), id="reflection", prompt="Was fällt dir dazu ein?",
+            presentation={"evidence_kind": "reflection"})
+        current_question = dict(assessed, prompt="Addiere 2/5 + 1/5.") if new_question else assessed
+        current = LearningUnit(child_id=root.child_id, material_id=material_id, subject=root.subject, topic=root.topic,
+            explanation="Künstliche Abrufprobe.", questions=[current_question, reflection], learning_root_id=root.id,
+            round_kind="spaced_review", status="completed", completed=stamp + 30,
+            provider="synthetic", synthetic=True)
+        db.add(current)
+        db.flush()
+        db.add_all([
+            Attempt(unit_id=current.id, question_id="assessed", answer="1/2", outcome="correct",
+                assisted=False, created=stamp),
+            Attempt(unit_id=current.id, question_id="reflection", answer="synthetisch", outcome="uncertain",
+                assisted=False, evaluation={"method": "open_learning_v1"}, created=stamp + 1),
+        ])
+        db.flush()
+        state = coaching.goal_states(db, root)[0]
+        assert state["practice"]["practiced_tasks"] == 3
+        assert state["practice"]["reflection_tasks"] == 1
+        assert len(state["successful_check_dates"]) == int(new_question)

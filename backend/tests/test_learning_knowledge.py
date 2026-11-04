@@ -427,3 +427,60 @@ def test_same_second_duplicate_source_recall_is_not_guessed(profile):
         assert state["successful_check_dates"] == []
         assert state["independent"] == state["attempts"] == 2
         assert set(state["evidence_refs"]) == {"attempt:" + attempt.id for attempt in attempts}
+
+
+@pytest.mark.parametrize("prior_goal,old_revision", [("g2", False), ("g1", True)])
+def test_exposure_in_other_goal_or_historical_source_is_not_fresh(profile, prior_goal, old_revision):
+    _, uid, mid, _, _, child = profile
+    with DB.begin() as db:
+        root, source = db.get(LearningUnit, uid), db.get(Material, mid)
+        stamp = int(now())
+        db.add(UnitCoaching(unit_id=uid, status="ready", report={"learning_goals": [
+            {"id": "g1", "label": "Lernziel A", "source_excerpt": source.content[:40]},
+            {"id": "g2", "label": "Lernziel B", "source_excerpt": source.content[:40]},
+        ]}))
+        template = copy.deepcopy(root.questions[0])
+        for days, goal, prompt in ((3, prior_goal, "Berechne 1/4 + 1/4."),
+                                   (1, "g1", "Wie viel ist 1/4 + 1/4?")):
+            question = dict(template, id="recall", learning_goal_id=goal, prompt=prompt)
+            unit = LearningUnit(child_id=child["id"], material_id=mid, subject=root.subject, topic=root.topic,
+                explanation="Künstliche Wiederholung.", questions=[question], learning_root_id=uid,
+                followup_of=uid, round_kind="spaced_review", provider="synthetic-fixture")
+            db.add(unit)
+            db.flush()
+            db.add(UnitSource(unit_id=unit.id, material_id=mid,
+                revision=source.revision - 1 if old_revision and days == 3 else source.revision))
+            db.add(Attempt(unit_id=unit.id, question_id="recall", answer="fixture", outcome="correct",
+                assisted=False, created=stamp - days * 86400))
+        db.flush()
+        state = next(row for row in evidence(db, root, [source]) if row["label"] == "Lernziel A")
+        assert state["successful_check_dates"] == []
+        assert state["tasks"] == state["attempts"] == 1
+        assert state["historical_tasks"] == int(old_revision)
+
+
+@pytest.mark.parametrize("old_subject,expected_checks", [("Unbekanntes Altfach", 0), ("Deutsch", 1)])
+def test_uncertain_old_subject_only_affects_exposure_not_competence(profile, old_subject, expected_checks):
+    _, uid, mid, _, _, child = profile
+    with DB.begin() as db:
+        root, source = db.get(LearningUnit, uid), db.get(Material, mid)
+        stamp = int(now())
+        db.add(UnitCoaching(unit_id=uid, status="ready", report={"learning_goals": [
+            {"id": "g1", "label": "Lernziel A", "source_excerpt": source.content[:40]},
+        ]}))
+        for days, subject in ((3, old_subject), (1, root.subject)):
+            question = dict(copy.deepcopy(root.questions[0]), id="recall", learning_goal_id="g1",
+                prompt="Berechne 1/4 + 1/4.")
+            unit = LearningUnit(child_id=child["id"], material_id=mid, subject=subject, topic=root.topic,
+                explanation="Künstliche Wiederholung.", questions=[question], learning_root_id=uid,
+                followup_of=uid, round_kind="spaced_review", provider="synthetic-fixture")
+            db.add(unit)
+            db.flush()
+            db.add(UnitSource(unit_id=unit.id, material_id=mid, revision=source.revision))
+            db.add(Attempt(unit_id=unit.id, question_id="recall", answer="fixture", outcome="correct",
+                assisted=False, created=stamp - days * 86400))
+        db.flush()
+        state = next(row for row in evidence(db, root, [source]) if row["label"] == "Lernziel A")
+        assert len(state["successful_check_dates"]) == expected_checks
+        assert state["tasks"] == state["attempts"] == 1
+        assert state["historical_tasks"] == 0

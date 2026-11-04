@@ -4,7 +4,6 @@ import hashlib
 import io
 import os
 import re
-import stat
 
 from fastapi import APIRouter, Depends, File, Header, HTTPException, UploadFile
 from fastapi.responses import Response
@@ -61,15 +60,14 @@ def stored_path(user_id, revision):
 def image_bytes(user_id, row):
     if not row or not row.image_digest:
         return None
+    from .private_images import read
+
     try:
-        descriptor = os.open(stored_path(user_id, row.revision), os.O_RDONLY | os.O_NOFOLLOW)
-    except OSError:
+        name = filename(user_id, row.revision)
+    except ValueError:
         return None
-    with os.fdopen(descriptor, "rb") as source:
-        if not stat.S_ISREG(os.fstat(source.fileno()).st_mode):
-            return None
-        data = source.read(MAX_STORED + 1)
-    if len(data) > MAX_STORED or hashlib.sha256(data).hexdigest() != row.image_digest:
+    data = read(name, max_bytes=MAX_STORED)
+    if data is None or hashlib.sha256(data).hexdigest() != row.image_digest:
         return None
     return data
 
@@ -242,7 +240,12 @@ def get_avatar(revision: str, p=Depends(expected_owner), db=Depends(get_db)):
 
 
 def add_to_export(db, user_id, archive, name):
+    """Return None for no photo, False if unavailable, True if included."""
     row = db.get(UserAvatar, user_id)
+    if not row or not row.image_digest:
+        return None
     data = image_bytes(user_id, row)
-    if data is not None:
-        archive.writestr(name, data)
+    if data is None:
+        return False
+    archive.writestr(name, data)
+    return True

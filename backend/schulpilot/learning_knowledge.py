@@ -90,8 +90,16 @@ def evidence(db, unit, sources):
     current_subject = subject_identity(unit)
     candidates = db.scalars(select(LearningUnit).where(LearningUnit.child_id == unit.child_id,
         or_(LearningUnit.id.in_(related), LearningUnit.material_id.in_(source_ids))))
-    units = [candidate for candidate in candidates if candidate.id == unit.id or
-        (current_subject[0] not in ("unknown-id", "ambiguous-label") and subject_identity(candidate) == current_subject)]
+    def same_subject(candidate):
+        return candidate.id == unit.id or (
+            current_subject[0] not in ("unknown-id", "ambiguous-label") and subject_identity(candidate) == current_subject)
+
+    # An uncertain historical identity can show that a source-related task
+    # may already have been seen. Include it only for that conservative
+    # exposure check, never as an assertion of this subject or its skill.
+    units = [candidate for candidate in candidates if same_subject(candidate) or
+        current_subject[0] in ("unknown-id", "ambiguous-label", "label") or
+        subject_identity(candidate)[0] in ("unknown-id", "ambiguous-label", "label")]
     attempts = list(db.scalars(select(Attempt).where(Attempt.unit_id.in_([u.id for u in units])).order_by(
         Attempt.created, func.coalesce(Attempt.evaluation["attempt_number"].as_integer(), 0), Attempt.id)))
     reports = {r.unit_id: r for r in db.scalars(select(UnitCoaching).where(UnitCoaching.unit_id.in_([u.id for u in units])))}
@@ -115,6 +123,20 @@ def evidence(db, unit, sources):
         for q in old.questions:
             values = grouped.get((old.id, q["id"]), [])
             if not values:
+                continue
+            # A question remains known even if its old goal was missing,
+            # changed, or its source has since become historical. Keep that
+            # exposure separate from evidence attributed to current goals.
+            # For an unresolved old subject, compare in the current subject's
+            # representation too: the absence of identity is not proof that
+            # the child has never seen an equivalent fraction operation.
+            is_math = (old.subject.casefold() in ("mathe", "mathematik") or
+                (not same_subject(old) and unit.subject.casefold() in ("mathe", "mathematik")))
+            signature = ((fraction_task_signature(q["prompt"]) or normalized_prompt(q["prompt"]))
+                if is_math else normalized(q["prompt"]))
+            position = len(observations)
+            observations.append((values[0].created, old.id, q["id"], values[-1].created, None, signature, False))
+            if not same_subject(old):
                 continue
             extra = q.get("controller_goal")
             mapped_label = old_labels.get(q.get("learning_goal_id") or review_map.get(q["id"]))
@@ -153,16 +175,13 @@ def evidence(db, unit, sources):
             # Any answered question has already been encountered, including
             # practice, incorrect and supported responses. It cannot later
             # become a *new* retrieval question simply by being repeated.
-            is_math = old.subject.casefold() in ("mathe", "mathematik")
-            signature = ((fraction_task_signature(q["prompt"]) or normalized_prompt(q["prompt"]))
-                if is_math else normalized(q["prompt"]))
-            observations.append((values[0].created, old.id, q["id"], last.created, goal, signature,
-                independent and old.round_kind in CHECK_KINDS))
+            observations[position] = (values[0].created, old.id, q["id"], last.created, goal, signature,
+                independent and old.round_kind in CHECK_KINDS)
     # A unit can be answered long after a newer unit. Process the first actual
     # answer, not unit creation or the time of the final retry.
     earliest = {}
     for first, _, _, _, goal, signature, _ in observations:
-        key = (goal, signature)
+        key = signature
         if key not in earliest or first < earliest[key][0]:
             earliest[key] = (first, 1)
         elif first == earliest[key][0]:
@@ -170,7 +189,7 @@ def evidence(db, unit, sources):
     for first, _, _, created, goal, signature, eligible in sorted(observations, key=lambda item: item[:3]):
         # Equal timestamps from separate answers do not tell us which exposure
         # happened first, so neither is a safe new recall observation.
-        if earliest[(goal, signature)] == (first, 1) and eligible:
+        if goal is not None and earliest[signature] == (first, 1) and eligible:
             stamp = datetime.fromtimestamp(created, zone).date().isoformat()
             if stamp not in result[goal]["successful_check_dates"]:
                 result[goal]["successful_check_dates"].append(stamp)

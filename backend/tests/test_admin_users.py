@@ -586,3 +586,48 @@ def test_parent_username_limits_apply_after_trimming_and_lowercasing(household, 
     assert get_detail(operator, parent["id"])["revision"] == current["revision"]
     with DB() as db:
         assert db.scalar(select(func.count()).select_from(AdminUserOperation)) == 0
+
+
+def test_delete_cleanup_error_replay_does_not_claim_files_removed(household, operator, monkeypatch, tmp_path):
+    from types import SimpleNamespace
+
+    from schulpilot import private_images
+
+    _, child = household
+    material_id, _ = private_rows(child)
+    filename = uuid4().hex + ".jpg"
+    with DB.begin() as db:
+        db.get(Material, material_id).path = filename
+    identifier = child_user(child)
+    value = preview(operator, identifier)
+    outside = tmp_path / "other"
+    outside.mkdir()
+    (outside / filename).write_bytes(b"synthetic file")
+    (tmp_path / "uploads").symlink_to(outside, target_is_directory=True)
+    monkeypatch.setattr(private_images, "settings", SimpleNamespace(data_dir=tmp_path))
+    key = uuid4().hex
+    response = confirm(operator, identifier, value, key)
+    assert response.status_code == 500
+    replay = confirm(operator, identifier, value, key)
+    assert replay.status_code == 409
+    assert "nicht bestätigt" in replay.text
+    assert (outside / filename).read_bytes() == b"synthetic file"
+    with DB() as db:
+        row = db.scalar(select(AdminUserOperation).where(AdminUserOperation.action == "delete"))
+        assert row.result["cleanup_confirmed"] is False
+        assert db.get(User, identifier) is None
+        events = list(db.scalars(select(ErasureRequest).where(ErasureRequest.scope.in_(("child", "user")))))
+        assert len(events) == 2 and all(event.published for event in events)
+
+
+def test_legacy_delete_receipt_without_cleanup_proof_does_not_claim_success(household, operator):
+    _, child = household
+    identifier = child_user(child)
+    value = preview(operator, identifier)
+    key = uuid4().hex
+    assert confirm(operator, identifier, value, key).status_code == 200
+    with DB.begin() as db:
+        row = db.scalar(select(AdminUserOperation).where(AdminUserOperation.action == "delete"))
+        row.result = {key: value for key, value in row.result.items() if key != "cleanup_confirmed"}
+    replay = confirm(operator, identifier, value, key)
+    assert replay.status_code == 409 and "nicht bestätigt" in replay.text

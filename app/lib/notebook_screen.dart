@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -81,6 +82,7 @@ class _NotebookScreenState extends State<_NotebookContext>
       WidgetsBinding.instance.lifecycleState == null ||
       WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
   String? activeQuery;
+  bool refreshAfterActiveQuery = false;
   double swipeDistance = 0;
   bool loading = true;
   bool deleting = false, selecting = false, allMatching = false;
@@ -262,9 +264,16 @@ class _NotebookScreenState extends State<_NotebookContext>
       dates?.start,
       dates?.end,
     ).toString();
-    if (activeQuery == signature) return;
+    if (activeQuery == signature) {
+      // A saved change can arrive while this same GET is in flight. Do not
+      // lose the invalidation or replace it with its older response.
+      refreshAfterActiveQuery = true;
+      return;
+    }
     activeQuery = signature;
+    refreshAfterActiveQuery = false;
     final request = ++generation;
+    final requestRevision = stateRevision;
     setState(() {
       loading = true;
       error = null;
@@ -287,7 +296,11 @@ class _NotebookScreenState extends State<_NotebookContext>
           queryParameters: params,
         ).toString(),
       );
-      if (!current || request != generation) return;
+      if (!current ||
+          request != generation ||
+          requestRevision != stateRevision) {
+        return;
+      }
       final expectedSubject = widget.subjectId == 'unassigned'
           ? null
           : widget.subjectId;
@@ -316,14 +329,22 @@ class _NotebookScreenState extends State<_NotebookContext>
       });
       remember();
     } catch (e) {
-      if (current && request == generation) {
+      if (current &&
+          request == generation &&
+          requestRevision == stateRevision) {
         setState(() {
           error = e is ApiError ? e.message : 'Die Heftseiten konnten nicht geladen werden. Bitte versuche es erneut.';
           loading = false;
         });
       }
     } finally {
-      if (request == generation && activeQuery == signature) activeQuery = null;
+      if (request == generation && activeQuery == signature) {
+        activeQuery = null;
+        if (refreshAfterActiveQuery && current) {
+          refreshAfterActiveQuery = false;
+          unawaited(load());
+        }
+      }
     }
   }
 

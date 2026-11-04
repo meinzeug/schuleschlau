@@ -438,8 +438,10 @@ def remove_family(db, family):
 
 
 def unlink_uploads(paths):
+    from .private_images import remove
+
     for path in paths:
-        (settings.data_dir / "uploads" / path).unlink(missing_ok=True)
+        remove(path)
 
 
 @router.delete("/children/{child_id}")
@@ -450,10 +452,10 @@ def delete_child(child_id: str, data: s.ConfirmPassword, p=Depends(parent), db=D
     paths = remove_child(db, child)
     audit(db, p.user.id, "child.delete", child_id)
     db.commit()
-    unlink_uploads(paths)
     from .erasure import flush_journal
 
     flush_journal()
+    unlink_uploads(paths)
     return {"message": "Kinderkonto, Sitzungen und Lerndaten gelöscht. Backups verfallen spätestens nach 14 Tagen."}
 
 
@@ -480,8 +482,8 @@ def delete_account(data: s.ConfirmPassword, p=Depends(parent), db=Depends(get_db
     db.execute(delete(User).where(User.id == p.user.id))
     audit(db, p.user.id, "account.delete", p.user.id)
     db.commit()
-    unlink_uploads(paths)
     flush_journal()
+    unlink_uploads(paths)
     return {
         "message": "Konto und eigene Familien gelöscht. Backups verfallen spätestens nach 14 Tagen. Gesetzlich erforderliche Zahlungsbelege bleiben ohne Kontozuordnung aufbewahrt."
     }
@@ -601,6 +603,29 @@ def export_child(db, child):
     return result
 
 
+def add_material_photos(archive, materials):
+    """Copy only safe photo bytes and make missing originals visible in the ZIP."""
+    from .private_images import read
+
+    missing = []
+    for material in materials:
+        data = read(material.path)
+        if data is None:
+            missing.append(material.id)
+        else:
+            archive.writestr("materials/" + material.path, data)
+    return missing
+
+
+def describe_missing_photos(archive, missing, missing_avatars):
+    if missing or missing_avatars:
+        archive.writestr("fehlende-fotos.json", json.dumps({
+            "hinweis": "Diese gespeicherten Fotos waren beim Export nicht lesbar oder nicht verfügbar.",
+            "material_ids": missing,
+            "profilbilder": missing_avatars,
+        }, ensure_ascii=False, indent=2))
+
+
 @router.get("/children/{child_id}/export")
 def export_one_child(child_id: str, include_photos: bool = True, p=Depends(parent), db=Depends(get_db)):
     """Explicit private child export; no other child, account, billing or receipts."""
@@ -618,11 +643,11 @@ def export_one_child(child_id: str, include_photos: bool = True, p=Depends(paren
             if include_photos:
                 from .profile_images import add_to_export
 
-                add_to_export(db, child.user_id, archive, "profile/avatar.jpg")
-            for material in db.scalars(select(Material).where(Material.child_id == child.id, Material.path.is_not(None))):
-                path = settings.data_dir / "uploads" / material.path
-                if include_photos and path.is_file():
-                    archive.write(path, "materials/" + material.path)
+                missing_avatars = []
+                if add_to_export(db, child.user_id, archive, "profile/avatar.jpg") is False:
+                    missing_avatars.append({"typ": "kind", "kind_id": child.id})
+                materials = db.scalars(select(Material).where(Material.child_id == child.id, Material.path.is_not(None)))
+                describe_missing_photos(archive, add_material_photos(archive, materials), missing_avatars)
         audit(db, p.user.id, "child.export" if include_photos else "child.export_without_photos", child.id)
         db.commit()
         return FileResponse(output, media_type="application/zip", filename="schulpilot-kinderexport.zip",
@@ -685,13 +710,16 @@ def export_family(family_id: str, p=Depends(parent), db=Depends(get_db)):
                     indent=2,
                 ),
             )
-            add_to_export(db, p.user.id, archive, "account/avatar.jpg")
+            missing_avatars = []
+            if add_to_export(db, p.user.id, archive, "account/avatar.jpg") is False:
+                missing_avatars.append({"typ": "konto"})
+            missing_photos = []
             for c in children:
-                add_to_export(db, c.user_id, archive, f"children/{c.id}/avatar.jpg")
-                for m in db.scalars(select(Material).where(Material.child_id == c.id, Material.path.is_not(None))):
-                    path = settings.data_dir / "uploads" / m.path
-                    if path.is_file():
-                        archive.write(path, "materials/" + m.path)
+                if add_to_export(db, c.user_id, archive, f"children/{c.id}/avatar.jpg") is False:
+                    missing_avatars.append({"typ": "kind", "kind_id": c.id})
+                materials = db.scalars(select(Material).where(Material.child_id == c.id, Material.path.is_not(None)))
+                missing_photos.extend(add_material_photos(archive, materials))
+            describe_missing_photos(archive, missing_photos, missing_avatars)
         audit(db, p.user.id, "family.export", family.id)
         db.commit()
         return FileResponse(

@@ -46,10 +46,11 @@ def _locked_budget(db):
 def _image(material):
     if not material.path or not re.fullmatch(r"[a-f0-9]{32}\.jpg", material.path):
         raise HTTPException(409, "Für diese Diagnose fehlt ein gültiges privates Original.")
-    path = settings.data_dir / "uploads" / material.path
-    if not path.is_file() or path.stat().st_size > 10 * 1024 * 1024:
+    from .private_images import read
+
+    data = read(material.path)
+    if data is None:
         raise HTTPException(409, "Das gebundene Original ist nicht verfügbar.")
-    data = path.read_bytes()
     return data, hashlib.sha256(data).hexdigest()
 
 

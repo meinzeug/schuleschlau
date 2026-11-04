@@ -268,6 +268,22 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     if (item['kind'] is String) item['kind'],
                   ?selectedKind,
                 }.toList()..sort();
+                if (onlyUnread) {
+                  // Keep newly arriving or subsequently loaded unread cards
+                  // visible even after their visibility receipt marks them read.
+                  // Bound the snapshot to the inbox's current cache window.
+                  final cachedIds = inbox.items
+                      .map((item) => item['id'])
+                      .whereType<String>()
+                      .toSet();
+                  unreadSelection.retainAll(cachedIds);
+                  unreadSelection.addAll(
+                    inbox.items
+                        .where((item) => item['read'] != true)
+                        .map((item) => item['id'])
+                        .whereType<String>(),
+                  );
+                }
                 final shown = inbox.items
                     .where(
                       (item) =>
@@ -526,7 +542,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                               Text(
                                 filtered
                                     ? 'Keine der geladenen Neuigkeiten passt zu deiner Auswahl.'
-                                    : 'Alles gelesen. Deine bisherigen Neuigkeiten bleiben unter „Alle Neuigkeiten“ erreichbar.',
+                                    : 'Keine ungelesenen geladenen Neuigkeiten. Weitere findest du unter „Alle Neuigkeiten“.',
                               ),
                               if (!filtered)
                                 TextButton(

@@ -493,3 +493,30 @@ def test_sqlite_local_claim_does_not_hide_non_lock_database_errors(monkeypatch):
             assert connection.exec_driver_sql("PRAGMA busy_timeout").scalar() == 5000
     finally:
         isolated.dispose()
+
+
+def test_child_video_open_is_recorded_without_learning_time_or_competence(api, household):
+    from schulpilot.competence_models import QuestionCompetence
+    from schulpilot.db import LearningMemory, Mastery
+
+    _, child = household
+    install()
+    mid = material(child["id"])
+    drain()
+    path = endpoint(child, mid)
+    protected = (Activity, Attempt, Mastery, QuestionCompetence, LearningMemory, Job, Usage)
+    with DB() as db:
+        before = {model: db.scalar(select(func.count()).select_from(model)) for model in protected}
+    with TestClient(app, headers=HEADERS) as device:
+        login = device.post("/api/auth/login", json={"username": "test-child", "password": "secure-child-pass-123"})
+        assert login.status_code == 200
+        device.headers["Authorization"] = "Bearer " + login.json()["token"]
+        view = device.get(path)
+        assert view.status_code == 200
+        data = {"request_key": "child-video-fixture-0001", "kind": "open", "revision": view.json()["revision"],
+            "topic_id": "topic-add", "content_id": "content-add"}
+        assert device.post(path + "/interactions", json=data).status_code == 200
+        assert device.post(path + "/interactions", json=data).status_code == 200
+    with DB() as db:
+        assert db.scalar(select(func.count()).select_from(LearningTipInteraction)) == 1
+        assert {model: db.scalar(select(func.count()).select_from(model)) for model in protected} == before

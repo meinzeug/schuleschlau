@@ -56,6 +56,9 @@ def candidates(db, subject, text="", *, package_prepared=False, decimal_prepared
     result = []
     for row in db.scalars(select(VisualReference).where(or_(VisualReference.recipe["scope"].as_string().is_(None), VisualReference.recipe["scope"].as_string() != "exploration_only")).order_by(VisualReference.id, VisualReference.version)):
         recipe = row.recipe
+        # Corrupted stored recipes cannot be offered as validated templates.
+        if not isinstance(recipe, dict) or digest(recipe) != row.digest:
+            continue
         if row.id == "math.decimal.number_line_midpoint":
             from .package_prepared_midpoints import bases
 
@@ -407,9 +410,14 @@ def validate_steps(db, steps, subject, context, *, question=None, group_id=None,
         key = step.reference.id, step.reference.version
         if (*key, subject) not in allowed:
             raise ValueError("Referenz gehört nicht zum freigegebenen Fach und Auftrag.")
-        stored = db.get(VisualReference, key)
+        stored = db.get(VisualReference, key, populate_existing=True)
         if stored is None:
             raise ValueError("Die gewählte Referenzversion existiert nicht.")
+        selection = next((row for row in context.get("references", []) if
+            (row.get("id"), row.get("version"), row.get("subject")) == (*key, subject)), None)
+        if (not selection or not isinstance(stored.recipe, dict) or
+                selection.get("digest") != stored.digest or digest(stored.recipe) != stored.digest):
+            raise ValueError("Die ausgewählte Grafikreferenz wurde geändert oder ist beschädigt.")
         texts = [refs[ref]["content"] for ref in step.source_refs]
         # The generated prose never serves as new source evidence for its graphic.
         fake = question or {"prompt": "", "type": "short", "answer": "", "accepted": []}
@@ -577,16 +585,27 @@ def _binding_current(db, unit, ref):
     from .db import Material
     from .source_lineage import learning_source, usable_source
 
+    if not isinstance(ref, dict):
+        return False
     if ref.get("source_kind") == "curated_lab":
         from .learning_labs import resolve as resolve_lab
 
+        if not isinstance(ref.get("reference_id"), str):
+            return False
         actual = resolve_lab(ref.get("reference_id"), ref.get("version"), ref.get("digest"))
         return actual is not None and unit.subject in actual["subjects"]
     if ref.get("source_kind") == "curated_foundation":
-        question = next((q for q in unit.questions if q["id"] == ref["example_question_id"]), None)
-        return bool(resolve_reference(ref["reference_id"], ref["version"], ref["digest"]) is not None and question
+        if not isinstance(ref.get("reference_id"), str):
+            return False
+        question = next((q for q in unit.questions if q["id"] == ref.get("example_question_id")), None)
+        return bool(resolve_reference(ref.get("reference_id"), ref.get("version"), ref.get("digest")) is not None and question
             and (not ref.get("_example_digest") or ref["_example_digest"] == digest({key: question[key]
                 for key in ("id","type","prompt","answer","options","accepted")})))
+    if not isinstance(ref.get("material_id"), str) or type(ref.get("revision")) is not int:
+        return False
+    block_ids = ref.get("block_ids", [])
+    if not isinstance(block_ids, list) or not all(isinstance(block_id, str) for block_id in block_ids):
+        return False
     material = db.get(Material, ref["material_id"])
     if material is None or material.child_id != unit.child_id or not usable_source(db, material, revision=ref["revision"]):
         return False
@@ -600,8 +619,33 @@ def source_bindings_current(db, unit, *, require_question_binding=False):
     """A graphics-only legacy sidecar never certifies old answer generation."""
     row = db.get(UnitVisualSnapshot, unit.id)
     bindings = row.source_bindings if row else []
-    return bool(bindings and all(_binding_current(db, unit, ref) and
+    return bool(isinstance(bindings, list) and bindings and all(_binding_current(db, unit, ref) and
         (not require_question_binding or ref.get("_question_source_bound") is True) for ref in bindings))
+
+
+def visual_references_current(db, steps):
+    """A saved graphic must still match its chosen recipe and visible data."""
+    cache = {}
+    for step in steps:
+        if not isinstance(step, dict) or not isinstance(step.get("reference"), dict):
+            return False
+        ref = step["reference"]
+        if not isinstance(ref.get("id"), str) or type(ref.get("version")) is not int:
+            return False
+        key = (ref.get("id"), ref.get("version"))
+        if key not in cache:
+            recipe = db.get(VisualReference, key, populate_existing=True)
+            cache[key] = recipe.digest if recipe and isinstance(recipe.recipe, dict) and digest(recipe.recipe) == recipe.digest else None
+        if not ref.get("digest") or cache[key] != ref["digest"]:
+            return False
+        try:
+            actual = digest(public_presentation(step.get("presentation"), closed=True, hints=3))
+        except (TypeError, ValueError, KeyError):
+            return False
+        if not ref.get("parameter_digest") or actual != ref["parameter_digest"]:
+            return False
+    return True
+
 
 def projection(db, unit, *, show_introduction=True):
     from .db import Job
@@ -614,12 +658,19 @@ def projection(db, unit, *, show_introduction=True):
         return {**preparation, "explanation_steps": [], "explanation_visual_status": "legacy_text", "explanation_visual_reason": "missing_steps"}
     # Check the saved safe block identities and content, not just the existence
     # of some still-usable paragraph on the same material revision.
-    valid = source_bindings_current(db, unit) and all(_binding_current(db, unit, ref)
-        for step in [*row.steps, *[step for steps in row.question_steps.values() for step in steps]] for ref in step["source_refs"])
+    valid_shape = (isinstance(row.steps, list) and isinstance(row.question_steps, dict) and
+        all(isinstance(steps, list) for steps in row.question_steps.values()))
+    all_steps = [*row.steps, *[step for steps in row.question_steps.values() for step in steps]] if valid_shape else []
+    valid_shape = valid_shape and all(isinstance(step, dict) and isinstance(step.get("source_refs"), list)
+        and step["source_refs"] and all(isinstance(ref, dict) for ref in step["source_refs"]) for step in all_steps)
+    valid_source = source_bindings_current(db, unit) and (not valid_shape or all(_binding_current(db, unit, ref)
+        for step in all_steps for ref in step["source_refs"]))
+    valid_graphics = valid_shape and (row.status != "ready" or bool(row.steps) and visual_references_current(db, all_steps))
+    valid = valid_source and valid_graphics
     steps = public_steps(readable_single_step(row.steps, unit.explanation)) if show_introduction and valid else []
     return {**preparation, "explanation_steps": steps,
             "explanation_visual_status": row.status if valid else "incomplete",
-            "explanation_visual_reason": row.reason if valid else "source_changed"}
+            "explanation_visual_reason": row.reason if valid else "source_changed" if not valid_source else "invalid_graphic"}
 
 
 def guard_context(db, child_id, context):
