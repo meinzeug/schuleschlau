@@ -1038,8 +1038,9 @@ void main() {
     final (_, _, requests) = await open(
       tester,
       respond: (request) async {
-        if (request.url.path.endsWith('/subjects'))
+        if (request.url.path.endsWith('/subjects')) {
           return jsonReply(subjects());
+        }
         pageGets++;
         if (pageGets == 1) throw http.ClientException('synthetic offline');
         return jsonReply(pages(request, photos: false));
