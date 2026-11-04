@@ -1,9 +1,53 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
 
 import 'api.dart';
 import 'learning_explanation.dart';
+
+// A unit has one server-side position per user, even when multiple explanation
+// widgets for that unit are mounted in the same app. Serialize those writes
+// locally; server revisions still reject changes made by another device.
+final _visualWrites = Expando<Map<String, _VisualWriteGate>>();
+
+class _VisualWriteGate {
+  final Json? owner;
+  final String? token, family;
+  Future<void> tail = Future.value();
+  String? signature;
+  int revision = 0, generation = 0;
+  int listeners = 0, writes = 0;
+
+  _VisualWriteGate(this.owner, this.token, this.family);
+}
+
+void _releaseGate(AppState state, String unit, _VisualWriteGate gate) {
+  final units = _visualWrites[state];
+  if (gate.listeners == 0 &&
+      gate.writes == 0 &&
+      identical(units?[unit], gate)) {
+    units?.remove(unit);
+  }
+}
+
+_VisualWriteGate _writeGate(
+  AppState state,
+  String unit,
+  Json? owner,
+  String? token,
+  String? family,
+) {
+  final units = _visualWrites[state] ??= <String, _VisualWriteGate>{};
+  final previous = units[unit];
+  if (previous != null &&
+      identical(previous.owner, owner) &&
+      previous.token == token &&
+      previous.family == family) {
+    return previous;
+  }
+  return units[unit] = _VisualWriteGate(owner, token, family);
+}
 
 /// Restores one private technical reading position. Only explicit local changes
 /// save it; loading, replaying an API response and parent reading create no activity.
@@ -42,8 +86,10 @@ class _SavedVisualExplanationState extends State<SavedVisualExplanation>
       ready = false,
       writing = false,
       conflict = false,
-      touched = false;
+      touched = false,
+      resync = false;
   ModalRoute<dynamic>? route;
+  late _VisualWriteGate gate;
   bool get current =>
       mounted &&
       foreground &&
@@ -57,6 +103,8 @@ class _SavedVisualExplanationState extends State<SavedVisualExplanation>
     owner = widget.state.user;
     token = widget.state.api.token;
     family = widget.state.familyId;
+    gate = _writeGate(widget.state, widget.unitId, owner, token, family);
+    gate.listeners++;
     foreground =
         WidgetsBinding.instance.lifecycleState == null ||
         WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
@@ -69,6 +117,12 @@ class _SavedVisualExplanationState extends State<SavedVisualExplanation>
     if (!current) {
       epoch++;
       pending = null;
+    }
+    if (!identical(widget.state.user, owner) ||
+        widget.state.api.token != token ||
+        widget.state.familyId != family) {
+      final units = _visualWrites[widget.state];
+      if (identical(units?[widget.unitId], gate)) units?.remove(widget.unitId);
     }
   }
 
@@ -89,6 +143,8 @@ class _SavedVisualExplanationState extends State<SavedVisualExplanation>
     if (!foreground) {
       epoch++;
       pending = null;
+      resync = resync || ready || writing;
+      ready = false;
     } else if (!ready) {
       restore();
     }
@@ -104,7 +160,14 @@ class _SavedVisualExplanationState extends State<SavedVisualExplanation>
       restored = pending = null;
       signature = null;
       revision = 0;
-      ready = touched = conflict = false;
+      ready = touched = conflict = resync = false;
+      final oldGate = gate;
+      gate = _writeGate(widget.state, widget.unitId, owner, token, family);
+      if (!identical(oldGate, gate)) {
+        oldGate.listeners--;
+        _releaseGate(oldWidget.state, oldWidget.unitId, oldGate);
+        gate.listeners++;
+      }
       restore();
     }
   }
@@ -113,6 +176,15 @@ class _SavedVisualExplanationState extends State<SavedVisualExplanation>
     if (widget.steps.isEmpty) return;
     final request = epoch;
     try {
+      final currentGate = gate;
+      await currentGate.tail;
+      if (!current || request != epoch || !identical(currentGate, gate)) return;
+      final readGeneration = currentGate.generation;
+      final previousSignature = signature;
+      final previousRevision =
+          currentGate.signature == signature && currentGate.revision > revision
+          ? currentGate.revision
+          : revision;
       final value = await widget.state.api.call(
         'GET',
         '/units/${widget.unitId}/visual-position',
@@ -120,10 +192,33 @@ class _SavedVisualExplanationState extends State<SavedVisualExplanation>
         {'X-Schulpilot-Account': owner?['id']?.toString() ?? ''},
       );
       if (!current || request != epoch) return;
-      signature = value['source_signature'] as String?;
-      revision = value['revision'] as int? ?? 0;
+      // Another local widget may have written while this GET was in flight.
+      // Read again after its queued writes instead of treating our own update
+      // as a different device or restoring an outdated position.
+      if (currentGate.writes != 0 || currentGate.generation != readGeneration) {
+        await restore();
+        return;
+      }
+      final incomingSignature = value['source_signature'] as String?;
+      final incomingRevision = value['revision'] as int? ?? 0;
+      final changedElsewhere =
+          resync &&
+          previousSignature != null &&
+          (previousSignature != incomingSignature ||
+              previousRevision != incomingRevision);
+      signature = incomingSignature;
+      revision = incomingRevision;
+      if (currentGate.generation == readGeneration) {
+        currentGate.signature = signature;
+        currentGate.revision = revision;
+      }
       final position = value['position'];
       setState(() {
+        resync = false;
+        if (changedElsewhere) {
+          conflict = true;
+          pending = null;
+        }
         ready = signature != null;
         if (!touched &&
             position is Map &&
@@ -156,21 +251,44 @@ class _SavedVisualExplanationState extends State<SavedVisualExplanation>
       return;
     }
     final request = epoch, value = pending!;
+    final currentGate = gate;
+    final requestSignature = signature;
+    final requestUnit = widget.unitId;
+    final requestState = widget.state;
+    final previous = currentGate.tail;
+    final finished = Completer<void>();
+    currentGate.tail = finished.future;
+    currentGate.writes++;
     pending = null;
     writing = true;
     try {
+      await previous;
+      if (!current || request != epoch || !identical(currentGate, gate)) return;
+      final sentRevision =
+          currentGate.signature == requestSignature &&
+              currentGate.revision > revision
+          ? currentGate.revision
+          : revision;
       final result = await widget.state.api.call(
         'PUT',
         '/units/${widget.unitId}/visual-position',
         {
-          'source_signature': signature,
-          'revision': revision,
+          'source_signature': requestSignature,
+          'revision': sentRevision,
           'position': value,
         },
         {'X-Schulpilot-Account': owner?['id']?.toString() ?? ''},
       );
+      final nextRevision = result['revision'] as int? ?? sentRevision;
+      if (identical(widget.state.user, owner) &&
+          widget.state.api.token == token &&
+          widget.state.familyId == family) {
+        currentGate.signature = requestSignature;
+        currentGate.revision = nextRevision;
+        currentGate.generation++;
+      }
       if (!current || request != epoch) return;
-      revision = result['revision'] as int? ?? revision;
+      revision = nextRevision;
     } catch (error) {
       if (current &&
           request == epoch &&
@@ -180,14 +298,19 @@ class _SavedVisualExplanationState extends State<SavedVisualExplanation>
         pending = null;
       }
     } finally {
+      finished.complete();
+      currentGate.writes--;
+      _releaseGate(requestState, requestUnit, currentGate);
       writing = false;
-      if (current && request == epoch && pending != null) flush();
+      if (current && pending != null) flush();
     }
   }
 
   @override
   void dispose() {
     epoch++;
+    gate.listeners--;
+    _releaseGate(widget.state, widget.unitId, gate);
     widget.state.removeListener(identityChanged);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
@@ -213,7 +336,7 @@ class _SavedVisualExplanationState extends State<SavedVisualExplanation>
       ),
       if (conflict)
         const Text(
-          'Die Leseposition wurde auf einem anderen Gerät geändert. Deine Antworten bleiben erhalten.',
+          'Deine Leseposition hat sich inzwischen geändert. Deine Antworten bleiben erhalten.',
         ),
     ],
   );

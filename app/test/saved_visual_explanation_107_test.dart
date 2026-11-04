@@ -306,11 +306,329 @@ void main() {
     await tester.ensureVisible(find.text('Nächster Schritt'));
     await tester.tap(find.text('Nächster Schritt'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('anderen Gerät'), findsOneWidget);
+    expect(
+      find.textContaining('Leseposition hat sich inzwischen geändert'),
+      findsOneWidget,
+    );
     await tester.ensureVisible(find.byTooltip('Vorheriger Erklärungsschritt'));
     await tester.tap(find.byTooltip('Vorheriger Erklärungsschritt'));
     await tester.pumpAndSettle();
     expect(puts, 1);
+  });
+  testWidgets(
+    'local widgets serialize writes without hiding genuine conflicts',
+    (tester) async {
+      final first = Completer<http.Response>();
+      final revisions = <int>[];
+      var serverRevision = 0;
+      final state = app((r) {
+        if (r.method == 'GET') {
+          return reply({
+            'source_signature': 'a' * 64,
+            'revision': serverRevision,
+            'position': null,
+          });
+        }
+        final revision = (jsonDecode(r.body) as Map)['revision'] as int;
+        revisions.add(revision);
+        if (revision != serverRevision) {
+          return reply({'detail': 'Changed'}, 409);
+        }
+        serverRevision++;
+        if (revisions.length == 1) return first.future;
+        return reply({'revision': serverRevision});
+      });
+      addTearDown(state.dispose);
+      await mount(tester, Column(children: [view(state), view(state)]));
+      final explanations = tester
+          .widgetList<LearningExplanation>(find.byType(LearningExplanation))
+          .toList();
+      final position = {
+        'explanation_kind': 'intro',
+        'question_id': null,
+        'explanation_step_id': 'e1',
+        'graphic_index': 0,
+        'graphic_phase': 'fraction-bar-whole',
+      };
+      explanations[0].onPositionChanged!(position);
+      await tester.pump();
+      explanations[1].onPositionChanged!({
+        ...position,
+        'graphic_phase': 'fraction-circle-whole',
+      });
+      await tester.pump();
+      expect(revisions, [0]);
+      first.complete(reply({'revision': 1}));
+      await tester.pumpAndSettle();
+      expect(revisions, [0, 1]);
+      expect(
+        find.textContaining('Leseposition hat sich inzwischen geändert'),
+        findsNothing,
+      );
+      // A third party really changed the server revision: no automatic overwrite.
+      serverRevision++;
+      explanations[1].onPositionChanged!(position);
+      await tester.pumpAndSettle();
+      expect(revisions, [0, 1, 2]);
+      expect(
+        find.textContaining('Leseposition hat sich inzwischen geändert'),
+        findsOneWidget,
+      );
+    },
+  );
+  testWidgets(
+    'resuming waits for an outstanding local write before restoring',
+    (tester) async {
+      final delayed = Completer<http.Response>();
+      final requests = <String>[];
+      final revisions = <int>[];
+      var serverRevision = 0;
+      final state = app((r) {
+        requests.add(r.method);
+        if (r.method == 'GET') {
+          return reply({
+            'source_signature': 'a' * 64,
+            'revision': serverRevision,
+            'position': null,
+          });
+        }
+        final revision = (jsonDecode(r.body) as Map)['revision'] as int;
+        revisions.add(revision);
+        if (revision != serverRevision) {
+          return reply({'detail': 'Changed'}, 409);
+        }
+        serverRevision++;
+        if (revisions.length == 1) return delayed.future;
+        return reply({'revision': serverRevision});
+      });
+      addTearDown(state.dispose);
+      await mount(tester, view(state));
+      final change = tester
+          .widget<LearningExplanation>(find.byType(LearningExplanation))
+          .onPositionChanged!;
+      final position = {
+        'explanation_kind': 'intro',
+        'question_id': null,
+        'explanation_step_id': 'e1',
+        'graphic_index': 0,
+        'graphic_phase': 'fraction-bar-whole',
+      };
+      change(position);
+      await tester.pump();
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pump();
+      expect(requests, ['GET', 'PUT']);
+      delayed.complete(reply({'revision': 1}));
+      await tester.pumpAndSettle();
+      expect(requests, ['GET', 'PUT', 'GET']);
+      tester
+          .widget<LearningExplanation>(find.byType(LearningExplanation))
+          .onPositionChanged!(position);
+      await tester.pumpAndSettle();
+      expect(revisions, [0, 1]);
+      expect(
+        find.textContaining('Leseposition hat sich inzwischen geändert'),
+        findsNothing,
+      );
+    },
+  );
+  testWidgets('an old GET cannot roll back the revision after a local write', (
+    tester,
+  ) async {
+    final delayed = Completer<http.Response>();
+    var gets = 0;
+    var serverRevision = 0;
+    final revisions = <int>[];
+    final state = app((r) {
+      if (r.method == 'GET') {
+        if (++gets == 1) return delayed.future;
+        return reply({
+          'source_signature': 'a' * 64,
+          'revision': serverRevision,
+          'position': null,
+        });
+      }
+      final revision = (jsonDecode(r.body) as Map)['revision'] as int;
+      revisions.add(revision);
+      if (revision != serverRevision) return reply({'detail': 'Changed'}, 409);
+      return reply({'revision': ++serverRevision});
+    });
+    addTearDown(state.dispose);
+    await mount(tester, Column(children: [view(state), view(state)]));
+    final explanations = tester
+        .widgetList<LearningExplanation>(find.byType(LearningExplanation))
+        .toList();
+    final position = {
+      'explanation_kind': 'intro',
+      'question_id': null,
+      'explanation_step_id': 'e1',
+      'graphic_index': 0,
+      'graphic_phase': 'fraction-bar-whole',
+    };
+    explanations[1].onPositionChanged!(position);
+    await tester.pumpAndSettle();
+    delayed.complete(
+      reply({'source_signature': 'a' * 64, 'revision': 0, 'position': null}),
+    );
+    await tester.pumpAndSettle();
+    explanations[0].onPositionChanged!(position);
+    await tester.pumpAndSettle();
+    expect(revisions, [0, 1]);
+    expect(
+      find.textContaining('Leseposition hat sich inzwischen geändert'),
+      findsNothing,
+    );
+  });
+  testWidgets('separate units do not block each other', (tester) async {
+    final delayed = Completer<http.Response>();
+    final writes = <String>[];
+    final state = app((r) {
+      if (r.method == 'GET') {
+        return reply({
+          'source_signature': 'a' * 64,
+          'revision': 0,
+          'position': null,
+        });
+      }
+      writes.add(r.url.path);
+      if (r.url.path.contains('/unit/')) return delayed.future;
+      return reply({'revision': 1});
+    });
+    addTearDown(state.dispose);
+    await mount(
+      tester,
+      Column(
+        children: [
+          view(state),
+          SavedVisualExplanation(
+            state: state,
+            unitId: 'other',
+            text: 'Erklärung',
+            steps: steps,
+            sourceKey: 'other',
+          ),
+        ],
+      ),
+    );
+    final widgets = tester
+        .widgetList<LearningExplanation>(find.byType(LearningExplanation))
+        .toList();
+    final position = {
+      'explanation_kind': 'intro',
+      'question_id': null,
+      'explanation_step_id': 'e1',
+      'graphic_index': 0,
+      'graphic_phase': 'fraction-bar-whole',
+    };
+    widgets[0].onPositionChanged!(position);
+    await tester.pump();
+    widgets[1].onPositionChanged!(position);
+    await tester.pumpAndSettle();
+    expect(writes, [
+      '/api/units/unit/visual-position',
+      '/api/units/other/visual-position',
+    ]);
+    delayed.complete(reply({'revision': 1}));
+    await tester.pumpAndSettle();
+  });
+  testWidgets(
+    'late write cannot affect a replacement account on the same unit',
+    (tester) async {
+      final delayed = Completer<http.Response>();
+      final writes = <String>[];
+      var otherRevision = 0;
+      final state = app((r) {
+        final account = r.headers['X-Schulpilot-Account'];
+        if (r.method == 'GET') {
+          return reply({
+            'source_signature': 'a' * 64,
+            'revision': account == 'reader' ? 0 : otherRevision,
+            'position': null,
+          });
+        }
+        final revision = (jsonDecode(r.body) as Map)['revision'] as int;
+        writes.add('$account:$revision');
+        if (account == 'reader') return delayed.future;
+        if (revision != otherRevision) return reply({'detail': 'Changed'}, 409);
+        return reply({'revision': ++otherRevision});
+      });
+      addTearDown(state.dispose);
+      await mount(
+        tester,
+        KeyedSubtree(key: const ValueKey('one'), child: view(state)),
+      );
+      final position = {
+        'explanation_kind': 'intro',
+        'question_id': null,
+        'explanation_step_id': 'e1',
+        'graphic_index': 0,
+        'graphic_phase': 'fraction-bar-whole',
+      };
+      tester
+          .widget<LearningExplanation>(find.byType(LearningExplanation))
+          .onPositionChanged!(position);
+      await tester.pump();
+      final previousUser = state.user!;
+      state.user = null;
+      state.notifyListeners();
+      state.user = {...previousUser, 'id': 'second'};
+      state.notifyListeners();
+      await mount(
+        tester,
+        KeyedSubtree(key: const ValueKey('two'), child: view(state)),
+      );
+      tester
+          .widget<LearningExplanation>(find.byType(LearningExplanation))
+          .onPositionChanged!(position);
+      await tester.pumpAndSettle();
+      delayed.complete(reply({'revision': 99}));
+      await tester.pumpAndSettle();
+      tester
+          .widget<LearningExplanation>(find.byType(LearningExplanation))
+          .onPositionChanged!(position);
+      await tester.pumpAndSettle();
+      expect(writes, ['reader:0', 'second:0', 'second:1']);
+    },
+  );
+  testWidgets('resume does not silently overwrite another device', (
+    tester,
+  ) async {
+    var serverRevision = 0;
+    var writes = 0;
+    final state = app((r) {
+      if (r.method == 'GET') {
+        return reply({
+          'source_signature': 'a' * 64,
+          'revision': serverRevision,
+          'position': null,
+        });
+      }
+      writes++;
+      return reply({'revision': ++serverRevision});
+    });
+    addTearDown(state.dispose);
+    await mount(tester, view(state));
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    serverRevision++;
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+    final position = {
+      'explanation_kind': 'intro',
+      'question_id': null,
+      'explanation_step_id': 'e1',
+      'graphic_index': 0,
+      'graphic_phase': 'fraction-bar-whole',
+    };
+    tester
+        .widget<LearningExplanation>(find.byType(LearningExplanation))
+        .onPositionChanged!(position);
+    await tester.pumpAndSettle();
+    expect(writes, 0);
+    expect(
+      find.textContaining('Leseposition hat sich inzwischen geändert'),
+      findsOneWidget,
+    );
   });
   testWidgets('107 old source step callback is inert after replacement', (
     tester,

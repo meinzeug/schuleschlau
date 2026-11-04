@@ -675,9 +675,11 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
   - [x] **Zwei künstliche Bruchseiten auf Android bis zur Lernrunde prüfen.**
     Systempicker, Zuschnitt, Upload, separate Erkennung und Gegenprüfung,
     Quellenzuordnung und zwei unterschiedliche Aufgaben wurden im Emulator
-    mit echtem Anbieter beobachtet. Die Erklärungsgrafik blieb wegen einer
-    fehlerhaften Quellenbindung unsichtbar; die breitere Fotoabnahme bleibt
-    offen. [Ablauf und Grenzen](docs/ANDROID_EMULATOR_ACCEPTANCE_2026_11_04.md).
+    mit echtem Anbieter beobachtet. Nach Korrektur der Quellenbindung war in
+    einem weiteren Lauf auch eine interaktive Bruchgrafik sichtbar; dafür war
+    eine ausdrückliche Wiederholung nach einem Luna-Ausgabelängenfehler nötig.
+    Die breitere Foto- und Zuverlässigkeitsabnahme bleibt offen.
+    [Ablauf und Grenzen](docs/ANDROID_EMULATOR_ACCEPTANCE_2026_11_04.md).
 
   - [ ] **Unbeschriftete Zeichnungen getrennt erfassen und überprüfen.**
     Ein echter künstlicher OpenRouter-Fall ließ einen markierten Bruchbalken

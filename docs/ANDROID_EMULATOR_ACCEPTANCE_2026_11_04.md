@@ -75,3 +75,33 @@ damaliger vollständiger Anbieter-Kontext lässt sich nicht zuverlässig
 rekonstruieren. Eine erneute Grafik benötigt eine bewusst gestartete,
 regulär reservierte Erstellung auf aktuellen Quellen. Der Codefix allein
 belegt noch keinen erneuten erfolgreichen Live-Grafiktest.
+
+### Sichtbare Grafik auf Version 1.38.83
+
+Der erneute reguläre Lauf mit einem neuen künstlichen Konto und demselben
+Fotopaar scheiterte zunächst mit Luna an der begrenzten Ausgabelänge. Nach
+einem ausdrücklich gestarteten regulären Wiederholungsversuch erzeugte Sol
+eine Runde zu beiden Seiten. Sechs Anbieteraufrufe kosteten insgesamt
+0,103100 USD; unbekannte Kosten wurden nicht ausgewiesen. Die beiden Aufgaben
+waren fachlich richtig und unterschiedlich. Die grafische Einführung zeigte
+den Bruch 3/9 korrekt; Kreis- und Balkenansicht sowie die Markierungen für
+Zähler und Nenner funktionierten. Der Erklärtext war durch Scrollen vollständig
+erreichbar. Die Referenzversion und die Materialrevisionen waren gebunden.
+Ohne Antworten blieb der Kompetenzstand unverändert. Das künstliche Konto und
+die Testdaten wurden anschließend regulär bereinigt.
+
+Die [Kreisansicht](images/android-emulator-synthetisch-bruch-erklaerung-1.38.83.png)
+und die [Balkenansicht nach dem Scrollen](images/android-emulator-synthetisch-bruch-scroll-1.38.83.png)
+zeigen den Emulator. Im zweiten Bild ist eine unerwartete Meldung über eine
+Positionsänderung auf einem anderen Gerät sichtbar; sie wird gesondert geprüft.
+Eine Lernrunden-Pushzustellung wurde auch in diesem Lauf nicht nachgewiesen.
+Der Erfolg nach Wiederholung belegt keine zuverlässige Erstgenerierung oder
+die Qualität aller Grafiken und Fächer.
+
+Für den Positionshinweis wurden zwei lokale Selbstkonflikte in Widgettests
+nachgebildet und korrigiert: eine verspätete Speicherantwort nach einem
+Hintergrundwechsel sowie parallele Ansichten derselben Einheit. Lokale
+Speichervorgänge werden für dasselbe Konto und dieselbe Einheit koordiniert;
+echte konkurrierende Änderungen bleiben revisionsgeschützt. Ein erneuter
+Android-Test muss zeigen, ob damit auch der konkret beobachtete Hinweis
+verschwindet.
