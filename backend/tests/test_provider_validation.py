@@ -188,13 +188,13 @@ def test_actual_adapter_keeps_single_reported_bill_when_postvalidation_fails(mon
     import httpx
     from package_output_helpers import PackageOutputCapture
     from schulpilot import providers
-    from test_package_part_output import part
+    from test_package_prepared_graphics import prepared
     from test_package_transport import config
 
-    data, payload = part()
-    # Actual immutable reference metadata, matching the normal server context.
-    for reference in payload["visual_context"]["references"]:
-        reference["kind"] = "scene"
+    # The model response must use the actual selected prepared-ID contract;
+    # otherwise transport rejects the old raw graphic before the postcondition
+    # we deliberately exercise below can be reached.
+    data, payload, _ = prepared()
     output, real_client, calls = PackageOutputCapture(monkeypatch), httpx.Client, []
 
     def handler(request):

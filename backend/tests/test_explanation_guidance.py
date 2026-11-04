@@ -90,7 +90,9 @@ def test_final_actual_wire_contains_guidance_after_all_rule_replacements_without
     wire = captures[0]
     instructions = wire["messages"][0]["content"]
     sent = json.loads(wire["messages"][1]["content"][0]["text"])
-    assert instructions.count(explanation_guidance.REVISION) == 1
+    # A prepared-graphic contract may refer to this revision by name. Count
+    # the actual top-level rule marker, not those harmless cross-references.
+    assert instructions.count("\n" + explanation_guidance.REVISION + ": ") == 1
     assert instructions.endswith(explanation_guidance.rules(function, payload))
     assert ("Konfigurierte Klassenstufe: 6." in instructions) == (grade == 6)
     assert ("Klassenstufe nicht angegeben" in instructions) == (grade is None)
@@ -99,6 +101,11 @@ def test_final_actual_wire_contains_guidance_after_all_rule_replacements_without
     assert sent.get("grade") == grade
     assert projections[0]["projected_micros"] < 250000
     if flow == "package":
+        from schulpilot import package_prepared_scenes
+
+        assert instructions.count("\n" + package_prepared_scenes.REVISION + ": ") == 1
+        assert "wie " + explanation_guidance.REVISION + ":" in instructions
+        assert sent["prepared_graphics"]["revision"] == package_prepared_scenes.REVISION
         assert "PERSISTENTER LERNPAKETTEIL" in instructions
         schema = codec.binding.canonical_schema
         assert schema is not None

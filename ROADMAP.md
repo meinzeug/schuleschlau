@@ -1856,6 +1856,14 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Abnahmen systematisch und wiederholbar automatisieren**
 
+  **04.11.2026, erneute CI-Prüfung:** Lauf
+  [41791144072](https://github.com/meinzeug/schulpilot/actions/runs/41791144072)
+  schlug in zwei Backendpartitionen fehl: Fünf Diagnosefälle verwendeten eine
+  überholte Grafikantwort, zwei weitere zählten einen Versionsverweis als
+  zweiten Erklärungsabschnitt. Die Tests verwenden nun den gültigen
+  Prepared-ID-Vertrag beziehungsweise prüfen den tatsächlichen Abschnitt.
+  Die vollständige CI muss für den korrigierten Commit erneut bestehen.
+
   **04.11.2026, CI-Korrektur:** Der vollständige Lauf
   [41784051628](https://github.com/meinzeug/schulpilot/actions/runs/41784051628)
   für `eae5955` scheiterte in allen drei Backendpartitionen; die übrigen
