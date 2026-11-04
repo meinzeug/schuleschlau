@@ -75,7 +75,10 @@ def observations(db, unit):
             "expected_answer": q["answer"],
             "accepted": q["accepted"],
             "task_explanation": q["explanation"],
-            "evidence_kind": (q.get("presentation") or {}).get("evidence_kind", "knowledge"),
+            "evidence_kind": "reflection" if any(
+                a.question_id == q["id"] and (a.evaluation or {}).get("method") == "open_learning_v1"
+                for a in attempts
+            ) else (q.get("presentation") or {}).get("evidence_kind", "knowledge"),
             "attempts": [
                 {"answer": a.answer, "outcome": a.outcome, "assisted": a.assisted,
                  "independence_uncertain": bool((a.evaluation or {}).get("independence_uncertain"))}
@@ -97,10 +100,14 @@ def uncertain_independence(question):
     return len(attempts) == 1 and bool(attempts[0].get("independence_uncertain"))
 
 
+def open_contribution(question):
+    return question.get("evidence_kind") in ("reflection", "creative", "self_report", "movement")
+
+
 def independently_correct(db, unit):
     if unit.status != "completed":
         return False
-    items = observations(db, unit)
+    items = [item for item in observations(db, unit) if not open_contribution(item)]
     helped = db.scalar(
         select(Activity.id).where(
             Activity.unit_id == unit.id,
@@ -242,11 +249,20 @@ def goal_states(db, unit):
     goals = goals_for(db, root)
     labels = {g["id"]: g["label"] for g in goals}
     dates = {g["id"]: [] for g in goals}
-    seen_checks = {g["id"]: set() for g in goals}
     practice = {g["id"]: {"practiced_tasks": 0, "independent_tasks": 0, "assisted_tasks": 0,
-                           "needs_practice_tasks": 0, "uncertain_tasks": 0, "attempts": 0} for g in goals}
+                           "needs_practice_tasks": 0, "uncertain_tasks": 0, "reflection_tasks": 0,
+                           "attempts": 0} for g in goals}
     child = db.get(Child, unit.child_id)
     zone = ZoneInfo(s.Preferences(**child.preferences).timezone)
+    # A question becomes known when it is answered, even when its round is
+    # still open. Completion order can differ from answer order, including
+    # across devices and midnight; it cannot establish a new recall probe.
+    attempt_bounds = {(unit_id, question_id): (first, last) for unit_id, question_id, first, last in db.execute(
+        select(Attempt.unit_id, Attempt.question_id, func.min(Attempt.created), func.max(Attempt.created))
+        .where(Attempt.unit_id.in_([old.id for old in chain])).group_by(Attempt.unit_id, Attempt.question_id))}
+    groups_by_unit = {}
+    encounters = {}
+    contribution_goals, assessed_goals = set(), set()
     for old in chain:
         old_report = db.get(UnitCoaching, old.id)
         mapping = (
@@ -260,6 +276,26 @@ def goal_states(db, unit):
             goal_id = question.get("learning_goal_id") or mapping.get(question["id"])
             if goal_id in dates and not conflicting_fraction_goal(question["prompt"], labels[goal_id]):
                 groups.setdefault(goal_id, []).append(by_id[question["id"]])
+        groups_by_unit[old.id] = groups
+        for goal_id, items in groups.items():
+            for item in items:
+                (contribution_goals if open_contribution(item) else assessed_goals).add(goal_id)
+                bounds = attempt_bounds.get((old.id, item["question_id"]))
+                if not bounds:
+                    continue
+                signature = ((fraction_task_signature(item["prompt"]) or normalized_prompt(item["prompt"]))
+                    if old.subject.casefold() in ("mathe", "mathematik") else
+                    " ".join(unicodedata.normalize("NFC", item["prompt"]).split()))
+                encounters.setdefault((goal_id, signature), []).append((bounds[0], old.id, item["question_id"]))
+    fresh_groups = set()
+    for (goal_id, _), values in encounters.items():
+        first = min(value[0] for value in values)
+        earliest = [value for value in values if value[0] == first]
+        if len(earliest) == 1:
+            fresh_groups.add((earliest[0][1], goal_id))
+    checks = []
+    for old in chain:
+        groups = groups_by_unit[old.id]
         for goal_id, items in groups.items():
             for item in items:
                 attempts = item["attempts"]
@@ -268,6 +304,9 @@ def goal_states(db, unit):
                 count = practice[goal_id]
                 count["practiced_tasks"] += 1
                 count["attempts"] += len(attempts)
+                if open_contribution(item):
+                    count["reflection_tasks"] += 1
+                    continue
                 last = attempts[-1]
                 key = ("uncertain_tasks" if uncertain_independence(item) else "independent_tasks" if len(attempts) == 1 and not last["assisted"] else "assisted_tasks") if last["outcome"] == "correct" else "needs_practice_tasks" if last["outcome"] == "incorrect" else "uncertain_tasks"
                 count[key] += 1
@@ -289,6 +328,12 @@ def goal_states(db, unit):
             )
         )
         for goal_id, items in groups.items():
+            # An open contribution is neither a successful knowledge check nor
+            # an error. In mixed rounds it must not hide or invalidate the
+            # separate assessed questions for the same goal.
+            items = [item for item in items if not open_contribution(item)]
+            if not items:
+                continue
             clean = (
                 not helped
                 and not hard
@@ -309,25 +354,27 @@ def goal_states(db, unit):
                        for a in q["attempts"])
                 for q in items
             )
-            if old.subject.casefold() in ("mathe", "mathematik"):
-                signatures = {fraction_task_signature(q["prompt"]) or normalized_prompt(q["prompt"]) for q in items}
-            else:
-                # CO and Co describe different chemical substances. NFC and
-                # whitespace normalization do not erase that distinction.
-                signatures = {" ".join(unicodedata.normalize("NFC", q["prompt"]).split()) for q in items}
-            fresh = bool(signatures - seen_checks[goal_id])
-            # Previously exposed practice questions, including wrong answers,
-            # are not independent new retrieval questions on a later day.
-            seen_checks[goal_id].update(signatures)
-            if difficulty:
-                dates[goal_id] = []
-            elif clean and old.round_kind in CHECK_KINDS:
-                stamp = datetime.fromtimestamp(old.completed, zone).date().isoformat()
-                if fresh and stamp not in dates[goal_id]:
-                    dates[goal_id].append(stamp)
+            fresh = (old.id, goal_id) in fresh_groups
+            last_answer = max((attempt_bounds[(old.id, q["question_id"])][1]
+                for q in items if q["attempts"]), default=None)
+            if last_answer is not None:
+                checks.append((last_answer, old.id, goal_id, difficulty,
+                    clean and old.round_kind in CHECK_KINDS and fresh))
+    # Apply evidence in answer order too: a round finished later cannot move
+    # an older answer or difficulty past a newer independent check.
+    difficulty_days = {}
+    for stamp, _, goal_id, difficulty, clean in sorted(checks):
+        day = datetime.fromtimestamp(stamp, zone).date().isoformat()
+        if difficulty:
+            dates[goal_id] = []
+            difficulty_days[goal_id] = day
+        elif clean and day > difficulty_days.get(goal_id, ""):
+            if day not in dates[goal_id]:
+                dates[goal_id].append(day)
     return [
         {
             **g,
+            "assessment_applicable": g["id"] not in (contribution_goals - assessed_goals),
             "practice": practice[g["id"]],
             "successful_check_dates": dates[g["id"]],
             "successful_check_days": len(dates[g["id"]]),
@@ -339,7 +386,7 @@ def goal_states(db, unit):
 
 
 def focus_ids(db, unit, action):
-    states = goal_states(db, unit)
+    states = [state for state in goal_states(db, unit) if state["assessment_applicable"]]
     if action == "repair":
         report = db.get(UnitCoaching, unit.id)
         reviewed = {
@@ -354,7 +401,8 @@ def focus_ids(db, unit, action):
         weak = {
             by_question[q["question_id"]]
             for q in observations(db, unit)
-            if q["deterministic_outcome"] != "correct" or q["hints_used"] or any(a["assisted"] for a in q["attempts"])
+            if not open_contribution(q) and (
+                q["deterministic_outcome"] != "correct" or q["hints_used"] or any(a["assisted"] for a in q["attempts"]))
         }
         states.sort(key=lambda g: (g["id"] not in weak, g["successful_check_days"], g["id"]))
         selected = [g["id"] for g in states if g["id"] in weak]
@@ -368,13 +416,14 @@ def focus_ids(db, unit, action):
 def persistent_errors(db, units):
     done = [u for u in units if u.status == "completed"]
     return len(done) >= 2 and all(
-        any(q["deterministic_outcome"] == "incorrect" and len(q["attempts"]) >= 2 for q in observations(db, u))
+        any(not open_contribution(q) and q["deterministic_outcome"] == "incorrect" and len(q["attempts"]) >= 2
+            for q in observations(db, u))
         for u in done[-2:]
     )
 
 
 def open_assessment_only(db, unit):
-    items = observations(db, unit)
+    items = [item for item in observations(db, unit) if not open_contribution(item)]
     outcomes = [q["deterministic_outcome"] for q in items]
     return "incorrect" not in outcomes and (
         "uncertain" in outcomes or any(
@@ -395,8 +444,9 @@ def progress(db, unit, *, ledger=None):
     completed = [u for u in units if u.status == "completed"]
     clean = {u.id: independently_correct(db, u) for u in completed}
     goals = goal_states(db, unit)
-    dates = sorted({d for goal in goals for d in goal["successful_check_dates"]})
-    secure = bool(goals) and all(goal["secure_observation"] for goal in goals)
+    assessed_goals = [goal for goal in goals if goal["assessment_applicable"]]
+    dates = sorted({d for goal in assessed_goals for d in goal["successful_check_dates"]})
+    secure = bool(assessed_goals) and all(goal["secure_observation"] for goal in assessed_goals)
     latest = completed[-1] if completed else root
     coaching = db.get(UnitCoaching, latest.id)
     pending = next((u for u in units if u.status != "completed"), None)
@@ -439,7 +489,7 @@ def progress(db, unit, *, ledger=None):
         "state": state,
         "label": labels[state],
         "successful_check_dates": dates,
-        "successful_check_days": min((g["successful_check_days"] for g in goals), default=0),
+        "successful_check_days": min((g["successful_check_days"] for g in assessed_goals), default=0),
         "learning_goals": goals,
         "required_check_days": 3,
         "minimum_span_days": 7,
@@ -455,7 +505,7 @@ def progress(db, unit, *, ledger=None):
         else planned_review(
             child,
             root.subject,
-            min(goals, key=lambda g: g["successful_check_days"], default={"successful_check_dates": []})[
+            min(assessed_goals, key=lambda g: g["successful_check_days"], default={"successful_check_dates": []})[
                 "successful_check_dates"
             ],
             anchor=datetime.fromtimestamp(latest.completed, ZoneInfo(prefs.timezone)).date()
@@ -499,13 +549,14 @@ def plan_review(db, unit):
     today = local_day(child)
     root, units = root_and_units(db, unit)
     evidence = progress(db, unit)
+    assessed_goals = [goal for goal in evidence["learning_goals"] if goal["assessment_applicable"]]
     clean = independently_correct(db, unit)
     done = [u for u in units if u.status == "completed"]
     recent_hard = persistent_errors(db, done)
     action = "repair" if not clean else "spaced" if unit.round_kind in CHECK_KINDS else "check"
     if action == "spaced" and (
-        not evidence["learning_goals"]
-        or any(today.isoformat() not in goal["successful_check_dates"] for goal in evidence["learning_goals"])
+        not assessed_goals
+        or any(today.isoformat() not in goal["successful_check_dates"] for goal in assessed_goals)
     ):
         action = "check"
     reason = {
@@ -533,7 +584,7 @@ def plan_review(db, unit):
             child,
             root.subject,
             min(
-                evidence["learning_goals"],
+                assessed_goals,
                 key=lambda g: g["successful_check_days"],
                 default={"successful_check_dates": []},
             )["successful_check_dates"],
@@ -609,6 +660,11 @@ def context(db, unit):
     except UnusableSources as error:
         raise ProviderError(str(error)) from None
     assignment = db.get(Assignment, unit.assignment_id) if unit.assignment_id else None
+    if assignment:
+        from .material_tasks import homework_note_supported
+
+        if not homework_note_supported(db, assignment):
+            raise ProviderError("Die Hausaufgabe stammt aus einer ungeklärten Quellenstelle. Bitte die Originalseite und den Auftrag gemeinsam prüfen.")
     if assignment and unit.goal_revision is not None and assignment.revision != unit.goal_revision:
         raise ProviderError(
             "Der verbindliche Elternauftrag wurde geändert. Bitte zuerst den aktuellen Lernplan gemeinsam prüfen."
@@ -743,12 +799,14 @@ def report_projection(db, unit, stored):
     if isinstance(report.get("explanation"), str):
         report["explanation"] = factual_prose(report["explanation"])
     items = {q["question_id"]: q for q in observations(db, unit)}
-    independent = supported = incorrect = uncertain = independence_uncertain = 0
+    independent = supported = incorrect = uncertain = independence_uncertain = reflections = 0
     for q in items.values():
         attempts = q["attempts"]
         if not attempts:
             continue
-        if q["deterministic_outcome"] == "correct":
+        if open_contribution(q):
+            reflections += 1
+        elif q["deterministic_outcome"] == "correct":
             if uncertain_independence(q):
                 independence_uncertain += 1
             elif len(attempts) == 1 and not attempts[-1]["assisted"]:
@@ -759,13 +817,22 @@ def report_projection(db, unit, stored):
             incorrect += 1
         else:
             uncertain += 1
+    contribution_text = "1 eigener Beitrag" if reflections == 1 else f"{reflections} eigene Beiträge"
     report["summary"] = (f"{independent} beim ersten Versuch selbstständig richtig, "
                          f"{supported} mit Unterstützung oder erneut richtig, {incorrect} weiter üben, "
                          f"{uncertain} Bewertungen offen, {independence_uncertain} richtig mit offenem Selbstständigkeitsnachweis. "
+                         f"{contribution_text} ohne Leistungsbewertung. "
                          "Eine offene Prüfung ist kein nachgewiesener Fehler.")
     for review in report.get("question_reviews", []):
         observed = items.get(review["question_id"])
         if observed is None:
+            continue
+        if open_contribution(observed):
+            review["saved_outcome"] = "uncertain"
+            review["outcome"] = "uncertain"
+            review["assessment_kind"] = "reflection"
+            review["hints_used"] = observed["hints_used"]
+            review["feedback"] = "Dein eigener Beitrag ist gespeichert und wird nicht als richtig oder falsch bewertet."
             continue
         known = observed["deterministic_outcome"]
         review["saved_outcome"] = known
@@ -1020,6 +1087,13 @@ def save_report(
                    if assigned_goal is None and not verified_prior_check else None)
         if goal_id and goal_id != review["learning_goal_id"]:
             raise ProviderError("Die Aufgabenrückmeldung passt nicht zum erkennbaren Lernziel.")
+        if open_contribution(original):
+            # A provider opinion cannot turn a personal/creative contribution
+            # into a graded result, including in an otherwise mixed unit.
+            review["outcome"] = "uncertain"
+            review["assessment_kind"] = "reflection"
+            review["feedback"] = "Dein eigener Beitrag ist gespeichert und wird nicht als richtig oder falsch bewertet."
+            continue
         known = observations_by_id[review["question_id"]]["deterministic_outcome"]
         if known != "uncertain" and known != review["outcome"]:
             raise ProviderError(
@@ -1058,7 +1132,7 @@ def save_report(
             weak = {
                 r["learning_goal_id"]
                 for r in reviews
-                if r["learning_goal_id"] is not None and (
+                if r["learning_goal_id"] is not None and not open_contribution(observations_by_id[r["question_id"]]) and (
                     observations_by_id[r["question_id"]]["deterministic_outcome"] != "correct"
                     or observations_by_id[r["question_id"]]["hints_used"]
                     or any(a["assisted"] for a in observations_by_id[r["question_id"]]["attempts"]))
@@ -1089,26 +1163,28 @@ def save_report(
             db.add(UnitSource(unit_id=followup.id, material_id=source["id"], revision=source["revision"]))
         item.next_unit_id = followup.id
     values = list(observations_by_id.values())
+    graded = [q for q in values if not open_contribution(q)]
     independent = [
         q
-        for q in values
+        for q in graded
         if len(q["attempts"]) == 1
         and q["deterministic_outcome"] == "correct"
         and not q["attempts"][0]["assisted"]
         and not uncertain_independence(q)
         and not q["hints_used"]
     ]
-    possible_exposure = [q for q in values if q["deterministic_outcome"] == "correct" and uncertain_independence(q)]
-    supported = [q for q in values if q["deterministic_outcome"] == "correct" and q not in independent and q not in possible_exposure]
-    unresolved = [q for q in values if q["deterministic_outcome"] != "correct" or q in possible_exposure]
+    possible_exposure = [q for q in graded if q["deterministic_outcome"] == "correct" and uncertain_independence(q)]
+    supported = [q for q in graded if q["deterministic_outcome"] == "correct" and q not in independent and q not in possible_exposure]
+    unresolved = [q for q in graded if q["deterministic_outcome"] != "correct" or q in possible_exposure]
     data.update(
         practice_deferred=deferred,
         source_revisions=sources,
-        summary=f"{len(values)} Aufgaben bearbeitet: {len(independent)} beim ersten Versuch ohne zusätzliche Hilfe richtig, {len(supported)} mit Unterstützung gelöst, {len(unresolved)} brauchen Übung oder eine weitere Prüfung. Das sind Beobachtungen aus dieser Runde.",
+        summary=f"{len(graded)} Wissensaufgaben bearbeitet: {len(independent)} beim ersten Versuch ohne zusätzliche Hilfe richtig, {len(supported)} mit Unterstützung gelöst, {len(unresolved)} brauchen Übung oder eine weitere Prüfung. "
+                + ("1 eigener Beitrag bleibt" if len(values) - len(graded) == 1 else f"{len(values) - len(graded)} eigene Beiträge bleiben") + " ohne Leistungsbewertung.",
         strengths=[
             q["prompt"][:250] + " · beim ersten Versuch ohne zusätzliche Hilfe richtig" for q in independent[:3]
         ],
-        practice_focus=[q["prompt"][:300] for q in values if q not in independent][:3],
+        practice_focus=[q["prompt"][:300] for q in graded if q not in independent][:3],
     )
     item.report = data
     item.status = "ready"
@@ -1160,7 +1236,8 @@ def synthetic_report(db, unit, action):
         weak = {
             goal_for_question(old[q["question_id"]])
             for q in observations(db, unit)
-            if q["deterministic_outcome"] != "correct" or q["hints_used"] or any(a["assisted"] for a in q["attempts"])
+            if not open_contribution(q) and (
+                q["deterministic_outcome"] != "correct" or q["hints_used"] or any(a["assisted"] for a in q["attempts"]))
         }
         desired = sorted(weak)[:2] or desired
     selected_goals = [g for g in goals if g["id"] in desired] or goals[:2]

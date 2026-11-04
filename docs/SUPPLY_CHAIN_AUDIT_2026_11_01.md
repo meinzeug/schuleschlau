@@ -131,3 +131,91 @@ gezielter OSV-Abfragen und wiederholbarem Prüfskript teilweise geprüft. Umfang
 Hashwerte, Ergebnisse und ausdrücklich ungeprüfte Lieferkettenbestandteile:
 [Externe Web-Skripte](EXTERNAL_WEB_SCRIPTS_2026_11_04.md). Die vollständige
 Lieferkettenabnahme bleibt offen.
+
+## Ergänzung 04.11.2026: deklarierte POM-Lizenzmetadaten
+
+Für die beiden bestehenden Laufzeitbäume vom 01.11.2026 wurden am 04.11.2026
+106 aufgelöste Maven-Koordinaten mit öffentlichen POM-Dateien abgeglichen.
+Das [maschinenlesbare Inventar](dependency-inventory/maven-licenses-20261104.json)
+enthält je Koordinate Quelle, SHA-256 der ausgewerteten POM-Datei und die
+wörtlichen Lizenznamen und -verweise. Bei einem POM ohne eigene Lizenzangabe
+wird die öffentliche Eltern-POM-Kette bis zur ersten Deklaration dokumentiert;
+Zyklen, ungültiges XML und unbegrenzte Elternketten werden nicht als Erfolg
+behandelt. Abgefragt wurden Google Maven und Maven Central sowie ausschließlich
+für die passenden Gruppen Flutter Storage und JitPack. Das belegt nicht, aus
+welchem Repository der damalige Build die jeweilige Datei tatsächlich bezog.
+
+Ergebnis: 101 POMs enthielten eigene Lizenzangaben, eine weitere erhielt ihre
+Angabe aus einer Eltern-POM. Die vier `io.flutter`-Artefakte (`arm64_v8a_release`,
+`armeabi_v7a_release`, `flutter_embedding_release`, `x86_64_release`, jeweils
+`1.0.0-deb287481e3ce9468f3434937ced4240a70539ca`) enthielten in der
+gefundenen POM keine Lizenzangabe. Daraus folgt weder, dass sie unlizenziert
+sind, noch, welche konkrete Lizenz für ihr gesamtes Buildartefakt gilt. Die
+betroffenen Lizenztexte einschließlich mitgelieferter Komponenten und
+Weitergabepflichten bleiben gesondert zu untersuchen.
+
+Neben Apache- und BSD-bezeichneten Metadaten nennen sieben POMs die Android
+Software Development Kit License und zwei POMs die Play Core Software
+Development Kit Terms of Service. Diese Angaben sind nicht automatisch eine
+Open-Source-Freigabe oder rechtliche Prüfung. Die Lizenzangaben können
+unvollständig oder ungenau sein und decken weder transitive Binärbestandteile
+noch NOTICE-Dateien und Lizenzpflichten hinreichend ab. Die APK/AAB wurde dafür
+nicht entpackt oder mit den Quellen abgeglichen. Die Lizenzprüfung bleibt offen.
+
+Wiederholbar und ausschließlich lesend:
+
+```sh
+python3 scripts/audit_maven_licenses.py \
+  docs/dependency-inventory/gradle-direct-runtime-20261101.txt \
+  docs/dependency-inventory/gradle-play-runtime-20261101.txt \
+  --output /tmp/schulpilot-maven-licenses.json
+```
+
+Der Prozess liefert bei unaufgelösten Angaben einen Exitcode ungleich null;
+Netzwerkfehler und ungültige POMs brechen die Auswertung ab. Er lädt nur die
+POM-Metadaten, keine Artefakte oder privaten Daten. Vor einer neuen
+Bestandsaufnahme sind aktuelle Gradle-Bäume zu erzeugen; die alten Bäume
+belegen keine zwischenzeitlichen Versionsänderungen. Ein Trefferinventar der
+bekannten Schwachstellen vom 01.11.2026 bleibt eine gesonderte, zeitgebundene
+Abfrage und wird durch diese Lizenzinventur nicht erneuert.
+
+### Ergänzung: Flutter-Engine-Quellen und lokale Hinweise
+
+Die vier oben nicht über POM-Lizenzfelder zugeordneten `io.flutter`-Artefakte
+tragen denselben Engine-Revisionssuffix wie `bin/internal/engine.version` des
+gepinnten Flutter-SDKs. Die [offizielle Flutter-FAQ](https://docs.flutter.dev/resources/faq#which-software-licenses-apply-to-flutter-and-its-dependencies)
+unterscheidet das BSD-3-Clause-lizenzierte Framework von der Engine mit deren
+eigenen Drittkomponenten. Für den SDK-Commit
+`abaf9c523780a608bd46686fd5e53740a07077f8` entspricht die lokale
+[Engine-Lizenzdatei](https://github.com/flutter/flutter/blob/abaf9c523780a608bd46686fd5e53740a07077f8/engine/src/flutter/sky/packages/sky_engine/LICENSE)
+bytegleich der veröffentlichten Datei; SHA-256:
+`3c0040023a5789bf56d6bf41fd44f08b21758523d41f128fb7dd6beb398d1191`.
+Auch `engine.version` stimmt mit diesem Commit überein. Die Datei enthält
+zahlreiche Hinweise auf Drittbestandteile; ihre Existenz bedeutet nicht, dass
+jedes der vier JARs insgesamt nur einer BSD-Lizenz unterliegt.
+
+Die vier JARs im lokalen Gradle-Cache wurden anhand ihres jeweiligen SHA-256
+inventarisiert. Ihre ZIP-Dateinamen enthielten keinen Eintrag mit `license`
+oder `notice`. Die lokale APK enthielt `assets/flutter_assets/NOTICES.Z` als
+lesbares Gzip-Archiv; ihr Hash und der Hash des dekomprimierten Inhalts sind im
+[Nachweis](dependency-inventory/flutter-license-evidence-20261104.json)
+dokumentiert. Das belegt die Existenz eines Hinweisarchivs in genau dieser
+lokalen APK, nicht die Vollständigkeit aller darin genannten Lizenzen, ihre
+Anzeige auf Geräten oder die Übereinstimmung mit einer anderen ausgelieferten
+APK. Die vorliegende Untersuchung ordnet die vier POMs weiterhin nicht
+pauschal einem einzigen SPDX-Identifier zu und ersetzt keine Prüfung der
+Weitergabepflichten oder der tatsächlich verteilten Binärkomponenten.
+
+Lesende Wiederholung mit den zum Build verwendeten lokalen Pfaden:
+
+```sh
+python3 scripts/audit_flutter_license_evidence.py \
+  --sdk /home/dennis/.local/share/schulpilot-flutter \
+  --gradle-cache /home/dennis/.gradle/caches/modules-2/files-2.1 \
+  --apk artifacts/schulpilot-android.apk --output /tmp/flutter-license-evidence.json
+```
+
+Das Skript prüft SDK-Revision und unveränderte lokale Lizenz-/Engine-Dateien
+gegen deren Git-Objekte, inventarisiert exakt ein JAR pro Architektur und
+begrenzt die Dekomprimierung der APK-Hinweise. Ein Remote-Abgleich der
+Lizenzdatei ist separat über die oben verlinkte Commitfassung möglich.

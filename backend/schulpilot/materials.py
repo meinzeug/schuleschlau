@@ -410,8 +410,26 @@ def confirm(material_id: str, data: s.MaterialConfirm, p=Depends(authenticated),
     before_source = save_snapshot(db, material, "before_confirmation")
     source_changed = material.confirmed and any(getattr(data, k) != getattr(material, k) for k in ("subject", "topic", "content", "homework"))
     if data.content != material.content:
-        # A corrected text invalidates advisory OCR roles; never reuse stale classification.
-        material.source_blocks = []
+        from .source_lineage import REVIEW_MARKS_AFTER_EDIT, blocks_after_text_edit
+
+        # Preserve still-exact marks, never silently promote a changed or
+        # detached student answer/correction into an unmarked learning source.
+        material.source_blocks, quarantined = blocks_after_text_edit(material, data.content)
+        if quarantined:
+            warnings = material.uncertainties
+            # Older malformed JSON must not crash confirmation or erase the
+            # fact that its previous reading warnings are unknown.
+            malformed = not isinstance(warnings, list) or any(not isinstance(w, str) or not w.strip() for w in warnings)
+            safe_warnings = [w for w in warnings if isinstance(w, str) and w.strip()] if isinstance(warnings, list) else []
+            if malformed:
+                safe_warnings.append("Frühere Lesehinweise konnten nicht vollständig übernommen werden.")
+            if REVIEW_MARKS_AFTER_EDIT not in safe_warnings:
+                safe_warnings.append(REVIEW_MARKS_AFTER_EDIT)
+            material.uncertainties = safe_warnings
+        elif isinstance(material.uncertainties, list) and REVIEW_MARKS_AFTER_EDIT in material.uncertainties:
+            # Exact restoration is the only automatic way out of the
+            # quarantine; the original marks then match the literal text.
+            material.uncertainties = [w for w in material.uncertainties if w != REVIEW_MARKS_AFTER_EDIT]
     for key in ("subject", "topic", "content", "homework"):
         setattr(material, key, getattr(data, key))
     # Transcription confirmation is not a subject-quality certificate. Keep
@@ -559,6 +577,13 @@ def enqueue(db, p, child, kind, payload, idempotency, *, commit=True):
         return {"id": existing.id, "status": existing.status}
     if kind in ("unit", "package"):
         from .source_lineage import usable_source
+
+        if payload.get("assignment_id"):
+            from .material_tasks import homework_note_supported
+
+            assignment = db.get(Assignment, payload["assignment_id"])
+            if not assignment or not homework_note_supported(db, assignment):
+                raise HTTPException(409, "Die Hausaufgabe stammt aus einer ungeklärten Quellenstelle. Bitte die Originalseite und den Auftrag gemeinsam prüfen.")
 
         source_ids = [row["id"] for row in payload.get("sources", [])] or ([payload["material_id"]] if payload.get("material_id") else [])
         source_pages = [db.get(Material, identifier, populate_existing=True) for identifier in source_ids]

@@ -3,14 +3,16 @@
 Die Glocke im mobilen App-Kopf und im Browser-Kontokopf öffnet eine begrenzte,
 inline scrollbar nutzbare Liste aller bereits geladenen Neuigkeiten;
 „Alle anzeigen“ führt zur großen gefilterten Ansicht unter `/notifications`.
-Kinder und berechtigte Eltern sehen bis zu 50 gespeicherte Neuigkeiten aus den
-letzten 30 Tagen. Beim Betriebsadmin öffnet sie ausschließlich `/admin/push`.
+Kinder und berechtigte Eltern sehen pro Seite bis zu 50 gespeicherte
+Neuigkeiten aus den letzten 30 Tagen. Mit dem neuen paginierten Vertrag können
+ältere Seiten nachgeladen werden; bei einem alten Backend bleibt es beim
+bisherigen Fenster von höchstens 50. Beim Betriebsadmin öffnet sie ausschließlich `/admin/push`.
 Die Übersicht funktioniert ohne Geräte-Push und ohne Firebase-Initialisierung.
 Der lokale Inbox-Cache ist an Konto, ausgewählte Familie und Sitzungsstand
 gebunden. Bei einem Kontextwechsel wird er geleert; verspätete Antworten und
 Lesebestätigungen des vorherigen Kontexts werden nicht übernommen.
 
-Für Nachrichten werden zur Prüfung veralteter Quellen bis zu 500 Einträge in
+Im bisherigen Abruf ohne Pagination werden zur Prüfung veralteter Quellen bis zu 500 Einträge in
 stabil sortierten Blöcken von höchstens 50 gelesen. Ungültige Vorbereitungen
 belegen keinen der 50 sichtbaren Plätze. Wird die Prüfgrenze erreicht, können
 ältere gültige Nachrichten weiterhin fehlen; dieser begrenzte Abruf ist keine
@@ -124,9 +126,37 @@ kein Zustellbeleg. Private Tokens und Nachrichten sind dort nicht zugänglich.
 
 ## Prüfung und Betrieb
 
-Die gemeinsame Headerglocke zeigt alle bereits geladenen Neuigkeiten in einem
-höhenbegrenzten eigenen Scrollbereich; die bestehende Servergrenze bleibt50.
-„Alle anzeigen“ öffnet weiterhin die große Ansicht mit Suche und Filtern.
+Die gemeinsame Headerglocke zeigt geladene Neuigkeiten in einem
+höhenbegrenzten eigenen Scrollbereich. Bei unterstützendem Backend werden
+ältere Einträge seitenweise beim Scrollen oder ausdrücklich mit „Weitere laden“
+nachgeladen. „Alle anzeigen“ öffnet die große Ansicht mit Suche, Filtern und
+einem eigenen Nachladebutton. Suche und Filter umfassen nur geladene Einträge.
+Alte Backends liefern weiterhin höchstens 50 Einträge ohne Cursor; neue Clients
+behandeln diese Antwort unverändert als begrenzte Liste. Der tatsächlich
+ausgelieferte Stand steht in [STATUS.md](STATUS.md).
+
+Der neue optionale Aufruf `GET /notifications/inbox?paginate=1` liefert bis
+zu 50 überprüfte Ereignisse sowie `next_cursor`; ältere Clients behalten den
+bisherigen Vertrag. Die Fortsetzung `?paginate=1&cursor=...` prüft Familien-
+und Quellenrechte erneut und sortiert nach Zeit und Ereigniskennung. Ein
+begrenzter Prüfblock ohne gültige Einträge kann einen weiteren Cursor liefern;
+er wird nicht als vollständiges Ende interpretiert. Ein ungültiger Cursor wird
+abgewiesen. Der Server arbeitet in begrenzten Blöcken; GET erzeugt weder
+Lesebelege noch KI-Aufträge. Bereits geladene Seiten werden beim Aktualisieren
+erneut geprüft, um entfernte Quellen nicht dauerhaft im Cache zu halten. Der
+Client hält höchstens die neueste und zwei ältere Seiten gleichzeitig vor;
+entladene Zwischenbereiche sind gekennzeichnet und über „Neueste anzeigen“
+erneut erreichbar. Ein Abgleich prüft daher höchstens drei Seiten. Zyklische
+oder mehr als 2.048 unterschiedliche Fortsetzungspositionen zwischen zwei
+Aktualisierungen führen zu einem sichtbaren Fehler statt zu einer Endlosschleife
+oder einem vorgetäuschten Listenende. Ein ausdrückliches „Erneut prüfen“
+validiert das aktuelle Fenster und erlaubt danach eine weitere Fortsetzung;
+„Neueste anzeigen“ führt unabhängig davon zum Anfang zurück. Werden ältere
+Karten aus dem begrenzten Fenster entfernt, kann die Scrollposition bei
+unterschiedlichen Kartenhöhen springen; eine pixelgenaue Ankerhaltung ist
+noch nicht nachgewiesen.
+Bei mehr als 500 untypisch geformten Tagesmeldungen kann vorsorglich eine
+Tagesmeldung doppelt erscheinen, statt eine gültige Meldung zu verbergen.
 Nach dem Öffnen bzw. Scrollen werden nur tatsächlich sichtbar gerenderte
 Einträge über das bestehende ausdrückliche POST als gelesen markiert.
 Die große Ansicht verwendet dieselbe Sichtbarkeitsprüfung. Vorgeladene oder
@@ -222,8 +252,10 @@ Für jede Art gespeicherter Prüfungsergebnisse werden höchstens 500 Kandidaten
 in absteigender Zeit-/Kennungsfolge auf aktuelle Berechtigung und Quellen
 geprüft. Nach 100 gültigen Meldungen je Art stoppt die Suche. Einem bereits
 angezeigten Ereignis gilt die gezielte Rechteprüfung unabhängig vom Suchfenster.
-Bei mehr als 500 ungültigen Kandidaten können ältere gültige Hinweise weiterhin
-außerhalb des Fensters liegen; dies ersetzt keine Cursor-Fortsetzung.
+Diese Grenze beschreibt den historischen Einzelabruf ohne Pagination. Der
+neue paginierte Abruf kann nach einem solchen Prüfblock fortgesetzt werden;
+eine leere Seite mit Cursor bedeutet dabei nicht, dass keine älteren gültigen
+Hinweise existieren.
 
 Das Glocken-Capability `exams-v1` ermöglicht den gezielten App-Einstieg.
 FCM `data.route` bleibt `/app`; ein optionales `exam_path` nimmt ausschließlich
@@ -297,7 +329,7 @@ nicht weiter als bereit angeboten. Lesen der Glocke erzeugt weder Hinweise,
 KI-Aufträge noch Lernnachweise. Lesemarkierungen bleiben ausdrücklich und
 kontogebunden.
 
-Für Rundenvorbereitungen werden je Kind höchstens 500 abgeschlossene Aufträge
+Im bisherigen Abruf ohne Pagination werden für Rundenvorbereitungen je Kind höchstens 500 abgeschlossene Aufträge
 in Blöcken geprüft. Ungültige Quellen- oder Sitzungsbindungen verdecken dabei
 nicht schon nach den ersten 100 Aufträgen gültige ältere Hinweise. Bei gleichem
 Abschlusszeitpunkt wird innerhalb dieses Suchfensters nach Meldungskennung

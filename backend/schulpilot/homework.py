@@ -450,6 +450,18 @@ def practice_exclusions(db, material):
     return list(dict.fromkeys(prompt.strip() for prompt in prompts if prompt.strip()))
 
 
+def provider_practice_exclusions(db, material):
+    """Only send literal allowed source fragments; keep full checks local."""
+    from .learning_sources import exact_quote
+    from .providers import ProviderError
+    from .source_lineage import learning_source
+
+    safe = learning_source(db, material)["content"]
+    if not safe.strip():
+        raise ProviderError("Die Hausaufgabenseite enthält noch keine verwendbare Lehrgrundlage. Bitte zuerst die markierten Stellen prüfen.")
+    return [prompt for prompt in practice_exclusions(db, material) if exact_quote(prompt, [safe])]
+
+
 def _practice_signatures(prompt):
     """Finite numeric guards; no claim to general semantic equivalence."""
     from .coaching import fraction_task_signature, normalized_prompt

@@ -1,5 +1,13 @@
 # Betrieb
 
+Die nachfolgenden Release- und Providerabschnitte enthalten historische
+Arbeitsprotokolle; Formulierungen wie „aktiv“ beziehen sich dort auf das
+jeweilige Datum. Den zuletzt belegten Stand zeigt [STATUS.md](STATUS.md).
+Vor jedem Eingriff Live-Health, Dienste, Konfiguration und Quellenstand erneut
+prüfen. Das aktuelle Direct-Artefakt heißt `artifacts/schulpilot-android.apk`;
+Anweisungen zu früheren Test-APK-Namen oder einem kostenlosen Standard nicht
+unbesehen auf bestehende Installationen anwenden.
+
 ## Lernpläne und Aufgabenraum1.25.0+96 · 23.10.2026
 
 Aktiv `20261023T061617Z-a02314d`, Schema0031, alle fünf Dienste aktiv.
@@ -267,15 +275,26 @@ Geprüft wurden Verschlüsselung/Entschlüsselung sowie `pg_restore` in `schulpi
 Autoritative Server: hydrogen.ns.hetzner.com, oxygen.ns.hetzner.com, helium.ns.hetzner.de. Zuständig war die Hetzner-Cloud-API `api.hetzner.cloud/v1`, Zone `dorfspy.de` (Primary). Ein eigener A-RRset `schulpilot` fehlte trotz bereits passender öffentlicher Auflösung. Angelegt wurde ausschließlich `schulpilot/A` → `91.99.217.84`, TTL 300. Kein CNAME-Konflikt, keine Nameserver- oder sonstigen DNS-Änderungen. Autoritativer Server und öffentlicher Resolver wurden nachher geprüft.
 
 
-## APK, SMTP und kostenlose KI-Tests
+## Historisch: APK, SMTP und kostenlose KI-Tests
 
-Deployment erfordert nun neben dem fertigen Web-Build eine signierte APK unter `artifacts/schulpilot-0.1.0-test.apk`. Das Skript prüft die APK-Signatur und liest Paket/Version/Mindest-SDK mit dem fixierten Android Build Tools 36.0.0; SHA-256 und Größe stammen direkt aus der Datei. Nur APK und öffentliches Manifest werden ins Release kopiert, keine Signierdaten. Caddy liefert `/downloads/*` als Datei ohne SPA-Fallback aus.
+Der damalige Teststand verwendete die APK `artifacts/schulpilot-0.1.0-test.apk`.
+Der aktuelle signierte Direct-Build verwendet stattdessen
+`artifacts/schulpilot-android.apk`; Version, Signierer und Hash werden anhand
+der tatsächlichen Datei und des jeweiligen Releasevertrags geprüft. Caddy
+liefert `/downloads/*` als Datei ohne SPA-Fallback aus.
 
 Gmail-SMTP wurde nach ausdrücklichem Auftrag aus dem vorhandenen verschlüsselten Merchagent-Mailtresor in die separate geschützte SCHULPILOT-Umgebung übernommen. TLS-Zertifikate werden geprüft. Der Read-only-IMAP-Test sucht nur die zufälligen eigenen Testaliase und liest mit BODY.PEEK; er ändert keine anderen Nachrichten oder Merchagent-Einstellungen. `scripts/mail_smoke.py --browser` prüft echte Zustellung, Übernahme des Link-Codes und Neuladen der drei Flutter-Formulare, Registrierung, Einladung, Wiederherstellung, Rechteentzug und Bereinigung. Zugangsdaten und Mail-Links werden nicht ausgegeben. Verwendet explizit autorisierte TEST_IMAP_USER/PASSWORD nur in der Prozessumgebung oder die bereits geschützte lokale Projektdatei `~/.local/share/schulpilot-operations/monitor.env`. Browsergeheimnisse werden ausschließlich über stdin übergeben. Benötigt die fixierten QA-Abhängigkeiten aus `qa/`.
 
 E-Mail-Codes bleiben im URL-Fragment `#token=…`, damit sie nicht in HTTP-Zugriffsprotokollen oder Referrer-Headern erscheinen. Der Flutter-Pfadrouter muss dieses Fragment mit `PathUrlStrategy(..., true)` erhalten. Bestätigung, Einladung und Wiederherstellung übernehmen es aus `GoRouterState.uri`; beschädigte Links dürfen keine alten Codes weiterverwenden.
 
-OpenRouter Free ist ausdrücklich als Standard beauftragt und freigegeben: [AI_STANDARD.md](AI_STANDARD.md). `configure-free-standard` erhält den vorhandenen verschlüsselten Schlüssel, stellt auf den festen kostenlosen Bild-/Textendpunkt mit Data-Collection-Deny ohne zusätzliche ZDR-Pflicht um und sperrt ihn bis zur dreiteiligen technischen Probe. `probe-private-route` liefert bei fehlgeschlagener Prüfung einen Fehlerstatus und aktiviert nichts. Für den getrennten festen KI-Testpfad bleiben `SYNTHETIC_AI_ENABLED=true` und `SYNTHETIC_AI_DAILY_LIMIT=40` gesetzt. Der ältere Schlüsselimport `configure-free-tests` ist ausschließlich eine Einrichtung des isolierten Fixture-Modus und setzt die normale Anbieterfreigabe zurück; ihn nicht als erneute Einrichtung des regulären Standards verwenden. Ein globaler Notfallstopp sperrt auch die synthetischen Testaufrufe.
+Historisch war OpenRouter Free als Standard beauftragt und freigegeben:
+[AI_STANDARD.md](AI_STANDARD.md). Die spätere Betreiberentscheidung für den
+bezahlten OpenRouter-Modellmix ist in
+[OPENROUTER_ACTIVATION_2026_10_20.md](OPENROUTER_ACTIVATION_2026_10_20.md)
+dokumentiert. `configure-free-standard` und `configure-free-tests` können die
+aktive Route beziehungsweise Freigabe verändern und dürfen nicht allein wegen
+dieses historischen Abschnitts ausgeführt werden. Die tatsächlich eingestellte
+Providerrevision und den Notfallstopp vor jeder Änderung prüfen.
 
 Google-Play-/Push-Konfiguration: [GOOGLE_PLAY_PUSH.md](GOOGLE_PLAY_PUSH.md). Dienstkonten nie ins Web oder AAB einbetten. Nach Änderungen an geschützten Umgebungsdateien die private Wiederherstellungskopie aktualisieren und verschlüsselt außerhalb des Hosts sichern.
 
@@ -319,7 +338,9 @@ Die Wiederherstellungsprobe verlangt eine vorhandene, lesbare aktuelle Journalda
 
 Backup, Offsite-Export und Wiederherstellungsprobe lesen das Journal unter der stabilen `.erasure-ledger.lock`, die auch Schreibvorgänge und Rotation verwenden. Diese Sperrdatei wird von den lesenden Root-Diensten nur lesend geöffnet; sie wird durch die Sicherung nicht angelegt. Bei fehlendem oder nicht lesbarem Journal beziehungsweise fehlender Sperrdatei wird die Datenbanksicherung weiterhin verschlüsselt gespeichert, aber mit Status `missing` beziehungsweise `unavailable` und einer Warnung versehen; der Monitor meldet `backup_journal_unavailable`. Der Offsite-Journalexport scheitert vor der Ausgabe von Chiffretext, und ein alter Snapshot bleibt erhalten. Die Datei `<Backupname>.journal.json` und das Manifest innerhalb der Sicherung dokumentieren ausschließlich, ob ein Snapshot enthalten war. `present` ist weder ein Nachweis gültiger Signaturen noch lückenloser Löschungen. Bei fehlender Datei oder ungeklärter Historie darf der Betreiber nicht einfach ein leeres Journal erzeugen, um den Alarm zu beseitigen. Die vorhandenen Systemd-Sandboxen bleiben unverändert: die Sicherung schreibt nur unter `/var/backups/schulpilot`, die Restoreprobe nur unter `/var/backups/schulpilot-monitor` und beide lesen den Datenpfad.
 
-`scripts/reconcile_restore.py` bietet denselben ID-Abgleich für eine ausdrücklich separat benannte Datenbank mit Suffix `_restore_test`. Dieses Suffix ist nur eine Schutzprüfung und beweist nicht, dass die angegebene Datenbank vom produktiven Betrieb getrennt ist. Der Betreiber muss Datenbankserver, Datenbank und Zugang vor dem Aufruf unabhängig prüfen. Das Tool lehnt das Standard-Uploadverzeichnis und das über `DATA_DIR` in seiner eigenen Umgebung konfigurierte Uploadverzeichnis samt Unter-/Oberverzeichnissen und aufgelösten Pfad-Aliasen ab. Ein abweichendes Datenverzeichnis muss dem Tool über `DATA_DIR` bekannt gemacht werden; auch diese Prüfung ersetzt nicht die unabhängige Prüfung einer separaten Dateikopie. Vor einer tatsächlichen Aktivierung zusätzlich Aufbewahrung, aktuelle Lösch-/Rechteänderungen, Zugangsgeheimnisse und den Verbrauch seit Backup prüfen. Alte Sitzungen, Einladungs-/Wiederherstellungstokens und ein alter Kostenstand dürfen nicht unbemerkt wieder gültig werden.
+`scripts/reconcile_restore.py` bietet denselben ID-Abgleich für eine ausdrücklich separat benannte Datenbank mit Suffix `_restore_test`. Bei PostgreSQL kann `?dbname=...` den im Pfad geprüften Namen überschreiben; `dbname`, `database`, `service`, `servicefile`, doppelte Parameter und andere zusätzliche Verbindungsoptionen sind deshalb nicht erlaubt. Ausschließlich der vorhandene lokale Socketparameter `?host=/var/run/postgresql` bleibt zugelassen, beispielsweise bei `postgresql+psycopg:///beispiel_restore_test?host=/var/run/postgresql`. PostgreSQL muss vor jeder Datenänderung den angeforderten Namen über `current_database()` bestätigen. SQLite benötigt eine bereits vorhandene reguläre Datei mit passendem Suffix, die weder ein Symlink noch mehrfach hart verlinkt ist; nach dem Verbinden wird der Dateipfad nochmals geprüft. Falls eine Installation andere Verbindungsoptionen benötigt, muss die sichere getrennte Verbindung vorab auf anderem geeigneten Weg eingerichtet und unabhängig geprüft werden; die URL-Prüfung darf nicht umgangen werden.
+
+Dieses Suffix und die Zielprüfungen sind nur Schutzprüfungen und beweisen nicht, dass die angegebene Datenbank vom produktiven Betrieb getrennt ist. Der Betreiber muss Datenbankserver, Datenbank, Zugang und Dateisystem vor dem Aufruf unabhängig prüfen und konkurrierende Änderungen an den Pfaden ausschließen. Das Tool lehnt das Standard-Uploadverzeichnis und das über `DATA_DIR` in seiner eigenen Umgebung konfigurierte Uploadverzeichnis samt Unter-/Oberverzeichnissen und aufgelösten Pfad-Aliasen ab. Ein abweichendes Datenverzeichnis muss dem Tool über `DATA_DIR` bekannt gemacht werden; auch diese Prüfung ersetzt nicht die unabhängige Prüfung einer separaten Dateikopie. Vor einer tatsächlichen Aktivierung zusätzlich Aufbewahrung, aktuelle Lösch-/Rechteänderungen, Zugangsgeheimnisse und den Verbrauch seit Backup prüfen. Alte Sitzungen, Einladungs-/Wiederherstellungstokens und ein alter Kostenstand dürfen nicht unbemerkt wieder gültig werden.
 
 `schulpilot-monitor.timer` prüft alle fünf Minuten ausschließlich die eigenen Dienste, API, Worker-Lebenszeichen, festhängende Jobs, unveröffentlichte Löschanforderungen, Sicherungsalter, Wiederherstellungsprobe und freien Speicher. `/api/admin/operations` zeigt Inhalts-freie Summen, ausschließlich nach Admin-Anmeldung. Die unabhängige User-Unit `schulpilot-watch-public.timer` prüft öffentliches HTTPS und die Frische der Offsite-Kopie auch bei Ausfall des App-Hosts.
 

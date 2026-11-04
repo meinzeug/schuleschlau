@@ -306,6 +306,129 @@ void main() {
   }
 
   for (final bell in [false, true]) {
+    scenario(
+      'bounded history offers return to latest in ${bell ? 'bell' : 'inbox'} at phone width',
+      (tester) async {
+        tester.view.physicalSize = const Size(390, 844);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        final fixture = await display(tester, (request) async {
+          final cursor = request.url.queryParameters['cursor'];
+          final number = cursor == null ? 0 : int.parse(cursor.substring(1));
+          return reply({
+            'items': [notice('page-$number', read: true)],
+            'unread': 0,
+            'next_cursor': 'p${number + 1}',
+          });
+        }, bell: bell);
+        if (bell) {
+          await tester.tap(find.byKey(const ValueKey('notification-bell')));
+          await tester.pumpAndSettle();
+        }
+        for (var i = 0; i < 3; i++) {
+          if (bell) {
+            await tester.tap(
+              find.byKey(const ValueKey('notification-load-more')),
+            );
+          } else {
+            await tester.ensureVisible(find.text('Weitere Neuigkeiten laden'));
+            await tester.tap(find.text('Weitere Neuigkeiten laden'));
+          }
+          await tester.pumpAndSettle();
+        }
+        expect(fixture.state.inbox.historyTrimmed, isTrue);
+        expect(fixture.state.inbox.items.map((item) => item['id']), [
+          'page-0',
+          'page-2',
+          'page-3',
+        ]);
+        final latest = find.byKey(
+          ValueKey(bell ? 'bell-show-latest' : 'notifications-show-latest'),
+        );
+        expect(latest, findsOneWidget);
+        if (!bell) await tester.ensureVisible(latest);
+        await tester.tap(latest);
+        await tester.pumpAndSettle();
+        expect(fixture.state.inbox.historyTrimmed, isFalse);
+        expect(fixture.state.inbox.items.map((item) => item['id']), ['page-0']);
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
+
+  scenario('bounded bell remains usable at 390px with double text', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 760);
+    tester.view.devicePixelRatio = 1;
+    tester.platformDispatcher.textScaleFactorTestValue = 2;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    final fixture = await display(tester, (request) async {
+      final cursor = request.url.queryParameters['cursor'];
+      final number = cursor == null ? 0 : int.parse(cursor.substring(1));
+      return reply({
+        'items': [notice('page-$number', read: true)],
+        'unread': 0,
+        'next_cursor': 'p${number + 1}',
+      });
+    }, bell: true);
+    await tester.tap(find.byKey(const ValueKey('notification-bell')));
+    await tester.pumpAndSettle();
+    for (var i = 0; i < 3; i++) {
+      await tester.tap(find.byKey(const ValueKey('notification-load-more')));
+      await tester.pumpAndSettle();
+    }
+    expect(fixture.state.inbox.historyTrimmed, isTrue);
+    expect(
+      find.byKey(const ValueKey('bell-show-latest')).hitTestable(),
+      findsOneWidget,
+    );
+    expect(find.text('Alle anzeigen').hitTestable(), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  scenario(
+    'cyclic cursor error keeps bell actions reachable with double text',
+    (tester) async {
+      tester.view.physicalSize = const Size(390, 760);
+      tester.view.devicePixelRatio = 1;
+      tester.platformDispatcher.textScaleFactorTestValue = 2;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      final fixture = await display(tester, (request) async {
+        final cursor = request.url.queryParameters['cursor'];
+        final next = cursor == null
+            ? 'A'
+            : cursor == 'A'
+            ? 'B'
+            : 'A';
+        return reply({
+          'items': [notice(cursor ?? 'head', read: true)],
+          'unread': 0,
+          'next_cursor': next,
+        });
+      }, bell: true);
+      await tester.tap(find.byKey(const ValueKey('notification-bell')));
+      await tester.pumpAndSettle();
+      for (var i = 0; i < 2; i++) {
+        await tester.tap(find.byKey(const ValueKey('notification-load-more')));
+        await tester.pumpAndSettle();
+      }
+      expect(fixture.state.inbox.moreError, isNotNull);
+      expect(
+        find.byKey(const ValueKey('bell-show-latest')).hitTestable(),
+        findsOneWidget,
+      );
+      expect(find.text('Alle anzeigen').hitTestable(), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  for (final bell in [false, true]) {
     for (final familyChange in [false, true]) {
       scenario(
         'stale notice control cannot navigate after ${familyChange ? 'family' : 'session'} change in ${bell ? 'bell' : 'full inbox'}',
@@ -440,6 +563,65 @@ void main() {
       expect(find.text('Künstliche Meldung 5').hitTestable(), findsNothing);
     },
   );
+  scenario(
+    'bell loads older notices without acknowledging off-screen entries',
+    (tester) async {
+      final reads = <String>[];
+      await display(tester, (request) async {
+        if (request.method == 'POST') {
+          reads.addAll(
+            (jsonDecode(request.body)['ids'] as List).cast<String>(),
+          );
+          return reply({});
+        }
+        return request.url.queryParameters['cursor'] == null
+            ? reply({
+                'items': [for (var i = 0; i < 6; i++) notice('new$i')],
+                'unread': 6,
+                'next_cursor': 'next',
+              })
+            : reply({
+                'items': [notice('older')],
+                'unread': 1,
+                'next_cursor': null,
+              });
+      }, bell: true);
+      await tester.tap(find.byKey(const ValueKey('notification-bell')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('notification-load-more')));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('7 geladene Neuigkeiten'), findsOneWidget);
+      expect(reads, isNot(contains('older')));
+      await tester.drag(
+        find.byKey(const ValueKey('notification-preview-scroll')),
+        const Offset(0, -1200),
+      );
+      await tester.pumpAndSettle();
+      expect(reads, contains('older'));
+    },
+  );
+
+  scenario('full notification screen can load older notices', (tester) async {
+    await display(tester, (request) async {
+      if (request.method == 'POST') return reply({});
+      return request.url.queryParameters['cursor'] == null
+          ? reply({
+              'items': [notice('new')],
+              'unread': 1,
+              'next_cursor': 'next',
+            })
+          : reply({
+              'items': [notice('older')],
+              'unread': 1,
+              'next_cursor': null,
+            });
+    });
+    final button = find.text('Weitere Neuigkeiten laden');
+    await tester.ensureVisible(button);
+    await tester.tap(button);
+    await tester.pumpAndSettle();
+    expect(find.text('Künstliche Meldung older'), findsOneWidget);
+  });
   scenario(
     'RR059 local notice search finds its target and acknowledges only displayed cards',
     (tester) async {

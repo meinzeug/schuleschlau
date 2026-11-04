@@ -33,6 +33,10 @@ jobs:
           scripts/tests/test_release_timestamp.py scripts/tests/test_postgres_ci_results.py
           scripts/tests/test_extract_gradle_runtime.py scripts/tests/test_audit_maven_osv.py
           scripts/tests/test_audit_firebase_web.py
+          scripts/tests/test_audit_firebase_npm_tree.py
+          scripts/tests/test_audit_maven_licenses.py
+          scripts/tests/test_audit_codex_container_packages.py
+          scripts/tests/test_audit_flutter_license_evidence.py
   backend:
     name: backend-${{ matrix.shard }}
     runs-on: ubuntu-24.04

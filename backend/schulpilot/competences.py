@@ -172,14 +172,13 @@ def evidence(db, child_id, competence_ids=None):
     grouped = {}
     for attempt in attempts:
         grouped.setdefault((attempt.unit_id, attempt.question_id), []).append(attempt)
-    # Pick the first occurrence of a repeated question consistently regardless
-    # of database row order, preserving its actual earliest check day.
+    # Stable processing order is not proof of which same-second answer came first.
     bindings.sort(key=lambda row: (
         min((a.created for a in grouped.get((row.unit_id, row.question_id), [])), default=0),
         row.unit_id, row.question_id))
     child = db.get(Child, child_id)
     zone = ZoneInfo(Preferences(**child.preferences).timezone)
-    checks = {}
+    encounters = []
     review_anchors = {}
     for binding in bindings:
         unit = units.get(binding.unit_id)
@@ -212,17 +211,24 @@ def evidence(db, child_id, competence_ids=None):
         # may later qualify as an independent new retrieval question.
         signature = (fraction_task_signature(question["prompt"])
             if binding.competence_id.startswith("math.") else None) or normalized(question["prompt"])
-        seen = checks.setdefault(binding.competence_id, set())
-        fresh = signature not in seen
-        seen.add(signature)
+        eligible = independent and binding.role == "recall" and unit.round_kind in ("check", "spaced_review", "study_recall")
+        encounters.append((binding.competence_id, signature, values[0].created, last.created, eligible))
         if independent:
             state["last_independent_success"] = max(state["last_independent_success"] or 0, last.created)
-            if fresh and binding.role == "recall" and unit.round_kind in ("check", "spaced_review", "study_recall"):
-                day = datetime.fromtimestamp(last.created, zone).date().isoformat()
-                if day not in state["successful_check_dates"]:
-                    state["successful_check_dates"].append(day)
         elif not reflection and not (possible_exposure and last.outcome == "correct"):
             state["last_difficulty"] = max(state["last_difficulty"] or 0, last.created)
+    earliest = {}
+    for competence_id, signature, first, _, _ in encounters:
+        key = (competence_id, signature)
+        if key not in earliest or first < earliest[key][0]:
+            earliest[key] = (first, 1)
+        elif first == earliest[key][0]:
+            earliest[key] = (first, earliest[key][1] + 1)
+    for competence_id, signature, first, last, eligible in encounters:
+        if eligible and earliest[(competence_id, signature)] == (first, 1):
+            day = datetime.fromtimestamp(last, zone).date().isoformat()
+            if day not in result[competence_id]["successful_check_dates"]:
+                result[competence_id]["successful_check_dates"].append(day)
     from .coaching import planned_review
     from .subject_registry import identity
 

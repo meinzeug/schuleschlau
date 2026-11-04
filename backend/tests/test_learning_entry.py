@@ -488,6 +488,17 @@ def test_paraphrasing_identical_fraction_task_is_not_fresh_recall(source):
         assert payload(db, child["id"], mid)["learning_entry"]["units"][0]["entry_mode"] == "prerequisite_probe"
 
 
+def test_same_second_duplicate_competence_recall_is_not_guessed(source):
+    _, child, mid = source
+    with DB.begin() as db:
+        stamp = int(now()) - 86400
+        attempts = [dated_expansion_attempt(db, child["id"], mid, 0, stamp) for _ in range(2)]
+        state = competences.evidence(db, child["id"], ["math.fractions.expand"])[0]
+        assert state["successful_check_dates"] == []
+        assert state["independent"] == state["attempts"] == 2
+        assert set(state["evidence_refs"]) == {"attempt:" + attempt.id for attempt in attempts}
+
+
 def test_a_prior_wrong_attempt_still_counts_as_support_with_legacy_exposure_flag(source):
     _, child, mid = source
     with DB.begin() as db:

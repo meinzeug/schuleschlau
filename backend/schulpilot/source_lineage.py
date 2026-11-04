@@ -35,6 +35,12 @@ REASONS = {
     "unstructured_annotations": "Die Abschrift enthält nicht mehr zuordenbare Quellenmarkierungen.",
 }
 
+REVIEW_MARKS_AFTER_EDIT = (
+    "Nach der Textänderung sind frühere Markierungen nicht mehr sicher zugeordnet. "
+    "Deine Eltern können den ursprünglichen Text in der Elternansicht eingeben. "
+    "Oder fotografiere die Seite neu und lade sie erneut hoch."
+)
+
 
 def digest(value):
     return hashlib.sha256(
@@ -96,14 +102,68 @@ def false_equality(text):
 
 
 def literal_blocks(material):
+    values = material.source_blocks or []
+    if not isinstance(values, list) or len(values) > 80:
+        return []
     try:
         blocks = [
             SourceBlock.model_validate(value).model_dump(exclude_none=True)
-            for value in (material.source_blocks or [])[:80]
+            for value in values
         ]
     except (ValueError, TypeError):
         return []
     return blocks if "\n\n".join(block["text"] for block in blocks) == material.content else []
+
+
+def blocks_after_text_edit(material, new_text):
+    """Keep unchanged literal metadata; quarantine unplaceable markings.
+
+    This deliberately does not infer where a changed correction or student
+    answer moved. Old blocks remain only as an internal quarantine marker;
+    public material projections already hide blocks that no longer reproduce
+    the saved text. Unmarked text continues to be editable normally.
+    """
+    previous = material.source_blocks if material.source_blocks is not None else []
+    if not isinstance(previous, list) or len(previous) > 80:
+        return copy.deepcopy(previous), True
+
+    def protected(block):
+        if not isinstance(block, dict):
+            return True
+        try:
+            SourceBlock.model_validate(block)
+        except (ValueError, TypeError):
+            return True
+        if block.get("literal_role") in ("student_work", "annotation"):
+            return True
+        warnings = block.get("reading_uncertainties", [])
+        if not isinstance(warnings, list) or any(not isinstance(item, str) or not item.strip() for item in warnings):
+            return True
+        marks = block.get("annotations", [])
+        return not isinstance(marks, list) or any(
+            not isinstance(mark, dict) or mark.get("kind") not in ("ink", "highlight") for mark in marks
+        )
+
+    sensitive = any(protected(block) or (isinstance(block, dict) and block.get("reading_uncertainties"))
+        for block in previous)
+    try:
+        restored = [SourceBlock.model_validate(value).model_dump(exclude_none=True) for value in previous[:80]]
+    except (ValueError, TypeError):
+        restored = []
+    if restored and "\n\n".join(block["text"] for block in restored) == new_text:
+        return restored, False
+    old = literal_blocks(material)
+    pieces = new_text.split("\n\n")
+    if (old and len(old) == len(pieces) and all("\n\n" not in block["text"] for block in old)
+            and all(piece.strip() and len(piece) <= 12000 for piece in pieces)):
+        if all(old_block["text"] == piece or not protected(old_block) for old_block, piece in zip(old, pieces)):
+            return [copy.deepcopy(old_block) if old_block["text"] == piece else {
+                "kind": "paragraph", "text": piece, "purpose": "unknown",
+                "reading_uncertainties": copy.deepcopy(old_block.get("reading_uncertainties", []))}
+                for old_block, piece in zip(old, pieces)], False
+    if sensitive:
+        return copy.deepcopy(previous), True
+    return [], False
 
 
 def block_data(material):
@@ -172,16 +232,25 @@ def learning_source(db, material, revision=None):
             and confirmation.receipt.get("reading_resolution") == "explicit_user_confirmation"
             and confirmation.receipt.get("confirmed_literal_digest") == digest(source_snapshot(material)))
     result["reading_status"] = "explicitly_confirmed" if reading_confirmed else "unresolved" if has_reading_warning else "not_reported"
+    saved_blocks = material.source_blocks
+    malformed_container = saved_blocks is not None and (
+        not isinstance(saved_blocks, list) or len(saved_blocks) > 80)
+    if isinstance(saved_blocks, list) and not malformed_container:
+        try:
+            for block in saved_blocks:
+                SourceBlock.model_validate(block)
+        except (ValueError, TypeError):
+            malformed_container = True
     raw_marks = any(
-        isinstance(block, dict)
-        and (
+        not isinstance(block, dict)
+        or (
             block.get("annotations")
             or block.get("reading_uncertainties")
             or block.get("literal_role") in ("student_work", "annotation")
         )
-        for block in material.source_blocks or []
+        for block in (saved_blocks if isinstance(saved_blocks, list) else [])
     )
-    if not blocks and raw_marks:
+    if not blocks and (raw_marks or malformed_container):
         reason = reason or "unstructured_annotations"
     if not blocks and material.content.strip():
         blocks = [

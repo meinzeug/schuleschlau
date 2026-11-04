@@ -1,0 +1,34 @@
+{
+  "flutter_revision": "abaf9c523780a608bd46686fd5e53740a07077f8",
+  "engine_revision": "deb287481e3ce9468f3434937ced4240a70539ca",
+  "engine_source_license_sha256": "3c0040023a5789bf56d6bf41fd44f08b21758523d41f128fb7dd6beb398d1191",
+  "cached_jars": {
+    "flutter_embedding_release": {
+      "sha256": "395504a17bbc944fb69089792a70bff1bc281d302fe736341220957bddf39b6a",
+      "bytes": 1584072,
+      "embedded_notice_paths": []
+    },
+    "arm64_v8a_release": {
+      "sha256": "d940eba5aca3b58c785ef7f093cb351c871e1410c6b122c7eb1b31a9ca18225f",
+      "bytes": 42168220,
+      "embedded_notice_paths": []
+    },
+    "armeabi_v7a_release": {
+      "sha256": "3909e6467c1fe6202bbf64f377f158171d6b83a86d9cbc39f67f748b217e55ad",
+      "bytes": 41264533,
+      "embedded_notice_paths": []
+    },
+    "x86_64_release": {
+      "sha256": "75b8ec46ceb0a3813a78efd4dc631b188a2e507c6f10655c217d4ac761320347",
+      "bytes": 42484349,
+      "embedded_notice_paths": []
+    }
+  },
+  "local_apk": {
+    "sha256": "2571c636962587fd33d23ed84ce0adb575714738fe840ad0af916f26a7c1b1ba",
+    "bytes": 137704180,
+    "notice_gzip_sha256": "f78d8f215a5cf72eae29f4d8ef7cc40e1047ec421bebef8f8cdfd3371d84450f",
+    "notice_uncompressed_sha256": "6031d960e4051756e0316aeecba1600da00841f031b27ba80c543171b2c5d7b1",
+    "notice_uncompressed_bytes": 1378551
+  }
+}

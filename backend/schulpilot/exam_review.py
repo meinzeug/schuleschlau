@@ -725,6 +725,37 @@ def normalized(value):
     return " ".join(unicodedata.normalize("NFC", value).split())
 
 
+def question_covered_by_citations(question, citations):
+    """A task's own citations must cover its original question, not just its page.
+
+    A long question may require several literal, possibly overlapping quotes.
+    Each quote is used at most once; only whitespace gaps are ignored.
+    """
+    question = normalized(question)
+    quotes = [normalized(citation["quote"]) for citation in citations]
+    if any(question in quote for quote in quotes):
+        return True
+    position = 0
+    remaining = list(quotes)
+    while position < len(question):
+        while position < len(question) and question[position].isspace():
+            position += 1
+        if position == len(question):
+            return True
+        best = None
+        for index, quote in enumerate(remaining):
+            start = question.rfind(quote, 0, min(len(question), position + len(quote)))
+            if start >= 0 and start <= position < start + len(quote):
+                end = start + len(quote)
+                if best is None or end > best[0]:
+                    best = (end, index)
+        if best is None:
+            return False
+        position = best[0]
+        remaining.pop(best[1])
+    return True
+
+
 def valid_role_confirmations(task, report, pages):
     """Never elevate a model guess or a stale, unrelated source into a parent assertion."""
     rows = report.get("role_confirmations", [])
@@ -770,6 +801,8 @@ def checked_report(data, sources, refs):
                 raise ProviderError("Ein Beleg der Arbeitsbesprechung fehlt in der bestätigten Quelle.")
             cited.append(source)
             citation.update(material_id=metadata[citation["ref"]]["id"], label=metadata[citation["ref"]]["label"])
+        if not question_covered_by_citations(task["question"], task["sources"]):
+            raise ProviderError("Der Aufgabenbeleg enthält die Originalaufgabe nicht vollständig und wörtlich. Der bisherige Stand bleibt erhalten.")
         for field in ("question", "original_answer", "teacher_feedback", "score_label"):
             value = task[field]
             if value and not any(normalized(value) in normalized(source["content"]) for source in cited):

@@ -47,7 +47,11 @@ def preview(subject, topic, content, source_blocks=None):
         return None
     # Preserve literal OCR roles only while their text still exactly matches.
     excluded_roles = {"inflection", "rule", "example", "diagram", "metadata"}
-    excluded_text = {line.strip() for block in source_blocks or [] if block.get("purpose") in excluded_roles
+    blocks = source_blocks if isinstance(source_blocks, list) and len(source_blocks) <= 80 else []
+    if (not all(isinstance(block, dict) and isinstance(block.get("text"), str) for block in blocks)
+            or "\n\n".join(block["text"] for block in blocks) != content):
+        blocks = []
+    excluded_text = {line.strip() for block in blocks if block.get("purpose") in excluded_roles
                      for line in block.get("text", "").splitlines()}
     pairs, columns, unpaired, header_seen = [], None, 0, False
     word_section = not bool(NON_TRANSLATION.search(topic))

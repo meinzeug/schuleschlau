@@ -377,7 +377,8 @@ def test_three_check_days_must_span_a_week_and_cover_every_goal(normal_unit, goa
             int(datetime.combine(today - timedelta(days=12), datetime.min.time(), zone).timestamp()),
         )
         for q in root.questions:
-            db.add(Attempt(unit_id=root.id, question_id=q["id"], answer=q["answer"], outcome="correct", assisted=False))
+            db.add(Attempt(unit_id=root.id, question_id=q["id"], answer=q["answer"], outcome="correct",
+                assisted=False, created=root.completed))
         db.add(
             UnitCoaching(
                 unit_id=root.id,
@@ -420,7 +421,8 @@ def test_three_check_days_must_span_a_week_and_cover_every_goal(normal_unit, goa
             db.flush()
             for q in unit.questions:
                 db.add(
-                    Attempt(unit_id=unit.id, question_id=q["id"], answer=q["answer"], outcome="correct", assisted=False)
+                    Attempt(unit_id=unit.id, question_id=q["id"], answer=q["answer"], outcome="correct",
+                        assisted=False, created=stamp)
                 )
         db.flush()
         result = coaching.progress(db, root)

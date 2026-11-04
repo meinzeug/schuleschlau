@@ -202,17 +202,11 @@ def message_previews(db, child_id):
 def material_data(material):
     from .material_tasks import preview as task_preview
     from .material_vocabulary import preview
-    from .subject_content import SourceBlock
+    from .source_lineage import literal_blocks
 
     # Only expose an ordered reading projection of this exact saved revision.
     # Corrections and historical malformed blocks must never show stale text.
-    source_blocks = []
-    try:
-        parsed = [SourceBlock.model_validate(row).model_dump(exclude_none=True) for row in (material.source_blocks or [])[:80]]
-        if "\n\n".join(row["text"] for row in parsed) == material.content:
-            source_blocks = parsed
-    except (ValueError, TypeError):
-        pass
+    source_blocks = literal_blocks(material)
 
     return {
         k: getattr(material, k)

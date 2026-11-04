@@ -160,12 +160,17 @@ def evidence(db, unit, sources):
                 independent and old.round_kind in CHECK_KINDS))
     # A unit can be answered long after a newer unit. Process the first actual
     # answer, not unit creation or the time of the final retry.
-    seen_checks = {}
-    for _, _, _, created, goal, signature, eligible in sorted(observations, key=lambda item: item[:3]):
-        seen = seen_checks.setdefault(goal, set())
-        fresh = signature not in seen
-        seen.add(signature)
-        if fresh and eligible:
+    earliest = {}
+    for first, _, _, _, goal, signature, _ in observations:
+        key = (goal, signature)
+        if key not in earliest or first < earliest[key][0]:
+            earliest[key] = (first, 1)
+        elif first == earliest[key][0]:
+            earliest[key] = (first, earliest[key][1] + 1)
+    for first, _, _, created, goal, signature, eligible in sorted(observations, key=lambda item: item[:3]):
+        # Equal timestamps from separate answers do not tell us which exposure
+        # happened first, so neither is a safe new recall observation.
+        if earliest[(goal, signature)] == (first, 1) and eligible:
             stamp = datetime.fromtimestamp(created, zone).date().isoformat()
             if stamp not in result[goal]["successful_check_dates"]:
                 result[goal]["successful_check_dates"].append(stamp)

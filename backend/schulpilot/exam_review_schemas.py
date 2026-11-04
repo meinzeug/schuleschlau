@@ -21,7 +21,10 @@ Auch bei wörtlichem Fund ist die Zuordnung zur Lehrkraft oder zum Kind nicht al
 belegt. Behandle sie als vorläufig und behaupte keine sichere Urheberschaft; bitte bei Bedarf
 um Abgleich mit der Originalseite.
 Keine richtige Lösung aus einer möglicherweise falschen Schülerantwort ableiten.
-Je Aufgabe sources mit wörtlichem quote und erlaubter p-Referenz. ai_proposal ist nur ein
+Je Aufgabe sources mit wörtlichem quote und erlaubter p-Referenz. Der oder die Belege müssen die
+gesamte Originalaufgabe question wörtlich abdecken; lange Aufgaben bei Bedarf in bis zu sechs
+aufeinanderfolgende oder überlappende Zitate teilen. Unbeteiligte Textstellen sind kein Aufgabenbeleg.
+ai_proposal ist nur ein
 kurzer ausdrücklich vorläufiger Lernhinweis; keine Note speichern, keine Lehrernote korrigieren,
 keine neue Kompetenz oder Beherrschung behaupten. Keine Aufgaben erfinden, wenn nichts lesbar ist.
 Bei action=hint/explain/check: die ausgewählte Originalaufgabe und den NEUEN eigenen Entwurf

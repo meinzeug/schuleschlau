@@ -123,11 +123,13 @@ class LearningProgressPanel extends StatelessWidget {
                         ),
                       ],
                       MathText(
-                        counted(
-                          goal['successful_check_days'],
-                          'späterer Prüftag',
-                          'spätere Prüftage',
-                        ),
+                        goal['assessment_applicable'] == false
+                            ? 'Eigener Beitrag · ohne Leistungsbewertung'
+                            : counted(
+                                goal['successful_check_days'],
+                                'späterer Prüftag',
+                                'spätere Prüftage',
+                              ),
                         style: TextStyle(
                           color: context.palette.muted,
                           fontSize: 12,

@@ -1,0 +1,728 @@
+{
+  "queried_at_utc_local_clock": "2026-11-04T05:58:01.119811+00:00",
+  "source": "https://api.osv.dev/v1/querybatch",
+  "inventory_sha256": {
+    "dpkg": "f6d3ccfd84ab7e3de449a6532e13f2c778b8b9584bca2a10c3ee9116d741e2e3",
+    "pypi": "24e7dc58e840029b0e1d9e0c89ca1cd26a2f7be08fa3e98e662d546a5cce7694"
+  },
+  "packages": [
+    {
+      "ecosystem": "Debian:12",
+      "name": "acl",
+      "version": "2.3.1-3",
+      "vulnerability_ids": [
+        "DEBIAN-CVE-2026-54369",
+        "DEBIAN-CVE-2026-54370"
+      ]
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "adduser",
+      "version": "3.134",
+      "vulnerability_ids": []
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "apt",
+      "version": "2.6.1",
+      "vulnerability_ids": [
+        "DEBIAN-CVE-2011-3374"
+      ]
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "attr",
+      "version": "1:2.5.1-4",
+      "vulnerability_ids": [
+        "DEBIAN-CVE-2026-54371"
+      ]
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "audit",
+      "version": "1:3.0.9-1",
+      "vulnerability_ids": []
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "base-files",
+      "version": "12.4+deb12u15",
+      "vulnerability_ids": []
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "base-passwd",
+      "version": "3.6.1",
+      "vulnerability_ids": []
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "bash",
+      "version": "5.2.15-2",
+      "vulnerability_ids": []
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "bzip2",
+      "version": "1.0.8-5",
+      "vulnerability_ids": [
+        "DEBIAN-CVE-2026-42250"
+      ]
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "ca-certificates",
+      "version": "20250419~deb12u1",
+      "vulnerability_ids": []
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "cdebconf",
+      "version": "0.270",
+      "vulnerability_ids": []
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "coreutils",
+      "version": "9.1-1",
+      "vulnerability_ids": [
+        "DEBIAN-CVE-2016-2781",
+        "DEBIAN-CVE-2017-18018",
+        "DEBIAN-CVE-2025-5278",
+        "DEBIAN-CVE-2026-56391",
+        "DEBIAN-CVE-2026-56392"
+      ]
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "dash",
+      "version": "0.5.12-2",
+      "vulnerability_ids": [
+        "DEBIAN-CVE-2026-102473",
+        "DEBIAN-CVE-2026-102474"
+      ]
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "db5.3",
+      "version": "5.3.28+dfsg2-1",
+      "vulnerability_ids": []
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "debconf",
+      "version": "1.5.82",
+      "vulnerability_ids": []
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "debian-archive-keyring",
+      "version": "2023.3+deb12u2",
+      "vulnerability_ids": []
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "debianutils",
+      "version": "5.7-0.5~deb12u1",
+      "vulnerability_ids": []
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "diffutils",
+      "version": "1:3.8-4",
+      "vulnerability_ids": [
+        "DEBIAN-CVE-2026-53910"
+      ]
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "dpkg",
+      "version": "1.21.23",
+      "vulnerability_ids": []
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "e2fsprogs",
+      "version": "1.47.0-2",
+      "vulnerability_ids": []
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "findutils",
+      "version": "4.9.0-4",
+      "vulnerability_ids": []
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "gcc-12",
+      "version": "12.2.0-14+deb12u1",
+      "vulnerability_ids": [
+        "DEBIAN-CVE-2022-27943",
+        "DEBIAN-CVE-2026-102010",
+        "DEBIAN-CVE-2026-114690",
+        "DEBIAN-CVE-2026-114691",
+        "DEBIAN-CVE-2026-115455",
+        "DEBIAN-CVE-2026-95619"
+      ]
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "gdbm",
+      "version": "1.23-3",
+      "vulnerability_ids": []
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "glibc",
+      "version": "2.36-9+deb12u14",
+      "vulnerability_ids": [
+        "DEBIAN-CVE-2010-4756",
+        "DEBIAN-CVE-2018-20796",
+        "DEBIAN-CVE-2019-1010022",
+        "DEBIAN-CVE-2019-1010023",
+        "DEBIAN-CVE-2019-1010024",
+        "DEBIAN-CVE-2019-1010025",
+        "DEBIAN-CVE-2019-9192",
+        "DEBIAN-CVE-2026-18374",
+        "DEBIAN-CVE-2026-19499",
+        "DEBIAN-CVE-2026-19542",
+        "DEBIAN-CVE-2026-5435",
+        "DEBIAN-CVE-2026-5450",
+        "DEBIAN-CVE-2026-5928",
+        "DEBIAN-CVE-2026-6238",
+        "DEBIAN-CVE-2026-6368",
+        "DEBIAN-CVE-2026-6791",
+        "DEBIAN-CVE-2026-77117",
+        "DEBIAN-CVE-2026-80489",
+        "DEBIAN-CVE-2026-84243",
+        "DEBIAN-CVE-2026-8674",
+        "DEBIAN-CVE-2026-86805",
+        "DEBIAN-CVE-2026-89092",
+        "DEBIAN-CVE-2026-95818",
+        "DEBIAN-CVE-2026-97399"
+      ]
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "gmp",
+      "version": "2:6.2.1+dfsg1-1.1",
+      "vulnerability_ids": []
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "gnupg2",
+      "version": "2.2.40-1.1+deb12u2",
+      "vulnerability_ids": [
+        "DEBIAN-CVE-2022-3219",
+        "DEBIAN-CVE-2025-30258",
+        "DEBIAN-CVE-2025-68972",
+        "DEBIAN-CVE-2026-105712",
+        "DEBIAN-CVE-2026-57062"
+      ]
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "gnutls28",
+      "version": "3.7.9-2+deb12u7",
+      "vulnerability_ids": [
+        "DEBIAN-CVE-2011-3389",
+        "DEBIAN-CVE-2026-67693",
+        "DEBIAN-CVE-2026-88647",
+        "DEBIAN-CVE-2026-88648",
+        "DEBIAN-CVE-2026-95184",
+        "DEBIAN-CVE-2026-95209",
+        "DEBIAN-CVE-2026-95210"
+      ]
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "grep",
+      "version": "3.8-5",
+      "vulnerability_ids": []
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "gzip",
+      "version": "1.12-1",
+      "vulnerability_ids": [
+        "DEBIAN-CVE-2026-41991",
+        "DEBIAN-CVE-2026-41992"
+      ]
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "hostname",
+      "version": "3.23+nmu1",
+      "vulnerability_ids": []
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "init-system-helpers",
+      "version": "1.65.2+deb12u1",
+      "vulnerability_ids": []
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "keyutils",
+      "version": "1.6.3-2",
+      "vulnerability_ids": []
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "krb5",
+      "version": "1.20.1-2+deb12u5",
+      "vulnerability_ids": [
+        "DEBIAN-CVE-2018-5709",
+        "DEBIAN-CVE-2024-26458",
+        "DEBIAN-CVE-2024-26461",
+        "DEBIAN-CVE-2026-107708",
+        "DEBIAN-CVE-2026-107778",
+        "DEBIAN-CVE-2026-11850"
+      ]
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "libcap-ng",
+      "version": "0.8.3-1",
+      "vulnerability_ids": []
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "libcap2",
+      "version": "1:2.66-4+deb12u3",
+      "vulnerability_ids": []
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "libffi",
+      "version": "3.4.4-1",
+      "vulnerability_ids": []
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "libgcrypt20",
+      "version": "1.10.1-3+deb12u1",
+      "vulnerability_ids": [
+        "DEBIAN-CVE-2018-6829",
+        "DEBIAN-CVE-2024-2236"
+      ]
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "libgpg-error",
+      "version": "1.46-1",
+      "vulnerability_ids": []
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "libidn2",
+      "version": "2.3.3-1",
+      "vulnerability_ids": []
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "libmd",
+      "version": "1.0.4-2",
+      "vulnerability_ids": []
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "libnsl",
+      "version": "1.3.0-2",
+      "vulnerability_ids": []
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "libseccomp",
+      "version": "2.5.4-1+deb12u1",
+      "vulnerability_ids": []
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "libselinux",
+      "version": "3.4-1",
+      "vulnerability_ids": []
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "libsemanage",
+      "version": "3.4-1",
+      "vulnerability_ids": []
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "libsepol",
+      "version": "3.4-2.1",
+      "vulnerability_ids": []
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "libtasn1-6",
+      "version": "4.19.0-2+deb12u1",
+      "vulnerability_ids": [
+        "DEBIAN-CVE-2025-13151"
+      ]
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "libtirpc",
+      "version": "1.3.3+ds-1",
+      "vulnerability_ids": [
+        "DEBIAN-CVE-2026-85231",
+        "DEBIAN-CVE-2026-85977"
+      ]
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "libunistring",
+      "version": "1.0-2",
+      "vulnerability_ids": []
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "libxcrypt",
+      "version": "1:4.4.33-2",
+      "vulnerability_ids": []
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "libzstd",
+      "version": "1.5.4+dfsg2-5",
+      "vulnerability_ids": []
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "lz4",
+      "version": "1.9.4-1",
+      "vulnerability_ids": []
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "mawk",
+      "version": "1.3.4.20200120-3.1",
+      "vulnerability_ids": []
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "ncurses",
+      "version": "6.4-4",
+      "vulnerability_ids": [
+        "DEBIAN-CVE-2023-50495",
+        "DEBIAN-CVE-2025-6141",
+        "DEBIAN-CVE-2025-69720"
+      ]
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "netbase",
+      "version": "6.4",
+      "vulnerability_ids": []
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "nettle",
+      "version": "3.8.1-2",
+      "vulnerability_ids": []
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "openssl",
+      "version": "3.0.22-1~deb12u1",
+      "vulnerability_ids": [
+        "DEBIAN-CVE-2025-27587",
+        "DEBIAN-CVE-2026-35189",
+        "DEBIAN-CVE-2026-54872",
+        "DEBIAN-CVE-2026-75805",
+        "DEBIAN-CVE-2026-75806",
+        "DEBIAN-CVE-2026-77696",
+        "DEBIAN-CVE-2026-84782"
+      ]
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "p11-kit",
+      "version": "0.24.1-2",
+      "vulnerability_ids": [
+        "DEBIAN-CVE-2026-13757",
+        "DEBIAN-CVE-2026-18938"
+      ]
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "pam",
+      "version": "1.5.2-6+deb12u2",
+      "vulnerability_ids": [
+        "DEBIAN-CVE-2024-10041",
+        "DEBIAN-CVE-2025-8941",
+        "DEBIAN-CVE-2026-54411"
+      ]
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "pcre2",
+      "version": "10.42-1+deb12u2",
+      "vulnerability_ids": []
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "perl",
+      "version": "5.36.0-7+deb12u4",
+      "vulnerability_ids": [
+        "DEBIAN-CVE-2011-4116",
+        "DEBIAN-CVE-2023-31486",
+        "DEBIAN-CVE-2026-15534",
+        "DEBIAN-CVE-2026-82560",
+        "DEBIAN-CVE-2026-9538"
+      ]
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "readline",
+      "version": "8.2-1.3",
+      "vulnerability_ids": []
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "sed",
+      "version": "4.9-1+deb12u1",
+      "vulnerability_ids": []
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "shadow",
+      "version": "1:4.13+dfsg1-1+deb12u2",
+      "vulnerability_ids": [
+        "DEBIAN-CVE-2007-5686",
+        "DEBIAN-CVE-2024-56433"
+      ]
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "sqlite3",
+      "version": "3.40.1-2+deb12u2",
+      "vulnerability_ids": [
+        "DEBIAN-CVE-2021-45346",
+        "DEBIAN-CVE-2025-29088",
+        "DEBIAN-CVE-2025-70873",
+        "DEBIAN-CVE-2025-7458",
+        "DEBIAN-CVE-2025-7709",
+        "DEBIAN-CVE-2026-11822",
+        "DEBIAN-CVE-2026-11824",
+        "DEBIAN-CVE-2026-119371",
+        "DEBIAN-CVE-2026-119372",
+        "DEBIAN-CVE-2026-119373",
+        "DEBIAN-CVE-2026-119374",
+        "DEBIAN-CVE-2026-119375",
+        "DEBIAN-CVE-2026-119376",
+        "DEBIAN-CVE-2026-119377",
+        "DEBIAN-CVE-2026-119378",
+        "DEBIAN-CVE-2026-119379",
+        "DEBIAN-CVE-2026-119586",
+        "DEBIAN-CVE-2026-119591",
+        "DEBIAN-CVE-2026-50812",
+        "DEBIAN-CVE-2026-50813"
+      ]
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "systemd",
+      "version": "252.39-1~deb12u2",
+      "vulnerability_ids": [
+        "DEBIAN-CVE-2013-4392",
+        "DEBIAN-CVE-2023-31437",
+        "DEBIAN-CVE-2023-31438",
+        "DEBIAN-CVE-2023-31439",
+        "DEBIAN-CVE-2026-15059",
+        "DEBIAN-CVE-2026-16742",
+        "DEBIAN-CVE-2026-40228"
+      ]
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "sysvinit",
+      "version": "3.06-4",
+      "vulnerability_ids": []
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "tar",
+      "version": "1.34+dfsg-1.2+deb12u1",
+      "vulnerability_ids": [
+        "DEBIAN-CVE-2005-2541",
+        "DEBIAN-CVE-2026-18477",
+        "DEBIAN-CVE-2026-18508",
+        "DEBIAN-CVE-2026-5704"
+      ]
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "tzdata",
+      "version": "2026c-0+deb12u1",
+      "vulnerability_ids": []
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "usrmerge",
+      "version": "37~deb12u1",
+      "vulnerability_ids": []
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "util-linux",
+      "version": "2.38.1-5+deb12u3",
+      "vulnerability_ids": [
+        "DEBIAN-CVE-2022-0563",
+        "DEBIAN-CVE-2025-14104",
+        "DEBIAN-CVE-2026-13595",
+        "DEBIAN-CVE-2026-27456",
+        "DEBIAN-CVE-2026-3184",
+        "DEBIAN-CVE-2026-53613",
+        "DEBIAN-CVE-2026-53615",
+        "DEBIAN-CVE-2026-78410"
+      ]
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "xxhash",
+      "version": "0.8.1-1",
+      "vulnerability_ids": []
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "xz-utils",
+      "version": "5.4.1-1+deb12u2",
+      "vulnerability_ids": []
+    },
+    {
+      "ecosystem": "Debian:12",
+      "name": "zlib",
+      "version": "1:1.2.13.dfsg-1",
+      "vulnerability_ids": [
+        "DEBIAN-CVE-2023-45853",
+        "DEBIAN-CVE-2026-27171",
+        "DEBIAN-CVE-2026-85091"
+      ]
+    },
+    {
+      "ecosystem": "PyPI",
+      "name": "annotated-doc",
+      "version": "0.0.5",
+      "vulnerability_ids": []
+    },
+    {
+      "ecosystem": "PyPI",
+      "name": "annotated-types",
+      "version": "0.8.0",
+      "vulnerability_ids": []
+    },
+    {
+      "ecosystem": "PyPI",
+      "name": "anyio",
+      "version": "4.15.1",
+      "vulnerability_ids": []
+    },
+    {
+      "ecosystem": "PyPI",
+      "name": "certifi",
+      "version": "2026.10.23",
+      "vulnerability_ids": []
+    },
+    {
+      "ecosystem": "PyPI",
+      "name": "click",
+      "version": "8.5.0",
+      "vulnerability_ids": []
+    },
+    {
+      "ecosystem": "PyPI",
+      "name": "fastapi",
+      "version": "0.143.0",
+      "vulnerability_ids": []
+    },
+    {
+      "ecosystem": "PyPI",
+      "name": "h11",
+      "version": "0.16.0",
+      "vulnerability_ids": []
+    },
+    {
+      "ecosystem": "PyPI",
+      "name": "httpcore",
+      "version": "1.0.9",
+      "vulnerability_ids": []
+    },
+    {
+      "ecosystem": "PyPI",
+      "name": "httpx",
+      "version": "0.28.1",
+      "vulnerability_ids": []
+    },
+    {
+      "ecosystem": "PyPI",
+      "name": "idna",
+      "version": "3.20",
+      "vulnerability_ids": []
+    },
+    {
+      "ecosystem": "PyPI",
+      "name": "opentelemetry-api",
+      "version": "1.45.1",
+      "vulnerability_ids": []
+    },
+    {
+      "ecosystem": "PyPI",
+      "name": "pip",
+      "version": "25.0.1",
+      "vulnerability_ids": [
+        "GHSA-4xh5-x5gv-qwph",
+        "GHSA-58qw-9mgm-455v",
+        "GHSA-6vgw-5pg2-w6jp",
+        "GHSA-jp4c-xjxw-mgf9",
+        "GHSA-qwm4-qh6w-59xr",
+        "GHSA-wf93-45jw-7689",
+        "PYSEC-2026-1795",
+        "PYSEC-2026-1796",
+        "PYSEC-2026-196",
+        "PYSEC-2026-2875",
+        "PYSEC-2026-2876",
+        "PYSEC-2026-3721"
+      ]
+    },
+    {
+      "ecosystem": "PyPI",
+      "name": "pydantic",
+      "version": "2.14.1",
+      "vulnerability_ids": []
+    },
+    {
+      "ecosystem": "PyPI",
+      "name": "pydantic-core",
+      "version": "2.50.1",
+      "vulnerability_ids": []
+    },
+    {
+      "ecosystem": "PyPI",
+      "name": "starlette",
+      "version": "1.8.0",
+      "vulnerability_ids": []
+    },
+    {
+      "ecosystem": "PyPI",
+      "name": "typing-extensions",
+      "version": "4.16.0",
+      "vulnerability_ids": []
+    },
+    {
+      "ecosystem": "PyPI",
+      "name": "typing-inspection",
+      "version": "0.4.4",
+      "vulnerability_ids": []
+    },
+    {
+      "ecosystem": "PyPI",
+      "name": "uvicorn",
+      "version": "0.54.0",
+      "vulnerability_ids": []
+    }
+  ]
+}

@@ -83,3 +83,107 @@ def test_cli_rejects_live_child_before_database_or_file_changes(monkeypatch, upl
     assert error.value.code == 2
     assert photo.read_bytes() == b"not a real image"
     assert reconcile_restore.os.environ["DATABASE_URL"] == "untouched"
+
+
+@pytest.mark.parametrize("query", [
+    "dbname=production", "database=production", "DbNaMe=production", "db%6eame=production",
+    "dbname=safe_restore_test&dbname=production", "service=production", "servicefile=/tmp/service",
+    "host=production", "host=/var/run/postgresql&host=production",
+    "host=/tmp/other", "host=/var/run/postgresql&dbname=production",
+    "options=-csearch_path%3Dpublic", "sslmode=require",
+])
+def test_restore_url_rejects_all_connection_parameters(query):
+    with pytest.raises(ValueError, match="query parameters"):
+        reconcile_restore.isolated_database(f"postgresql+psycopg://localhost/safe_restore_test?{query}")
+
+
+def test_psycopg_query_really_overrides_checked_database_name():
+    from sqlalchemy.dialects.postgresql.psycopg import PGDialect_psycopg
+    from sqlalchemy.engine import make_url
+
+    url = make_url("postgresql+psycopg://localhost/safe_restore_test?dbname=production")
+    assert url.database == "safe_restore_test"
+    assert PGDialect_psycopg().create_connect_args(url)[1]["dbname"] == "production"
+    with pytest.raises(ValueError, match="query parameters"):
+        reconcile_restore.isolated_database(str(url))
+
+
+def test_cli_rejects_overridden_target_before_environment_or_files_change(monkeypatch, upload_trees):
+    _, _, separate = upload_trees
+    photo = separate / "synthetic.jpg"
+    photo.write_bytes(b"synthetic")
+    monkeypatch.setenv("DATABASE_URL", "untouched")
+    monkeypatch.setattr(sys, "argv", [
+        "reconcile_restore.py", "--database-url",
+        "postgresql+psycopg://localhost/safe_restore_test?dbname=production",
+        "--ledger", "missing-ledger", "--master-key-file", "missing-key", "--uploads", str(separate),
+    ])
+    with pytest.raises(SystemExit) as error:
+        reconcile_restore.main()
+    assert error.value.code == 2
+    assert reconcile_restore.os.environ["DATABASE_URL"] == "untouched"
+    assert photo.read_bytes() == b"synthetic"
+
+
+def test_postgres_simple_restore_name_is_allowed_and_overlong_rejected():
+    assert reconcile_restore.isolated_database("postgresql+psycopg://localhost/safe_restore_test") == (
+        "postgresql", "safe_restore_test"
+    )
+    with pytest.raises(ValueError, match="PostgreSQL"):
+        reconcile_restore.isolated_database("postgresql://localhost/" + "a" * 60 + "_restore_test")
+
+
+def test_only_documented_local_postgresql_socket_query_is_allowed():
+    from sqlalchemy.dialects.postgresql.psycopg import PGDialect_psycopg
+    from sqlalchemy.engine import make_url
+
+    raw = "postgresql+psycopg:///safe_restore_test?host=/var/run/postgresql"
+    assert reconcile_restore.isolated_database(raw) == ("postgresql", "safe_restore_test")
+    args = PGDialect_psycopg().create_connect_args(make_url(raw))[1]
+    assert args["host"] == "/var/run/postgresql"
+    assert args["dbname"] == "safe_restore_test"
+
+
+def test_sqlite_rejects_symlink_and_hardlinked_database(tmp_path):
+    target = tmp_path / "production_restore_test"
+    target.write_bytes(b"synthetic")
+    alias = tmp_path / "alias_restore_test"
+    alias.symlink_to(target)
+    with pytest.raises(ValueError, match="symlink"):
+        reconcile_restore.isolated_database(f"sqlite:///{alias}")
+    alias.unlink()
+    alias.hardlink_to(target)
+    with pytest.raises(ValueError, match="single-link"):
+        reconcile_restore.isolated_database(f"sqlite:///{alias}")
+
+
+def test_sqlite_existing_single_link_restore_file_is_allowed(tmp_path):
+    database = tmp_path / "copy_restore_test"
+    database.write_bytes(b"synthetic")
+    assert reconcile_restore.isolated_database(f"sqlite:///{database}") == ("sqlite", str(database.resolve()))
+
+
+def test_connected_postgres_name_is_checked_before_reconciliation():
+    class Result:
+        def scalar_one(self):
+            return "production"
+
+    class Session:
+        def execute(self, _statement):
+            return Result()
+
+    with pytest.raises(ValueError, match="does not match"):
+        reconcile_restore.verify_connected_database(Session(), "postgresql", "safe_restore_test")
+
+
+def test_connected_sqlite_path_is_checked_against_copy(tmp_path):
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import Session
+
+    target = tmp_path / "actual_restore_test"
+    engine = create_engine(f"sqlite:///{target}")
+    with Session(engine) as session:
+        reconcile_restore.verify_connected_database(session, "sqlite", str(target))
+        with pytest.raises(ValueError, match="does not match"):
+            reconcile_restore.verify_connected_database(session, "sqlite", str(tmp_path / "other_restore_test"))
+    engine.dispose()

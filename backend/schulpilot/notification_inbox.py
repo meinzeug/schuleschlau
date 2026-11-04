@@ -270,10 +270,20 @@ def recent_events(db, user, current=None, *, direct_messages=False, direct_exams
 
 
 @router.get("/inbox")
-def inbox(p=Depends(authenticated), db=Depends(get_db),
+def inbox(p=Depends(authenticated), db=Depends(get_db), paginate: bool = False, cursor: str | None = None,
           capabilities: str | None = Header(None, alias="X-Schulpilot-Capabilities")):
-    items = recent_events(db, p.user, direct_messages="messages-v1" in (capabilities or "").split(","),
-        direct_exams="exams-v1" in (capabilities or "").split(","))
+    direct_messages = "messages-v1" in (capabilities or "").split(",")
+    direct_exams = "exams-v1" in (capabilities or "").split(",")
+    next_cursor = None
+    if paginate:
+        from .notification_pages import decode_cursor, page
+
+        items, next_cursor = page(db, p.user, int(now()), decode_cursor(cursor) if cursor is not None else None,
+            direct_messages=direct_messages, direct_exams=direct_exams)
+    else:
+        if cursor is not None:
+            raise HTTPException(400, "Für diese Nachrichtenposition ist die Seitenansicht erforderlich.")
+        items = recent_events(db, p.user, direct_messages=direct_messages, direct_exams=direct_exams)
     read = set(
         db.scalars(
             select(NotificationRead.event_key).where(
@@ -286,6 +296,7 @@ def inbox(p=Depends(authenticated), db=Depends(get_db),
         "unread": sum(row["id"] not in read for row in items),
         "retention_days": RETENTION_DAYS,
         "limit": LIMIT,
+        **({"next_cursor": next_cursor} if paginate else {}),
     }
 
 

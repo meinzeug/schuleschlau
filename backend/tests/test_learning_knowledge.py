@@ -402,3 +402,28 @@ def test_source_evidence_uses_subject_identity_and_keeps_other_subjects_separate
         assert state["tasks"] == state["attempts"] == state["independent"] == 2
         assert set(state["evidence_refs"]) == expected
         assert len(state["successful_check_dates"]) == 2
+
+
+def test_same_second_duplicate_source_recall_is_not_guessed(profile):
+    _, uid, mid, _, _, child = profile
+    with DB.begin() as db:
+        root, source = db.get(LearningUnit, uid), db.get(Material, mid)
+        stamp = int(now()) - 86400
+        attempts = []
+        for _ in range(2):
+            question = dict(copy.deepcopy(root.questions[0]), id="recall", prompt="Berechne 2/5 + 1/10.")
+            unit = LearningUnit(child_id=child["id"], material_id=mid, subject="Mathematik", topic="Brüche",
+                explanation="Künstliche Wiederholung.", questions=[question], learning_root_id=uid,
+                round_kind="spaced_review", provider="synthetic-fixture")
+            db.add(unit)
+            db.flush()
+            db.add(UnitSource(unit_id=unit.id, material_id=mid, revision=source.revision))
+            attempt = Attempt(unit_id=unit.id, question_id="recall", answer="fixture", outcome="correct",
+                assisted=False, created=stamp)
+            db.add(attempt)
+            attempts.append(attempt)
+        db.flush()
+        state = next(row for row in evidence(db, root, [source]) if row["label"] == "Brüche addieren")
+        assert state["successful_check_dates"] == []
+        assert state["independent"] == state["attempts"] == 2
+        assert set(state["evidence_refs"]) == {"attempt:" + attempt.id for attempt in attempts}

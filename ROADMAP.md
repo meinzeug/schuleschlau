@@ -537,6 +537,16 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
 
 - [ ] **P1 – Abruf und Lernplanung nachvollziehbar abnehmen**
 
+  **04.11.2026, Antwortzeiten und eigene Beiträge:** Auch beantwortete
+  Aufgaben aus noch offenen Runden sind bereits bekannt; für spätere
+  Abrufbelege zählt der gespeicherte Antwortzeitpunkt. Bei identischen
+  Zeitstempeln wird keine Reihenfolge erfunden. Persönliche Beiträge werden
+  im gemischten Rückblick und der Planung nicht als offene Wissensbewertung
+  behandelt. Frühere Antworten und Rohberichte bleiben erhalten. Je 139
+  künstliche Fälle bestanden auf SQLite und PostgreSQL, zehn Flutterfälle
+  und zwei gezielte Chrome-Fälle einschließlich 390-Pixel-Ansicht. Der
+  vollständig beobachtete mobile Mehrtagesablauf bleibt offen.
+
   **04.11.2026, Fachidentität:** Quellengebundene Lernbelege werden anhand
   gespeicherter Fachkennungen zusammengeführt. Alte Runden ohne Kennung
   verwenden bekannte Aliasnamen; fremde und unbekannte Kennungen bleiben
@@ -664,6 +674,19 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
 
 - [x] **P1 – Quellenänderung und Unterbrechung sicher fortsetzen**
 
+  **04.11.2026, Abschriftkorrektur:** Nach einer Textänderung bleiben weiterhin
+  exakt zuordenbare OCR-Markierungen erhalten. Nicht sicher zuordenbare oder
+  fehlerhafte frühere Blockdaten verhindern die stille Übernahme als Lernstoff;
+  Eltern können den ursprünglichen Wortlaut erneut eingeben oder die Seite
+  kann neu fotografiert werden. Die berechtigten Rollen bleiben unverändert.
+  Künstliche Regressionstests prüfen auch alte ungültige Datenformate. Für
+  fotografierte Hausaufgaben müssen Auftragsnotizen durch nutzbare aktuelle
+  Quellen belegt sein; Providerhilfsfelder verwenden gefilterte Quelltexte.
+  Änderungen während des Provideraufrufs verwerfen das Ergebnis. Sechs neue
+  Fälle bestanden auf SQLite und isoliertem PostgreSQL. Breitere Tests
+  bestanden mit 121 Fällen auf SQLite und 98 auf isoliertem PostgreSQL.
+  Die Vollständigkeit der Bilderkennung ist damit nicht belegt.
+
   Im isolierten Test Fotoabgabe, einzelne Seitenreservierungen, Netzverlust, Reload, Mitternachtswechsel, Quellkorrektur, Löschung und widerrufene Sitzung vor und nach Provideraufrufen auslösen.
 
   **Abnahme:** Reine Status-GETs erzeugen keine Jobs oder Kosten; jede Seite wird einzeln reserviert und dauerhaft gespeichert, eine geänderte Quelle wird revisionsgebunden erneut geprüft und historische Antworten bleiben erhalten. Nicht lesbare oder nicht bestätigte Seiten können bewusst zurückgestellt werden.
@@ -730,6 +753,15 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
   Modellantworten.
 
 - [ ] **P1 – Klassenarbeitsvorbereitung und Nacharbeit fachlich abnehmen**
+
+  - [x] **04.11.2026, Belegdeckung neuer Aufgaben:** Die angegebene
+    Originalaufgabe muss vollständig durch ihre eigenen wörtlichen
+    Quellenzitate gedeckt sein; bei langen Aufgaben sind mehrere überlappende
+    Zitate zulässig. Ein sachfremdes Zitat derselben Seite genügt nicht.
+    Bei Ablehnung bleibt eine frühere Analyse erhalten. Die künstliche
+    Nacharbeitssuite bestand mit 272 Fällen und zwei PostgreSQL-Skips auf
+    SQLite sowie 274 Fällen auf isoliertem PostgreSQL. Dies belegt weder
+    OCR-Vollständigkeit noch pädagogische Modellqualität oder Urheberschaft.
 
   **Teilprüfung 02.11.2026:** 45 künstliche SQLite-Fälle zu Quellbindung,
   Nacharbeit und Transport bestanden; [Prüfbericht](docs/ROADMAP_MODULE_CHECKS_2026_11_02.md#klassenarbeiten-und-nacharbeit).
@@ -806,6 +838,12 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
 ## Kindgerechte Bedienung und Alltagstest
 
 - [ ] **P1 – Alle Kinderansichten sprachlich und in ihrer Bedienung entrümpeln**
+
+  **04.11.2026, Hausaufgabeneinstieg:** Leere Fachangaben erzeugen kein
+  führendes Trennzeichen. Die leere Zählerbeschriftung wurde durch eine klare
+  Aktion ersetzt; Fotohinweise berücksichtigen den tatsächlichen Zustand.
+  Vier mobile Widgetfälle bei 320/390 Pixeln und doppelter Schrift sowie vier
+  Chrome-Fälle bestanden. Die vollständige Kinderansicht bleibt offen.
 
   Heute, Lernen, Fach- und Themenlisten, Hefte und Fotoimport, Seitenprüfung, Lernvorbereitung, Lernrunde und Rückblick, Wortschatz, Klassenarbeiten, Schulbuddy, Benachrichtigungen und Einstellungen jeweils in typischen Zuständen auf einem schmalen Smartphone durchgehen. Pro Ansicht die nächste Handlung erkennbar machen, wiederholte Erklärungen entfernen, vertraute kurze Begriffe verwenden und selten benötigte Einzelheiten sinnvoll erreichbar bündeln. Pflichtaufträge, Unsicherheiten, Datenschutzinformationen, Fehler und sichere Rückwege müssen weiterhin verständlich auffindbar sein. Große Schrift, Tastatur, Screenreader, leere Zustände, laufende Verarbeitung und Wiederaufnahme mitprüfen.
 
@@ -932,6 +970,15 @@ Die folgenden Punkte beschreiben ausstehende, wiederholbare Betriebs- und Freiga
   und isoliertem PostgreSQL. Dies ergänzt die Datenmatrix, schließt aber die
   ungeprüften externen Aufbewahrungsfristen nicht.
 - [x] **P0 – Wiederherstellung praktisch üben**
+
+  **04.11.2026, Schutz des Wiederherstellungsziels:** Überschreibende und
+  doppelte Datenbank-Verbindungsparameter werden zurückgewiesen und das
+  tatsächlich verbundene Ziel vor Schreibaktionen geprüft. Der dokumentierte
+  PostgreSQL-Unix-Socket bleibt zulässig. SQLite-Ziele müssen reguläre Dateien
+  ohne Symlink oder Hardlink sein. 30 künstliche Sicherheitsfälle, ein
+  isolierter PostgreSQL-Sockettest und 33 kombinierte Offline-Restorefälle
+  bestanden. Eine getrennte Infrastruktur muss weiterhin unabhängig geprüft
+  werden; diese Namens- und Zielkontrolle ist kein Isolationsnachweis.
 
   **03.11.2026, ergänzende Schutzprüfung:** Der lokale Löschjournalabgleich
   lehnt das produktive Uploadverzeichnis und dessen Eltern-/Unterverzeichnisse
@@ -1428,6 +1475,22 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Benachrichtigung und direkte Zielnavigation vollständig prüfen**
 
+  - [x] **04.11.2026, serverseitige Cursor-Fortsetzung und begrenzter
+    Glockencache:** Das optionale paginierte API-Format führt Ereignisquellen
+    nach Zeit und Kennung zusammen und prüft bei jeder Seite Rechte und
+    Quellen erneut. Auch nach 500 ungültigen Kandidaten bleibt eine bewusste
+    Fortsetzung möglich. Glocke und Gesamtansicht laden ältere Meldungen;
+    nur sichtbare Karten erhalten Lesebelege. Der Client hält höchstens drei
+    Seiten und erlaubt den Rücksprung zu den neuesten. Zehn gezielte
+    Cursorfälle bestanden auf SQLite und PostgreSQL; die breite bestehende
+    Backendregression bestand mit 167 Fällen und einem Skip auf SQLite sowie
+    168 Fällen auf PostgreSQL. 97 Flutterfälle und gezielte Chrome-Fälle,
+    darunter 390 × 760 Pixel bei doppelter Schrift, bestanden. Bei extrem
+    vielen untypischen Tagesmeldungen kann eine Tageskarte doppelt erscheinen;
+    beim Entladen unterschiedlich hoher Karten ist ein Scrollsprung möglich.
+    Dies belegt keine native Pushzustellung und keine gesamte Freigabe des
+    übergeordneten Punktes.
+
   **04.11.2026, Inbox-Cache:** Auch beim Familien- oder Sitzungswechsel
   desselben Kontos werden alte Meldungen und verspätete Antworten verworfen;
   die Gesamtansicht leert alte Inhalte sofort. 53 Widget- und Headertests und
@@ -1604,6 +1667,30 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Sicherheitsprüfung der übrigen Lieferkette ergänzen**
 
+  **04.11.2026, erweiterte Bestandsaufnahme:** Ein npm-Lock für die direkten
+  und transitiven Firebase-App-/Messaging-Abhängigkeiten sowie POM-Lizenzen
+  für 106 zuvor inventarisierte Maven-Koordinaten sind mit Prüfsummen und
+  wiederholbaren Prüfscripten erfasst. Vier Flutter-POMs nennen keine eigene
+  Lizenz; offizielle Engine-Quellen und lokale Hinweise wurden ergänzend
+  dokumentiert, ohne eine Gesamtfreigabe abzuleiten. Eine lesende Inventur
+  des laufenden Codex-Containers fand OSV-Meldungen für 27 von 73 erfassten
+  Debian-Quellpaketversionen sowie für `pip 25.0.1`; Erreichbarkeit und
+  Ausnutzbarkeit sind ungeprüft. Ein Layer eines öffentlichen Basisimage-
+  Kandidaten enthält eine für einen konkreten OpenSSL-Befund korrigierte Version, ein sicher
+  isolierter vollständiger Neubau und die Behebung sind nicht belegt.
+  Einzelheiten: `docs/CODEX_CONTAINER_AUDIT_2026_11_04.md` und
+  `docs/SUPPLY_CHAIN_AUDIT_2026_11_01.md`. Keine Serveränderung erfolgte.
+
+  - [x] Den npm-Abhängigkeitsbaum der beiden ausdrücklich erfassten Firebase-
+    Pakete samt Versions-, Lizenz- und Integritätsmetadaten erfassen und
+    wiederholbar gegen OSV prüfen. Die Zuordnung zu den ausgelieferten CDN-
+    Bundles und eine rechtliche Lizenzprüfung bleiben gesondert offen.
+
+  - [x] Die POM-Lizenzmetadaten der 106 bestehenden Direct-/Play-Koordinaten
+    samt Quellen, Eltern-POMs und Prüfsummen inventarisieren; vier fehlende
+    POM-Angaben und die offiziellen Flutter-Engine-Hinweise ausdrücklich
+    ausweisen. Die vollständigen Binär- und Weitergabepflichten bleiben offen.
+
   Die Abhängigkeitsprüfung vom 01.11.2026 deckt Gradle-Transitive,
   Container-Basisimages, Systempakete und tatsächlich ausgelieferte externe
   JavaScript-Ressourcen nicht vollständig ab. Diese Bestände versioniert
@@ -1676,6 +1763,11 @@ Bestandteil des bestehenden Buildvertrags.
   **Abnahme:** Bericht mit nachvollziehbaren Fundstellen, Risikoeinstufung und Nachtests liegt vor; kritische und hohe Befunde sind behoben beziehungsweise vor jeglicher Freigabe durch die verantwortliche Stelle nachvollziehbar entschieden.
 
 - [ ] **P1 – Abnahmen systematisch und wiederholbar automatisieren**
+
+  **04.11.2026, CI-Ergebnis:** Der vollständige GitHub-Lauf
+  [41774548325](https://github.com/meinzeug/schulpilot/actions/runs/41774548325)
+  für `1a6e310` war erfolgreich. Dieser Commit wurde auf Nutzerwunsch nicht
+  deployt; ein neuerer Arbeitsstand benötigt seinen eigenen Prüfbeleg.
 
   **04.11.2026, CI-Ergebnis:** Der vollständige GitHub-Lauf
   [41767812665](https://github.com/meinzeug/schulpilot/actions/runs/41767812665)
@@ -1769,6 +1861,14 @@ Bestandteil des bestehenden Buildvertrags.
   **Abnahme:** Testumfang, Quellrevision, Ergebnisse und übersprungene Tests sind nachvollziehbar. Mocks, Emulatoren, synthetische Inhalte und physische Beobachtungen werden getrennt ausgewiesen; fehlgeschlagene oder abgebrochene Tests gelten nicht als bestanden.
 
 - [ ] **P1 – Nutzer- und Betriebsdokumentation konsolidieren**
+
+  **04.11.2026, Teilüberarbeitung:** `docs/STATUS.md` unterscheidet den
+  lesend geprüften Produktionsstand `178f633` vom nicht deployten Commit
+  `1a6e310`. Frühere Betriebsabschnitte kennzeichnen ihren historischen
+  Provider- und APK-Kontext. Die neue `docs/FAMILY_GUIDE.md` beschreibt
+  Lernen, unklare Bewertungen, freiwillige Pushfreigabe, Export, Löschung und
+  Störungsmeldung anhand vorhandener Oberflächen; lokale Dokumentlinks wurden
+  geprüft. Eine Erprobung durch eine neue Person und Familie bleibt offen.
 
   README, Installationsanleitung, Betrieb, Datenschutzhinweise, Eltern-/Kinderanleitungen und KI-Lernmodell mit dem tatsächlichen Stand abgleichen. Historische Aussagen zu kostenlosen Anbietern, Zeitobergrenzen, alter APK-Bezeichnung oder früheren CI-Sperren mit Datums- und Kontextverweis korrigieren, ohne alte Prüfberichte umzuschreiben. Support, Störungsmeldung, Export, Löschung, Umgang mit Fehlbewertungen und Wiederherstellung verständlich erklären.
 

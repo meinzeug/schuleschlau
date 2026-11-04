@@ -2,6 +2,25 @@
 
 Stand: 4. November 2026. Diese Datei ist eine Arbeitsübergabe, kein Ersatz für die aktuellen Nutzeraufträge oder `AGENTS.md`. Prüfe alle Zustände erneut; insbesondere Server, Git, laufende Jobs und Roadmap können sich inzwischen geändert haben. Keine Zugangsdaten, Tokens, privaten Schülerdaten oder Bildinhalte in diese Datei, Logs oder Git schreiben.
 
+**Übergabe 04.11.2026, aktueller Auftrag:** Der Nutzer verlangt Commit und
+Push nach `main`, ausdrücklich **kein Deployment**. Produktiv war bei der
+lesenden Prüfung Version `1.38.74+229` mit Commit `178f633`; `1a6e310` wurde
+bereits gepusht und sein GitHub-Lauf 41774548325 war erfolgreich. Ein späterer
+Releasebuild scheiterte an der Quellenattestierung nach weiteren Änderungen;
+seine Artefakte sind nicht freigegeben. Alle aktuellen Zustände vor weiterer
+Arbeit erneut prüfen. Die im Folgenden als aktuell bezeichneten älteren Notizen
+sind historische Arbeitsstände.
+
+Die Inbox hat inzwischen eine serverseitige Cursor-Fortsetzung und einen
+begrenzten Clientcache; weiter offen sind unter anderem native Zustellung,
+Scrollstabilität und sehr seltene doppelte Tageshinweise. Bei Abschriftänderungen
+bleiben nicht sicher zuordenbare Markierungen geschützt. Die Restore-Prüfung
+lehnt zielüberschreibende Verbindungsparameter ab, beweist aber keine räumlich
+getrennte Datenbank. Die lesende Containerinventur meldet mehrere ungeprüfte
+OSV-Treffer; ein sicher isolierter Neubau und deren Behebung sind noch offen.
+Siehe `ROADMAP.md` und `docs/CODEX_CONTAINER_AUDIT_2026_11_04.md`. Es gab in
+diesem Schritt keine produktiven Serveränderungen.
+
 **Aktuelle Ergänzung:** Die quellengebundene Lernstandsauswertung verknüpft
 historische Fachaliasnamen mit bekannten Fachkennungen und trennt abweichende
 oder fremde Kennungen. Die Glocke verwirft auch bei Familien- und

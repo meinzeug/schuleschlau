@@ -76,6 +76,25 @@ class _HomeworkScreenState extends State<HomeworkScreen> {
   String photoDateLabel(Json photo) => photoDate(photo) == null
       ? 'Fotodatum fehlt'
       : DateFormat('dd.MM.yyyy').format(photoDate(photo)!);
+  String photoSubtitle(Json photo) {
+    final details = <String>[];
+    if (photo['confirmed'] == true) {
+      final subject = (photo['subject'] as String? ?? '').trim();
+      if (subject.isNotEmpty) details.add(subject);
+      final marked = (photo['marked_done'] as num? ?? 0).toInt();
+      details.add(marked > 0 ? '$marked selbst abgehakt' : 'Aufgabe öffnen');
+    } else {
+      details.add(switch (photo['status']) {
+        'uploaded' => 'Foto öffnen',
+        'review' => 'Foto und Text prüfen',
+        'unreadable' => 'Text unleserlich · Foto öffnen',
+        _ => 'Foto öffnen und prüfen',
+      });
+    }
+    if (photo['created'] != null) details.add(photoDateLabel(photo));
+    return details.join(' · ');
+  }
+
   List<Json> get visiblePhotos =>
       (photos.where((photo) {
         if (photoDates != null) {
@@ -901,9 +920,7 @@ class _HomeworkScreenState extends State<HomeworkScreen> {
                     title: (photo['topic'] as String? ?? '').isNotEmpty
                         ? photo['topic']
                         : 'Neues Hausaufgabenfoto',
-                    subtitle: photo['confirmed'] == true
-                        ? '${photo['subject']} · ${(photo['marked_done'] as num? ?? 0)} selbst abgehakt${photo['created'] == null ? '' : ' · ${photoDateLabel(photo)}'}'
-                        : 'Foto und erkannten Text prüfen${photo['created'] == null ? '' : ' · ${photoDateLabel(photo)}'}',
+                    subtitle: photoSubtitle(photo),
                     icon: photo['confirmed'] == true
                         ? Icons.assignment_outlined
                         : Icons.document_scanner_outlined,
@@ -922,11 +939,7 @@ class _HomeworkScreenState extends State<HomeworkScreen> {
                             ? photo['topic']
                             : 'Neues Hausaufgabenfoto',
                       ),
-                      subtitle: Text(
-                        photo['confirmed'] == true
-                            ? '${photo['subject']} · ${(photo['marked_done'] as num? ?? 0)} selbst abgehakt${photo['created'] == null ? '' : ' · ${photoDateLabel(photo)}'}'
-                            : 'Foto und erkannten Text prüfen${photo['created'] == null ? '' : ' · ${photoDateLabel(photo)}'}',
-                      ),
+                      subtitle: Text(photoSubtitle(photo)),
                       trailing: Icon(Icons.arrow_forward_rounded),
                       onTap: openPhotoAction(photo),
                     ),

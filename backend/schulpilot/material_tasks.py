@@ -67,6 +67,44 @@ def source_day(db, material, child):
     return day.school_date if day else datetime.fromtimestamp(material.created, ZoneInfo(Preferences(**child.preferences).timezone)).date().isoformat()
 
 
+def homework_note_supported(db, assignment):
+    """A photographed homework note needs a current, allowed literal source.
+
+    An explicitly authored parent/exam assignment is a separate authority;
+    it is not silently reclassified as OCR-derived homework.
+    """
+    from .learning_sources import exact_quote
+    from .source_lineage import learning_source
+
+    if assignment.kind != "homework":
+        return True
+    if not isinstance(assignment.note, str) or not assignment.note.strip():
+        return False
+    refs = assignment.source_revisions
+    if not isinstance(refs, list):
+        return False
+    refs = list(refs)
+    if assignment.material_id and not any(isinstance(ref, dict) and ref.get("id") == assignment.material_id for ref in refs):
+        # Legacy homework may predate recorded source revisions. The worker
+        # still binds the current material revision before and after dispatch.
+        source = db.get(Material, assignment.material_id)
+        if not source:
+            return False
+        refs.append({"id": source.id, "revision": source.revision})
+    if not refs:
+        return False
+    texts = []
+    for ref in refs:
+        if not isinstance(ref, dict) or not isinstance(ref.get("id"), str) or type(ref.get("revision")) is not int:
+            return False
+        material = db.get(Material, ref["id"])
+        if (not material or material.child_id != assignment.child_id or not material.confirmed
+                or material.revision != ref["revision"] or material.purpose == "exam"):
+            return False
+        texts.append(learning_source(db, material, ref["revision"])["content"])
+    return exact_quote(assignment.note, texts)
+
+
 def apply_decisions(db, material, child, decisions, *, source_changed=False):
     candidates = {row["key"]: row for row in preview(material.content, material.homework)}
     if len({row.key for row in decisions}) != len(decisions) or any(row.key not in candidates for row in decisions):
@@ -107,6 +145,7 @@ def apply_decisions(db, material, child, decisions, *, source_changed=False):
                 assignment.mandatory = True
                 assignment.revision += 1
             duplicates += 1
+        assignment.source_status = "confirmed" if homework_note_supported(db, assignment) else "needs_review"
     return {"added": added, "duplicates": duplicates, "unplanned": sum(row.classification != "homework" for row in decisions)}
 
 

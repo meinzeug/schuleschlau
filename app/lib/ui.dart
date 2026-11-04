@@ -2804,6 +2804,17 @@ class _NotificationBellState extends State<NotificationBell> {
     _family = widget.state.familyId;
     _token = widget.state.api.token;
     widget.state.addListener(_changed);
+    _previewScroll.addListener(_loadMoreOnScroll);
+  }
+
+  void _loadMoreOnScroll() {
+    if (_menu.isOpen &&
+        _previewScroll.hasClients &&
+        _previewScroll.position.isScrollingNotifier.value &&
+        widget.state.inbox.moreError == null &&
+        _previewScroll.position.extentAfter < 120) {
+      unawaited(widget.state.inbox.loadMore());
+    }
   }
 
   @override
@@ -2839,6 +2850,7 @@ class _NotificationBellState extends State<NotificationBell> {
   @override
   void dispose() {
     widget.state.removeListener(_changed);
+    _previewScroll.removeListener(_loadMoreOnScroll);
     _previewScroll.dispose();
     super.dispose();
   }
@@ -2905,10 +2917,15 @@ class _NotificationBellState extends State<NotificationBell> {
                   24)
               .clamp(120, 640)
               .toDouble();
-      final height =
-          (menuHeight - 108 - MediaQuery.textScalerOf(context).scale(40))
-              .clamp(48, 440)
-              .toDouble();
+      final scaler = MediaQuery.textScalerOf(context);
+      final extraControls =
+          (inbox.historyTrimmed || inbox.moreError != null
+              ? scaler.scale(170)
+              : 0.0) +
+          (inbox.moreError != null ? scaler.scale(60) : 0.0);
+      final height = (menuHeight - 108 - scaler.scale(40) - extraControls)
+          .clamp(48, 440)
+          .toDouble();
       final width = (MediaQuery.sizeOf(context).width - 56)
           .clamp(0, 320)
           .toDouble();
@@ -2972,7 +2989,10 @@ class _NotificationBellState extends State<NotificationBell> {
                 padding: EdgeInsets.all(16),
                 child: Text('Neuigkeiten werden geladen …'),
               ),
-            if (inbox.hasLoaded && inbox.items.isEmpty && inbox.error == null)
+            if (inbox.hasLoaded &&
+                inbox.items.isEmpty &&
+                inbox.error == null &&
+                inbox.nextCursor == null)
               SizedBox(
                 width: width,
                 child: Padding(
@@ -2980,6 +3000,60 @@ class _NotificationBellState extends State<NotificationBell> {
                   child: Text(
                     'Hier erscheint Neues zu deinem Lernen und deiner Familie.',
                     style: TextStyle(color: context.palette.muted),
+                  ),
+                ),
+              ),
+            if (inbox.moreError != null)
+              SizedBox(
+                width: width,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: TextButton(
+                    key: const ValueKey('bell-recheck-notifications'),
+                    onPressed: inbox.loading || inbox.loadingMore
+                        ? null
+                        : () => inbox.refresh(),
+                    child: Text(
+                      '${inbox.moreError!} Erneut prüfen',
+                      style: TextStyle(color: context.palette.dangerInk),
+                    ),
+                  ),
+                ),
+              ),
+            if (inbox.historyTrimmed || inbox.moreError != null)
+              SizedBox(
+                width: width,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (inbox.historyTrimmed)
+                        Text(
+                          'Einige Einträge sind ausgeblendet.',
+                          style: TextStyle(
+                            color: context.palette.muted,
+                            fontSize: 12,
+                          ),
+                        ),
+                      TextButton(
+                        key: const ValueKey('bell-show-latest'),
+                        onPressed: inbox.loading || inbox.loadingMore
+                            ? null
+                            : () async {
+                                await inbox.showLatest();
+                                if (mounted &&
+                                    _menu.isOpen &&
+                                    _sameHeaderAccount(state, snapshot) &&
+                                    state.familyId == family &&
+                                    state.api.token == token &&
+                                    _previewScroll.hasClients) {
+                                  _previewScroll.jumpTo(0);
+                                }
+                              },
+                        child: const Text('Neueste anzeigen'),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -3091,6 +3165,20 @@ class _NotificationBellState extends State<NotificationBell> {
                         },
                       ),
                     ),
+                  ),
+                ),
+              ),
+            if (inbox.nextCursor != null)
+              SizedBox(
+                width: width,
+                child: TextButton.icon(
+                  key: const ValueKey('notification-load-more'),
+                  icon: const Icon(Icons.expand_more_rounded),
+                  onPressed: inbox.loading || inbox.loadingMore
+                      ? null
+                      : () => inbox.loadMore(),
+                  label: Text(
+                    inbox.loadingMore ? 'Wird geladen …' : 'Weitere laden',
                   ),
                 ),
               ),

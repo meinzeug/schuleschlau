@@ -506,7 +506,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       ],
                       if (inbox.hasLoaded &&
                           inbox.items.isEmpty &&
-                          inbox.error == null)
+                          inbox.error == null &&
+                          inbox.nextCursor == null)
                         Padding(
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           child: Text(
@@ -535,6 +536,44 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                     'Bisherige Neuigkeiten anzeigen',
                                   ),
                                 ),
+                            ],
+                          ),
+                        ),
+                      if (inbox.historyTrimmed || inbox.moreError != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (inbox.historyTrimmed)
+                                const Text(
+                                  'Einige geladene Einträge wurden ausgeblendet.',
+                                ),
+                              TextButton(
+                                key: const ValueKey(
+                                  'notifications-show-latest',
+                                ),
+                                onPressed: inbox.loading || inbox.loadingMore
+                                    ? null
+                                    : () async {
+                                        await inbox.showLatest();
+                                        if (!mounted ||
+                                            !identical(
+                                              widget.state.user,
+                                              owner,
+                                            ) ||
+                                            widget.state.familyId != family ||
+                                            widget.state.api.token != token) {
+                                          return;
+                                        }
+                                        setState(() {
+                                          onlyUnread = false;
+                                          unreadSelection.clear();
+                                          readEpoch++;
+                                        });
+                                      },
+                                child: const Text('Neueste anzeigen'),
+                              ),
                             ],
                           ),
                         ),
@@ -611,6 +650,36 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                             ),
                           ),
                         ),
+                      if (inbox.moreError != null)
+                        TextButton.icon(
+                          key: const ValueKey('notifications-recheck'),
+                          onPressed: inbox.loading || inbox.loadingMore
+                              ? null
+                              : refreshNotices,
+                          icon: const Icon(Icons.refresh_rounded),
+                          label: Text('${inbox.moreError!} Erneut prüfen'),
+                        ),
+                      if (inbox.nextCursor != null)
+                        ActionButton(
+                          label: inbox.loadingMore
+                              ? 'Wird geladen …'
+                              : 'Weitere Neuigkeiten laden',
+                          secondary: true,
+                          enabled: !inbox.loading && !inbox.loadingMore,
+                          onPressed: () async {
+                            await inbox.loadMore();
+                            if (!mounted) return;
+                            if (onlyUnread) {
+                              setState(
+                                () => unreadSelection.addAll(
+                                  inbox.items
+                                      .where((item) => item['read'] != true)
+                                      .map((item) => item['id'] as String),
+                                ),
+                              );
+                            }
+                          },
+                        ),
                       if (onlyUnread && shown.isNotEmpty)
                         const Padding(
                           padding: EdgeInsets.only(top: 12),
@@ -622,7 +691,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                         Padding(
                           padding: EdgeInsets.only(top: 12),
                           child: Text(
-                            'Bis zu ${inbox.itemLimit} der neuesten Neuigkeiten aus ${inbox.retentionDays} Tagen. Der Ungelesen-Filter gilt für diese Liste.',
+                            inbox.supportsPagination
+                                ? '${inbox.items.length} geladene Neuigkeiten aus ${inbox.retentionDays} Tagen. Suche und Filter gelten für geladene Einträge.'
+                                : 'Bis zu ${inbox.itemLimit} der neuesten Neuigkeiten aus ${inbox.retentionDays} Tagen. Der Ungelesen-Filter gilt für diese Liste.',
                             style: TextStyle(
                               color: context.palette.muted,
                               fontSize: 12,

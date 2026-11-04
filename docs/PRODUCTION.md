@@ -1,6 +1,11 @@
 # Regulärer Betrieb
 
-Der Betreiber hat nach dem Firebase-Handoff vom 14.10.2026 den Produktionsstart ausdrücklich beauftragt. Der reguläre Release verwendet Version `1.0.0+14`, Kanal `stable`, die bestehende HTTPS-API, dieselbe Paketkennung und denselben privaten Upload-Schlüssel wie die vorherige signierte Direct-Version. „Test-APK“ war die bisherige Artefakt-/Kanalbezeichnung; Android wurde bereits als native Flutter-Release-App gebaut. Der optionale Beispielraum bleibt als Demo markiert und ändert reguläre Eltern-/Kinderkonten nicht.
+Der Betreiber hat nach dem Firebase-Handoff vom 14.10.2026 den regulären
+Betrieb ausdrücklich beauftragt. Der damalige Release `1.0.0+14` verwendete
+den Kanal `stable`; der zuletzt belegte tatsächliche Stand steht in
+[STATUS.md](STATUS.md). „Test-APK“ war eine frühere Artefakt-/Kanalbezeichnung;
+Android ist eine native Flutter-Release-App. Der optionale Beispielraum bleibt
+als Demo markiert und ändert reguläre Eltern-/Kinderkonten nicht.
 
 ## Reproduzierbare Bereitstellung
 

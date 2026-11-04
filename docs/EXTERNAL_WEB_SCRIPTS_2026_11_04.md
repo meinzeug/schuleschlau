@@ -52,3 +52,33 @@ Skripte, deren Abhängigkeiten und Lizenzen, weitere Laufzeit-Skripte und
 Serviceworker, die nativen Gradle-Transitive, Container und Hostpakete. Diese
 müssen gesondert erfasst und bewertet werden. Die Roadmap-Gesamtprüfung der
 Lieferkette bleibt daher offen.
+
+## Ergänzung: npm-Auflösung von App und Messaging
+
+Die neun in einem gesonderten npm-Lock aufgelösten direkten und transitiven
+Pakete von `@firebase/app@0.16.2` und `@firebase/messaging@0.13.3` sind unter
+[`dependency-inventory/firebase-npm-20261104`](dependency-inventory/firebase-npm-20261104/)
+mit Lock, Paketwurzeln und [Abfrageergebnis](dependency-inventory/firebase-npm-20261104/audit.json)
+erfasst. Der Lock wurde mit npm 10.9.8 ohne Installationsskripte aufgelöst;
+die festgeschriebene Auflösung wird anschließend von `npm ls` offline geprüft.
+Bei der Abfrage am 04.11.2026 meldete OSV keine Treffer für die neun
+konkreten Versionen; die Registermetadaten nennen für sieben Pakete Apache-2.0,
+für `idb` ISC und für `tslib` 0BSD. Dies sind Lizenzkennungen aus Metadaten,
+keine rechtliche Bewertung oder vollständige Prüfung von Lizenztexten und
+Weitergabepflichten. `firebase@12.19.0` selbst wird zusätzlich geprüft.
+
+Wiederholung: `python3 scripts/audit_firebase_npm_tree.py`. Das Skript prüft
+den im Bootstrap gewählten Umfang, den Lock, npm-Auflösung, Versions-,
+Lizenz- und Integritätsangaben der Registry und OSV mit Pagination. Es
+installiert keine Pakete und führt keine Paketinstallationsskripte aus. Die
+Lizenz- und Integritätsangaben werden miteinander verglichen; Paketarchive
+werden dabei nicht heruntergeladen oder gehasht. Änderungen am SDK erfordern
+einen neu geprüften Lock. Das npm-Ergebnis kann sich durch neue Meldungen
+ändern und ist kein Nachweis für noch unbekannte Schwachstellen.
+
+Entscheidend: Der npm-Lock beschreibt eine Auflösung am Prüftag und belegt
+nicht, welche Versionen in den tatsächlich von Google ausgelieferten
+CDN-Dateien gebündelt sind. Insbesondere ein mittels Versionsbereich
+aufgelöstes Paket wie `tslib` kann im CDN von diesem Lock abweichen. Die
+gesonderte Bestandserfassung der CDN-Dateien und die ungeprüfte
+Bundlezuordnung bleiben bestehen.

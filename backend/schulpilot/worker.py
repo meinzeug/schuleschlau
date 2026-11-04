@@ -226,6 +226,11 @@ def _process(job_id):
                 raise ProviderError(
                     "Der Elternauftrag wurde inzwischen geändert oder gelöscht. Bitte den aktuellen Plan öffnen."
                 )
+            if assignment:
+                from .material_tasks import homework_note_supported
+
+                if not homework_note_supported(db, assignment):
+                    raise ProviderError("Die Hausaufgabe stammt aus einer ungeklärten Quellenstelle. Bitte die Originalseite und den Auftrag gemeinsam prüfen.")
             if job.kind == "unit" and ((material and not material.confirmed) or (not material and not assignment)):
                 raise ProviderError("Bestätigtes Material oder Elternauftrag ist nicht mehr vorhanden.")
             if job.kind == "package":
@@ -315,6 +320,12 @@ def _process(job_id):
                 payload.update(required_subject=assignment.subject, required_topic=assignment.topic,
                                parent_topic=not material and not source_pages)
             if job.kind in ("unit", "package"):
+                from .source_lineage import learning_source
+
+                safe_contents = {page.id: learning_source(db, page)["content"] for page in source_pages}
+                if payload.get("material") and material:
+                    payload["material"]["content"] = safe_contents.get(material.id, "")
+            if job.kind in ("unit", "package"):
                 from .grades import subject_key
                 from .learning_guidance import strategies
 
@@ -337,7 +348,7 @@ def _process(job_id):
                         "group_id": g["id"],
                         "subject": m.subject,
                         "topic": m.topic,
-                        "content": m.content,
+                        "content": safe_contents[m.id],
                         "uncertainties": m.uncertainties,
                     }
                     for g in job.payload["groups"]
@@ -351,7 +362,7 @@ def _process(job_id):
                 ]
             elif job.kind == "unit" and source_pages:
                 payload["material"]["content"] = "\n\n".join(
-                    f"Heftseite {m.page_number or i + 1}:\n{m.content}" for i, m in enumerate(source_pages)
+                    f"Heftseite {m.page_number or i + 1}:\n{safe_contents[m.id]}" for i, m in enumerate(source_pages)
                 )
                 payload["material"]["uncertainties"] = [warning for m in source_pages for warning in m.uncertainties]
             if job.kind == "unit" and job.payload.get("exam_round_id"):
@@ -366,10 +377,10 @@ def _process(job_id):
 
                 payload = add_practice_context(db, job, payload)
             if job.kind == "unit" and job.payload.get("homework_practice"):
-                from .homework import practice_exclusions
+                from .homework import provider_practice_exclusions
 
                 payload.update(homework_practice=True, required_subject=material.subject, required_topic=material.topic,
-                               previous_prompts=[prompt[:1600] for prompt in practice_exclusions(db, material)[-24:]])
+                               previous_prompts=[prompt[:1600] for prompt in provider_practice_exclusions(db, material)[-24:]])
             if job.kind == "unit" and job.payload.get("review_of"):
                 from .coaching import focus_ids, goals_for, root_and_units
 
@@ -387,7 +398,7 @@ def _process(job_id):
                 if len(source_pages) == 1 and source_pages[0].purpose == "homework":
                     # Provider context only. The existing review job and its
                     # authority/revision checks are not turned into a new job.
-                    payload.update(homework_practice=True, homework_original_prompts=[source_pages[0].content])
+                    payload.update(homework_practice=True, homework_original_prompts=[safe_contents[source_pages[0].id]])
             if job.kind == "unit" and job.payload.get("notebook_practice"):
                 from .notebook_practice import provider_context
 
@@ -400,7 +411,7 @@ def _process(job_id):
                 from .package_decimal_addition import evidence as decimal_evidence
                 from .package_decimal_addition import history as decimal_history
 
-                if any(m.subject == "Mathematik" and decimal_evidence(m.content) for m in source_pages):
+                if any(m.subject == "Mathematik" and decimal_evidence(safe_contents[m.id]) for m in source_pages):
                     payload[HISTORY] = decimal_history(db, child.id)
             if unit_novelty.applies(job, material):
                 novelty_prompts = unit_novelty.previous_prompts(db, child.id, source_pages)
@@ -556,6 +567,11 @@ def _process(job_id):
                 raise ProviderError(
                     "Das Elternziel wurde während der Verarbeitung geändert. Ausgabe wurde nicht übernommen."
                 )
+            if assignment:
+                from .material_tasks import homework_note_supported
+
+                if not homework_note_supported(db, assignment):
+                    raise ProviderError("Die Hausaufgabenquelle wurde während der Verarbeitung geändert. Ausgabe wurde nicht übernommen.")
             if job.kind == "unit" and job.payload.get("notebook_practice"):
                 from .notebook_practice import guard
 
