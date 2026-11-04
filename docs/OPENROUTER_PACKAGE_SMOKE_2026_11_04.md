@@ -68,3 +68,37 @@ Pakettest mit zwei gleichermaßen prüfbaren Seiten bleibt offen.
 
 Die zweite Testfamilie wurde nach der Prüfung regulär gelöscht; die lokale
 private Diagnosekopie wurde entfernt.
+
+## Dritter Lauf auf Release 1.38.79
+
+Nach Ausrollen von Commit `384e8b2` wurden genau die fest gebundenen künstlichen
+Referenzbilder 01 (Bruch und Einheiten) und 03 (Wasserkreislauf) in eine neue
+künstliche reguläre Testfamilie hochgeladen. Das befristete Konto wurde über
+den auditierten lokalen Befehl freigeschaltet. Ein bewusst gestarteter
+Vorbereitungslauf dauerte bis `ready` 155,8 Sekunden. Vier OCR-/Gegenprüfungs-
+und zwei Paketaufrufe waren erfolgreich: 6 Aufrufe, 0,113681 USD bekannte
+Kosten, keine unbekannten Kosten. Für zwei Fächer entstanden zwei gespeicherte
+Paketteile und Einheiten mit je zwei Aufgaben. Jede Einheit enthält eine Quellenkennung; deren eindeutige Zuordnung zur jeweiligen
+Seite wurde vor der Löschung des Testkontos nicht gesondert geprüft. Keine Antwort
+wurde abgegeben. Die Aufgaben
+wurden anhand ihrer Fragestellungen auf Themenbezug gesichtet; damit sind ihre
+vollständige fachliche Qualität oder pädagogische Wirkung nicht bewiesen.
+
+Die OCR erfasste die sichtbaren Textregeln, `2/3 Minute = 40 Sekunden`, die
+Einheitentabelle und die Wasserkreislauf-Aussagen passend zum Referenztext;
+`Sonne → Wolke` wurde als beschriftete Zeichnung erfasst. Die erste Seite hat
+zusätzlich einen Balken mit drei Feldern, von denen zwei blau markiert sind.
+Dieser Balken fehlt sowohl in der Abschrift als auch in den `source_blocks`;
+die OCR gilt deshalb für diese Referenz nicht als vollständig. Die Datenbank
+kennzeichnete dennoch beide Seiten als lesbar und ohne Unsicherheit.
+
+Die Codeanalyse zeigt: Der OCR-Systemauftrag verlangt einen Block für eine
+**beschriftete** Zeichnung und deren Beschriftungen, untersagt aber gleichzeitig
+Bildbeschreibungen als Ersatz für Wortlaut. Ein unbeschriftetes, farbiges
+Flächenmodell hat keinen ausdrücklich verlangten eigenen Bildbefundkanal. Das
+OpenRouter-Bild wird als JPEG mit `detail=high` übertragen. Diese Erkenntnis
+belegt keinen technischen Bildübertragungsfehler und keinen Grund, die
+bestehenden Quellenprüfungen abzuschwächen. Ein getrennter, quellgebundener
+Bildbefund mit Unsicherheiten und entsprechenden Prüfungen bleibt erforderlich.
+Die reguläre Testfamilie wurde nach Prüfung gelöscht; die lokale private
+Diagnosekopie wurde entfernt.

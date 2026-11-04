@@ -672,6 +672,13 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
 
 - [ ] **P1 – OCR anhand vollständig referenzierter künstlicher Seiten prüfen**
 
+  - [ ] **Unbeschriftete Zeichnungen getrennt erfassen und überprüfen.**
+    Ein echter künstlicher OpenRouter-Fall ließ einen markierten Bruchbalken
+    aus. Die wörtliche Abschrift darf nicht mit einer Bildinterpretation
+    vermischt werden. Der noch nicht implementierte Daten-, Prüf-, UI-,
+    Lösch- und Migrationspfad steht im
+    [Bildbefundplan](docs/OCR_VISUAL_OBSERVATION_PLAN_2026_11_04.md).
+
   - [x] **Vier künstliche Referenzseiten samt Prüfsummen bereitstellen.**
     Drei deterministisch erzeugte Seiten und ein geprüftes KI-generiertes
     Heftfoto sind mit separater Text- und Unsicherheitsreferenz erfasst.
@@ -1444,6 +1451,14 @@ Bestandteil des bestehenden Buildvertrags.
   **Abnahme:** Ein künstlicher Erfolgsfall und je ein reproduzierbarer Fehler pro relevanter Phase sind vom berechtigten Betriebs- beziehungsweise Familienkontext nachvollziehbar; GET-Abfragen starten keine KI und ändern keinen Lernstand.
 
 - [ ] **P1 – Ausgabelängen, Schemafehler und Providerstörungen systematisch behandeln**
+
+  - [ ] **Echten künstlichen Zweiquellen-Paketlauf vollständig nachweisen.**
+    Nach einem sicher abgewehrten Grafikfehler wurden zwei künstliche Seiten
+    in zwei Paketteilen verarbeitet. Zwei Einheiten mit je einer Quellen-ID
+    entstanden; die exakte Zuordnung zu den Seiten wurde nicht gesondert
+    geprüft. Ein unbeschrifteter Bruchbalken fehlte in der OCR. Modell-,
+    Kosten- und Ergebnisgrenzen stehen im
+    [Testbericht](docs/OPENROUTER_PACKAGE_SMOKE_2026_11_04.md).
 
   - [x] **Mehrseitige Pakete bei künstlichen Fehlern und Workerabbruch erhalten.**
     Fehlerklassen, explizite Wiederaufnahme und unbekannte Kosten nach Abbruch

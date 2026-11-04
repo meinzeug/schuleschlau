@@ -200,13 +200,13 @@ def main():
         adb("shell", "pm", "clear", PACKAGE)
         adb("shell", "am", "start", "-n", PACKAGE + "/.MainActivity")
         login(credentials["parent_username"], credentials["parent_password"])
-        wait("Deine Familie")
+        wait_any(("Deine Familie", "Meine Testfamilie"))
         screenshot("android-parent.png")
         checks.append("native_parent_login_over_public_https")
         adb("shell", "am", "force-stop", PACKAGE)
         adb("shell", "am", "start", "-n", PACKAGE + "/.MainActivity")
         # A restored native session must open its dashboard directly.
-        wait("Deine Familie")
+        wait_any(("Deine Familie", "Meine Testfamilie"))
         checks.append("secure_session_restored_after_process_restart")
         press("Konto")
         press("Abmelden", scroll=True)
@@ -217,9 +217,11 @@ def main():
         press(action, scroll=True)
         current_unit = check(parent.get("/units/" + demo["unit_id"]))
         if not current_unit["introduction_seen"]:
-            press("Weiter zu den Übungen", scroll=True)
+            action, _ = wait_any(("Weiter zu den Übungen", "Erst selbst probieren"))
+            press(action, scroll=True)
         first = check(parent.get("/units/" + demo["unit_id"]))["questions"][0]
-        press("Ein Hinweis bitte", scroll=True)
+        action, _ = wait_any(("Ein Hinweis bitte", "Hilfe"))
+        press(action, scroll=True)
         press(first["answer"], scroll=True)
         press("Antwort prüfen", scroll=True)
         deadline = time.monotonic() + 15
