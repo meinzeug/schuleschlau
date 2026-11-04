@@ -47,14 +47,49 @@ def test_operator_can_reach_older_than_200_with_stable_tie_break_and_no_inferenc
         assert db.scalar(select(Audit).where(Audit.action == 'admin.audit_read', Audit.target == 'audit-pages')) is not None
 
 
-def test_full_history_search_is_literal_and_actor_action_are_exact(operator):
+def test_full_history_search_is_literal_and_actor_action_are_exact(operator, monkeypatch):
+    from schulpilot import db as db_module
+
     seed()
+    timestamp = int(db_module.now())
+    monkeypatch.setattr(db_module, 'now', lambda: timestamp)
     for literal in ['%', '_', 'synthetic-target-9999']:
-        assert operator.get('/api/admin/audit-events', params={'q': literal}).json()['items'] == []
+        # Isolate these fixture rows: prior reads also create real audit rows,
+        # whose action legitimately contains an underscore.
+        assert operator.get('/api/admin/audit-events', params={'q': literal, 'action': 'synthetic.write'}).json()['items'] == []
+        timestamp += 2
     value = operator.get('/api/admin/audit-events', params={'actor': f'{1:032x}', 'action': 'synthetic.write', 'q': 'target-2'}).json()
     assert value['total'] == 19
     assert all(row['actor'] == f'{1:032x}' and row['action'] == 'synthetic.write' and 'target-2' in row['target'] for row in value['items'])
     assert value['action_counts'] == [{'action': 'synthetic.write', 'count': 19}]
+
+
+def test_audit_search_escapes_percent_underscore_and_escape_character(operator):
+    targets = ['synthetic-percent%key', 'synthetic-percentXkey',
+               'synthetic-under_key', 'synthetic-underXkey',
+               'synthetic-slash/key', 'synthetic-slashXkey']
+    with DB.begin() as db:
+        db.add_all(Audit(id=f'{index + 1000:032x}', actor='1' * 32, action='literal.search',
+                         target=target, created=1609459200) for index, target in enumerate(targets))
+    for literal, expected in [('%', targets[0]), ('_', targets[2]), ('/', targets[4])]:
+        response = operator.get('/api/admin/audit-events', params={'q': literal, 'action': 'literal.search'})
+        assert response.status_code == 200, response.text
+        assert response.json()['total'] == 1
+        assert [row['target'] for row in response.json()['items']] == [expected]
+
+
+def test_audit_search_finds_its_own_earlier_read_after_snapshot_advances(operator, monkeypatch):
+    from schulpilot import db as db_module
+
+    timestamp = int(db_module.now())
+    monkeypatch.setattr(db_module, 'now', lambda: timestamp)
+    first = operator.get('/api/admin/audit-events', params={'q': 'not-a-matching-action'})
+    assert first.status_code == 200 and first.json()['items'] == []
+    timestamp += 2
+    second = operator.get('/api/admin/audit-events', params={'q': '_', 'action': 'admin.audit_read'})
+    assert second.status_code == 200
+    assert any(row['action'] == 'admin.audit_read' and row['target'] == 'audit-pages'
+               for row in second.json()['items'])
 
 
 def test_audit_date_interval_is_utc_inclusive_and_snapshot_excludes_new_actions(operator):

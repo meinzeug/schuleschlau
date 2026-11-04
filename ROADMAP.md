@@ -1886,6 +1886,14 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Abnahmen systematisch und wiederholbar automatisieren**
 
+  **04.11.2026, Audit-CI:** Lauf
+  [41820898845](https://github.com/meinzeug/schulpilot/actions/runs/41820898845)
+  scheiterte an einem zeitabhängigen Audit-Suchtest: Ein eigener Lesevorgang
+  erzeugt zulässigerweise einen Eintrag mit Unterstrich. Der Test filtert nun
+  seine künstlichen Daten, prüft Platzhalter mit echten positiven und negativen
+  Beispielen und bildet einen Zeitsprung ohne Wartezeit nach. Die produktive
+  Auditierung bleibt erhalten; der vollständige Folgelauf bleibt erforderlich.
+
   **04.11.2026, erneute CI-Prüfung:** Lauf
   [41791144072](https://github.com/meinzeug/schulpilot/actions/runs/41791144072)
   schlug in zwei Backendpartitionen fehl: Fünf Diagnosefälle verwendeten eine
