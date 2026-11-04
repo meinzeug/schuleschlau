@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 
 import pytest
-from pydantic import BaseModel, ConfigDict, ValidationError, model_validator
+from pydantic import BaseModel, ConfigDict, ValidationError, field_validator, model_validator
 from pydantic_core import PydanticCustomError
 from schulpilot.provider_validation import annotate
 from schulpilot.providers import Result
@@ -335,3 +335,38 @@ def test_prepared_graphic_guard_metadata_is_closed_and_does_not_change_billing(m
     annotate(value, ValueError(message + " PRIVATE_SOURCE_SUFFIX"), phase="prepared_graphics")
     assert value.telemetry["validation"]["errors"] == [{"location": "field", "reason": "schema_validation"}]
     assert "PRIVATE" not in json.dumps(value.telemetry)
+
+
+@pytest.mark.parametrize('question,reason', [
+    ({'type': 'choice', 'options': ['A', 'B'], 'answer': 'C'}, 'question_choice_answer'),
+    ({'type': 'short', 'options': ['A', 'A'], 'answer': 'A'}, 'question_duplicate_options'),
+    ({'type': 'short', 'options': [], 'answer': '5/9', 'prompt': 'Berechne 1/4 + 1/4.'}, 'question_fraction_result'),
+])
+def test_actual_question_validators_emit_only_fixed_public_categories(question, reason):
+    from schulpilot.schemas import Question
+
+    data = {'id': 'q1', 'type': 'short', 'prompt': 'PRIVATE QUESTION', 'options': [], 'answer': 'A',
+            'accepted': [], 'hints': ['PRIVATE HINT'], 'explanation': 'PRIVATE EXPLANATION', **question}
+    with pytest.raises(ValidationError) as caught:
+        Question.model_validate(data)
+    value = result()
+    annotate(value, caught.value, phase='schema')
+    assert value.telemetry['validation']['errors'][0]['reason'] == reason
+    assert 'PRIVATE' not in json.dumps(value.telemetry['validation'])
+
+
+def test_question_diagnostic_does_not_accept_private_suffix():
+    class SyntheticQuestion(BaseModel):
+        text: str
+
+        @field_validator('text')
+        @classmethod
+        def invalid(cls, value):
+            raise ValueError('Doppelte Auswahlmöglichkeiten. PRIVATE_SOURCE_SUFFIX')
+
+    with pytest.raises(ValidationError) as caught:
+        SyntheticQuestion.model_validate({'text': 'PRIVATE_INPUT'})
+    value = result()
+    annotate(value, caught.value, phase='schema')
+    assert value.telemetry['validation']['errors'][0]['reason'] == 'schema_validation'
+    assert 'PRIVATE' not in json.dumps(value.telemetry['validation'])

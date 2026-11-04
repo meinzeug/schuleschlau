@@ -21,3 +21,26 @@ Der Test beweist die beobachtete Hintergrundzustellung einer neutralen **Testnac
 Für den Fotoimport wurde ein neu angelegtes reguläres Konto mit ausschließlich künstlichen Testdaten genutzt. Zwei gekennzeichnete Mathe-Testseiten wurden im Android-Systempicker ausgewählt, einzeln zugeschnitten und im eigenen Konto serverseitig gespeichert. Nach ausdrücklichem „Fotos abgeben“ zeigte die App, dass die Fotos gespeichert sind, aber die Erkennung durch das fehlende Aufruf- beziehungsweise Kostenkontingent unterbrochen wurde. Die anschließend ausgelesene Familiennutzung zeigte null Aufrufe; eine Fotoerkennung ist damit nicht belegt.
 
 Die beiden gespeicherten Zuschnitte wurden visuell als künstliche, gekennzeichnete Testseiten geprüft. Ein lokaler Patch ergänzt ausschließlich ihr festes vollständiges Hashpaar für die bereits vorhandene begrenzte Operator-Testfreigabe; gemischte und abweichende Bildsätze bleiben gesperrt. Eine zurückgerollte Vorprüfung mit der bisher produktiven Allowlist lehnte das Paar ab. Ob weitere Bedingungen – insbesondere das Fehlen früherer Aufträge – für dieses bereits verwendete Testkonto erfüllt sind, muss nach Deployment regulär geprüft werden. Bis dahin erfolgen keine weiteren Live-Aktionen.
+
+### Erneuter Lauf auf Version 1.38.81
+
+Nach Deployment von Commit `7aad038` wurden mit einer neuen künstlichen
+Testfamilie über den Android-Systempicker zwei Seiten ausgewählt und
+zugeschnitten. Die serverseitig gespeicherten Prüfsummen entsprachen dem fest
+geprüften Paar. Der begrenzte Operatorzugang wurde vor dem ausdrücklichen
+Abgeben erteilt. Die signierte APK 1.38.81 wurde über der vorigen Version
+installiert; die Sitzung und der vorbereitete Tag blieben erhalten.
+
+Beide Seiten wurden erkannt und fachlich den Bruchthemen zugeordnet. Die
+eingestellte automatische Seitenprüfung übernahm die Ergebnisse nach dem
+Gegencheck. Der anschließende Paketauftrag scheiterte jedoch an der
+Ausgabelänge. Eine einzige ausdrücklich in der App gestartete reguläre
+Wiederholung scheiterte unabhängig davon bei der Schema-Prüfung der zweiten
+Aufgabe. Es entstand keine Lernrunde; der Ablauf gilt daher nicht als
+bestanden. Sechs Aufrufe kosteten zusammen 0,103482 USD, ohne unbekannte
+Kosten. [Technische Diagnose](PACKAGE_VALIDATION_DIAGNOSIS_2026_11_04.md).
+
+Die eigene künstliche Testfamilie wurde regulär gelöscht; private
+Zugangsdateien, Appdaten und Testfotos auf dem Emulator wurden entfernt.
+Eine Lernrunden-Benachrichtigung und deren Zielnavigation wurden in diesem
+erfolglosen Lauf nicht nachgewiesen.

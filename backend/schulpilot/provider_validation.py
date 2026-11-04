@@ -102,6 +102,32 @@ _VALUE_REASONS = {
 }
 
 
+# These are fixed local validator messages, never model-supplied text.
+_QUESTION_REASONS = {
+    "Auswahlaufgabe ohne gültige Antwort.": "question_choice_answer",
+    "Doppelte Auswahlmöglichkeiten.": "question_duplicate_options",
+    "Mehrdeutiger Antwortbuchstabe.": "question_choice_ambiguous",
+    "Ungültige Zuordnung.": "question_match_shape",
+    "Zuordnung ist nicht eindeutig.": "question_match_ambiguous",
+    "Die Bruchlösung ist nicht als eindeutige Zahl oder Bruch prüfbar.": "question_fraction_unparseable",
+    "Ein Kürzungsteiler oder Erweiterungsfaktor muss positiv sein.": "question_fraction_factor",
+    "Die Bruchaufgabe ist ohne ausdrücklich genannten Faktor oder Teiler mehrdeutig.": "question_fraction_ambiguous",
+    "Der genannte Teiler kürzt diesen Bruch nicht ganzzahlig.": "question_fraction_factor",
+    "Die rechnerisch prüfbare Bruchlösung passt nicht zur Aufgabe.": "question_fraction_result",
+    "Die Bruchlösung entspricht nicht dem verlangten Kürzungsteiler.": "question_fraction_form",
+    "Die Bruchlösung ist nicht vollständig gekürzt.": "question_fraction_form",
+    "Die Bruchlösung wurde nicht durch einen ganzzahligen Teiler gekürzt.": "question_fraction_form",
+    "Die Bruchdarstellung entspricht nicht dem verlangten Erweiterungsfaktor.": "question_fraction_form",
+    "Die Bruchlösung wurde nicht mit einem ganzzahligen Faktor erweitert.": "question_fraction_form",
+    "Die Bruchauswahl hat nicht genau eine rechnerisch passende Antwort.": "question_fraction_choice",
+    "Mehrfeldaufgabe benötigt eine Feldgruppe und leere äußere options/accepted.": "question_group_shape",
+    "Rechen- und Bruchdarstellungsaufgaben benötigen ein bestehendes geprüftes Einzelantwortformat.": "question_group_math",
+    "Gemeinsame Musterantwort und private Feldlösungen widersprechen sich.": "question_group_answer",
+    "Feldgruppen gehören ausschließlich zu type grouped.": "question_group_shape",
+}
+_REASONS.update({"Value error, " + message: reason for message, reason in _QUESTION_REASONS.items()})
+
+
 _SCENE_REASONS = {
     "Lernszenen enthalten nur Beschriftungen, keine Links, Markup oder ausführbaren Code.": "scene_text",
     "Szenenpfeile verbinden verschiedene Objekte.": "scene_edges",

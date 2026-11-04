@@ -1461,6 +1461,14 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Ausgabelängen, Schemafehler und Providerstörungen systematisch behandeln**
 
+  - [x] **Aufgabenprüfung datensparsam genauer diagnostizieren.**
+    Bekannte feste Fehler aus der Aufgabenvalidierung erhalten geschlossene,
+    inhaltsfreie Fehlercodes; unbekannte Fehler bleiben allgemein. Die
+    bestehende Validierung bleibt unverändert. Der echte Android-Test zeigte
+    einen Luna-Längenabbruch und einen davon unabhängigen Sol-Schemafehler;
+    dessen genauer Grund ist rückwirkend nicht bestimmbar und die vollständige
+    Behebung bleibt offen. [Testbericht](docs/PACKAGE_VALIDATION_DIAGNOSIS_2026_11_04.md).
+
   - [x] **Echten künstlichen Zweiquellen-Paketlauf nachweisen.**
     Zwei feste künstliche Seiten wurden in zwei Paketteilen verarbeitet;
     die Quellenzuordnung beider Einheiten wurde vor der Bereinigung geprüft.

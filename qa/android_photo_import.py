@@ -441,7 +441,7 @@ def main():
                 "native_android_photo_import": True,
                 "android_api": 36,
                 "version_code": args.expected_version_code,
-                "regular_separate_child": True,
+                "regular_separate_child": probe["child_id"] != data["child_id"],
                 "actual_system_picker_images": 2,
                 "native_crop_confirmations": 2,
                 "persisted_private_materials": 2,
