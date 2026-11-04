@@ -14,8 +14,8 @@ Statusabfrage ist kein Auftrag zur KI-Erzeugung.
 | Einzelne Lernrunde | `app/lib/learning_preparation_screen.dart` | Bereits reservierter Auftrag alle 3 s, solange er läuft. Nach Rückkehr und vorübergehendem Lesefehler ein GET; keine automatische Auftragserstellung. |
 | Glocke und Gesamtansicht | `app/lib/notification_inbox.dart` | Erste Seite und begrenzt gespeicherte Folgeseiten per GET, Vordergrundaktualisierung nach 45 s und bei Rückkehr; Lesebelege nur für sichtbare Meldungen. |
 | Schulbuddy | `app/lib/tutor_sheet.dart` | Bei ausstehender Antwort aktiver Dialog nach 3 s. Konto-, Familien- oder Tokenwechsel verwirft Anzeige und Entwurf. Eine Rückkehr während eines laufenden GETs löst anschließend einen erneuten GET aus; bei HTTP 4xx erst nach bewusstem Aktualisieren erneut lesen. |
-| Klassenarbeitsnacharbeit | `app/lib/exam_review_panel.dart` | Bei laufender Analyse oder Erkennung nach 3 s; Anzeige und Entwürfe sind an den aktuellen Kontext gebunden. |
-| Sprachwerkstatt | `app/lib/language_workshop.dart` | Aktive Projektverarbeitung nach 3 s; beim Zurückkehren erneut lesen. |
+| Klassenarbeitsnacharbeit | `app/lib/exam_review_panel.dart` | Bei laufender Analyse oder Erkennung nach 3 s; 4xx stoppen automatische Abfragen, 403/404 verbergen private Ergebnisse. Bewusstes erneutes Laden bleibt verfügbar. |
+| Sprachwerkstatt | `app/lib/language_workshop.dart` | Aktive Projektverarbeitung nach 3 s; bei Rückkehr erneut lesen. Sitzung, Familie und Konto begrenzen den Kontext; 4xx stoppen automatische Abfragen und 403/404 verbergen private Ergebnisse. |
 
 Die Intervalle sind Planungswerte im Vordergrund, keine garantierten
 Lieferzeiten. Offline, Browser-Drosselung, ein gestörter Server, Schlafmodus
@@ -42,3 +42,43 @@ Klassenarbeiten und Sprachwerkstatt benötigen weitere systematische
 Offline-, Routenwechsel- und konkurrierende Geräteprüfungen. Ob und wo ein
 ereignisbasierter Kanal gegenüber den bestehenden GETs einen belegbaren Nutzen
 bringt, ist separat zu entscheiden. Kein Android-Gerätetest wird hier behauptet.
+
+## Ergänzung: Sprachwerkstatt und Nacharbeit
+
+Der Sprachprojektstatus verwirft beim Hintergrund- oder Sitzungswechsel ältere
+Antworten; eine Rückkehr liest den aktuellen Stand, sofern kein 4xx-Fehler die
+automatische Abfrage angehalten hat. Ein anfänglich im Hintergrund geöffnetes
+Projekt wartet bis zum Vordergrund. Nach 403/404 werden alte Projekte und
+Quelllisten verborgen; bei 429 bleibt der letzte Stand erhalten. Ein ausdrücklich
+ausgelöstes „Erneut laden“ kann nach 4xx wieder lesen. Entwürfe in der
+Sprachwerkstatt sind an Konto, Familie und Sitzung gebunden.
+
+Auch die Nacharbeit fragt nach einem 4xx nicht automatisch weiter. Bei 403/404
+wird der private Bericht verborgen; der eigene ungesendete Entwurf bleibt im
+Speicher und erscheint nach erneut gewährtem Zugriff bei unveränderter Quelle
+wieder im Eingabefeld. Hat sich die Quelle geändert, wird er gesondert gezeigt
+und nicht ungeprüft übernommen. Künstliche Fälle prüfen diese Unterscheidung,
+403, 404, 429 und den ausdrücklichen Abruf, ohne einen KI-Auftrag anzustoßen.
+
+Die Tests verwenden künstliche Transporte und sind keine End-to-End-Abnahme
+mehrerer echter Geräte oder ein Nachweis von Pushzustellung. Die vollständige
+übergreifende Abnahme des Echtzeit-Roadmappunkts bleibt offen.
+
+## Künstlicher Mehrsitzungstest
+
+`backend/tests/test_realtime_multidevice.py` meldet dasselbe künstliche Kind in
+zwei unabhängigen Sitzungen an. Beide fragen denselben gespeicherten
+Sprachprojektauftrag vor und nach der Verarbeitung durch den echten Worker ab;
+der Providertransport wird dabei künstlich simuliert. Ein anderes Kind derselben
+Familie erhält keinen Zugriff. Wiederholte GETs ändern weder die Zahl der
+Aufträge und Kostenbelege noch die der Runden, Antworten oder Lernaktivitäten.
+Der Worker wird ausdrücklich genau einmal gestartet. Der Fall bestand auf
+SQLite und isoliertem PostgreSQL.
+
+`app/test/notification_multidevice_test.dart` verwendet drei getrennte
+Clientzustände und einen simulierten Dienst: Nach der Wiederaufnahme erhalten
+beide Sitzungen des einen Kontos die eigene neue Meldung; ein Geschwisterkonto
+sieht sie nicht. Dieser Test prüft die Client-Wiederaufnahme, nicht den
+FCM-Transport oder zwei gleichzeitig installierte Apps. Zusammen mit der
+Backendprüfung ist dies ein gezielter Mehrgerätebeleg für Sprachstatus und
+Glockencache; eine durchgehende Geräteabnahme sämtlicher Ansichten bleibt offen.

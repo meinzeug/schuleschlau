@@ -1385,6 +1385,12 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Kapazitätsannahmen vor wachsendem Betrieb messen**
 
+  - [x] **Warteschlange unter künstlicher Konkurrenz messen.** Acht Familien,
+    doppelte Uploads und Reservierungen sowie vier Worker-Claims auf einem
+    CPU-Kern und isoliertem PostgreSQL wurden gemessen. Der simulierte
+    Anbieter ist kein Produktivlastnachweis; reale Betriebs- und Alarmgrenzen
+    bleiben offen. [Messwerte](docs/CAPACITY_PROFILE_2026_11_04B.md).
+
   **04.11.2026, isoliertes Lastprofil:** Parallele Übersichts-GETs sowie
   gleichzeitige Upload- und Auftragswiederholungen wurden auf temporärem
   PostgreSQL mit künstlichen Daten gemessen. Foto und Auftrag blieben bei
@@ -1431,7 +1437,14 @@ Bestandteil des bestehenden Buildvertrags.
 
   **Abnahme:** Mehrseitenfall und Fehlermatrix belegen eindeutige Phasenzuordnung, normale Kosten-/Versuchsgrenzen, keine Doppelaufträge und sichere Fortsetzung; zusätzlich mit künstlichen Inhalten echte freigegebene Anbieteraufrufe durchführen und deren Umfang, Kosten und Restrisiken dokumentieren.
 
-- [ ] **P1 – Referenzdatenbank und Medienauswahl wirksam prüfen**
+- [x] **P1 – Referenzdatenbank und Medienauswahl wirksam prüfen**
+
+  **04.11.2026:** Künstliche Quellen in Deutsch, Biologie und Geografie
+  durchlaufen Auswahl, gebundenes Schema, Speicherung und Projektion mit
+  Referenz-ID, Version und Prüfsummen. Separate Chrome-Darstellungen decken
+  Deutsch, Geschichte und Geografie bei 390/1024 px ab; ungültige Treffer und
+  Medienbelege sind regressionsgeprüft. Umfang und Grenzen stehen in
+  [REFERENCE_ACCEPTANCE_2026_11_04.md](docs/REFERENCE_ACCEPTANCE_2026_11_04.md).
 
   - [x] **Referenz- und Parameterintegrität bei Anzeige und Übernahme prüfen.**
     Versions-, Rezept- und Parameter-Fingerabdrücke werden geprüft; veränderte
@@ -1453,7 +1466,7 @@ Bestandteil des bestehenden Buildvertrags.
   **03.11.2026, Teilabsicherung:** Lernhinweise und Themenbrowser verwerfen
   verspätete geladene Inhalte nach einem Sitzungswechsel. Zwei künstliche
   Widgetfälle prüfen dies; 22 Fälle zu Lerntipps und Medienrückkehr bestanden.
-  Die fachübergreifende Referenz- und Medienabnahme bleibt offen.
+  Der spätere fachübergreifende technische Nachweis ist oben verlinkt.
 
 - [ ] **P1 – Erklärgrafiken und Animationen fachlich und technisch abnehmen**
 
@@ -1541,7 +1554,14 @@ Bestandteil des bestehenden Buildvertrags.
 
   **Abnahme:** Alle Anzeigen lassen sich auf dieselben gespeicherten Daten zurückführen, Familienmitglieder sehen nur Berechtigtes, Import und Wiederholung sind idempotent und es entstehen keine erfundenen Diagnosen oder Notenprognosen.
 
-- [ ] **P1 – Adminoberfläche und laufende Betriebsentscheidungen abnehmen**
+- [x] **P1 – Adminoberfläche und laufende Betriebsentscheidungen abnehmen**
+
+  **04.11.2026:** Rechte und private Originalbilder, Tages-/Monatsbudgets,
+  Systemgrenzen, Kostenbelege, Entwürfe, Revisionskonflikte und Notfallstopp
+  wurden mit künstlichen Konten auf SQLite, PostgreSQL und Flutter einschließlich
+  Chrome geprüft. [Abnahme und Grenzen](docs/ADMIN_ACCEPTANCE_2026_11_04.md);
+  reale Anbieterpreise und eine unabhängige Sicherheitsprüfung sind damit nicht
+  belegt.
 
   **Teilprüfung 02.11.2026:** 47 künstliche SQLite-Fälle zu Nutzerverwaltung,
   Filterung und Revisionen bestanden; außerdem liefen Admin-Parallelitätsfälle
@@ -1552,7 +1572,7 @@ Bestandteil des bestehenden Buildvertrags.
   einander nicht mehr überschreiben. Ein im Web zu null ausgewerteter
   32-Bit-Shift beim Erzeugen des Speicherschlüssels wurde durch sichere
   Zufallsbytes ersetzt; Kontingentgrenzen und Prüfpflichten bleiben bestehen.
-  Die übrige Adminabnahme bleibt offen.
+  Die anschließende technische Adminabnahme ist oben dokumentiert.
 
   Familien- und Kontoverwaltung, Kindertages-/Monatsbudgets einschließlich unbegrenzt, Familien-/Systemgrenzen, Providerstatus, Kostenbelege, Notfallstopp und revisionsgebundene Einstellungen mit künstlichen Konten testen. Adminrechte im Backend durchsetzen; Betriebsadministratoren erhalten keinen Zugriff auf private Kinderinhalte. Abschnittswechsel dürfen Entwürfe nicht verwerfen und Lesezugriffe keine Änderungen oder Anbieteraufrufe auslösen.
 
@@ -1736,7 +1756,14 @@ Bestandteil des bestehenden Buildvertrags.
   ergänzt die bestehende gezielte Aktualisierung, ist aber weder ein Ausbau der
   Cursor-Paginierung noch ein Nachweis nativer Pushzustellung.
 
-- [ ] **P1 – Familienanrufe und optionale Medien nur im freigegebenen Umfang abnehmen**
+- [x] **P1 – Familienanrufe und optionale Medien nur im freigegebenen Umfang abnehmen**
+
+  **04.11.2026:** Rechte, Freigaben, Abbruch und Medienrückkehr wurden mit
+  künstlichen Konten auf SQLite, PostgreSQL und Flutter einschließlich Chrome
+  geprüft. Ein früherer echter Relaytest ist getrennt dokumentiert.
+  Familienanrufe sind gemäß Startumfang nicht automatisch freigegeben; eine
+  konkrete Aufnahme erfordert gesonderte Abnahme. Einzelheiten und Grenzen:
+  [FAMILY_CALL_MEDIA_ACCEPTANCE_2026_11_04.md](docs/FAMILY_CALL_MEDIA_ACCEPTANCE_2026_11_04.md).
 
   Falls für die gewählte Startstufe vorgesehen, Eltern-/Kinderrollen, ausdrückliche Kamera-/Mikrofon-/Bildschirmfreigaben, Verbindungsaufbau, Abbruch, Widerruf und Gerätewechsel mit synthetischen Konten prüfen. Medienlinks auf passende katalogisierte Inhalte und Rückkehr zum Lernkontext testen; kein privater Kontext in URL oder Referrer.
 
@@ -1845,6 +1872,12 @@ Bestandteil des bestehenden Buildvertrags.
   **Abnahme:** Dokumentation, Bewertung, gegebenenfalls Folgenabschätzung, vereinbarte Maßnahmen und Zuständigkeiten liegen für den vorgesehenen Freigabeumfang vor; offene Risiken sind vor der jeweiligen Freigabe entschieden.
 
 - [ ] **P1 – Echtzeitstatus gezielt und zuverlässig bereitstellen**
+
+  - [x] **Sprachprojekte und Nacharbeiten bei Rückkehr und Rechteverlust
+    absichern.** Sitzungsgebundene Wiederaufnahme, ältere GETs und manuelle
+    Wiederholung nach 4xx sind mit künstlichen Daten geprüft. Zwei künstliche
+    Sitzungen sehen denselben Projektstatus; ein fremdes Konto wird abgewiesen.
+    Die Prüfung und ihre Grenzen stehen in [REALTIME_STATUS.md](docs/REALTIME_STATUS.md).
 
   - [x] **Tutorstatus und Entwurf sitzungsgebunden wiederaufnehmen.** Ein
     laufender GET erhält nach Vordergrund- oder Routenrückkehr eine gezielte

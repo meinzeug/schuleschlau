@@ -53,10 +53,12 @@ class _ExamReviewPanelState extends State<ExamReviewPanel> {
   late final scope = ExamScope(widget.state)..addListener(changed);
   Json? data;
   String? error, selectedId, previousDraft;
+  Object? deniedContextRevision;
   final draft = TextEditingController();
   String baseline = '';
   int draftRevision = 0, reads = 0;
   bool reading = false, busy = false, choosing = false, needsRead = false;
+  bool automaticReadBlocked = false;
   final photos = <_ExamPhoto>[];
   final localTurns = <String, Json>{};
   final actionKeys = <String, String>{};
@@ -90,7 +92,7 @@ class _ExamReviewPanelState extends State<ExamReviewPanel> {
       needsRead = true;
     }
     if (scope.current && needsRead && !reading) {
-      unawaited(load());
+      unawaited(load(automatic: true));
     } else if (scope.current) {
       planPoll();
     }
@@ -110,7 +112,7 @@ class _ExamReviewPanelState extends State<ExamReviewPanel> {
 
   void planPoll() {
     poll?.cancel();
-    if (!mounted || !scope.current) return;
+    if (!mounted || !scope.current || automaticReadBlocked) return;
     final pending =
         (data?['scan'] as Map?)?['status'] == 'processing' ||
         [
@@ -127,7 +129,7 @@ class _ExamReviewPanelState extends State<ExamReviewPanel> {
         );
     if (pending) {
       poll = Timer(const Duration(seconds: 3), () {
-        if (scope.current) unawaited(load(quiet: true));
+        if (scope.current) unawaited(load(quiet: true, automatic: true));
       });
     }
   }
@@ -142,8 +144,9 @@ class _ExamReviewPanelState extends State<ExamReviewPanel> {
     draft.text = baseline;
   }
 
-  Future<void> load({bool quiet = false}) async {
-    if (!scope.active || reading) return;
+  Future<void> load({bool quiet = false, bool automatic = false}) async {
+    if (!scope.active || reading || (automatic && automaticReadBlocked)) return;
+    if (!automatic) automaticReadBlocked = false;
     needsRead = false;
     final stamp = scope.epoch, request = ++reads;
     setState(() {
@@ -164,12 +167,13 @@ class _ExamReviewPanelState extends State<ExamReviewPanel> {
           'Diese Nacharbeit gehört nicht zur ausgewählten Arbeit.',
         );
       }
-      final oldContext = data?['context_revision'];
+      final oldContext = data?['context_revision'] ?? deniedContextRevision;
       final oldText = draft.text;
       final hadDirty = dirty;
       final oldSelected = selectedId;
       setState(() {
         data = result;
+        deniedContextRevision = null;
         if (oldContext != result['context_revision']) localTurns.clear();
         final incoming =
             tasks.where((item) => item['id'] == oldSelected).firstOrNull ??
@@ -200,7 +204,17 @@ class _ExamReviewPanelState extends State<ExamReviewPanel> {
       }
     } catch (value) {
       if (mounted && scope.active && stamp == scope.epoch && request == reads) {
-        setState(() => error = examError(value));
+        if (value is ApiError && value.status >= 400 && value.status < 500) {
+          automaticReadBlocked = true;
+        }
+        setState(() {
+          if (value is ApiError && [403, 404].contains(value.status)) {
+            deniedContextRevision ??= data?['context_revision'];
+            data = null;
+            localTurns.clear();
+          }
+          error = examError(value);
+        });
       }
     } finally {
       if (mounted && scope.active && stamp == scope.epoch && request == reads) {
@@ -932,7 +946,7 @@ class _ExamReviewPanelState extends State<ExamReviewPanel> {
           'child_id': widget.childId,
           'exam_id': widget.examId,
           'exam_tab': 'review',
-          'review_task_id': ?selectedId,
+          if (data != null) 'review_task_id': ?selectedId,
         },
         '${data?['context_revision']}:${data?['analysis_revision']}:$selectedId',
       ),

@@ -134,22 +134,30 @@ class _LanguageWorkshopState extends State<_LanguageWorkshopBody>
   bool more = false;
   late final Json? owner;
   late final family = widget.state.familyId;
-  bool foreground = true, routeVisible = true;
+  late final token = widget.state.api.token;
+  bool foreground = true, routeVisible = true, automaticReadBlocked = false;
   String get base => '/children/${widget.childId}';
   bool get current =>
       mounted &&
       owner != null &&
       identical(owner, widget.state.user) &&
-      family == widget.state.familyId;
+      family == widget.state.familyId &&
+      token == widget.state.api.token;
 
   @override
   void initState() {
     super.initState();
     owner = widget.state.user;
+    foreground =
+        WidgetsBinding.instance.lifecycleState == null ||
+        WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
     WidgetsBinding.instance.addObserver(this);
     material = widget.materialId;
     final saved = widget.state.collectionViews[draftKey];
-    if (saved != null && identical(saved['account'], owner)) {
+    if (saved != null &&
+        identical(saved['account'], owner) &&
+        saved['family'] == family &&
+        saved['session'] == token) {
       goal.text = saved['goal'] ?? goal.text;
       draft.text = saved['draft'] ?? '';
       mode = saved['mode'] ?? mode;
@@ -169,7 +177,7 @@ class _LanguageWorkshopState extends State<_LanguageWorkshopBody>
     projectSearch.addListener(formChanged);
     wordSearch.addListener(formChanged);
     widget.state.addListener(accountChanged);
-    load();
+    if (foreground) load();
   }
 
   void formChanged() {
@@ -181,6 +189,7 @@ class _LanguageWorkshopState extends State<_LanguageWorkshopBody>
     if (!current ||
         !foreground ||
         !routeVisible ||
+        automaticReadBlocked ||
         !['queued', 'running'].contains(project?['status'])) {
       return;
     }
@@ -200,7 +209,7 @@ class _LanguageWorkshopState extends State<_LanguageWorkshopBody>
       if (PageToolsHost.isMenuCovering(widget.state, host)) {
         pollProjectStatusAfterTools();
       } else if (host?.isCurrent != false) {
-        load();
+        load(automatic: true);
       }
     });
   }
@@ -215,17 +224,27 @@ class _LanguageWorkshopState extends State<_LanguageWorkshopBody>
 
     final wasVisible = routeVisible;
     routeVisible = ModalRoute.of(context)?.isCurrent ?? true;
-    if (!routeVisible) poll?.cancel();
-    if (!wasVisible && routeVisible && current && widget.projectId != null) {
-      load();
+    if (!routeVisible) {
+      poll?.cancel();
+      if (wasVisible && widget.projectId != null) generation++;
+    }
+    if (!wasVisible &&
+        routeVisible &&
+        current &&
+        foreground &&
+        widget.projectId != null) {
+      load(automatic: true);
     }
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState lifecycle) {
+    final wasForeground = foreground;
     foreground = lifecycle == AppLifecycleState.resumed;
+    if (wasForeground == foreground) return;
     poll?.cancel();
-    if (foreground && routeVisible && current) load();
+    if (!foreground) generation++;
+    if (foreground && routeVisible && current) load(automatic: true);
   }
 
   void accountChanged() {
@@ -254,6 +273,8 @@ class _LanguageWorkshopState extends State<_LanguageWorkshopBody>
         draft.text.runes.length <= 6000) {
       widget.state.collectionViews[draftKey] = {
         'account': owner,
+        'family': family,
+        'session': token,
         'goal': goal.text,
         'draft': draft.text,
         'locale': locale,
@@ -291,8 +312,9 @@ class _LanguageWorkshopState extends State<_LanguageWorkshopBody>
     super.dispose();
   }
 
-  Future<void> load() async {
-    if (!current) return;
+  Future<void> load({bool automatic = false}) async {
+    if (!current || (automatic && automaticReadBlocked)) return;
+    if (!automatic) automaticReadBlocked = false;
     final request = ++generation;
     setState(() {
       loading = true;
@@ -313,7 +335,7 @@ class _LanguageWorkshopState extends State<_LanguageWorkshopBody>
         if (foreground &&
             routeVisible &&
             ['queued', 'running'].contains(result['status'])) {
-          poll = Timer(Duration(seconds: 3), load);
+          poll = Timer(const Duration(seconds: 3), () => load(automatic: true));
         }
       } else {
         final results = await Future.wait([
@@ -410,7 +432,24 @@ class _LanguageWorkshopState extends State<_LanguageWorkshopBody>
       }
     } catch (e) {
       if (current && request == generation) {
+        poll?.cancel();
+        final denied = e is ApiError && [403, 404].contains(e.status);
+        if (e is ApiError && e.status >= 400 && e.status < 500) {
+          automaticReadBlocked = true;
+        }
         setState(() {
+          if (denied) {
+            project = null;
+            projects = [];
+            words = [];
+            materials = [];
+            chosenSource = null;
+            material = null;
+            wordLabels.clear();
+            wordPages.clear();
+            selectionNotice = null;
+            selected.clear();
+          }
           error = e is ApiError ? e.message : 'Deine Sprachwerkstatt konnte gerade nicht geladen werden. Versuche es noch einmal.';
           loading = false;
         });
@@ -657,6 +696,12 @@ class _LanguageWorkshopState extends State<_LanguageWorkshopBody>
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               if (error != null) Notice(error!, warning: true),
+              if (error != null && widget.projectId != null)
+                TextButton.icon(
+                  onPressed: loading ? null : load,
+                  icon: const Icon(Icons.refresh_rounded),
+                  label: const Text('Erneut laden'),
+                ),
               if (loading || busy) LinearProgressIndicator(),
               if (selectionNotice != null)
                 Notice(selectionNotice!, warning: true),
