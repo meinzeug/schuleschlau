@@ -1,3 +1,12 @@
+> **Testfreigabe 04.11.2026:** Der Betreiber erlaubt echte OpenRouter-Testaufrufe
+> über die Installation `schulpilot.dorfspy.de` für die noch offenen Abnahmen.
+> Dafür nur geprüfte künstliche Inhalte und eigene künstliche Konten über den
+> regulären autorisierten, reservierten Auftragspfad verwenden. Bestehende
+> Provider-, Datenschutz- und Zugangsgrenzen bleiben wirksam. Ergebnisse,
+> Modell und tatsächliche beziehungsweise unbekannte Kosten dokumentieren;
+> die Freigabe selbst belegt keinen erfolgreichen Aufruf. Frühere Angaben
+> unten beschreiben den jeweiligen historischen Stand.
+
 Erweiterung20.10.2026 für1.15.0+65: Tatsächlich ausführbare Kurzpläne, langfristige
 Belege, individuelle Modellplanung und künstliche Bruchspur stehen in
 [LEARNING_CONTROLLER_2026_10_20.md](LEARNING_CONTROLLER_2026_10_20.md).

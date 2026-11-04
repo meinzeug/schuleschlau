@@ -1,4 +1,4 @@
-"""One-off local grant for the two independently inspected artificial QA photos.
+"""One-off local grant for a fixed, reviewed set of artificial QA photos.
 
 No HTTP endpoint, no public trial configuration change, no provider request.
 The existing family-trial ledger enforces the time, call and money bounds.
@@ -19,13 +19,28 @@ ARTIFICIAL_DIGESTS = frozenset({
     "aca73ab2f3a8fa05863f1292394a3aad90e6083b1915bf796421abd6f63da651",
     "1f6e31a23b213947dfa4c22f3c38d9d4fc3104464c3f6cce0bf0f59bae1cac8e",
 })
+# SHA-256 after the production upload pipeline (Pillow 13, EXIF transpose,
+# RGB, 3200px thumbnail, JPEG quality 95). No caller-provided allowlist.
+REFERENCE_DIGESTS = frozenset({
+    "ac9e7f0f980715c528c8c1522a204ea963213fd196251ce535e0ce58f2f62c1a",  # 01
+    "7719d970199e85a40f582ac19ec6a8c571c67905c4b05a11174c7ffede5991f7",  # 02
+    "62c23950a8ef1ccb06558116690b146824602ca76724c7075a1dd3a88982c4eb",  # 03
+    "cdcea3afdd4851d679cf064dd0ccad3efbc5bfd94310b97146be5135932cd633",  # 04
+})
+# The two fully legible sources also have a dedicated bounded multi-page run.
+REFERENCE_PAIR = frozenset({
+    "ac9e7f0f980715c528c8c1522a204ea963213fd196251ce535e0ce58f2f62c1a",
+    "62c23950a8ef1ccb06558116690b146824602ca76724c7075a1dd3a88982c4eb",
+})
+APPROVED_SETS = frozenset({ARTIFICIAL_DIGESTS, REFERENCE_PAIR, REFERENCE_DIGESTS})
+
 
 
 def grant(db, request):
     if not isinstance(request, dict) or set(request) != {"family_id", "parent_id", "child_id", "material_ids"}:
         raise ValueError("Ungültiger interner Testauftrag.")
     ids = [request["family_id"], request["parent_id"], request["child_id"], *(request["material_ids"] if isinstance(request["material_ids"], list) else [])]
-    if len(ids) != 5 or len(set(ids)) != 5 or not all(isinstance(i, str) and re.fullmatch(r"[a-f0-9]{32}", i) for i in ids):
+    if len(ids) not in (5, 7) or len(set(ids)) != len(ids) or not all(isinstance(i, str) and re.fullmatch(r"[a-f0-9]{32}", i) for i in ids):
         raise ValueError("Ungültige Testkennungen.")
     family = db.scalar(select(Family).where(Family.id == ids[0]).with_for_update())
     parent, child = db.get(User, ids[1]), db.get(Child, ids[2])
@@ -45,10 +60,11 @@ def grant(db, request):
             or child_user.username != "normal-child-" + nonce):
         raise ValueError("Der künstliche Testhaushalt ist nicht isoliert.")
     pages = list(db.scalars(select(Material).where(Material.child_id == child.id)))
-    if (len(pages) != 2 or {p.id for p in pages} != set(ids[3:])
-            or {p.image_digest for p in pages} != ARTIFICIAL_DIGESTS
+    if (len(pages) != len(ids) - 3 or {p.id for p in pages} != set(ids[3:])
+            or len({p.image_digest for p in pages}) != len(pages)
+            or frozenset(p.image_digest for p in pages) not in APPROVED_SETS
             or any(p.synthetic or p.purpose != "notebook" for p in pages)):
-        raise ValueError("Nur die beiden geprüften künstlichen Fotos sind zulässig.")
+        raise ValueError("Nur ein vollständiger Satz der geprüften künstlichen Fotos ist zulässig.")
     if (db.scalar(select(Job.id).where(Job.child_id == child.id).limit(1))
             or db.scalar(select(LearningUnit.id).where(LearningUnit.child_id == child.id).limit(1))
             or db.scalar(select(BankOrder.id).where(BankOrder.family_id == family.id).limit(1))):

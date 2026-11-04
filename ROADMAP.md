@@ -1,5 +1,15 @@
 # SchuleSchlau: Roadmap zur Produktionsreife
 
+**Betreiberauftrag 04.11.2026 – Testumfang:** Echte OpenRouter-Aufrufe über
+die bestehende Installation sind für Abnahmen ausdrücklich freigegeben.
+Ausschließlich geprüfte künstliche Inhalte und reguläre reservierte,
+autorisierte Aufträge verwenden. Modell, Kosten beziehungsweise unbekannte
+Kosten und Ergebnis dokumentieren; keine Datenschutz- oder Zugriffsschranken
+lockern. Für die technische Android-Abnahme wird auf Betreiberwunsch ein
+lokaler Android-Emulator verwendet. Tatsächlich sichtbare Ergebnisse und
+gerätespezifische Grenzen getrennt benennen; ein Emulator ist kein Nachweis
+physischer Hardware. Historische Testangaben bleiben als solche erhalten.
+
 **Stand der Bestandsaufnahme: 31.10.2026.** Diese Datei ist der lokale Arbeitsplan für die Weiterentwicklung von SchuleSchlau im bestehenden Repository `schulpilot`. Sie beschreibt offene Arbeiten und erforderliche Nachweise; sie ist keine Zusicherung, dass Software oder Lernwirkung fehlerfrei sein können.
 
 ## Ziel und Umgang mit dieser Roadmap
@@ -661,6 +671,12 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
 ## Fotoerkennung und Quellenprüfung
 
 - [ ] **P1 – OCR anhand vollständig referenzierter künstlicher Seiten prüfen**
+
+  - [x] **Vier künstliche Referenzseiten samt Prüfsummen bereitstellen.**
+    Drei deterministisch erzeugte Seiten und ein geprüftes KI-generiertes
+    Heftfoto sind mit separater Text- und Unsicherheitsreferenz erfasst.
+    [Testsatz und Grenzen](docs/OCR_SYNTHETIC_REFERENCE_2026_11_04.md).
+    Die vollständige OCR-Auswertung und der reguläre Import bleiben offen.
 
   Reproduzierbare Seiten mit Druck, künstlich erzeugter Handschrift, Formeln, Tabellen, mehreren Absätzen, Randnotizen, Zuschnitt, geringer Qualität, Zeichnungen und kurzen Notizen zusammenstellen; für jede Seite eine menschlich geprüfte Referenz und erwartete Unsicherheitsmarkierungen festhalten. Im normalen Fotoimport auf Web und Android Aufnahme/Dateiwahl, Zuschnitt, Upload, Erkennung und Wiederaufnahme ausführen.
 
