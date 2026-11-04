@@ -2,9 +2,9 @@
 import copy
 
 import pytest
-from schulpilot.db import DB, Activity, Attempt, LearningUnit, Material, User
+from schulpilot.db import DB, Activity, Attempt, LearningMemory, LearningUnit, Material, User
 from schulpilot.visual_positions import export_user
-from schulpilot.visual_reference_models import UnitVisualPosition
+from schulpilot.visual_reference_models import UnitVisualPosition, UnitVisualSnapshot
 from test_visual_references import generated_visual_unit as original_generated_visual_unit
 
 
@@ -117,6 +117,73 @@ def test_child_cannot_restore_hidden_question_solution_until_explicit_explanatio
     with DB() as db:
         assert db.query(Attempt).count() == 0
         assert db.query(Activity).filter(Activity.kind == 'explanation').count() == 1
+
+
+def test_explicit_intro_before_entry_probe_can_save_only_its_opened_graphic(api, visual, household):
+    from schulpilot import competences
+    from schulpilot.learning import unit_data
+
+    uid, mid, cid = visual
+    with DB.begin() as db:
+        unit, material = db.get(LearningUnit, uid), db.get(Material, mid)
+        unit.status, unit.round_kind = 'active', 'learning'
+        source = competences.source_ref(db, material)
+        assert source is not None
+        entry = {'version': 1, 'catalog_version': competences.VERSION, 'source_refs': [source],
+            'source_signature': competences.fingerprint([source]), 'entry_mode': 'prerequisite_probe',
+            'competence_ids': [], 'questions': [{'id': 'q1', 'role': 'prior_check', 'competence_id': None}]}
+        db.add(LearningMemory(unit_id=uid, child_id=cid, source_signature='a' * 64,
+            working={'entry_plan': entry}, decision={}))
+        db.flush()
+        assert unit_data(db, unit)['explanation_steps'] == []
+    login = api.post('/api/auth/login', json={'username': 'test-child', 'password': 'secure-child-pass-123'})
+    assert login.status_code == 200
+    api.headers['Authorization'] = 'Bearer ' + login.json()['token']
+    api.headers['X-Schulpilot-Account'] = login.json()['user']['id']
+    other_uid, _, _ = original_generated_visual_unit.__wrapped__(household)
+    body = value(api, uid)
+    assert save(api, uid, body).status_code == 409
+    # Historical events have no evidence of the graphic that was opened.
+    with DB.begin() as db:
+        db.add(Activity(child_id=cid, unit_id=uid, kind='explanation', detail={'text': 'legacy'}))
+    assert save(api, uid, body).status_code == 409
+    assert api.post(f'/api/units/{other_uid}/explanation').status_code == 200
+    assert save(api, uid, body).status_code == 409
+    # Opening a question is not permission to reopen the separate intro.
+    assert api.post(f'/api/units/{uid}/explanation', json={'question_id': 'q1'}).status_code == 200
+    assert save(api, uid, body).status_code == 409
+    opened = api.post(f'/api/units/{uid}/explanation')
+    assert opened.status_code == 200 and opened.json()['explanation_steps'][0]['id'] == 'e1'
+    response = save(api, uid, body)
+    assert response.status_code == 200, response.text
+    assert response.json()['position'] == body['position']
+    assert read(api, uid).json()['position'] == body['position']
+    wrong_step = value(api, uid)
+    wrong_step['position']['explanation_step_id'] = 'not-opened'
+    assert save(api, uid, wrong_step).status_code == 409
+    with DB.begin() as db:
+        assert db.query(Attempt).count() == 0
+        assert db.query(Activity).filter(Activity.kind == 'explanation', Activity.unit_id == uid).count() == 3
+        assert db.get(LearningUnit, uid).active_seconds == 0
+        db.get(LearningUnit, uid).explanation += ' Geänderte Erklärung.'
+    body['revision'] = 1
+    assert save(api, uid, body).status_code == 409
+    assert api.post(f'/api/units/{uid}/explanation').status_code == 200
+    assert save(api, uid, body).status_code == 200
+    body['revision'] = 2
+    with DB.begin() as db:
+        row = db.get(UnitVisualSnapshot, uid)
+        changed = copy.deepcopy(row.steps)
+        changed[0]['text'] += ' Geänderter Grafikschritt.'
+        row.steps = changed
+    assert save(api, uid, body).status_code == 409
+    assert api.post(f'/api/units/{uid}/explanation').status_code == 200
+    assert save(api, uid, body).status_code == 200
+    body['revision'] = 3
+    with DB.begin() as db:
+        db.get(Material, mid).revision += 1
+    assert read(api, uid).json()['position'] is None
+    assert save(api, uid, body).status_code == 409
 
 
 def test_positions_are_bounded_to_eight_and_do_not_delete_another_users_state(api, household):

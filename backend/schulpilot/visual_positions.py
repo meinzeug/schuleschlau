@@ -5,12 +5,12 @@ from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import delete, select, update
 
-from .db import Child, get_db, now
+from .db import Activity, Child, get_db, now
 from .learning import get_unit, unit_data
 from .learning_labs import ForceLabView, SentenceLabView, checked_view
 from .security import authenticated, child_access
 from .visual_reference_models import UnitVisualPosition, UnitVisualSnapshot
-from .visual_references import projection
+from .visual_references import introduction_fingerprint, projection
 
 router = APIRouter(tags=["Leseposition"])
 
@@ -46,6 +46,20 @@ def checked(db, unit, user, value):
         if value.question_id is not None:
             raise HTTPException(422, "Die Leseposition gehört zu einer Aufgabe.")
         steps = data["explanation_steps"]
+        if not steps and user.role == "child":
+            # The child may explicitly open the introduction before the entry
+            # probe via POST /explanation. The ordinary unit projection still
+            # hides that introduction until the probe is completed. Reuse only
+            # the already-recorded explicit opening, never a question opening.
+            visual = projection(db, unit)
+            fingerprint = introduction_fingerprint(db, unit, visual=visual)
+            opened = db.scalar(select(Activity.id).where(
+                Activity.child_id == unit.child_id, Activity.unit_id == unit.id,
+                Activity.kind == "explanation", Activity.detail["question_id"].as_string().is_(None),
+                Activity.detail["visual_intro_fingerprint"].as_string() == fingerprint,
+            ).limit(1)) if fingerprint else None
+            if opened is not None:
+                steps = visual["explanation_steps"]
     else:
         question = next((q for q in data["questions"] if q["id"] == value.question_id), None)
         steps = question.get("explanation_steps", []) if question else []

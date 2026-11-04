@@ -1624,20 +1624,22 @@ def explanation(unit_id: str, data: s.ExplanationRequest | None = None, p=Depend
     rate_limit(db, "explain:" + p.user.id, 30)
     q = question(unit, data.question_id) if data else None
     text = q["explanation"] if q else unit.explanation
-    record(db, unit.child_id, "explanation", {"text": text, **({"question_id": q["id"]} if q else {})}, unit.id)
-    db.commit()
     from .subject_content import legacy_presentation, public_presentation
+    from .visual_references import introduction_fingerprint, question_projection
     from .visual_references import projection as visual_projection
-    from .visual_references import question_projection
 
     visual_state = visual_projection(db, unit)
+    fingerprint = introduction_fingerprint(db, unit, visual=visual_state) if q is None else None
+    record(db, unit.child_id, "explanation", {"text": text, **({"question_id": q["id"]} if q else {}),
+        **({"visual_intro_fingerprint": fingerprint} if fingerprint else {})}, unit.id)
+    db.commit()
     return {"explanation": text, "question_id": q["id"] if q else None,
             "explanation_visual_status": visual_state["explanation_visual_status"],
             "explanation_visual_reason": visual_state["explanation_visual_reason"],
             # This explicit action opens the full saved explanation. A model
             # may have placed its sole graphic at a hint stage rather than at
             # solution; do not return the text while filtering that graphic.
-            "explanation_steps": question_projection(db, unit, q, closed=True, hints=3) if q else visual_projection(db, unit)["explanation_steps"],
+            "explanation_steps": question_projection(db, unit, q, closed=True, hints=3) if q else visual_state["explanation_steps"],
             "presentation": public_presentation(q.get("presentation") or legacy_presentation(q, unit_source_texts(db, unit)), closed=True) if q else None}
 
 

@@ -673,6 +673,22 @@ def projection(db, unit, *, show_introduction=True):
             "explanation_visual_reason": row.reason if valid else "source_changed" if not valid_source else "invalid_graphic"}
 
 
+def introduction_fingerprint(db, unit, *, visual=None):
+    """Bind an explicit opening to this exact source-checked introduction.
+
+    Only the digest is retained in the existing activity record; no source,
+    picture or graphics are copied into an additional disclosure record.
+    """
+    visual = visual if visual is not None else projection(db, unit)
+    row = db.get(UnitVisualSnapshot, unit.id)
+    if (visual.get("explanation_visual_status") != "ready" or not visual.get("explanation_steps")
+            or row is None):
+        return None
+    return digest({"version": 1, "unit_id": unit.id, "text": unit.explanation,
+        "source_signature": row.source_signature, "source_bindings": row.source_bindings,
+        "steps": row.steps})
+
+
 def guard_context(db, child_id, context):
     from .db import Child, Material
     from .source_lineage import learning_source

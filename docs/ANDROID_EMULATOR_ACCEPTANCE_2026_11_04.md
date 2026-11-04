@@ -105,3 +105,15 @@ Speichervorgänge werden für dasselbe Konto und dieselbe Einheit koordiniert;
 echte konkurrierende Änderungen bleiben revisionsgeschützt. Ein erneuter
 Android-Test muss zeigen, ob damit auch der konkret beobachtete Hinweis
 verschwindet.
+
+Ein weiterer künstlicher Test auf 1.38.84 zeigte die Meldung dennoch. Die
+anschließende Diagnose fand keinen gespeicherten Positionsdatensatz: Die
+Einführung war zwar ausdrücklich geöffnet, aber vor der Vorwissensfrage in der
+normalen Einheitenprojektion verborgen; die Positionsprüfung lehnte deshalb
+bereits den ersten Schreibversuch ab. Der nachfolgende Backend-Fix erkennt
+das ausdrückliche Öffnen ausschließlich anhand eines Fingerabdrucks der
+tatsächlich geöffneten, quellengeprüften Einführung. Alte Öffnungsereignisse
+ohne passenden Fingerabdruck gewähren keine zusätzliche Freigabe. Auch dieser
+Fix benötigt einen erneuten nativen Test. Der Lauf nutzte nach einem
+Luna-Längenabbruch einen bewussten regulären Retry und kostete 0,101852 USD;
+die eigene künstliche Familie wurde regulär bereinigt.
