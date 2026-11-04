@@ -1418,6 +1418,13 @@ Bestandteil des bestehenden Buildvertrags.
   **Abnahme:** sichtbare Anzeige und Ziel tatsächlich dokumentiert sind; FCM-Annahme oder Validierung allein reichen nicht. In-App-Neuigkeiten bleiben ohne Push nutzbar.
 - [ ] **P1 – Web und native Freigabe vollständig bedienen**
 
+  - [x] **Geöffnete Erklärgrafik und Leseposition im Android-Emulator prüfen.**
+    Im künstlichen Fotofall wurden Kreis-/Balkenansicht und Zähler/Nenner
+    gewechselt, die Position serverseitig gespeichert und nach Hintergrund und
+    erneutem Öffnen wiederhergestellt. Es entstanden weder Antworten noch
+    Beherrschungsnachweise. Die breitere geräteübergreifende Abnahme bleibt
+    offen. [Nachweis](docs/ANDROID_EMULATOR_ACCEPTANCE_2026_11_04.md).
+
   Auf kleinen und breiten Ansichten regulären Fotoimport samt Blob-Lesezugriff und Zuschnitt, Anmeldung/Link-Kaltstart, wichtige Lernwege und Logout prüfen; sichtbare Tastatur, Fokus, Kontrast und große Schrift einbeziehen.
 
   **Abnahme:** reale Browser- und bei Verfügbarkeit Gerätebeobachtungen mit den vorhandenen automatisierten Prüfungen übereinstimmen und offene Lücken ausdrücklich benannt sind.

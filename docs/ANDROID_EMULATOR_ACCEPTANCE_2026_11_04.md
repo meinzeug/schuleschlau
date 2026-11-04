@@ -117,3 +117,19 @@ ohne passenden Fingerabdruck gewähren keine zusätzliche Freigabe. Auch dieser
 Fix benötigt einen erneuten nativen Test. Der Lauf nutzte nach einem
 Luna-Längenabbruch einen bewussten regulären Retry und kostete 0,101852 USD;
 die eigene künstliche Familie wurde regulär bereinigt.
+
+### Leseposition auf Version 1.38.86
+
+Mit einer weiteren künstlichen Familie und dem geprüften Foto-Paar erzeugte
+ein regulär gestarteter Luna-Paketauftrag ohne Wiederholung eine Lernrunde.
+Fünf OpenRouter-Aufrufe kosteten 0,042173 USD, ohne unbekannte Kosten. Die
+sichtbare 2/3-Grafik wurde mehrfach von Nenner zu Zähler und zwischen Kreis und
+Balken umgeschaltet und gescrollt. Es erschien keine Konfliktmeldung. Ein
+kindgebundener Lesepositionsabruf zeigte vor der Bedienung Revision 0 ohne
+Position und danach Revision 5 mit der Balken-/Zählerphase. Nach Android-Home
+und Rückkehr blieb diese Position gespeichert; die geschlossene Erklärung
+wurde ausdrücklich erneut geöffnet und zeigte die gespeicherte Darstellung.
+Beide Aufgaben blieben unbeantwortet, die Lernpfad-Evidenz unbewertet. Die
+eigene künstliche Familie sowie Testdateien und Emulatorfotos wurden regulär
+bereinigt. Der einzelne Erfolg belegt keine allgemein zuverlässige
+Erstgenerierung und keinen Hintergrund-Push für fertige Lernrunden.
