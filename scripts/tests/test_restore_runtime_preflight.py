@@ -28,6 +28,7 @@ def test_preflight_exercises_signed_deletions_without_creating_a_database(tmp_pa
     result = run_preflight(tmp_path)
     assert result.returncode == 0, result.stderr
     assert "Synthetic signed vocabulary erasures: OK" in result.stdout
+    assert "Synthetic signed visual-review erasures: OK" in result.stdout
     assert not list(tmp_path.iterdir())
 
 

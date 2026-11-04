@@ -235,6 +235,8 @@ def material_data(material):
             "revision",
         )
     } | {"source_blocks": source_blocks,
+         "visual_observations": material.visual_observations or [],
+         "visual_observations_status": "unverified",
          "vocabulary_preview": preview(material.subject, material.topic, material.content, material.source_blocks) if not material.synthetic else None,
          "task_preview": task_preview(material.content, material.homework, material.task_decisions),
          "confirmed_tasks": [row["text"] for row in task_preview(material.content, material.homework, material.task_decisions)

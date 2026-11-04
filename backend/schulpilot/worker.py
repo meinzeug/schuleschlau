@@ -634,8 +634,12 @@ def _process(job_id):
                 from .source_lineage import extraction_receipt, save_snapshot
 
                 save_snapshot(db, material, "before_extraction")
-                for key in ("subject", "topic", "content", "uncertainties", "homework", "legibility", "source_blocks"):
-                    setattr(material, key, data[key])
+                for key in ("subject", "topic", "content", "uncertainties", "homework", "legibility", "source_blocks", "visual_observations"):
+                    setattr(material, key, data.get(key, []) if key == "visual_observations" else data[key])
+                from .material_review import VISUAL_OVERFLOW_WARNING
+
+                material.quality_warnings = [warning for warning in (material.quality_warnings or [])
+                                             if warning != VISUAL_OVERFLOW_WARNING]
                 material.status = "unreadable" if data["legibility"] == "unreadable" else "review"
                 material.extraction_provider = config_values["provider"]
                 material.extraction_model = config_values["model"]

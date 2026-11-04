@@ -228,6 +228,99 @@ def image(material_id: str, p=Depends(authenticated), db=Depends(get_db)):
         headers={"Cache-Control": "no-store", "X-Content-Type-Options": "nosniff"})
 
 
+def visual_review_data(db, material):
+    from .source_lineage import digest
+    from .source_lineage_models import VisualObservationReview
+
+    fingerprint = digest(material.visual_observations or [])
+    rows = db.scalars(select(VisualObservationReview).where(
+        VisualObservationReview.material_id == material.id,
+        VisualObservationReview.source_revision == material.revision,
+        VisualObservationReview.image_digest == material.image_digest,
+        VisualObservationReview.observations_digest == fingerprint,
+    ).order_by(VisualObservationReview.observation_index, VisualObservationReview.version.desc()))
+    latest = {}
+    for row in rows:
+        latest.setdefault(row.observation_index, row)
+    return {"image_digest": material.image_digest, "visual_observations_digest": fingerprint,
+            "visual_observation_reviews": [
+                {"index": row.observation_index, "decision": row.decision,
+                 "observation": row.observation, "review_version": row.version, "reviewed_at": row.created}
+                for row in latest.values()]}
+
+
+@router.put("/materials/{material_id}/visual-observations/{index}/review")
+def review_visual_observation(material_id: str, index: int, data: s.VisualObservationReviewInput,
+                              p=Depends(authenticated), db=Depends(get_db)):
+    from .db import Session, User, now
+    from .security import audit
+    from .source_lineage import digest
+    from .source_lineage_models import VisualObservationReview
+
+    session_id, user_id = p.session.id, p.user.id
+    material, child = get_material(db, p, material_id, write=True)
+    child_id = child.id
+    db.expire_all()
+    session = db.get(Session, session_id, populate_existing=True)
+    user = db.get(User, user_id, populate_existing=True)
+    if (not session or session.user_id != user_id or session.revoked or session.expires <= now()
+            or now() - session.seen > 7 * 86400 or not user or user.disabled or not user.verified
+            or user.role not in ("child", "parent")):
+        raise HTTPException(401, "Bitte erneut anmelden.")
+    child = child_access(db, p, child_id, write=p.user.role == "parent")
+    material = db.scalar(select(Material).where(Material.id == material_id).with_for_update())
+    if not material or material.child_id != child.id:
+        raise HTTPException(404, "Heftseite nicht mehr vorhanden.")
+    db.expire_all()
+    session = db.get(Session, session_id, populate_existing=True)
+    user = db.get(User, user_id, populate_existing=True)
+    if (not session or session.user_id != user_id or session.revoked or session.expires <= now()
+            or now() - session.seen > 7 * 86400 or not user or user.disabled or not user.verified
+            or user.role not in ("child", "parent")):
+        raise HTTPException(401, "Bitte erneut anmelden.")
+    child_access(db, p, child_id, write=p.user.role == "parent")
+    if material.synthetic or material.fixture_id:
+        raise HTTPException(403, "Feste Testseiten erlauben keine freien Bildbefunde.")
+    if material.status not in ("review", "confirmed"):
+        raise HTTPException(409, "Bitte zuerst die Materialerkennung abschließen.")
+    if not material.image_digest:
+        raise HTTPException(409, "Das ursprüngliche Foto ist nicht eindeutig zugeordnet.")
+    originals = material.visual_observations or []
+    fingerprint = digest(originals)
+    if (material.revision != data.revision or material.image_digest != data.image_digest
+            or fingerprint != data.observations_digest):
+        raise HTTPException(409, "Die Seite oder ihre Bildbefunde haben sich geändert. Bitte neu laden.")
+    if index < 0 or index >= len(originals):
+        raise HTTPException(404, "Bildbefund nicht gefunden.")
+    value = data.observation.model_dump(mode="json")
+    if value.get("image_region") != originals[index].get("image_region"):
+        raise HTTPException(422, "Der Bildausschnitt gehört zum ursprünglichen Foto und kann hier nicht geändert werden.")
+    original = s.SourceVisualObservation.model_validate(originals[index]).model_dump(mode="json")
+    if data.decision == "confirmed" and value != original:
+        raise HTTPException(422, "Eine Änderung bitte als Korrektur kennzeichnen.")
+    row = db.scalar(select(VisualObservationReview).where(
+        VisualObservationReview.material_id == material.id,
+        VisualObservationReview.source_revision == material.revision,
+        VisualObservationReview.observations_digest == fingerprint,
+        VisualObservationReview.observation_index == index,
+    ).order_by(VisualObservationReview.version.desc()).limit(1).with_for_update())
+    if row and row.image_digest != material.image_digest:
+        raise HTTPException(409, "Das Foto hat sich geändert. Bitte die Seite neu laden.")
+    current = row.version if row else 0
+    if data.review_version != current:
+        if row and data.review_version == current - 1 and row.decision == data.decision and row.observation == value:
+            return material_view(material_id, p, db)
+        raise HTTPException(409, "Dieser Bildbefund wurde inzwischen geprüft. Bitte neu laden.")
+    row = VisualObservationReview(material_id=material.id, child_id=child.id,
+        source_revision=material.revision, image_digest=material.image_digest,
+        observations_digest=fingerprint, observation_index=index, version=current + 1,
+        actor_id=p.user.id, decision=data.decision, observation=value)
+    db.add(row)
+    audit(db, p.user.id, "material.visual_observation_review", material.id)
+    db.commit()
+    return material_view(material_id, p, db)
+
+
 @router.get("/materials/{material_id}")
 def material_view(material_id: str, p=Depends(authenticated), db=Depends(get_db)):
     from .material_tasks import duplicate_sources
@@ -242,7 +335,7 @@ def material_view(material_id: str, p=Depends(authenticated), db=Depends(get_db)
     from .material_review import public_status
     from .source_lineage import block_data, learning_source
 
-    return material_data(material) | {"material_review": public_status(db, material), "source_learning": learning_source(db, material), "source_block_refs": block_data(material), "supports_source_history": True} | ({"exam_id": linked_exam} if material.purpose == "exam" else {}) | {"duplicate_candidates": duplicate_sources(db, material),
+    return material_data(material) | visual_review_data(db, material) | {"material_review": public_status(db, material), "source_learning": learning_source(db, material), "source_block_refs": block_data(material), "supports_source_history": True} | ({"exam_id": linked_exam} if material.purpose == "exam" else {}) | {"duplicate_candidates": duplicate_sources(db, material),
         "has_image": bool(material.path), "fixed_example": bool(material.fixture_id),
         "processing_job": ({"id": extraction.id, "kind": extraction.kind, "status": extraction.status,
                             "error": extraction.error, "error_code": extraction.error_code} if extraction else None)}

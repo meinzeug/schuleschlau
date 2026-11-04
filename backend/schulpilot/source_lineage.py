@@ -306,7 +306,7 @@ def usable_source(db, material, revision=None):
 
 
 def source_snapshot(material):
-    return {
+    snapshot = {
         key: copy.deepcopy(getattr(material, key))
         for key in (
             "subject",
@@ -321,6 +321,9 @@ def source_snapshot(material):
             "image_digest",
         )
     }
+    if getattr(material, "visual_observations", None):
+        snapshot["visual_observations"] = copy.deepcopy(material.visual_observations)
+    return snapshot
 
 
 def extraction_receipt(db, job, config, image_bytes, result=None):

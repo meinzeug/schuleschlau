@@ -398,6 +398,7 @@ class Material(Base):
     homework = Column(JSON, default=list, nullable=False)
     confirmed = Column(Boolean, default=False, nullable=False)
     source_blocks = Column(JSON, default=list, server_default="[]", nullable=False)
+    visual_observations = Column(JSON, default=list, server_default="[]", nullable=False)
     confirmation_digest = Column(String(64))
     task_decisions = Column(JSON, server_default="[]", nullable=False)
     synthetic = Column(Boolean, default=False, nullable=False)

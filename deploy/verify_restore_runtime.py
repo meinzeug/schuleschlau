@@ -71,6 +71,10 @@ def main():
             purge_expired(db, current)
             if db.get(Message, old_id) is not None or db.get(Message, kept_message_id) is None:
                 raise RuntimeError("Synthetic message retention failed")
+            from visual_restore_probe import probe
+
+            probe(db, SYNTHETIC_KEY)
+        print("Synthetic signed visual-review erasures: OK (isolated in-memory database).")
         print("Synthetic signed vocabulary erasures: OK (isolated in-memory database).")
         print("Synthetic restored-message retention: OK (isolated in-memory database).")
     finally:

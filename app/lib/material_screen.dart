@@ -17,6 +17,7 @@ import 'tutor_sheet.dart';
 import 'ui.dart';
 import 'ideas100_source_tools.dart';
 import 'material_words.dart';
+import 'material_visual_review.dart';
 import 'subject_picker.dart';
 import 'learning_content.dart';
 import 'notebook_photo.dart';
@@ -2098,6 +2099,11 @@ class _MaterialReviewState extends State<MaterialReview>
             children: [
               heading('Was steht in diesem Material?'),
               sourceReadingTools(),
+              MaterialVisualReview(
+                state: widget.state,
+                data: d,
+                onRefresh: widget.onRefresh,
+              ),
               if (!editing) ...[
                 LearningContent(
                   content.text,
@@ -2567,6 +2573,11 @@ class _MaterialReviewState extends State<MaterialReview>
                 ],
                 SizedBox(height: 14),
                 sourceReadingTools(),
+                MaterialVisualReview(
+                  state: widget.state,
+                  data: d,
+                  onRefresh: widget.onRefresh,
+                ),
                 LearningContent(
                   content.text,
                   figureBuilder: !longText && d['has_image'] == true

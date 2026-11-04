@@ -29,6 +29,7 @@ from .db import (
     uid,
 )
 from .extraction import OCR_SYSTEM
+from .image_quality import VISUAL_OVERFLOW_WARNING
 from .providers import ProviderError, request_provider, reserve, settle
 from .security import Principal, audit, child_access
 from .source_lineage import digest, save_snapshot, source_snapshot
@@ -326,7 +327,19 @@ def check_request(value):
 
 def request(snapshot):
     keys = ("subject", "topic", "content", "source_blocks", "uncertainties", "homework", "legibility")
-    return check_request({"version": VERSION, "first_reading": {key: snapshot.snapshot[key] for key in keys}})
+    first = {key: snapshot.snapshot[key] for key in keys}
+    first["visual_observations"] = snapshot.snapshot.get("visual_observations", [])
+    return check_request({"version": VERSION, "first_reading": first})
+
+
+
+
+def _merged_visual_observations(data, snapshot):
+    combined = []
+    for observation in [*snapshot.snapshot.get("visual_observations", []), *data.get("visual_observations", [])]:
+        if observation not in combined:
+            combined.append(observation)
+    return combined, len(combined) > 20
 
 
 def _protected_readings(data, snapshot):
@@ -341,6 +354,7 @@ def _protected_readings(data, snapshot):
     from .source_lineage import false_equality
 
     result = copy.deepcopy(data)
+    result["visual_observations"] = _merged_visual_observations(data, snapshot)[0][:20]
     blocks = result["source_blocks"]
     originals = snapshot.snapshot.get("source_blocks", [])
     retained = []
@@ -612,6 +626,7 @@ def process(job_id):
                 raise ProviderError("Das gespeicherte Foto wurde während des Prüfauftrags geändert.")
             from .source_lineage import extraction_receipt
 
+            _, visual_overflow = _merged_visual_observations(data, snapshot)
             # Protection may add literal original blocks. Validate the merged
             # result against the same finite schema; never truncate or expand it.
             checked_data = validate_material(_protected_readings(data, snapshot), image)
@@ -630,13 +645,17 @@ def process(job_id):
                 changed_literal_fields=[k for k in checked_data if checked_data[k] != snapshot.snapshot.get(k)],
                 first_uncertainties=copy.deepcopy(snapshot.snapshot.get("uncertainties", [])),
             )
-            fields = ("subject", "topic", "content", "source_blocks", "uncertainties", "homework", "legibility")
+            fields = ("subject", "topic", "content", "source_blocks", "uncertainties", "homework", "legibility", "visual_observations")
             for key in fields:
-                setattr(material, key, data[key])
+                setattr(material, key, data.get(key, []) if key == "visual_observations" else data[key])
             second = save_snapshot(db, material, "auto_check_reading", pass_receipt, allow_empty=True)
             pass_receipt["second_snapshot_id"] = second.id
             for key in fields:
-                setattr(material, key, checked_data[key])
+                setattr(material, key, checked_data.get(key, []) if key == "visual_observations" else checked_data[key])
+            quality = [warning for warning in (material.quality_warnings or []) if warning != VISUAL_OVERFLOW_WARNING]
+            if visual_overflow:
+                quality.append(VISUAL_OVERFLOW_WARNING)
+            material.quality_warnings = quality
             material.extraction_provider = values["provider"]
             material.extraction_model = values["model"]
             material.revision += 1

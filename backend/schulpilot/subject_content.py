@@ -179,6 +179,13 @@ class SourceImageRegion(Bounded):
         return self
 
 
+class SourceVisualObservation(Bounded):
+    """Provisional visual observation, never literal text or learning evidence."""
+    description: str = Field(min_length=1, max_length=300)
+    image_region: SourceImageRegion | None = None
+    uncertainty: str = Field(default="", max_length=300)
+
+
 class SourceAnnotation(Bounded):
     """Literal visible mark, never a factual correction or inferred authorship."""
     kind: Literal["ink", "crossout", "insertion", "correction", "highlight", "comment", "unknown"]

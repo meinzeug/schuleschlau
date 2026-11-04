@@ -4,7 +4,7 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, StringConstraints, model_validator
 
 from .grouped_questions import FieldGroup
-from .subject_content import Presentation, SourceBlock
+from .subject_content import Presentation, SourceBlock, SourceVisualObservation
 from .visual_reference_schemas import ExplanationStep
 
 Short = Annotated[str, Field(min_length=1, max_length=160)]
@@ -189,6 +189,15 @@ class MaterialConfirm(Strict):
     task_decisions: list[MaterialTaskDecision] = Field(default_factory=list, max_length=20)
 
 
+class VisualObservationReviewInput(Strict):
+    revision: int = Field(ge=1, strict=True)
+    image_digest: str | None = Field(max_length=64)
+    observations_digest: str = Field(pattern=r"^[0-9a-f]{64}$")
+    review_version: int = Field(ge=0, strict=True)
+    decision: Literal["confirmed", "corrected", "uncertain"]
+    observation: SourceVisualObservation
+
+
 class Question(Strict):
     explanation_steps: list[ExplanationStep] | None = Field(default=None, min_length=1, max_length=2)
     presentation: Presentation | None = None
@@ -277,6 +286,7 @@ class UnitOutput(Strict):
 
 class ExtractionOutput(Strict):
     source_blocks: list[SourceBlock] = Field(default_factory=list, max_length=80)
+    visual_observations: list[SourceVisualObservation] = Field(default_factory=list, max_length=20, exclude_if=lambda value: not value)
 
     legibility: Literal["readable", "partial", "unreadable"] = "readable"
     subject: str = Field(max_length=80)

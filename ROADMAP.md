@@ -674,10 +674,10 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
 
   - [ ] **Unbeschriftete Zeichnungen getrennt erfassen und überprüfen.**
     Ein echter künstlicher OpenRouter-Fall ließ einen markierten Bruchbalken
-    aus. Die wörtliche Abschrift darf nicht mit einer Bildinterpretation
-    vermischt werden. Der noch nicht implementierte Daten-, Prüf-, UI-,
-    Lösch- und Migrationspfad steht im
-    [Bildbefundplan](docs/OCR_VISUAL_OBSERVATION_PLAN_2026_11_04.md).
+    aus. Ein getrennter vorläufiger Befund mit revisionsgebundener Prüfung
+    ist technisch implementiert und isoliert getestet; die Anbieterabnahme
+    des neuen Schemas und die tatsächliche Erkennung stehen noch aus.
+    [Befund und Grenzen](docs/OCR_VISUAL_OBSERVATION_PLAN_2026_11_04.md).
 
   - [x] **Vier künstliche Referenzseiten samt Prüfsummen bereitstellen.**
     Drei deterministisch erzeugte Seiten und ein geprüftes KI-generiertes

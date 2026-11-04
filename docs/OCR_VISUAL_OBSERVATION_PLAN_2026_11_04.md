@@ -43,5 +43,27 @@ Für einen sicheren vollständigen Weg sind mindestens erforderlich:
    Unsicherheit und tatsächlich angezeigte Ergebnisse prüfen. Ein einzelner
    erfolgreicher Modelllauf beweist keine OCR-Vollständigkeit.
 
-Diese Architektur ist als Arbeitsplan dokumentiert, nicht implementiert. Die
-bestehende Erkennung und ihre Grenzen bleiben unverändert.
+## Lokaler Implementierungsstand
+
+In einem isolierten Arbeitsstand sind die getrennte Schema-/Speicherstrecke,
+die additive Benutzerprüfung und Migrationen 0045/0046 implementiert. Die
+Originalabschrift und vorhandene Textquellen bleiben unverändert. Bildbefunde
+werden ausschließlich vorläufig bzw. als ausdrücklich von Menschen geprüft
+angezeigt; sie sind auch danach keine Lernquelle und kein Leistungsbeleg.
+Automatische Gegenprüfung hält abweichende Beobachtungen in den beiden
+Quellsnapshots getrennt. Bei mehr als 20 kombinierten Hinweisen zeigt die App
+eine begrenzte Auswahl mit sichtbarer Warnung; die Textprüfung läuft weiter. Bestehende Textquellen und
+Bestätigungsdigests ohne Befunde behalten ihre bisherigen Werte.
+
+Der isolierte Teststand umfasst SQLite und PostgreSQL, echte Migrationen
+0044 → 0046, eine künstliche Wiederherstellung mit signiertem Material-
+Löschbeleg, Rechte-/Sitzungs- und getrennte Widgetprüfungen. Das Replay-Ziel
+des Löschtests ist SQLite. Die erweiterten Anbieterschemas sind noch nicht
+bei OpenRouter live geprüft. Alte App-Versionen ignorieren das neue additive
+Feld und zeigen die Bildbefunde nicht; sie greifen weiterhin auf die
+unveränderte Textquelle zu. Die Anzeige ersetzt keine vollständige Abnahme der
+Bilderkennung; ausgelassene Zeichnungen können weiterhin unentdeckt bleiben.
+
+Der Arbeitsstand ist nicht produktiv freigegeben. Vor einer Ausrollung müssen
+Restore-Runtime und Offsite-Client mit den Migrationen koordiniert und die
+aktuelle Web-/APK-Version mit echter künstlicher Anbieterprobe geprüft werden.

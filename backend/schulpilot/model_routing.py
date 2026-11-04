@@ -335,6 +335,7 @@ def features_for(db, child_id, job_id):
     ids.discard(None)
     sources = list(db.scalars(select(Material).where(Material.child_id == child_id, Material.id.in_(ids)))) if ids else []
     from .coach_routing import output_need as coach_output_need
+    from .image_quality import poor_image
     from .material_review import routing_check
     from .material_routing import extended_output as material_extended_output
     from .notebook_routing import extended_output as notebook_extended_output
@@ -345,7 +346,7 @@ def features_for(db, child_id, job_id):
         **coach_output_need(db, child_id, job),
         "errors": sum(a.outcome == "incorrect" for a in attempts),
         "uncertain": sum(a.outcome == "uncertain" for a in attempts),
-        "poor_image": any(m.uncertainties or m.quality_warnings or m.legibility in ("partial", "unreadable") for m in sources),
+        "poor_image": any(poor_image(m) for m in sources),
         "extraction_failed": extraction_failed(db, child_id, material.id,
             material_revision=data.get("material_revision")) if material else False,
         "transcription_review": extraction_recheck(db, child_id, job) or routing_check(db, child_id, job),

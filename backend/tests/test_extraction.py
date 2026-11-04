@@ -423,3 +423,23 @@ def test_compact_wire_saves_repeated_metadata_without_shortening_original_text()
     compact = json.dumps(block.model_dump(by_alias=True, exclude_none=True), ensure_ascii=False, separators=(',',':'))
     assert len(compact) < len(full) * 0.75
     assert TranscriptionBlock.model_validate_json(compact).text == original.text
+
+
+def test_visual_observation_is_separate_and_not_part_of_literal_text():
+    observation = {"description": "Drei nebeneinanderliegende Felder, zwei blau.",
+                   "image_region": {"left": 50, "top": 500, "right": 900, "bottom": 800},
+                   "uncertainty": ""}
+    parsed = TranscriptionOutput.model_validate(transcription(visual_observations=[observation])).as_material()
+    assert parsed["visual_observations"] == [observation]
+    assert parsed["content"] == "\n\n".join(block["text"] for block in BLOCKS)
+    assert observation["description"] not in parsed["content"]
+    assert all(observation["description"] not in block["text"] for block in parsed["source_blocks"])
+
+
+def test_visual_observations_reject_invalid_regions_and_overflow():
+    observation = {"description": "Blauer Balken", "image_region": {"left": 0, "top": 0, "right": 2, "bottom": 2}, "uncertainty": ""}
+    with pytest.raises(ValidationError):
+        TranscriptionOutput.model_validate(transcription(visual_observations=[observation]))
+    with pytest.raises(ValidationError):
+        TranscriptionOutput.model_validate(transcription(visual_observations=[{"description": "Linie"}] * 21))
+    assert TranscriptionOutput.model_validate(transcription()).as_material().get("visual_observations", []) == []

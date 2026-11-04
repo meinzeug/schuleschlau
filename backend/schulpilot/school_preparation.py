@@ -382,13 +382,14 @@ def preparation_data(db, day, child=None):
     routing_features = None
     if can_retry and retry_kind:
         child = child or db.get(Child, day.child_id)
+        from .image_quality import poor_image
         from .model_routing import extraction_failed
 
         next_sources = [waiting] if waiting else source_pages
         routing_features = {
             "errors": 0, "uncertain": 0,
             "extraction_failed": extraction_failed(db, child.id, waiting.id) if waiting else False,
-            "poor_image": any(m.uncertainties or m.quality_warnings or m.legibility in ("partial", "unreadable") for m in next_sources),
+            "poor_image": any(poor_image(m) for m in next_sources),
             "sources_known": bool(next_sources), "source_count": len(next_sources),
             "source_chars": sum(len(m.content or "") for m in next_sources),
             "subject_count": len({m.subject for m in next_sources}), "question_chars": 0,

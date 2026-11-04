@@ -82,3 +82,21 @@ class SourceEvaluationCase(Base):
 @event.listens_for(SourceImageReceipt, "before_update")
 def immutable_source_receipt(mapper, connection, target):
     raise ValueError("Gespeicherte Quellenbelege sind unveränderlich; eine neue Fassung anlegen.")
+
+
+class VisualObservationReview(Base):
+    """One explicitly reviewed visual observation; never a learning source."""
+    __tablename__ = "visual_observation_reviews"
+    id = Column(String(32), primary_key=True, default=uid)
+    material_id = Column(ForeignKey("materials.id", ondelete="CASCADE"), nullable=False, index=True)
+    child_id = Column(ForeignKey("children.id", ondelete="CASCADE"), nullable=False, index=True)
+    actor_id = Column(ForeignKey("users.id", ondelete="SET NULL"))
+    source_revision = Column(Integer, nullable=False)
+    image_digest = Column(String(64))
+    observations_digest = Column(String(64), nullable=False)
+    observation_index = Column(Integer, nullable=False)
+    version = Column(Integer, nullable=False, default=1)
+    decision = Column(String(16), nullable=False)
+    observation = Column(JSON, nullable=False)
+    created = Column(Integer, default=lambda: int(now()), nullable=False)
+    __table_args__ = (UniqueConstraint("material_id", "source_revision", "observations_digest", "observation_index", "version", name="uq_visual_observation_review"),)

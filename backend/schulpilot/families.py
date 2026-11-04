@@ -532,6 +532,12 @@ def export_child(db, child):
     for model in (Material, Assignment, LearningUnit, Activity, Mastery, Message, SchoolDay, TutorTurn, ParentLearningReview):
         rows = list(db.scalars(select(model).where(model.child_id == child.id)))
         result[model.__tablename__] = [{c.name: getattr(row, c.name) for c in model.__table__.columns} for row in rows]
+    from .source_lineage_models import VisualObservationReview
+
+    result["visual_observation_reviews"] = [
+        {c.name: getattr(row, c.name) for c in VisualObservationReview.__table__.columns}
+        for row in db.scalars(select(VisualObservationReview).where(VisualObservationReview.child_id == child.id))
+    ]
     from .grades import grade_data
 
     result["school_grades"] = [grade_data(row) for row in db.scalars(select(SchoolGrade).where(SchoolGrade.child_id == child.id))]
