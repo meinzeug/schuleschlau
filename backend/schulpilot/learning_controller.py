@@ -86,6 +86,17 @@ def checked_proposal(value, payload):
     return proposal
 
 
+def independent_first_answer(values):
+    """Only an unambiguous assessed first answer is independent evidence."""
+    if len(values) != 1:
+        return False
+    attempt = values[0]
+    evaluation = attempt.evaluation or {}
+    return (attempt.outcome == "correct" and not attempt.assisted
+        and not evaluation.get("independence_uncertain")
+        and evaluation.get("method") != "open_learning_v1")
+
+
 def accept_proposal(db, unit, value, job_id):
     """Do not let a model overwrite fixed results or the review schedule."""
     if not value:
@@ -95,7 +106,8 @@ def accept_proposal(db, unit, value, job_id):
     selected = [a for a in data["attempts"] if a.question_id in proposal["question_ids"]]
     if any(a.outcome == "uncertain" for a in selected):
         allowed = {"clarify_assessment"}
-    elif any(a.outcome != "correct" or a.assisted for a in selected):
+    elif any(not independent_first_answer(data["by_question"].get(question_id, []))
+            for question_id in proposal["question_ids"]):
         allowed = {"explain", "visual_example", "review_prerequisite", "recommend_resource", "check_understanding"}
     else:
         allowed = {"transfer", "check_understanding", "schedule_review", "finish_round"}
@@ -375,7 +387,7 @@ def projection(db, unit, *, include_draft=True):
             and decision["kind"] != "finish_round" and bool(data["attempts"]) and len(decision_jobs) < 2,
         "observations": {"answered_tasks": len({a.question_id for a in data["attempts"]}),
             "attempts": len(data["attempts"]), "misconceptions": data["misconceptions"],
-            "independent_first_answers": sum(len(values) == 1 and values[0].outcome == "correct" and not values[0].assisted
+            "independent_first_answers": sum(independent_first_answer(values)
                 for values in data["by_question"].values()),
             "uncertain_answers": sum(a.outcome == "uncertain" for a in data["attempts"])},
         "memory_notice": "Übungen, Hilfen und späterer Abruf sind getrennte Belege. Ein Videoaufruf ist kein Verständnisnachweis."}

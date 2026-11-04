@@ -158,6 +158,47 @@ def test_visible_message_can_be_acknowledged_after_new_events_displace_it(api, h
             NotificationRead.event_key == key)) == 1
 
 
+def test_acknowledgement_checks_only_requested_sources_and_is_atomic(api, household, monkeypatch):
+    from schulpilot import exam_notifications, ready_notifications
+
+    _, child = household
+    with DB.begin() as db:
+        one = Message(id=uid(), child_id=child["id"], kind="help", body="Synthetic")
+        two = Message(id=uid(), child_id=child["id"], kind="help", body="Synthetic")
+        db.add_all([one, two])
+        first, second = "message:" + one.id, "message:" + two.id
+
+    def unrelated_scan(*args, **kwargs):
+        raise AssertionError("unrelated event kinds must not be projected")
+
+    monkeypatch.setattr(exam_notifications, "events_for_child", unrelated_scan)
+    monkeypatch.setattr(ready_notifications, "events_for_child", unrelated_scan)
+    assert api.post("/api/notifications/inbox/read", json={"ids": [first]}).status_code == 200
+    assert api.post("/api/notifications/inbox/read", json={"ids": [second, "message:" + uid()]}).status_code == 404
+    with DB() as db:
+        assert set(db.scalars(select(NotificationRead.event_key))) == {first}
+
+
+def test_acknowledging_two_still_valid_preparation_notices_for_same_day(api, household):
+    from schulpilot.db import Material, SchoolDay
+
+    _, child = household
+    with DB.begin() as db:
+        day = SchoolDay(id=uid(), child_id=child["id"], school_date="2026-10-20",
+                        preparation={"status": "needs_review"})
+        db.add(day)
+        db.flush()
+        db.add(Material(child_id=child["id"], school_day_id=day.id, title="Synthetic", subject="Mathematik"))
+        messages = [Message(id=uid(), child_id=child["id"], kind="preparation", body="Synthetic",
+                            context={"day_id": day.id}, created=int(now()) - i) for i in range(2)]
+        db.add_all(messages)
+        keys = ["message:" + message.id for message in messages]
+    assert len(api.get("/api/notifications/inbox").json()["items"]) == 1
+    assert api.post("/api/notifications/inbox/read", json={"ids": keys}).status_code == 200
+    with DB() as db:
+        assert set(db.scalars(select(NotificationRead.event_key))) == set(keys)
+
+
 def test_displaced_message_acknowledgement_keeps_family_and_source_checks(api, household):
     owner, child = household
     sibling = create_child(api, owner, "other-notification-child")

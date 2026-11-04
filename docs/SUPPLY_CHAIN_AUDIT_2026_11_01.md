@@ -122,3 +122,12 @@ für alle Dienste auf dem gemeinsam genutzten Server sowie Wiederanlauf und
 Sicherungen prüfen; anschließend Kernel, Dienste und Gesundheit erneut prüfen.
 
 Der Status `pending_attach` bezeichnet laut [Canonical-Dokumentation](https://ubuntu.com/pro-client/docs/en/v30/explanations/how_to_interpret_the_security_status_command/) ein Paket, dessen angebotenes Update eine verbundene Ubuntu-Pro-Subskription benötigt. [Canonical beschreibt `esm-apps`](https://documentation.ubuntu.com/security/security-updates/esm/) als gesonderte Wartungsquelle für Universe-Pakete. Ob eine konkrete Subskription für diesen Server zulässig, vorhanden oder kostenpflichtig ist, wurde nicht geprüft; weder eine Registrierung noch eine Anbindung oder Änderung der Paketquellen wurde vorgenommen.
+
+## Ergänzende Teilprüfung 04.11.2026
+
+Die tatsächlich veröffentlichte Version des Firebase-Web-Bootstraps und die
+zwei fest eingebundenen CDN-Module wurden einschließlich npm-Paketmetadaten,
+gezielter OSV-Abfragen und wiederholbarem Prüfskript teilweise geprüft. Umfang,
+Hashwerte, Ergebnisse und ausdrücklich ungeprüfte Lieferkettenbestandteile:
+[Externe Web-Skripte](EXTERNAL_WEB_SCRIPTS_2026_11_04.md). Die vollständige
+Lieferkettenabnahme bleibt offen.

@@ -32,10 +32,14 @@ jobs:
           scripts/tests/test_deploy_repair_state.py scripts/tests/test_release_attestation.py
           scripts/tests/test_release_timestamp.py scripts/tests/test_postgres_ci_results.py
           scripts/tests/test_extract_gradle_runtime.py scripts/tests/test_audit_maven_osv.py
+          scripts/tests/test_audit_firebase_web.py
   backend:
     name: backend-${{ matrix.shard }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 25
+    # The complete partition has previously needed nearly 22 minutes, and
+    # runner variability exhausted 25 minutes on 2026-11-03. Keep the full
+    # source-bound execution and aggregation contract; allow enough headroom.
+    timeout-minutes: 40
     strategy:
       fail-fast: false
       matrix:

@@ -187,6 +187,36 @@ def test_model_proposal_cannot_turn_a_helped_answer_into_secure_mastery(normal_u
     assert client.get(endpoint(unit_id) + "/knowledge").json()["source_valid"]
 
 
+@pytest.mark.parametrize("evaluation, prior, independent", [
+    ({"independence_uncertain": True}, False, False),
+    ({"method": "open_learning_v1"}, False, False),
+    ({}, True, False),
+    ({}, False, True),
+])
+def test_controller_never_upgrades_uncertain_or_repeated_evidence(normal_unit, evaluation, prior, independent):
+    client, unit_id, *_ = normal_unit
+    start(client, unit_id)
+    proposal = {"kind": "schedule_review", "learning_goal_id": None, "question_ids": ["sum"],
+        "reason": "Künstlicher Vorschlag.", "expected_result": "Später prüfen.",
+        "on_success": "schedule_review", "on_error": "hint"}
+    with DB.begin() as db:
+        if prior:
+            db.add(Attempt(unit_id=unit_id, question_id="sum", answer="falsch", outcome="incorrect",
+                assisted=False, created=100, evaluation={"attempt_number": 1}))
+        db.add(Attempt(unit_id=unit_id, question_id="sum", answer="2/4", outcome="correct",
+            assisted=False, created=101, evaluation=evaluation))
+        db.flush()
+        brain.accept_proposal(db, db.get(LearningUnit, unit_id), proposal, "synthetic-uncertain-job")
+    state = client.get(endpoint(unit_id)).json()
+    assert state["observations"]["independent_first_answers"] == int(independent)
+    assert state["working_memory"]["model_proposal"]["status"] == (
+        "accepted" if independent else "rejected_by_evidence")
+    with DB() as db:
+        attempts = list(db.scalars(select(Attempt).where(Attempt.unit_id == unit_id)))
+        assert len(attempts) == 1 + int(prior)
+        assert any(a.outcome == "correct" and a.evaluation == evaluation for a in attempts)
+
+
 def test_model_proposal_references_are_checked_and_parent_plan_read_is_pure(normal_unit, api):
     client, unit_id, _, _, child = normal_unit
     start(client, unit_id)

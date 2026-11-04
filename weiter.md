@@ -1,6 +1,15 @@
 # Übergabe an die nächste Coding-KI
 
-Stand: 3. November 2026. Diese Datei ist eine Arbeitsübergabe, kein Ersatz für die aktuellen Nutzeraufträge oder `AGENTS.md`. Prüfe alle Zustände erneut; insbesondere Server, Git, laufende Jobs und Roadmap können sich inzwischen geändert haben. Keine Zugangsdaten, Tokens, privaten Schülerdaten oder Bildinhalte in diese Datei, Logs oder Git schreiben.
+Stand: 4. November 2026. Diese Datei ist eine Arbeitsübergabe, kein Ersatz für die aktuellen Nutzeraufträge oder `AGENTS.md`. Prüfe alle Zustände erneut; insbesondere Server, Git, laufende Jobs und Roadmap können sich inzwischen geändert haben. Keine Zugangsdaten, Tokens, privaten Schülerdaten oder Bildinhalte in diese Datei, Logs oder Git schreiben.
+
+**Aktuelle Ergänzung:** Der Lerncontroller wertet Reflexionen, mehrfache
+Versuche und unklare Selbstständigkeit nicht als unabhängige Erstlösung.
+Lesebestätigungen prüfen gezielt die angeforderten eigenen Ereignisse. Die
+Glocke hat weiterhin keine vollständige Cursor-Fortsetzung. Der Firebase-Web-
+Bootstrap wurde begrenzt inventarisiert; die Lieferkettenprüfung bleibt offen.
+Der CI-Lauf 41683281166 wurde in einer Backendpartition nach 25 Minuten
+abgebrochen; das neue Zeitfenster für diese vollständigen Partitionen beträgt
+40 Minuten. Ein nachfolgender Gesamterfolg ist gesondert nachzuweisen.
 
 **Aktuelle Ergänzung:** Bekannte Aufgaben zählen in beiden Kompetenzpfaden
 auch nach Hilfe oder Fehler nicht als neue Abrufprobe. Die Glocke verwirft

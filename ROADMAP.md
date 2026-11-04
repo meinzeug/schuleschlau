@@ -537,6 +537,12 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
 
 - [ ] **P1 – Abruf und Lernplanung nachvollziehbar abnehmen**
 
+  **04.11.2026, Lerncontroller:** Ungeklärte Selbstständigkeit, Reflexionen
+  und Wiederholungen zählen nicht als selbstständige Erstlösung und begründen
+  keine positiven Abrufvorschläge. Gespeicherte Antworten bleiben erhalten.
+  30 künstliche Fälle bestanden auf SQLite und isoliertem PostgreSQL, weitere
+  84 Fälle auf SQLite. Die mobile Mehrtagesabnahme bleibt offen.
+
   **03.11.2026, bereits bekannte Aufgaben:** Fachkompetenz und
   Heftquellenprojektion behandeln bereits beantwortete Fragen auch nach einem
   Fehler, Hilfe oder unklarer Selbstständigkeit als bekannt. Eine spätere
@@ -1414,6 +1420,13 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Benachrichtigung und direkte Zielnavigation vollständig prüfen**
 
+  **04.11.2026, gezielte Lesebestätigung:** Nur die ausdrücklich quittierten
+  Ereignisse werden erneut projiziert und auf Berechtigung sowie Quellen
+  geprüft. Der vollständige Inboxscan entfällt bei dieser Aktion; ungültige
+  Kennungen werden weiterhin gemeinsam zurückgewiesen. Die breitere Suite
+  bestand mit 98 Fällen und einem Skip auf SQLite und mit 99 Fällen auf
+  isoliertem PostgreSQL. Das Cursor-Nachladen älterer Einträge bleibt offen.
+
   **03.11.2026, Kontextwechsel beim Öffnen:** Glocke und Gesamtansicht
   verwerfen überholte Klicks und verspätete Lesebestätigungen, wenn sich
   Familie oder Sitzung geändert hat. Öffnungszustand und Filter werden bei
@@ -1611,6 +1624,12 @@ Bestandteil des bestehenden Buildvertrags.
     Einzelresultate. OSV meldete keine Treffer; die noch fehlende Lizenz- und
     Host-/Containerprüfung bleibt ausdrücklich offen.
 
+  - [x] Den Firebase-Web-Bootstrap und seine beiden ausdrücklich importierten
+    CDN-Module erfassen und die npm-/OSV-Metadaten der drei ausgewählten
+    Pakete wiederholbar prüfen. Ergebnis und Grenzen stehen in
+    `docs/EXTERNAL_WEB_SCRIPTS_2026_11_04.md`; transitive Abhängigkeiten,
+    Bundlezuordnung, Checkout, Host und vollständige Lizenzen bleiben offen.
+
 - [ ] **P1 – Datenschutz und Anbieterunterlagen fachkundig prüfen lassen**
 
   Verzeichnis der Datenarten und Datenflüsse für Kinder, Eltern, Fotos, Lernstände, KI-Anbieter, Hosting, Firebase und Support erstellen. Tatsächliche Auftragsverarbeiter, Unterauftragsverarbeiter, Speicherorte, internationale Übermittlungen, Löschfristen und vertragliche Grundlagen dokumentieren. Eine qualifizierte Stelle prüft Rechtsgrundlagen, altersgerechte Informationen, Elternrechte, Widerruf und ob eine Datenschutz-Folgenabschätzung erforderlich ist; bestehende Betreiberfreigaben nicht mit einer unabhängigen Rechtsprüfung verwechseln. Für KI-Funktionen den konkret anwendbaren Rechtsrahmen und die Risikoeinstufung bewerten lassen.
@@ -1636,6 +1655,16 @@ Bestandteil des bestehenden Buildvertrags.
   **Abnahme:** Bericht mit nachvollziehbaren Fundstellen, Risikoeinstufung und Nachtests liegt vor; kritische und hohe Befunde sind behoben beziehungsweise vor jeglicher Freigabe durch die verantwortliche Stelle nachvollziehbar entschieden.
 
 - [ ] **P1 – Abnahmen systematisch und wiederholbar automatisieren**
+
+  **04.11.2026, CI-Zeitfenster:** Der Lauf
+  [41683281166](https://github.com/meinzeug/schulpilot/actions/runs/41683281166)
+  für `69eda38` wurde nach 25 Minuten in `backend-0` abgebrochen; der
+  Sammeljob scheiterte folgerichtig am fehlenden Ergebnis. Die übrigen
+  Backendpartitionen und die weiteren Prüfaufträge bestanden. Beim zuvor
+  erfolgreichen Lauf benötigte `backend-0` bereits knapp 22 Minuten. Das
+  Zeitfenster pro vollständiger Backendpartition wurde auf 40 Minuten erhöht;
+  Auswahl, Ausführung und Prüfung aller drei Ergebnisbelege bleiben unverändert.
+  Ein erneuter vollständiger CI-Erfolg muss noch beobachtet werden.
 
   **CI-Ergebnis:** Der vollständige GitHub-Lauf
   [41666803619](https://github.com/meinzeug/schulpilot/actions/runs/41666803619)

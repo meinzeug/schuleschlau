@@ -136,7 +136,11 @@ Sichtbarmachen quittiert werden; ein bloßes Vorladen reicht weiterhin nicht.
 
 Die Markierung folgt erst auf eine erfolgreiche Serverantwort; Fehler lassen
 den Eintrag ungelesen. Gleichzeitiges Anzeigen und Anklicken teilen denselben
-laufenden Leseschreibauftrag. Ein neuer bewusster Ansichtsaufruf, Filterwechsel
+laufenden Leseschreibauftrag. Der Server prüft dabei nur die ausdrücklich
+angeforderten Ereignisse gezielt auf Familienrechte und aktuelle Quellen;
+andere Ereigniskategorien werden nicht für jede Scrollbestätigung erneut
+durchsucht. Ungültige IDs lehnen den gesamten Auftrag ohne Teilbestätigung ab.
+Ein neuer bewusster Ansichtsaufruf, Filterwechsel
 oder Abgleich kann einen fehlgeschlagenen Beleg erneut versuchen; ein Rebuild
 startet keine automatische Wiederholungsschleife. Im Ungelesenfilter bleiben
 soeben gelesene Karten bis zur nächsten bewussten Auswahl stehen, damit keine

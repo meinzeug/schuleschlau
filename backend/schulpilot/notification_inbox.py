@@ -171,7 +171,8 @@ def recent_events(db, user, current=None, *, direct_messages=False, direct_exams
         if row.kind == "preparation" and context.get("day_id"):
             day_id = context["day_id"]
             day = db.get(SchoolDay, day_id)
-            if not day or day.child_id != row.child_id or day_id in seen_preparations:
+            if (not day or day.child_id != row.child_id or
+                    (event_keys is None and day_id in seen_preparations)):
                 continue
             seen_preparations.add(day_id)
             source_rows = list(db.execute(select(Material.subject, Material.confirmed).where(Material.school_day_id == day_id, Material.child_id == row.child_id)))
@@ -294,12 +295,12 @@ class Acknowledge(s.Strict):
 
 @router.post("/inbox/read")
 def acknowledge(data: Acknowledge, p=Depends(authenticated), db=Depends(get_db)):
-    events = {row["id"]: row for row in recent_events(db, p.user)}
-    missing = set(data.ids) - events.keys()
-    if missing:
-        events.update({row["id"]: row for row in recent_events(
-            db, p.user, event_keys=missing
-        )})
+    # Revalidate only the explicitly acknowledged events. Scanning the entire
+    # recent inbox first repeats costly source checks on every scroll batch and
+    # also performs work for unrelated children and event kinds. Targeted
+    # projection retains the same current membership and source checks, even
+    # when an event has left the newest visible window.
+    events = {row["id"]: row for row in recent_events(db, p.user, event_keys=set(data.ids))}
     if any(key not in events for key in data.ids):
         raise HTTPException(404, "Diese Neuigkeit ist nicht mehr verfügbar.")
     rate_limit(db, "notification-read:" + p.user.id, 120, 3600, commit=False)
