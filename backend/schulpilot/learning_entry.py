@@ -191,6 +191,31 @@ def _specs(plan, count):
         for index in range(count - len(probes))]]
 
 
+def limit_partition_probes(payload):
+    """Exclude unallocated examples from a new two-question package part.
+
+    The partition contract fixes exactly two questions. Do this before adding
+    curated visual sources and before provider transport: an unused probe must
+    not influence generation without having a source binding in the unit.
+    Other request types and historical entry contracts stay unchanged.
+    """
+    entry = payload.get("learning_entry")
+    if type(payload.get("package_partition")) is not int or not isinstance(entry, dict):
+        return payload
+    groups, plans = payload.get("selected_groups"), entry.get("units")
+    if (not isinstance(groups, list) or len(groups) != 1 or not isinstance(plans, list) or len(plans) != 1
+            or plans[0].get("group_id") != groups[0].get("id") or plans[0].get("allocation_version") != 2
+            or plans[0].get("entry_mode") == "existing_contract"):
+        return payload
+    plan = plans[0]
+    included = {spec["id"] for spec in _specs(plan, 2) if spec.get("reference_id")}
+    probes = [probe for probe in plan["probes"] if probe["id"] in included]
+    reference_ids = {probe["reference_id"] for probe in probes}
+    references = [ref for ref in entry["references"] if ref["reference_id"] in reference_ids]
+    revised = {**entry, "units": [{**plan, "probes": probes}], "references": references}
+    return {**payload, "learning_entry": revised}
+
+
 def _branches(schema, definition):
     if "$ref" in definition:
         return _branches(schema, schema["$defs"][definition["$ref"].rsplit("/", 1)[-1]])

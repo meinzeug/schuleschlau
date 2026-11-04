@@ -44,3 +44,34 @@ Die eigene künstliche Testfamilie wurde regulär gelöscht; private
 Zugangsdateien, Appdaten und Testfotos auf dem Emulator wurden entfernt.
 Eine Lernrunden-Benachrichtigung und deren Zielnavigation wurden in diesem
 erfolglosen Lauf nicht nachgewiesen.
+
+### Erfolgreicher künstlicher Fotolauf auf Version 1.38.82
+
+Eine neue künstliche Familie importierte erneut dasselbe geprüfte Seitenpaar
+über Systempicker und Zuschnitt. Nach regulärer befristeter Freigabe wurden
+beide Seiten erkannt und gegengeprüft. Ein bewusst gestarteter Paketlauf
+erzeugte ohne Wiederholung eine zu beiden Quellseiten zugeordnete Runde.
+Die App öffnete zwei unterschiedliche, fachlich richtige Bruchaufgaben; der
+erste Tipp war verständlich. Antworten wurden nicht abgegeben. Fünf
+erfolgreiche OpenRouter-Aufrufe kosteten zusammen 0,041231 USD; unbekannte
+Kosten wurden nicht ausgewiesen. Die künstliche Familie und ihre privaten
+Testdateien und Emulatorfotos wurden danach regulär bereinigt.
+
+Die Erklärungsgrafik wurde nicht angezeigt: Ein bereit gespeicherter
+Grafik-Snapshot enthielt zusätzlich eine auf dieser Einheit nicht vorhandene
+Grundlagenprobe und scheiterte an der Quellenbindungsprüfung. Die Anzeige ist
+deshalb kein Nachweis einer funktionierenden Grafik. Die Diagnose und die
+Behandlung vorhandener Snapshots müssen getrennt geprüft werden. Eine
+Benachrichtigung mit direktem Lernrundenziel wurde in diesem Lauf nicht
+nachgewiesen.
+
+Für neue Zwei-Aufgaben-Paketteile begrenzt der nachfolgende Code die
+Grundlagenproben vor dem Hinzufügen von Grafikquellen und dem Anbietertransport
+auf die tatsächlich zugeteilte Probe. Tests prüfen unter anderem den
+transportierten Kontext, die gespeicherten Bindungen und die Abweisung bei
+manipulierten Aufgaben, Referenzen oder geänderter Materialrevision. Bereits
+gespeicherte betroffene Snapshots werden nicht pauschal freigegeben: Ihr
+damaliger vollständiger Anbieter-Kontext lässt sich nicht zuverlässig
+rekonstruieren. Eine erneute Grafik benötigt eine bewusst gestartete,
+regulär reservierte Erstellung auf aktuellen Quellen. Der Codefix allein
+belegt noch keinen erneuten erfolgreichen Live-Grafiktest.

@@ -444,11 +444,12 @@ def _process(job_id):
                     from .material_fraction_expansions import add_reference as add_material_expansion
 
                     payload = add_material_expansion(db, payload)
-                from .learning_entry import with_learning_entry
+                from .learning_entry import limit_partition_probes, with_learning_entry
                 from .visual_references import with_foundation_context
 
                 payload = with_learning_entry(db, child, payload, source_pages, groups=job.payload.get("groups"),
                     enabled=bool(job.payload.get("learning_entry_enabled")) and not synthetic)
+                payload = limit_partition_probes(payload)
                 payload = with_foundation_context(db, payload)
                 from .review_fraction_compositions import prepare as prepare_review_composition
 

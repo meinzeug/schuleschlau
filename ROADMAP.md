@@ -672,6 +672,13 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
 
 - [ ] **P1 – OCR anhand vollständig referenzierter künstlicher Seiten prüfen**
 
+  - [x] **Zwei künstliche Bruchseiten auf Android bis zur Lernrunde prüfen.**
+    Systempicker, Zuschnitt, Upload, separate Erkennung und Gegenprüfung,
+    Quellenzuordnung und zwei unterschiedliche Aufgaben wurden im Emulator
+    mit echtem Anbieter beobachtet. Die Erklärungsgrafik blieb wegen einer
+    fehlerhaften Quellenbindung unsichtbar; die breitere Fotoabnahme bleibt
+    offen. [Ablauf und Grenzen](docs/ANDROID_EMULATOR_ACCEPTANCE_2026_11_04.md).
+
   - [ ] **Unbeschriftete Zeichnungen getrennt erfassen und überprüfen.**
     Ein echter künstlicher OpenRouter-Fall ließ einen markierten Bruchbalken
     aus. Ein getrennter vorläufiger Befund mit revisionsgebundener Prüfung
