@@ -1470,6 +1470,41 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Ausgabelängen, Schemafehler und Providerstörungen systematisch behandeln**
 
+  - [ ] **Bruchaufgaben für initiale Paketpartitionen vorab verbindlich planen.**
+    Ein versionierter Paketadapter soll nur für ein eindeutig gewähltes
+    Mathematikfach und ausdrücklich bestätigte, zur Quellenrevision passende
+    Rechenregeln Aufgaben vor dem Anbieteraufruf lokal berechnen. Feste
+    Vorwissensproben und offene Einstiegsfragen bleiben unverändert; nur
+    tatsächlich freie Übungsplätze erhalten neue Aufgaben. Brucherweiterungen
+    benötigen einen eindeutig genannten positiven Faktor, Kürzungsschritte
+    einen eindeutigen Teiler. Frage-ID, Typ, Aufgabentext, geprüfte Lösung,
+    Varianten und fachlich passende Grafik-ID müssen gemeinsam im bestehenden
+    Ausgabeschema gebunden und nach dem Transport unverändert geprüft werden.
+    Die bestehende strenge Bruch- und Grafikvalidierung bleibt maßgeblich;
+    fehlerhafte Modellantworten dürfen weder umetikettiert noch durch lokale
+    Ersatzaufgaben nachträglich korrigiert werden.
+
+    Der Plan einschließlich Version, Quellen- und Referenz-Digests gehört in
+    den privaten gespeicherten Teilauftrag und muss vor Veröffentlichung erneut
+    geprüft werden. Alte Receipts und begonnene Einheiten bleiben lesbar.
+    Bereits gespeicherte Fragen, veröffentlichte und validierte, noch nicht
+    veröffentlichte Teilrunden sowie konkurrierende Aufträge sind unter den
+    bestehenden Kind-/Quellensperren vor und nach dem Anbieteraufruf und vor
+    Veröffentlichung auf Wiederholungen zu prüfen. Gleichwertige frühere
+    Beispiele und unklare historische Fragen dürfen nicht stillschweigend als
+    neue unabhängige Übung ausgegeben werden. Bei erschöpfter endlicher
+    Auswahl oder nicht belegter Regel sicher abbrechen, keine automatische
+    Wiederholung oder Anbieterwechsel starten und vorhandene Daten erhalten.
+
+    **Abnahme:** SQLite- und PostgreSQL-Tests decken 0/1/2 freie Übungsplätze,
+    feste und offene Vorwissensfragen, belegte und unklare Regeln, Faktor und
+    Teiler, Schema-/Grafikmanipulation, fremde Quellen, Versionswechsel,
+    Verlauf und unveröffentlichte Teilrunden, Parallelität und Erschöpfung ab.
+    Anschließend repräsentative künstliche Mehrseitenfälle über den normalen
+    ausdrücklich freigegebenen Anbieterweg prüfen und Qualität, Kosten sowie
+    Fehlschläge getrennt dokumentieren. Eine Promptanweisung allein belegt
+    weder fachliche Korrektheit noch eine vollständige Fehlerbehebung.
+
   - [x] **Aufgabenprüfung datensparsam genauer diagnostizieren.**
     Bekannte feste Fehler aus der Aufgabenvalidierung erhalten geschlossene,
     inhaltsfreie Fehlercodes; unbekannte Fehler bleiben allgemein. Die

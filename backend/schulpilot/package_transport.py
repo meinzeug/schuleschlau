@@ -363,7 +363,7 @@ def rules(payload, *, indexed_choices):
         parts.append("choice.answer: exakt der VOLLSTÄNDIGE ANTWORTTEXT der richtigen vorhandenen Option als String; niemals Index/Buchstabe.")
     if any(providers.is_mathematics(subject) for subject in selected):
         parts.append(
-            "MATH: answer/accepted solve EXACT prompt, never partial numerator/denominator/steps instead of result. Fraction value/result+options=FULL fraction (1/4+2/4=3/4); only explicit numerator/denominator/divisor questions ask that part. Expansion multiplies BOTH numbers by same factor: result,not starting fraction. First reduction step only with given divisor;otherwise fully reduce. Divisor≠result. Equivalent fractions are not distinct unambiguous matching pairs. No arithmetic examples outside math."
+            "MATH: answer/accepted solve EXACT prompt, never partial numerator/denominator/steps instead of result. Fraction value/result+options=FULL fraction (1/4+2/4=3/4); only explicit numerator/denominator/divisor questions ask that part. Every free-answer fraction expansion MUST state one explicit positive integer factor IN THE QUESTION; multiply BOTH numbers by it and give the resulting fraction, not the starting fraction. An intermediate reduction step MUST state one explicit positive integer divisor IN THE QUESTION; otherwise ask for full reduction. Divisor≠result. Equivalent fractions are not distinct unambiguous matching pairs. No arithmetic examples outside math."
         )
     parts.extend(ANSWER_RULES[kind] for kind in ("match", "grouped") if kind in types)
     if types and types <= {"choice", "short"}:

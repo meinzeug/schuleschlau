@@ -105,6 +105,9 @@ def test_actual_adapter_transports_fixed_probes_and_graphics_without_changing_li
         body = json.loads(request.content)
         calls.append(body)
         assert body["max_tokens"] == 8000 and body["reasoning"]["effort"] == "medium"
+        serialized = json.dumps(body, ensure_ascii=False)
+        assert "Every free-answer fraction expansion MUST state one explicit positive integer factor IN THE QUESTION" in serialized
+        assert "An intermediate reduction step MUST state one explicit positive integer divisor IN THE QUESTION" in serialized
         return httpx.Response(200, json={"choices": [{"finish_reason": "stop", "message": {
             "content": json.dumps(capture.wire(data))}}], "usage": {"prompt_tokens": 100, "completion_tokens": 100,
             "cost": 0.002}})
