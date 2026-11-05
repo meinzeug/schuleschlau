@@ -140,6 +140,18 @@ Listen, Filter, Details und Elternlesen erzeugen keine KI oder Lernzeit.
 
 ## Schnittstellen und Datenpflege
 
+Die Lernvorgaben werden nach der Kindersperre erneut gegen Elternmitgliedschaft,
+Schreibrecht und Sitzung geprüft. Ein schon wartender Auftrag darf nach Entzug
+oder Herabstufung nicht weiter speichern. Das serialisiert keinen Widerruf, der
+erst nach dieser erneuten Prüfung eintrifft; dafür wäre ein gesonderter
+Sitzungssperrvertrag mit geprüftem Locking erforderlich.
+
+Offene Grenze: `PUT /children/{id}/preferences` ersetzt weiterhin den gesamten
+Stand ohne Revisionsvergleich. Zwei ältere Elternformulare können daher bei
+parallelem Speichern andere Änderungen einschließlich Push-Einwilligung
+überschreiben. Ein abwärtskompatibler Revisions-/Konfliktablauf für API und UI
+ist eigenständig zu entwerfen und zu testen; die Rechteprüfung löst das nicht.
+
 - `GET /api/children/{id}/parent-insights[?review_id=...]`: aktuelle Belege,
   gespeicherter Bericht, Status und begrenzte Berichtshistorie.
 - `PUT .../parent-insights/settings`: verwaltende Eltern, CAS-Revision.

@@ -183,6 +183,12 @@ def update_child(child_id: str, data: s.ChildUpdate,
 def preferences(child_id: str, data: s.Preferences, p=Depends(parent), db=Depends(get_db)):
     child = child_access(db, p, child_id, write=True)
     db.execute(update(Child).where(Child.id == child.id).values(grade=Child.grade))
+    # A parent can lose membership or have their session revoked while waiting
+    # for this lock. Do not persist an older authorized request afterwards.
+    db.expire_all()
+    if p.session.revoked or p.session.expires <= now() or p.user.disabled or not p.user.verified:
+        raise HTTPException(401, "Bitte erneut anmelden und die Lernvorgaben neu öffnen.")
+    child = child_access(db, p, child_id, write=True)
     child.preferences = data.model_dump(mode="json")
     if not data.push_consent:
         from .db import PushDevice
