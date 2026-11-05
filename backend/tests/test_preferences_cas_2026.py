@@ -5,7 +5,7 @@ from concurrent.futures import ThreadPoolExecutor
 import pytest
 from conftest import HEADERS, create_child
 from fastapi.testclient import TestClient
-from schulpilot.db import DB, Assignment, Audit, Child, Job, PushDevice, Session, Usage, engine
+from schulpilot.db import DB, Assignment, Audit, Child, Job, PushDevice, Session, Usage, engine, now
 from schulpilot.main import app
 from sqlalchemy import func, select
 
@@ -32,7 +32,7 @@ def test_preferences_requires_fresh_revision_before_any_side_effects(api, househ
     assert api.put(endpoint, json=initial, headers={"If-Match": '"1"'}).status_code == 200
     with DB.begin() as db:
         user_id = db.get(Child, child["id"]).user_id
-        session = Session(user_id=user_id, token_hash="a" * 64, device="synthetic", expires=9999999999)
+        session = Session(user_id=user_id, token_hash="a" * 64, device="synthetic", expires=int(now()) + 3600)
         db.add(session)
         db.flush()
         db.add(PushDevice(user_id=user_id, session_id=session.id, token_hash="b" * 64,
@@ -74,6 +74,42 @@ def test_preferences_version_is_child_scoped_and_detects_aba(api, household):
     assert snapshot(first["id"])["revision"] == 4
 
 
+def test_revision_exhaustion_rejects_without_mutation(api, household):
+    _, child = household
+    with DB.begin() as db:
+        db.get(Child, child["id"]).preferences_revision = 2147483647
+    before = snapshot(child["id"])
+    result = api.put(f"/api/children/{child['id']}/preferences", json={"push_consent": True},
+                     headers={"If-Match": "2147483647"})
+    assert result.status_code == 409
+    assert snapshot(child["id"]) == before
+
+
+def test_synthetic_firebase_grant_increments_preference_revision(api, household, monkeypatch, capsys):
+    import io
+    import json
+    import sys
+
+    from schulpilot import firebase_ops
+    from schulpilot.db import Family
+
+    parent, child = household
+    with DB.begin() as db:
+        db.get(Family, parent["families"][0]["id"]).synthetic = True
+    monkeypatch.setattr(sys, "argv", ["firebase_ops", "grant-synthetic-test"])
+    monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps({"username": parent["username"]})))
+    firebase_ops.run()
+    capsys.readouterr()
+    with DB() as db:
+        current = db.get(Child, child["id"])
+        assert current.preferences_revision == 2 and current.preferences["push_consent"] is True
+    endpoint = f"/api/children/{child['id']}/preferences"
+    assert api.put(endpoint, json={"push_consent": False}, headers={"If-Match": "1"}).status_code == 409
+    with DB() as db:
+        current = db.get(Child, child["id"])
+        assert current.preferences_revision == 2 and current.preferences["push_consent"] is True
+
+
 def test_parallel_preferences_same_revision_has_one_winner(api, household):
     if engine.dialect.name != "postgresql":
         pytest.skip("Requires genuine PostgreSQL row locking")
@@ -82,10 +118,12 @@ def test_parallel_preferences_same_revision_has_one_winner(api, household):
 
     def save(minutes):
         with TestClient(app, headers=headers) as client:
-            return client.put(f"/api/children/{child['id']}/preferences", json={"daily_minutes": minutes}).status_code
+            response = client.put(f"/api/children/{child['id']}/preferences", json={"daily_minutes": minutes})
+            return response.status_code, response.json()
 
     with ThreadPoolExecutor(max_workers=2) as pool:
         results = list(pool.map(save, [25, 35]))
-    assert sorted(results) == [200, 409]
+    assert sorted(status for status, _ in results) == [200, 409]
+    assert next(body for status, body in results if status == 409)["code"] == "preferences_revision_conflict"
     after = snapshot(child["id"])
     assert after["revision"] == 2 and after["preferences"]["daily_minutes"] in (25, 35)

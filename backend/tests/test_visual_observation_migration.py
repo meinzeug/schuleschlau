@@ -35,6 +35,14 @@ with engine.begin() as connection:
     child=connection.execute(select(Table('children',MetaData(),autoload_with=connection))).mappings().one()
     assert child['preferences']=={'daily_minutes': 35} and child['preferences_revision']==1
     assert connection.exec_driver_sql('select version_num from alembic_version').scalar_one()=='0047'
+try:
+    command.downgrade(config, '0046')
+except RuntimeError as error:
+    assert 'Preferences revision' in str(error)
+else:
+    raise AssertionError('unsafe preferences downgrade must fail closed')
+with engine.connect() as connection:
+    assert connection.exec_driver_sql('select version_num from alembic_version').scalar_one()=='0047'
 sys.path.insert(0, 'deploy')
 from visual_restore_probe import probe
 with DB.begin() as db:
