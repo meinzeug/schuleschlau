@@ -292,37 +292,46 @@ class MaterialProcessingScreen extends StatefulWidget {
 class _MaterialProcessingScreenState extends State<MaterialProcessingScreen>
     with WidgetsBindingObserver {
   Json? owner;
-  String? family;
+  String? family, session;
   int generation = 0;
   Timer? timer;
   Json? job, material;
   Object? error;
-  bool reading = false, foreground = true;
+  bool reading = false, foreground = true, resumeRefresh = false;
   bool get current =>
       mounted &&
       owner != null &&
       identical(owner, widget.state.user) &&
-      family == widget.state.familyId;
+      family == widget.state.familyId &&
+      session == widget.state.api.token;
   bool get waiting =>
       job == null || ['queued', 'running'].contains(job?['status']);
+  bool get recoverableReadError =>
+      error == null ||
+      (error is ApiError &&
+          ((error as ApiError).status == 0 ||
+              (error as ApiError).status >= 500));
   @override
   void initState() {
     super.initState();
     owner = widget.state.user;
     family = widget.state.familyId;
+    session = widget.state.api.token;
     foreground =
         WidgetsBinding.instance.lifecycleState == null ||
         WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
     WidgetsBinding.instance.addObserver(this);
     widget.state.addListener(identityChanged);
-    load();
+    if (foreground) load();
     timer = Timer.periodic(Duration(seconds: 3), (_) {
       if (current &&
           foreground &&
-          waiting &&
-          error == null &&
           (ModalRoute.of(context)?.isCurrent ?? true)) {
-        load();
+        if (resumeRefresh && recoverableReadError) {
+          load();
+        } else if (waiting && error == null) {
+          load();
+        }
       }
     });
   }
@@ -333,11 +342,13 @@ class _MaterialProcessingScreenState extends State<MaterialProcessingScreen>
     setState(() {
       owner = widget.state.user;
       family = widget.state.familyId;
+      session = widget.state.api.token;
       job = material = null;
       error = null;
       reading = false;
+      resumeRefresh = !foreground;
     });
-    load();
+    if (foreground) load();
   }
 
   @override
@@ -353,20 +364,32 @@ class _MaterialProcessingScreenState extends State<MaterialProcessingScreen>
       generation++;
       owner = widget.state.user;
       family = widget.state.familyId;
+      session = widget.state.api.token;
       job = material = null;
       error = null;
       reading = false;
-      load();
+      resumeRefresh = !foreground;
+      if (foreground) load();
     }
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     foreground = state == AppLifecycleState.resumed;
+    if (!foreground) {
+      // A response started before leaving the app must not become the
+      // current status after the session or source may have changed.
+      generation++;
+      setState(() {
+        reading = false;
+        job = material = null;
+        resumeRefresh = true;
+      });
+      return;
+    }
     if (foreground &&
         current &&
-        waiting &&
-        error == null &&
+        recoverableReadError &&
         (ModalRoute.of(context)?.isCurrent ?? true)) {
       load();
     }
@@ -374,6 +397,7 @@ class _MaterialProcessingScreenState extends State<MaterialProcessingScreen>
 
   Future<void> load() async {
     if (!current || reading) return;
+    resumeRefresh = false;
     final request = ++generation;
     bool active() => current && request == generation;
     setState(() => reading = true);
@@ -405,7 +429,15 @@ class _MaterialProcessingScreenState extends State<MaterialProcessingScreen>
         });
       }
     } catch (e) {
-      if (active()) setState(() => error = e);
+      if (active()) {
+        setState(() {
+          job = null;
+          if (e is ApiError && (e.status == 403 || e.status == 404)) {
+            material = null;
+          }
+          error = e;
+        });
+      }
     } finally {
       if (active()) setState(() => reading = false);
     }

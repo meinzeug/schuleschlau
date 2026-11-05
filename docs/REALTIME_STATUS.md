@@ -14,6 +14,7 @@ Statusabfrage ist kein Auftrag zur KI-Erzeugung.
 | Einzelne Lernrunde | `app/lib/learning_preparation_screen.dart` | Bereits reservierter Auftrag alle 3 s, solange er läuft. Nach Rückkehr und vorübergehendem Lesefehler ein GET; keine automatische Auftragserstellung. |
 | Glocke und Gesamtansicht | `app/lib/notification_inbox.dart` | Erste Seite und begrenzt gespeicherte Folgeseiten per GET, Vordergrundaktualisierung nach 45 s und bei Rückkehr; Lesebelege nur für sichtbare Meldungen. |
 | Schulbuddy | `app/lib/tutor_sheet.dart` | Bei ausstehender Antwort aktiver Dialog nach 3 s. Konto-, Familien- oder Tokenwechsel verwirft Anzeige und Entwurf. Eine Rückkehr während eines laufenden GETs löst anschließend einen erneuten GET aus; bei HTTP 4xx erst nach bewusstem Aktualisieren erneut lesen. |
+| Heftseite erneut einlesen | `app/lib/material_actions.dart` | Beobachtet einen bestehenden Auftrag per GET. Hintergrund und Sitzungswechsel verwerfen überholte Antworten; nach Rückkehr werden Quelle und Auftrag neu geprüft, auch nach vorübergehendem Lesefehler. Ist die Seite beim Zurückkehren überdeckt, erfolgt die Prüfung nach ihrer erneuten Sichtbarkeit. 4xx werden nicht automatisch wiederholt; 403/404 entfernen die private Anzeige. |
 | Klassenarbeitsnacharbeit | `app/lib/exam_review_panel.dart` | Bei laufender Analyse oder Erkennung nach 3 s; 4xx stoppen automatische Abfragen, 403/404 verbergen private Ergebnisse. Bewusstes erneutes Laden bleibt verfügbar. |
 | Sprachwerkstatt | `app/lib/language_workshop.dart` | Aktive Projektverarbeitung nach 3 s; bei Rückkehr erneut lesen. Sitzung, Familie und Konto begrenzen den Kontext; 4xx stoppen automatische Abfragen und 403/404 verbergen private Ergebnisse. |
 
@@ -93,3 +94,15 @@ mit einer erkannten Seite. Eine fremde Kindersitzung wird abgewiesen. Wiederholt
 GETs verändern weder Auftrags- und Kostenbelege noch Lernrunden, Antworten oder
 Aktivitäten. Der Test bestand mit SQLite und isoliertem PostgreSQL; er belegt
 weder echte parallele Geräte noch sichtbare Pushzustellung.
+
+## Rückkehr beim erneuten Einlesen einer Heftseite
+
+Künstliche Widgettests prüfen die Rückkehr nach einem Serverfehler, einen
+verspäteten GET aus dem Hintergrund, einen Sitzungstokenwechsel, den Entzug
+des Quellzugriffs und HTTP 429. Eine zuvor fertige Aktion bleibt während der
+erneuten Rechteprüfung verborgen. Auch wenn beim Vordergrundwechsel eine
+andere Route darüberliegt, wird nach Sichtbarkeit die Quelle erneut geprüft.
+Die Regression umfasst 37 VM-Widgetfälle mit angrenzenden Datenschutzfällen
+und 25 Fälle im Chrome-Webrunner; sie verwendet Mocktransporte und keine
+echten Kinderdaten oder Anbieteraufrufe. Die übergreifende geräteübergreifende
+Abnahme und ein ereignisbasierter Kanal bleiben offen.

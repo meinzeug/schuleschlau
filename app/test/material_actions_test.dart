@@ -365,7 +365,264 @@ void main() {
       expect(harness.requests, hasLength(before));
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
       await tester.pump();
-      expect(harness.requests, hasLength(before + 1));
+      expect(harness.requests, hasLength(before + 2));
+      expect(
+        harness.requests[before].url.path,
+        endsWith('/materials/new-photo'),
+      );
+      expect(harness.requests[before + 1].url.path, endsWith('/jobs/job'));
+      expect(
+        harness.requests.every((request) => request.method == 'GET'),
+        isTrue,
+      );
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
+  testWidgets('A temporary read error is rechecked on returning to the app', (
+    tester,
+  ) async {
+    var jobReads = 0;
+    final harness = await mount(tester, (request) async {
+      if (request.url.path.endsWith('/materials/new-photo')) {
+        return reply({'id': 'new-photo', 'child_id': 'child'});
+      }
+      if (++jobReads == 1) return reply({'detail': 'offline'}, status: 503);
+      return reply({
+        'kind': 'extract',
+        'status': 'completed',
+        'material_id': 'new-photo',
+        'result': {'material_id': 'new-photo'},
+      });
+    }, processing: true);
+    expect(find.text('Status neu laden'), findsOneWidget);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    await tester.pump();
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('Seite prüfen'), findsOneWidget);
+    expect(jobReads, 2);
+    expect(
+      harness.requests.every((request) => request.method == 'GET'),
+      isTrue,
+    );
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('A late background response cannot replace the refreshed job', (
+    tester,
+  ) async {
+    final old = Completer<http.Response>();
+    var reads = 0;
+    final harness = await mount(tester, (request) async {
+      if (request.url.path.endsWith('/materials/new-photo')) {
+        return reply({'id': 'new-photo', 'child_id': 'child'});
+      }
+      if (++reads == 1) return old.future;
+      return reply({
+        'kind': 'extract',
+        'status': 'running',
+        'material_id': 'new-photo',
+      });
+    }, processing: true);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    await tester.pump();
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    old.complete(
+      reply({
+        'kind': 'extract',
+        'status': 'completed',
+        'material_id': 'new-photo',
+        'result': {'material_id': 'new-photo'},
+      }),
+    );
+    await tester.pump();
+    expect(find.text('Seite prüfen'), findsNothing);
+    expect(find.text('Die KI liest dein Foto …'), findsOneWidget);
+    expect(reads, 2);
+    expect(
+      harness.requests.every((request) => request.method == 'GET'),
+      isTrue,
+    );
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('Revoked source access removes the cached private page', (
+    tester,
+  ) async {
+    var jobReads = 0;
+    final harness = await mount(tester, (request) async {
+      if (request.url.path.endsWith('/materials/new-photo')) {
+        return reply({
+          'id': 'new-photo',
+          'child_id': 'child',
+          'topic': 'Privates Thema',
+        });
+      }
+      if (++jobReads == 1) {
+        return reply({
+          'kind': 'extract',
+          'status': 'running',
+          'material_id': 'new-photo',
+        });
+      }
+      return reply({'detail': 'Zugriff nicht mehr möglich'}, status: 403);
+    }, processing: true);
+    expect(find.text('Deine Seite: Privates Thema'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pump();
+    expect(find.text('Deine Seite: Privates Thema'), findsNothing);
+    final count = harness.requests.length;
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    await tester.pump();
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pump(const Duration(seconds: 4));
+    expect(harness.requests, hasLength(count));
+    expect(
+      harness.requests.every((request) => request.method == 'GET'),
+      isTrue,
+    );
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('A session-token change rejects a delayed old response', (
+    tester,
+  ) async {
+    final old = Completer<http.Response>();
+    var reads = 0;
+    final harness = await mount(tester, (request) async {
+      if (request.url.path.endsWith('/materials/new-photo')) {
+        return reply({'id': 'new-photo', 'child_id': 'child'});
+      }
+      if (++reads == 1) return old.future;
+      return reply({
+        'kind': 'extract',
+        'status': 'running',
+        'material_id': 'new-photo',
+      });
+    }, processing: true);
+    harness.state.api.token = 'new-session';
+    harness.state.refreshState();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    old.complete(
+      reply({
+        'kind': 'extract',
+        'status': 'completed',
+        'material_id': 'new-photo',
+        'result': {'material_id': 'new-photo'},
+      }),
+    );
+    await tester.pump();
+    expect(find.text('Seite prüfen'), findsNothing);
+    expect(find.text('Die KI liest dein Foto …'), findsOneWidget);
+    expect(reads, 2);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('Rate limiting never triggers an automatic retry on resume', (
+    tester,
+  ) async {
+    final harness = await mount(tester, (request) async {
+      if (request.url.path.endsWith('/materials/new-photo')) {
+        return reply({'id': 'new-photo', 'child_id': 'child'});
+      }
+      return reply({'detail': 'Bitte später erneut versuchen'}, status: 429);
+    }, processing: true);
+    final count = harness.requests.length;
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    await tester.pump();
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pump(const Duration(seconds: 6));
+    expect(harness.requests, hasLength(count));
+    expect(find.text('Status neu laden'), findsOneWidget);
+    expect(
+      harness.requests.every((request) => request.method == 'GET'),
+      isTrue,
+    );
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets(
+    'A completed action stays hidden until resumed access is checked',
+    (tester) async {
+      final delayed = Completer<http.Response>();
+      var pageReads = 0;
+      await mount(tester, (request) async {
+        if (request.url.path.endsWith('/materials/new-photo')) {
+          if (++pageReads == 1)
+            return reply({'id': 'new-photo', 'child_id': 'child'});
+          return delayed.future;
+        }
+        return reply({
+          'kind': 'extract',
+          'status': 'completed',
+          'material_id': 'new-photo',
+          'result': {'material_id': 'new-photo'},
+        });
+      }, processing: true);
+      expect(find.text('Seite prüfen'), findsOneWidget);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      await tester.pump();
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pump();
+      expect(find.text('Seite prüfen'), findsNothing);
+      delayed.complete(reply({'detail': 'offline'}, status: 503));
+      await tester.pump();
+      expect(find.text('Seite prüfen'), findsNothing);
+      expect(find.text('Status neu laden'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
+  testWidgets(
+    'A covered route rechecks source access after it becomes visible',
+    (tester) async {
+      var pages = 0;
+      final harness = await mount(tester, (request) async {
+        if (request.url.path.endsWith('/materials/new-photo')) {
+          if (++pages > 1)
+            return reply({'detail': 'Nicht verfügbar'}, status: 403);
+          return reply({
+            'id': 'new-photo',
+            'child_id': 'child',
+            'topic': 'Privates Thema',
+          });
+        }
+        return reply({
+          'kind': 'extract',
+          'status': 'completed',
+          'material_id': 'new-photo',
+          'result': {'material_id': 'new-photo'},
+        });
+      }, processing: true);
+      expect(find.text('Seite prüfen'), findsOneWidget);
+      final navigator =
+          harness.router.routerDelegate.navigatorKey.currentState!;
+      unawaited(
+        navigator.push(
+          MaterialPageRoute<void>(
+            builder: (_) => const Scaffold(body: Text('Darüber')),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      await tester.pump();
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pump();
+      expect(pages, 1);
+      navigator.pop();
+      await tester.pumpAndSettle();
+      expect(find.text('Seite prüfen'), findsNothing);
+      await tester.pump(const Duration(seconds: 3));
+      await tester.pump();
+      expect(pages, 2);
+      expect(find.text('Deine Seite: Privates Thema'), findsNothing);
+      expect(find.text('Seite prüfen'), findsNothing);
       expect(
         harness.requests.every((request) => request.method == 'GET'),
         isTrue,

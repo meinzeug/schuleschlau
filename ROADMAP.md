@@ -2108,6 +2108,15 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Echtzeitstatus gezielt und zuverlässig bereitstellen**
 
+  - [x] **Wiederaufnahme beim erneuten Einlesen einer Heftseite absichern.**
+    05.11.2026, Coding-AI, Änderungen auf Basis `f38673a`: Nach Hintergrund, überdeckter Route und
+    Sitzungswechsel werden Quelle und Auftragsstatus erneut gelesen;
+    überholte Ergebnisse und alte Bereitschaftsaktionen bleiben verborgen.
+    403/404 entfernen private Angaben, 429 startet keinen automatischen
+    Versuch. 37 künstliche VM-Widgetfälle und 25 Chrome-Fälle bestanden;
+    ein übergreifender Geräte- und Ereigniskanalnachweis bleibt offen.
+    [Umfang](docs/REALTIME_STATUS.md).
+
   - [x] **Fotoverarbeitungsstatus über zwei künstliche Sitzungen prüfen.**
     Beide Sitzungen sehen den Fortschritt; eine fremde Familie wird abgewiesen.
     GETs erzeugen keine Aufträge oder Lernbelege. SQLite und PostgreSQL
