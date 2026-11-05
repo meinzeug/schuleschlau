@@ -169,6 +169,11 @@ def publish_prefix(db, day, child, plan, *, complete=False):
         validate_part_output(data)
         validate_visuals(db, data, context)
         guard_entry_context(db, child, context, [material for material in source_pages if material.id in group["material_ids"]])
+        # Another worker may have stored a matching unpublished part after this
+        # receipt was created. Child remains locked across this check and save.
+        from .package_decimal_addition import validate_history as validate_decimal_history
+
+        validate_decimal_history(db, child.id, data, ignore_job_ids={receipt["job_id"]})
         value = PackageOutput.model_validate(data).units[0]
         unit = LearningUnit(child_id=child.id, school_day_id=day.id, material_id=group["material_ids"][0],
             estimated_minutes=group["estimated_minutes"], synthetic=False, provider=receipt["provider"], model=receipt["model"],

@@ -61,7 +61,7 @@ def original_pairs(contents):
     return [signature(number(m[1]), number(m[2])) for content in contents for m in _PAIR.finditer(content)]
 
 
-def history(db, child_id):
+def history(db, child_id, *, ignore_job_ids=()):
     """Numeric exclusions from own tasks/material, never saved child answers."""
     from sqlalchemy import select
 
@@ -79,6 +79,10 @@ def history(db, child_id):
             Material.child_id == child_id, Material.confirmed.is_(True))):
         if subject_key(subject) == "mathematik":
             found.update(tuple(pair) for pair in original_pairs([content]))
+    from .package_question_history import unpublished_prompts
+
+    found.update(tuple(pair) for pair in original_pairs(
+        unpublished_prompts(db, child_id, 'Mathematik', ignore_job_ids=ignore_job_ids)))
     return [list(value) for value in sorted(found)]
 
 
@@ -240,12 +244,12 @@ def bind_schema(schema, payload):
     return prepared.bind_candidates(schema, Binding(tuple(candidates)), question_kinds=(KIND, "fraction"), question_binding=question_binding)
 
 
-def validate_history(db, child_id, data):
+def validate_history(db, child_id, data, *, ignore_job_ids=()):
     if not any(step.get("reference", {}).get("id") == REFERENCE
             for unit in data.get("units", []) for question in unit.get("questions", [])
             for step in (question.get("explanation_steps") or [])):
         return
-    previous = history(db, child_id)
+    previous = history(db, child_id, ignore_job_ids=ignore_job_ids)
     for unit in data.get("units", []):
         for question in unit.get("questions", []):
             if not any(step.get("reference", {}).get("id") == REFERENCE for step in (question.get("explanation_steps") or [])):
