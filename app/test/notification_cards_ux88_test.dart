@@ -306,6 +306,108 @@ void main() {
     });
   }
 
+  scenario('a delayed bell page cannot reopen the menu after a family change', (
+    tester,
+  ) async {
+    final pending = Completer<http.Response>();
+    final fixture = await display(tester, (request) async {
+      if (request.method == 'POST') return reply({});
+      if (request.url.queryParameters['cursor'] != null) return pending.future;
+      return reply({
+        'items': [notice('original', read: true)],
+        'next_cursor': 'next',
+      });
+    }, bell: true);
+    await tester.tap(find.byKey(const ValueKey('notification-bell')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('notification-load-more')));
+    await tester.pump();
+    fixture.state.familyId = 'other-family';
+    fixture.state.notifyListeners();
+    await tester.pumpAndSettle();
+    pending.complete(
+      reply({
+        'items': [notice('old-family')],
+        'next_cursor': null,
+      }),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Künstliche Meldung old-family'), findsNothing);
+    expect(
+      find.byKey(const ValueKey('notification-preview-scroll')),
+      findsNothing,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  scenario('bell does not undo a scroll made before the correction callback', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 760);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final pending = Completer<http.Response>();
+    final fixture = await display(tester, (request) async {
+      if (request.method == 'POST') return reply({});
+      final cursor = request.url.queryParameters['cursor'];
+      final page = cursor == null ? 0 : int.parse(cursor.substring(1));
+      if (page == 3) return pending.future;
+      return reply({
+        'items': [for (var i = 0; i < 8; i++) notice('p$page-$i', read: true)],
+        'unread': 0,
+        'next_cursor': 'p${page + 1}',
+      });
+    }, bell: true);
+    await tester.tap(find.byKey(const ValueKey('notification-bell')));
+    await tester.pumpAndSettle();
+    await fixture.state.inbox.loadMore();
+    await tester.pumpAndSettle();
+    await fixture.state.inbox.loadMore();
+    await tester.pumpAndSettle();
+    final scroll = find.byKey(const ValueKey('notification-preview-scroll'));
+    await tester.dragUntilVisible(
+      find.text('Künstliche Meldung p2-0'),
+      scroll,
+      const Offset(0, -200),
+    );
+    await tester.pumpAndSettle();
+    if (!fixture.state.inbox.loadingMore) {
+      await tester.tap(find.byKey(const ValueKey('notification-load-more')));
+      await tester.pump();
+    }
+    double? wanted;
+    tester.binding.addPostFrameCallback((_) {
+      final position = tester
+          .state<ScrollableState>(
+            find.descendant(of: scroll, matching: find.byType(Scrollable)),
+          )
+          .position;
+      wanted = (position.pixels - 100).clamp(
+        position.minScrollExtent,
+        position.maxScrollExtent,
+      );
+      position.jumpTo(wanted!);
+    });
+    pending.complete(
+      reply({
+        'items': [for (var i = 0; i < 8; i++) notice('p3-$i', read: true)],
+        'unread': 0,
+        'next_cursor': null,
+      }),
+    );
+    await tester.pump();
+    await tester.pumpAndSettle();
+    final position = tester
+        .state<ScrollableState>(
+          find.descendant(of: scroll, matching: find.byType(Scrollable)),
+        )
+        .position;
+    expect(wanted, isNotNull);
+    expect(position.pixels, closeTo(wanted!, 1));
+    expect(tester.takeException(), isNull);
+  });
+
   for (final bell in [false, true]) {
     scenario(
       'bounded history offers return to latest in ${bell ? 'bell' : 'inbox'} at phone width',
@@ -825,6 +927,82 @@ void main() {
       expect(reads, contains('older'));
     },
   );
+
+  for (final oldCount in [6, 25]) {
+    scenario(
+      'bell keeps a retained visible notice while its cache rotates ($oldCount old)',
+      (tester) async {
+        tester.view.physicalSize = const Size(390, 760);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        final pending = Completer<http.Response>();
+        final reads = <String>[];
+        final fixture = await display(tester, (request) async {
+          if (request.method == 'POST') {
+            reads.addAll(
+              (jsonDecode(request.body)['ids'] as List).cast<String>(),
+            );
+            return reply({});
+          }
+          final cursor = request.url.queryParameters['cursor'];
+          final page = cursor == null ? 0 : int.parse(cursor.substring(1));
+          if (page == 3) return pending.future;
+          return reply({
+            'items': [
+              for (var i = 0; i < (page == 1 ? oldCount : 2); i++)
+                {
+                  ...notice('p$page-$i', read: true),
+                  if (page == 1)
+                    'title': 'Lange Meldung $i ${'lange Wörter ' * 12}',
+                },
+            ],
+            'unread': 0,
+            'next_cursor': page == 3 ? null : 'p${page + 1}',
+          });
+        }, bell: true);
+        await tester.tap(find.byKey(const ValueKey('notification-bell')));
+        await tester.pumpAndSettle();
+        await fixture.state.inbox.loadMore();
+        await tester.pumpAndSettle();
+        await fixture.state.inbox.loadMore();
+        await tester.pumpAndSettle();
+        final scroll = find.byKey(
+          const ValueKey('notification-preview-scroll'),
+        );
+        await tester.dragUntilVisible(
+          find.text('Künstliche Meldung p2-0'),
+          scroll,
+          const Offset(0, -200),
+        );
+        await tester.pumpAndSettle();
+        final anchor = find.text('Künstliche Meldung p2-0');
+        expect(anchor.hitTestable(), findsOneWidget);
+        final before = tester.getTopLeft(anchor).dy;
+        if (!fixture.state.inbox.loadingMore) {
+          await tester.tap(
+            find.byKey(const ValueKey('notification-load-more')),
+          );
+          await tester.pump();
+        }
+        pending.complete(
+          reply({
+            'items': [
+              for (var i = 0; i < (oldCount == 25 ? 20 : 2); i++)
+                notice('p3-$i'),
+            ],
+            'unread': 0,
+            'next_cursor': null,
+          }),
+        );
+        await tester.pumpAndSettle();
+        expect(fixture.state.inbox.historyTrimmed, isTrue);
+        expect(anchor.hitTestable(), findsOneWidget);
+        expect(tester.getTopLeft(anchor).dy, closeTo(before, 1));
+        if (oldCount == 25) expect(reads, isNot(contains('p3-19')));
+      },
+    );
+  }
 
   scenario('full notification screen can load older notices', (tester) async {
     await display(tester, (request) async {

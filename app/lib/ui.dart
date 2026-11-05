@@ -1,8 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, listEquals;
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
@@ -2792,6 +2793,9 @@ class NotificationBell extends StatefulWidget {
 class _NotificationBellState extends State<NotificationBell> {
   final _menu = MenuController();
   final _previewScroll = ScrollController();
+  final _previewAnchors = <String, GlobalKey>{};
+  List<String> _previewIds = [];
+  int _previewRevision = 0;
   Json? _snapshot;
   String? _family, _token;
   bool _opening = false;
@@ -2804,7 +2808,92 @@ class _NotificationBellState extends State<NotificationBell> {
     _family = widget.state.familyId;
     _token = widget.state.api.token;
     widget.state.addListener(_changed);
+    widget.state.inbox.addListener(_previewChanged);
+    _previewIds = widget.state.inbox.items
+        .map((e) => e['id'])
+        .whereType<String>()
+        .toList();
     _previewScroll.addListener(_loadMoreOnScroll);
+  }
+
+  void _previewChanged() {
+    final next = widget.state.inbox.items
+        .map((e) => e['id'])
+        .whereType<String>()
+        .toList();
+    if (listEquals(next, _previewIds)) return;
+    final previous = _previewIds;
+    _previewIds = next;
+    final revision = ++_previewRevision;
+    final retained = next.toSet();
+    if (!_menu.isOpen || !_previewScroll.hasClients) {
+      _previewAnchors.removeWhere((id, _) => !retained.contains(id));
+      return;
+    }
+    final state = widget.state;
+    final owner = state.user, family = state.familyId, token = state.api.token;
+    final route = ModalRoute.of(context);
+    final position = _previewScroll.position;
+    final viewport = position.context.storageContext.findRenderObject();
+    final visible = <(String, double)>[];
+    if (viewport is RenderBox && viewport.hasSize) {
+      final viewTop = viewport.localToGlobal(Offset.zero).dy;
+      for (final id in previous) {
+        if (!retained.contains(id)) continue;
+        final render = _previewAnchors[id]?.currentContext?.findRenderObject();
+        if (render is! RenderBox || !render.hasSize || !render.attached) {
+          continue;
+        }
+        final top = render.localToGlobal(Offset.zero).dy;
+        if (top < viewTop + viewport.size.height &&
+            top + render.size.height > viewTop) {
+          visible.add((id, top));
+        }
+      }
+    }
+    _previewAnchors.removeWhere((id, _) => !retained.contains(id));
+    var moved = false;
+    void watchPosition() {
+      if (WidgetsBinding.instance.schedulerPhase !=
+          SchedulerPhase.persistentCallbacks) {
+        moved = true;
+      }
+    }
+
+    _previewScroll.addListener(watchPosition);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _previewScroll.removeListener(watchPosition);
+      if (!mounted ||
+          !_menu.isOpen ||
+          revision != _previewRevision ||
+          moved ||
+          !identical(widget.state, state) ||
+          !_sameHeaderAccount(state, owner) ||
+          state.familyId != family ||
+          state.api.token != token ||
+          route?.isCurrent == false ||
+          !_previewScroll.hasClients ||
+          _previewScroll.position.isScrollingNotifier.value) {
+        return;
+      }
+      for (final (id, oldTop) in visible) {
+        final render = _previewAnchors[id]?.currentContext?.findRenderObject();
+        if (render is! RenderBox || !render.hasSize || !render.attached) {
+          continue;
+        }
+        final delta = render.localToGlobal(Offset.zero).dy - oldTop;
+        if (delta.abs() > .5) {
+          final current = _previewScroll.position;
+          current.jumpTo(
+            (current.pixels + delta).clamp(
+              current.minScrollExtent,
+              current.maxScrollExtent,
+            ),
+          );
+        }
+        break;
+      }
+    });
   }
 
   void _loadMoreOnScroll() {
@@ -2825,7 +2914,15 @@ class _NotificationBellState extends State<NotificationBell> {
       _opening = false;
       _openRevision++;
       oldWidget.state.removeListener(_changed);
+      oldWidget.state.inbox.removeListener(_previewChanged);
       widget.state.addListener(_changed);
+      widget.state.inbox.addListener(_previewChanged);
+      _previewAnchors.clear();
+      _previewIds = widget.state.inbox.items
+          .map((e) => e['id'])
+          .whereType<String>()
+          .toList();
+      _previewRevision++;
       _changed();
     }
   }
@@ -2837,6 +2934,8 @@ class _NotificationBellState extends State<NotificationBell> {
       _menu.close();
       _opening = false;
       _openRevision++;
+      _previewRevision++;
+      _previewAnchors.clear();
     }
     if (mounted) {
       setState(() {
@@ -2850,6 +2949,7 @@ class _NotificationBellState extends State<NotificationBell> {
   @override
   void dispose() {
     widget.state.removeListener(_changed);
+    widget.state.inbox.removeListener(_previewChanged);
     _previewScroll.removeListener(_loadMoreOnScroll);
     _previewScroll.dispose();
     super.dispose();
@@ -2948,6 +3048,9 @@ class _NotificationBellState extends State<NotificationBell> {
               }
             });
           }
+        },
+        onClose: () {
+          _previewRevision++;
         },
         menuChildren: [
           Padding(
@@ -3093,14 +3196,20 @@ class _NotificationBellState extends State<NotificationBell> {
                         primary: false,
                         padding: EdgeInsets.zero,
                         itemCount: inbox.items.length,
+                        findChildIndexCallback: (key) {
+                          if (key is! GlobalKey) return null;
+                          final index = inbox.items.indexWhere(
+                            (item) => _previewAnchors[item['id']] == key,
+                          );
+                          return index < 0 ? null : index;
+                        },
                         itemBuilder: (context, index) {
                           final item = inbox.items[index];
                           return NotificationExposure(
-                            key: ValueKey((
-                              'preview-exposure',
-                              ObjectKey(snapshot),
-                              item['id'],
-                            )),
+                            key: _previewAnchors.putIfAbsent(
+                              item['id'] as String,
+                              GlobalKey.new,
+                            ),
                             id: item['id'] as String,
                             unread: item['read'] != true,
                             child: MenuItemButton(
