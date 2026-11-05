@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -247,6 +246,38 @@ void main() {
       throwsA(isA<ApiError>().having((e) => e.status, 'status', 503)),
     );
     expect(state.user, isNull);
+    state.dispose();
+  });
+
+  test('failed new login does not interrupt old account cleanup', () async {
+    late PausedCalls calls;
+    final storage = PausedStorage();
+    final api = Api(
+      base: 'https://example.invalid/api',
+      client: MockClient((_) async => http.Response('{"detail":"wrong"}', 401)),
+    );
+    final state = AppState(
+      api: api,
+      storage: storage,
+      familyCallFactory: (s) => calls = PausedCalls(s),
+    )..user = {'id': 'old-child', 'role': 'child'};
+    expect(state.familyCalls, same(calls));
+    await storage.write(
+      key: 'pending_material_uploads_v1',
+      value: 'old-private-data',
+    );
+    final cleanup = state.clear();
+    await calls.entered.future;
+    calls.release.complete();
+    await storage.entered.future;
+    await expectLater(
+      state.login('other-child', 'wrong'),
+      throwsA(isA<ApiError>()),
+    );
+    storage.release.complete();
+    await cleanup;
+    expect(state.user, isNull);
+    expect(await storage.read(key: 'pending_material_uploads_v1'), isNull);
     state.dispose();
   });
 
