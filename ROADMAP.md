@@ -1790,6 +1790,13 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Hefte, Materialarten und Suche im digitalen Ranzen abnehmen**
 
+  **05.11.2026, lokaler Browserlauf:** Fünf künstliche JPEGs je Kind über die
+  echte lokale Upload-API importiert, anschließend mit explizit künstlichen
+  Texten bestätigt und im Chrome-Browser für Eltern und Kinder betrachtet.
+  Einzel- und Mehrseitenauswahl erzeugten zwei echte, lokal wartende Aufträge
+  mit geprüften eigenen Quellenrevisionen; fremde Bilder waren gesperrt.
+  Keine OCR und kein KI-Worker liefen. [Details und Screenshots](docs/NOTEBOOK_LOCAL_BROWSER_2026_11_05.md).
+
   - [x] **Verschiedene künstliche Materialseiten und Heftquellen im Backend absichern.**
     Fünf unterschiedlich gezeichnete und ausdrücklich gekennzeichnete
     Testseiten werden hochgeladen und mit Gast-, Geschwister- und Adminrechten
