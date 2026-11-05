@@ -1,0 +1,20 @@
+{
+  "adb_install_used_for_upgrade": false,
+  "android_install_confirmation": true,
+  "automatic_verified_download": true,
+  "characters_compared": 357,
+  "emulator_api": 36,
+  "emulator_app_clear_reported_success": true,
+  "evidence_recording": "manual_record_from_observed_result",
+  "new_version_code": 251,
+  "old_version_code": 250,
+  "page_is_synthetic_text_without_photo": true,
+  "pixel_screenshot_comparison_performed": false,
+  "provider_calls_measured": false,
+  "same_material_opened_before_and_after": true,
+  "same_synthetic_child_screen_without_new_login": true,
+  "synthetic_family_deleted": true,
+  "synthetic_family_only": true,
+  "test_credentials_and_temporary_artifacts_removed": true,
+  "visible_accessibility_text_equal": true
+}

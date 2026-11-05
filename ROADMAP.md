@@ -1442,7 +1442,7 @@ Bestandteil des bestehenden Buildvertrags.
   **Zusätzliche Tests:** Zwei synthetische Deployments mit künstlich pausiertem Upload und paralleler Bereinigung ausführen; dazu SSH während Upload und Aktivierung unterbrechen, den Kindprozess verzögert beenden und prüfen, dass kein zweiter verändernder Ablauf oder prune das laufende Staging beeinträchtigt. Frühe und späte Fehler, Timerläufe sowie einen manuellen Rückweg unter demselben Vertrag prüfen. Keine Tests gegen Produktion ausführen.
 
   **Abnahme:** HTTPS/Health den erwarteten Quellstand zeigen, Web-Direktlinks und anonyme Schutzgrenzen geprüft sind, öffentlich ausgelieferte APK und Manifest aus tatsächlicher Datei zu Größe/Hash/Version passen und ein migrationsbewusster Rückweg dokumentiert ist.
-- [ ] **P1 – Direct- und Play-Update getrennt abnehmen**
+- [x] **P1 – Direct- und Play-Update getrennt abnehmen**
 
   - [x] **Direct-Update und manipulierte APKs im Emulator prüfen.** Das
     reguläre Update von +244 auf +249 gelang über den App-Updater und die
@@ -1457,6 +1457,10 @@ Bestandteil des bestehenden Buildvertrags.
   Für Direct höhere Version auf fester HTTPS-Quelle bei Kaltstart und Wiederaufnahme prüfen; Größen-, Hash-, Paket- und Signaturabweichungen ablehnen und Android-Installationsbestätigung beobachten.
 
   **Abnahme:** gültiges Update mit erhaltenem Konto und Daten funktioniert, fehlerhafte Downloads nicht installiert werden und das Play-AAB ausschließlich den Play-Updateweg ohne APK-Installerberechtigung enthält. Ein gebautes AAB ist kein Play-Upload oder veröffentlichter Storeeintrag.
+
+  **05.11.2026, Emulator-Abnahme:** Der signierte Direct-Updateweg wurde mit Systembestätigung und ohne `adb install` bis `+251` ausgeführt. Ein eigens angelegtes künstliches Kind blieb angemeldet und öffnete dieselbe synthetische Text-Heftseite vor und nach dem Update; die 357 Zeichen des zugänglichen Texts waren identisch. Kaltstart und Hintergrundrückkehr wurden auf `+249` gesondert geprüft. Der echte native Direct-Prüfer verweigerte isoliert künstliche APKs bei Abweichungen von Größe, Hash, Paket, Signierer und Version sowie Downgrade und zu hoher Mindestversion; der Installeraufruf wurde dabei abgefangen. Das quellgebundene Play-AAB `+249` wurde mit Bundletool, Manifest, Signatur und R8-/DEX-Anhaltspunkten für den getrennten Play-Pfad geprüft. Der künstliche Haushalt und lokale Testdaten wurden entfernt.
+
+  Der Abgleich umfasst eine Textseite ohne Foto und den Android-Zugänglichkeitsbaum, keinen Pixelvergleich oder alle Datentypen. Es fand keine Play-Auslieferung statt. Einzelheiten, Quellen und maschinenlesbare Belege: [Android-Updateprüfung](docs/ANDROID_UPDATE_VERIFICATION_2026_11_05.md).
 - [ ] **P1 – Physische Android-Abnahme nachholen**
 
   Auf Nutzerwunsch für diesen Auftrag optional und derzeit zurückgestellt; sie
