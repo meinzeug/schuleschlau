@@ -4,6 +4,7 @@ import hashlib
 import json
 import os
 import shutil
+import stat
 import subprocess
 import sys
 import tarfile
@@ -29,24 +30,62 @@ def capture_journal(ledger, snapshot):
         return "missing" if not ledger.exists() else "unavailable"
 
 
+def sync_directory(directory):
+    """Persist directory entries; fail rather than claim durability on error."""
+    fd = os.open(directory, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC)
+    try:
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+
+
 def write_status(backup, journal):
     path = status_path(backup)
-    with tempfile.NamedTemporaryFile(mode="w", dir=path.parent, prefix=".backup-status-", delete=False) as output:
-        temporary = Path(output.name)
-        output.write(json.dumps({"backup": backup.name, "journal": journal}) + "\n")
-        output.flush()
-        os.fsync(output.fileno())
-    temporary.chmod(0o600)
-    temporary.replace(path)
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile(mode="w", dir=path.parent, prefix=".backup-status-", delete=False) as output:
+            temporary = Path(output.name)
+            os.fchmod(output.fileno(), 0o600)
+            output.write(json.dumps({"backup": backup.name, "journal": journal}) + "\n")
+            output.flush()
+            os.fsync(output.fileno())
+        temporary.replace(path)
+        sync_directory(path.parent)
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
 
 
 def publish_backup(partial, final, journal):
+    if partial.parent != final.parent:
+        raise ValueError("Backup temporary file must be in the destination directory")
     with backup_lock(final.parent, exclusive=True):
-        if final.exists():
+        if os.path.lexists(final):
             raise FileExistsError("Backup for this timestamp already exists")
-        # Publish status before the archive, so no visible new archive lacks it.
-        write_status(final, journal)
-        partial.replace(final)
+        # Sync the complete ciphertext (including GCM tag) before publication.
+        # Retain its descriptor through rename and check the trusted directory
+        # did not replace the temporary file between the sync and publication.
+        fd = os.open(partial, os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC)
+        try:
+            info = os.fstat(fd)
+            path_info = partial.lstat()
+            if (not stat.S_ISREG(info.st_mode) or info.st_uid != os.geteuid() or info.st_nlink != 1
+                    or (info.st_dev, info.st_ino) != (path_info.st_dev, path_info.st_ino)):
+                raise RuntimeError("Backup temporary file changed before publication")
+            os.fsync(fd)
+            # Status is synced before the archive becomes visible; this order
+            # survives an interrupted publication on filesystems honoring fsync.
+            write_status(final, journal)
+            path_info = partial.lstat()
+            if (info.st_dev, info.st_ino) != (path_info.st_dev, path_info.st_ino):
+                raise RuntimeError("Backup temporary file changed before publication")
+            partial.replace(final)
+            path_info = final.lstat()
+            if (info.st_dev, info.st_ino) != (path_info.st_dev, path_info.st_ino):
+                raise RuntimeError("Published backup identity changed")
+            sync_directory(final.parent)
+        finally:
+            os.close(fd)
 
 
 def create_backup(destination, data_dir, key_path, *, stamp=None):
