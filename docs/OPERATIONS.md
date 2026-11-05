@@ -340,6 +340,24 @@ ssh dorfspy 'systemctl show schulpilot-restore-check.service -p Result -p ExecMa
 
 Der Dienst authentifiziert die letzte Sicherung, entpackt nur in ein privates temporäres Verzeichnis, erstellt eine zufällig benannte separate PostgreSQL-Testdatenbank, migriert diese gegebenenfalls auf den aktuellen Stand und gleicht das aktuelle signierte Journal ab. Alte Sitzungen und Zugangstokens werden widerrufen; KI bleibt im rückgesicherten Teststand per Notfallstopp gesperrt. Entfernte Bildpfade werden auch aus der Testkopie gelöscht. Danach wird ausschließlich diese neu erstellte Testdatenbank entfernt. Die produktive DB wird nicht überschrieben. Automatische Wiederholung sonntags ca. 03:30 UTC. Geschützter letzter Bericht: `/var/backups/schulpilot-monitor/restore-check.json`.
 
+Nach erfolgreicher Journalprüfung wenden die automatische Probe und
+`scripts/reconcile_restore.py` den bestehenden strikten 365-Tage-Cutoff für
+Nachrichten, Tutor- und Schulbuddy-Gespräche sowie Eltern-Lernrückblicke anhand
+der geprüften Wiederherstellungszeit erneut an. So bleiben diese seit der
+Sicherung regulär abgelaufenen Datensätze nicht allein wegen der Rücksicherung
+erhalten. Der Offline-Abgleich migriert das Schema nicht: Fehlen benötigte
+Tabellen, scheitert er und rollt die Datenbanktransaktion zurück; die isolierte
+Kopie muss vor einem erneuten Abgleich auf einen kompatiblen Stand migriert
+werden. Die automatische Probe migriert ihre separate Datenbank vor dem
+Abgleich. Ein Cutoff belegt weder die Vollständigkeit noch die Aktualität des
+Löschjournals oder die Entfernung anderer Datenarten.
+
+Die bestehende Tutor-Verknüpfung löscht per Datenbank-Kaskade jüngere Antworten,
+wenn deren älterer Vorgänger abläuft. Schulbuddy speichert die Vorgänger-ID
+ohne diese Kaskade: Ein jüngerer Eintrag bleibt erhalten, eine Fortsetzung über
+den abgelaufenen Vorgänger wird mit 409 abgelehnt. Die Fristprüfung garantiert
+daher nicht, dass jede frühere Gesprächskette fortgesetzt werden kann.
+
 Der Monitor meldet fehlende, beschädigte, unvollständige oder über 14 Tage alte Berichte sowie einen fehlgeschlagenen Wiederherstellungsdienst mit neutralen Fehlercodes. Nur bei erstmaliger Anlage der Installationsumgebung beginnt eine einmalige Frist von 14 Tagen für den ersten Bericht; der geschützte Zeitanker `restore-setup-started` wird beim erfolgreichen Bericht entfernt und bei Updates nicht erneuert. Ein fehlender oder ungültiger Zeitanker gewährt keine Frist. Während der Frist bleiben fehlerhafte Berichte und Dienstfehler meldepflichtig. Der Monitor gibt die noch ausstehende Erstprüfung als `restore_rehearsal_initializing` aus; sie ist kein Nachweis einer erfolgreichen Wiederherstellung. Bei Bestandsinstallationen ohne Bericht oder bei Verlust des Zeitankers muss die Probe zeitnah ausgeführt und die Ursache geprüft werden; Zeitanker nicht zur Alarmunterdrückung neu anlegen.
 
 Die Wiederherstellungsprobe verlangt eine vorhandene, lesbare aktuelle Journaldatei. Fehlt sie, scheitert die Probe, statt ein leeres Journal anzunehmen; der Dienstfehler ist vom Monitor zu melden. Berichte älterer Versionen ohne `erasure_journal_present` gelten als unvollständig, bis eine neue Probe gelingt. Bei einer Installation ohne bisherige Löschungen muss der Betreiber den Zustand vor einer Initialisierung ausdrücklich prüfen; eine neu angelegte leere Datei belegt für sich weder das Fehlen früherer Löschungen noch die Vollständigkeit des Journals. Auch erfolgreiche Einzelsignaturen beweisen nicht, dass keine Zeilen verloren gingen.

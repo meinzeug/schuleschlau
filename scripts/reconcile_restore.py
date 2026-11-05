@@ -111,6 +111,7 @@ def main():
     except ValueError as exc:
         parser.error(str(exc))
     os.environ["DATABASE_URL"] = args.database_url
+    from schulpilot.conversation_retention import purge_expired as purge_expired_conversations
     from schulpilot.db import DB, ProviderConfig, Session, Token
     from schulpilot.erasure import reconcile, retained_image_names, valid_image_name, verify
     from schulpilot.message_retention import purge_expired as purge_expired_messages
@@ -124,6 +125,9 @@ def main():
         # A snapshot can contain messages that expired after it was taken.
         # The journal does not currently contain per-message retention events.
         purge_expired_messages(db, args.retention_as_of)
+        # These directly expired records are not represented by individual
+        # journal events either. Reapply precisely the live retention cutoff.
+        purge_expired_conversations(db, args.retention_as_of)
         # A backup must never resurrect sessions or device push authorizations.
         db.execute(update(Session).values(revoked=True))
         db.execute(update(Token).values(used=True))

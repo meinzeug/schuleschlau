@@ -33,7 +33,6 @@ from .db import (
     ServiceState,
     Session,
     Token,
-    TutorTurn,
     UnitSource,
     Usage,
     UsageBucket,
@@ -988,13 +987,9 @@ def maintenance():
         from .message_retention import purge_expired as purge_expired_messages
 
         purge_expired_messages(db, int(now()))
-        db.execute(delete(TutorTurn).where(TutorTurn.created < int(now()) - 365 * 86400))
-        from .db import SchulbuddyTurn
+        from .conversation_retention import purge_expired as purge_expired_conversations
 
-        db.execute(delete(SchulbuddyTurn).where(SchulbuddyTurn.created < int(now()) - 365 * 86400))
-        from .db import ParentLearningReview
-
-        db.execute(delete(ParentLearningReview).where(ParentLearningReview.created < int(now()) - 365 * 86400))
+        purge_expired_conversations(db, int(now()))
         from .homework import clear_drafts
 
         clear_drafts(db)

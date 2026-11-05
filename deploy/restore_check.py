@@ -167,6 +167,7 @@ def restore():
 from sqlalchemy import select,func,text,update
 from schulpilot.db import DB,Family,Child,Material,LearningUnit,Attempt,UnitCoaching,Session,Token,ProviderConfig
 from schulpilot.erasure import verify,reconcile,retained_image_names
+from schulpilot.conversation_retention import purge_expired as purge_expired_conversations
 from schulpilot.message_retention import purge_expired as purge_expired_messages
 from schulpilot.config import settings
 from schulpilot.migrate import upgrade
@@ -177,6 +178,7 @@ with DB.begin() as db:
  before={m.__tablename__:db.scalar(select(func.count()).select_from(m)) for m in models}
  paths=reconcile(db,records)
  purge_expired_messages(db,int(os.environ['SCHULPILOT_RESTORE_RETENTION_AS_OF']))
+ purge_expired_conversations(db,int(os.environ['SCHULPILOT_RESTORE_RETENTION_AS_OF']))
  db.execute(update(Session).values(revoked=True))
  db.execute(update(Token).values(used=True))
  db.execute(update(ProviderConfig).values(emergency_stop=True))
