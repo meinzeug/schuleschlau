@@ -3,6 +3,8 @@
 The old Direct app must show its unauthenticated login screen. The higher
 release must already be public. This test deletes its own synthetic household
 and clears this emulator's app data; never use it on a real or shared device.
+No deployment may run concurrently: the installed app fetches the public
+manifest itself, after this driver's checks, without an atomic release lock.
 """
 import argparse
 import io
