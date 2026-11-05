@@ -8,7 +8,7 @@ import 'dashboard.dart' show showLearningMessage;
 
 import 'package:intl/intl.dart';
 
-bool materialCanDelete(AppState state, Json item, {bool? canManage}) {
+bool _materialCanManage(AppState state, Json item, {bool? canManage}) {
   if (item['can_delete'] == false ||
       item['fixed_example'] == true ||
       item['fixture_id'] != null) {
@@ -19,9 +19,13 @@ bool materialCanDelete(AppState state, Json item, {bool? canManage}) {
       (item['child_id'] == null || item['child_id'] == state.user?['child_id']);
 }
 
+bool materialCanDelete(AppState state, Json item, {bool? canManage}) =>
+    _materialCanManage(state, item, canManage: canManage) &&
+    (!state.isChild || item['confirmed'] != true);
+
 bool materialCanReprocess(AppState state, Json item, {bool? canManage}) =>
     item['can_reprocess'] != false &&
-    materialCanDelete(state, item, canManage: canManage) &&
+    _materialCanManage(state, item, canManage: canManage) &&
     (item['has_image'] == true ||
         (item['has_image'] == null && item['synthetic'] == false));
 

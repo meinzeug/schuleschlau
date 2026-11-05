@@ -159,6 +159,32 @@ def ensure_deletable(rows):
         )
 
 
+def ensure_child_deletable(db, p, child, rows, linked_units):
+    # Children may discard only unconfirmed photos without learning evidence.
+    # Reject the entire selection rather than silently dropping protected pages.
+    if p.user.role != "child":
+        return
+    protected = any(row.confirmed for row in rows) or bool(linked_units)
+    day_ids = {row.school_day_id for row in rows if row.school_day_id}
+    days = {day.id: day for day in db.scalars(select(SchoolDay).where(SchoolDay.id.in_(day_ids)))}
+    protected |= any(row.school_day_id and (
+        row.school_day_id not in days or days[row.school_day_id].child_id != child.id
+        or (days[row.school_day_id].stage not in ("collecting", "review") and row.status != "unreadable")
+    ) for row in rows)
+    from .db import Assignment
+
+    ids = {row.id for row in rows}
+    for assignment in db.scalars(select(Assignment).where(Assignment.child_id == child.id)):
+        refs = assignment.source_revisions
+        if (assignment.material_id in ids or not isinstance(refs, list)
+                or any(not isinstance(ref, dict) or not isinstance(ref.get("id"), str)
+                       or ref["id"] in ids for ref in refs)):
+            protected = True
+            break
+    if protected:
+        raise HTTPException(409, "Diese Seite gehört schon zum Lernen. Bitte deine Eltern um Hilfe.")
+
+
 def lock_units(db, child_id, ids):
     from .unit_erasure import linked_ids
 
@@ -221,6 +247,7 @@ def delete_preview(child_id: str, data: DeletePreview, p=Depends(authenticated),
         raise HTTPException(409, "Es sind keine Seiten ausgewählt.")
     ensure_idle(db, child.id)
     ensure_deletable(rows)
+    ensure_child_deletable(db, p, child, rows, [])
     payload = {
         "v": 2,
         "actor": p.user.id,
@@ -234,6 +261,7 @@ def delete_preview(child_id: str, data: DeletePreview, p=Depends(authenticated),
     from .unit_erasure import snapshot as unit_snapshot
 
     unit_ids = linked_ids(db, child.id, [m.id for m in rows])
+    ensure_child_deletable(db, p, child, rows, unit_ids)
     payload["units_snapshot"] = unit_snapshot(db, unit_ids)
     token = crypt().encrypt(json.dumps(payload, separators=(",", ":")).encode()).decode()
     db.commit()
@@ -259,6 +287,7 @@ def bulk_delete(child_id: str, data: DeleteConfirm, p=Depends(authenticated), db
         ) from None
     rows = selection_rows(db, p, child, selection)
     ids = [m.id for m in rows]
+    ensure_child_deletable(db, p, child, rows, [])
     locked_units = lock_units(db, child.id, ids)
     db.execute(update(Child).where(Child.id == child.id).values(grade=Child.grade))
     db.expire_all()
@@ -278,6 +307,7 @@ def bulk_delete(child_id: str, data: DeleteConfirm, p=Depends(authenticated), db
         raise HTTPException(
             409, "Neue Übungen wurden gespeichert. Nichts wurde gelöscht. Bitte die Vorschau neu öffnen."
         )
+    ensure_child_deletable(db, p, child, rows, current_units)
     ensure_idle(db, child.id)
     if current_units and not data.delete_linked_units:
         raise HTTPException(409, "Die verknüpften Übungen und Antworten werden mitgelöscht. Bitte die App aktualisieren und erneut bestätigen.")

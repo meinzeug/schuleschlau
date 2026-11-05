@@ -9,7 +9,7 @@ from sqlalchemy import or_, select, update
 
 from . import schemas as s
 from .config import runtime_settings, settings
-from .db import Assignment, Child, Family, Job, LearningUnit, Material, ProviderConfig, UnitSource, get_db, uid
+from .db import Assignment, Child, Family, Job, LearningUnit, Material, ProviderConfig, UnitSource, get_db, now, uid
 from .fixtures import FIXTURE_ID, LIVE_FIXTURE_IDS, worksheet
 from .learning import material_data as learning_material_data
 from .learning import record
@@ -616,16 +616,24 @@ def delete_material(material_id: str, p=Depends(authenticated), db=Depends(get_d
     child_access(db, p, child.id, write=p.user.role == "parent")
     # Older clients promise that answers survive. Require the new counted
     # preview/confirmation whenever removal also affects saved learning rounds.
-    from .material_actions import delete_rows, ensure_idle, remove_files, snapshot
+    from .material_actions import delete_rows, ensure_child_deletable, ensure_idle, remove_files, snapshot
     from .unit_erasure import linked_ids
 
     original_snapshot = snapshot([material])
+    ensure_child_deletable(db, p, child, [material], [])
     lock_material_units(db, child.id, material_id)
     material, child = get_material(db, p, material_id, True)
+    db.expire_all()
+    if p.session.revoked or p.session.expires <= now() or p.user.disabled or not p.user.verified:
+        raise HTTPException(401, "Bitte erneut anmelden und die Seite neu auswählen.")
+    material, child = get_material(db, p, material_id)
+    child_access(db, p, child.id, write=p.user.role == "parent")
     if snapshot([material]) != original_snapshot:
         raise HTTPException(409, "Die Seite wurde inzwischen geändert. Bitte neu laden und erneut auswählen.")
     ensure_idle(db, child.id)
-    if linked_ids(db, child.id, [material_id]):
+    linked = linked_ids(db, child.id, [material_id])
+    ensure_child_deletable(db, p, child, [material], linked)
+    if linked:
         raise HTTPException(409, "Diese Seite hat verknüpfte Übungen. Bitte die App aktualisieren und die Löschvorschau in deinen Heften verwenden.")
     paths = delete_rows(db, child, [material])
     db.commit()

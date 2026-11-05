@@ -22,6 +22,7 @@ from .db import (
     SchoolDay,
     UnitSource,
     get_db,
+    now,
     uid,
 )
 from .fixtures import DAY_FIXTURE_IDS, worksheet
@@ -485,6 +486,11 @@ def remove_page(day_id: str, material_id: str, p=Depends(authenticated), db=Depe
         raise HTTPException(404, "Seite nicht gefunden.")
     lock_material_units(db, child.id, material_id)
     day, child = get_day(db, p, day_id, write=True, allow_archived=True)
+    db.expire_all()
+    if p.session.revoked or p.session.expires <= now() or p.user.disabled or not p.user.verified:
+        raise HTTPException(401, "Bitte erneut anmelden und die Seite neu auswählen.")
+    day, child = get_day(db, p, day_id, allow_archived=True)
+    child_access(db, p, child.id, write=p.user.role == "parent")
     idle(db, child.id)
     material = db.get(Material, material_id, populate_existing=True)
     if not material or material.school_day_id != day.id or material.child_id != child.id:
@@ -498,9 +504,13 @@ def remove_page(day_id: str, material_id: str, p=Depends(authenticated), db=Depe
         raise HTTPException(409, "Diese Beispielseiten gehören zusammen. Bitte nutze beide Seiten.")
     # Older review clients never acknowledged loss of linked answers. Route
     # those selections through the counted, revision-bound notebook deletion.
+    from .material_actions import ensure_child_deletable
     from .unit_erasure import linked_ids
 
-    if linked_ids(db, child.id, [material.id]):
+    ensure_child_deletable(db, p, child, [material], [])
+    linked = linked_ids(db, child.id, [material.id])
+    ensure_child_deletable(db, p, child, [material], linked)
+    if linked:
         raise HTTPException(409, "Diese Seite hat verknüpfte Übungen. Bitte die App aktualisieren und die Löschvorschau verwenden; sie entfernt Seite, Übungen und Antworten gemeinsam.")
     path = material.path
     from .erasure import flush_journal, request

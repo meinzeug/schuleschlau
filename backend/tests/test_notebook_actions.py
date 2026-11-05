@@ -93,16 +93,19 @@ def saved_round(child, material_id):
         return unit.id, attempt.id
 
 
-def test_child_delete_confirmed_photo_cascades_round_and_answers_after_counted_preview(api, household):
+def test_child_cannot_delete_confirmed_photo_or_answers_but_parent_can(api, household):
     _, child = household
     mid, path = photo(api, child)
     unit_id, attempt_id = saved_round(child, mid)
     with kid() as client:
         assert client.delete(f"/api/materials/{mid}").status_code == 409
-        data = preview(client, child, ids=[mid])
-        assert data['unit_count'] == 1 and data['answer_count'] == 1
-        assert confirm_delete(client, child, data['selection_token']).status_code == 200
-        assert client.get(f"/api/materials/{mid}/image").status_code == 404
+        assert client.post(f"/api/children/{child['id']}/materials/delete-preview", json={"ids": [mid]}).status_code == 409
+        assert client.get(f"/api/materials/{mid}/image").status_code == 200
+    with DB() as db:
+        assert db.get(Material, mid) and db.get(LearningUnit, unit_id) and db.get(Attempt, attempt_id)
+    data = preview(api, child, ids=[mid])
+    assert data['unit_count'] == 1 and data['answer_count'] == 1
+    assert confirm_delete(api, child, data['selection_token']).status_code == 200
     assert not path.exists()
     with DB() as db:
         assert db.get(Material, mid) is None
@@ -113,12 +116,12 @@ def test_child_delete_confirmed_photo_cascades_round_and_answers_after_counted_p
 
 def test_bulk_all_matching_spans_pages_and_filters_without_inference(api, household):
     _, child = household
-    selected = [photo(api, child, title=f"Mathe {i}")[0] for i in range(24)]
+    selected = [photo(api, child, title=f"Mathe {i}", confirmed=False)[0] for i in range(24)]
     keep, _ = photo(api, child, subject="Englisch")
     with kid() as client:
         before = client.get(f"/api/children/{child['id']}/materials?page_size=20").json()
         assert before["pages"] == 2
-        data = preview(client, child, all_matching=True, filters={"subject": "Mathematik", "status": "confirmed"})
+        data = preview(client, child, all_matching=True, filters={"subject": "Mathematik", "status": "review"})
         assert data["count"] == 24 and len(data["sample"]) == 5
         assert confirm_delete(client, child, data["selection_token"]).json() == {"deleted_count": 24}
         assert confirm_delete(client, child, data["selection_token"]).status_code == 409
@@ -127,6 +130,257 @@ def test_bulk_all_matching_spans_pages_and_filters_without_inference(api, househ
         assert db.scalar(select(func.count()).select_from(Job)) == 0
         assert db.scalar(select(func.count()).select_from(Usage)) == 0
         assert not list(db.scalars(select(Material).where(Material.id.in_(selected))))
+
+
+def test_child_bulk_rejects_mixed_and_unconfirmed_linked_sources_atomically(api, household):
+    _, child = household
+    protected, _ = photo(api, child)
+    unconfirmed, _ = photo(api, child, confirmed=False)
+    linked, _ = photo(api, child, confirmed=False)
+    unit, attempt = saved_round(child, linked)
+    with kid() as client:
+        endpoint = f"/api/children/{child['id']}/materials/delete-preview"
+        for selection in ({"ids": [protected, unconfirmed]}, {"ids": [linked]},
+                          {"all_matching": True, "filters": {"subject": "Mathematik"}}):
+            assert client.post(endpoint, json=selection).status_code == 409
+        assert client.delete(f"/api/materials/{protected}").status_code == 409
+        assert client.delete(f"/api/materials/{linked}").status_code == 409
+    with DB() as db:
+        assert all(db.get(Material, mid) for mid in (protected, unconfirmed, linked))
+        assert db.get(LearningUnit, unit) and db.get(Attempt, attempt)
+
+
+@pytest.mark.parametrize("reference", ["day_stage", "assignment_direct", "assignment_source", "bad_assignment_source"])
+def test_child_rejects_protected_day_and_assignment_sources_on_all_routes(api, household, reference):
+    from schulpilot.db import Assignment, SchoolDay
+
+    _, child = household
+    mid, path = photo(api, child, confirmed=False)
+    with DB.begin() as db:
+        if reference == "day_stage":
+            day = SchoolDay(child_id=child["id"], school_date="2026-11-02", stage="ready")
+            db.add(day)
+            db.flush()
+            db.get(Material, mid).school_day_id = day.id
+        else:
+            db.add(Assignment(child_id=child["id"], kind="parent", subject="Mathematik", topic="Beispiel",
+                              material_id=mid if reference == "assignment_direct" else None,
+                              source_revisions=([{"id": mid, "revision": 1}] if reference == "assignment_source"
+                                                else ["invalid"] if reference == "bad_assignment_source" else [])))
+    with kid() as client:
+        endpoint = f"/api/children/{child['id']}/materials/delete-preview"
+        assert client.post(endpoint, json={"ids": [mid]}).status_code == 409
+        assert client.post(endpoint, json={"all_matching": True}).status_code == 409
+        assert client.delete(f"/api/materials/{mid}").status_code == 409
+    assert path.exists()
+    # The parent can still explicitly acknowledge and delete the source.
+    if reference != "bad_assignment_source":
+        data = preview(api, child, ids=[mid])
+        assert confirm_delete(api, child, data["selection_token"]).status_code == 200
+
+
+@pytest.mark.parametrize("change", ["confirmation", "learning"])
+def test_child_delete_preview_rejects_later_confirmation_or_learning(api, household, change):
+    _, child = household
+    mid, _ = photo(api, child, confirmed=False)
+    with kid() as client:
+        data = preview(client, child, ids=[mid])
+        if change == "confirmation":
+            with DB.begin() as db:
+                db.get(Material, mid).confirmed = True
+        else:
+            unit, attempt = saved_round(child, mid)
+        assert confirm_delete(client, child, data['selection_token']).status_code == 409
+    with DB() as db:
+        assert db.get(Material, mid)
+        if change == "learning":
+            assert db.get(LearningUnit, unit) and db.get(Attempt, attempt)
+
+
+@pytest.mark.parametrize("change", ["confirmation", "direct_unit", "unit_source", "day_stage", "assignment"])
+def test_child_delete_rechecks_after_concurrent_change_under_child_lock(api, household, monkeypatch, change):
+    from threading import Event
+
+    from schulpilot.db import Assignment, Child, SchoolDay, engine
+    from sqlalchemy import update
+
+    if engine.dialect.name != "postgresql":
+        pytest.skip("Requires genuine PostgreSQL row locks")
+    _, child = household
+    mid, path = photo(api, child, confirmed=False)
+    if change == "day_stage":
+        with DB.begin() as db:
+            day = SchoolDay(child_id=child["id"], school_date="2026-11-02", stage="review")
+            db.add(day)
+            db.flush()
+            day_id = day.id
+            db.get(Material, mid).school_day_id = day_id
+    reached = Event()
+    original = material_actions.lock_units
+
+    def before_child(db, child_id, ids):
+        result = original(db, child_id, ids)
+        reached.set()
+        return result
+
+    monkeypatch.setattr(material_actions, "lock_units", before_child)
+    with kid() as client:
+        data = preview(client, child, ids=[mid])
+        headers = {**HEADERS, "Authorization": client.headers["Authorization"]}
+
+        def remove():
+            with TestClient(app, headers=headers) as concurrent:
+                return confirm_delete(concurrent, child, data["selection_token"])
+
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            with DB.begin() as locker:
+                locker.execute(update(Child).where(Child.id == child["id"]).values(grade=Child.grade))
+                if change == "confirmation":
+                    locker.get(Material, mid).confirmed = True
+                elif change == "day_stage":
+                    locker.get(SchoolDay, day_id).stage = "ready"
+                elif change == "assignment":
+                    locker.add(Assignment(child_id=child["id"], kind="parent", subject="Mathematik",
+                                          topic="Beispiel", source_revisions=[{"id": mid, "revision": 1}]))
+                else:
+                    unit = LearningUnit(child_id=child["id"], material_id=mid if change == "direct_unit" else None,
+                                        status="completed", synthetic=True, provider="synthetic", **sample_unit())
+                    locker.add(unit)
+                    locker.flush()
+                    if change == "unit_source":
+                        locker.add(UnitSource(unit_id=unit.id, material_id=mid, revision=1))
+                    attempt = Attempt(unit_id=unit.id, question_id=unit.questions[0]["id"],
+                                      answer="synthetic", outcome="correct", assisted=False)
+                    locker.add(attempt)
+                    locker.flush()
+                    unit_id, attempt_id = unit.id, attempt.id
+                pending = pool.submit(remove)
+                assert reached.wait(5)
+            response = pending.result(10)
+        assert response.status_code == 409, response.text
+    assert path.exists()
+    with DB() as db:
+        assert db.get(Material, mid)
+        if change in ("direct_unit", "unit_source"):
+            assert db.get(LearningUnit, unit_id) and db.get(Attempt, attempt_id)
+
+
+@pytest.mark.parametrize("change", ["confirmation", "unit_source", "day_stage", "assignment", "day_assignment", "session", "day_session"])
+def test_child_direct_delete_rechecks_after_concurrent_change(api, household, monkeypatch, change):
+    from threading import Event
+
+    from schulpilot import school_day
+    from schulpilot.db import Assignment, Child, SchoolDay, engine
+    from sqlalchemy import update
+
+    if engine.dialect.name != "postgresql":
+        pytest.skip("Requires genuine PostgreSQL row locks")
+    _, child = household
+    mid, path = photo(api, child, confirmed=False)
+    is_day = change in ("day_stage", "day_assignment", "day_session")
+    if is_day:
+        with DB.begin() as db:
+            day = SchoolDay(child_id=child["id"], school_date="2026-11-02", stage="review")
+            db.add(day)
+            db.flush()
+            day_id = day.id
+            db.get(Material, mid).school_day_id = day_id
+    reached = Event()
+    target = school_day if is_day else materials
+    original = target.lock_material_units
+
+    def before_child(db, child_id, material_id):
+        result = original(db, child_id, material_id)
+        reached.set()
+        return result
+
+    monkeypatch.setattr(target, "lock_material_units", before_child)
+    with kid() as client:
+        headers = {**HEADERS, "Authorization": client.headers["Authorization"]}
+        with DB() as db:
+            user_id = db.scalar(select(User.id).where(User.username == "test-child"))
+            session_id = db.scalar(select(Session.id).where(Session.user_id == user_id, Session.revoked.is_(False)))
+
+        def remove():
+            with TestClient(app, headers=headers) as concurrent:
+                return concurrent.delete(f"/api/materials/{mid}")
+
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            with DB.begin() as locker:
+                locker.execute(update(Child).where(Child.id == child["id"]).values(grade=Child.grade))
+                if change == "confirmation":
+                    locker.get(Material, mid).confirmed = True
+                elif change == "day_stage":
+                    locker.get(SchoolDay, day_id).stage = "ready"
+                elif change in ("assignment", "day_assignment"):
+                    locker.add(Assignment(child_id=child["id"], kind="parent", subject="Mathematik",
+                                          topic="Beispiel", source_revisions=[{"id": mid, "revision": 1}]))
+                elif change in ("session", "day_session"):
+                    locker.get(Session, session_id).revoked = True
+                else:
+                    unit = LearningUnit(child_id=child["id"], material_id=None, status="completed",
+                                        synthetic=True, provider="synthetic", **sample_unit())
+                    locker.add(unit)
+                    locker.flush()
+                    locker.add(UnitSource(unit_id=unit.id, material_id=mid, revision=1))
+                    attempt = Attempt(unit_id=unit.id, question_id=unit.questions[0]["id"],
+                                      answer="synthetic", outcome="correct", assisted=False)
+                    locker.add(attempt)
+                    locker.flush()
+                    unit_id, attempt_id = unit.id, attempt.id
+                pending = pool.submit(remove)
+                assert reached.wait(5)
+            response = pending.result(10)
+        assert response.status_code == (401 if change in ("session", "day_session") else 409), response.text
+    assert path.exists()
+    with DB() as db:
+        assert db.get(Material, mid)
+        if change == "unit_source":
+            assert db.get(LearningUnit, unit_id) and db.get(Attempt, attempt_id)
+
+
+@pytest.mark.parametrize("change", ["view", "removed"])
+def test_parent_direct_delete_rechecks_membership_after_child_lock(api, household, monkeypatch, change):
+    from threading import Event
+
+    from schulpilot.db import Child, engine
+    from sqlalchemy import update
+
+    if engine.dialect.name != "postgresql":
+        pytest.skip("Requires genuine PostgreSQL row locks")
+    parent, child = household
+    mid, path = photo(api, child)
+    reached = Event()
+    original = materials.lock_material_units
+
+    def before_child(db, child_id, material_id):
+        result = original(db, child_id, material_id)
+        reached.set()
+        return result
+
+    monkeypatch.setattr(materials, "lock_material_units", before_child)
+    headers = {**HEADERS, "Authorization": api.headers["Authorization"]}
+
+    def remove():
+        with TestClient(app, headers=headers) as concurrent:
+            return concurrent.delete(f"/api/materials/{mid}")
+
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        with DB.begin() as locker:
+            locker.execute(update(Child).where(Child.id == child["id"]).values(grade=Child.grade))
+            membership = locker.scalar(select(Membership).where(Membership.user_id == parent["id"],
+                Membership.family_id == parent["families"][0]["id"]))
+            if change == "view":
+                membership.permission = "view"
+            else:
+                locker.delete(membership)
+            pending = pool.submit(remove)
+            assert reached.wait(5)
+        response = pending.result(10)
+    assert response.status_code in (403, 404), response.text
+    assert path.exists()
+    with DB() as db:
+        assert db.get(Material, mid)
 
 
 @pytest.mark.parametrize("change", ["revision", "new_match", "delete", "confirmation"])

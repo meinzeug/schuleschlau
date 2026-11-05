@@ -53,6 +53,7 @@ Json subjects({bool canManage = false}) => {
 Json pages(
   http.Request request, {
   bool photos = true,
+  bool allUnconfirmed = false,
   Set<String> deleted = const {},
 }) {
   final page = int.parse(request.url.queryParameters['page'] ?? '1');
@@ -66,7 +67,7 @@ Json pages(
           'id': 'page$n',
           'title': 'Notiz $n',
           'topic': 'Lernstoff $n',
-          'confirmed': n != 1,
+          'confirmed': !allUnconfirmed && n != 1,
           'created': 1700000000 + n,
           'revision': 1,
           'has_image': photos,
@@ -228,6 +229,16 @@ Future<void> tap(
   } else {
     await tester.pump(const Duration(milliseconds: 350));
   }
+}
+
+Finder selectPage(int page) => find.byWidgetPredicate(
+  (widget) =>
+      widget is Checkbox && widget.semanticLabel == 'Seite $page auswählen',
+);
+
+Future<void> choosePage(WidgetTester tester, int page) async {
+  tester.widget<Checkbox>(selectPage(page)).onChanged!(true);
+  await tester.pumpAndSettle();
 }
 
 Finder notebookOption(String label) => find.descendant(
@@ -551,7 +562,7 @@ void main() {
   });
 
   testWidgets(
-    'Confirmed page deletion and KI actions are visible in album, tiles and list',
+    'Children can delete unconfirmed pages and reread in album, tiles and list',
     (tester) async {
       final deleted = <String>{};
       final requests = <http.Request>[];
@@ -585,19 +596,13 @@ void main() {
               headers: {'content-type': 'image/png'},
             );
           }
-          return jsonReply(pages(request, deleted: deleted));
+          return jsonReply(
+            pages(request, deleted: deleted, allUnconfirmed: true),
+          );
         },
       );
       expect(find.byTooltip('Heftseite löschen'), findsOneWidget);
       expect(find.byTooltip('Mit KI neu lesen'), findsOneWidget);
-      expect(
-        tester.getTopLeft(find.byTooltip('Heftseite löschen')).dy,
-        greaterThanOrEqualTo(
-          tester
-              .getBottomLeft(find.byKey(const ValueKey('notebook-photo-frame')))
-              .dy,
-        ),
-      );
       expect(
         tester.getSize(find.byTooltip('Heftseite löschen')).shortestSide,
         greaterThanOrEqualTo(48),
@@ -628,6 +633,22 @@ void main() {
         hasLength(2),
       );
       expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
+  testWidgets(
+    'Child can reread a confirmed page but only delete an unconfirmed page',
+    (tester) async {
+      await open(tester);
+      expect(find.byTooltip('Heftseite löschen'), findsNothing);
+      expect(find.byTooltip('Mit KI neu lesen'), findsOneWidget);
+      await tap(tester, find.byTooltip('Nächste Seite'));
+      expect(find.byTooltip('Heftseite löschen'), findsOneWidget);
+      await chooseNotebookView(tester, 'Liste');
+      await tap(tester, find.text('Seiten auswählen'));
+      expect(find.text('Alle auswählen'), findsNothing);
+      expect(find.text('Alles löschen'), findsNothing);
       await tester.pumpWidget(const SizedBox());
     },
   );
@@ -688,6 +709,8 @@ void main() {
       await open(
         tester,
         photos: false,
+        parent: true,
+        canManage: true,
         respond: (request) async {
           if (request.method == 'POST') {
             writes.add(request);
@@ -710,7 +733,7 @@ void main() {
             return jsonReply({'deleted_count': 47});
           }
           if (request.url.path.endsWith('/subjects')) {
-            return jsonReply(subjects());
+            return jsonReply(subjects(canManage: true));
           }
           return jsonReply(
             pages(
@@ -751,6 +774,8 @@ void main() {
       await open(
         tester,
         photos: false,
+        parent: true,
+        canManage: true,
         respond: (request) async {
           if (request.method == 'POST') {
             writes.add(request);
@@ -761,17 +786,17 @@ void main() {
             return jsonReply({'count': 2, 'selection_token': 'two-pages'});
           }
           if (request.url.path.endsWith('/subjects')) {
-            return jsonReply(subjects());
+            return jsonReply(subjects(canManage: true));
           }
           return jsonReply(pages(request, photos: false));
         },
       );
       await chooseNotebookView(tester, 'Liste');
       await tap(tester, find.text('Seiten auswählen'));
-      await tap(tester, find.byType(Checkbox).first);
+      await choosePage(tester, 1);
       expect(find.text('Auswahl löschen (1)'), findsOneWidget);
       await tap(tester, find.byTooltip('Nächste Übersicht'));
-      await tap(tester, find.byType(Checkbox).first);
+      await choosePage(tester, 21);
       expect(find.text('Auswahl löschen (2)'), findsOneWidget);
       await tap(tester, find.text('Auswahl löschen (2)'), settle: false);
       expect(find.text('2 Heftseiten löschen?'), findsOneWidget);
@@ -815,17 +840,17 @@ void main() {
       final (state, _, requests) = await open(tester, photos: false);
       await chooseNotebookView(tester, 'Liste');
       await tap(tester, find.text('Seiten auswählen'));
-      await tap(tester, find.text('Alle auswählen'));
-      expect(find.text('Auswahl löschen (47)'), findsOneWidget);
+      await choosePage(tester, 2);
+      expect(find.text('Auswahl löschen (1)'), findsOneWidget);
       await openNotebookSearch(tester);
       await tester.enterText(find.byType(TextField), 'Brüche');
       await tester.pump(const Duration(milliseconds: 400));
       await tap(tester, find.text('Suchen'));
       await tester.pumpAndSettle();
-      expect(find.text('Auswahl löschen (47)'), findsNothing);
+      expect(find.text('Auswahl löschen (1)'), findsNothing);
       expect(find.text('Seiten auswählen'), findsOneWidget);
       await tap(tester, find.text('Seiten auswählen'));
-      await tap(tester, find.text('Alle auswählen'));
+      await choosePage(tester, 2);
       state.user = {
         'id': 'another-child',
         'role': 'child',
@@ -846,13 +871,15 @@ void main() {
     final (_, _, requests) = await open(
       tester,
       photos: false,
+      parent: true,
+      canManage: true,
       respond: (request) async {
         if (request.url.path.endsWith('/delete-preview')) {
           return jsonReply({'count': 47, 'selection_token': 'cancelled'});
         }
         expect(request.method, 'GET');
         if (request.url.path.endsWith('/subjects')) {
-          return jsonReply(subjects());
+          return jsonReply(subjects(canManage: true));
         }
         return jsonReply(pages(request, photos: false));
       },
@@ -896,8 +923,8 @@ void main() {
     );
     await chooseNotebookView(tester, 'Liste');
     await tap(tester, find.text('Seiten auswählen'));
-    await tap(tester, find.text('Alle auswählen'));
-    expect(find.text('Auswahl löschen (47)'), findsOneWidget);
+    await choosePage(tester, 2);
+    expect(find.text('Auswahl löschen (1)'), findsOneWidget);
     expect(tester.takeException(), isNull);
     await tap(tester, find.text('Auswahl aufheben'));
     await chooseNotebookView(tester, 'Kacheln');

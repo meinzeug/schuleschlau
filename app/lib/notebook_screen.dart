@@ -576,16 +576,17 @@ class _NotebookScreenState extends State<_NotebookContext>
           label: Text(selecting ? 'Auswahl aufheben' : 'Seiten auswählen'),
         ),
         if (selecting) ...[
-          TextButton.icon(
-            onPressed: deleting
-                ? null
-                : () => setState(() {
-                    allMatching = true;
-                    selectedIds.clear();
-                  }),
-            icon: Icon(Icons.select_all_rounded),
-            label: Text('Alle auswählen'),
-          ),
+          if (!widget.state.isChild)
+            TextButton.icon(
+              onPressed: deleting
+                  ? null
+                  : () => setState(() {
+                      allMatching = true;
+                      selectedIds.clear();
+                    }),
+              icon: Icon(Icons.select_all_rounded),
+              label: Text('Alle auswählen'),
+            ),
           Text(
             allMatching
                 ? '${counted(selectionCount, 'Seite', 'Seiten')} im gefilterten Hefter ausgewählt'
@@ -604,14 +605,15 @@ class _NotebookScreenState extends State<_NotebookContext>
             label: Text('Auswahl löschen ($selectionCount)'),
           ),
         ],
-        TextButton.icon(
-          onPressed: deleting ? null : () => deletePages(all: true),
-          icon: Icon(Icons.delete_sweep_outlined),
-          label: Text('Alles löschen'),
-          style: TextButton.styleFrom(
-            foregroundColor: Theme.of(context).colorScheme.error,
+        if (!widget.state.isChild)
+          TextButton.icon(
+            onPressed: deleting ? null : () => deletePages(all: true),
+            icon: Icon(Icons.delete_sweep_outlined),
+            label: Text('Alles löschen'),
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(context).colorScheme.error,
+            ),
           ),
-        ),
         if (deleting)
           SizedBox(
             width: 22,

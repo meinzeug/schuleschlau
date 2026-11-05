@@ -117,10 +117,23 @@ Seiten. Reales OTA39->40 und drei Startchecks bestanden. Testhaushalt nach
 Export regulär gelöscht, alte Sitzungen401. Details/aktuelle Artefakte in
 STATUS/Handoff; keine physische Geräte-, Audio- oder Push-Abnahme abgeleitet.
 
-## Heftaktionen ab1.11.0+50
+## Schutz im Kinderzugang
 
-Der ausdrückliche Auftrag vom20.10.2026 erweitert die frühere Löschregel: Kinder
-können eigene bestätigte Seiten in der Heftsammlung entfernen. Papierkorb und
+Kinder können ausschließlich eigene unbestätigte Seiten ohne verknüpfte
+Lernrunden oder Elternaufträge löschen. Tagesseiten behalten zusätzlich ihren
+Stadiumsschutz. Die gesamte Auswahl wird abgelehnt, wenn eine Seite geschützt
+ist oder die Zuordnung nicht zuverlässig geprüft werden kann. Die Prüfung
+erfolgt vor der Vorschau und nach der Sperre erneut; direkte Alt-DELETEs sind
+ebenfalls geschützt. Die Kinderansicht bietet Einzel- und Mehrfachauswahl,
+aber keine globale Auswahl oder pauschale Komplettlöschung. Eltern mit
+Verwaltungsrecht behalten die gezählte Löschvorschau einschließlich der
+ausdrücklich angezeigten verknüpften Runden und Antwortversuche. Erneutes
+Einlesen bestätigter Seiten bleibt für Kinder und berechtigte Eltern möglich.
+
+## Historische Heftaktionen ab1.11.0+50
+
+Der damalige Auftrag vom20.10.2026 erweiterte die frühere Löschregel für Kinder;
+der oben beschriebene spätere Quellenschutz ersetzt diese Freigabe. Papierkorb und
 „Mit KI neu lesen“ stehen direkt über dem Albumfoto und an den Kachel-/Listen-
 seiten. Die Detailansicht bietet dieselben Aktionen. Eltern benötigen weiterhin
 Verwaltungsrechte; Lese-Eltern und Betriebsadministratoren bekommen keinen

@@ -142,10 +142,11 @@ Future<void> tap(WidgetTester tester, String label) async {
 }
 
 void main() {
-  test('Own confirmed child photos are editable; siblings, read-only parents, admin and fixed fixtures are not', () {
+  test('Children can reread confirmed pages but can delete only unconfirmed own pages', () {
     final state = AppState()
       ..user = {'id': 'kid', 'role': 'child', 'child_id': 'child'};
-    expect(materialCanDelete(state, ownPage), isTrue);
+    expect(materialCanDelete(state, ownPage), isFalse);
+    expect(materialCanDelete(state, {...ownPage, 'confirmed': false}), isTrue);
     expect(materialCanReprocess(state, ownPage), isTrue);
     expect(
       materialCanDelete(state, {...ownPage, 'child_id': 'sibling'}),
