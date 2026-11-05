@@ -16,6 +16,8 @@ def test_real_lock_resolves_offline_without_installing():
     packages = locked_packages(INVENTORY)
     assert ('@firebase/app', '0.16.2') in packages
     assert ('@firebase/messaging', '0.13.3') in packages
+    assert ('@firebase/app-compat', '0.5.18') in packages
+    assert ('@firebase/messaging-compat', '0.2.30') in packages
     assert ('idb', '7.1.1') in packages
     check_tree(INVENTORY)
 

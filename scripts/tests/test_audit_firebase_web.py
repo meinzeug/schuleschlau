@@ -3,27 +3,37 @@ from pathlib import Path
 
 import pytest
 
-from scripts.audit_firebase_web import BASE, MODULES, OSV, REGISTRY, audit, osv_findings
+from scripts.audit_firebase_web import BASE, MODULES, WORKER_MODULES, OSV, REGISTRY, audit, osv_findings
 
 
-def test_audit_uses_exact_bootstrap_and_queries_all_three_packages(tmp_path: Path):
+def write_worker(root, imports=WORKER_MODULES):
+    worker = root / 'backend/schulpilot/notifications.py'
+    worker.parent.mkdir(parents=True, exist_ok=True)
+    worker.write_text('\n'.join(f"importScripts('{BASE}{name}');" for name in imports))
+
+
+def test_audit_uses_exact_scripts_and_queries_all_five_packages(tmp_path: Path):
     web = tmp_path / 'app/web'
     web.mkdir(parents=True)
     (web / 'push_bootstrap.js').write_text('\n'.join(f"import('{BASE}{name}')" for name in MODULES))
+    write_worker(tmp_path)
     calls = []
 
     def fake(url, data=None):
         calls.append((url, data))
         if url == REGISTRY:
             return json.dumps({'name': 'firebase', 'version': '12.19.0', 'license': 'Apache-2.0',
-                               'dependencies': {'@firebase/app': '0.16.2', '@firebase/messaging': '0.13.3'}}).encode()
+                               'dependencies': {'@firebase/app': '0.16.2', '@firebase/messaging': '0.13.3',
+                                                '@firebase/app-compat': '0.5.18', '@firebase/messaging-compat': '0.2.30'}}).encode()
         if url == OSV:
             return b'{}'
         return b'public module'
 
     result = audit(tmp_path, fake)
-    assert set(result['npm_advisories']) == {'firebase', '@firebase/app', '@firebase/messaging'}
-    assert len([url for url, _ in calls if url == OSV]) == 3
+    assert set(result['npm_advisories']) == {'firebase', '@firebase/app', '@firebase/messaging',
+                                              '@firebase/app-compat', '@firebase/messaging-compat'}
+    assert len([url for url, _ in calls if url == OSV]) == 5
+    assert set(result['resources']) == set(MODULES + WORKER_MODULES)
     assert result['resources']['firebase-app.js']['bytes'] == 13
 
 
@@ -31,6 +41,32 @@ def test_unknown_bootstrap_does_not_fetch(tmp_path: Path):
     web = tmp_path / 'app/web'
     web.mkdir(parents=True)
     (web / 'push_bootstrap.js').write_text("import('https://www.gstatic.com/firebasejs/1.0.0/firebase-app.js')")
+    with pytest.raises(ValueError, match='scope'):
+        audit(tmp_path, lambda *_: pytest.fail('unexpected request'))
+
+
+@pytest.mark.parametrize('imports', [(), WORKER_MODULES[:1], WORKER_MODULES + (WORKER_MODULES[0],),
+                                    WORKER_MODULES + ('other.js',), ('older.js', WORKER_MODULES[1])])
+def test_changed_worker_imports_do_not_fetch(tmp_path: Path, imports):
+    web = tmp_path / 'app/web'
+    web.mkdir(parents=True)
+    (web / 'push_bootstrap.js').write_text('\n'.join(f"import('{BASE}{name}')" for name in MODULES))
+    write_worker(tmp_path, imports)
+    with pytest.raises(ValueError, match='service-worker'):
+        audit(tmp_path, lambda *_: pytest.fail('unexpected request'))
+
+
+@pytest.mark.parametrize('target', ['bootstrap', 'worker'])
+def test_dynamic_additional_import_does_not_hide_from_scope_check(tmp_path: Path, target):
+    web = tmp_path / 'app/web'
+    web.mkdir(parents=True)
+    bootstrap = web / 'push_bootstrap.js'
+    bootstrap.write_text('\n'.join(f"import('{BASE}{name}')" for name in MODULES))
+    write_worker(tmp_path)
+    worker = tmp_path / 'backend/schulpilot/notifications.py'
+    path = bootstrap if target == 'bootstrap' else worker
+    with path.open('a') as output:
+        output.write('\nimport(dynamicUrl)' if target == 'bootstrap' else '\nimportScripts(dynamicUrl)')
     with pytest.raises(ValueError, match='scope'):
         audit(tmp_path, lambda *_: pytest.fail('unexpected request'))
 

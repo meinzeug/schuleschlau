@@ -1,0 +1,1 @@
+{"name":"schulpilot-firebase-audit","version":"1.0.0","private":true,"dependencies":{"@firebase/app":"0.16.2","@firebase/messaging":"0.13.3","@firebase/app-compat":"0.5.18","@firebase/messaging-compat":"0.2.30"}}

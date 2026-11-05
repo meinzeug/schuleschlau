@@ -108,3 +108,43 @@ Verwendung dieser Paketarchive in Googles CDN-Dateien, die Vollständigkeit der
 Lizenzpflichten und unbekannte Sicherheitslücken sind dadurch nicht belegt.
 Das Ergebnis ist keine Signaturprüfung einer unabhängigen Vertrauensstelle;
 der Lock und seine Herkunft müssen selbst geprüft und geschützt werden.
+
+## Ergänzung 05.11.: Hintergrund-Serviceworker und Compat-Pakete
+
+Die bisherige Untersuchung erfasste die beiden vom Webbootstrap importierten
+Module, **nicht aber** die beiden Compat-Skripte, die der Hintergrund-Push-
+Serviceworker aus `backend/schulpilot/notifications.py` über `importScripts`
+lädt. Der öffentliche Endpunkt `/push/firebase-messaging-sw.js` lieferte bei
+einer lesenden Prüfung am 05.11.2026 tatsächlich die beiden nachfolgenden
+Imports aus `www.gstatic.com/firebasejs/12.19.0/`; die Konfiguration wurde dabei
+nicht ausgegeben. Die vier CDN-Dateien lieferten bei der Abfrage:
+
+| Datei | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `firebase-app.js` | 106558 | `39a50952b5def557337b2290069c7d7371f3515ad46c44a43b9c520f734d8d14` |
+| `firebase-messaging.js` | 37630 | `7572acc95d2f0182ef70bb16b2920b022340bde54cea5962704c745488e98b23` |
+| `firebase-app-compat.js` | 32037 | `11354507ecdd4a0f56f989800ccc8925baf120864d0b8fdd9c372e4c7ec059a6` |
+| `firebase-messaging-compat.js` | 49432 | `0bc50d63f0642d99c974ff0e02c3f5fff88e6665edca545c61c77d18cb62c427` |
+
+Der ergänzte Prüfer erfasst die fest vorgegebenen Modul- und Workerimporte;
+bei abweichender Anzahl oder Zieladresse bricht er vor der Netzwerkabfrage ab.
+Die Auflösung der vier npm-Wurzeln `@firebase/app@0.16.2`,
+`@firebase/messaging@0.13.3`, `@firebase/app-compat@0.5.18` und
+`@firebase/messaging-compat@0.2.30` ist in einem
+[separaten Lock](dependency-inventory/firebase-npm-compat-20261105/package-lock.json)
+festgehalten; der historische Lock bleibt unverändert. Mit npm 10.9.8 wurde
+der Lock ohne Installationsskripte erstellt und offline geprüft. Alle elf
+aufgelösten Paketarchive wurden gegen die SHA-512-Werte des Locks geprüft;
+die paginierte OSV-Abfrage meldete zum Prüfzeitpunkt 05.11.2026,
+11:27:51 UTC, für diese elf Versionen und das separate `firebase@12.19.0`
+keine Kennungen. Der [Prüfbeleg](dependency-inventory/firebase-npm-compat-20261105/audit.json)
+enthält die Einzelwerte und ist mit `python3 scripts/audit_firebase_npm_tree.py`
+erneut erstellbar. Er enthält weder Konten noch Lerninhalte.
+
+Die Importscopeprüfung liest statische Quelltexte; sie ist keine vollständige
+JavaScript-Ausführungs- oder Transitivitätsanalyse. Die CDN-Hashes sind
+Bestandswerte und werden zur Laufzeit nicht als Integritätsprüfung erzwungen.
+Die Paketauflösung belegt nicht die Identität mit Googles CDN-Bundles; auch
+Signaturen, unbekannte Lücken, die vollständigen Lizenzpflichten, weitere
+Webskripte und die übrige Lieferkette bleiben offen. Der lesende Endpunktcheck
+belegt keine Push-Zustellung.

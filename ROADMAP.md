@@ -2030,6 +2030,15 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Sicherheitsprüfung der übrigen Lieferkette ergänzen**
 
+  - [x] **Firebase-Hintergrundworker in die Paketprüfung aufnehmen.** Der
+    bisher übersehene Serviceworker lädt zwei weitere Compat-Skripte. Der
+    lesende Check des öffentlichen Workerendpunkts bestätigt die beiden
+    festen Imports; ein separater npm-Lock erfasst elf aufgelöste Pakete und
+    deren per SHA-512 geprüfte Archive. Die datierte OSV-Abfrage meldete keine
+    Kennungen. CDN-Bundlezuordnung, Laufzeitintegrität, Lizenzen und alle
+    anderen offenen Lieferkettenbestandteile bleiben offen. Details und
+    Grenzen: [Prüfbericht](docs/EXTERNAL_WEB_SCRIPTS_2026_11_04.md#ergänzung-0511-hintergrund-serviceworker-und-compat-pakete).
+
   - [x] **Festgelegte Firebase-npm-Paketarchive tatsächlich prüfen.** Alle
     neun Archive der dokumentierten Auflösung wurden begrenzt und ohne
     Weiterleitung geladen und gegen den gesperrten SHA-512-Wert geprüft; die

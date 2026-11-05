@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Inspect the pinned public Firebase web modules and their npm advisories.
+"""Inspect pinned Firebase web and service-worker scripts and npm advisories.
 
 This read-only check sends no account or user data. It does not inspect dynamically
 loaded payment scripts or establish correspondence between bundles and npm sources.
@@ -13,6 +13,7 @@ from pathlib import Path
 VERSION = '12.19.0'
 BASE = f'https://www.gstatic.com/firebasejs/{VERSION}/'
 MODULES = ('firebase-app.js', 'firebase-messaging.js')
+WORKER_MODULES = ('firebase-app-compat.js', 'firebase-messaging-compat.js')
 REGISTRY = f'https://registry.npmjs.org/firebase/{VERSION}'
 OSV = 'https://api.osv.dev/v1/query'
 MAX_OSV_PAGES = 500
@@ -60,21 +61,31 @@ def osv_findings(name, version, get=fetch):
 
 def audit(root, get=fetch):
     bootstrap = (root / 'app/web/push_bootstrap.js').read_text()
-    actual = set(re.findall(r"https://www\.gstatic\.com/firebasejs/[^'\"]+", bootstrap))
+    actual = re.findall(r"\bimport\(\s*['\"]([^'\"]+)['\"]\s*\)", bootstrap)
     expected = {BASE + module for module in MODULES}
-    if actual != expected:
+    if (set(actual) != expected or len(actual) != len(expected)
+            or len(re.findall(r'\bimport\s*\(', bootstrap)) != len(expected)):
         raise ValueError('Firebase bootstrap imports differ from the fixed audit scope')
+    # The background worker is served by the backend, not the Flutter web
+    # directory. Its compat SDK has its own dependency tree and must not be
+    # omitted when assessing the actual scripts loaded for web push.
+    worker = (root / 'backend/schulpilot/notifications.py').read_text()
+    worker_actual = re.findall(r"importScripts\(\s*['\"]([^'\"]+)['\"]\s*\)", worker)
+    worker_expected = {BASE + module for module in WORKER_MODULES}
+    if (set(worker_actual) != worker_expected or len(worker_actual) != len(worker_expected)
+            or len(re.findall(r'\bimportScripts\s*\(', worker)) != len(worker_expected)):
+        raise ValueError('Firebase service-worker imports differ from the fixed audit scope')
     metadata = json.loads(get(REGISTRY))
     if metadata['name'] != 'firebase' or metadata['version'] != VERSION:
         raise ValueError('Unexpected npm package metadata')
     packages = {'firebase': VERSION}
-    for name in ('@firebase/app', '@firebase/messaging'):
+    for name in ('@firebase/app', '@firebase/messaging', '@firebase/app-compat', '@firebase/messaging-compat'):
         version = metadata['dependencies'][name]
         if not re.fullmatch(r'\d+\.\d+\.\d+', version):
             raise ValueError(f'Non-exact dependency for {name}')
         packages[name] = version
     resources = {}
-    for module in MODULES:
+    for module in (*MODULES, *WORKER_MODULES):
         content = get(BASE + module)
         if not content or len(content) > 4_000_000:
             raise ValueError(f'Invalid response size for {module}')

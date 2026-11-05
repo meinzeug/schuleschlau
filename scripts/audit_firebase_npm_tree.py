@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Audit the locked npm dependency closure of Firebase app and messaging.
+"""Audit the locked npm dependency closure of Firebase web and worker roots.
 
 The lock describes an npm resolution, not proof of the contents of a CDN bundle.
 No account information is sent and no npm install scripts are run.
@@ -23,9 +23,10 @@ except ModuleNotFoundError:
     from audit_firebase_web import VERSION, audit, fetch, osv_findings
 
 ROOT = Path(__file__).resolve().parents[1]
-INVENTORY = ROOT / 'docs/dependency-inventory/firebase-npm-20261104'
+INVENTORY = ROOT / 'docs/dependency-inventory/firebase-npm-compat-20261105'
 REGISTRY = 'https://registry.npmjs.org/'
-ROOTS = {'@firebase/app': '0.16.2', '@firebase/messaging': '0.13.3'}
+ROOTS = {'@firebase/app': '0.16.2', '@firebase/messaging': '0.13.3',
+         '@firebase/app-compat': '0.5.18', '@firebase/messaging-compat': '0.2.30'}
 MAX_ARCHIVE_BYTES = 4_000_000
 
 
