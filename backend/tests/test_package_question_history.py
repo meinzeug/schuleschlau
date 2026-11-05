@@ -6,8 +6,8 @@ from threading import Barrier
 import pytest
 from schulpilot import package_decimal_addition as decimal
 from schulpilot import package_partitions as parts
-from schulpilot.db import DB, Child, Job, SchoolDay, Usage, User, uid
-from schulpilot.package_question_history import unpublished_prompts
+from schulpilot.db import DB, Child, Job, SchoolDay, Usage, User, now, uid
+from schulpilot.package_question_history import unpublished_prompts_for_exclusion as unpublished_prompts
 from test_package_partitions import output, plan, source
 
 
@@ -91,8 +91,6 @@ def test_unpublished_history_rejects_corrupt_or_wrong_owner(household, damage):
         db.flush()
         with pytest.raises(ValueError, match='Teilrundenbeleg'):
             unpublished_prompts(db, own.id, 'Mathematik')
-
-
 def test_decimal_validation_rejects_matching_unpublished_part(household):
     from test_package_decimal_addition import wire
 
@@ -148,3 +146,119 @@ def test_history_reloads_already_cached_day_after_other_transaction(household):
             fresh.get(SchoolDay, day_id).preparation = {}
         assert unpublished_prompts(stale, child['id'], 'Mathematik') == []
         assert cached.preparation == {}
+
+
+@pytest.mark.parametrize('status', ['postponed', 'saved'])
+@pytest.mark.parametrize('age_days', [31, 91])
+def test_expired_inactive_receipt_is_only_an_unverified_exclusion(household, caplog, status, age_days):
+    from schulpilot.preparation_retention import purge
+    from sqlalchemy import select
+
+    _, child = household
+    stamp = int(now())
+    with DB.begin() as db:
+        own = db.get(Child, child['id'])
+        day, job = staged(db, own, day_date='2026-08-01')
+        job_id = job.id
+        usage = db.scalar(select(Usage).where(Usage.job_id == job_id))
+        day.created = job.created = usage.created = stamp - age_days * 86400
+        state = copy.deepcopy(day.preparation)
+        state.update(status=status)
+        day.preparation = state
+        db.flush()
+        purge(db, stamp)
+        db.flush()
+        db.expire_all()
+        assert db.get(Job, job_id) is None
+        assert (db.scalar(select(Usage).where(Usage.job_id == job_id)) is None) == (age_days > 90)
+        assert unpublished_prompts(db, own.id, 'Mathematik') == [
+            'Wie viel ist 1,2 + 3,4?', 'Wie viel ist 2,3 + 4,5?']
+        assert decimal.history(db, own.id) == [['1.2', '3.4'], ['2.3', '4.5']]
+        assert 'expired_unverified_package_receipt_used_only_for_exclusion' in caplog.text
+        assert 'Wie viel' not in caplog.text and 'Katze' not in caplog.text and own.id not in caplog.text
+
+
+def test_missing_recent_or_active_job_remains_an_error(household):
+    _, child = household
+    with DB.begin() as db:
+        own = db.get(Child, child['id'])
+        day, job = staged(db, own, day_date='2026-08-01')
+        state = copy.deepcopy(day.preparation)
+        state['status'] = 'postponed'
+        day.preparation = state
+        db.delete(job)
+        db.flush()
+        with pytest.raises(ValueError, match='Teilrundenbeleg'):
+            unpublished_prompts(db, own.id, 'Mathematik')
+        day.created = int(now()) - 91 * 86400
+        state['status'] = 'processing'
+        day.preparation = state
+        db.flush()
+        with pytest.raises(ValueError, match='Teilrundenbeleg'):
+            unpublished_prompts(db, own.id, 'Mathematik')
+
+
+@pytest.mark.parametrize('status', ['postponed', 'saved'])
+def test_old_inactive_job_without_usage_is_only_negative_exclusion(household, caplog, status):
+    from sqlalchemy import select
+
+    _, child = household
+    with DB.begin() as db:
+        own = db.get(Child, child['id'])
+        day, job = staged(db, own, day_date='2026-08-01')
+        day.created = job.created = int(now()) - 91 * 86400
+        state = copy.deepcopy(day.preparation)
+        state['status'] = status
+        day.preparation = state
+        usage = db.scalar(select(Usage).where(Usage.job_id == job.id))
+        db.delete(usage)
+        db.flush()
+        assert unpublished_prompts(db, own.id, 'Mathematik') == [
+            'Wie viel ist 1,2 + 3,4?', 'Wie viel ist 2,3 + 4,5?']
+        assert 'expired_unverified_package_receipt_used_only_for_exclusion' in caplog.text
+        assert 'Wie viel' not in caplog.text and own.id not in caplog.text
+        job.kind = 'unit'
+        db.flush()
+        with pytest.raises(ValueError, match='Teilrundenbeleg'):
+            unpublished_prompts(db, own.id, 'Mathematik')
+
+
+@pytest.mark.parametrize('missing', ['job', 'usage'])
+def test_old_day_does_not_excuse_a_recent_missing_receipt(household, missing):
+    from sqlalchemy import select
+
+    _, child = household
+    with DB.begin() as db:
+        own = db.get(Child, child['id'])
+        day, job = staged(db, own, day_date='2026-08-01')
+        day.created = int(now()) - 100 * 86400
+        state = copy.deepcopy(day.preparation)
+        state['status'] = 'saved'
+        day.preparation = state
+        if missing == 'job':
+            db.delete(job)
+        else:
+            db.delete(db.scalar(select(Usage).where(Usage.job_id == job.id)))
+        db.flush()
+        with pytest.raises(ValueError, match='Teilrundenbeleg'):
+            unpublished_prompts(db, own.id, 'Mathematik')
+
+
+def test_normal_maintenance_still_removes_expired_day_and_receipts(household):
+    from schulpilot import worker
+    from sqlalchemy import select
+
+    _, child = household
+    with DB.begin() as db:
+        day, job = staged(db, db.get(Child, child['id']), day_date='2025-10-01')
+        day_id, job_id = day.id, job.id
+        usage = db.scalar(select(Usage).where(Usage.job_id == job.id))
+        day.created = job.created = usage.created = int(now()) - 366 * 86400
+        state = copy.deepcopy(day.preparation)
+        state['status'] = 'postponed'
+        day.preparation = state
+    worker.maintenance()
+    with DB() as db:
+        assert db.get(SchoolDay, day_id) is None
+        assert db.get(Job, job_id) is None
+        assert db.scalar(select(Usage).where(Usage.job_id == job_id)) is None

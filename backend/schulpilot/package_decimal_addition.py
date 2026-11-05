@@ -79,10 +79,10 @@ def history(db, child_id, *, ignore_job_ids=()):
             Material.child_id == child_id, Material.confirmed.is_(True))):
         if subject_key(subject) == "mathematik":
             found.update(tuple(pair) for pair in original_pairs([content]))
-    from .package_question_history import unpublished_prompts
+    from .package_question_history import unpublished_prompts_for_exclusion
 
     found.update(tuple(pair) for pair in original_pairs(
-        unpublished_prompts(db, child_id, 'Mathematik', ignore_job_ids=ignore_job_ids)))
+        unpublished_prompts_for_exclusion(db, child_id, 'Mathematik', ignore_job_ids=ignore_job_ids)))
     return [list(value) for value in sorted(found)]
 
 
