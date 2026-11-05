@@ -928,7 +928,7 @@ void main() {
     },
   );
 
-  for (final oldCount in [6, 25]) {
+  for (final oldCount in [6, 25, 26, 27]) {
     scenario(
       'bell keeps a retained visible notice while its cache rotates ($oldCount old)',
       (tester) async {
@@ -938,6 +938,7 @@ void main() {
         addTearDown(tester.view.resetDevicePixelRatio);
         final pending = Completer<http.Response>();
         final reads = <String>[];
+        var lastPageCalls = 0;
         final fixture = await display(tester, (request) async {
           if (request.method == 'POST') {
             reads.addAll(
@@ -947,7 +948,14 @@ void main() {
           }
           final cursor = request.url.queryParameters['cursor'];
           final page = cursor == null ? 0 : int.parse(cursor.substring(1));
-          if (page == 3) return pending.future;
+          if (page == 3) {
+            lastPageCalls++;
+            if (lastPageCalls == 1) return pending.future;
+            return reply({
+              'items': [notice('p3-0'), notice('p3-1')],
+              'next_cursor': null,
+            });
+          }
           return reply({
             'items': [
               for (var i = 0; i < (page == 1 ? oldCount : 2); i++)
@@ -978,7 +986,51 @@ void main() {
         await tester.pumpAndSettle();
         final anchor = find.text('Künstliche Meldung p2-0');
         expect(anchor.hitTestable(), findsOneWidget);
-        final before = tester.getTopLeft(anchor).dy;
+        TestGesture? gesture;
+        if (oldCount >= 26) {
+          final pos = tester
+              .state<ScrollableState>(
+                find.descendant(of: scroll, matching: find.byType(Scrollable)),
+              )
+              .position;
+          final view = tester.getRect(scroll);
+          final anchorTop = tester.getTopLeft(anchor).dy;
+          pos.jumpTo(
+            (pos.pixels + anchorTop - view.top - 110).clamp(
+              pos.minScrollExtent,
+              pos.maxScrollExtent,
+            ),
+          );
+          await tester.pumpAndSettle();
+          if (oldCount == 27) {
+            await tester.fling(scroll, const Offset(0, 220), 1200);
+            await tester.pump(const Duration(milliseconds: 16));
+          } else {
+            gesture = await tester.startGesture(tester.getCenter(anchor));
+            await gesture.moveBy(const Offset(0, -35));
+            await tester.pump(const Duration(milliseconds: 500));
+          }
+          expect(
+            tester
+                .state<ScrollableState>(
+                  find.descendant(
+                    of: scroll,
+                    matching: find.byType(Scrollable),
+                  ),
+                )
+                .position
+                .isScrollingNotifier
+                .value,
+            isTrue,
+          );
+        }
+        final before = oldCount == 27 ? 0.0 : tester.getTopLeft(anchor).dy;
+        if (gesture != null) {
+          expect(
+            tester.getRect(anchor).overlaps(tester.getRect(scroll)),
+            isTrue,
+          );
+        }
         if (!fixture.state.inbox.loadingMore) {
           await tester.tap(
             find.byKey(const ValueKey('notification-load-more')),
@@ -995,13 +1047,109 @@ void main() {
             'next_cursor': null,
           }),
         );
+        if (oldCount == 27) {
+          await tester.pump(const Duration(milliseconds: 16));
+          expect(fixture.state.inbox.historyTrimmed, isFalse);
+          expect(
+            tester
+                .state<ScrollableState>(
+                  find.descendant(
+                    of: scroll,
+                    matching: find.byType(Scrollable),
+                  ),
+                )
+                .position
+                .isScrollingNotifier
+                .value,
+            isTrue,
+          );
+        }
+        if (gesture != null) {
+          await tester.pump();
+          expect(fixture.state.inbox.historyTrimmed, isFalse);
+          expect(
+            tester.getRect(anchor).overlaps(tester.getRect(scroll)),
+            isTrue,
+          );
+          expect(tester.getTopLeft(anchor).dy, closeTo(before, 1));
+          await gesture.up();
+        }
         await tester.pumpAndSettle();
         expect(fixture.state.inbox.historyTrimmed, isTrue);
-        expect(anchor.hitTestable(), findsOneWidget);
-        expect(tester.getTopLeft(anchor).dy, closeTo(before, 1));
+        if (oldCount != 27) {
+          expect(anchor.hitTestable(), findsOneWidget);
+          expect(tester.getTopLeft(anchor).dy, closeTo(before, 1));
+        }
         if (oldCount == 25) expect(reads, isNot(contains('p3-19')));
+        if (oldCount >= 26) expect(lastPageCalls, 2);
       },
     );
+  }
+
+  for (final fling in [false, true]) {
+    scenario('periodic refresh waits for active ${fling ? 'fling' : 'drag'}', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(390, 760);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final pending = Completer<http.Response>();
+      var defer = false;
+      var refreshCalls = 0;
+      http.Response result(String prefix) => reply({
+        'items': [
+          for (var i = 0; i < 25; i++) notice('$prefix-$i', read: true),
+        ],
+        'unread': 0,
+        'next_cursor': null,
+      });
+      final fixture = await display(tester, (request) async {
+        if (request.method == 'POST') return reply({});
+        if (defer) {
+          refreshCalls++;
+          if (refreshCalls == 1) return pending.future;
+          return result('fresh');
+        }
+        return result('original');
+      }, bell: true);
+      await tester.tap(find.byKey(const ValueKey('notification-bell')));
+      await tester.pumpAndSettle();
+      final scroll = find.byKey(const ValueKey('notification-preview-scroll'));
+      await tester.drag(scroll, const Offset(0, -500));
+      await tester.pumpAndSettle();
+      TestGesture? gesture;
+      if (fling) {
+        await tester.fling(scroll, const Offset(0, 200), 1200);
+        await tester.pump(const Duration(milliseconds: 16));
+      } else {
+        gesture = await tester.startGesture(tester.getCenter(scroll));
+        await gesture.moveBy(const Offset(0, -30));
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      expect(
+        tester
+            .state<ScrollableState>(
+              find.descendant(of: scroll, matching: find.byType(Scrollable)),
+            )
+            .position
+            .isScrollingNotifier
+            .value,
+        isTrue,
+      );
+      defer = true;
+      final request = fixture.state.inbox.refresh();
+      pending.complete(result('stale'));
+      await tester.pump();
+      expect(fixture.state.inbox.items.first['id'], 'original-0');
+      expect(fixture.state.inbox.loading, isTrue);
+      if (gesture != null) await gesture.up();
+      await tester.pumpAndSettle();
+      await request;
+      expect(refreshCalls, 2);
+      expect(fixture.state.inbox.items.first['id'], 'fresh-0');
+      expect(fixture.state.inbox.loading, isFalse);
+    });
   }
 
   scenario('full notification screen can load older notices', (tester) async {

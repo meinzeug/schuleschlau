@@ -17,6 +17,7 @@ import 'legal_links.dart';
 import 'schulbuddy.dart';
 import 'schulpilot_icons.dart';
 import 'notification_visibility.dart';
+import 'notification_inbox.dart' show NoticePublishGate;
 
 // Shared light-surface palette. Cyan is an accent on navy, not a text color
 // on white. Keep secondary text opaque so nested surfaces preserve contrast.
@@ -2790,12 +2791,15 @@ class NotificationBell extends StatefulWidget {
   State<NotificationBell> createState() => _NotificationBellState();
 }
 
-class _NotificationBellState extends State<NotificationBell> {
+class _NotificationBellState extends State<NotificationBell>
+    with WidgetsBindingObserver {
   final _menu = MenuController();
   final _previewScroll = ScrollController();
   final _previewAnchors = <String, GlobalKey>{};
   List<String> _previewIds = [];
   int _previewRevision = 0;
+  final _previewWaiters = <VoidCallback>{};
+  final Object _refreshGateOwner = Object();
   Json? _snapshot;
   String? _family, _token;
   bool _opening = false;
@@ -2804,6 +2808,7 @@ class _NotificationBellState extends State<NotificationBell> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _snapshot = widget.state.user;
     _family = widget.state.familyId;
     _token = widget.state.api.token;
@@ -2815,6 +2820,85 @@ class _NotificationBellState extends State<NotificationBell> {
         .toList();
     _previewScroll.addListener(_loadMoreOnScroll);
   }
+
+  void _cancelPreviewWaiters() {
+    for (final cancel in _previewWaiters.toList()) {
+      cancel();
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) {
+      _cancelPreviewWaiters();
+      widget.state.inbox.unregisterRefreshGate(_refreshGateOwner);
+    } else if (mounted && _menu.isOpen) {
+      widget.state.inbox.registerRefreshGate(
+        _refreshGateOwner,
+        _waitForRefreshRest,
+      );
+    }
+  }
+
+  Future<NoticePublishGate> _waitForPreviewRest() async {
+    if (!mounted ||
+        !_menu.isOpen ||
+        ModalRoute.of(context)?.isCurrent == false ||
+        !_previewScroll.hasClients) {
+      return NoticePublishGate.cancelled;
+    }
+    final state = widget.state;
+    final owner = state.user, family = state.familyId, token = state.api.token;
+    final route = ModalRoute.of(context);
+    final scrolling = _previewScroll.position.isScrollingNotifier;
+    if (!scrolling.value) return NoticePublishGate.ready;
+    final result = Completer<NoticePublishGate>();
+    late VoidCallback cancel, onScroll;
+    late Timer timeout;
+    void finish(NoticePublishGate value) {
+      if (result.isCompleted) return;
+      scrolling.removeListener(onScroll);
+      _previewWaiters.remove(cancel);
+      timeout.cancel();
+      result.complete(value);
+    }
+
+    cancel = () => finish(NoticePublishGate.cancelled);
+    onScroll = () {
+      if (!scrolling.value) finish(NoticePublishGate.delayed);
+    };
+    timeout = Timer(const Duration(seconds: 3), cancel);
+    _previewWaiters.add(cancel);
+    scrolling.addListener(onScroll);
+    if (!scrolling.value) finish(NoticePublishGate.delayed);
+    final outcome = await result.future;
+    if (!mounted ||
+        !_menu.isOpen ||
+        !identical(widget.state, state) ||
+        !_sameHeaderAccount(state, owner) ||
+        state.familyId != family ||
+        state.api.token != token ||
+        route?.isCurrent == false) {
+      return NoticePublishGate.cancelled;
+    }
+    return outcome;
+  }
+
+  Future<NoticePublishGate> _waitForRefreshRest() {
+    if (!mounted ||
+        !_menu.isOpen ||
+        ModalRoute.of(context)?.isCurrent == false) {
+      return Future.value(NoticePublishGate.cancelled);
+    }
+    // An empty/loading menu has no list and thus cannot have an active drag.
+    if (!_previewScroll.hasClients) {
+      return Future.value(NoticePublishGate.ready);
+    }
+    return _waitForPreviewRest();
+  }
+
+  Future<void> _loadMorePreview() =>
+      widget.state.inbox.loadMore(beforePublish: _waitForPreviewRest);
 
   void _previewChanged() {
     final next = widget.state.inbox.items
@@ -2902,7 +2986,7 @@ class _NotificationBellState extends State<NotificationBell> {
         _previewScroll.position.isScrollingNotifier.value &&
         widget.state.inbox.moreError == null &&
         _previewScroll.position.extentAfter < 120) {
-      unawaited(widget.state.inbox.loadMore());
+      unawaited(_loadMorePreview());
     }
   }
 
@@ -2910,6 +2994,8 @@ class _NotificationBellState extends State<NotificationBell> {
   void didUpdateWidget(covariant NotificationBell oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.state != widget.state) {
+      _cancelPreviewWaiters();
+      oldWidget.state.inbox.unregisterRefreshGate(_refreshGateOwner);
       _menu.close();
       _opening = false;
       _openRevision++;
@@ -2931,6 +3017,8 @@ class _NotificationBellState extends State<NotificationBell> {
     if (!_sameHeaderAccount(widget.state, _snapshot) ||
         widget.state.familyId != _family ||
         widget.state.api.token != _token) {
+      _cancelPreviewWaiters();
+      widget.state.inbox.unregisterRefreshGate(_refreshGateOwner);
       _menu.close();
       _opening = false;
       _openRevision++;
@@ -2948,6 +3036,9 @@ class _NotificationBellState extends State<NotificationBell> {
 
   @override
   void dispose() {
+    _cancelPreviewWaiters();
+    widget.state.inbox.unregisterRefreshGate(_refreshGateOwner);
+    WidgetsBinding.instance.removeObserver(this);
     widget.state.removeListener(_changed);
     widget.state.inbox.removeListener(_previewChanged);
     _previewScroll.removeListener(_loadMoreOnScroll);
@@ -3038,6 +3129,7 @@ class _NotificationBellState extends State<NotificationBell> {
         onOpen: () {
           if (!state.isAdmin) {
             inbox.activate(account, family: family, session: token);
+            inbox.registerRefreshGate(_refreshGateOwner, _waitForRefreshRest);
             inbox.refresh();
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (mounted &&
@@ -3050,6 +3142,8 @@ class _NotificationBellState extends State<NotificationBell> {
           }
         },
         onClose: () {
+          _cancelPreviewWaiters();
+          widget.state.inbox.unregisterRefreshGate(_refreshGateOwner);
           _previewRevision++;
         },
         menuChildren: [
@@ -3285,7 +3379,7 @@ class _NotificationBellState extends State<NotificationBell> {
                   icon: const Icon(Icons.expand_more_rounded),
                   onPressed: inbox.loading || inbox.loadingMore
                       ? null
-                      : () => inbox.loadMore(),
+                      : _loadMorePreview,
                   label: Text(
                     inbox.loadingMore ? 'Wird geladen …' : 'Weitere laden',
                   ),

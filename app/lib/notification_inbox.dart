@@ -8,6 +8,11 @@ class _CursorLoop implements Exception {
   const _CursorLoop();
 }
 
+/// Whether a UI consumer permits the already fetched page to be published.
+/// A delayed page is fetched once more after the interaction ends, so a long
+/// gesture cannot bypass a fresh server-side rights and receipt check.
+enum NoticePublishGate { ready, delayed, cancelled }
+
 class _NoticePage {
   final String? start, next;
   final List<Json> items;
@@ -20,8 +25,11 @@ class NotificationInbox extends ChangeNotifier {
   NotificationInbox(this.api);
   String? _account, _family, _session;
   int _generation = 0;
+  int _foregroundRevision = 0;
   int _readRevision = 0;
   final _readsInFlight = <String, Future<void>>{};
+  final _refreshGates = <Object, Future<NoticePublishGate> Function()>{};
+  int _refreshGateRevision = 0;
   bool _foreground = true, _loading = false, _loadingMore = false;
   bool _disposed = false, _resumeRefreshPending = false;
   // The newest page stays visible; at most two older consecutive pages are
@@ -44,6 +52,33 @@ class NotificationInbox extends ChangeNotifier {
   bool get loading => _loading;
   bool get loadingMore => _loadingMore;
 
+  void _discardPrivateSnapshot() {
+    _pages = [];
+    _seenCursors.clear();
+    historyTrimmed = false;
+    supportsPagination = false;
+    items = [];
+    unread = 0;
+    nextCursor = moreError = null;
+    hasLoaded = false;
+    error =
+        'Neuigkeiten konnten nicht geladen werden. Bitte versuche es erneut.';
+  }
+
+  /// A short-lived visible view can defer only successful refresh publication.
+  /// Opaque owners avoid retaining or exposing a session token as an identity.
+  void registerRefreshGate(
+    Object owner,
+    Future<NoticePublishGate> Function() gate,
+  ) {
+    _refreshGates[owner] = gate;
+    _refreshGateRevision++;
+  }
+
+  void unregisterRefreshGate(Object owner) {
+    if (_refreshGates.remove(owner) != null) _refreshGateRevision++;
+  }
+
   void activate(String? account, {String? family, String? session}) {
     if (account == null) {
       family = null;
@@ -51,6 +86,9 @@ class NotificationInbox extends ChangeNotifier {
     }
     if (_account == account && _family == family && _session == session) return;
     _generation++;
+    // A gate belongs to the previous account context, never the next one.
+    _refreshGates.clear();
+    _refreshGateRevision++;
     _readRevision = 0;
     _readsInFlight.clear();
     _account = account;
@@ -82,6 +120,7 @@ class NotificationInbox extends ChangeNotifier {
 
   void foreground(bool value) {
     final resume = value && !_foreground;
+    if (_foreground != value) _foregroundRevision++;
     _foreground = value;
     if (resume) {
       if (_loading || _loadingMore) {
@@ -104,75 +143,118 @@ class NotificationInbox extends ChangeNotifier {
       return;
     }
     final generation = _generation;
-    final readRevision = _readRevision;
-    var retryAfterRead = false;
+    final foregroundRevision = _foregroundRevision;
     _loading = true;
     // Refresh can begin while a sibling (the bell) is being rebuilt on navigation.
     scheduleMicrotask(() {
       if (!_disposed && generation == _generation) notifyListeners();
     });
     try {
-      final data = await api.get('/notifications/inbox?paginate=1');
-      if (generation != _generation) return;
-      if (readRevision != _readRevision) {
-        // The old snapshot must not undo a receipt, but discarding it alone
-        // can also hide newly arrived events until the next periodic refresh.
-        retryAfterRead = true;
-        return;
-      }
-      final head = _parsePage(data, null);
-      final refreshedPages = <_NoticePage>[head];
-      final refreshCursors = <String>{};
-      final wantsHistory = data.containsKey('next_cursor') && _pages.length > 1;
-      var cursor = historyTrimmed && wantsHistory ? _pages[1].start : head.next;
-      while (wantsHistory &&
-          refreshedPages.length < _pages.length &&
-          cursor != null) {
-        if (!refreshCursors.add(cursor)) throw const _CursorLoop();
-        final query = Uri(queryParameters: {'paginate': '1', 'cursor': cursor})
-            .query;
-        final data = await api.get('/notifications/inbox?$query');
-        if (_disposed || generation != _generation) return;
-        if (readRevision != _readRevision) {
-          retryAfterRead = true;
+      // A read receipt or a gesture can invalidate a fetched snapshot. Both
+      // share one retry budget; neither can create an automatic retry loop.
+      for (var attempt = 0; attempt < 2; attempt++) {
+        final readRevision = _readRevision;
+        final data = await api.get('/notifications/inbox?paginate=1');
+        if (_disposed ||
+            generation != _generation ||
+            !_foreground ||
+            foregroundRevision != _foregroundRevision) {
           return;
         }
-        final page = _parsePage(data, cursor);
-        if (page.next != null && refreshCursors.contains(page.next)) {
-          throw const _CursorLoop();
+        if (readRevision != _readRevision) continue;
+        final head = _parsePage(data, null);
+        final refreshedPages = <_NoticePage>[head];
+        final refreshCursors = <String>{};
+        final wantsHistory =
+            data.containsKey('next_cursor') && _pages.length > 1;
+        var cursor = historyTrimmed && wantsHistory
+            ? _pages[1].start
+            : head.next;
+        var readChanged = false;
+        while (wantsHistory &&
+            refreshedPages.length < _pages.length &&
+            cursor != null) {
+          if (!refreshCursors.add(cursor)) throw const _CursorLoop();
+          final query = Uri(
+            queryParameters: {'paginate': '1', 'cursor': cursor},
+          ).query;
+          final historical = await api.get('/notifications/inbox?$query');
+          if (_disposed ||
+              generation != _generation ||
+              !_foreground ||
+              foregroundRevision != _foregroundRevision) {
+            return;
+          }
+          if (readRevision != _readRevision) {
+            readChanged = true;
+            break;
+          }
+          final page = _parsePage(historical, cursor);
+          if (page.next != null && refreshCursors.contains(page.next)) {
+            throw const _CursorLoop();
+          }
+          refreshedPages.add(page);
+          cursor = page.next;
         }
-        refreshedPages.add(page);
-        cursor = page.next;
+        if (readChanged) continue;
+        final gateRevision = _refreshGateRevision;
+        if (_refreshGates.isNotEmpty) {
+          List<NoticePublishGate> gates;
+          try {
+            gates = await Future.wait(
+              _refreshGates.values.toList().map((gate) => gate()),
+            ).timeout(const Duration(seconds: 3));
+          } catch (_) {
+            // UI gate failures are not server errors and must not clear data.
+            return;
+          }
+          if (_disposed ||
+              generation != _generation ||
+              !_foreground ||
+              foregroundRevision != _foregroundRevision ||
+              gateRevision != _refreshGateRevision ||
+              gates.contains(NoticePublishGate.cancelled)) {
+            return;
+          }
+          if (readRevision != _readRevision ||
+              gates.contains(NoticePublishGate.delayed)) {
+            continue;
+          }
+        }
+        // No await between the final gate/receipt check and the atomic update.
+        if (readRevision != _readRevision) continue;
+        _pages = refreshedPages;
+        _seenCursors
+          ..clear()
+          ..addAll(refreshCursors);
+        supportsPagination = data.containsKey('next_cursor');
+        if (!supportsPagination || _pages.length == 1) historyTrimmed = false;
+        _rebuildItems();
+        final retention = data['retention_days'];
+        final limit = data['limit'];
+        retentionDays = retention is int && retention >= 1 && retention <= 365
+            ? retention
+            : 30;
+        itemLimit = limit is int && limit >= 1 && limit <= 500 ? limit : 50;
+        error = null;
+        moreError = null;
+        hasLoaded = true;
+        return;
       }
-      _pages = refreshedPages;
-      _seenCursors
-        ..clear()
-        ..addAll(refreshCursors);
-      supportsPagination = data.containsKey('next_cursor');
-      if (!supportsPagination || _pages.length == 1) historyTrimmed = false;
-      _rebuildItems();
-      final retention = data['retention_days'];
-      final limit = data['limit'];
-      retentionDays = retention is int && retention >= 1 && retention <= 365
-          ? retention
-          : 30;
-      itemLimit = limit is int && limit >= 1 && limit <= 500 ? limit : 50;
-      error = null;
-      moreError = null;
-      hasLoaded = true;
-    } catch (_) {
-      if (generation == _generation) {
+    } catch (failure) {
+      if (generation == _generation &&
+          failure is ApiError &&
+          failure.status == 429) {
+        _resumeRefreshPending = false;
+      }
+      final denied =
+          failure is ApiError &&
+          (failure.status == 401 || failure.status == 403);
+      if (generation == _generation &&
+          (denied || foregroundRevision == _foregroundRevision)) {
         // A failed rights/source revalidation must not keep previously cached
         // private notices on screen as though they were still authorized.
-        _pages = [];
-        _seenCursors.clear();
-        historyTrimmed = false;
-        supportsPagination = false;
-        items = [];
-        unread = 0;
-        nextCursor = moreError = null;
-        hasLoaded = false;
-        error = 'Neuigkeiten konnten nicht geladen werden. Bitte versuche es erneut.';
+        _discardPrivateSnapshot();
       }
     } finally {
       if (!_disposed && generation == _generation) {
@@ -180,7 +262,7 @@ class NotificationInbox extends ChangeNotifier {
         notifyListeners();
         if (!_disposed &&
             generation == _generation &&
-            (retryAfterRead || _resumeRefreshPending) &&
+            _resumeRefreshPending &&
             _foreground) {
           _resumeRefreshPending = false;
           unawaited(refresh());
@@ -190,7 +272,9 @@ class NotificationInbox extends ChangeNotifier {
   }
 
   /// Explicit or scroll-triggered continuation. GET never creates events.
-  Future<void> loadMore() async {
+  Future<void> loadMore({
+    Future<NoticePublishGate> Function()? beforePublish,
+  }) async {
     final cursor = nextCursor;
     if (_disposed ||
         _account == null ||
@@ -206,6 +290,7 @@ class NotificationInbox extends ChangeNotifier {
       return;
     }
     final generation = _generation;
+    final foregroundRevision = _foregroundRevision;
     _loadingMore = true;
     moreError = null;
     notifyListeners();
@@ -218,8 +303,26 @@ class NotificationInbox extends ChangeNotifier {
       for (var attempt = 0; attempt < 2; attempt++) {
         final readRevision = _readRevision;
         final response = await api.get('/notifications/inbox?$query');
-        if (_disposed || generation != _generation) return;
-        if (readRevision == _readRevision) {
+        if (_disposed ||
+            generation != _generation ||
+            foregroundRevision != _foregroundRevision) {
+          return;
+        }
+        NoticePublishGate gate;
+        try {
+          gate = await beforePublish?.call() ?? NoticePublishGate.ready;
+        } catch (_) {
+          // View-lifecycle failures are never authorization responses.
+          return;
+        }
+        if (_disposed ||
+            generation != _generation ||
+            foregroundRevision != _foregroundRevision ||
+            !_foreground ||
+            gate == NoticePublishGate.cancelled) {
+          return;
+        }
+        if (readRevision == _readRevision && gate == NoticePublishGate.ready) {
           data = response;
           break;
         }
@@ -239,10 +342,22 @@ class NotificationInbox extends ChangeNotifier {
       }
       _rebuildItems();
     } catch (error) {
-      if (generation == _generation) {
-        moreError = error is _CursorLoop
-            ? 'Laden angehalten.'
-            : 'Laden nicht möglich.';
+      if (generation == _generation &&
+          error is ApiError &&
+          error.status == 429) {
+        _resumeRefreshPending = false;
+      }
+      final denied =
+          error is ApiError && (error.status == 401 || error.status == 403);
+      if (generation == _generation &&
+          (denied || foregroundRevision == _foregroundRevision)) {
+        if (denied) {
+          _discardPrivateSnapshot();
+        } else {
+          moreError = error is _CursorLoop
+              ? 'Laden angehalten.'
+              : 'Laden nicht möglich.';
+        }
       }
     } finally {
       if (!_disposed && generation == _generation) {
@@ -355,6 +470,11 @@ class NotificationInbox extends ChangeNotifier {
   void dispose() {
     _disposed = true;
     _generation++;
+    _loading = false;
+    _loadingMore = false;
+    _resumeRefreshPending = false;
+    _refreshGates.clear();
+    _refreshGateRevision++;
     _timer?.cancel();
     super.dispose();
   }

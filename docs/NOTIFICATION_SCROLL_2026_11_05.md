@@ -52,10 +52,41 @@ Karten und bis zu 20 neuen Karten. Ein nicht sichtbarer neuer Eintrag bleibt
 ungelesen. Eine Scrollaktion vor dem Korrekturcallback sowie ein Familienwechsel
 bei verzögerter Antwort wurden ebenfalls geprüft. Die vorhandenen Tests zur
 Inbox und Sichtbarkeitsmarkierung bestanden vor diesen letzten Ergänzungen mit
-82 Fällen. Ein unabhängiger Review und der Chrome-Webrunner stehen noch aus.
+82 Fällen. Die beiden Rotationsfälle sowie Familienwechsel und eigene
+Scrollaktion bestanden anschließend im Chrome-Webrunner. Ein unabhängiger
+Review fand keinen konkreten Datenschutzfehler, verwies aber auf die Grenzen
+der virtuellen Liste.
 Ist nach dem Layout keine zuvor sichtbare Karte mehr als Renderobjekt vorhanden,
 erlauben die Scrollgrenzen die Zielposition nicht oder wird beim Callback aktiv
 gescrollt, garantiert der Algorithmus keine vollständige Positionserhaltung.
 Insbesondere ein schneller Abschluss während eines aktiven Drags oder Flings
 ist gesondert zu untersuchen. Die übergreifende Benachrichtigungs- und
 Geräteabnahme bleibt offen.
+
+## Glocke: Aktualisierung während einer aktiven Geste
+
+Der isolierte Stand hält sowohl das Nachladen älterer Meldungen als auch die
+Übernahme erfolgreich aktualisierter Listen während einer Geste bis zu drei
+Sekunden zurück. Nach einer Verzögerung werden die betroffenen Seiten einmal
+erneut abgerufen und Konto, Familie, Sitzung, Vordergrundrevision und
+Lesemarkierungen erneut geprüft. Menüschluss, Hintergrund und Kontextwechsel
+brechen das Warten ab. Das sind begrenzte GETs, keine KI-Aufträge.
+
+HTTP-401/403-Antworten des aktuellen Kontokontexts leeren den privaten Cache
+auch während der Geste; UI-Gatefehler werden nicht als Rechtefehler behandelt.
+Ein 429 löst keinen automatischen Wiederholungsversuch über die
+Vordergrundwiederaufnahme aus. Ein unbekannter serverseitiger Rechteentzug ist
+ohne Widerrufssignal erst nach einem entsprechenden Serverfehler erkennbar.
+Nach Timeout bleibt der alte Stand erhalten und die nächste bewusste oder
+periodische Aktualisierung kann erneut versuchen. Zwei aufeinanderfolgende
+Verzögerungen beim Nachladen können als Ladefehler erscheinen.
+
+125 künstliche Flutter-VM-Tests bestanden, darunter UI-Drag und Fling bei
+periodischem Refresh, Kontext- und Vordergrundwechsel, Leserevision, Timeout,
+401/403 und 429. Die API-Mocktests belegen die Inbox-Grenze, nicht den
+vollständigen globalen 401-Sitzungswiderruf. Die Tests sind keine umfassende
+Geräte-, Produktions- oder Barrierefreiheitsabnahme. Ein unabhängiger Code-Review fand keinen weiteren konkreten Blocker. Zwei
+gezielte Webrunner-Tests für Drag und Fling bei periodischem Refresh bestanden
+in Chrome bei 390 Pixeln. Die vollständige Flutter-Analyse wurde wegen einer
+langanhaltenden I/O-Blockade ohne Ergebnis abgebrochen. Die anschließende
+gezielte Dart-Analyse aller geänderten Dart-Dateien ergab keine Befunde.

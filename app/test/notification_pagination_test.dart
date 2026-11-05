@@ -20,6 +20,137 @@ void main() {
         200,
       );
 
+  test('delayed page is refetched before publishing', () async {
+    final gate = Completer<NoticePublishGate>();
+    var pages = 0;
+    final inbox = NotificationInbox(
+      Api(
+        base: 'https://example.invalid/api',
+        client: MockClient((r) async {
+          if (r.url.queryParameters['cursor'] == null) {
+            return response([
+              {'id': 'head', 'read': true},
+            ], 'next');
+          }
+          pages++;
+          return response([
+            {'id': pages == 1 ? 'stale' : 'fresh', 'read': true},
+          ]);
+        }),
+      ),
+    );
+    inbox.activate('child', family: 'family', session: 'session');
+    await Future<void>.delayed(Duration.zero);
+    var gates = 0;
+    final request = inbox.loadMore(
+      beforePublish: () {
+        gates++;
+        return gates == 1 ? gate.future : Future.value(NoticePublishGate.ready);
+      },
+    );
+    await Future<void>.delayed(Duration.zero);
+    expect(inbox.loadingMore, isTrue);
+    expect(inbox.items.map((item) => item['id']), ['head']);
+    gate.complete(NoticePublishGate.delayed);
+    await request;
+    expect(pages, 2);
+    expect(inbox.items.map((item) => item['id']), ['head', 'fresh']);
+    expect(inbox.loadingMore, isFalse);
+    inbox.dispose();
+  });
+
+  for (final change in ['cancelled', 'account', 'background']) {
+    test(
+      'blocked page is discarded after $change and does not retain loading',
+      () async {
+        final gate = Completer<NoticePublishGate>();
+        final inbox = NotificationInbox(
+          Api(
+            base: 'https://example.invalid/api',
+            client: MockClient(
+              (r) async => r.url.queryParameters['cursor'] == null
+                  ? response([
+                      {'id': 'head', 'read': true},
+                    ], 'next')
+                  : response([
+                      {'id': 'old-page', 'read': true},
+                    ]),
+            ),
+          ),
+        );
+        inbox.activate('child', family: 'family', session: 'session');
+        await Future<void>.delayed(Duration.zero);
+        final request = inbox.loadMore(beforePublish: () => gate.future);
+        await Future<void>.delayed(Duration.zero);
+        if (change == 'account') {
+          inbox.activate('other', family: 'other', session: 'new');
+        }
+        if (change == 'background') inbox.foreground(false);
+        gate.complete(
+          change == 'cancelled'
+              ? NoticePublishGate.cancelled
+              : NoticePublishGate.ready,
+        );
+        await request;
+        expect(
+          inbox.items.map((item) => item['id']),
+          isNot(contains('old-page')),
+        );
+        expect(inbox.loadingMore, isFalse);
+        inbox.dispose();
+      },
+    );
+  }
+
+  test('a read while publication waits survives the bounded refetch', () async {
+    final gate = Completer<NoticePublishGate>();
+    var pageCalls = 0;
+    final inbox = NotificationInbox(
+      Api(
+        base: 'https://example.invalid/api',
+        client: MockClient((r) async {
+          if (r.method == 'POST') {
+            return http.Response(
+              '{}',
+              200,
+              headers: {'content-type': 'application/json'},
+            );
+          }
+          if (r.url.queryParameters['cursor'] == null) {
+            return response([
+              {'id': 'head', 'read': false},
+            ], 'next');
+          }
+          pageCalls++;
+          return response([
+            {'id': 'head', 'read': pageCalls > 1},
+            {'id': 'older', 'read': false},
+          ]);
+        }),
+      ),
+    );
+    inbox.activate('child', family: 'family', session: 'session');
+    await Future<void>.delayed(Duration.zero);
+    var gates = 0;
+    final loading = inbox.loadMore(
+      beforePublish: () {
+        gates++;
+        return gates == 1 ? gate.future : Future.value(NoticePublishGate.ready);
+      },
+    );
+    await Future<void>.delayed(Duration.zero);
+    await inbox.markRead(['head']);
+    gate.complete(NoticePublishGate.delayed);
+    await loading;
+    expect(pageCalls, 2);
+    expect(
+      inbox.items.singleWhere((item) => item['id'] == 'head')['read'],
+      isTrue,
+    );
+    expect(inbox.unread, 1);
+    inbox.dispose();
+  });
+
   test(
     'loads an empty intermediate page and appends later unique notices',
     () async {
