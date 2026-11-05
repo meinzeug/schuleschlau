@@ -1762,6 +1762,15 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Benachrichtigung und direkte Zielnavigation vollständig prüfen**
 
+  - [x] **Lesebelege beim Scrollen und über getrennte Sitzungen synthetisch prüfen.**
+    05.11.2026, Coding-AI: Sichtbar gelesene und nicht erreichte Meldungen werden bei einem simulierten
+    Gerätewechsel getrennt behandelt. Paginierte Backendmeldungen behalten den
+    Lesestatus über zwei Sitzungen desselben Kontos; ein anderes berechtigtes
+    Konto derselben Familie behält seinen eigenen Stand. SQLite-, PostgreSQL-
+    und mobiler Flutter-Widgettest bestanden. Der Widgettest nutzt einen
+    künstlichen HTTP-Dienst; ein Ende-zu-Ende-Test mit zwei echten oder
+    emulierten Geräten bleibt offen. [Prüfumfang](docs/NOTIFICATION_DEVICE_READ_2026_11_05.md).
+
   - [x] **Position beim Nachladen in der Gesamtansicht erhalten.**
     Eine weiterhin sichtbare Karte bleibt beim Austausch unterschiedlich hoher
     Cacheseiten verankert. Konto-, Filter- und spätere Scrollaktionen verwerfen
