@@ -5,8 +5,10 @@ from cryptography.fernet import Fernet
 from sqlalchemy.engine import make_url
 from sqlalchemy.exc import ArgumentError
 
-_directory = tempfile.mkdtemp(prefix="schulpilot-tests-")
 test_url = os.getenv("TEST_DATABASE_URL", "")
+if test_url and any(os.getenv(name) == "1" for name in ("PARENT_MULTICHILD_BROWSER", "PARENT_MULTICHILD_PDF_BROWSER")):
+    raise RuntimeError("Parent browser checks require an automatically isolated SQLite database; unset TEST_DATABASE_URL.")
+_directory = tempfile.mkdtemp(prefix="schulpilot-tests-")
 if test_url:
     if not (make_url(test_url).database or "").endswith("_test"):
         raise RuntimeError("Integration tests require a dedicated database ending in _test")

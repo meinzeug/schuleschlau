@@ -1870,6 +1870,15 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Elternübersicht, Noten und Planung gegen echte gespeicherte Fakten prüfen**
 
+  - [x] **Künstlichen Mehrkind-Notenimport im lokalen Browser prüfen.**
+    Ein Elternkonto wählt für zwei künstliche Kinder dieselbe künstliche PDF
+    jeweils zweimal im Chrome-Dateidialog. Die eindeutigen Vorschaupositionen,
+    ausdrückliche Übernahme und duplikatfreie Wiederholung werden anhand echter
+    lokaler API-Antworten und der isolierten Datenbank geprüft; Zeit, Antworten
+    und Backend-Dateien bleiben geschützt. Dieser Teilnachweis umfasst 390 px,
+    keine weiteren Konfliktfälle oder den gesamten Eltern-Hauptpunkt.
+    [Prüfung und Grenzen](docs/PARENT_MULTICHILD_ACCEPTANCE_2026_11_05.md).
+
   **Teilprüfung 02.11.2026:** 45 künstliche SQLite-Fälle zu Notenfiltern und
   PDF-Import bestanden; [Prüfbericht](docs/ROADMAP_MODULE_CHECKS_2026_11_02.md#elternübersicht-noten-und-planung).
 

@@ -180,3 +180,96 @@ def test_parent_multichild_local_flutter_browser(api, household, mailbox, monkey
         thread.join(timeout=10)
         sock.close()
         assert not thread.is_alive()
+
+
+def test_parent_multichild_pdf_local_flutter_browser(api, household, mailbox, monkeypatch, tmp_path):
+    """Opt-in import and repeated import through a real local Chrome file picker."""
+    import json
+    import os
+    import socket
+    import subprocess
+    import threading
+    import time as clock
+    from dataclasses import replace
+    from pathlib import Path
+
+    import pytest
+    import uvicorn
+    from pdf_fixture import pdf
+    from schulpilot import main
+    from schulpilot.config import settings
+    from schulpilot.db import GradeImport, GradeSourceSlot
+    from schulpilot.grade_imports import school_year
+    from sqlalchemy import delete, func
+
+    if os.environ.get("PARENT_MULTICHILD_PDF_BROWSER") != "1":
+        pytest.skip("Run explicitly with a locally built Flutter release via WEB_DIR")
+    if not settings.web_dir or not (Path(settings.web_dir) / "main.dart.js").is_file():
+        pytest.fail("WEB_DIR must point to the locally built Flutter app before importing the server")
+    parent, first = household
+    second = create_child(api, parent, "pdf-browser-synthetic-child")
+    children = (first, second)
+    seed(children)
+    with DB.begin() as db:
+        year = school_year(local_day(db.get(Child, first["id"])))
+        db.execute(delete(SchoolGrade))  # This isolated test begins with unambiguous import slots.
+    data = pdf(year, padding_bytes=240 * 1024)
+    fixture = tmp_path / "synthetic-fuxnoten.pdf"
+    fixture.write_bytes(data)
+    calls = []
+    monkeypatch.setattr(providers, "request_provider", lambda *args, **kwargs: calls.append(True))
+    before = stored_rows()
+    sock = socket.socket()
+    sock.bind(("127.0.0.1", 0))
+    sock.listen(128)
+    port = sock.getsockname()[1]
+    monkeypatch.setattr(main, "settings", replace(settings, public_url=f"http://127.0.0.1:{port}"))
+    server = uvicorn.Server(uvicorn.Config(app, log_level="error", lifespan="off"))
+    thread = threading.Thread(target=server.run, kwargs={"sockets": [sock]}, daemon=True)
+    thread.start()
+    try:
+        for _ in range(100):
+            if server.started:
+                break
+            clock.sleep(0.05)
+        assert server.started
+        result = subprocess.run(["node", "qa/parent_multichild_pdf_browser.mjs"],
+            input=json.dumps({"base": f"http://127.0.0.1:{port}", "username": "parent@example.org",
+                "password": "secure-parent-pass-123", "children": [first["id"], second["id"]],
+                "pdf": str(fixture), "screens": str(tmp_path)}), text=True, capture_output=True, timeout=180)
+        assert result.returncode == 0, result.stderr[-3000:]
+        after = stored_rows()
+        for table, rows in before.items():
+            if table != SchoolGrade.__tablename__:
+                assert after[table] == rows, table
+        with DB() as db:
+            for child in children:
+                grades = list(db.scalars(select(SchoolGrade).where(SchoolGrade.child_id == child["id"])))
+                assert sorted((row.subject, str(row.value)) for row in grades) == [
+                    ("Englisch", "2.00"), ("Mathematik", "3.00"), ("Mathematik", "4.00")]
+                assert db.scalar(select(func.count()).select_from(GradeImport).where(GradeImport.child_id == child["id"])) == 2
+                assert db.scalar(select(func.count()).select_from(GradeSourceSlot).where(GradeSourceSlot.child_id == child["id"])) == 3
+        assert calls == []
+        for file in settings.data_dir.rglob("*"):
+            if file.is_file():
+                assert data not in file.read_bytes(), "Raw PDF must not be stored in backend files"
+    finally:
+        server.should_exit = True
+        thread.join(timeout=10)
+        sock.close()
+        assert not thread.is_alive()
+
+
+def test_browser_harness_rejects_external_test_database_before_import():
+    """Refuse even an apparently test-named PostgreSQL URL before DB setup."""
+    import os
+    import subprocess
+    import sys
+
+    for flag in ("PARENT_MULTICHILD_BROWSER", "PARENT_MULTICHILD_PDF_BROWSER"):
+        environment = {**os.environ, "PYTHONPATH": "backend/tests:backend", flag: "1",
+            "TEST_DATABASE_URL": "postgresql+psycopg://fixture@127.0.0.1/schulpilot_test"}
+        result = subprocess.run([sys.executable, "-c", "import conftest"], env=environment,
+                                text=True, capture_output=True, timeout=10)
+        assert result.returncode != 0
+        assert "require an automatically isolated SQLite database" in result.stderr
