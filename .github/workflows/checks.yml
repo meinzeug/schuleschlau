@@ -29,6 +29,7 @@ jobs:
           scripts/tests/test_backup_storage.py scripts/tests/test_backup_retention.py scripts/tests/test_restore_monitor.py
           scripts/tests/test_reconcile_restore_safety.py scripts/tests/test_restore_runtime_preflight.py
           scripts/tests/test_stage_release.py scripts/tests/test_deploy_coordination.py
+          scripts/tests/test_rollback_snapshot_feasibility.py
           scripts/tests/test_deploy_repair_state.py scripts/tests/test_release_attestation.py
           scripts/tests/test_release_timestamp.py scripts/tests/test_postgres_ci_results.py
           scripts/tests/test_extract_gradle_runtime.py scripts/tests/test_audit_maven_osv.py

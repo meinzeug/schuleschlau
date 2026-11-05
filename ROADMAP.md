@@ -1236,6 +1236,15 @@ Bestandteil des bestehenden Buildvertrags.
   Toolchain-Warnungen sind dadurch nicht ersetzt.
 - [ ] **P0 – Deployment und Rückkehr belegen**
 
+  **05.11.2026, isolierte Machbarkeitsprüfung:** Ein vor dem Marker
+  gebildeter Löschplan kann das alte Rollbackziel weiterhin entfernen. Ein
+  nach Markeranlage neu benannter Snapshot wird von diesem Plan nicht erfasst,
+  kann aber trotz erfolgreicher Kopie unvollständig sein. Synthetische Tests
+  belegen beides sowie die Ablehnung von Links durch den bestehenden
+  Digest-Walker. Signatur-/Archivbindung, ein sicherer Kopierer und der
+  produktive Rückweg bleiben offen; es wurde kein neuer Rollbackweg aktiviert.
+  [Machbarkeit und Grenzen](docs/ROLLBACK_SNAPSHOT_FEASIBILITY_2026_11_05.md).
+
   **03.11.2026, Bereinigung:** Vor dem Entfernen alter Releases wird nun auch
   der optionale Reparatur-Dispatcher geprüft. Ein aktiver Dienst muss aus dem
   aktuellen oder vorherigen Release laufen; instabile oder nicht ermittelbare
