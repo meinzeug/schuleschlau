@@ -1558,7 +1558,7 @@ Bestandteil des bestehenden Buildvertrags.
     Grafik- und Referenzstatus; eine Antwort nach einem Hinweis wird als unterstützt
     gespeichert. Wiederholte GETs erzeugen keine Aufträge, Aktivitäten oder
     Lernnachweise; der Betriebsadmin erhält keinen Familieninhaltszugriff.
-    Eine während des Paketaufrufs geänderte Quelle verhindert die Übernahme;
+    Eine im Test während des Paketaufrufs geänderte Quellrevision verhindert die Übernahme;
     der fehlgeschlagene Auftrag behält seine Abrechnung. SQLite- und
     PostgreSQL-Prüfungen: `backend/tests/test_processing_trace_journey.py`.
     Der künstliche Modelltransport belegt keine echte OCR-/Modellqualität; die
