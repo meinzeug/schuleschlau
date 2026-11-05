@@ -11,6 +11,7 @@ from fastapi import Depends, HTTPException, Request
 from sqlalchemy import select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
+from sqlalchemy.exc import OperationalError
 
 from .config import settings
 from .db import Audit, Child, Family, Membership, RateBucket, Session, User, get_db, now
@@ -98,6 +99,34 @@ def authenticated(request: Request, db=Depends(get_db)):
     # cross-session opt-in. Explicit jobs may retain this origin snapshot.
     session.request_capabilities = frozenset(request.headers.get("X-Schulpilot-Capabilities", "").split(","))
     return Principal(user, session)
+
+
+def lock_session_after_child(db, user_id, session_id):
+    """Revalidate and serialize a mutation against revocation after Child.
+
+    PostgreSQL must never wait here: family-call acceptance takes Session
+    before Unit/Child.  A busy session aborts this entire transaction and the
+    user can explicitly retry the action. SQLite already holds its database writer lock
+    through the caller's Child update, so its subsequent read is serialized.
+    """
+    statement = select(Session).where(Session.id == session_id).execution_options(populate_existing=True)
+    dialect = db.bind.dialect.name
+    if dialect == "postgresql":
+        statement = statement.with_for_update(nowait=True)
+    elif dialect != "sqlite":
+        raise RuntimeError("Session serialization is supported only on PostgreSQL and SQLite")
+    try:
+        session = db.scalar(statement)
+    except OperationalError as error:
+        if getattr(error.orig, "sqlstate", None) != "55P03":
+            raise
+        db.rollback()
+        raise HTTPException(409, "Eine andere Kontoaktion läuft. Bitte erneut versuchen.") from None
+    user = db.get(User, user_id, populate_existing=True)
+    if (not session or session.user_id != user_id or session.revoked or session.expires <= now()
+            or now() - session.seen > 7 * 86400 or not user or user.disabled or not user.verified):
+        raise HTTPException(401, "Bitte erneut anmelden und die Aktion neu auswählen.")
+    return session
 
 
 def parent(p=Depends(authenticated)):

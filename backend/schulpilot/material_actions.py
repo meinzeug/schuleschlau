@@ -20,7 +20,7 @@ from sqlalchemy import or_, select, update
 
 from . import schemas as s
 from .config import settings
-from .db import Child, Job, LearningUnit, Material, SchoolDay, Usage, get_db, now, uid
+from .db import Child, Job, LearningUnit, Material, SchoolDay, Usage, get_db, uid
 from .security import authenticated, child_access, crypt, rate_limit
 
 MAX_DELETE = 5000
@@ -275,6 +275,7 @@ def delete_preview(child_id: str, data: DeletePreview, p=Depends(authenticated),
 
 
 def bulk_delete(child_id: str, data: DeleteConfirm, p=Depends(authenticated), db=Depends(get_db)):
+    user_id, session_id = p.user.id, p.session.id
     child = child_access(db, p, child_id, write=p.user.role == "parent")
     try:
         token = json.loads(crypt().decrypt(data.selection_token.encode(), ttl=TTL))
@@ -291,8 +292,9 @@ def bulk_delete(child_id: str, data: DeleteConfirm, p=Depends(authenticated), db
     locked_units = lock_units(db, child.id, ids)
     db.execute(update(Child).where(Child.id == child.id).values(grade=Child.grade))
     db.expire_all()
-    if p.session.revoked or p.session.expires <= now() or p.user.disabled or not p.user.verified:
-        raise HTTPException(401, "Bitte erneut anmelden und die Seiten neu auswählen.")
+    from .security import lock_session_after_child
+
+    lock_session_after_child(db, user_id, session_id)
     child = child_access(db, p, child_id, write=p.user.role == "parent")
     rows = selection_rows(db, p, child, selection)
     if len(rows) != token["count"] or snapshot(rows) != token["snapshot"]:

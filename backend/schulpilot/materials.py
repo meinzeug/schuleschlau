@@ -252,7 +252,7 @@ def visual_review_data(db, material):
 @router.put("/materials/{material_id}/visual-observations/{index}/review")
 def review_visual_observation(material_id: str, index: int, data: s.VisualObservationReviewInput,
                               p=Depends(authenticated), db=Depends(get_db)):
-    from .db import Session, User, now
+    from .db import Session, User
     from .security import audit
     from .source_lineage import digest
     from .source_lineage_models import VisualObservationReview
@@ -607,6 +607,7 @@ def material_words(material_id: str, data: s.MaterialWords, p=Depends(authentica
 
 @router.delete("/materials/{material_id}")
 def delete_material(material_id: str, p=Depends(authenticated), db=Depends(get_db)):
+    user_id, session_id = p.user.id, p.session.id
     material, child = get_material(db, p, material_id)
     if p.user.role == "child" and material.school_day_id and not material.confirmed:
         # The same day/source/preparation checks apply from either UI entry.
@@ -624,8 +625,9 @@ def delete_material(material_id: str, p=Depends(authenticated), db=Depends(get_d
     lock_material_units(db, child.id, material_id)
     material, child = get_material(db, p, material_id, True)
     db.expire_all()
-    if p.session.revoked or p.session.expires <= now() or p.user.disabled or not p.user.verified:
-        raise HTTPException(401, "Bitte erneut anmelden und die Seite neu auswählen.")
+    from .security import lock_session_after_child
+
+    lock_session_after_child(db, user_id, session_id)
     material, child = get_material(db, p, material_id)
     child_access(db, p, child.id, write=p.user.role == "parent")
     if snapshot([material]) != original_snapshot:

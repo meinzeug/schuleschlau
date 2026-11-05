@@ -1797,9 +1797,10 @@ Bestandteil des bestehenden Buildvertrags.
     der Sperre Quellen und Berechtigungen erneut. Eltern mit Schreibrecht
     behalten die gezählte Löschvorschau. Ein echter lokaler Browsertest mit
     künstlichen Konten und gezielte PostgreSQL-Rennen ergänzen Flutter- und
-    API-Tests. Der unmittelbare Sitzungswiderruf nach der letzten Prüfung bis
-    zum Commit ist nicht vollständig serialisiert und bleibt gesondert offen;
-    siehe [Prüfung](docs/NOTEBOOK_BROWSER_REGRESSION_2026_11_05.md).
+    API-Tests. Der nachfolgende Sessionguard serialisiert die vier geprüften
+    Löschwege mit Gerätewiderruf und Logout; eine belegte Gegenprobe zum
+    Familienanruf vermeidet die umgekehrte Sperrreihenfolge. Siehe
+    [Prüfung](docs/DELETION_SESSION_SERIALIZATION_2026_11_05.md).
 
   - [x] **Lokalen Hefte-Browserlauf mit Löschvorschau reproduzierbar prüfen.**
     05.11.2026: Ein isolierter Chrome-/SQLite-Lauf mit künstlichen Konten

@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select, update
 
 from . import unit_erasure
-from .db import Child, LearningUnit, get_db, now
+from .db import Child, LearningUnit, get_db
 from .material_actions import TTL, DeleteConfirm, ensure_idle
 from .security import authenticated, child_access, crypt, rate_limit
 
@@ -42,6 +42,7 @@ def preview(unit_id: str, p=Depends(authenticated), db=Depends(get_db)):
 
 @router.post("/units/{unit_id}/delete")
 def confirm(unit_id: str, data: DeleteConfirm, p=Depends(authenticated), db=Depends(get_db)):
+    user_id, session_id = p.user.id, p.session.id
     unit, child = owned(db, p, unit_id)
     try:
         token = json.loads(crypt().decrypt(data.selection_token.encode(), ttl=TTL))
@@ -62,8 +63,9 @@ def confirm(unit_id: str, data: DeleteConfirm, p=Depends(authenticated), db=Depe
     )
     db.execute(update(Child).where(Child.id == child.id).values(grade=Child.grade))
     db.expire_all()
-    if p.session.revoked or p.session.expires <= now() or p.user.disabled or not p.user.verified:
-        raise HTTPException(401, "Bitte erneut anmelden.")
+    from .security import lock_session_after_child
+
+    lock_session_after_child(db, user_id, session_id)
     unit, child = owned(db, p, unit_id)
     ensure_idle(db, child.id)
     if unit_erasure.snapshot(db, [unit.id]) != token["snapshot"]:

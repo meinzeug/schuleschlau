@@ -22,7 +22,6 @@ from .db import (
     SchoolDay,
     UnitSource,
     get_db,
-    now,
     uid,
 )
 from .fixtures import DAY_FIXTURE_IDS, worksheet
@@ -479,6 +478,7 @@ def synthetic_pages(day_id: str, p=Depends(authenticated), db=Depends(get_db)):
 
 @router.delete("/school-days/{day_id}/pages/{material_id}")
 def remove_page(day_id: str, material_id: str, p=Depends(authenticated), db=Depends(get_db)):
+    user_id, session_id = p.user.id, p.session.id
     day, child = get_day(db, p, day_id)
     child_access(db, p, child.id, write=p.user.role == "parent")
     material = db.get(Material, material_id)
@@ -487,8 +487,9 @@ def remove_page(day_id: str, material_id: str, p=Depends(authenticated), db=Depe
     lock_material_units(db, child.id, material_id)
     day, child = get_day(db, p, day_id, write=True, allow_archived=True)
     db.expire_all()
-    if p.session.revoked or p.session.expires <= now() or p.user.disabled or not p.user.verified:
-        raise HTTPException(401, "Bitte erneut anmelden und die Seite neu auswählen.")
+    from .security import lock_session_after_child
+
+    lock_session_after_child(db, user_id, session_id)
     day, child = get_day(db, p, day_id, allow_archived=True)
     child_access(db, p, child.id, write=p.user.role == "parent")
     idle(db, child.id)
