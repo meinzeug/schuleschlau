@@ -6,7 +6,7 @@ from sqlalchemy.engine import make_url
 from sqlalchemy.exc import ArgumentError
 
 test_url = os.getenv("TEST_DATABASE_URL", "")
-if test_url and any(os.getenv(name) == "1" for name in ("PARENT_MULTICHILD_BROWSER", "PARENT_MULTICHILD_PDF_BROWSER")):
+if test_url and any(os.getenv(name) == "1" for name in ("PARENT_MULTICHILD_BROWSER", "PARENT_MULTICHILD_PDF_BROWSER", "PARENT_PREFS_CAS_BROWSER")):
     raise RuntimeError("Parent browser checks require an automatically isolated SQLite database; unset TEST_DATABASE_URL.")
 if test_url and os.getenv("NOTEBOOK_LOCAL_BROWSER") == "1":
     raise RuntimeError(
