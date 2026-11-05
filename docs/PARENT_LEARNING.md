@@ -142,9 +142,13 @@ Listen, Filter, Details und Elternlesen erzeugen keine KI oder Lernzeit.
 
 Die Lernvorgaben werden nach der Kindersperre erneut gegen Elternmitgliedschaft,
 Schreibrecht und Sitzung geprüft. Ein schon wartender Auftrag darf nach Entzug
-oder Herabstufung nicht weiter speichern. Das serialisiert keinen Widerruf, der
-erst nach dieser erneuten Prüfung eintrifft; dafür wäre ein gesonderter
-Sitzungssperrvertrag mit geprüftem Locking erforderlich.
+oder Herabstufung nicht weiter speichern. PostgreSQL sperrt nach dem Kind auch
+die Sitzung bis zum Commit. Ist sie bereits gesperrt, wird die Transaktion mit
+einem Konflikt beendet; ein erneuter Versuch erfolgt nur ausdrücklich. SQLite
+nutzt die bereits gehaltene Datenbank-Schreibsperre. Getrennte PostgreSQL-Tests
+prüfen Gerätewiderruf und Abmeldung in beiden Reihenfolgen sowie die umgekehrte
+Sperrreihenfolge eines Familienanrufs. Dies gilt für diesen Schreibpfad und ist
+keine Zusicherung für andere Endpunkte.
 
 Offene Grenze: `PUT /children/{id}/preferences` ersetzt weiterhin den gesamten
 Stand ohne Revisionsvergleich. Zwei ältere Elternformulare können daher bei

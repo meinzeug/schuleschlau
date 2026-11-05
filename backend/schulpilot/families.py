@@ -181,13 +181,15 @@ def update_child(child_id: str, data: s.ChildUpdate,
 
 @router.put("/children/{child_id}/preferences")
 def preferences(child_id: str, data: s.Preferences, p=Depends(parent), db=Depends(get_db)):
+    user_id, session_id = p.user.id, p.session.id
     child = child_access(db, p, child_id, write=True)
     db.execute(update(Child).where(Child.id == child.id).values(grade=Child.grade))
     # A parent can lose membership or have their session revoked while waiting
     # for this lock. Do not persist an older authorized request afterwards.
     db.expire_all()
-    if p.session.revoked or p.session.expires <= now() or p.user.disabled or not p.user.verified:
-        raise HTTPException(401, "Bitte erneut anmelden und die Lernvorgaben neu öffnen.")
+    from .security import lock_session_after_child
+
+    lock_session_after_child(db, user_id, session_id)
     child = child_access(db, p, child_id, write=True)
     child.preferences = data.model_dump(mode="json")
     if not data.push_consent:
