@@ -1790,6 +1790,14 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Hefte, Materialarten und Suche im digitalen Ranzen abnehmen**
 
+  - [x] **Lokalen Hefte-Browserlauf mit Löschvorschau reproduzierbar prüfen.**
+    05.11.2026: Ein isolierter Chrome-/SQLite-Lauf mit künstlichen Konten
+    und fünf künstlichen Layoutseiten prüft Eltern-Löschvorschau mit
+    verknüpfter Runde und Antwort, den Löschschutz bestätigter Kinderseiten,
+    die Löschung einer eigenen unbestätigten Seite sowie Einzel- und
+    Mehrseitenstart. Die zwei Aufträge bleiben wartend; OCR und KI-Verarbeitung
+    sind nicht Teil dieses Nachweises. [Ablauf und Grenzen](docs/NOTEBOOK_BROWSER_REGRESSION_2026_11_05.md).
+
   **05.11.2026, lokaler Browserlauf:** Fünf künstliche JPEGs je Kind über die
   echte lokale Upload-API importiert, anschließend mit explizit künstlichen
   Texten bestätigt und im Chrome-Browser für Eltern und Kinder betrachtet.
