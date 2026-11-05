@@ -23,6 +23,7 @@ from android_push import (
     ROOT,
     PushQaError,
     api_json,
+    choose_hour,
     confirm_synthetic_home,
     labels,
     load_credentials,
@@ -182,6 +183,7 @@ def main():
     parser.add_argument("--expected-code", type=int, required=True)
     parser.add_argument("--cold-process", action="store_true", help="After observed STOPPED, kill only the cached process and require no PID before send.")
     parser.add_argument("--foreground", action="store_true", help="One additional explicit foreground test on this own device.")
+    parser.add_argument("--fixture-no-quiet", action="store_true", help="Set quiet hours to 00:00–00:00 via the synthetic device's own UI.")
     args = parser.parse_args()
     report_file = ROOT / "artifacts/android-push-background-result.json"
     report = {
@@ -269,6 +271,19 @@ def main():
         tap_node(seek_label("Gerät einstellen"))
         if "Ruhezeit: 20:00–08:00" not in labels(nodes()):
             raise PushQaError("fixture_device_quiet_hours_not_observed")
+        if args.fixture_no_quiet:
+            report["phase"] = "native_opt_in_open_choices"
+            safe_write(report_file, report)
+            tap_node(seek_label("Seitenoptionen"))
+            tap_node(seek_label("Zeiten & Auswahl", prefix=True))
+            report["phase"] = "native_opt_in_quiet_start"
+            safe_write(report_file, report)
+            choose_hour("Ruhe ab")
+            report["phase"] = "native_opt_in_quiet_end"
+            safe_write(report_file, report)
+            choose_hour("Ruhe bis")
+        report["phase"] = "native_opt_in_enable"
+        safe_write(report_file, report)
         tap_node(seek_label("Auf diesem Gerät einschalten"))
         until = time.monotonic() + 65
         while time.monotonic() < until:
@@ -283,7 +298,8 @@ def main():
             ]
             if len(new) == 1:
                 device_id = new[0]["id"]
-                if new[0]["quiet_start"] != 20 or new[0]["quiet_end"] != 8:
+                expected_quiet = (0, 0) if args.fixture_no_quiet else (20, 8)
+                if (new[0]["quiet_start"], new[0]["quiet_end"]) != expected_quiet:
                     raise PushQaError("only_fixture_device_quiet_hours_not_saved")
                 report["native_registration"] = True
                 break
@@ -368,7 +384,16 @@ def main():
             foreground, _, _ = activity_state()
             report["foreground_resumed_at_delivery"] = foreground
             adb("shell", "cmd", "statusbar", "expand-notifications")
-            report["foreground_android_visible"] = BACKGROUND_BODY in labels(nodes())
+            # The Flutter callback displays its in-app notice before awaiting
+            # the Android presenter. Allow the shade to update rather than
+            # treating its first frame as a conclusive delivery failure.
+            deadline = time.monotonic() + 12
+            report["foreground_android_visible"] = False
+            while time.monotonic() < deadline:
+                if BACKGROUND_BODY in labels(nodes()):
+                    report["foreground_android_visible"] = True
+                    break
+                time.sleep(.3)
             adb("shell", "cmd", "statusbar", "collapse")
             result = protected_request(credentials, device_id, registered_after, "status")
             report["foreground_fcm_accepted"] = result.get("status") == "accepted"

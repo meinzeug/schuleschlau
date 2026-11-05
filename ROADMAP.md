@@ -672,6 +672,14 @@ Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Em
 
 - [ ] **P1 – OCR anhand vollständig referenzierter künstlicher Seiten prüfen**
 
+  - [x] **Vier Referenzfotos im regulären OpenRouter-Ablauf vergleichen.**
+    Alle vier künstlichen Seiten durchliefen Erkennung und Gegenprüfung; ein
+    abgedeckter Bereich blieb unlesbar gekennzeichnet. Widersprüchliche
+    Korrekturkoordinaten werden mit der neuen Prüfung konservativ markiert.
+    Der Vergleich wurde durch die Coding-AI durchgeführt; eine unabhängige
+    menschliche Referenzprüfung und weitere Bildbedingungen bleiben offen.
+    [Ergebnis und Grenzen](docs/OCR_REFERENCE_TEST_2026_11_05.md).
+
   - [x] **Zwei künstliche Bruchseiten auf Android bis zur Lernrunde prüfen.**
     Systempicker, Zuschnitt, Upload, separate Erkennung und Gegenprüfung,
     Quellenzuordnung und zwei unterschiedliche Aufgaben wurden im Emulator
@@ -1411,6 +1419,13 @@ Bestandteil des bestehenden Buildvertrags.
 
   **Abnahme:** Gerät/Androidversion, konkrete Abläufe, Beobachtungen, Fehler und Korrekturen dokumentiert und Testdaten regulär bereinigt sind.
 - [ ] **P1 – Benachrichtigungen auf echtem Gerät sichtbar prüfen**
+
+  **05.11.2026:** Ein weiterer künstlicher Emulatorlauf bestätigte die
+  sichtbare Hintergrundzustellung nach Prozessende sowie die neutrale
+  In-App-Meldung im Vordergrund. Die native Vordergrundanzeige konnte der
+  Prüflauf nicht sicher belegen; auch die geschützte Lernrundennavigation
+  bleibt offen. Testgerät und Testfamilie wurden bereinigt.
+  [Einzelheiten](docs/ANDROID_PUSH_2026_11_05.md).
 
   - [x] **Android-Emulator: sichtbare Hintergrundzustellung nach App-Stopp.**
     Mit einem künstlichen Kinderkonto wurde eine neutrale Firebase-Nachricht
