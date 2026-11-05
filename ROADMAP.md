@@ -1444,6 +1444,16 @@ Bestandteil des bestehenden Buildvertrags.
   **Abnahme:** HTTPS/Health den erwarteten Quellstand zeigen, Web-Direktlinks und anonyme Schutzgrenzen geprüft sind, öffentlich ausgelieferte APK und Manifest aus tatsächlicher Datei zu Größe/Hash/Version passen und ein migrationsbewusster Rückweg dokumentiert ist.
 - [ ] **P1 – Direct- und Play-Update getrennt abnehmen**
 
+  - [x] **Direct-Update und manipulierte APKs im Emulator prüfen.** Das
+    reguläre Update von +244 auf +249 gelang über den App-Updater und die
+    Android-Bestätigung; Kaltstart und Rückkehr aus dem Hintergrund wurden
+    beobachtet. Ein getrenntes Debug-Testpaket prüfte die echte native
+    Validierung gegen synthetische fehlerhafte APKs und wurde wieder entfernt.
+    Das quellgebunden geprüfte Play-AAB enthält keine APK-Installerberechtigung.
+    Ein angemeldetes Konto und dessen Datenerhalt beim Update wurden hier nicht
+    geprüft; auch eine Play-Zustellung ist damit nicht belegt. Einzelheiten:
+    `docs/ANDROID_UPDATE_VERIFICATION_2026_11_05.md`.
+
   Für Direct höhere Version auf fester HTTPS-Quelle bei Kaltstart und Wiederaufnahme prüfen; Größen-, Hash-, Paket- und Signaturabweichungen ablehnen und Android-Installationsbestätigung beobachten.
 
   **Abnahme:** gültiges Update mit erhaltenem Konto und Daten funktioniert, fehlerhafte Downloads nicht installiert werden und das Play-AAB ausschließlich den Play-Updateweg ohne APK-Installerberechtigung enthält. Ein gebautes AAB ist kein Play-Upload oder veröffentlichter Storeeintrag.
