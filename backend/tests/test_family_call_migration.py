@@ -55,19 +55,20 @@ def test_family_call_migration_preserves_accounts_answers_and_push_opt_in(tmp_pa
                 "INSERT INTO attempts(id,unit_id,question_id,answer,outcome,assisted,created) VALUES('attempt','unit','q1','\"synthetic\"','correct',false,1)",
             ]:
                 con.execute(text(statement))
-        subprocess.run([*command, "upgrade", "head"], env=env, capture_output=True, check=True)
+        # Exercise the original family-call migration and its reverse while the
+        # database is still at 0026. Later 0047 deliberately forbids downgrade.
+        subprocess.run([*command, "upgrade", "0026"], env=env, capture_output=True, check=True)
         with tested.begin() as con:
             scoped(con)
-            assert con.scalar(text("SELECT version_num FROM alembic_version")) == expected_head
+            assert con.scalar(text("SELECT version_num FROM alembic_version")) == "0026"
             record = con.execute(text("SELECT family_calls,call_binding,help_requests,encrypted_token FROM push_devices WHERE id='p'")).first()
             assert tuple(record) == (False, None, True, "SYNTHETIC-ENCRYPTED-TOKEN")
             answer, assisted = con.execute(text("SELECT answer,assisted FROM attempts WHERE id='attempt'")).first()
             assert (json.loads(answer) if dialect == "sqlite" else answer) == "synthetic" and not bool(assisted)
             assert con.scalar(text("SELECT count(*) FROM family_calls")) == 0
             assert not bool(con.scalar(text("SELECT revoked FROM sessions WHERE id='s'")))
-        # The backwards schema path must also leave pre-existing accounts,
-        # answers and push credentials unchanged. Production rollbacks keep the
-        # additive schema; no real call history is discarded by deployment.
+        # The 0026 backwards schema path must leave pre-existing accounts,
+        # answers and push credentials unchanged.
         subprocess.run([*command, "downgrade", "0025"], env=env, capture_output=True, check=True)
         with tested.begin() as con:
             scoped(con)
@@ -78,7 +79,20 @@ def test_family_call_migration_preserves_accounts_answers_and_push_opt_in(tmp_pa
         with tested.begin() as con:
             scoped(con)
             assert con.scalar(text("SELECT version_num FROM alembic_version")) == expected_head
+            assert con.scalar(text("SELECT preferences_revision FROM children WHERE id='c'")) == 1
             assert not bool(con.scalar(text("SELECT family_calls FROM push_devices WHERE id='p'")))
+            assert con.scalar(text("SELECT encrypted_token FROM push_devices WHERE id='p'")) == "SYNTHETIC-ENCRYPTED-TOKEN"
+            assert con.scalar(text("SELECT outcome FROM attempts WHERE id='attempt'")) == "correct"
+            assert not bool(con.scalar(text("SELECT revoked FROM sessions WHERE id='s'")))
+        blocked = subprocess.run([*command, "downgrade", "0025"], env=env, capture_output=True)
+        assert blocked.returncode != 0
+        assert b"Preferences revision protects concurrent changes" in blocked.stderr
+        with tested.begin() as con:
+            scoped(con)
+            assert con.scalar(text("SELECT version_num FROM alembic_version")) == expected_head
+            assert con.scalar(text("SELECT preferences_revision FROM children WHERE id='c'")) == 1
+            assert con.scalar(text("SELECT encrypted_token FROM push_devices WHERE id='p'")) == "SYNTHETIC-ENCRYPTED-TOKEN"
+            assert con.scalar(text("SELECT outcome FROM attempts WHERE id='attempt'")) == "correct"
     finally:
         if schema:
             with engine.begin() as con:
