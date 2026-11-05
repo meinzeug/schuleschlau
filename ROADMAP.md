@@ -2134,6 +2134,16 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Echtzeitstatus gezielt und zuverlässig bereitstellen**
 
+  - [x] **Späte 401-Antworten an die ursprüngliche Sitzung binden.**
+    05.11.2026, Coding-AI, Änderungen auf Basis `f38673a` und `d02c48b`:
+    JSON-, Foto-, PDF-, Datei- und Avataranfragen löschen eine spätere
+    Sitzung nicht durch verspätete 401-Antworten. Web-Loginrevision und
+    native Tokens werden berücksichtigt; eine neue Kontoübernahme wartet
+    auf private lokale Bereinigung. 125 kombinierte VM- und 38 gezielte
+    Chrome-Fälle sowie unabhängiger Review bestanden. Ein älterer
+    tabübergreifender Logout-Cookie-Wettlauf bleibt gesondert offen.
+    [Nachweis und Grenzen](docs/AUTH_401_SESSION_RACE_2026_11_05.md).
+
   - [x] **Wiederaufnahme beim erneuten Einlesen einer Heftseite absichern.**
     05.11.2026, Coding-AI, Änderungen auf Basis `f38673a`: Nach Hintergrund, überdeckter Route und
     Sitzungswechsel werden Quelle und Auftragsstatus erneut gelesen;
