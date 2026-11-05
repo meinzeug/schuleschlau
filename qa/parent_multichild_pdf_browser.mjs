@@ -44,9 +44,12 @@ try {
   const login=page.waitForResponse(r=>new URL(r.url()).pathname==='/api/auth/login' && r.request().method()==='POST');
   await tap(button('Anmelden')); assert.equal((await login).status(),200);
   await page.waitForURL(input.base+'/app',{timeout:30000});
-  for(const [childIndex,child] of input.children.entries()) {
+  for(const width of [390,1280]) {
+   await page.setViewportSize({width,height:900});
+   for(const [childIndex,child] of input.children.entries()) {
     await open('/grades/'+child);
     for(let pass=0;pass<2;pass++) {
+      const previouslyImported = width !== 390 || pass !== 0;
       await tap(button('PDF importieren'));
       const chooser=page.waitForEvent('filechooser',{timeout:20000});
       const uploaded=page.waitForResponse(r=>new URL(r.url()).pathname===`/api/children/${child}/grade-imports` && r.request().method()==='POST',{timeout:45000}).then(async r=>({status:r.status(),body:await r.json()}));
@@ -55,22 +58,23 @@ try {
       const preview=upload.body;
       assert.equal(preview.items.length,3);
       assert.equal(new Set(preview.items.map(item=>item.slot_key)).size,3);
-      assert.equal(preview.counts[pass ? 'existing' : 'new'],3);
+      assert.equal(preview.counts[previouslyImported ? 'existing' : 'new'],3);
       const beforeConfirm=await context.request.get(input.base+`/api/children/${child}/grades`);
       assert.equal(beforeConfirm.status(),200);
-      assert.equal((await beforeConfirm.json()).pagination.total,pass ? 3 : 0);
+      assert.equal((await beforeConfirm.json()).pagination.total,previouslyImported ? 3 : 0);
       await button('Auswahl übernehmen').waitFor({state:'attached',timeout:15000});
-      await page.screenshot({path:`${input.screens}/pdf-preview-${childIndex}-${pass}.png`});
+      await page.screenshot({path:`${input.screens}/pdf-preview-${childIndex}-${width}-${pass}.png`});
       const confirmed=page.waitForResponse(r=>new URL(r.url()).pathname===`/api/children/${child}/grade-imports/${preview.id}/confirm` && r.request().method()==='POST',{timeout:30000}).then(async r=>({status:r.status(),body:await r.json()}));
       await tap(button('Auswahl übernehmen'));
       const response=await confirmed; assert.equal(response.status,200);
-      const result=response.body; assert.equal(result.added,pass ? 0 : 3);
-      if(pass) assert.equal(result.unchanged,3);
+      const result=response.body; assert.equal(result.added,previouslyImported ? 0 : 3);
+      if(previouslyImported) assert.equal(result.unchanged,3);
       await tap(button('Fertig'));
     }
+   }
   }
   assert.equal(writes.filter(p=>p==='/api/auth/login').length,1);
-  assert.equal(writes.length,9);
+  assert.equal(writes.length,17);
   assert(writes.every(p=>p==='/api/auth/login' || input.children.some(id=>p.startsWith(`/api/children/${id}/grade-imports`))));
   assert.deepEqual(errors,[]);
   process.stdout.write('synthetic PDF browser checks passed\n');

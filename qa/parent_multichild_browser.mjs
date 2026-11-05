@@ -66,6 +66,25 @@ try {
       assert(planBody.includes('Verbindlicher Elternauftrag'));
       assert(planBody.includes('Termin: ' + assignment.due.split('-').reverse().join('.')));
       await page.screenshot({path:`${input.screens}/parent-plan-${index}-${width}.png`});
+      const weekResponse = page.waitForResponse(r => new URL(r.url()).pathname === `/api/children/${child}/learning-plan` && r.request().method() === 'GET', {timeout:30000});
+      await open('/parent-plan/'+child+'?ansicht=week');
+      const week = await weekResponse; assert.equal(week.status(), 200);
+      const day = (await week.json()).plan.week[0];
+      assert.equal(day.available_minutes, 0);
+      assert.equal(day.paused, !index);
+      assert.equal(day.free_day, Boolean(index));
+      // Flutter merges passive day details into a group's accessible label.
+      const weekFacts = page.locator('flt-semantics[aria-label*="Ohne festes Tagesziel"]');
+      await weekFacts.first().waitFor({state:'attached',timeout:10000});
+      const facts = await weekFacts.first().getAttribute('aria-label');
+      assert(facts.includes('Ohne festes Tagesziel · freiwilliges Lernen bleibt möglich'));
+      assert(facts.includes('0 Minuten vorgeschlagen'));
+      await page.mouse.move(width / 2, 600);
+      await page.mouse.wheel(0, 480);
+      await page.waitForTimeout(250);
+      await page.screenshot({path:`${input.screens}/parent-week-${index}-${width}.png`});
+      const weekBody = await page.locator('flt-semantics-host').innerText();
+      assert(!/RenderFlex overflowed|ErrorWidget|Null check operator/.test(weekBody));
     }
   }
   assert.deepEqual(writes, ['/api/auth/login']);

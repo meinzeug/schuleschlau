@@ -46,7 +46,10 @@ def seed(children):
     with DB.begin() as db:
         today = local_day(db.get(Child, children[0]["id"]))
         for index, child in enumerate(children):
-            db.get(Child, child["id"]).preferences = {"weekdays": [(today.weekday() + index) % 7]}
+            db.get(Child, child["id"]).preferences = {
+                "weekdays": [(today.weekday() + index) % 7],
+                **({"pause_until": (today + timedelta(days=2)).isoformat()} if index == 0 else {}),
+            }
             subject = ("Mathematik", "Biologie")[index]
             topic = ("Künstliche Brüche", "Künstliche Pflanzen")[index]
             unit = LearningUnit(child_id=child["id"], subject=subject, topic=topic,
@@ -236,7 +239,7 @@ def test_parent_multichild_pdf_local_flutter_browser(api, household, mailbox, mo
         result = subprocess.run(["node", "qa/parent_multichild_pdf_browser.mjs"],
             input=json.dumps({"base": f"http://127.0.0.1:{port}", "username": "parent@example.org",
                 "password": "secure-parent-pass-123", "children": [first["id"], second["id"]],
-                "pdf": str(fixture), "screens": str(tmp_path)}), text=True, capture_output=True, timeout=180)
+                "pdf": str(fixture), "screens": str(tmp_path)}), text=True, capture_output=True, timeout=360)
         assert result.returncode == 0, result.stderr[-3000:]
         after = stored_rows()
         for table, rows in before.items():
@@ -247,7 +250,7 @@ def test_parent_multichild_pdf_local_flutter_browser(api, household, mailbox, mo
                 grades = list(db.scalars(select(SchoolGrade).where(SchoolGrade.child_id == child["id"])))
                 assert sorted((row.subject, str(row.value)) for row in grades) == [
                     ("Englisch", "2.00"), ("Mathematik", "3.00"), ("Mathematik", "4.00")]
-                assert db.scalar(select(func.count()).select_from(GradeImport).where(GradeImport.child_id == child["id"])) == 2
+                assert db.scalar(select(func.count()).select_from(GradeImport).where(GradeImport.child_id == child["id"])) == 4
                 assert db.scalar(select(func.count()).select_from(GradeSourceSlot).where(GradeSourceSlot.child_id == child["id"])) == 3
         assert calls == []
         for file in settings.data_dir.rglob("*"):

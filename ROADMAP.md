@@ -1892,12 +1892,22 @@ Bestandteil des bestehenden Buildvertrags.
 
   - [x] **Künstlichen Mehrkind-Notenimport im lokalen Browser prüfen.**
     Ein Elternkonto wählt für zwei künstliche Kinder dieselbe künstliche PDF
-    jeweils zweimal im Chrome-Dateidialog. Die eindeutigen Vorschaupositionen,
+    bei 390 und 1280 Pixeln jeweils zweimal im Chrome-Dateidialog. Die Vorschaupositionen,
     ausdrückliche Übernahme und duplikatfreie Wiederholung werden anhand echter
     lokaler API-Antworten und der isolierten Datenbank geprüft; Zeit, Antworten
-    und Backend-Dateien bleiben geschützt. Dieser Teilnachweis umfasst 390 px,
+    und Backend-Dateien bleiben geschützt. Dieser Teilnachweis umfasst 390 und 1280 px,
     keine weiteren Konfliktfälle oder den gesamten Eltern-Hauptpunkt.
     [Prüfung und Grenzen](docs/PARENT_MULTICHILD_ACCEPTANCE_2026_11_05.md).
+
+  - [x] **Pausen und freie Lerntage in der Eltern-Wochenansicht lesen.**
+    Ein lokaler Chrome-/SQLite-Lauf mit zwei künstlichen Kindern prüft bei
+    390 und 1440 Pixeln die zugehörigen gespeicherten Planantworten und den
+    zugänglichen Hinweis auf freiwilliges Lernen. Ein Kind hat eine Lernpause,
+    das andere einen freien Lerntag; beide haben an diesem Tag keine verfügbare
+    Planungskapazität. Pflichttermine und Lernbelege bleiben unverändert.
+    Die Einstellungen werden für diesen Teilnachweis nicht im Dialog geändert;
+    die vollständige Elternabnahme bleibt offen.
+    [Prüfumfang](docs/PARENT_MULTICHILD_ACCEPTANCE_2026_11_05.md).
 
   **Teilprüfung 02.11.2026:** 45 künstliche SQLite-Fälle zu Notenfiltern und
   PDF-Import bestanden; [Prüfbericht](docs/ROADMAP_MODULE_CHECKS_2026_11_02.md#elternübersicht-noten-und-planung).
