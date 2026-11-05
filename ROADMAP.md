@@ -31,6 +31,29 @@ Die Reihenfolge innerhalb der Prioritäten richtet sich nach Abhängigkeiten. Ei
 
 ## Arbeitsfortschritt
 
+**Nachweiszuordnung für die am 04./05.11.2026 ergänzten Häkchen:** Die
+Ausführung und Prüfung erfolgte jeweils durch Coding-AI. Die folgenden
+Quellstände bezeichnen die tatsächlich dokumentierten Test- oder
+Produktionsstände; ein späterer Dokumentationscommit ist ausdrücklich als
+solcher bezeichnet. Sie belegen keine erneute Abnahme späterer Releases.
+
+| Abgehakter Umfang | Belegter Quellstand und Prüfbericht |
+| --- | --- |
+| Vier künstliche OCR-Fotos im Anbieterablauf | Produktionsstände `74acbae` und `a3feaa8`; [Vergleich](docs/OCR_REFERENCE_TEST_2026_11_05.md). |
+| Zwei Bruchfotos bis zur Lernrunde | APK-/Serverstände `8ffb0c6` (1.38.82) und `214678d` (1.38.83); [Emulatorbericht](docs/ANDROID_EMULATOR_ACCEPTANCE_2026_11_04.md). |
+| Vier künstliche Referenzseiten | Testsatz und Prüfsummen `384e8b2`; [Testsatz](docs/OCR_SYNTHETIC_REFERENCE_2026_11_04.md). |
+| Sichtbare Android-Benachrichtigung und direktes Lernrundenziel | Hintergrund-/Zieltest auf `db24444` (1.38.89); Vordergrundtest auf `28886ba` (1.38.88); [Ziel](docs/ANDROID_ROUND_READY_E2E_2026_11_05.md), [Vordergrund](docs/ANDROID_FOREGROUND_PUSH_2026_11_05.md). |
+| Hintergrund-Testbenachrichtigung nach App-Stopp | APK-/Serverstand `9d26453` (1.38.80); [Emulatorbericht](docs/ANDROID_EMULATOR_ACCEPTANCE_2026_11_04.md). |
+| Erklärgrafik und Leseposition | APK-/Serverstand `74acbae` (1.38.86); [Emulatorbericht](docs/ANDROID_EMULATOR_ACCEPTANCE_2026_11_04.md). |
+| Adapterfehler im Paketworker | Test- und Adapterstände `3af0b46` und `84512c1`; [Prüfung](docs/OPENROUTER_FAILURE_E2E_2026_11_05.md). |
+| Dezimalhistorie unveröffentlichter Teilpakete | Isolierte Teststände `0c70be6` und `fe70bc1`, integriert als `a01730d` und `0c49dbf`; [Prüfung](docs/PACKAGE_PENDING_HISTORY_2026_11_05.md). |
+| Datenschutzarme Diagnose der Aufgabenprüfung | Test- und Codestand `8ffb0c6`; [Diagnose](docs/PACKAGE_VALIDATION_DIAGNOSIS_2026_11_04.md). |
+| Künstlicher Zweiquellen-Paketlauf | Produktionsstand `9d26453` (1.38.80); [Anbieterprüfung](docs/OPENROUTER_VISUAL_TEST_2026_11_04.md). |
+| Mehrseitige Paketfehler, Hefte und Foto-Mehrsitzung | Testergänzungen `153cefb` auf Basis `529c8d5`; [Paket](docs/PACKAGE_FAILURE_MATRIX_2026_11_04.md), [Hefte](docs/NOTEBOOK_ACCEPTANCE_2026_11_04.md), [Status](docs/REALTIME_STATUS.md). |
+| Lesebelege über Sitzungen | Isolierter Teststand `77ca24a`, integriert als `1084a94`; [Prüfung](docs/NOTIFICATION_DEVICE_READ_2026_11_05.md). |
+| Scrollposition der Gesamtansicht | Teststände `b70f4f5` und `b6e01fe` (integriert als `0a96793`), Release `28886ba`; [Prüfung](docs/NOTIFICATION_SCROLL_2026_11_05.md). |
+| Firebase-npm-Archive | Prüfwerkzeug und Bericht `d783559`; [Archivprüfung](docs/EXTERNAL_WEB_SCRIPTS_2026_11_04.md#ergänzung-0511-archivprüfung-der-aufgelösten-npm-pakete). |
+
 - 02.11.2026, Betrieb: Drei offene P0-Punkte wurden nach umfassendem
   Server-Audit auf `schulpilot.dorfspy.de` vollständig abgenommen:
   1. Speicherplatz & Spitzenbedarf: Der betriebliche Spitzenbedarf temporärer
@@ -151,7 +174,7 @@ Die Reihenfolge innerhalb der Prioritäten richtet sich nach Abhängigkeiten. Ei
 
 Die Bestandsaufnahme am 31.10.2026 sah den dokumentierten Release 1.38.49+204 und einen erfolgreichen CI-Lauf für den zugehörigen Produktcode. Der synthetische Monatstest umfasste 30 simulierte Schultage und 32 Seiten; jeder Tag hatte eine abgeschlossene quellengebundene Runde. An 29 Tagen waren alle ursprünglichen Einstiegsrunden abgeschlossen, für eine fehlerhafte alte Runde wurde eine Ersatzrunde abgeschlossen. Das belegt weder alle Folgeetappen noch tägliche Mindestlernzeit oder eine langfristige Lernwirkung. Ein zusätzlicher künstlicher Live-Fotoablauf wurde im 390-Pixel-Browser durchgeführt. Aktuelle Nachweise und Einschränkungen stehen in [docs/STATUS.md](docs/STATUS.md) und [docs/EVERYDAY_QA_2026_10_30.md](docs/EVERYDAY_QA_2026_10_30.md).
 
-Physische Android- und aktuelle sichtbare FCM-Abnahmen bleiben offen; ältere Emulatornachweise sind davon getrennt zu bewerten. Der Lehrplanbestand ist nach [docs/CURRICULUM.md](docs/CURRICULUM.md) unvollständig. Eine Prüfung der vollständigen Software durch jedes reale Kind, aller Fächer oder aller möglichen Modellantworten liegt nicht vor. Die frühere 100-Runden-Serie wurde auf Nutzerwunsch beendet und wird durch diese Roadmap nicht wieder eröffnet.
+Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtbare FCM-Abnahmen offen. Die später dokumentierte Android-Emulatorabnahme ist davon getrennt zu bewerten; physische Geräte bleiben eine eigene Einschränkung. Der Lehrplanbestand ist nach [docs/CURRICULUM.md](docs/CURRICULUM.md) unvollständig. Eine Prüfung der vollständigen Software durch jedes reale Kind, aller Fächer oder aller möglichen Modellantworten liegt nicht vor. Die frühere 100-Runden-Serie wurde auf Nutzerwunsch beendet und wird durch diese Roadmap nicht wieder eröffnet.
 
 ## 1. Rahmen und Freigabeumfang
 
@@ -1443,14 +1466,15 @@ Bestandteil des bestehenden Buildvertrags.
     Android-Systembenachrichtigung waren sichtbar. Das Testkonto wurde gelöscht;
     ein zuvor fehlgeschlagener, befristeter Demo-Anlageversuch bleibt mit seinen
     Bereinigungsgrenzen dokumentiert. Der direkte Weg in eine fertige Lernrunde
-    ist damit noch nicht abgenommen.
+    war in diesem Vordergrundtest noch nicht abgenommen und wurde später wie
+    oben beschrieben getrennt geprüft.
     [Nachweis](docs/ANDROID_FOREGROUND_PUSH_2026_11_05.md).
 
-  **Vorbereitung des direkten Lernrundentests:** Ein streng auf freigegebene,
+  **Historische Vorbereitung des direkten Lernrundentests:** Ein streng auf freigegebene,
   serverseitige Demoinhalte begrenzter Pfad ist lokal mit Backend- und
   Renderertests geprüft. Produktions-Push-Stopp, Quellenprüfungen und
-  Testfreigaben bleiben wirksam. Die sichtbare Zustellung mit direktem Ziel
-  ist erst nach einem tatsächlichen Emulatorlauf nachgewiesen.
+  Testfreigaben bleiben wirksam. Die damals noch ausstehende sichtbare
+  Zustellung mit direktem Ziel wurde im oben verlinkten Emulatorlauf geprüft.
   [Prüfumfang](docs/ANDROID_DEMO_READY_PATH_2026_11_05.md).
 
   **Frühere Teilprüfung 05.11.2026:** Ein künstlicher Emulatorlauf bestätigte die
@@ -1465,8 +1489,8 @@ Bestandteil des bestehenden Buildvertrags.
     nach nachgewiesenem Stopp des App-Prozesses sichtbar angezeigt und in der
     App geöffnet. Der Emulator ersetzt die vom Betreiber gewünschte technische
     Android-Prüfung; Rückschlüsse auf herstellerspezifisches Energiesparen oder
-    physische Hardware sind daraus nicht möglich. Vordergrund, geschütztes
-    Lernrundenziel und Bereinigung sind gesondert abzunehmen.
+    physische Hardware sind daraus nicht möglich. Vordergrund und geschütztes
+    Lernrundenziel wurden später wie oben beschrieben getrennt geprüft.
     [Beobachtungen](docs/ANDROID_EMULATOR_ACCEPTANCE_2026_11_04.md).
 
   Im bestehenden Firebase-Projekt ausschließlich eigene künstliche Konten mit zeitlich begrenzter Testfreigabe verwenden; Elternfreigabe, ausdrückliches Geräte-Opt-in, Kanal-/Betriebssystemberechtigung, Ruhezeiten und Widerruf kontrollieren. Vordergrundanzeige sowie einen Versand nach nachgewiesenem Android-Hintergrundzustand beobachten, geschützten Zielaufruf prüfen und Registrierungen bereinigen.
@@ -1786,7 +1810,8 @@ Bestandteil des bestehenden Buildvertrags.
     andere Kontexte und unterschiedliche Unicode-Escapes. Beim Wiederaufnehmen
     während eines laufenden Inboxabrufs folgt genau eine aktuelle Abfrage;
     Flutterfälle prüfen Konto- und Hintergrundwechsel. Der Scrollsprung beim
-    Austausch des begrenzten Cachefensters sowie native Zustellung bleiben offen.
+    Austausch des Cachefensters und native Zustellung waren damals noch offen;
+    spätere Teilprüfungen sind oben beziehungsweise unter Android dokumentiert.
 
   **04.11.2026, Ungelesenfilter:** Der Filter berücksichtigt neu geladene
   und eintreffende ungelesene Karten, ohne unbekannte ältere Seiten als
@@ -1816,14 +1841,15 @@ Bestandteil des bestehenden Buildvertrags.
   die Gesamtansicht leert alte Inhalte sofort. 53 Widget- und Headertests und
   fünf gezielte Chrome-Webfälle bestanden; ein Android-spezifischer Kanaltest
   ist im Webrunner nicht anwendbar. Die Cursor-Fortsetzung und sichtbare native
-  Zustellung bleiben offen.
+  Zustellung waren damals noch offen und wurden später teilweise geprüft.
 
   **04.11.2026, gezielte Lesebestätigung:** Nur die ausdrücklich quittierten
   Ereignisse werden erneut projiziert und auf Berechtigung sowie Quellen
   geprüft. Der vollständige Inboxscan entfällt bei dieser Aktion; ungültige
   Kennungen werden weiterhin gemeinsam zurückgewiesen. Die breitere Suite
   bestand mit 98 Fällen und einem Skip auf SQLite und mit 99 Fällen auf
-  isoliertem PostgreSQL. Das Cursor-Nachladen älterer Einträge bleibt offen.
+  isoliertem PostgreSQL. Das Cursor-Nachladen älterer Einträge war damals
+  noch offen; die spätere serverseitige Fortsetzung ist oben dokumentiert.
 
   **03.11.2026, Kontextwechsel beim Öffnen:** Glocke und Gesamtansicht
   verwerfen überholte Klicks und verspätete Lesebestätigungen, wenn sich
@@ -1840,7 +1866,8 @@ Bestandteil des bestehenden Buildvertrags.
   beiden Datenbanken gesondert geprüft. Sehr hohe Meldungskarten werden nach
   Sichtbarkeit des erreichbaren Kartenausschnitts quittiert; 24 Fluttertests
   und 13 Tests im Chrome-Webrunner bestanden. Die 500er-Suchgrenze, das
-  fehlende Cursor-Nachladen und native Zustellungsnachweise bleiben offen.
+  fehlende Cursor-Nachladen und native Zustellungsnachweise waren damals offen;
+  spätere Prüfungen sind oben beziehungsweise unter Android dokumentiert.
 
   **03.11.2026, Bereitmeldungen und Sortierung:** Der Abruf überprüft bis zu
   500 gespeicherte Lernrundenaufträge, damit ungültige neue Aufträge ältere
@@ -1850,7 +1877,8 @@ Bestandteil des bestehenden Buildvertrags.
   Tageschecks, Sprachprojekten und Familienanrufen wird die Kennung vor der
   Begrenzung entsprechend der gemeinsamen Anzeige sortiert; drei gezielte
   Fälle bestanden ebenfalls auf beiden Datenbanken. Die Begrenzung auf 500
-  Kandidaten und fehlendes Cursor-Nachladen bleiben ausdrücklich offen.
+  Kandidaten und fehlendes Cursor-Nachladen waren damals noch offen; spätere
+  Cursorprüfungen sind oben dokumentiert.
 
   **03.11.2026, Geräte und Filter:** Arten für Lernrunden, Klassenarbeiten,
   Lerntage und Tageschecks sind im Filter unterscheidbar. Alte Schalter- und
@@ -1864,8 +1892,8 @@ Bestandteil des bestehenden Buildvertrags.
   aussortiert. Stabile Blöcke prüfen höchstens 500 Nachrichten; ein künstlicher
   Fall mit 60 ungültigen Meldungen und gleichem Zeitstempel zeigte anschließend
   die korrekten 50 gültigen Nachrichten. 24 SQLite-Fälle sowie zwei gezielte
-  Fälle auf isoliertem PostgreSQL bestanden. Die feste Prüfgrenze kann weiterhin
-  ältere Einträge verdecken; eine echte Cursor-Fortsetzung bleibt offen.
+  Fälle auf isoliertem PostgreSQL bestanden. Die feste Prüfgrenze konnte damals
+  ältere Einträge verdecken; die spätere Cursor-Fortsetzung ist oben beschrieben.
 
   **03.11.2026, Elternhinweise:** Die Auswahl für den Prüfungstagescheck
   begrenzt sich auf Sitzungen nahe dem aktuellen UTC-Tag und berücksichtigt
@@ -1883,7 +1911,7 @@ Bestandteil des bestehenden Buildvertrags.
   Status allein initialisiert Firebase nicht und registriert kein Gerät. Die
   künstlichen Push-Tests unterscheiden Web- und Android-Transport; sie belegen
   keine sichtbare Zustellung auf einem physischen Gerät. Die Cursor-Fortsetzung
-  und die übrigen Kriterien dieses Hauptpunkts bleiben offen.
+  war damals offen; die übrige Gesamtprüfung bleibt weiterhin offen.
 
   Bereitschaft von Seitenverarbeitung und Lernrunden sowie optional fehlende Tages- oder Prüfungsvorbereitung testen. In-App-Glocke mit scrollendem Nachladen, sichtbarkeitsbezogener Lesemarkierung, Wiederaufnahme und berechtigtem Direktlink prüfen; Push folgt denselben neutralen Ziel- und Berechtigungsregeln. Ruhezeiten, Duplikate, Logout, deaktiviertes Push und fehlgeschlagene Zustellung berücksichtigen.
 
@@ -1892,15 +1920,13 @@ Bestandteil des bestehenden Buildvertrags.
   **01.11.2026, Teilprüfung:** 94 SQLite-Fälle mit künstlichen Familien und
   simuliertem Push bestanden, ein Fall wurde übersprungen. Sie prüfen unter
   anderem gespeicherte Rundenziele, Berechtigungs- und Quellenänderungen sowie
-  Wiederholungen. Der vollständige Glockenablauf und eine sichtbare native
-  Zustellung bleiben gesondert offen; die Tests simulieren FCM.
+  Wiederholungen. Der vollständige Glockenablauf bleibt gesondert offen; diese
+  Tests simulieren FCM und belegen nicht die später separat geprüfte native Anzeige.
 
-  **01.11.2026, ergänzender Befund:** Das Glockenmenü ist scrollbar und rendert
-  vorhandene Einträge bedarfsgerecht, der API-Endpunkt liefert jedoch insgesamt
-  höchstens 50 Ereignisse aus 30 Tagen. Eine serverseitige Cursor-Fortsetzung
-  über diese Grenze hinaus ist nicht implementiert; das ist kein vollständiges
-  Lazy Loading. Ein Ausbau muss alle Ereignisquellen, stabile Sortierung,
-  Berechtigungs- und Lesemarkierungsprüfungen sowie den Kontowechsel abdecken.
+  **Historischer Befund vom 01.11.2026:** Das Glockenmenü war scrollbar, der
+  API-Endpunkt lieferte damals aber höchstens 50 Ereignisse aus 30 Tagen ohne
+  serverseitige Cursor-Fortsetzung. Die spätere paginierte API und ihre Grenzen
+  sind oben unter dem 04.11.2026 dokumentiert.
 
   **02.11.2026, Teilkorrektur:** Eigene Nachrichten wurden bisher erst nach
   dem begrenzten Datenbankabruf ausgefiltert. Viele eigene Nachrichten konnten
@@ -1910,8 +1936,8 @@ Bestandteil des bestehenden Buildvertrags.
   Lesemarkierung. Die zugehörigen Inbox-, Lernrunden- und Prüfungsmeldungstests
   bestanden auf isoliertem PostgreSQL mit 77 Fällen und auf SQLite mit 76
   Fällen; ein Zeilensperrentest wird dort bewusst übersprungen und ist im
-  PostgreSQL-Lauf enthalten. Die vollständige Cursor-Fortsetzung ist weiterhin
-  offen.
+  PostgreSQL-Lauf enthalten. Die Cursor-Fortsetzung war zu diesem Zeitpunkt
+  noch offen; der spätere paginierte Vertrag ist oben dokumentiert.
 
   **02.11.2026, weitere Teilkorrektur:** Eine bereits sichtbare
   Nachricht konnte beim Quittieren aus den neuesten 50 Ereignissen verdrängt
@@ -1926,7 +1952,7 @@ Bestandteil des bestehenden Buildvertrags.
   Inbox, Lernrunden- und Prüfungsmeldungen bestand mit 78 SQLite-Fällen (ein
   PostgreSQL-Fall übersprungen) und 79 PostgreSQL-Fällen.
 
-  **Weitere Teilkorrektur:** Dasselbe Verdrängungsproblem ist nun auch für
+  **Historische weitere Teilkorrektur:** Dasselbe Verdrängungsproblem wurde auch für
   Familienanrufe, Eltern-Tageschecks, Wortimporte und Sprachprojekte behoben.
   Für die angeforderten Kennungen werden aktuelle Mitgliedschaft, Ereignisfrist
   und die geltenden Quell-/Statusbedingungen erneut geprüft. Die Tests umfassen
@@ -1935,8 +1961,8 @@ Bestandteil des bestehenden Buildvertrags.
   isoliertem PostgreSQL; die breitere Regression für Inbox, Lernrunden,
   Prüfungen, Eltern-Erinnerungen und Familienanrufe bestand mit 179
   SQLite-Fällen (drei PostgreSQL-only übersprungen) und 182 PostgreSQL-Fällen.
-  Für Lernrunden-/Prüfungsmeldungen und serverseitige Cursor-Fortsetzung bleibt
-  die Arbeit offen.
+  Lernrunden-/Prüfungsmeldungen und serverseitige Cursor-Fortsetzung waren
+  damals noch offen; spätere Prüfungen sind oben beschrieben.
 
   **03.11.2026, weitere Teilkorrektur:** Bestätigte Wortimporte, Anrufe aus
   ausschließlich lesend zugänglichen Familien und Tageschecks nicht mehr
@@ -1947,7 +1973,9 @@ Bestandteil des bestehenden Buildvertrags.
   Regressionsfälle bestanden auf SQLite und isoliertem PostgreSQL. Die Prüfung
   ergänzt den PostgreSQL-CI-Auftrag und seine Ergebnisprüfung. Der eigentliche
   Cursor für mehr als 50 Ereignisse, ein vollständiger mobiler Glockenablauf
-  und eine sichtbar zugestellte native Pushmeldung bleiben offen.
+  und eine sichtbar zugestellte native Pushmeldung waren damals noch offen.
+  Die spätere Cursor- und Emulatorprüfung ist oben beziehungsweise unter
+  Android beschrieben; der gesamte Glockenablauf bleibt offen.
 
   **03.11.2026, Aktualisierungsrennen:** Wird eine Lesemarkierung gespeichert,
   während eine ältere Statusantwort unterwegs ist, verwirft die App den alten
