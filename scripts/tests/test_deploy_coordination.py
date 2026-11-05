@@ -7,6 +7,7 @@ disconnect, a real service activation, or a full migration/rollback.
 
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import json
 import multiprocessing
@@ -29,6 +30,27 @@ def load_module(name: str, path: Path):
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     return mod
+
+
+def legacy_prune(fixture=None):
+    """Load exact deployed 534009f snapshot even in a shallow checkout.
+
+    The byte digest was checked against `git show 534009f:deploy/prune_releases.py`;
+    do not silently skip this regression when Git history is unavailable.
+    """
+    fixture = fixture or ROOT / "scripts/tests/fixtures/prune_releases_534009f.py"
+    source = fixture.read_bytes()
+    assert hashlib.sha256(source).hexdigest() == "22d6e9210c6c9966e678d0945246927a24396cf697923c0338c6631b0bddae47"
+    namespace = {"__name__": "legacy_prune_fixture"}
+    exec(compile(source, str(fixture), "exec"), namespace)
+    return namespace
+
+
+def test_legacy_prune_snapshot_rejects_altered_fixture_before_execution(tmp_path):
+    fixture = tmp_path / "altered.py"
+    fixture.write_text("raise RuntimeError('must not execute')")
+    with pytest.raises(AssertionError):
+        legacy_prune(fixture)
 
 
 stage = load_module("stage_release", ROOT / "deploy/stage_release.py")
@@ -132,12 +154,7 @@ def test_finish_requires_matching_active_release_and_completed_followup(env):
 
 
 def test_legacy_prune_refuses_guard_even_after_interruption(env):
-    result = subprocess.run(["git", "show", "534009f:deploy/prune_releases.py"], cwd=ROOT,
-                            capture_output=True, text=True)
-    if result.returncode:
-        pytest.skip("historical production revision unavailable in this checkout")
-    namespace = {"__name__": "legacy_prune_fixture"}
-    exec(compile(result.stdout, "legacy_prune_fixture", "exec"), namespace)
+    namespace = legacy_prune()
     token = stage.prepare(env, RELEASE_1)
     with pytest.raises(stage.ReleaseLockError):
         stage.guard_legacy_prune(env, RELEASE_1, "wrong")
@@ -597,10 +614,7 @@ def test_manual_rollback_acquires_exclusive_lock_and_blocks_concurrency(env):
         # Exercise the actual previously deployed cleanup code, not a copy of
         # the new implementation. Its directory validation must reject the
         # marker before it creates any removal plan.
-        result = subprocess.run(["git", "show", "534009f:deploy/prune_releases.py"], cwd=ROOT,
-                                check=True, capture_output=True, text=True)
-        namespace = {"__name__": "legacy_prune_fixture"}
-        exec(compile(result.stdout, "legacy_prune_fixture", "exec"), namespace)
+        namespace = legacy_prune()
         with pytest.raises((ValueError, RuntimeError, OSError)):
             namespace["plan_prune"](env / "releases", env / "current", env / "previous")
 
