@@ -1790,6 +1790,19 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Hefte, Materialarten und Suche im digitalen Ranzen abnehmen**
 
+  - [x] **Verschiedene künstliche Materialseiten und Heftquellen im Backend absichern.**
+    Fünf unterschiedlich gezeichnete und ausdrücklich gekennzeichnete
+    Testseiten werden hochgeladen und mit Gast-, Geschwister- und Adminrechten
+    auf Detail-, Versions- und Fotozugriff geprüft. Lesende Zugriffe verändern
+    keine vorhandenen Material-, Aufgaben-, Antwort-, Aktivitäts-, Kompetenz-,
+    Quellenbindungs-, Auftrags- oder Kostenzeilen. Bei ausdrücklich ausgewählten zwei Seiten
+    gelangen beide unterschiedlichen Quellenmarker an den simulierten Worker;
+    ungewählte Marker fehlen. Inhalts- oder Rechteänderungen vor oder
+    während des Aufrufs verhindern die Veröffentlichung; entstandene Kosten
+    bleiben erhalten. Künstliche SQLite- und PostgreSQL-Fälle bestanden.
+    Keine OCR-, echte Provider- oder App-Abnahme daraus ableiten;
+    [Prüfbericht](docs/NOTEBOOK_BACKEND_EVIDENCE_2026_11_05.md).
+
   - [x] **Mehrdeutige Erweiterungsaufgaben im Heftverlauf gezielt absichern.**
     05.11.2026, Coding-AI: Die vorbereitete Notebook-Runde berücksichtigt
     den vollständigen zugehörigen Quellen-/Tagesverlauf. Bekannte Aufgaben

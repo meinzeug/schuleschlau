@@ -17,6 +17,7 @@ from schulpilot.db import (
     Material,
     Membership,
     SchoolDay,
+    Session,
     UnitSource,
     Usage,
 )
@@ -136,6 +137,17 @@ def inventory():
         )
 
 
+def stored_learning_evidence():
+    """Existing unit, answer and source values must not be rewritten on failure."""
+    with DB() as db:
+        return {
+            model.__tablename__: [dict(row) for row in db.execute(
+                select(model.__table__).order_by(*model.__table__.primary_key.columns)
+            ).mappings().all()]
+            for model in (LearningUnit, Attempt, UnitSource)
+        }
+
+
 def test_biology_notebook_context_offers_the_proven_photosynthesis_reference(notebook):
     from schulpilot import visual_references
 
@@ -232,6 +244,111 @@ def test_exact_two_pages_across_days_publish_once_without_day_expansion(notebook
     assert len(calls) == 1
     assert inventory() == (before[0] + 1, before[1] + 1, before[2] + 1, before[3], before[4] + 2)
     assert post(notebook, body(notebook, 4)).status_code == 409
+
+
+def test_distinct_selected_sources_reach_worker_without_unselected_text(notebook, monkeypatch):
+    """Both selected sources must actually reach the provider, not just UnitSource."""
+    markers = ["Auswahlmarker A nur fuer diese Seite", "Auswahlmarker B nur fuer diese Seite"]
+    with DB.begin() as db:
+        for ref, marker in zip(notebook.refs[:2], markers, strict=True):
+            page = db.get(Material, ref["id"])
+            page.content = CONTENT + " " + marker
+    response = post(notebook)
+    assert response.status_code == 202, response.text
+    result, calls = process(notebook, monkeypatch, response.json()["id"])
+    assert result["status"] == "completed", result
+    assert len(calls) == 1
+    material = calls[0]["material"]["content"]
+    assert all(marker in material for marker in markers)
+    assert "UNSELECTED_PRIVATE_TEST_MARKER" not in str(calls[0])
+    with DB() as db:
+        unit_id = result["result"]["unit_id"]
+        assert {(row.material_id, row.revision) for row in db.scalars(
+            select(UnitSource).where(UnitSource.unit_id == unit_id)
+        )} == {(ref["id"], ref["revision"]) for ref in notebook.refs[:2]}
+        assert db.scalar(select(Attempt).where(Attempt.unit_id == notebook.old_id)).answer == "Eigene künstliche Altantwort"
+
+
+@pytest.mark.parametrize("when", ["before", "during"])
+@pytest.mark.parametrize("change", ["content", "uncertainty", "subject", "unconfirmed", "deleted"])
+def test_selected_source_changes_without_revision_never_publish(notebook, monkeypatch, when, change):
+    response = post(notebook)
+    assert response.status_code == 202, response.text
+
+    def mutate():
+        with DB.begin() as db:
+            page = db.get(Material, notebook.refs[1]["id"])
+            assert page.revision == notebook.refs[1]["revision"]
+            if change == "content":
+                page.content += "\nKuenstlich geaenderter Seiteninhalt."
+            elif change == "uncertainty":
+                page.uncertainties = ["Kuenstliche neue Lesewarnung"]
+            elif change == "subject":
+                page.subject_id = identity("deutsch")
+            elif change == "unconfirmed":
+                page.confirmed = False
+            else:
+                db.delete(page)
+
+    if when == "before":
+        mutate()
+    before = inventory()
+    prior_evidence = stored_learning_evidence()
+    result, calls = process(notebook, monkeypatch, response.json()["id"], callback=mutate if when == "during" else None)
+    assert result["status"] == "failed", result
+    assert len(calls) == (1 if when == "during" else 0)
+    assert result["usage_status"] == ("failed_billed" if when == "during" else "failed_not_sent")
+    assert result["cost"] == (200 if when == "during" else 0)
+    assert inventory()[2:] == before[2:]
+    assert stored_learning_evidence() == prior_evidence
+
+
+@pytest.mark.parametrize("when", ["before", "during"])
+def test_revoked_submitting_session_never_publishes_notebook_round(notebook, monkeypatch, when):
+    response = post(notebook)
+    assert response.status_code == 202, response.text
+    job_id = response.json()["id"]
+    with DB() as db:
+        session_id = db.get(Job, job_id).payload["completion_origin"]["session_id"]
+
+    def revoke():
+        with DB.begin() as db:
+            db.get(Session, session_id).revoked = True
+
+    if when == "before":
+        revoke()
+    before = inventory()
+    prior_evidence = stored_learning_evidence()
+    result, calls = process(notebook, monkeypatch, job_id, callback=revoke if when == "during" else None)
+    assert result["status"] == "failed", result
+    assert len(calls) == (1 if when == "during" else 0)
+    assert result["usage_status"] == ("failed_billed" if when == "during" else "failed_not_sent")
+    assert result["cost"] == (200 if when == "during" else 0)
+    assert inventory()[2:] == before[2:]
+    assert stored_learning_evidence() == prior_evidence
+
+
+@pytest.mark.parametrize("when", ["before", "during"])
+def test_parent_losing_write_permission_never_publishes_notebook_round(notebook, monkeypatch, when):
+    response = post(notebook, client=notebook.parent_api)
+    assert response.status_code == 202, response.text
+
+    def revoke_write():
+        with DB.begin() as db:
+            member = db.scalar(select(Membership).where(Membership.user_id == notebook.parent["id"]))
+            member.permission = "view"
+
+    if when == "before":
+        revoke_write()
+    before = inventory()
+    prior_evidence = stored_learning_evidence()
+    result, calls = process(notebook, monkeypatch, response.json()["id"], callback=revoke_write if when == "during" else None)
+    assert result["status"] == "failed", result
+    assert len(calls) == (1 if when == "during" else 0)
+    assert result["usage_status"] == ("failed_billed" if when == "during" else "failed_not_sent")
+    assert result["cost"] == (200 if when == "during" else 0)
+    assert inventory()[2:] == before[2:]
+    assert stored_learning_evidence() == prior_evidence
 
 
 @pytest.mark.parametrize(
