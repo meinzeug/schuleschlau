@@ -5,6 +5,8 @@ reserve an original introduction before the remaining practice slots are filled.
 Only remaining practice slots receive finite arithmetic BEFORE generation.
 """
 import copy
+import re
+import unicodedata
 from dataclasses import dataclass
 
 from . import learning_entry
@@ -18,6 +20,8 @@ from .subject_content import PROFILES, Graphic, validate_question
 REVISION = "notebook-fraction-expansion-1"
 ERROR = "Die Heft-Runde lässt sich nicht vollständig an die bestätigte Erweiterungsregel und den Lernstart binden. Es wurde keine KI-Anfrage gesendet."
 EXHAUSTED = "Für diese bestätigte Erweiterungsseite sind keine neuen passenden kleinen Aufgaben mehr verfügbar. Wähle eine andere bestätigte Heftseite zum Weiterlernen. Es wurde keine KI-Anfrage gesendet."
+UNCLEAR = "Eine frühere Erweiterungsaufgabe lässt sich nicht sicher vergleichen. Wähle eine andere Heftseite. Es wurde keine KI-Anfrage gesendet."
+CURRENT_ERROR = "Eine Erweiterungsaufgabe wurde inzwischen bereits verwendet oder ist nicht eindeutig prüfbar. Die neue Runde wurde nicht übernommen. Deine bisherigen Antworten bleiben gespeichert."
 KEY = "notebook_expansion_plan"
 HISTORY_KEY = "notebook_expansion_exclusions"
 CORE = learning_entry.CORE
@@ -88,33 +92,79 @@ def with_history(payload, prompts):
     """Compact ALL authorized source/day prompts; never copy raw history here."""
     if not _supported(payload):
         return payload
-    sources = expansion._sources(payload["visual_context"])
-    from .coaching import fraction_task_signature
+    # Reuse the material path's closed, conservative parser. It distinguishes
+    # unrelated/number-free questions from ambiguous numerical expansions and
+    # rejects legacy factor interpretations such as "mit 2/3".
+    return {**payload, HISTORY_KEY: _scoped_history(payload, prompts)}
 
-    used, pool = set(), _pool()
+
+def _scoped_history(payload, prompts):
+    """Exclude only demonstrably related, unambiguous numeric expansion tasks."""
+    from .coaching import fraction_task_signature
+    from .material_fraction_expansions import _history as expansion_history
+    from .material_fraction_expansions import _number_free_concept
+
+    relevant, ambiguous = [], False
     for prompt in prompts:
         if not isinstance(prompt, str):
             raise ValueError(ERROR)
-        signature = fraction_task_signature(prompt)
+        text = unicodedata.normalize("NFKC", prompt)
+        signature = fraction_task_signature(text)
+        expansion_word = bool(re.search(r"\berweiter\w*", text, re.I))
+        both_parts = bool(re.search(r"\bz(?:ä|ae)hler\b", text, re.I) and re.search(r"\bnenner\b", text, re.I))
+        multiplication = bool(re.search(r"\b(?:multipliz|vervielfach|verdopp(?:el|l)|verdreifach|vervierfach)\w*|"
+                                        r"\bmal\s+(?:\d|eins?\b|zwei\b|drei\b|vier\b)", text, re.I))
+        equivalent = bool(re.search(r"\bgleichwertig\w*", text, re.I)
+            and re.search(r"\b(?:finde|ergänz\w*|ergaenz\w*|form\w*|schreib\w*)\b", text, re.I)
+            and re.search(r"\d\s*[/⁄∕／]\s*\d", text)
+            and re.search(r"\bnenner\s*\d|=", text, re.I))
+        parts = re.findall(r"(?<!\d)\d{1,4}\s*/\s*([1-9]\d{0,3})(?!\d)", text)
+        target = re.search(r"\bnenner\s+(\d{1,4})(?!\d)", text, re.I)
+        target_expansion = bool(len(parts) == 1 and target and int(target[1]) > int(parts[0])
+            and int(target[1]) % int(parts[0]) == 0
+            and re.search(r"\b(?:schreib\w*|stell\w*|finde|form\w*|wandel\w*)\b", text, re.I))
+        if not expansion_word and not (both_parts and multiplication) and not equivalent and not target_expansion:
+            continue
+        # An unrelated use such as expanding a vocabulary is no evidence of
+        # fraction practice merely because the same school day has numbers.
+        if not re.search(r"\b(?:bruch\w*|brüch\w*|bruech\w*|zähler|zaehler|nenner)\b|\\(?:d?frac)\b|"
+                         r"\b(?:halb\w*|drittel\w*|viertel\w*|fünftel\w*|fuenftel\w*|sechstel\w*|siebtel\w*|achtel\w*|neuntel\w*)\b|"
+                         r"\d\s*[/⁄∕／:]\s*\d", text, re.I):
+            continue
+        relevant.append(text)
+        if not expansion_word and not _number_free_concept(text):
+            # The old signature parser has no reliable factor for this wording.
+            ambiguous = True
         if signature and signature[0] == "expand":
-            numbers = (*map(int, signature[1]), int(signature[2]))
-            if numbers in pool:
-                used.add(numbers)
-    return {**payload, HISTORY_KEY: {"version": 1, "source_digest": _digest(sources),
-        "signatures": [list(numbers) for numbers in sorted(used)]}}
+            # The legacy parser consumes only its first fraction/factor; an
+            # additional number may specify another task or a different factor.
+            if len(re.findall(r"\d+", text)) != 3:
+                ambiguous = True
+            if re.search(r"\b(?:oder|und|sowie)\s+(?:(?:dem|den|der|das|die|mit|faktor)\s+){0,4}"
+                         r"(?:ein(?:s|en|em)?|zwei|drei|vier|fünf|fuenf|sechs|sieben|acht|neun|zehn)\w*\b", text, re.I):
+                ambiguous = True
+    try:
+        history = expansion_history(payload, relevant)
+    except ValueError:
+        raise ValueError(ERROR) from None
+    history["unknown"] = history["unknown"] or ambiguous
+    return history
 
 
 def _history(payload):
     value = payload.get(HISTORY_KEY)
     pool = _pool()
-    if (not isinstance(value, dict) or set(value) != {"version", "source_digest", "signatures"}
+    if (not isinstance(value, dict) or set(value) != {"version", "source_digest", "signatures", "unknown"}
             or type(value.get("version")) is not int or value["version"] != 1
             or value.get("source_digest") != _digest(expansion._sources(payload["visual_context"]))
+            or type(value.get("unknown")) is not bool
             or not isinstance(value.get("signatures"), list) or len(value["signatures"]) > len(pool)
             or any(not isinstance(row, list) or len(row) != 3 or any(type(number) is not int for number in row)
                 or tuple(row) not in pool for row in value["signatures"])
             or len({tuple(row) for row in value["signatures"]}) != len(value["signatures"])):
         raise ValueError(ERROR)
+    if value["unknown"]:
+        raise ValueError(UNCLEAR)
     # Only private planner exclusions, not additional prompt text in the wire.
     return value, [_task("expand", tuple(numbers), "apply")[0] for numbers in value["signatures"]]
 
@@ -164,6 +214,20 @@ def prepare(payload):
     if KEY in payload and payload[KEY] != plan:
         raise ValueError(ERROR)
     return {**payload, KEY: plan}
+
+
+def validate_history(payload, data, prompts):
+    """Recheck scoped history under the existing publication lock after AI."""
+    if KEY not in payload:
+        return
+    validate_output(payload, data)
+    try:
+        fresh = _scoped_history(payload, prompts)
+    except ValueError:
+        raise ValueError(CURRENT_ERROR) from None
+    seen = {tuple(row) for row in fresh["signatures"]}
+    if fresh["unknown"] or any(expansion._planned(task, "apply") in seen for task in payload[KEY]["tasks"]):
+        raise ValueError(CURRENT_ERROR)
 
 
 def _probe_candidates(payload, *, plan=None, revision=REVISION):

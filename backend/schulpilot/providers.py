@@ -1140,12 +1140,13 @@ def request_provider(config, function, payload, image_bytes=None, *, synthetic_f
         payload = {**payload, "practice_tasks": tasks}
     from .notebook_fraction_expansions import ERROR as NOTEBOOK_EXPANSION_ERROR
     from .notebook_fraction_expansions import EXHAUSTED as NOTEBOOK_EXPANSION_EXHAUSTED
+    from .notebook_fraction_expansions import UNCLEAR as NOTEBOOK_EXPANSION_UNCLEAR
     from .notebook_fraction_expansions import prepare as prepare_notebook_expansion
 
     try:
         payload = prepare_notebook_expansion(payload) if function == "unit" else payload
     except ValueError as error:
-        if error.args not in ((NOTEBOOK_EXPANSION_ERROR,), (NOTEBOOK_EXPANSION_EXHAUSTED,)):
+        if error.args not in ((NOTEBOOK_EXPANSION_ERROR,), (NOTEBOOK_EXPANSION_EXHAUSTED,), (NOTEBOOK_EXPANSION_UNCLEAR,)):
             raise
         raise ProviderError(error.args[0], code="invalid_output", billing_result=Result({}, 0, 0, 0,
             telemetry={"pre_dispatch": True}, cost_source="cancelled")) from None
@@ -1826,7 +1827,7 @@ def request_provider(config, function, payload, image_bytes=None, *, synthetic_f
             from .fraction_practice_plan import ERROR as PRACTICE_POOL_ERROR
             from .fraction_practice_plan import INVALID as PRACTICE_PLAN_ERROR
 
-            if error.args not in ((PRACTICE_POOL_ERROR,), (PRACTICE_PLAN_ERROR,), (NOTEBOOK_EXPANSION_ERROR,), (NOTEBOOK_EXPANSION_EXHAUSTED,),
+            if error.args not in ((PRACTICE_POOL_ERROR,), (PRACTICE_PLAN_ERROR,), (NOTEBOOK_EXPANSION_ERROR,), (NOTEBOOK_EXPANSION_EXHAUSTED,), (NOTEBOOK_EXPANSION_UNCLEAR,),
                     (NOTEBOOK_COMPOSITION_ERROR,), (NOTEBOOK_COMPOSITION_EXHAUSTED,),
                     (MATERIAL_EXPANSION_ERROR,), (MATERIAL_EXPANSION_EXHAUSTED,)):
                 raise

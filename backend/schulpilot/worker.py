@@ -505,6 +505,20 @@ def _process(job_id):
                         if error.args not in ((MULTIPLES_ERROR,), (MULTIPLES_EXHAUSTED,), (MULTIPLES_RULE_ERROR,)):
                             raise
                         raise ProviderError(error.args[0], code="invalid_output") from None
+                    if not synthetic or fixture:
+                        # Keep the exact request plan in the worker as well as
+                        # the provider's verified copy for the post-call check.
+                        from .notebook_fraction_expansions import ERROR as EXPANSION_ERROR
+                        from .notebook_fraction_expansions import EXHAUSTED as EXPANSION_EXHAUSTED
+                        from .notebook_fraction_expansions import UNCLEAR as EXPANSION_UNCLEAR
+                        from .notebook_fraction_expansions import prepare as prepare_expansion
+
+                        try:
+                            payload = prepare_expansion(payload)
+                        except ValueError as error:
+                            if error.args not in ((EXPANSION_ERROR,), (EXPANSION_EXHAUSTED,), (EXPANSION_UNCLEAR,)):
+                                raise
+                            raise ProviderError(error.args[0], code="invalid_output") from None
             payload = with_catalog_context(db, child, payload)
             if not synthetic or fixture:
                 from .commerce import usage_terms
@@ -670,6 +684,18 @@ def _process(job_id):
                     if MATERIAL_EXPANSION_PLAN in payload:
                         validate_material_expansion_history(payload, data,
                             unit_novelty.previous_prompts(db, job.child_id, source_pages))
+                    from .notebook_fraction_expansions import CURRENT_ERROR as EXPANSION_HISTORY_CHANGED
+                    from .notebook_fraction_expansions import KEY as EXPANSION_PLAN
+                    from .notebook_fraction_expansions import validate_history as validate_expansion_history
+
+                    if EXPANSION_PLAN in payload:
+                        try:
+                            validate_expansion_history(payload, data,
+                                unit_novelty.previous_prompts(db, job.child_id, source_pages))
+                        except ValueError as error:
+                            if error.args != (EXPANSION_HISTORY_CHANGED,):
+                                raise
+                            raise ProviderError(error.args[0], code="source_changed") from None
                     from .notebook_fraction_compositions import CURRENT_ERROR as COMPOSITION_HISTORY_CHANGED
                     from .notebook_fraction_compositions import KEY as COMPOSITION_PLAN
                     from .notebook_fraction_compositions import validate_history as validate_composition_history

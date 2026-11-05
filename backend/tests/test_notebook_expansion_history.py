@@ -65,7 +65,8 @@ def test_real_worker_uses_all_day_signatures_before_80_prompt_and_character_cuto
         assert len(bounded) < 80  # This history exercises the character boundary too.
         assert not set(old_prompts).intersection(bounded)
         meta = payload[expansions.HISTORY_KEY]
-        assert set(meta) == {"version", "source_digest", "signatures"}
+        assert set(meta) == {"version", "source_digest", "signatures", "unknown"}
+        assert meta["unknown"] is False
         assert meta["signatures"] == [list(numbers) for numbers in used]
         assert all(type(number) is int for row in meta["signatures"] for number in row)
         assert not any(prompt in json.dumps(meta) for prompt in old_prompts + filler)
@@ -86,7 +87,7 @@ def test_real_worker_uses_all_day_signatures_before_80_prompt_and_character_cuto
     with DB() as db:
         job = db.get(Job, job_id)
         usage = db.scalar(select(Usage).where(Usage.job_id == job_id))
-        assert len(provider_entries) == 1
+        assert len(provider_entries) == (0 if exhausted else 1)
         if exhausted:
             assert job.status == "failed" and job.error == expansions.EXHAUSTED
             assert calls == [] and usage.cost_source == "cancelled" and usage.cost_micros == 0
@@ -102,7 +103,7 @@ def test_real_worker_uses_all_day_signatures_before_80_prompt_and_character_cuto
             assert db.scalar(select(func.count()).select_from(LearningUnit)) == before_units + 1
         assert [(row.id, row.answer, row.outcome) for row in db.scalars(select(Attempt))] == before_attempts
     worker.process(job_id)
-    assert len(provider_entries) == 1  # No automatic second request or retry.
+    assert len(provider_entries) == (0 if exhausted else 1)  # No automatic retry.
 
 
 @pytest.mark.parametrize("fault", ["missing", "version", "scope", "duplicate", "outside_pool", "bool", "nan"])
@@ -129,6 +130,61 @@ def test_unknown_or_stale_closed_exclusions_refuse_before_http(household, monkey
         providers.request_provider(_config("openrouter"), "unit", payload)
     assert calls == [] and error.value.billing_result.cost_source == "cancelled"
     assert error.value.billing_result.cost_micros == 0
+
+
+def test_unclear_saved_history_stops_worker_before_provider_and_releases_reservation(notebook, monkeypatch):
+    with DB.begin() as db:
+        page = db.get(Material, notebook.refs[0]["id"])
+        page.content, page.topic = CONTENT, "Brüche erweitern"
+        save_history(db, notebook.child["id"], page, [r"Erweitere \frac{1}{2} mit dem Faktor 2."], start=int(now()) - 100)
+        before = db.scalar(select(func.count()).select_from(LearningUnit))
+    _config("openrouter")
+    result = post(notebook, {"material_id": notebook.refs[0]["id"], "notebook_sources": notebook.refs[:1], "question_count": 2})
+    assert result.status_code == 202, result.text
+    job_id = result.json()["id"]
+    calls = []
+    monkeypatch.setattr(worker, "request_provider", lambda *a, **k: calls.append(True))
+    with DB() as db:
+        assert worker.claim(db) == job_id
+    worker.process(job_id)
+    with DB() as db:
+        job = db.get(Job, job_id)
+        usage = db.scalar(select(Usage).where(Usage.job_id == job_id))
+        assert calls == [] and job.status == "failed" and job.error == expansions.UNCLEAR
+        assert usage.cost_source == "cancelled" and usage.cost_micros == 0
+        assert db.scalar(select(func.count()).select_from(LearningUnit)) == before
+
+
+def test_unclear_history_added_during_provider_is_not_published_but_is_billed(notebook, monkeypatch):
+    with DB.begin() as db:
+        page = db.get(Material, notebook.refs[0]["id"])
+        page.content, page.topic = CONTENT, "Brüche erweitern"
+        before = db.scalar(select(func.count()).select_from(LearningUnit))
+    _config("openrouter")
+    result = post(notebook, {"material_id": notebook.refs[0]["id"], "notebook_sources": notebook.refs[:1], "question_count": 2})
+    assert result.status_code == 202, result.text
+    job_id, calls = result.json()["id"], []
+    real_provider = providers.request_provider
+
+    def request(config, function, payload, *args, **kwargs):
+        assert expansions.KEY in payload
+        _, _, wire = binding_and_wire(payload)
+        http_mock(monkeypatch, wire, calls)
+        with DB.begin() as db:
+            page = db.get(Material, notebook.refs[0]["id"])
+            save_history(db, notebook.child["id"], page, ["Erweitere den Bruch 1/2 wie auf dem Bild."], start=int(now()))
+        return real_provider(config, function, payload, *args, **kwargs)
+
+    monkeypatch.setattr(worker, "request_provider", request)
+    with DB() as db:
+        assert worker.claim(db) == job_id
+    worker.process(job_id)
+    with DB() as db:
+        job = db.get(Job, job_id)
+        usage = db.scalar(select(Usage).where(Usage.job_id == job_id))
+        assert len(calls) == 1 and job.status == "failed" and job.error == expansions.CURRENT_ERROR
+        assert usage.cost_source == "reported" and usage.cost_micros == 1000
+        assert db.scalar(select(func.count()).select_from(LearningUnit)) == before + 1  # Only the concurrently saved old question.
 
 
 def test_exclusion_only_changes_cannot_rebind_an_existing_private_plan(household, monkeypatch):

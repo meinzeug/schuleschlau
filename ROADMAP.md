@@ -1767,6 +1767,21 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Hefte, Materialarten und Suche im digitalen Ranzen abnehmen**
 
+  - [x] **Mehrdeutige Erweiterungsaufgaben im Heftverlauf gezielt absichern.**
+    05.11.2026, Coding-AI: Die vorbereitete Notebook-Runde berücksichtigt
+    den vollständigen zugehörigen Quellen-/Tagesverlauf. Bekannte Aufgaben
+    bleiben Ausschlüsse; konkret erkennbare mehrdeutige Erweiterungen stoppen
+    vor dem Anbieteraufruf mit einer eigenen Erklärung. Fachfremde Beispiele
+    und reine Verständnisfragen sperren die getesteten Fälle nicht. Der
+    Arbeitsauftrag wird nun auch im Worker gebunden und nach dem Anbieteraufruf
+    unter der Kind-Sperre gegen den aktuellen Verlauf geprüft. Dabei bleiben
+    tatsächlich entstandene Kosten erhalten; ein Vorabstopp löst keine aus.
+    Die neuen künstlichen Historien- und Workerfälle bestanden jeweils auf
+    SQLite und isoliertem PostgreSQL 16, ein unabhängiger Review erfolgte.
+    Der begrenzte Mustervergleich erkennt nicht nachweislich jede mögliche
+    Formulierung; auch eine vollständige Fach- und Browserabnahme folgt daraus
+    nicht. Der Hauptpunkt bleibt offen.
+
   - [x] **Viele künstliche Quellen, Wiederaufnahme und Auswahlrevisionen prüfen.**
     Getrennte Familien, paginierte Lesezugriffe, gezieltes Wiederholen nach
     Netzfehler und ausgewählte Quellenrevisionen sind synthetisch geprüft.
