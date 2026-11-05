@@ -21,6 +21,8 @@ class Activation:
     def __init__(self, root, failure=None, *, changed_schema=False):
         self.root, self.failure, self.changed_schema = root, failure, changed_schema
         self.commands, self.command_releases, self.schema_reads, self.restarts, self.backup_checks = [], [], 0, [], 0
+        self.clock_reads = 0
+        self.backup_starts = 0
         self.base = root / "opt/schulpilot"
         self.old = self.base / "releases" / OLD
         self.new = self.base / "releases" / NEW
@@ -73,10 +75,37 @@ class Activation:
             self.schema_reads += 1
             schema = "0032" if self.changed_schema and self.schema_reads > 1 else "0031"
             return subprocess.CompletedProcess(command, 0, stdout=schema + "\n")
+        if command == ["systemctl", "start", "schulpilot-backup.service"]:
+            self.backup_starts += 1
+            if self.failure == "unknown_start_drained" and self.backup_starts == 2:
+                raise subprocess.CalledProcessError(1, command)
         if command[:3] == ["systemctl", "show", "schulpilot-backup.service"]:
             self.backup_checks += 1
             result = "failed" if self.failure == "second_backup" and self.backup_checks == 2 else "success"
-            return subprocess.CompletedProcess(command, 0, stdout=result + "\n")
+            stale = self.failure == "stale_drained" and self.backup_checks == 2 or (
+                self.failure == "stale_drained_exhausted" and self.backup_checks in (2, 3))
+            if stale:
+                start = getattr(self, "stale_start", self.clock_reads * 1_000_000 - 10)
+                self.stale_start = start
+            else:
+                start = self.clock_reads * 1_000_000 + 10
+            end = start + 1
+            fields = {"Result": result, "ActiveState": "inactive", "SubState": "dead", "Job": "",
+                "ExecMainStartTimestampMonotonic": str(start), "ExecMainExitTimestampMonotonic": str(end),
+                "ExecMainCode": "1", "ExecMainStatus": "0"}
+            if self.failure == "active_drained" and self.backup_checks == 2:
+                fields["ActiveState"] = "activating"
+            if self.failure == "job_drained" and self.backup_checks == 2:
+                fields["Job"] = "751"
+            if self.failure == "future_drained" and self.backup_checks == 2:
+                fields["ExecMainExitTimestampMonotonic"] = str((self.clock_reads + 2) * 1_000_000)
+            if self.failure == "malformed_drained" and self.backup_checks == 2:
+                fields["ExecMainStartTimestampMonotonic"] = "not-an-integer"
+            if self.failure == "backwards_drained" and self.backup_checks == 2:
+                fields["ExecMainExitTimestampMonotonic"] = str(start - 1)
+            if self.failure == "missing_drained" and self.backup_checks == 2:
+                del fields["Job"]
+            return subprocess.CompletedProcess(command, 0, stdout="".join(f"{key}={value}\n" for key, value in fields.items()))
         if command == ["systemctl", "restart", *WRITERS]:
             self.restarts.append((self.current.resolve(), kwargs.get("check")))
         failed = (
@@ -91,6 +120,10 @@ class Activation:
         if failed:
             raise subprocess.CalledProcessError(1, command)
         return subprocess.CompletedProcess(command, 0, stdout="")
+
+    def monotonic_ns(self):
+        self.clock_reads += 1
+        return self.clock_reads * 1_000_000_000
 
     def health(self, *_args, **_kwargs):
         self.commands.append(["health"])
@@ -114,7 +147,7 @@ class Activation:
         replacements = {
             "pathlib": SimpleNamespace(Path=self.path),
             "subprocess": SimpleNamespace(run=self.run),
-            "time": SimpleNamespace(sleep=lambda _: None),
+            "time": SimpleNamespace(sleep=lambda _: None, monotonic_ns=self.monotonic_ns),
             "urllib.request": SimpleNamespace(request=SimpleNamespace(urlopen=urlopen)),
         }
 
@@ -284,3 +317,34 @@ def test_failed_drained_backup_prevents_pointer_switch_or_migration(tmp_path, mo
     assert activation.restarts == [(activation.old, True)]
     assert not any("schulpilot.migrate" in cmd for cmd in activation.commands)
     assert all(release == activation.old for release in activation.command_releases)
+
+
+def test_joined_backup_is_followed_by_fresh_backup_after_writer_drain(tmp_path, monkeypatch):
+    activation = Activation(tmp_path, "stale_drained")
+    activation.execute(monkeypatch)
+    stop = activation.commands.index(["systemctl", "stop", *WRITERS])
+    starts = [i for i, cmd in enumerate(activation.commands) if cmd == ["systemctl", "start", "schulpilot-backup.service"]]
+    assert len(starts) == 3 and starts[0] < stop < starts[1] < starts[2]
+    assert all(activation.command_releases[i] == activation.old for i in starts)
+    assert activation.current.resolve() == activation.new
+
+
+@pytest.mark.parametrize("failure", ["stale_drained_exhausted", "active_drained", "job_drained", "future_drained", "malformed_drained", "backwards_drained", "missing_drained"])
+def test_uncertain_or_repeated_stale_drained_backup_never_switches(tmp_path, monkeypatch, failure):
+    activation = Activation(tmp_path, failure)
+    with pytest.raises(RuntimeError, match="backup"):
+        activation.execute(monkeypatch)
+    starts = [cmd for cmd in activation.commands if cmd == ["systemctl", "start", "schulpilot-backup.service"]]
+    assert len(starts) == (3 if failure == "stale_drained_exhausted" else 2)
+    assert activation.current.resolve() == activation.old
+    assert activation.restarts == [(activation.old, True)]
+    assert not any("schulpilot.migrate" in command for command in activation.commands)
+
+
+def test_failed_drained_start_is_not_retried(tmp_path, monkeypatch):
+    activation = Activation(tmp_path, "unknown_start_drained")
+    with pytest.raises(subprocess.CalledProcessError):
+        activation.execute(monkeypatch)
+    assert activation.backup_starts == 2 and activation.backup_checks == 1
+    assert activation.current.resolve() == activation.old
+    assert not any("schulpilot.migrate" in command for command in activation.commands)

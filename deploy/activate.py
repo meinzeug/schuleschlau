@@ -88,16 +88,50 @@ def restore_files(snapshots):
 
 
 def checked_backup():
-    """Require a completed successful systemd backup before using it as recovery."""
-    subprocess.run(["systemctl", "start", "schulpilot-backup.service"], check=True)
-    result = subprocess.run(
-        ["systemctl", "show", "schulpilot-backup.service", "-p", "Result", "--value"],
-        check=True,
-        capture_output=True,
-        text=True,
-    ).stdout.strip()
-    if result != "success":
-        raise RuntimeError("Pre-deployment database backup failed")
+    """Require a successful backup that actually started after this call.
+
+    systemd coalesces `start` into an already running oneshot. Merely checking
+    Result=success could therefore accept a backup started before writer drain.
+    Record a kernel monotonic watermark after drain; systemd reports matching
+    CLOCK_MONOTONIC timestamps in microseconds, independent of wall-clock/NTP.
+    """
+    started_after = time.monotonic_ns() // 1000 + 1
+    for attempt in range(2):
+        subprocess.run(["systemctl", "start", "schulpilot-backup.service"], check=True)
+        output = subprocess.run(
+            ["systemctl", "show", "schulpilot-backup.service", "--no-pager",
+             "-p", "Result", "-p", "ActiveState", "-p", "SubState", "-p", "Job",
+             "-p", "ExecMainStartTimestampMonotonic", "-p", "ExecMainExitTimestampMonotonic",
+             "-p", "ExecMainCode", "-p", "ExecMainStatus"],
+            check=True, capture_output=True, text=True,
+        ).stdout
+        fields = {}
+        for line in output.splitlines():
+            key, separator, value = line.partition("=")
+            if not separator or key in fields:
+                raise RuntimeError("Pre-deployment database backup status is invalid")
+            fields[key] = value
+        required = {"Result", "ActiveState", "SubState", "Job", "ExecMainStartTimestampMonotonic",
+                    "ExecMainExitTimestampMonotonic", "ExecMainCode", "ExecMainStatus"}
+        if (set(fields) != required or fields["Result"] != "success" or fields["ActiveState"] != "inactive"
+                or fields["SubState"] != "dead" or fields["Job"] or fields["ExecMainCode"] != "1"
+                or fields["ExecMainStatus"] != "0"):
+            raise RuntimeError("Pre-deployment database backup failed or has an uncertain status")
+        try:
+            start_us = int(fields["ExecMainStartTimestampMonotonic"])
+            exit_us = int(fields["ExecMainExitTimestampMonotonic"])
+        except (ValueError, TypeError):
+            raise RuntimeError("Pre-deployment database backup timestamps are invalid") from None
+        now_us = time.monotonic_ns() // 1000
+        if start_us <= 0 or exit_us < start_us or exit_us > now_us:
+            raise RuntimeError("Pre-deployment database backup timestamps are invalid")
+        if start_us >= started_after:
+            return
+        # The first call joined an older successful execution. Start one new
+        # backup, then require proof it crossed the original watermark.
+        if attempt:
+            raise RuntimeError("Pre-deployment database backup was not freshly started")
+    raise RuntimeError("Pre-deployment database backup failed")
 
 
 def database_revision():
