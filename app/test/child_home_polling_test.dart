@@ -90,8 +90,10 @@ class PendingHome {
 }
 
 Future<PendingHome> mount(WidgetTester tester) async {
-  await tester.binding.setSurfaceSize(const Size(390, 844));
-  addTearDown(() => tester.binding.setSurfaceSize(null));
+  tester.view.physicalSize = const Size(390, 844);
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.resetPhysicalSize);
+  addTearDown(tester.view.resetDevicePixelRatio);
   final home = PendingHome();
   addTearDown(() async {
     await tester.pumpWidget(const SizedBox.shrink());

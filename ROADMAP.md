@@ -2155,7 +2155,8 @@ Bestandteil des bestehenden Buildvertrags.
   **05.11.2026, Sitzungswechsel:** Bereits geladene Kinder- und
   Elternübersichten verschwinden bei gemeldetem Tokenwechsel; ein laufender
   Statusabruf darf sie nicht zurückbringen oder einen Folgeabruf auslösen.
-  Die künstlichen Clienttests decken keinen unbemerkten Cookie-Wechsel oder
+  Die künstlichen Clienttests bestanden auf der VM und in Chrome bei 390 px
+  einschließlich Neuöffnung. Sie decken keinen unbemerkten Cookie-Wechsel oder
   eine echte geräteübergreifende Zustellung ab. Der Gesamtpunkt bleibt offen.
 
   - [x] **Fotoverarbeitungsstatus über zwei künstliche Sitzungen prüfen.**

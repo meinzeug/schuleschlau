@@ -26,7 +26,11 @@ Bei gemeldetem Tokenwechsel verschwinden Inhalte und Aktionen sofort; ein
 noch laufender Statusabruf darf sie nicht zurückbringen und es folgt keine
 automatische weitere Abfrage. Die Fälle in `child_home_polling_test.dart`
 und `parent_overview_refresh_test.dart` verwenden künstliche Daten und
-prüfen ausschließlich GET-Aufrufe. Sie decken Tokenwechsel im Client ab;
+prüfen ausschließlich GET-Aufrufe; beide Fälle bestanden auf Dart-VM und im
+Chrome-Webrunner bei 390 × 844 Pixeln einschließlich erneuter Öffnung. Für
+den Browser werden aus der bestehenden synthetischen JSON-Fixture generierte
+Bytes verwendet; `child_home_fixture_sync_test.dart` prüft in der VM deren
+exakte Übereinstimmung mit der kanonischen Datei. Sie decken Tokenwechsel im Client ab;
 ein Cookie-Wechsel ohne entsprechende Aktualisierung des App-Kontostands
 und eine echte geräteübergreifende Zustellung sind damit nicht belegt.
 

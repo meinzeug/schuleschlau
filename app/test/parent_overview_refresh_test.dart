@@ -119,8 +119,10 @@ Future<ParentRefreshFixture> mountParentRefresh(
   String section = 'overview',
   double width = 390,
 }) async {
-  await tester.binding.setSurfaceSize(Size(width, 844));
-  addTearDown(() => tester.binding.setSurfaceSize(null));
+  tester.view.physicalSize = Size(width, 844);
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.resetPhysicalSize);
+  addTearDown(tester.view.resetDevicePixelRatio);
   final home = ParentRefreshFixture(processing: processing, section: section);
   addTearDown(() async {
     await tester.pumpWidget(const SizedBox.shrink());

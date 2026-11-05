@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -16,11 +15,11 @@ import 'package:schulpilot/parent_overview.dart';
 import 'package:schulpilot/parent_plan_screen.dart';
 
 import 'parent_hierarchy_test_tools.dart';
+import 'fixtures/child_home_encoded.dart';
 
 Json parentOverview() {
-  final data = jsonDecode(
-    File('test/fixtures/child_home.json').readAsStringSync(),
-  ) as Json;
+  final data =
+      jsonDecode(utf8.decode(base64Decode(syntheticChildHomeBase64))) as Json;
   data['daily_capture'] = {'status': 'skipped'};
   (data['plan'] as Json).addAll({
     'daily_goal_minutes': 20,

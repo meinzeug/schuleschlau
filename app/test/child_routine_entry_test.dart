@@ -1,7 +1,6 @@
 import 'page_tools_test_helpers.dart' as page_tools;
 
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -15,10 +14,11 @@ import 'package:schulpilot/dashboard.dart';
 import 'package:schulpilot/child_today_widgets.dart';
 import 'package:schulpilot/ui.dart';
 
+import 'fixtures/child_home_encoded.dart';
+
 Json childDay() {
-  final data = jsonDecode(
-    File('test/fixtures/child_home.json').readAsStringSync(),
-  ) as Json;
+  final data =
+      jsonDecode(utf8.decode(base64Decode(syntheticChildHomeBase64))) as Json;
   data['daily_capture'] = {'status': 'empty'};
   data['plan']['voluntary'] = <Json>[];
   data['plan']['can_continue_voluntarily'] = true;
