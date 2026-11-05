@@ -556,6 +556,7 @@ class _ChildDetailScreenState extends State<ChildDetailScreen>
   GoRouter? observedRouter;
   Json? observingAccount;
   String? observingFamily;
+  String? observingSession;
   Duration? pollInterval;
   int visibilityEpoch = 0, activeReads = 0;
   bool resumeReadPending = false;
@@ -566,7 +567,8 @@ class _ChildDetailScreenState extends State<ChildDetailScreen>
   bool get sameAccount =>
       state.user != null &&
       identical(state.user, observingAccount) &&
-      state.familyId == observingFamily;
+      state.familyId == observingFamily &&
+      state.api.token == observingSession;
   void refresh() {
     if (mounted && sameAccount) {
       preparationPoll?.cancel();
@@ -666,6 +668,7 @@ class _ChildDetailScreenState extends State<ChildDetailScreen>
     super.initState();
     observingAccount = state.user;
     observingFamily = state.familyId;
+    observingSession = state.api.token;
     WidgetsBinding.instance.addObserver(this);
   }
 

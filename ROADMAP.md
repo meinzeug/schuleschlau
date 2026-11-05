@@ -2152,6 +2152,11 @@ Bestandteil des bestehenden Buildvertrags.
     Versuch. 37 künstliche VM-Widgetfälle und 25 Chrome-Fälle bestanden;
     ein übergreifender Geräte- und Ereigniskanalnachweis bleibt offen.
     [Umfang](docs/REALTIME_STATUS.md).
+  **05.11.2026, Sitzungswechsel:** Bereits geladene Kinder- und
+  Elternübersichten verschwinden bei gemeldetem Tokenwechsel; ein laufender
+  Statusabruf darf sie nicht zurückbringen oder einen Folgeabruf auslösen.
+  Die künstlichen Clienttests decken keinen unbemerkten Cookie-Wechsel oder
+  eine echte geräteübergreifende Zustellung ab. Der Gesamtpunkt bleibt offen.
 
   - [x] **Fotoverarbeitungsstatus über zwei künstliche Sitzungen prüfen.**
     Beide Sitzungen sehen den Fortschritt; eine fremde Familie wird abgewiesen.

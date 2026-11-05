@@ -18,6 +18,18 @@ Statusabfrage ist kein Auftrag zur KI-Erzeugung.
 | Klassenarbeitsnacharbeit | `app/lib/exam_review_panel.dart` | Bei laufender Analyse oder Erkennung nach 3 s; 4xx stoppen automatische Abfragen, 403/404 verbergen private Ergebnisse. Bewusstes erneutes Laden bleibt verfügbar. |
 | Sprachwerkstatt | `app/lib/language_workshop.dart` | Aktive Projektverarbeitung nach 3 s; bei Rückkehr erneut lesen. Sitzung, Familie und Konto begrenzen den Kontext; 4xx stoppen automatische Abfragen und 403/404 verbergen private Ergebnisse. |
 
+## Sitzungswechsel in den Übersichten
+
+Die Kinder-Heute-Seite und der Eltern-Lernüberblick binden nun auch die
+bereits geladene Ansicht an den Sitzungstoken, mit dem sie geöffnet wurde.
+Bei gemeldetem Tokenwechsel verschwinden Inhalte und Aktionen sofort; ein
+noch laufender Statusabruf darf sie nicht zurückbringen und es folgt keine
+automatische weitere Abfrage. Die Fälle in `child_home_polling_test.dart`
+und `parent_overview_refresh_test.dart` verwenden künstliche Daten und
+prüfen ausschließlich GET-Aufrufe. Sie decken Tokenwechsel im Client ab;
+ein Cookie-Wechsel ohne entsprechende Aktualisierung des App-Kontostands
+und eine echte geräteübergreifende Zustellung sind damit nicht belegt.
+
 Die Intervalle sind Planungswerte im Vordergrund, keine garantierten
 Lieferzeiten. Offline, Browser-Drosselung, ein gestörter Server, Schlafmodus
 und Hintergrundbeschränkungen können Aktualisierungen verzögern. Firebase ist

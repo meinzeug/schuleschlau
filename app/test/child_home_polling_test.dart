@@ -67,6 +67,10 @@ class PendingHome {
       initialLocation: '/app',
       routes: [
         GoRoute(path: '/app', builder: (_, _) => DashboardScreen(state)),
+        GoRoute(
+          path: '/elsewhere',
+          builder: (_, _) => const Scaffold(body: Text('Andere Ansicht')),
+        ),
       ],
     );
   }
@@ -107,6 +111,37 @@ Future<void> startPoll(WidgetTester tester) async {
 
 void main() {
   setUp(() => FlutterSecureStorage.setMockInitialValues({}));
+  testWidgets('A replaced session immediately hides the child home', (
+    tester,
+  ) async {
+    final home = await mount(tester);
+    expect(find.byType(ChildTodayHero), findsOneWidget);
+    await startPoll(tester);
+    home.state.api.token = 'new-synthetic-session';
+    // ignore: invalid_use_of_protected_member, invalid_use_of_visible_for_testing_member
+    home.state.notifyListeners();
+    await tester.pump();
+    expect(find.byType(ChildTodayHero), findsNothing);
+    home.recognized();
+    home.reads.single.complete(home.reply());
+    await tester.pumpAndSettle();
+    await tester.pump(const Duration(seconds: 20));
+    expect(find.byType(ChildTodayHero), findsNothing);
+    expect(home.requests, hasLength(2));
+    home.router.go('/elsewhere');
+    await tester.pumpAndSettle();
+    home.router.go('/app');
+    await tester.pump();
+    expect(home.requests, hasLength(3));
+    home.reads.last.complete(home.reply());
+    await tester.pumpAndSettle();
+    expect(find.byType(ChildTodayHero), findsOneWidget);
+    expect(
+      tester.widget<ChildTodayHero>(find.byType(ChildTodayHero)).title,
+      'Deine Heftseiten sind erkannt.',
+    );
+    expect(tester.takeException(), isNull);
+  });
   testWidgets(
     'Pending home poll keeps content state and scroll until the new status arrives',
     (tester) async {

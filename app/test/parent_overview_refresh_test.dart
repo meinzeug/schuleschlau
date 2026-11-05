@@ -344,6 +344,34 @@ void main() {
     expect(home.overviewRequests, hasLength(2));
   });
 
+  testWidgets('A replaced session immediately hides the parent overview', (
+    tester,
+  ) async {
+    final home = await mountParentRefresh(tester);
+    expect(find.byType(ParentOverview), findsOneWidget);
+    await tick(tester);
+    home.state.api.token = 'synthetic-new-session';
+    home.state.notifyListeners();
+    await tester.pump();
+    expect(find.byType(ParentOverview), findsNothing);
+    home.pending.single.complete(home.reply());
+    await tester.pumpAndSettle();
+    await tick(tester, 20);
+    expect(find.byType(ParentOverview), findsNothing);
+    expect(home.overviewRequests, hasLength(2));
+    home.router.go('/elsewhere');
+    await tester.pumpAndSettle();
+    home.data['practice_summary']['practiced_tasks'] = 4;
+    home.router.go('/child/${home.childId}?bereich=overview');
+    await tester.pump();
+    expect(home.overviewRequests, hasLength(3));
+    home.pending.last.complete(home.reply());
+    await tester.pumpAndSettle();
+    expect(find.byType(ParentOverview), findsOneWidget);
+    expect(find.text('4 Aufgaben mit Antwort'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets(
     'A family switch hides the old authorized overview and ignores its response',
     (tester) async {
