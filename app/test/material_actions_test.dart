@@ -553,8 +553,9 @@ void main() {
       var pageReads = 0;
       await mount(tester, (request) async {
         if (request.url.path.endsWith('/materials/new-photo')) {
-          if (++pageReads == 1)
+          if (++pageReads == 1) {
             return reply({'id': 'new-photo', 'child_id': 'child'});
+          }
           return delayed.future;
         }
         return reply({
@@ -584,8 +585,9 @@ void main() {
       var pages = 0;
       final harness = await mount(tester, (request) async {
         if (request.url.path.endsWith('/materials/new-photo')) {
-          if (++pages > 1)
+          if (++pages > 1) {
             return reply({'detail': 'Nicht verfügbar'}, status: 403);
+          }
           return reply({
             'id': 'new-photo',
             'child_id': 'child',
