@@ -15,6 +15,12 @@ oder begrenzen die Scrollgrenzen die mögliche Position, wird keine vollständig
 Positionserhaltung behauptet. Das virtuelle Glockenmenü hat einen eigenen
 Scrollcontainer und ist von diesem Fix nicht erfasst.
 
+Auch beim Ersetzen der neuesten Seite durch eine Aktualisierung werden die
+Positionsschlüssel entfernter Karten verworfen; unveränderte Karten behalten
+ihren Schlüssel. So wächst diese Hilfsstruktur nicht über den begrenzten
+Nachrichtencache hinaus. Ein Test prüft Wegfall und spätere Rückkehr derselben
+künstlichen Meldung sowie die Stabilität unveränderter Karten.
+
 Der synthetische Widgettest prüft unterschiedlich hohe Karten, die begrenzte
 Seitenrotation, den sichtbaren Anker und eine absichtlich während einer
 verzögerten Anfrage veränderte Scrollposition. Eine nach dem Laden weiterhin

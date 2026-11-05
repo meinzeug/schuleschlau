@@ -333,6 +333,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               listenable: widget.state.inbox,
               builder: (context, _) {
                 final inbox = widget.state.inbox;
+                // Refresh may replace the head without going through
+                // loadOlderNotices. Keep keys only for the bounded cache.
+                final cachedIds = inbox.items.map((item) => item['id']).toSet();
+                _noticeAnchors.removeWhere((id, _) => !cachedIds.contains(id));
                 final owner = widget.state.user;
                 final query = search.text.trim().toLowerCase();
                 final filtered =

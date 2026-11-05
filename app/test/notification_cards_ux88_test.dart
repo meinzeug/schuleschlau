@@ -11,6 +11,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:schulpilot/api.dart';
 import 'package:schulpilot/notification_panel.dart';
+import 'package:schulpilot/notification_visibility.dart';
 import 'package:schulpilot/push_transport.dart';
 import 'package:schulpilot/ui.dart';
 
@@ -456,6 +457,38 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.getTopLeft(anchor).dy, closeTo(before, 1));
     expect(tester.takeException(), isNull);
+  });
+
+  scenario('refresh discards keys for evicted inbox notices', (tester) async {
+    var current = 'first';
+    final fixture = await display(
+      tester,
+      (_) async => reply({
+        'items': [notice(current, read: true)],
+        'unread': 0,
+      }),
+    );
+    Key? anchorKey(String id) {
+      final finder = find.byWidgetPredicate(
+        (widget) => widget is NotificationExposure && widget.id == id,
+      );
+      final context = tester.element(finder);
+      return context.findAncestorWidgetOfExactType<KeyedSubtree>()?.key;
+    }
+
+    final firstKey = anchorKey('first');
+    expect(firstKey, isA<GlobalKey>());
+    await fixture.state.inbox.refresh();
+    await tester.pumpAndSettle();
+    expect(anchorKey('first'), same(firstKey));
+    current = 'second';
+    await fixture.state.inbox.refresh();
+    await tester.pumpAndSettle();
+    expect(anchorKey('second'), isA<GlobalKey>());
+    current = 'first';
+    await fixture.state.inbox.refresh();
+    await tester.pumpAndSettle();
+    expect(anchorKey('first'), isNot(same(firstKey)));
   });
 
   scenario('bounded bell remains usable at 390px with double text', (
