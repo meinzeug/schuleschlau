@@ -377,7 +377,14 @@ void main() {
       final (state, _, calls) = await n.open(t, photos: false);
       await n.chooseNotebookView(t, 'Liste');
       await n.tap(t, find.text('Seiten auswählen'));
-      await n.tap(t, find.byType(Checkbox).first);
+      expect(t.widget<Checkbox>(find.byType(Checkbox).first).onChanged, isNull);
+      await n.tap(
+        t,
+        find.byWidgetPredicate(
+          (widget) =>
+              widget is Checkbox && widget.semanticLabel == 'Seite 2 auswählen',
+        ),
+      );
       await n.tap(t, find.text('Auswahlablage · 1 Seite'));
       expect(
         find.textContaining('Erst die folgende Löschvorschau'),

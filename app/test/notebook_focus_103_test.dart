@@ -324,6 +324,8 @@ void main() {
     tester,
   ) async {
     final (_, _, calls) = await _open(tester, width: 320);
+    expect(_icon('Heftseite löschen'), findsNothing);
+    await n.tap(tester, find.byTooltip('Nächste Seite'));
     for (final label in [
       'Foto zum Vergleich vormerken',
       'Mit KI neu lesen',
@@ -407,6 +409,8 @@ void main() {
       _minimumTarget(tester, _headerIcon(label));
       expect(_headerIcon(label).hitTestable(), findsOneWidget);
     }
+    expect(_icon('Heftseite löschen'), findsNothing);
+    await n.tap(tester, find.byTooltip('Nächste Seite'));
     for (final label in [
       'Foto zum Vergleich vormerken',
       'Mit KI neu lesen',

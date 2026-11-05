@@ -14,10 +14,13 @@ void main() {
       final (_, _, requests) = await fixture.open(tester);
       await fixture.chooseNotebookView(tester, 'Kacheln');
       await fixture.tap(tester, find.text('Seiten auswählen'));
+      // Page 0 is confirmed and must not enter the destructive selection.
       await fixture.tap(tester, find.byType(NotebookPhoto).first);
+      expect(find.text('1 Seite ausgewählt'), findsNothing);
+      await fixture.tap(tester, find.byType(NotebookPhoto).at(1));
       expect(find.text('1 Seite ausgewählt'), findsOneWidget);
       expect(find.text('Text & Lernen'), findsNothing);
-      await fixture.tap(tester, find.text('Lernstoff 0').first);
+      await fixture.tap(tester, find.text('Lernstoff 1').first);
       expect(find.text('1 Seite ausgewählt'), findsNothing);
       await fixture.openNotebookOptions(tester);
       expect(
