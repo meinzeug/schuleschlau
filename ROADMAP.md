@@ -1554,8 +1554,8 @@ Bestandteil des bestehenden Buildvertrags.
   - [x] **Künstliche Quell- und Antwortkette zusammenhängend prüfen.**
     Ein künstliches Foto läuft über Upload, zwei getrennt gespeicherte
     Leseläufe und ihre revisionsgebundenen Auftrags-/Modellbelege in ein
-    validiertes Lernpaket. Ein Kind sieht die gebundene Grafik und beantwortet
-    eine Aufgabe nach einem Hinweis; der Versuch bleibt als unterstützt
+    validiertes Lernpaket. Die Kinder-API liefert den bereiten, quellengebundenen
+    Grafik- und Referenzstatus; eine Antwort nach einem Hinweis wird als unterstützt
     gespeichert. Wiederholte GETs erzeugen keine Aufträge, Aktivitäten oder
     Lernnachweise; der Betriebsadmin erhält keinen Familieninhaltszugriff.
     Eine während des Paketaufrufs geänderte Quelle verhindert die Übernahme;
