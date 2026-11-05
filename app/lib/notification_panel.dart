@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -47,12 +48,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   bool onlyUnread = false;
   String? opening;
   int openRevision = 0, readEpoch = 0;
+  int interactionRevision = 0;
   Set<String> unreadSelection = {};
 
   @override
   void initState() {
     super.initState();
     account = widget.state.user;
+    search.addListener(_searchInteraction);
     accountFamily = widget.state.familyId;
     accountToken = widget.state.api.token;
     widget.state.addListener(accountChanged);
@@ -63,6 +66,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     );
     widget.state.inbox.refresh();
   }
+
+  void _searchInteraction() => interactionRevision++;
 
   void accountChanged() {
     if (identical(account, widget.state.user) &&
@@ -118,6 +123,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   @override
   void dispose() {
     widget.state.removeListener(accountChanged);
+    search.removeListener(_searchInteraction);
     search.dispose();
     super.dispose();
   }
@@ -168,6 +174,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   Future<void> refreshNotices() async {
+    interactionRevision++;
     final state = widget.state;
     final owner = state.user, token = state.api.token, family = state.familyId;
     await state.inbox.refresh();
@@ -193,6 +200,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     final state = widget.state;
     final route = ModalRoute.of(context);
     final owner = state.user, token = state.api.token, family = state.familyId;
+    final ownInteractionRevision = interactionRevision;
     final visible = <(String, double)>[];
     ScrollPosition? position;
     for (final item in state.inbox.items) {
@@ -219,6 +227,18 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       }
     }
     final initialOffset = position?.pixels;
+    var movedByAction = false;
+    void watchPosition() {
+      // Layout can clamp pixels when the removed page was before the viewport.
+      // User movement or a completed jump outside layout must cancel the
+      // pending correction, including a jump in an earlier post-frame callback.
+      if (WidgetsBinding.instance.schedulerPhase !=
+          SchedulerPhase.persistentCallbacks) {
+        movedByAction = true;
+      }
+    }
+
+    position?.addListener(watchPosition);
     await state.inbox.loadMore();
     if (!mounted ||
         !identical(widget.state, state) ||
@@ -226,6 +246,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         state.familyId != family ||
         state.api.token != token ||
         route?.isCurrent == false) {
+      position?.removeListener(watchPosition);
       return;
     }
     if (onlyUnread) {
@@ -246,6 +267,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     final retained = state.inbox.items.map((item) => item['id']).toSet();
     _noticeAnchors.removeWhere((id, _) => !retained.contains(id));
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      position?.removeListener(watchPosition);
       if (!mounted ||
           !identical(widget.state, state) ||
           !identical(state.user, owner) ||
@@ -255,7 +277,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           position == null ||
           initialOffset == null ||
           !position.hasPixels ||
+          interactionRevision != ownInteractionRevision ||
           movedDuringRequest ||
+          movedByAction ||
           position.isScrollingNotifier.value) {
         return;
       }
@@ -425,14 +449,17 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                             ChoiceChip(
                               label: const Text('Alle Neuigkeiten'),
                               selected: !onlyUnread,
-                              onSelected: (_) =>
-                                  setState(() => onlyUnread = false),
+                              onSelected: (_) => setState(() {
+                                interactionRevision++;
+                                onlyUnread = false;
+                              }),
                             ),
                             ChoiceChip(
                               label: Text('Ungelesen (${inbox.unread})'),
                               selected: onlyUnread,
                               onSelected: inbox.hasLoaded
                                   ? (_) => setState(() {
+                                      interactionRevision++;
                                       onlyUnread = true;
                                       unreadSelection = inbox.items
                                           .where((item) => item['read'] != true)
@@ -466,6 +493,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                   }
                                   FocusManager.instance.primaryFocus?.unfocus();
                                   setState(() {
+                                    interactionRevision++;
                                     search.clear();
                                     selectedChild = selectedKind = null;
                                   });
@@ -559,11 +587,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                   onChanged: (value) {
                                     FocusManager.instance.primaryFocus
                                         ?.unfocus();
-                                    setState(
-                                      () => selectedChild = value == ''
+                                    setState(() {
+                                      interactionRevision++;
+                                      selectedChild = value == ''
                                           ? null
-                                          : value,
-                                    );
+                                          : value;
+                                    });
                                   },
                                 ),
                               ],
@@ -591,11 +620,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                   onChanged: (value) {
                                     FocusManager.instance.primaryFocus
                                         ?.unfocus();
-                                    setState(
-                                      () => selectedKind = value == ''
-                                          ? null
-                                          : value,
-                                    );
+                                    setState(() {
+                                      interactionRevision++;
+                                      selectedKind = value == '' ? null : value;
+                                    });
                                   },
                                 ),
                               ],
@@ -643,8 +671,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                               ),
                               if (!filtered)
                                 TextButton(
-                                  onPressed: () =>
-                                      setState(() => onlyUnread = false),
+                                  onPressed: () => setState(() {
+                                    interactionRevision++;
+                                    onlyUnread = false;
+                                  }),
                                   child: const Text(
                                     'Bisherige Neuigkeiten anzeigen',
                                   ),
@@ -669,6 +699,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                 onPressed: inbox.loading || inbox.loadingMore
                                     ? null
                                     : () async {
+                                        interactionRevision++;
                                         await inbox.showLatest();
                                         if (!mounted ||
                                             !identical(

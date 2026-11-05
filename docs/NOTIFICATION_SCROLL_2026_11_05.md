@@ -15,6 +15,13 @@ oder begrenzen die Scrollgrenzen die mögliche Position, wird keine vollständig
 Positionserhaltung behauptet. Das virtuelle Glockenmenü hat einen eigenen
 Scrollcontainer und ist von diesem Fix nicht erfasst.
 
+Ein unabhängiger Test fand eine Bewegung unmittelbar nach Abschluss der
+Anfrage und vor dem Nachlayout-Callback. Positionsänderungen außerhalb der
+Layoutphase sowie zwischenzeitliche Such-, Filter- und Reiteraktionen
+verhindern nun eine veraltete Korrektur; reine Layoutbegrenzungen bleiben
+korrigierbar. Künstliche Tests prüfen Scrollsprung, Reiterwechsel und Änderung
+mit anschließendem Zurücksetzen der Suche im kritischen Zeitfenster.
+
 Auch beim Ersetzen der neuesten Seite durch eine Aktualisierung werden die
 Positionsschlüssel entfernter Karten verworfen; unveränderte Karten behalten
 ihren Schlüssel. So wächst diese Hilfsstruktur nicht über den begrenzten

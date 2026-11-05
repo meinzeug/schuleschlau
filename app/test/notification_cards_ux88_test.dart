@@ -459,6 +459,97 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  for (final action in ['scroll', 'tabs', 'search']) {
+    scenario('an explicit $action after the response is not undone', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(390, 760);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final pending = Completer<http.Response>();
+      final fixture = await display(tester, (request) async {
+        final cursor = request.url.queryParameters['cursor'];
+        final number = cursor == null ? 0 : int.parse(cursor.substring(1));
+        if (number == 3) return pending.future;
+        return reply({
+          'items': [
+            for (var i = 0; i < 5; i++) notice('page-$number-$i', read: true),
+          ],
+          'unread': 0,
+          'next_cursor': 'p${number + 1}',
+        });
+      });
+      await fixture.state.inbox.loadMore();
+      await tester.pumpAndSettle();
+      await fixture.state.inbox.loadMore();
+      await tester.pumpAndSettle();
+      final load = find.text('Weitere Neuigkeiten laden');
+      await tester.ensureVisible(load);
+      await tester.pumpAndSettle();
+      await tester.drag(
+        find.ancestor(of: load, matching: find.byType(Scrollable)).first,
+        const Offset(0, 220),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.text('Künstliche Meldung page-2-4').hitTestable(),
+        findsOneWidget,
+      );
+      final scroll = tester.state<ScrollableState>(
+        find.ancestor(of: load, matching: find.byType(Scrollable)).first,
+      );
+      final unreadChip = tester.widget<ChoiceChip>(
+        find.widgetWithText(ChoiceChip, 'Ungelesen (0)'),
+      );
+      final allChip = tester.widget<ChoiceChip>(
+        find.widgetWithText(ChoiceChip, 'Alle Neuigkeiten'),
+      );
+      final search =
+          (tester.state(find.byType(NotificationsScreen)) as dynamic).search
+              as TextEditingController;
+      await tester.tap(load);
+      await tester.pump();
+      double? wanted;
+      var waiting = true;
+      fixture.state.inbox.addListener(() {
+        if (waiting && !fixture.state.inbox.loadingMore) {
+          waiting = false;
+          tester.binding.addPostFrameCallback((_) {
+            if (action == 'scroll') {
+              wanted = (scroll.position.pixels - 200).clamp(
+                scroll.position.minScrollExtent,
+                scroll.position.maxScrollExtent,
+              );
+              scroll.position.jumpTo(wanted!);
+            } else if (action == 'tabs') {
+              unreadChip.onSelected!(true);
+              allChip.onSelected!(true);
+              wanted = scroll.position.pixels;
+            } else {
+              search.text = 'Beispiel';
+              search.clear();
+              wanted = scroll.position.pixels;
+            }
+          });
+        }
+      });
+      pending.complete(
+        reply({
+          'items': [
+            for (var i = 0; i < 5; i++) notice('page-3-$i', read: true),
+          ],
+          'unread': 0,
+        }),
+      );
+      await tester.pump();
+      await tester.pumpAndSettle();
+      expect(wanted, isNotNull);
+      expect(scroll.position.pixels, closeTo(wanted!, 1));
+      expect(tester.takeException(), isNull);
+    });
+  }
+
   scenario('refresh discards keys for evicted inbox notices', (tester) async {
     var current = 'first';
     final fixture = await display(
