@@ -46,10 +46,12 @@ try:
     if len(raw) > 16384 or os.geteuid() != 0:
         raise ValueError("input")
     payload = json.loads(raw)
-    if set(payload) != {"username", "password", "device_id", "registered_after", "action"}:
+    if set(payload) != {"username", "password", "device_id", "registered_after", "action", "exclude_delivery_id"}:
         raise ValueError("schema")
     if payload["action"] not in ("queue", "status") or not re.fullmatch(r"[a-f0-9]{32}", payload["device_id"]):
         raise ValueError("mode")
+    if payload["exclude_delivery_id"] is not None and (payload["action"] != "status" or not re.fullmatch(r"[a-f0-9]{32}", payload["exclude_delivery_id"])):
+        raise ValueError("delivery_id")
     environment = {"PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"}
     for line in Path("/etc/schulpilot/environment").read_text().splitlines():
         if line.strip() and not line.lstrip().startswith("#"):
@@ -83,7 +85,10 @@ try:
         session = db.get(Session, device.session_id)
         if not session or session.user_id != user.id or session.revoked or session.expires <= now() or now() - session.seen > 7 * 86400:
             raise ValueError("exact_device_session")
-        previous = db.scalar(select(PushDelivery).where(PushDelivery.device_id == device.id, PushDelivery.kind == "test_send").order_by(PushDelivery.created.desc()))
+        query = select(PushDelivery).where(PushDelivery.device_id == device.id, PushDelivery.kind == "test_send")
+        if payload["exclude_delivery_id"] is not None:
+            query = query.where(PushDelivery.id != payload["exclude_delivery_id"])
+        previous = db.scalar(query.order_by(PushDelivery.created.desc(), PushDelivery.id.desc()))
         if payload["action"] == "queue":
             if previous:
                 raise ValueError("one_delivery_already_exists_no_resend")
@@ -92,7 +97,7 @@ try:
             result = own_test(OwnTest(mode="send"), Principal(user, session), db)
             print(json.dumps({"ok": True, "status": result["status"]}))
         else:
-            print(json.dumps({"ok": True, "status": previous.status if previous else "missing", "error": previous.error_code if previous else None}))
+            print(json.dumps({"ok": True, "status": previous.status if previous else "missing", "error": previous.error_code if previous else None, "delivery_id": previous.id if previous else None}))
 except Exception as error:
     code = "guard_" + str(error) if isinstance(error, ValueError) else "http_" + str(error.status_code) if error.__class__.__name__ == "HTTPException" else "remote_" + type(error).__name__
     print(json.dumps({"ok": False, "code": code}))
@@ -100,13 +105,14 @@ except Exception as error:
 """
 
 
-def protected_request(credentials, device_id, registered_after, action):
+def protected_request(credentials, device_id, registered_after, action, exclude_delivery_id=None):
     payload = {
         "username": credentials["child_username"],
         "password": credentials["child_password"],
         "device_id": device_id,
         "registered_after": registered_after,
         "action": action,
+        "exclude_delivery_id": exclude_delivery_id,
     }
     command = "/opt/schulpilot/current/venv/bin/python -c " + shlex.quote(REMOTE)
     result = subprocess.run(
@@ -367,6 +373,9 @@ def main():
 
             open_device_panel()
             seek_label("Test an dieses Gerät senden")
+            baseline_delivery = protected_request(credentials, device_id, registered_after, "status")
+            if baseline_delivery.get("status") != "accepted" or not baseline_delivery.get("delivery_id"):
+                raise PushQaError("background_delivery_identity_missing_no_foreground_send")
             mark_send(report["installed_code"])
             before = own_notifications()
             tap_node(seek_label("Test an dieses Gerät senden"))
@@ -395,7 +404,7 @@ def main():
                     break
                 time.sleep(.3)
             adb("shell", "cmd", "statusbar", "collapse")
-            result = protected_request(credentials, device_id, registered_after, "status")
+            result = protected_request(credentials, device_id, registered_after, "status", baseline_delivery["delivery_id"])
             report["foreground_fcm_accepted"] = result.get("status") == "accepted"
             if not (report["foreground_fcm_accepted"] and report["foreground_android_visible"] and foreground):
                 raise PushQaError("foreground_native_delivery_not_fully_observed")

@@ -11,15 +11,17 @@ nicht verändert.
   das Fehlen des App-Prozesses beobachtet. Die reguläre Testnachricht wurde von
   FCM angenommen und im Android-Benachrichtigungsbereich sichtbar. Ihr Antippen
   öffnete die App mit dem richtigen künstlichen Kind.
-- Eine zweite Nachricht wurde bei geöffneter App von FCM angenommen. Der
-  Android-Aktivitätszustand war im Vordergrund und die neutrale In-App-Meldung
-  war sichtbar. Die automatische Prüfung konnte die zusätzliche native
+- Bei der zweiten Nachricht war die neutrale In-App-Meldung sichtbar und der
+  Android-Aktivitätszustand anschließend im Vordergrund. Der ursprüngliche
+  Statusabruf unterscheidet die zweite FCM-Annahme nicht eindeutig vom bereits
+  angenommenen Hintergrundversand. Die automatische Prüfung konnte die zusätzliche native
   Android-Benachrichtigung im Vordergrund nicht bestätigen. Ein Prüflauf
   schließt daher mit einem Fehler; die Anzeige darf nicht als belegt gelten.
 - Die Testgeräteregistrierung wurde entfernt und das künstliche Konto über den
   regulären Kontolöschweg gelöscht. Temporäre Zugangsdaten wurden entfernt.
 
-Das Testskript wartet künftig nach dem Öffnen des Benachrichtigungsbereichs
+Das Testskript unterscheidet künftig die zweite Lieferungskennung vom ersten
+Versand und wartet nach dem Öffnen des Benachrichtigungsbereichs
 auf dessen Aktualisierung, weil die In-App-Meldung vor dem Abschluss der
 nativen Anzeige erscheinen kann. Diese Anpassung ist noch nicht durch eine
 weitere Nachricht auf dem Emulator belegt; die Sendemarkierungen für den
