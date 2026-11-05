@@ -1,5 +1,6 @@
 """Local-only guards; no emulator, account login or Firebase calls."""
 
+import json
 import os
 import sys
 import tempfile
@@ -10,6 +11,8 @@ from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import android_push
 import android_push_background
+import android_push_foreground
+import prepare_android_push_foreground
 
 
 class AndroidPushGuardsTest(unittest.TestCase):
@@ -83,6 +86,48 @@ class AndroidPushGuardsTest(unittest.TestCase):
                 (root / "artifacts/.android-push-background-84-checkpoint.json").unlink()
                 with self.assertRaisesRegex(android_push.PushQaError, "already_reserved"):
                     android_push_background.reserve_one(84)
+
+    def test_foreground_send_can_only_be_reserved_once(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            with patch.object(android_push_foreground, "ROOT", root):
+                android_push_foreground.reserve_one(243)
+                claims = list((root / "artifacts").glob(".android-push-foreground-*-reserved.json"))
+                self.assertEqual(len(claims), 1)
+                self.assertEqual(claims[0].stat().st_mode & 0o777, 0o600)
+                with self.assertRaisesRegex(android_push.PushQaError, "already_reserved"):
+                    android_push_foreground.reserve_one(243)
+
+    def test_foreground_observer_rejects_ambiguous_or_changed_deliveries(self):
+        progress = android_push_foreground.delivery_progress
+        self.assertEqual(progress({"matching_deliveries": 0, "status": "missing"}, None), (None, False))
+        self.assertEqual(progress({"matching_deliveries": 1, "status": "queued", "delivery_id": "first"}, None), ("first", False))
+        self.assertEqual(progress({"matching_deliveries": 1, "status": "accepted", "delivery_id": "first"}, "first"), ("first", True))
+        for state, previous in (
+            ({"matching_deliveries": 2, "status": "accepted", "delivery_id": "first"}, None),
+            ({"matching_deliveries": 1, "status": "accepted", "delivery_id": "second"}, "first"),
+            ({"matching_deliveries": 0, "status": "missing"}, "first"),
+            ({"matching_deliveries": 1, "status": "accepted"}, None),
+            ({"matching_deliveries": 1, "status": "failed", "delivery_id": "first"}, None),
+        ):
+            with self.assertRaises(android_push.PushQaError):
+                progress(state, previous)
+
+    def test_fixture_credentials_survive_failed_identity_check(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "fixture.json"
+            response = {"credentials": {"parent_username": "artificial", "parent_password": "test"},
+                        "user": {"role": "parent", "families": []}}
+            prepare_android_push_foreground.store_response(path, response)
+            self.assertFalse(prepare_android_push_foreground.is_own_synthetic_parent(response["user"]))
+            self.assertEqual(path.stat().st_mode & 0o777, 0o600)
+            self.assertEqual(json.loads(path.read_text())["credentials"], response["credentials"])
+            with self.assertRaises(FileExistsError):
+                prepare_android_push_foreground.store_response(path, response)
+            good = {"role": "parent", "families": [{"synthetic": True, "permission": "owner"}]}
+            self.assertTrue(prepare_android_push_foreground.is_own_synthetic_parent(good))
+            self.assertFalse(prepare_android_push_foreground.is_own_synthetic_parent(
+                {"role": "parent", "families": [{"synthetic": False, "permission": "owner"}]}))
 
     def test_cold_process_requires_pid_absence_without_force_stop(self):
         gone = type("Result", (), {"returncode": 1, "stdout": b""})()

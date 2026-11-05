@@ -88,7 +88,10 @@ try:
         query = select(PushDelivery).where(PushDelivery.device_id == device.id, PushDelivery.kind == "test_send")
         if payload["exclude_delivery_id"] is not None:
             query = query.where(PushDelivery.id != payload["exclude_delivery_id"])
-        previous = db.scalar(query.order_by(PushDelivery.created.desc(), PushDelivery.id.desc()))
+        # Two rows are enough to distinguish a unique delivery from an
+        # ambiguous result without returning any other device or payload.
+        matching = list(db.scalars(query.order_by(PushDelivery.created.desc(), PushDelivery.id.desc()).limit(2)))
+        previous = matching[0] if matching else None
         if payload["action"] == "queue":
             if previous:
                 raise ValueError("one_delivery_already_exists_no_resend")
@@ -97,7 +100,7 @@ try:
             result = own_test(OwnTest(mode="send"), Principal(user, session), db)
             print(json.dumps({"ok": True, "status": result["status"]}))
         else:
-            print(json.dumps({"ok": True, "status": previous.status if previous else "missing", "error": previous.error_code if previous else None, "delivery_id": previous.id if previous else None}))
+            print(json.dumps({"ok": True, "status": previous.status if previous else "missing", "error": previous.error_code if previous else None, "delivery_id": previous.id if previous else None, "matching_deliveries": len(matching)}))
 except Exception as error:
     code = "guard_" + str(error) if isinstance(error, ValueError) else "http_" + str(error.status_code) if error.__class__.__name__ == "HTTPException" else "remote_" + type(error).__name__
     print(json.dumps({"ok": False, "code": code}))
