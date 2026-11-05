@@ -1,0 +1,12 @@
+{
+  "scope": "only separately created synthetic test family and emulator-5580",
+  "device_removed_by_test_observer": true,
+  "native_logout": {
+    "method": "Konto öffnen -> Abmelden",
+    "observed_login_screen": "Willkommen zurück"
+  },
+  "synthetic_family_deleted_by_owner_api": true,
+  "temporary_credentials_file_removed": true,
+  "extra_round_requests": 0,
+  "extra_push_send_requests": 0
+}
