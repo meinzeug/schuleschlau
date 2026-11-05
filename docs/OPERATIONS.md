@@ -217,6 +217,14 @@ erhalten; kein routinemäßiges Schema-Downgrade. Details: LANGUAGE_LEARNING.md.
 
 Aktiven und vorherigen Release prüfen: `readlink -f /opt/schulpilot/current` / `readlink -f /opt/schulpilot/previous`.
 
+Vor einem manuellen Rückweg sicherstellen, dass kein älterer Bereinigungslauf
+mehr aktiv ist und bis zum Abschluss kein solcher gestartet wird. Der Marker
+des aktuellen Aktivierungsskripts stoppt alte Bereinigungen, die erst nach
+seiner Anlage beginnen; er kann einen bereits zuvor erstellten Löschplan nicht
+nachträglich sperren. Den Rückweg über das aktuell aktive Skript ausführen,
+nicht über eine historische Kopie. Bei einem abgebrochenen Rückweg Marker und
+Lease erst nach Prüfung von Prozessen und Releasezustand manuell auflösen.
+
 ```bash
 ssh dorfspy 'python3 /opt/schulpilot/current/deploy/activate.py <vorherige-release-id> --rollback-compatible'
 ```

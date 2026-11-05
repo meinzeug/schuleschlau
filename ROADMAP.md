@@ -1349,6 +1349,14 @@ Bestandteil des bestehenden Buildvertrags.
     Produktionsstands `534009f` wurde isoliert dagegen geprüft. Das schützt
     nicht vor beliebigen alten Deploy- oder Rollbackskripten.
 
+    **05.11.2026, manueller Rückweg:** Auch der neue Rückweg setzt den Marker
+    vor der Aktivierung und entfernt ihn nur nach geprüftem Erfolg. Isolierte
+    Tests sichern erfolgreiche und fehlgeschlagene Rückwege ab. Ein älterer
+    Bereinigungslauf, der seinen Löschplan bereits vor dem Marker erstellt hat,
+    kann dadurch nicht nachträglich gestoppt werden; diese Grenze wurde mit dem
+    historischen Programm nachgestellt. Vor einem Rückweg muss ein solcher
+    Lauf beendet sein. Der vollständige Koordinationspunkt bleibt offen.
+
     **Ergänzung 02.11.2026:** Ein zweiter isolierter Loopback-SSH-Test
     unterbricht eine echte SSH-Verbindung während der pausierten Ausführung
     des Aktivierungsskripts. Die künstliche Aktivierung läuft absichtlich in
