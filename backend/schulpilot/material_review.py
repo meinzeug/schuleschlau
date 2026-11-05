@@ -342,6 +342,41 @@ def _merged_visual_observations(data, snapshot):
     return combined, len(combined) > 20
 
 
+def _mark_regions_disagree(first, second):
+    """Detect conflicting or ambiguously changed correction regions.
+
+    Repeated marks of the same kind and text cannot be paired safely: changed
+    regions remain uncertain instead of inventing a correspondence. Both
+    original model readings remain in provenance.
+    """
+    from collections import defaultdict
+
+    def by_key(marks):
+        grouped = defaultdict(list)
+        for mark in marks:
+            if mark.get("kind") not in ("crossout", "insertion", "correction"):
+                continue
+            region = mark.get("image_region")
+            if region:
+                grouped[(mark.get("kind"), mark.get("quote"), mark.get("color"))].append(region)
+        return grouped
+
+    left, right = by_key(first), by_key(second)
+    for key in left.keys() & right.keys():
+        if len(left[key]) != 1 or len(right[key]) != 1:
+            def regions(values):
+                return sorted((r["left"], r["top"], r["right"], r["bottom"]) for r in values)
+
+            if regions(left[key]) != regions(right[key]):
+                return True
+            continue
+        a, b = left[key][0], right[key][0]
+        if (max(a["left"], b["left"]) >= min(a["right"], b["right"])
+                or max(a["top"], b["top"]) >= min(a["bottom"], b["bottom"])):
+            return True
+    return False
+
+
 def _protected_readings(data, snapshot):
     """Do not overwrite a visible old student error with a correct substitute.
 
@@ -378,6 +413,9 @@ def _protected_readings(data, snapshot):
         preserved = copy.deepcopy(old)
         if exact is not None:
             # Retain the first literal spelling; merge only marks anchored in it.
+            if _mark_regions_disagree(old.get("annotations", []), exact.get("annotations", [])):
+                warning(preserved, "Die Bildbereiche einer Korrektur unterscheiden sich. Bitte die Markierung im ganzen Foto prüfen.")
+                result["legibility"] = "partial"
             roles = {old.get("literal_role"), exact.get("literal_role")}
             preserved["literal_role"] = "student_work" if "student_work" in roles else "annotation" if "annotation" in roles else exact.get("literal_role", "unknown")
             preserved["annotations"] = list({digest(mark): mark for mark in [*old.get("annotations", []), *exact.get("annotations", [])]
