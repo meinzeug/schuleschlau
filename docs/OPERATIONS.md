@@ -353,6 +353,12 @@ künstlichen SQLite-Snapshots und separaten Datenbanken eines isolierten
 PostgreSQL-Testclusters, einschließlich ungültigem Journal. Die Tests der
 eingebetteten Wiederherstellungslogik überspringen Migrationen ausdrücklich;
 sie belegen weder eine produktive Rücksicherung noch eine PostgreSQL-Migration.
+Eine weitere lokale Prüfung rekonstruiert einen künstlichen 0046-Stand durch
+Entfernen der neuen Spalte aus dem aktuellen Testschema. Ein tatsächlicher
+PostgreSQL-Dump wird in eine zweite Testdatenbank eingespielt; erst dort laufen
+die echte 0047-Migration und der Restoreabgleich. Der Offline-CLI-Einstieg
+lehnt den nicht migrierten Stand vor Änderungen ab. Dies prüft kein historisches
+Produktionsbackup und nicht alle denkbaren älteren Schemastände.
 
 **Bestandsinstallation dorfspy, geprüft am 05.11.2026:** Die automatische
 Probe verwendet über das Systemd-Drop-in `90-retention-runtime-06b7301.conf`
