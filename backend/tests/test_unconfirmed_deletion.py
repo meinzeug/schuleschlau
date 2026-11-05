@@ -54,7 +54,7 @@ def review_day(api, child, monkeypatch, *, count=2, archived=False):
 
 
 @pytest.mark.parametrize("archived", [False, True])
-def test_child_counted_review_deletion_removes_linked_rounds_and_last_page_resets_inbox(
+def test_child_cannot_remove_linked_review_but_parent_can_then_last_page_resets_inbox(
     api, household, monkeypatch, archived
 ):
     _, child = household
@@ -85,9 +85,17 @@ def test_child_counted_review_deletion_removes_linked_rounds_and_last_page_reset
         revision = db.get(SchoolDay, day["id"]).revision
     with child_client() as kid:
         assert kid.delete(f"/api/school-days/{day['id']}/pages/{ids[0]}").status_code == 409
-        selection = kid.post(f"/api/children/{child['id']}/materials/delete-preview", json={"ids": [ids[0]]}).json()
+        denied = kid.post(f"/api/children/{child['id']}/materials/delete-preview", json={"ids": [ids[0]]})
+        assert denied.status_code == 409, denied.text
+        assert paths[0].exists() and paths[1].exists()
+        with DB() as db:
+            assert db.get(Material, ids[0]) and db.get(LearningUnit, unit_id) and db.get(Attempt, answer_id)
+            assert db.get(SchoolDay, day["id"]).revision == revision
+        selection_response = api.post(f"/api/children/{child['id']}/materials/delete-preview", json={"ids": [ids[0]]})
+        assert selection_response.status_code == 200, selection_response.text
+        selection = selection_response.json()
         assert selection['unit_count'] == selection['answer_count'] == 1
-        response = kid.post(f"/api/children/{child['id']}/materials/bulk-delete", json={
+        response = api.post(f"/api/children/{child['id']}/materials/bulk-delete", json={
             "selection_token": selection["selection_token"], "delete_linked_units": True})
         assert response.status_code == 200, response.text
         state = kid.get(f"/api/school-days/{day['id']}").json()
@@ -126,7 +134,7 @@ def test_child_general_material_delete_uses_same_archived_day_guards(api, househ
 
 
 @pytest.mark.parametrize("job_status", ["queued", "running"])
-def test_day_deletion_blocks_jobs_and_confirmed_sources_but_notebook_allows_own_deletion(api, household, monkeypatch, job_status):
+def test_day_deletion_blocks_jobs_and_child_cannot_delete_confirmed_sources(api, household, monkeypatch, job_status):
     _, child = household
     day, ids, paths = review_day(api, child, monkeypatch, count=1)
     with DB.begin() as db:
@@ -151,8 +159,12 @@ def test_day_deletion_blocks_jobs_and_confirmed_sources_but_notebook_allows_own_
             material.confirmed, material.status = True, "confirmed"
         assert kid.delete(f"/api/school-days/{day['id']}/pages/{ids[0]}").status_code == 409
         assert api.delete(f"/api/school-days/{day['id']}/pages/{ids[0]}").status_code == 409
-        # The explicit notebook deletion also permits confirmed own pages.
-        assert kid.delete(f"/api/materials/{ids[0]}").status_code == 200
+        assert kid.delete(f"/api/materials/{ids[0]}").status_code == 409
+        assert paths[0].exists()
+        with DB() as db:
+            assert db.get(Material, ids[0]).confirmed
+        # A parent with write access may deliberately delete the unlinked page.
+        assert api.delete(f"/api/materials/{ids[0]}").status_code == 200
     assert api.delete(f"/api/materials/{ids[0]}").status_code == 404
     assert not paths[0].exists()
 
@@ -184,7 +196,7 @@ def test_child_can_delete_unconfirmed_standalone_import_including_plain_demo(api
 
 
 @pytest.mark.parametrize("job_status", ["queued", "running"])
-def test_child_standalone_cannot_delete_during_job_but_can_after_confirmation(api, household, monkeypatch, job_status):
+def test_child_standalone_cannot_delete_during_job_or_after_confirmation(api, household, monkeypatch, job_status):
     _, child = household
     _, ids, paths = review_day(api, child, monkeypatch, count=1)
     with DB.begin() as db:
@@ -205,7 +217,11 @@ def test_child_standalone_cannot_delete_during_job_but_can_after_confirmation(ap
         with DB.begin() as db:
             db.get(Job, job_id).status = "completed"
             db.get(Material, ids[0]).confirmed = True
-        assert kid.delete(f"/api/materials/{ids[0]}").status_code == 200
+        assert kid.delete(f"/api/materials/{ids[0]}").status_code == 409
+        assert paths[0].exists()
+        with DB() as db:
+            assert db.get(Material, ids[0]).confirmed
+        assert api.delete(f"/api/materials/{ids[0]}").status_code == 200
         assert not paths[0].exists()
 
 
