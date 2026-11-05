@@ -1551,6 +1551,19 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Gesamte Verarbeitungskette durchgängig nachvollziehbar machen**
 
+  - [x] **Künstliche Quell- und Antwortkette zusammenhängend prüfen.**
+    Ein künstliches Foto läuft über Upload, zwei getrennt gespeicherte
+    Leseläufe und ihre revisionsgebundenen Auftrags-/Modellbelege in ein
+    validiertes Lernpaket. Ein Kind sieht die gebundene Grafik und beantwortet
+    eine Aufgabe nach einem Hinweis; der Versuch bleibt als unterstützt
+    gespeichert. Wiederholte GETs erzeugen keine Aufträge, Aktivitäten oder
+    Lernnachweise; der Betriebsadmin erhält keinen Familieninhaltszugriff.
+    Eine während des Paketaufrufs geänderte Quelle verhindert die Übernahme;
+    der fehlgeschlagene Auftrag behält seine Abrechnung. SQLite- und
+    PostgreSQL-Prüfungen: `backend/tests/test_processing_trace_journey.py`.
+    Der künstliche Modelltransport belegt keine echte OCR-/Modellqualität; die
+    vollständige Fehler- und fachübergreifende Phasenabnahme bleibt offen.
+
   Upload, einzelne Quellrevision, Erkennung, gegebenenfalls Gegenprüfung, Themen-/Lernzielzuordnung, Referenzsuche, Erstellung, Schema-/Fachprüfung, Speicherung, Darstellung und Bewertung anhand künstlicher Daten verfolgen. Für jede Phase Auftragskennung, Status, Revisions- und Modell-/Vorlagenversion sowie datensparsame Fehlerkategorie verfügbar machen; weder Kindertexte noch Bilder oder Geheimnisse protokollieren. Fehlerhaft gespeicherte oder unpassende Ergebnisse dürfen nicht als bereit angezeigt werden.
 
   **Abnahme:** Ein künstlicher Erfolgsfall und je ein reproduzierbarer Fehler pro relevanter Phase sind vom berechtigten Betriebs- beziehungsweise Familienkontext nachvollziehbar; GET-Abfragen starten keine KI und ändern keinen Lernstand.
