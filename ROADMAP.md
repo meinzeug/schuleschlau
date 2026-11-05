@@ -1041,6 +1041,18 @@ Die folgenden Punkte beschreiben ausstehende, wiederholbare Betriebs- und Freiga
     fehlende Zeit und unveränderte Originaldaten. Alte Restore-Werkzeuge und
     andere Datenarten bleiben gesondert zu beachten; siehe `docs/OPERATIONS.md`.
 
+  - [x] **Gesprächs- und Rückblickfristen in Restorepfaden erneut anwenden.**
+    Die automatische Probe und das Offline-Werkzeug wenden nach Journalprüfung
+    den bestehenden 365-Tage-Cutoff auf Tutor, Schulbuddy und Elternrückblicke
+    an. Der Runtime-Vorabcheck prüft die drei Tabellen und den Grenztag mit
+    künstlichen Daten und unabhängig vorgegebenem Cutoff. Je neun künstliche
+    Fälle auf SQLite und isoliertem PostgreSQL sowie zehn Vorabcheck-Tests
+    bestanden; die Restore-Ziele waren SQLite-Testkopien. Bestehende
+    Gesprächskaskaden, ältere Runtime-Versionen und die nicht bewiesene
+    Vollständigkeit des Löschjournals bleiben ausdrücklich zu beachten.
+    Ein echter PostgreSQL-Restore und die separate Runtime-Umstellung sind
+    damit nicht belegt; siehe `docs/OPERATIONS.md`.
+
   - [x] **Vokabeln nach Löschung und Ablauf vor Wiederherstellung schützen.**
     Einzelwörter, Vorschläge und Sammlungen erhalten signierte Belege;
     idempotentes Replay und Kaskaden sind künstlich geprüft. Alte Restoretools
