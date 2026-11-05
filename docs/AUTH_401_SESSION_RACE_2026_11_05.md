@@ -7,6 +7,10 @@ Authentifizierungsrevision. Letztere unterscheidet im Web auch zwei
 Cookie-Sitzungen, bevor das neue Benutzerobjekt eintrifft. Der asynchrone
 Abmeldeweg prüft denselben Auftrag nach seinen Warteschritten erneut. Das gilt
 auch für Foto-, Noten-PDF-, Datei-, Profilbild- und Klassenarbeitsfoto-Requests.
+Wiederhergestellte Fotos ohne eigene Kontobindung werden vor dem Entfernen des
+Benutzers synchron gelöscht. Die anschließende Bereinigung alter lokaler
+Uploads, Entwürfe und Gerätezugänge bildet eine Barriere: Die Übernahme eines
+neuen Kontos wartet darauf und scheitert geschlossen, falls sie fehlschlägt.
 
 401 beim expliziten Login, bei der unabhängigen Ersteinrichtung und bei den
 gesonderten Web-Bezahldokumenten beweist keinen Widerruf der App-Sitzung.
@@ -19,7 +23,8 @@ Die Tests verwenden ausschließlich künstliche Daten und lokale Mocktransporte.
 Sie prüfen identische und geänderte Identitäten, den Cookie-Fall mit leerem
 Token, neue Loginabsichten vor und während laufender asynchroner Abmeldung,
 Absage vor einem Logout-Request und den Erhalt des neuen Logins nach dessen
-Antwort. Tests auf VM und im Chrome-Webrunner ersetzen keinen Test echter
+Antwort. Der blockierte Bereinigungsfall prüft einen wirklichen Kontowechsel,
+Speicherlöschung und den Fehlermodus. Tests auf VM und im Chrome-Webrunner ersetzen keinen Test echter
 Server-Cookies und mehrerer Browser-Tabs.
 
 **Offen:** Ein vor einer neuen Web-Anmeldung bereits abgesendeter Logout kann

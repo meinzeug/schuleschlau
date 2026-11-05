@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -450,12 +451,17 @@ class AppState extends ChangeNotifier {
       if (expectedUser != null) {
         final expectedToken = this.api.token;
         final expectedRevision = _authenticationRevision;
-        Future<void>.microtask(
-          () => clear(
-            expectedUser: expectedUser,
-            expectedToken: expectedToken,
-            expectedAuthenticationRevision: expectedRevision,
-          ),
+        unawaited(
+          Future<void>.microtask(
+            () => clear(
+              expectedUser: expectedUser,
+              expectedToken: expectedToken,
+              expectedAuthenticationRevision: expectedRevision,
+            ),
+          ).catchError((Object _) {
+            // The failed cleanup is retained as a fail-closed sign-in state.
+            // No unhandled asynchronous error should crash the application.
+          }),
         );
       }
     };
@@ -622,6 +628,8 @@ class AppState extends ChangeNotifier {
 
   int _authenticationRevision = 0;
   Future<void> _authenticationStorage = Future<void>.value();
+  Future<void>? _privacyCleanup;
+  bool _privacyCleanupFailed = false;
   int beginAuthentication() => ++_authenticationRevision;
   void cancelAuthentication(int revision) {
     if (revision == _authenticationRevision) _authenticationRevision++;
@@ -655,6 +663,17 @@ class AppState extends ChangeNotifier {
   Future<void> accept(Json response, {int? authenticationRevision}) async {
     final intent = authenticationRevision ?? beginAuthentication();
     _requireAuthentication(intent);
+    // Once an old account has been removed, finish deleting its unscoped
+    // local state before publishing any new account or bearer token.
+    final cleanup = _privacyCleanup;
+    if (cleanup != null) await cleanup;
+    _requireAuthentication(intent);
+    if (_privacyCleanupFailed) {
+      throw ApiError(
+        'Die alten Gerätedaten konnten noch nicht gelöscht werden. Bitte starte die App erneut und versuche es noch einmal.',
+        503,
+      );
+    }
     final candidate = response['user'];
     if (candidate is! Map ||
         candidate['id'] is! String ||
@@ -777,6 +796,11 @@ class AppState extends ChangeNotifier {
     String? expectedToken,
     int? expectedAuthenticationRevision,
   }) async {
+    final priorCleanup = _privacyCleanup;
+    if (priorCleanup != null) {
+      await priorCleanup;
+      return;
+    }
     if ((expectedUser != null && !identical(user, expectedUser)) ||
         (expectedAuthenticationRevision != null &&
             (expectedAuthenticationRevision != _authenticationRevision ||
@@ -788,10 +812,6 @@ class AppState extends ChangeNotifier {
         clearIntent == _authenticationRevision &&
         (expectedUser == null || identical(user, expectedUser)) &&
         (expectedAuthenticationRevision == null || expectedToken == api.token);
-    bool stillCleared() =>
-        clearIntent == _authenticationRevision &&
-        user == null &&
-        api.token == null;
     _authIdentifier = null;
     await familyCalls.clear();
     if (!currentAccount()) return;
@@ -802,6 +822,14 @@ class AppState extends ChangeNotifier {
     inbox.clear();
     await push.forget();
     if (!currentAccount()) return;
+    // These photos have no per-account key. Remove them synchronously while
+    // the old account is still the owner, before any new login can start.
+    recoveredPhoto = null;
+    recoveredPhotoPurpose = 'notebook';
+    recoveredPhotos.clear();
+    final cleanupDone = Completer<void>();
+    _privacyCleanup = cleanupDone.future;
+    _privacyCleanupFailed = false;
     api.token = null;
     user = null;
     familyId = null;
@@ -809,29 +837,24 @@ class AppState extends ChangeNotifier {
     // remaining storage cleanup awaits; it must never leave the previous
     // account visible if that newer login is then cancelled or rejected.
     notifyListeners();
-    await notebookRequests.clear();
-    if (!stillCleared()) return;
-    recoveredPhoto = null;
-    recoveredPhotoPurpose = 'notebook';
-    recoveredPhotos.clear();
-    await pendingUploads.clear();
-    if (!stillCleared()) return;
-    await learningDrafts.clear();
-    if (!stillCleared()) return;
-    if (!kIsWeb) {
-      try {
-        await _storeAuthentication(clearIntent, null);
-      } on ApiError catch (error) {
-        if (error.status == 409 && clearIntent != _authenticationRevision) {
-          return; // A newer login owns storage; this cleanup is obsolete.
-        }
-        rethrow;
+    try {
+      await notebookRequests.clear();
+      await pendingUploads.clear();
+      await learningDrafts.clear();
+      if (!kIsWeb) {
+        // A new accept cannot write a token until this barrier completes.
+        // Drain earlier authentication writes before removing the old token.
+        await _authenticationStorage.catchError((Object _) {});
+        await storage.delete(key: 'session');
+        await storage.delete(key: 'camera_child');
+        await storage.delete(key: 'camera_context');
       }
-      if (!stillCleared()) return;
-      await storage.delete(key: 'camera_child');
-      if (!stillCleared()) return;
-      await storage.delete(key: 'camera_context');
-      if (!stillCleared()) return;
+    } catch (_) {
+      _privacyCleanupFailed = true;
+      rethrow;
+    } finally {
+      _privacyCleanup = null;
+      cleanupDone.complete();
     }
   }
 }

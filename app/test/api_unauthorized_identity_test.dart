@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -21,6 +22,8 @@ class PausedCalls extends FamilyCallService {
 }
 
 class PausedStorage extends FlutterSecureStorage {
+  PausedStorage({this.fail = false});
+  final bool fail;
   final entered = Completer<void>();
   final release = Completer<void>();
   @override
@@ -36,6 +39,7 @@ class PausedStorage extends FlutterSecureStorage {
     if (key == 'notebook_requests_v1') {
       entered.complete();
       await release.future;
+      if (fail) throw StateError('synthetic storage failure');
     }
     await super.delete(
       key: key,
@@ -177,6 +181,17 @@ void main() {
     )..user = {'id': 'synthetic', 'role': 'child'};
     expect(state.familyCalls, same(calls));
     state.api.token = 'revoked-session';
+    state.recoveredPhoto = Uint8List.fromList([1, 2, 3]);
+    state.recoveredPhotos.add(Uint8List.fromList([4, 5, 6]));
+    state.recoveredPhotoPurpose = 'homework';
+    await storage.write(
+      key: 'pending_material_uploads_v1',
+      value: 'old-private-data',
+    );
+    await storage.write(
+      key: 'school_learning_drafts_v1',
+      value: 'old-private-data',
+    );
     var notifiedEmpty = false;
     state.addListener(() {
       if (state.user == null) notifiedEmpty = true;
@@ -186,9 +201,51 @@ void main() {
     calls.release.complete();
     await storage.entered.future;
     expect(notifiedEmpty, isTrue);
-    state.beginAuthentication();
+    expect(state.recoveredPhoto, isNull);
+    expect(state.recoveredPhotos, isEmpty);
+    expect(state.recoveredPhotoPurpose, 'notebook');
+    final next = state.accept({
+      'user': {'id': 'other-child', 'role': 'child'},
+      'token': 'new-session',
+    });
+    await Future<void>.delayed(Duration.zero);
+    expect(state.user, isNull); // New account waits for the old cleanup.
     storage.release.complete();
     await cleanup;
+    await next;
+    expect(state.user?['id'], 'other-child');
+    expect(state.recoveredPhoto, isNull);
+    expect(state.recoveredPhotos, isEmpty);
+    expect(await storage.read(key: 'pending_material_uploads_v1'), isNull);
+    expect(await storage.read(key: 'school_learning_drafts_v1'), isNull);
+    if (!kIsWeb) {
+      expect(state.api.token, 'new-session');
+      expect(await storage.read(key: 'session'), 'new-session');
+    }
+    state.dispose();
+  });
+
+  test('failed privacy cleanup blocks publishing another account', () async {
+    late PausedCalls calls;
+    final storage = PausedStorage(fail: true);
+    final state = AppState(
+      storage: storage,
+      familyCallFactory: (s) => calls = PausedCalls(s),
+    )..user = {'id': 'synthetic', 'role': 'child'};
+    expect(state.familyCalls, same(calls));
+    final cleanup = state.clear();
+    await calls.entered.future;
+    calls.release.complete();
+    await storage.entered.future;
+    final next = state.accept({
+      'user': {'id': 'other-child', 'role': 'child'},
+    });
+    storage.release.complete();
+    await expectLater(cleanup, throwsA(isA<StateError>()));
+    await expectLater(
+      next,
+      throwsA(isA<ApiError>().having((e) => e.status, 'status', 503)),
+    );
     expect(state.user, isNull);
     state.dispose();
   });
