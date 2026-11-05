@@ -20,6 +20,35 @@ class PausedCalls extends FamilyCallService {
   }
 }
 
+class PausedStorage extends FlutterSecureStorage {
+  final entered = Completer<void>();
+  final release = Completer<void>();
+  @override
+  Future<void> delete({
+    required String key,
+    AppleOptions? iOptions,
+    AndroidOptions? aOptions,
+    LinuxOptions? lOptions,
+    WebOptions? webOptions,
+    AppleOptions? mOptions,
+    WindowsOptions? wOptions,
+  }) async {
+    if (key == 'notebook_requests_v1') {
+      entered.complete();
+      await release.future;
+    }
+    await super.delete(
+      key: key,
+      iOptions: iOptions,
+      aOptions: aOptions,
+      lOptions: lOptions,
+      webOptions: webOptions,
+      mOptions: mOptions,
+      wOptions: wOptions,
+    );
+  }
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUp(() => FlutterSecureStorage.setMockInitialValues({}));
@@ -106,6 +135,61 @@ void main() {
     await Future<void>.delayed(Duration.zero);
     expect(identical(state.user, owner), isTrue);
     expect(api.token, 'existing-session');
+    state.dispose();
+  });
+
+  test(
+    'current unauthorized response actually clears the revoked session',
+    () async {
+      late PausedCalls calls;
+      final api = Api(
+        base: 'https://example.invalid/api',
+        client: MockClient(
+          (_) async => http.Response('{"detail":"expired"}', 401),
+        ),
+      );
+      final state = AppState(
+        api: api,
+        familyCallFactory: (s) => calls = PausedCalls(s),
+      )..user = {'id': 'synthetic', 'role': 'child'};
+      expect(state.familyCalls, same(calls));
+      api.token = 'revoked-session';
+      final cleared = Completer<void>();
+      state.addListener(() {
+        if (state.user == null && !cleared.isCompleted) cleared.complete();
+      });
+      await expectLater(api.get('/jobs/job'), throwsA(isA<ApiError>()));
+      await calls.entered.future;
+      calls.release.complete();
+      await cleared.future.timeout(const Duration(seconds: 10));
+      expect(api.token, isNull);
+      expect(state.user, isNull);
+      state.dispose();
+    },
+  );
+
+  test('account disappearance is notified before storage cleanup can be superseded', () async {
+    late PausedCalls calls;
+    final storage = PausedStorage();
+    final state = AppState(
+      storage: storage,
+      familyCallFactory: (s) => calls = PausedCalls(s),
+    )..user = {'id': 'synthetic', 'role': 'child'};
+    expect(state.familyCalls, same(calls));
+    state.api.token = 'revoked-session';
+    var notifiedEmpty = false;
+    state.addListener(() {
+      if (state.user == null) notifiedEmpty = true;
+    });
+    final cleanup = state.clear();
+    await calls.entered.future;
+    calls.release.complete();
+    await storage.entered.future;
+    expect(notifiedEmpty, isTrue);
+    state.beginAuthentication();
+    storage.release.complete();
+    await cleanup;
+    expect(state.user, isNull);
     state.dispose();
   });
 

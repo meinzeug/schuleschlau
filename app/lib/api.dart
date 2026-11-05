@@ -805,6 +805,10 @@ class AppState extends ChangeNotifier {
     api.token = null;
     user = null;
     familyId = null;
+    // Remove private routes immediately. A newer login may start while the
+    // remaining storage cleanup awaits; it must never leave the previous
+    // account visible if that newer login is then cancelled or rejected.
+    notifyListeners();
     await notebookRequests.clear();
     if (!stillCleared()) return;
     recoveredPhoto = null;
@@ -829,6 +833,5 @@ class AppState extends ChangeNotifier {
       await storage.delete(key: 'camera_context');
       if (!stillCleared()) return;
     }
-    notifyListeners();
   }
 }
