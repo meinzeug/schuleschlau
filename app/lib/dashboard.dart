@@ -3731,15 +3731,18 @@ Future<void> preferencesDialog(
   Json child,
 ) async {
   final account = state.user, family = state.familyId;
+  final identity = state.api.requestIdentity();
   bool currentAccount() =>
       account != null &&
       identical(account, state.user) &&
+      state.api.ownsRequest(identity) &&
       state.isParent &&
       state.canManage &&
       family == state.familyId;
   if (!currentAccount()) return;
   final p = Map<String, dynamic>.from(child['preferences']);
   final form = GlobalKey<FormState>();
+  final formScroll = ScrollController();
   final daily = TextEditingController(text: '${p['daily_minutes']}'),
       weekly = TextEditingController(text: '${p['weekly_minutes']}'),
       session = TextEditingController(text: '${p['session_minutes']}'),
@@ -3771,8 +3774,13 @@ Future<void> preferencesDialog(
       (value ?? '').split(',').where((v) => v.trim().isNotEmpty).length > 20
       ? 'Bitte höchstens 20 Einträge angeben.'
       : null;
-  bool saving = false;
-  ModalRoute<dynamic>? draftRoute, dateRoute;
+  final revision = child['preferences_revision'];
+  final hasRevision = revision is int && revision > 0;
+  bool saving = false, conflict = false;
+  String? versionError = hasRevision
+      ? null
+      : 'Die Lernvorgaben konnten nicht sicher geladen werden. Bitte aktualisiere die App und öffne die Seite erneut.';
+  ModalRoute<dynamic>? draftRoute, dateRoute, discardRoute;
   void accountChanged() {
     if (currentAccount()) return;
     final route = draftRoute;
@@ -3780,6 +3788,9 @@ Future<void> preferencesDialog(
     Future<void>.microtask(() {
       if (!currentAccount() && dateRoute?.isActive == true) {
         dateRoute!.navigator?.removeRoute(dateRoute!);
+      }
+      if (!currentAccount() && discardRoute?.isActive == true) {
+        discardRoute!.navigator?.removeRoute(discardRoute!);
       }
       if (!currentAccount() && route.isActive) {
         route.navigator?.removeRoute(route);
@@ -3836,6 +3847,7 @@ Future<void> preferencesDialog(
                   child: SizedBox(
                     width: 520,
                     child: SingleChildScrollView(
+                      controller: formScroll,
                       child: Form(
                         key: form,
                         onChanged: () => set(() {}),
@@ -3847,6 +3859,13 @@ Future<void> preferencesDialog(
                               'Für ${child['display_name']}',
                               style: TextStyle(fontWeight: FontWeight.w700),
                             ),
+                            if (!hasRevision && versionError != null) ...[
+                              const SizedBox(height: 12),
+                              Semantics(
+                                liveRegion: true,
+                                child: Notice(versionError!, warning: true),
+                              ),
+                            ],
                             SizedBox(height: 16),
                             _PreferenceSection(
                               title: 'Mindestlernzeit',
@@ -4207,6 +4226,13 @@ Future<void> preferencesDialog(
                                 fontSize: 12,
                               ),
                             ),
+                            if (hasRevision && versionError != null) ...[
+                              const SizedBox(height: 12),
+                              Semantics(
+                                liveRegion: true,
+                                child: Notice(versionError!, warning: true),
+                              ),
+                            ],
                             SizedBox(height: 16),
                           ],
                         ),
@@ -4226,8 +4252,49 @@ Future<void> preferencesDialog(
                         },
                   child: Text('Abbrechen'),
                 ),
+                if (conflict)
+                  TextButton(
+                    onPressed: saving
+                        ? null
+                        : () async {
+                            final discard = await showDialog<bool>(
+                              context: ctx,
+                              builder: (context) {
+                                discardRoute = ModalRoute.of(context);
+                                return AlertDialog(
+                                  title: const Text('Entwurf verwerfen?'),
+                                  content: const Text(
+                                    'Deine Änderungen werden verworfen. Danach kannst du die aktuellen Lernvorgaben erneut öffnen.',
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.pop(context, false),
+                                      child: const Text('Entwurf behalten'),
+                                    ),
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.pop(context, true),
+                                      child: const Text(
+                                        'Verwerfen und neu laden',
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              },
+                            );
+                            if (discard == true &&
+                                currentAccount() &&
+                                ctx.mounted &&
+                                draftRoute?.isCurrent == true) {
+                              Navigator.pop(ctx);
+                            }
+                          },
+                    child: const Text('Aktuellen Stand laden'),
+                  ),
                 ActionButton(
                   label: 'Speichern',
+                  enabled: hasRevision && !conflict,
                   onPressed: () async {
                     if (!currentAccount() ||
                         !ctx.mounted ||
@@ -4258,9 +4325,11 @@ Future<void> preferencesDialog(
                     };
                     set(() => saving = true);
                     try {
-                      await state.api.put(
+                      await state.api.call(
+                        'PUT',
                         '/children/${child['id']}/preferences',
                         body,
+                        {'If-Match': '$revision'},
                       );
                       if (!currentAccount()) return;
                       state.refreshState();
@@ -4271,6 +4340,31 @@ Future<void> preferencesDialog(
                           draftRoute!.navigator?.removeRoute(draftRoute!);
                         }
                       }
+                    } on ApiError catch (error) {
+                      if (!ctx.mounted || !currentAccount()) return;
+                      if ((error.status == 409 &&
+                              error.code == 'preferences_revision_conflict') ||
+                          (error.status == 428 &&
+                              error.code == 'preferences_revision_required')) {
+                        set(() {
+                          conflict = true;
+                          versionError = error.status == 409
+                              ? 'Die Lernvorgaben wurden zwischenzeitlich geändert. Dein Entwurf bleibt geöffnet. Lade den aktuellen Stand, bevor du erneut speicherst.'
+                              : 'Der aktuelle Stand fehlt. Bitte aktualisiere die App und lade die Lernvorgaben erneut.';
+                        });
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (ctx.mounted &&
+                              currentAccount() &&
+                              draftRoute?.isCurrent == true &&
+                              formScroll.hasClients) {
+                            formScroll.jumpTo(
+                              formScroll.position.maxScrollExtent,
+                            );
+                          }
+                        });
+                        return;
+                      }
+                      rethrow;
                     } finally {
                       if (ctx.mounted && currentAccount()) {
                         set(() => saving = false);
@@ -4287,6 +4381,7 @@ Future<void> preferencesDialog(
   } finally {
     state.removeListener(accountChanged);
     if (draftRoute != null) await draftRoute!.completed;
+    formScroll.dispose();
     for (final c in [
       daily,
       weekly,

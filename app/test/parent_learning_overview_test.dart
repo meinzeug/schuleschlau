@@ -20,6 +20,7 @@ import 'fixtures/child_home_encoded.dart';
 Json parentOverview() {
   final data =
       jsonDecode(utf8.decode(base64Decode(syntheticChildHomeBase64))) as Json;
+  data['child']['preferences_revision'] = 1;
   data['daily_capture'] = {'status': 'skipped'};
   (data['plan'] as Json).addAll({
     'daily_goal_minutes': 20,

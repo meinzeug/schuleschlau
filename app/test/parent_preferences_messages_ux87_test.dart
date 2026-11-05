@@ -145,10 +145,157 @@ void main() {
       );
       await tap(tester, 'Speichern');
       final body = jsonDecode(f.requests.single.body);
+      expect(f.requests.single.headers['If-Match'], '1');
       expect(body['weekdays'], [0, 1]);
       expect(body['subject_days'], {
         'Mathematik': [5],
       });
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+  testWidgets('A conflict keeps the draft and requires explicit discard', (
+    tester,
+  ) async {
+    final f = _Fixture();
+    f.respond = (request) async => fixture.jsonResponse({
+      'detail': 'Lernvorgaben wurden zwischenzeitlich geändert.',
+      'code': 'preferences_revision_conflict',
+    }, 409);
+    await f.mount(tester);
+    await fill(tester, 'Mindestziel pro Tag', '37');
+    await tap(tester, 'Speichern');
+    expect(f.requests.single.headers['If-Match'], '1');
+    expect(find.textContaining('Dein Entwurf bleibt geöffnet'), findsOneWidget);
+    expect(
+      find.widgetWithText(TextFormField, 'Mindestziel pro Tag'),
+      findsOneWidget,
+    );
+    expect(
+      tester
+          .widget<TextFormField>(
+            find.widgetWithText(TextFormField, 'Mindestziel pro Tag'),
+          )
+          .controller!
+          .text,
+      '37',
+    );
+    expect(
+      tester.widget<ActionButton>(find.byType(ActionButton).last).enabled,
+      isFalse,
+    );
+    await tap(tester, 'Aktuellen Stand laden');
+    await tap(tester, 'Entwurf behalten');
+    expect(find.textContaining('Dein Entwurf bleibt geöffnet'), findsOneWidget);
+    await tap(tester, 'Aktuellen Stand laden');
+    await tap(tester, 'Verwerfen und neu laden');
+    expect(find.text('Lernziele & Plan'), findsNothing);
+    expect(f.requests.length, 1);
+    await tester.pumpWidget(const SizedBox());
+  });
+  testWidgets('Missing source revision never sends a preferences write', (
+    tester,
+  ) async {
+    final f = _Fixture();
+    f.data['child'].remove('preferences_revision');
+    await f.mount(tester);
+    expect(find.textContaining('nicht sicher geladen'), findsOneWidget);
+    expect(
+      tester.widget<ActionButton>(find.byType(ActionButton).last).enabled,
+      isFalse,
+    );
+    expect(f.requests, isEmpty);
+    await tester.pumpWidget(const SizedBox());
+  });
+  testWidgets('A server requiring an update keeps the draft without retrying', (
+    tester,
+  ) async {
+    final f = _Fixture();
+    f.respond = (request) async => fixture.jsonResponse({
+      'detail': 'Vorbedingung fehlt',
+      'code': 'preferences_revision_required',
+    }, 428);
+    await f.mount(tester);
+    await fill(tester, 'Mindestziel pro Tag', '37');
+    await tap(tester, 'Speichern');
+    expect(find.textContaining('Bitte aktualisiere die App'), findsOneWidget);
+    expect(
+      tester
+          .widget<TextFormField>(
+            find.widgetWithText(TextFormField, 'Mindestziel pro Tag'),
+          )
+          .controller!
+          .text,
+      '37',
+    );
+    expect(f.requests.length, 1);
+    await tester.pumpWidget(const SizedBox());
+  });
+  testWidgets(
+    'A temporary account lock keeps the draft and allows a deliberate retry',
+    (tester) async {
+      final f = _Fixture();
+      var writes = 0;
+      f.respond = (request) async => ++writes == 1
+          ? fixture.jsonResponse({
+              'detail': 'Eine andere Kontoaktion läuft.',
+            }, 409)
+          : fixture.jsonResponse({});
+      await f.mount(tester);
+      await fill(tester, 'Mindestziel pro Tag', '37');
+      await tap(tester, 'Speichern');
+      expect(
+        find.textContaining('Eine andere Kontoaktion läuft'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('Dein Entwurf bleibt geöffnet'), findsNothing);
+      expect(writes, 1);
+      await tap(tester, 'Speichern');
+      expect(writes, 2);
+      expect(f.requests.last.headers['If-Match'], '1');
+      expect(jsonDecode(f.requests.last.body)['daily_minutes'], 37);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+  testWidgets('Replacing the session closes the conflict and discard dialogs', (
+    tester,
+  ) async {
+    final f = _Fixture();
+    f.state.api.token = 'synthetic-old-session';
+    f.respond = (request) async => fixture.jsonResponse({
+      'detail': 'Konflikt',
+      'code': 'preferences_revision_conflict',
+    }, 409);
+    await f.mount(tester);
+    await tap(tester, 'Speichern');
+    await tap(tester, 'Aktuellen Stand laden');
+    expect(find.text('Entwurf verwerfen?'), findsOneWidget);
+    f.state.api.token = 'synthetic-new-session';
+    f.state.refreshState();
+    await tester.pumpAndSettle();
+    expect(find.text('Entwurf verwerfen?'), findsNothing);
+    expect(find.text('Lernziele & Plan'), findsNothing);
+    expect(f.requests.length, 1);
+    await tester.pumpWidget(const SizedBox());
+  });
+  testWidgets(
+    'The conflict and draft stay usable at 320 pixels with large text',
+    (tester) async {
+      final f = _Fixture();
+      f.respond = (request) async => fixture.jsonResponse({
+        'detail': 'Konflikt',
+        'code': 'preferences_revision_conflict',
+      }, 409);
+      await f.mount(tester, width: 320, scale: 2);
+      await fill(tester, 'Mindestziel pro Tag', '37');
+      await tap(tester, 'Speichern');
+      expect(
+        find.textContaining('Dein Entwurf bleibt geöffnet'),
+        findsOneWidget,
+      );
+      await tap(tester, 'Aktuellen Stand laden');
+      await tap(tester, 'Entwurf behalten');
+      expect(tester.takeException(), isNull);
+      expect(f.requests.length, 1);
       await tester.pumpWidget(const SizedBox());
     },
   );

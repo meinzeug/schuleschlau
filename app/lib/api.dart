@@ -21,7 +21,8 @@ typedef Json = Map<String, dynamic>;
 class ApiError implements Exception {
   final String message;
   final int status;
-  ApiError(this.message, [this.status = 0]);
+  final String? code;
+  ApiError(this.message, [this.status = 0, this.code]);
   @override
   String toString() => message;
 }
@@ -101,9 +102,16 @@ class Api {
       }
       final detail = data is Map ? data['detail'] : null;
       final fields = data is Map ? data['fields'] as List? : null;
+      final detailMessage = detail is String
+          ? detail
+          : 'Anfrage fehlgeschlagen.';
+      final code = data is Map && data['code'] is String
+          ? data['code'] as String
+          : null;
       throw ApiError(
-        '${detail is String ? detail : 'Anfrage fehlgeschlagen.'}${fields != null && fields.isNotEmpty ? ' ${fields.map((e) => e['message']).join(' ')}' : ''}',
+        '$detailMessage${fields != null && fields.isNotEmpty ? ' ${fields.map((e) => e['message']).join(' ')}' : ''}',
         response.statusCode,
+        code,
       );
     }
     return data;

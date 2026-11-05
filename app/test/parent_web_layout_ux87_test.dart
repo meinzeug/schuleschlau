@@ -15,6 +15,7 @@ import 'package:schulpilot/ui.dart';
 const childId = '11111111111111111111111111111111';
 Json child() => {
   'id': childId,
+  'preferences_revision': 1,
   'display_name': 'Künstliches Testkind',
   'subjects': ['Mathematik', 'Englisch'],
   'preferences': {
