@@ -1,4 +1,4 @@
-"""Exercise restore erasures and message retention using synthetic data only.
+"""Exercise restore erasures and retention using synthetic data only.
 
 Run with this runtime's interpreter and backend on PYTHONPATH. This does not
 connect to the application's database, access its journal, or validate backup
@@ -15,7 +15,22 @@ def main():
             or os.environ.get("MASTER_KEY") != SYNTHETIC_KEY or not os.environ.get("DATA_DIR")):
         raise RuntimeError("Explicit synthetic test environment is required")
 
-    from schulpilot.db import Base, Child, Family, Message, User, VocabularyCollection, VocabularyImport, VocabularyItem
+    from schulpilot.conversation_retention import RETENTION_SECONDS as CONVERSATION_RETENTION_SECONDS
+    from schulpilot.conversation_retention import purge_expired as purge_expired_conversations
+    from schulpilot.db import (
+        Base,
+        Child,
+        Family,
+        Message,
+        ParentLearningReview,
+        SchulbuddyTurn,
+        TutorTurn,
+        User,
+        VocabularyCollection,
+        VocabularyImport,
+        VocabularyItem,
+    )
+    from schulpilot.db import Session as UserSession
     from schulpilot.db import engine as app_engine
     from schulpilot.erasure import reconcile, signed, verify
     from schulpilot.message_retention import RETENTION_SECONDS, purge_expired
@@ -71,12 +86,44 @@ def main():
             purge_expired(db, current)
             if db.get(Message, old_id) is not None or db.get(Message, kept_message_id) is None:
                 raise RuntimeError("Synthetic message retention failed")
+            session = UserSession(user_id=user.id, token_hash="e" * 64, device="synthetic", expires=current + 1)
+            db.add(session)
+            db.flush()
+            if CONVERSATION_RETENTION_SECONDS != 365 * 86400:
+                raise RuntimeError("Unexpected synthetic conversation retention period")
+            conversations = (TutorTurn, SchulbuddyTurn, ParentLearningReview)
+            identifiers = {model: [] for model in conversations}
+            for index, created in enumerate((current - 365 * 86400 - 1, current - 365 * 86400, current)):
+                rows = (
+                    TutorTurn(child_id=child.id, user_id=user.id, question="Synthetic", created=created),
+                    SchulbuddyTurn(child_id=child.id, user_id=user.id, session_id=session.id,
+                                   job_id=f"{index:032x}", request_key=f"synthetic-{index}",
+                                   request_hash="f" * 64, context_key="a" * 64, scope={},
+                                   source_revisions=[], question="Synthetic", created=created),
+                    ParentLearningReview(child_id=child.id, family_id=family.id, requested_by=user.id,
+                                         signature="b" * 64, observations={}, created=created),
+                )
+                db.add_all(rows)
+                db.flush()
+                for row in rows:
+                    identifiers[type(row)].append(row.id)
+            counts = purge_expired_conversations(db, current)
+            if counts != {model.__tablename__: 1 for model in conversations}:
+                raise RuntimeError("Synthetic conversation expiry counts failed")
+            db.expire_all()
+            for model in conversations:
+                old, boundary, recent = identifiers[model]
+                if db.get(model, old) is not None or db.get(model, boundary) is None or db.get(model, recent) is None:
+                    raise RuntimeError(f"Synthetic {model.__tablename__} retention failed")
+            if purge_expired_conversations(db, current) != {model.__tablename__: 0 for model in conversations}:
+                raise RuntimeError("Synthetic conversation retention is not idempotent")
             from visual_restore_probe import probe
 
             probe(db, SYNTHETIC_KEY)
         print("Synthetic signed visual-review erasures: OK (isolated in-memory database).")
         print("Synthetic signed vocabulary erasures: OK (isolated in-memory database).")
         print("Synthetic restored-message retention: OK (isolated in-memory database).")
+        print("Synthetic restored-conversation retention: OK (isolated in-memory database).")
     finally:
         engine.dispose()
 

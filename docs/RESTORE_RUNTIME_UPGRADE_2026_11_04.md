@@ -40,9 +40,20 @@ Arbeitsbaum ist keine geprüfte Releasequelle.
 
    Der Test verweigert andere DB-/Umgebungswerte, kontrolliert die tatsächlich
    importierte Engine und prüft drei signierte, künstliche Löschtypen samt
-   wiederholtem Abgleich. Eine zusätzliche Prüfung mit falschem `DATABASE_URL`
+   wiederholtem Abgleich. Er prüft außerdem die bestehende 365-Tage-Frist für
+   Nachrichten sowie für Tutor-, Schulbuddy- und Elternrückblick-Datensätze.
+   Für jeden der drei Gesprächsdaten-Typen werden ein älterer, ein genau am
+   Grenzwert liegender und ein jüngerer Datensatz einzeln geprüft; ein zweiter
+   Ablauf muss ohne weitere Löschungen bleiben. Die Testdatenbank liegt nur im
+   Arbeitsspeicher, der Vorabcheck benötigt kein `pytest` im Betriebs-venv.
+   Die erfolgreiche Ausgabe enthält `Synthetic restored-conversation retention: OK`.
+   Der Vorabcheck ruft die Ablaufregel direkt auf und belegt damit nicht, dass
+   beide Restore-Einstiegspunkte sie aufrufen; dafür sind die Restorequellen
+   und gesonderte Integrationstests zu prüfen.
+   Eine zusätzliche Prüfung mit falschem `DATABASE_URL`
    muss vor jeglicher DB-Verbindung fehlschlagen. Das ist kein
-   Wiederherstellungsnachweis und prüft keine Vollständigkeit echter Journale.
+   Wiederherstellungsnachweis und prüft keine Vollständigkeit echter Journale,
+   keine Migrationen und keine PostgreSQL-Wiederherstellung.
    Auf dem unabhängigen Offsite-Rechner den Restore-CLI-Pfad ebenfalls mit
    Backend und Abhängigkeiten aus demselben Commit bereitstellen und denselben
    synthetischen Test ausführen. Der laufende Offsite-Pull verschiebt nur
