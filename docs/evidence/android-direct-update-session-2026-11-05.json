@@ -1,0 +1,20 @@
+{
+  "cleanup_complete": true,
+  "client_session_id_independently_observed": false,
+  "external_ai_calls": 0,
+  "material_comparison_via_parent_api": true,
+  "material_visible_in_app_before_and_after": false,
+  "same_synthetic_child_session_active_after_update": true,
+  "signed_in_before_update": true,
+  "synthetic_material_unchanged_after_update": true,
+  "synthetic_only": true,
+  "upgrade": {
+    "adb_install_used_for_upgrade": false,
+    "automatic_server_check": true,
+    "automatic_verified_download": true,
+    "installed_code": 250,
+    "previous_code": 249,
+    "server_code": 250,
+    "system_install_confirmed": true
+  }
+}
