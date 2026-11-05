@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'parent_hierarchy_test_tools.dart';
@@ -19,6 +20,7 @@ import 'parent_filters_ux88_test.dart' show input, choose;
 
 class Fixture {
   final requests = <http.Request>[];
+  Completer<http.Response>? pendingOverview;
   late final data = (jsonDecode(jsonEncode(cards.summary())) as Json)
     ..['child'].addAll({
       'grade': 6,
@@ -36,6 +38,9 @@ class Fixture {
             base: 'https://example.invalid/api',
             client: MockClient((r) async {
               requests.add(r);
+              if (r.url.path.endsWith('/overview') && pendingOverview != null) {
+                return pendingOverview!.future;
+              }
               return http.Response(
                 jsonEncode(
                   r.url.path.endsWith('/overview') ? data : insights.insight(),
@@ -147,33 +152,48 @@ class Fixture {
 }
 
 void main() {
-  for (final change in ['same account ID', 'family']) {
-    testWidgets(
-      'PP031 child detail hides private evidence and rejects polling after $change',
-      (tester) async {
-        final f = Fixture();
-        await f.mount(tester, detail: true);
-        expect(
-          find.text('Lernstand auf einen Blick'),
-          findsOneWidget,
-          reason:
-              'GETs: ${f.requests.map((r) => r.url.path).toList()}; visible: ${tester.allWidgets.whereType<Text>().map((w) => w.data).toList()}',
-        );
-        if (change == 'family') {
-          f.state.familyId = 'other';
-        } else {
-          f.state.user = {...f.state.user!};
-        }
-        f.state.refreshState();
-        await settle(tester);
-        expect(find.text('Lernstand auf einen Blick'), findsNothing);
-        final before = f.requests.length;
-        await tester.pump(const Duration(seconds: 20));
-        expect(f.requests.length, before);
-        await tester.pumpWidget(const SizedBox());
-      },
+  testWidgets('PP031 same account ID waits for a fresh authorized overview', (
+    tester,
+  ) async {
+    final f = Fixture();
+    await f.mount(tester, detail: true);
+    expect(find.text('Lernstand auf einen Blick'), findsOneWidget);
+    final before = f.requests.length;
+    f.pendingOverview = Completer<http.Response>();
+    f.state.user = {...f.state.user!};
+    f.state.refreshState();
+    await tester.pump();
+    expect(find.text('Lernstand auf einen Blick'), findsNothing);
+    expect(f.requests.length, before + 1);
+    expect(f.requests.last.url.path, endsWith('/overview'));
+    expect(f.requests.every((request) => request.method == 'GET'), isTrue);
+    f.pendingOverview!.complete(
+      http.Response(
+        jsonEncode(f.data),
+        200,
+        headers: {'content-type': 'application/json; charset=utf-8'},
+      ),
     );
-  }
+    await settle(tester);
+    expect(find.text('Lernstand auf einen Blick'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('PP031 family switch hides private evidence and stops polling', (
+    tester,
+  ) async {
+    final f = Fixture();
+    await f.mount(tester, detail: true);
+    expect(find.text('Lernstand auf einen Blick'), findsOneWidget);
+    f.state.familyId = 'other';
+    f.state.refreshState();
+    await settle(tester);
+    expect(find.text('Lernstand auf einen Blick'), findsNothing);
+    final before = f.requests.length;
+    await tester.pump(const Duration(seconds: 20));
+    expect(f.requests.length, before);
+    await tester.pumpWidget(const SizedBox());
+  });
   testWidgets(
     'PP065 old plan entry opens the one current plan without duplicate writes',
     (tester) async {
