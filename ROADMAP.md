@@ -570,6 +570,15 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – Abruf und Lernplanung nachvollziehbar abnehmen**
 
+  - [x] **Historische Nachprüfungen und Reflexionsrunden absichern.** Alte
+    und neue Clients prüfen bei mehreren Antworten nur die eindeutig durch
+    Versuchsnummer bestimmte Antwort erneut; bei mehrdeutiger Reihenfolge wird
+    ohne Änderung abgelehnt. Der Neuaufbau nach einer Nachprüfung zählt reine
+    Reflexionsrunden nicht als Lernnachweis. Je 34 künstliche API- und
+    Regressionstests bestanden auf SQLite und PostgreSQL. Andere Verbraucher
+    mehrdeutiger Altversuche und bereits vorhandene Fehlzählungen bleiben offen;
+    siehe `docs/LEGACY_ATTEMPT_RECHECK.md`.
+
   **04.11.2026, frühere Aufgabenbegegnungen:** Persönliche Beiträge,
   historische und anders zugeordnete Aufgaben können keine wiederholte
   Wissensfrage zu einem neuen Abrufnachweis machen. Unklare alte Fachangaben
