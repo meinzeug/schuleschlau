@@ -29,6 +29,22 @@ Konfigurationsprüfung erhalten. Dieses Mapping ändert weder Reservierungen noc
 Providerwahl, Wiederholungsgrenzen, Verarbeitung früherer Ergebnisse oder
 Transportinhalte.
 
+Die Fehlerklassifikation prüft bei eingebetteten Fehlern ohne Metadaten auch
+geschlossene numerische Fehlercodes als Integer oder exakt passende Zeichenkette:
+429 bedeutet Auslastung, 408/504 Timeout. Fehlertexte bleiben ausgeschlossen.
+Ungültige Formen des `usage`-Feldes werden als ungültige Ausgabe behandelt;
+bei unbekannten Kosten bleibt die Reservierung erhalten. Die Tests prüfen die
+Varianten im äußeren Fehler und im Fehler einer einzelnen Choice.
+
+**Reichweite des Datenschutztests:** Die Testmarker in Fehlermeldung und
+Fehlermetadaten erscheinen weder im Auftragsfehler noch in der Telemetrie.
+Andere Felder wie Generierungs-ID, Modellname, Upstream und Request-ID nehmen
+weiterhin formatgeprüfte, aber nicht inhaltlich verifizierte Anbieterwerte an.
+Ein dort entgegen der Anbietersemantik hineingeschriebener privater Text lässt
+sich damit nicht grundsätzlich ausschließen. Generierungskennungen dienen
+zugleich der Kostennachbuchung; ohne nachgewiesenen Anbieterformatvertrag wäre
+eine willkürliche ID-Whitelist keine verlässliche Lösung.
+
 ```sh
 TMPDIR=/dev/shm .venv/bin/pytest -q backend/tests/test_package_http_failure_end_to_end.py
 TMPDIR=/dev/shm .venv/bin/python scripts/test_postgres.py backend/tests/test_package_http_failure_end_to_end.py

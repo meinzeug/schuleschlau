@@ -42,6 +42,13 @@ def openrouter_failure(error):
         return "Die KI-Verbindung muss vom Betreiber geprüft werden. Deine Fotos bleiben gespeichert."
     if category == "timeout":
         return "Die KI hat zu lange gebraucht und abgebrochen. Bitte später erneut versuchen."
+    # Some upstreams supply an error code without the optional metadata.
+    # Do not show the provider's message or any other untrusted fields.
+    code = openrouter_failure_code(error)
+    if code == "provider_busy":
+        return "Die KI ist gerade ausgelastet. Bitte später erneut versuchen."
+    if code == "provider_timeout":
+        return "Die KI hat zu lange gebraucht und abgebrochen. Bitte später erneut versuchen."
     return "Der KI-Anbieter hat die Antwort abgebrochen. Bitte später erneut versuchen."
 
 
@@ -53,6 +60,23 @@ def openrouter_failure_code(error):
         return "provider_busy"
     if category == "timeout":
         return "provider_timeout"
+    if category in ("authentication", "permission_denied", "payment_required", "invalid_request"):
+        return "not_configured"
+    if category == "invalid_schema":
+        return "invalid_output"
+    code = error.get("code") if isinstance(error, dict) else None
+    # Only explicit known numeric codes are used; reject booleans and all
+    # untrusted strings other than the exact decimal representation.
+    if type(code) is int:
+        code = str(code)
+    elif not isinstance(code, str):
+        code = ""
+    if code == "429":
+        return "provider_busy"
+    if code in ("408", "504"):
+        return "provider_timeout"
+    if code in ("400", "401", "402", "403", "404", "422"):
+        return "not_configured"
     # This describes availability only, not a verified network/config cause.
     # Unknown HTTP200 errors can have incurred real, still-unknown charges.
     return "provider_unavailable"
@@ -2275,6 +2299,8 @@ def request_provider(config, function, payload, image_bytes=None, *, synthetic_f
             annotate_openrouter_error(billing_result, raw["error"])
             raise ProviderError(openrouter_failure(raw["error"]), code=openrouter_failure_code(raw["error"]))
         usage = raw.get("usage", {})
+        if not isinstance(usage, dict):
+            raise ProviderError("Die Antwort des KI-Anbieters war nicht vollständig prüfbar.", code="invalid_output")
         if config.provider == "openai":
             if raw.get("status") != "completed":
                 raise ValueError("incomplete")

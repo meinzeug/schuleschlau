@@ -15,6 +15,17 @@ from test_package_parts_worker import artificial_day, bounded_output, preparatio
 from test_package_transport import config as adapter_config
 
 
+@pytest.mark.parametrize(("value", "expected"), [
+    (408, "provider_timeout"), ("408", "provider_timeout"),
+    ("429 private echo", "provider_unavailable"), (True, "provider_unavailable"),
+    (" 429", "provider_unavailable"), (None, "provider_unavailable"),
+])
+def test_untrusted_error_codes_are_closed_categories(value, expected):
+    error = {"code": value, "message": "SYNTHETIC-PRIVATE-ECHO"}
+    assert providers.openrouter_failure_code(error) == expected
+    assert "SYNTHETIC-PRIVATE-ECHO" not in providers.openrouter_failure(error)
+
+
 @pytest.mark.parametrize(("fault", "expected", "billed"), [
     ("http400", "not_configured", False),
     ("http400_schema", "invalid_output", False),
@@ -28,7 +39,16 @@ from test_package_transport import config as adapter_config
     ("truncated", "invalid_output", True),
     ("invalid_json", "invalid_output", True),
     ("invalid_envelope_json", "invalid_output", False),
+    ("invalid_usage", "invalid_output", False),
     ("embedded_429", "provider_busy", True),
+    ("embedded_root_429_int", "provider_busy", True),
+    ("embedded_root_429_str", "provider_busy", True),
+    ("embedded_choice_429_int", "provider_busy", True),
+    ("embedded_choice_429_str", "provider_busy", True),
+    ("embedded_root_504_int", "provider_timeout", True),
+    ("embedded_root_504_str", "provider_timeout", True),
+    ("embedded_choice_504_int", "provider_timeout", True),
+    ("embedded_choice_504_str", "provider_timeout", True),
     ("empty", "invalid_output", True),
     ("schema", "invalid_output", True),
 ])
@@ -52,10 +72,22 @@ def test_http_error_is_settled_once_and_only_explicit_retry_continues(api, house
             return httpx.Response(status, json={"error": {"code": status, "message": marker, "metadata": metadata}})
         if fault == "invalid_envelope_json":
             return httpx.Response(200, content=b"{not-json")
+        if fault == "invalid_usage":
+            return httpx.Response(200, json={"usage": marker, "choices": [{"finish_reason": "stop",
+                "message": {"content": "{}"}}]})
         if fault == "embedded_429":
             return httpx.Response(200, json={"error": {"code": 429, "message": marker,
                 "metadata": {"error_type": "rate_limit_exceeded", "raw": marker}},
                 "usage": {"prompt_tokens": 5, "completion_tokens": 7, "cost": 0.000137}})
+        if fault.startswith("embedded_"):
+            _, place, code, code_type = fault.split("_")
+            error = {"code": int(code) if code_type == "int" else code, "message": marker}
+            payload = {"usage": {"prompt_tokens": 5, "completion_tokens": 7, "cost": 0.000137}}
+            if place == "root":
+                payload["error"] = error
+            else:
+                payload["choices"] = [{"error": error}]
+            return httpx.Response(200, json=payload)
         content = {"truncated": "{}", "invalid_json": "not-json", "empty": "", "schema": "{}"}[fault]
         return httpx.Response(200, json={"choices": [{"finish_reason": "length" if fault == "truncated" else "stop",
             "message": {"content": content}}], "usage": {"prompt_tokens": 5, "completion_tokens": 7, "cost": 0.000137}})
