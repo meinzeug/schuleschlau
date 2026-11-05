@@ -1,0 +1,196 @@
+"""Restores cannot resurrect withdrawn child push consent (synthetic only)."""
+
+import ast
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+import pytest
+from schulpilot.db import DB, Base, Child, PushDelivery, PushDevice, now
+from schulpilot.db import Session as UserSession
+from schulpilot.restore_push import clear_restored_push
+from sqlalchemy import create_engine, select
+from sqlalchemy.orm import Session
+
+ROOT = Path(__file__).resolve().parents[2]
+
+
+def seed(household):
+    parent, child = household
+    with DB.begin() as db:
+        row = db.get(Child, child['id'])
+        row.preferences = {'push_consent': True, 'daily_minutes': 35}
+        row.preferences_revision = 7
+        session = db.scalar(select(UserSession).where(UserSession.user_id == parent['id']))
+        device = PushDevice(user_id=parent['id'], session_id=session.id, token_hash='e' * 64,
+                            encrypted_token='synthetic-only', platform='web', timezone='Europe/Berlin',
+                            quiet_start=0, quiet_end=0)
+        db.add(device)
+        db.flush()
+        db.add(PushDelivery(device_id=device.id, dedup_key='synthetic-event', kind='test'))
+    return child['id']
+
+
+def test_restore_cleanup_is_idempotent_and_preserves_other_preferences(household):
+    child_id = seed(household)
+    with DB.begin() as db:
+        clear_restored_push(db)
+        db.flush()
+        clear_restored_push(db)
+    with DB() as db:
+        child = db.get(Child, child_id)
+        assert child.preferences == {'push_consent': False, 'daily_minutes': 35}
+        assert child.preferences_revision == 8
+        assert list(db.scalars(select(PushDevice))) == []
+        assert list(db.scalars(select(PushDelivery))) == []
+
+
+def test_exhausted_revision_fails_restore_transaction_closed(household):
+    child_id = seed(household)
+    with DB.begin() as db:
+        db.get(Child, child_id).preferences_revision = 2147483647
+    with pytest.raises(ValueError, match='revision exhausted'), DB.begin() as db:
+        clear_restored_push(db)
+    with DB() as db:
+        assert db.get(Child, child_id).preferences['push_consent'] is True
+        assert len(list(db.scalars(select(PushDevice)))) == 1
+
+
+@pytest.mark.parametrize('route', ['cli', 'rehearsal'])
+@pytest.mark.parametrize('condition', ['valid', 'tampered', 'missing-table', 'old-schema'])
+def test_both_real_restore_paths_clear_only_after_verified_journal(tmp_path, household, route, condition):
+    child_id = seed(household)
+    with DB() as db:
+        snapshot = {table: list(db.execute(table.select()).mappings()) for table in Base.metadata.sorted_tables}
+    target = tmp_path / 'push_restore_test'
+    engine = create_engine('sqlite:///' + str(target))
+    Base.metadata.create_all(engine)
+    with engine.begin() as connection:
+        for table, rows in snapshot.items():
+            if rows:
+                connection.execute(table.insert(), [dict(row) for row in rows])
+        if condition == 'missing-table':
+            connection.exec_driver_sql('DROP TABLE push_devices')
+        if condition == 'old-schema':
+            connection.exec_driver_sql('ALTER TABLE children DROP COLUMN preferences_revision')
+        connection.exec_driver_sql('CREATE TABLE alembic_version (version_num varchar(32) NOT NULL)')
+        connection.exec_driver_sql("INSERT INTO alembic_version VALUES ('synthetic')")
+    current = str(int(now()))
+    ledger_data = '{"record":{},"signature":"invalid"}\n' if condition == 'tampered' else ''
+    env = {**os.environ, 'ENVIRONMENT': 'test', 'PYTHONPATH': str(ROOT / 'backend')}
+    if route == 'cli':
+        key, ledger, uploads = tmp_path / 'key', tmp_path / 'ledger', tmp_path / 'uploads'
+        key.write_text('synthetic-key')
+        ledger.write_text(ledger_data)
+        uploads.mkdir()
+        cmd = [sys.executable, str(ROOT / 'scripts/reconcile_restore.py'), '--database-url', 'sqlite:///' + str(target),
+               '--ledger', str(ledger), '--master-key-file', str(key), '--uploads', str(uploads),
+               '--retention-as-of', current]
+        result = subprocess.run(cmd, env=env, capture_output=True, text=True, timeout=30)
+    else:
+        tree = ast.parse((ROOT / 'deploy/restore_check.py').read_text())
+        code = next(ast.literal_eval(node.value) for node in ast.walk(tree)
+                    if isinstance(node, ast.Assign) and any(isinstance(t, ast.Name) and t.id == 'code' for t in node.targets)
+                    and isinstance(node.value, ast.Constant) and 'retained_image_names' in str(node.value.value))
+        env.update(DATABASE_URL='sqlite:///' + str(target), SCHULPILOT_RESTORE_RETENTION_AS_OF=current)
+        prelude = 'import schulpilot.migrate as migration\nmigration.upgrade = lambda: None\n'
+        result = subprocess.run([sys.executable, '-c', prelude + code], input=ledger_data,
+                                env=env, capture_output=True, text=True, timeout=30)
+    assert (result.returncode == 0) is (condition == 'valid'), result.stderr
+    assert 'synthetic-only' not in result.stdout + result.stderr
+    with Session(engine) as db:
+        preferences = db.scalar(select(Child.preferences).where(Child.id == child_id))
+        assert preferences['push_consent'] is (condition != 'valid')
+        assert preferences['daily_minutes'] == 35
+        if condition != 'old-schema':
+            assert db.get(Child, child_id).preferences_revision == (8 if condition == 'valid' else 7)
+        if condition != 'missing-table':
+            assert len(list(db.scalars(select(PushDevice)))) == (0 if condition == 'valid' else 1)
+            assert len(list(db.scalars(select(PushDelivery)))) == (0 if condition == 'valid' else 1)
+    with DB() as db:
+        original = db.get(Child, child_id)
+        assert original.preferences['push_consent'] is True
+        assert original.preferences_revision == 7
+        assert len(list(db.scalars(select(PushDevice)))) == 1
+        assert len(list(db.scalars(select(PushDelivery)))) == 1
+    engine.dispose()
+
+
+@pytest.mark.parametrize('route', ['cli', 'rehearsal'])
+@pytest.mark.parametrize('tampered', [False, True])
+def test_restore_paths_on_separate_isolated_postgresql(tmp_path, household, route, tampered):
+    """Use only the throwaway cluster created by scripts/test_postgres.py."""
+    from uuid import uuid4
+
+    from sqlalchemy.engine import make_url
+
+    test_url = os.environ.get('TEST_DATABASE_URL', '')
+    if not test_url:
+        pytest.skip('PostgreSQL-only restore test')
+    url = make_url(test_url)
+    socket = url.query.get('host', '')
+    if (url.database != 'schulpilot_isolated_test' or url.query.get('port') != '55440'
+            or not Path(socket).parent.name.startswith('schulpilot-isolated-pg-')
+            or Path(socket).name != 'socket'):
+        pytest.skip('Requires the disposable scripts/test_postgres.py cluster')
+    child_id = seed(household)
+    with DB() as db:
+        snapshot = {table: list(db.execute(table.select()).mappings()) for table in Base.metadata.sorted_tables}
+    name = 'consent_' + uuid4().hex + '_restore_test'
+    admin = create_engine(url, isolation_level='AUTOCOMMIT')
+    target = None
+    created = False
+    try:
+        with admin.connect() as connection:
+            connection.exec_driver_sql(f'CREATE DATABASE "{name}"')
+        created = True
+        target = create_engine(url.set(database=name))
+        Base.metadata.create_all(target)
+        with target.begin() as connection:
+            for table, rows in snapshot.items():
+                if rows:
+                    connection.execute(table.insert(), [dict(row) for row in rows])
+            connection.exec_driver_sql('CREATE TABLE alembic_version (version_num varchar(32) NOT NULL)')
+            connection.exec_driver_sql("INSERT INTO alembic_version VALUES ('synthetic')")
+        ledger_data = '{"record":{},"signature":"invalid"}\n' if tampered else ''
+        env = {**os.environ, 'ENVIRONMENT': 'test', 'PYTHONPATH': str(ROOT / 'backend'),
+               'PGHOST': socket, 'PGPORT': '55440'}
+        if route == 'cli':
+            key, ledger, uploads = tmp_path / 'key', tmp_path / 'ledger', tmp_path / 'uploads'
+            key.write_text('synthetic-key')
+            ledger.write_text(ledger_data)
+            uploads.mkdir()
+            clean_url = url.set(database=name, query={})
+            cmd = [sys.executable, str(ROOT / 'scripts/reconcile_restore.py'), '--database-url', str(clean_url),
+                   '--ledger', str(ledger), '--master-key-file', str(key), '--uploads', str(uploads),
+                   '--retention-as-of', str(int(now()))]
+            result = subprocess.run(cmd, env=env, capture_output=True, text=True, timeout=30)
+        else:
+            tree = ast.parse((ROOT / 'deploy/restore_check.py').read_text())
+            code = next(ast.literal_eval(node.value) for node in ast.walk(tree)
+                        if isinstance(node, ast.Assign)
+                        and any(isinstance(t, ast.Name) and t.id == 'code' for t in node.targets)
+                        and isinstance(node.value, ast.Constant) and 'retained_image_names' in str(node.value.value))
+            env.update(DATABASE_URL=str(url.set(database=name)), SCHULPILOT_RESTORE_RETENTION_AS_OF=str(int(now())))
+            prelude = 'import schulpilot.migrate as migration\nmigration.upgrade = lambda: None\n'
+            result = subprocess.run([sys.executable, '-c', prelude + code], input=ledger_data,
+                                    env=env, capture_output=True, text=True, timeout=30)
+        assert (result.returncode == 0) is (not tampered), result.stderr
+        with Session(target) as db:
+            restored = db.get(Child, child_id)
+            assert restored.preferences['push_consent'] is tampered
+            assert restored.preferences['daily_minutes'] == 35
+            assert restored.preferences_revision == (7 if tampered else 8)
+            assert len(list(db.scalars(select(PushDevice)))) == (1 if tampered else 0)
+            assert len(list(db.scalars(select(PushDelivery)))) == (1 if tampered else 0)
+        with DB() as db:
+            assert db.get(Child, child_id).preferences['push_consent'] is True
+            assert len(list(db.scalars(select(PushDevice)))) == 1
+    finally:
+        if target is not None:
+            target.dispose()
+        if created:
+            with admin.connect() as connection:
+                connection.exec_driver_sql(f'DROP DATABASE "{name}"')
+        admin.dispose()

@@ -30,7 +30,18 @@ def test_preflight_exercises_signed_deletions_without_creating_a_database(tmp_pa
     assert "Synthetic signed vocabulary erasures: OK" in result.stdout
     assert "Synthetic signed visual-review erasures: OK" in result.stdout
     assert "Synthetic restored-conversation retention: OK" in result.stdout
+    assert "Synthetic restored-push consent cleanup: OK" in result.stdout
     assert not list(tmp_path.iterdir())
+
+
+def test_preflight_rejects_broken_push_cleanup(tmp_path):
+    (tmp_path / "sitecustomize.py").write_text(
+        "import schulpilot.restore_push as restore_push\n"
+        "restore_push.clear_restored_push = lambda db: None\n"
+    )
+    result = run_preflight(tmp_path, PYTHONPATH=os.pathsep.join((str(tmp_path), str(ROOT / "backend"))))
+    assert result.returncode != 0
+    assert "Synthetic restored push consent cleanup failed" in result.stderr
 
 
 @pytest.mark.parametrize("fault", ["no_delete", "boundary", "wrong_period"])

@@ -340,6 +340,20 @@ ssh dorfspy 'systemctl show schulpilot-restore-check.service -p Result -p ExecMa
 
 Der Dienst authentifiziert die letzte Sicherung, entpackt nur in ein privates temporäres Verzeichnis, erstellt eine zufällig benannte separate PostgreSQL-Testdatenbank, migriert diese gegebenenfalls auf den aktuellen Stand und gleicht das aktuelle signierte Journal ab. Alte Sitzungen und Zugangstokens werden widerrufen; KI bleibt im rückgesicherten Teststand per Notfallstopp gesperrt. Entfernte Bildpfade werden auch aus der Testkopie gelöscht. Danach wird ausschließlich diese neu erstellte Testdatenbank entfernt. Die produktive DB wird nicht überschrieben. Automatische Wiederholung sonntags ca. 03:30 UTC. Geschützter letzter Bericht: `/var/backups/schulpilot-monitor/restore-check.json`.
 
+Da eine ältere Sicherung einen zwischenzeitlichen Widerruf der Elternfreigabe
+für Kinder-Push nicht kennt, setzen beide Abgleichpfade die Kinderfreigabe nach
+geprüftem Löschjournal vorsorglich zurück und entfernen sämtliche restaurierten
+Geräteregistrierungen. Betroffene Vorgabenrevisionen werden erhöht. Eltern
+müssen nach einer tatsächlichen Wiederherstellung Push neu erlauben und Geräte
+ausdrücklich erneut aktivieren. Bereits an Firebase übergebene Nachrichten
+können nicht zurückgeholt werden. Der Schutz gilt erst, wenn auf Server und
+Offsite-Rechner eine passend aktualisierte Restore-Runtime eingesetzt wird.
+Lokale Regressionen prüfen beide tatsächlichen Abgleich-Einstiegspunkte mit
+künstlichen SQLite-Snapshots und separaten Datenbanken eines isolierten
+PostgreSQL-Testclusters, einschließlich ungültigem Journal. Die Tests der
+eingebetteten Wiederherstellungslogik überspringen Migrationen ausdrücklich;
+sie belegen weder eine produktive Rücksicherung noch eine PostgreSQL-Migration.
+
 **Bestandsinstallation dorfspy, geprüft am 05.11.2026:** Die automatische
 Probe verwendet über das Systemd-Drop-in `90-retention-runtime-06b7301.conf`
 die separate, schreibgeschützte Runtime zum Quellstand `06b7301`; der

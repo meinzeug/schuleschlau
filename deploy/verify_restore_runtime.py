@@ -23,6 +23,7 @@ def main():
         Family,
         Message,
         ParentLearningReview,
+        PushDevice,
         SchulbuddyTurn,
         TutorTurn,
         User,
@@ -34,11 +35,14 @@ def main():
     from schulpilot.db import engine as app_engine
     from schulpilot.erasure import reconcile, signed, verify
     from schulpilot.message_retention import RETENTION_SECONDS, purge_expired
-    from sqlalchemy import create_engine, event
+    from schulpilot.restore_push import clear_restored_push
+    from sqlalchemy import create_engine, event, inspect, select
     from sqlalchemy.orm import Session
 
     if str(app_engine.url) != "sqlite://":
         raise RuntimeError("Application engine is not an in-memory SQLite database")
+    if "preferences_revision" not in inspect(Child).columns:
+        raise RuntimeError("Restore runtime lacks child preferences revision support")
     engine = create_engine("sqlite:///:memory:")
 
     @event.listens_for(engine, "connect")
@@ -117,6 +121,18 @@ def main():
                     raise RuntimeError(f"Synthetic {model.__tablename__} retention failed")
             if purge_expired_conversations(db, current) != {model.__tablename__: 0 for model in conversations}:
                 raise RuntimeError("Synthetic conversation retention is not idempotent")
+            child.preferences = {"push_consent": True, "daily_minutes": 35}
+            child.preferences_revision = 7
+            db.add(PushDevice(user_id=user.id, session_id=session.id, token_hash="f" * 64,
+                              encrypted_token="synthetic", platform="web", timezone="Europe/Berlin",
+                              quiet_start=0, quiet_end=0))
+            db.flush()
+            clear_restored_push(db)
+            db.flush()
+            clear_restored_push(db)
+            if (child.preferences != {"push_consent": False, "daily_minutes": 35}
+                    or child.preferences_revision != 8 or db.scalar(select(PushDevice.id)) is not None):
+                raise RuntimeError("Synthetic restored push consent cleanup failed")
             from visual_restore_probe import probe
 
             probe(db, SYNTHETIC_KEY)
@@ -124,6 +140,7 @@ def main():
         print("Synthetic signed vocabulary erasures: OK (isolated in-memory database).")
         print("Synthetic restored-message retention: OK (isolated in-memory database).")
         print("Synthetic restored-conversation retention: OK (isolated in-memory database).")
+        print("Synthetic restored-push consent cleanup: OK (isolated in-memory database).")
     finally:
         engine.dispose()
 

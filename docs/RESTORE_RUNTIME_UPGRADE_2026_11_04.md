@@ -47,6 +47,20 @@ Arbeitsbaum ist keine geprüfte Releasequelle.
    Ablauf muss ohne weitere Löschungen bleiben. Die Testdatenbank liegt nur im
    Arbeitsspeicher, der Vorabcheck benötigt kein `pytest` im Betriebs-venv.
    Die erfolgreiche Ausgabe enthält `Synthetic restored-conversation retention: OK`.
+   Der Vorabcheck muss außerdem `Synthetic restored-push consent cleanup: OK`
+   ausgeben: Er prüft künstliche Elternfreigabe, Revisionswechsel, Erhalt
+   anderer Vorgaben und Entfernung der Gerätezulassung. Ohne aktuellen Nachweis
+   eines Einwilligungsentzugs wird die alte Freigabe bei einer Wiederherstellung
+   konservativ zurückgesetzt; Eltern und Gerät müssen Push erneut freigeben.
+   Ein älterer Vorabcheck ohne diese Prüfung oder ohne diese konkrete
+   Erfolgsmeldung ist nicht ausreichend. Server und Offsite-Client müssen die
+   neue Runtime samt Schema-/Revisionsmodell vor dem Anwendungsrelease aus
+   derselben geprüften Quelle übernehmen; der alte Restorepfad ist außer
+   Betrieb zu nehmen. Den Wechsel und seine Rückkehrmöglichkeit unter den
+   bestehenden Zwei-Host-Sperren koordinieren. Alter bereits installierter
+   CLI-Code kann nicht nachträglich am direkten Aufruf gehindert werden: Die
+   Umstellung und Quelle müssen betrieblich durchgesetzt werden, insbesondere
+   auch für Sicherungen, die das neue Schema noch nicht enthalten.
    Der Vorabcheck ruft die Ablaufregel direkt auf und belegt damit nicht, dass
    beide Restore-Einstiegspunkte sie aufrufen; dafür sind die Restorequellen
    und gesonderte Integrationstests zu prüfen.

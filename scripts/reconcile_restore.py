@@ -115,6 +115,7 @@ def main():
     from schulpilot.db import DB, ProviderConfig, Session, Token
     from schulpilot.erasure import reconcile, retained_image_names, valid_image_name, verify
     from schulpilot.message_retention import purge_expired as purge_expired_messages
+    from schulpilot.restore_push import clear_restored_push
     from sqlalchemy import update
 
     key = args.master_key_file.read_text().strip()
@@ -122,6 +123,7 @@ def main():
     with DB.begin() as db:
         verify_connected_database(db, database_kind, database_target)
         paths = reconcile(db, records)
+        clear_restored_push(db)
         # A snapshot can contain messages that expired after it was taken.
         # The journal does not currently contain per-message retention events.
         purge_expired_messages(db, args.retention_as_of)
