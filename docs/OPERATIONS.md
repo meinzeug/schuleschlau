@@ -340,6 +340,19 @@ ssh dorfspy 'systemctl show schulpilot-restore-check.service -p Result -p ExecMa
 
 Der Dienst authentifiziert die letzte Sicherung, entpackt nur in ein privates temporäres Verzeichnis, erstellt eine zufällig benannte separate PostgreSQL-Testdatenbank, migriert diese gegebenenfalls auf den aktuellen Stand und gleicht das aktuelle signierte Journal ab. Alte Sitzungen und Zugangstokens werden widerrufen; KI bleibt im rückgesicherten Teststand per Notfallstopp gesperrt. Entfernte Bildpfade werden auch aus der Testkopie gelöscht. Danach wird ausschließlich diese neu erstellte Testdatenbank entfernt. Die produktive DB wird nicht überschrieben. Automatische Wiederholung sonntags ca. 03:30 UTC. Geschützter letzter Bericht: `/var/backups/schulpilot-monitor/restore-check.json`.
 
+**Bestandsinstallation dorfspy, geprüft am 05.11.2026:** Die automatische
+Probe verwendet über das Systemd-Drop-in `90-retention-runtime-06b7301.conf`
+die separate, schreibgeschützte Runtime zum Quellstand `06b7301`; der
+Offsite-Client besitzt eine entsprechende getrennte Runtime. Vor dem Wechsel
+wurden deren Dateien und Abhängigkeiten sowie künstliche Restorefälle geprüft.
+Vor und nach Release `1.38.98+253` lief eine echte Probe mit getrennter
+PostgreSQL-Datenbank erfolgreich; nach dem Release folgte ein bestätigter
+Offsite-Abgleich. Ein Anwendungsrollback darf diese Runtime nicht still auf
+einen älteren Stand zurücksetzen. Künftige Änderungen an Schema, Journal oder
+Aufbewahrung erfordern eine abgestimmte, vorab getestete Aktualisierung beider
+Runtimes und anschließend eine erneute tatsächliche Restoreprobe. Andere
+Installationen übernehmen diese hostbezogene Einstellung nicht automatisch.
+
 Nach erfolgreicher Journalprüfung wenden die automatische Probe und
 `scripts/reconcile_restore.py` den bestehenden strikten 365-Tage-Cutoff für
 Nachrichten, Tutor- und Schulbuddy-Gespräche sowie Eltern-Lernrückblicke anhand

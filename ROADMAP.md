@@ -1050,8 +1050,15 @@ Die folgenden Punkte beschreiben ausstehende, wiederholbare Betriebs- und Freiga
     bestanden; die Restore-Ziele waren SQLite-Testkopien. Bestehende
     Gesprächskaskaden, ältere Runtime-Versionen und die nicht bewiesene
     Vollständigkeit des Löschjournals bleiben ausdrücklich zu beachten.
-    Ein echter PostgreSQL-Restore und die separate Runtime-Umstellung sind
-    damit nicht belegt; siehe `docs/OPERATIONS.md`.
+    Am 05.11.2026 wurde die separat installierte, quellgebundene Runtime
+    `06b7301` auf dem Server und dem Offsite-Client mit künstlichen Fällen
+    vorgeprüft. Vor und nach dem Release `1.38.98+253` gelang jeweils eine
+    tatsächliche Wiederherstellungsprobe aus einer verschlüsselten Sicherung
+    in eine getrennte PostgreSQL-Datenbank; nach dem Release wurde auch der
+    Offsite-Abgleich einschließlich Serverbestätigung geprüft. Dies belegt
+    weder die semantische Vollständigkeit des Löschjournals noch sämtliche
+    Datenarten. Die Runtime ist ausdrücklich weiterzuführen und bei künftigen
+    Änderungen vor einem Wechsel erneut zu prüfen; siehe `docs/OPERATIONS.md`.
 
   - [x] **Vokabeln nach Löschung und Ablauf vor Wiederherstellung schützen.**
     Einzelwörter, Vorschläge und Sammlungen erhalten signierte Belege;
@@ -1865,6 +1872,19 @@ Bestandteil des bestehenden Buildvertrags.
   **Abnahme:** Fehlerzustände und tatsächlich wirksame Limits sind verständlich; Notfallstopp bleibt bei gestörter Providerabfrage erreichbar, Änderungen sind auditiert, parallele Bearbeitung und widerrufene Sitzungen werden korrekt behandelt.
 
 - [ ] **P1 – Benachrichtigung und direkte Zielnavigation vollständig prüfen**
+
+  - [x] **Glockenliste beim Nachladen und Live-Refresh stabil halten.**
+    Sichtbare Meldungen bleiben beim Nachladen verankert. Während Ziehen oder
+    Ausrollen wird eine erfolgreiche Aktualisierung begrenzt zurückgestellt
+    und danach erneut abgefragt. Erkannte 401-/403-Rechtefehler leeren den
+    privaten Cache; alte Antworten dürfen nicht in ein neues Konto übernommen
+    werden. 125 Flutter-VM-Fälle, zwei Chrome-UI-Fälle bei 390 Pixeln und die
+    gezielte Analyse der geänderten Dart-Dateien bestanden; die Änderung wurde
+    unabhängig geprüft. Die vollständige App-Analyse, globaler produktiver
+    401-Ablauf, Geräte-/Barrierefreiheitsabnahme und unbeobachteter serverseitiger
+    Rechteentzug sind damit nicht nachgewiesen. Zwei aufeinanderfolgende
+    Gestenverzögerungen können als Ladefehler erscheinen; siehe
+    [Prüfung](docs/NOTIFICATION_SCROLL_2026_11_05.md).
 
   - [x] **Lesebelege beim Scrollen und über getrennte Sitzungen synthetisch prüfen.**
     05.11.2026, Coding-AI: Sichtbar gelesene und nicht erreichte Meldungen werden bei einem simulierten
