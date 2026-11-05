@@ -39,6 +39,7 @@ class NotificationsScreen extends StatefulWidget {
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
   final _devicePanel = GlobalKey();
+  final _noticeAnchors = <String, GlobalKey>{};
   final search = TextEditingController();
   String? selectedChild, selectedKind;
   Json? account;
@@ -74,6 +75,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       family: widget.state.familyId,
       session: widget.state.api.token,
     );
+    _noticeAnchors.clear();
     setState(() {
       account = widget.state.user;
       accountFamily = widget.state.familyId;
@@ -94,6 +96,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     if (!identical(widget.state, oldWidget.state)) {
       oldWidget.state.removeListener(accountChanged);
       widget.state.addListener(accountChanged);
+      _noticeAnchors.clear();
       account = widget.state.user;
       accountFamily = widget.state.familyId;
       accountToken = widget.state.api.token;
@@ -182,6 +185,96 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             .where((item) => item['read'] != true)
             .map((item) => item['id'] as String)
             .toSet();
+      }
+    });
+  }
+
+  Future<void> loadOlderNotices() async {
+    final state = widget.state;
+    final route = ModalRoute.of(context);
+    final owner = state.user, token = state.api.token, family = state.familyId;
+    final visible = <(String, double)>[];
+    ScrollPosition? position;
+    for (final item in state.inbox.items) {
+      final id = item['id'];
+      final anchor = id is String ? _noticeAnchors[id]?.currentContext : null;
+      if (anchor == null) continue;
+      final render = anchor.findRenderObject();
+      final scroll = Scrollable.maybeOf(anchor);
+      final viewport = scroll?.context.findRenderObject();
+      if (render is! RenderBox ||
+          viewport is! RenderBox ||
+          !render.hasSize ||
+          !viewport.hasSize) {
+        continue;
+      }
+      final top = render.localToGlobal(Offset.zero).dy;
+      final viewTop = viewport.localToGlobal(Offset.zero).dy;
+      if (top < viewTop + viewport.size.height &&
+          top + render.size.height > viewTop) {
+        position ??= scroll!.position;
+        if (identical(position, scroll!.position)) {
+          visible.add((id as String, top));
+        }
+      }
+    }
+    final initialOffset = position?.pixels;
+    await state.inbox.loadMore();
+    if (!mounted ||
+        !identical(widget.state, state) ||
+        !identical(state.user, owner) ||
+        state.familyId != family ||
+        state.api.token != token ||
+        route?.isCurrent == false) {
+      return;
+    }
+    if (onlyUnread) {
+      setState(
+        () => unreadSelection.addAll(
+          state.inbox.items
+              .where((item) => item['read'] != true)
+              .map((item) => item['id'] as String),
+        ),
+      );
+    }
+    // Ignore an intentional movement while the network request was pending;
+    // later framework clamping after the list changes must still be corrected.
+    final movedDuringRequest =
+        position != null &&
+        initialOffset != null &&
+        (position.pixels - initialOffset).abs() > 1;
+    final retained = state.inbox.items.map((item) => item['id']).toSet();
+    _noticeAnchors.removeWhere((id, _) => !retained.contains(id));
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted ||
+          !identical(widget.state, state) ||
+          !identical(state.user, owner) ||
+          state.familyId != family ||
+          state.api.token != token ||
+          route?.isCurrent == false ||
+          position == null ||
+          initialOffset == null ||
+          !position.hasPixels ||
+          movedDuringRequest ||
+          position.isScrollingNotifier.value) {
+        return;
+      }
+      for (final (id, oldTop) in visible) {
+        if (!retained.contains(id)) continue;
+        final render = _noticeAnchors[id]?.currentContext?.findRenderObject();
+        if (render is! RenderBox || !render.hasSize || !render.attached) {
+          continue;
+        }
+        final delta = render.localToGlobal(Offset.zero).dy - oldTop;
+        if (delta.abs() > 0.5) {
+          position.jumpTo(
+            (position.pixels + delta).clamp(
+              position.minScrollExtent,
+              position.maxScrollExtent,
+            ),
+          );
+        }
+        break;
       }
     });
   }
@@ -594,74 +687,82 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                           ),
                         ),
                       for (final item in shown)
-                        NotificationExposure(
-                          key: ValueKey((
-                            'notification-card',
-                            ObjectKey(owner),
-                            item['id'],
-                          )),
-                          id: item['id'] as String,
-                          unread: item['read'] != true,
-                          child: Padding(
-                            padding: EdgeInsets.only(top: 12),
-                            child: Material(
-                              color: item['read'] == true
-                                  ? context.palette.surfaceLow
-                                  : context.palette.mint,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14),
-                                side: BorderSide(
-                                  color: item['read'] == true
-                                      ? context.palette.surfaceBorder
-                                      : context.palette.teal,
-                                ),
-                              ),
-                              clipBehavior: Clip.antiAlias,
-                              child: ListTile(
-                                contentPadding: EdgeInsets.symmetric(
-                                  horizontal: 14,
-                                  vertical: 10,
-                                ),
-                                leading: Icon(
-                                  item['kind'] == 'failed'
-                                      ? Icons.info_outline_rounded
-                                      : item['read'] == true
-                                      ? Icons.notifications_none_rounded
-                                      : Icons.notifications_active_outlined,
-                                  color: item['read'] == true
-                                      ? context.palette.muted
-                                      : context.palette.teal,
-                                ),
-                                title: Text(
-                                  item['title'],
-                                  style: TextStyle(
-                                    fontWeight: item['read'] == true
-                                        ? FontWeight.w500
-                                        : FontWeight.w700,
+                        KeyedSubtree(
+                          key: _noticeAnchors.putIfAbsent(
+                            item['id'] as String,
+                            GlobalKey.new,
+                          ),
+                          child: NotificationExposure(
+                            key: ValueKey((
+                              'notification-card',
+                              ObjectKey(owner),
+                              item['id'],
+                            )),
+                            id: item['id'] as String,
+                            unread: item['read'] != true,
+                            child: Padding(
+                              padding: EdgeInsets.only(top: 12),
+                              child: Material(
+                                color: item['read'] == true
+                                    ? context.palette.surfaceLow
+                                    : context.palette.mint,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                  side: BorderSide(
+                                    color: item['read'] == true
+                                        ? context.palette.surfaceBorder
+                                        : context.palette.teal,
                                   ),
                                 ),
-                                subtitle: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      '${item['read'] == true ? 'Gelesen' : 'Ungelesen'} · ${widget.state.isParent ? '${item['child_name']} · ' : ''}${DateFormat('dd.MM. · HH:mm').format(DateTime.fromMillisecondsSinceEpoch((item['created'] as num).toInt() * 1000))}',
+                                clipBehavior: Clip.antiAlias,
+                                child: ListTile(
+                                  contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                    vertical: 10,
+                                  ),
+                                  leading: Icon(
+                                    item['kind'] == 'failed'
+                                        ? Icons.info_outline_rounded
+                                        : item['read'] == true
+                                        ? Icons.notifications_none_rounded
+                                        : Icons.notifications_active_outlined,
+                                    color: item['read'] == true
+                                        ? context.palette.muted
+                                        : context.palette.teal,
+                                  ),
+                                  title: Text(
+                                    item['title'],
+                                    style: TextStyle(
+                                      fontWeight: item['read'] == true
+                                          ? FontWeight.w500
+                                          : FontWeight.w700,
                                     ),
-                                    const SizedBox(height: 6),
-                                    Text(
-                                      opening == item['id']
-                                          ? 'Wird geöffnet …'
-                                          : notificationActionLabel(item),
-                                      style: TextStyle(
-                                        color: context.palette.teal,
-                                        decoration: TextDecoration.underline,
+                                  ),
+                                  subtitle: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        '${item['read'] == true ? 'Gelesen' : 'Ungelesen'} · ${widget.state.isParent ? '${item['child_name']} · ' : ''}${DateFormat('dd.MM. · HH:mm').format(DateTime.fromMillisecondsSinceEpoch((item['created'] as num).toInt() * 1000))}',
                                       ),
-                                    ),
-                                  ],
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        opening == item['id']
+                                            ? 'Wird geöffnet …'
+                                            : notificationActionLabel(item),
+                                        style: TextStyle(
+                                          color: context.palette.teal,
+                                          decoration: TextDecoration.underline,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  trailing: Icon(Icons.chevron_right_rounded),
+                                  onTap: opening == null
+                                      ? () =>
+                                            openItem(item, owner, family, token)
+                                      : null,
                                 ),
-                                trailing: Icon(Icons.chevron_right_rounded),
-                                onTap: opening == null
-                                    ? () => openItem(item, owner, family, token)
-                                    : null,
                               ),
                             ),
                           ),
@@ -682,19 +783,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                               : 'Weitere Neuigkeiten laden',
                           secondary: true,
                           enabled: !inbox.loading && !inbox.loadingMore,
-                          onPressed: () async {
-                            await inbox.loadMore();
-                            if (!mounted) return;
-                            if (onlyUnread) {
-                              setState(
-                                () => unreadSelection.addAll(
-                                  inbox.items
-                                      .where((item) => item['read'] != true)
-                                      .map((item) => item['id'] as String),
-                                ),
-                              );
-                            }
-                          },
+                          onPressed: loadOlderNotices,
                         ),
                       if (onlyUnread && shown.isNotEmpty)
                         const Padding(

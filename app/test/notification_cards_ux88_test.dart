@@ -357,6 +357,107 @@ void main() {
     );
   }
 
+  scenario(
+    'inbox keeps the visible card still when a tall old page is evicted',
+    (tester) async {
+      tester.view.physicalSize = const Size(390, 760);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final marked = <String>[];
+      final fixture = await display(tester, (request) async {
+        if (request.method == 'POST') {
+          marked.addAll(
+            (jsonDecode(request.body)['ids'] as List).cast<String>(),
+          );
+          return reply({});
+        }
+        final cursor = request.url.queryParameters['cursor'];
+        final number = cursor == null ? 0 : int.parse(cursor.substring(1));
+        return reply({
+          'items': [
+            if (number == 1)
+              for (var i = 0; i < 4; i++)
+                {
+                  ...notice('tall-$i', read: true),
+                  'title': 'Künstliche lange Meldung $i ${'sehr lang ' * 12}',
+                },
+            if (number != 1) notice('page-$number', read: true),
+            if (number == 3)
+              for (var i = 0; i < 4; i++) notice('extra-$i'),
+          ],
+          'unread': 0,
+          'next_cursor': 'p${number + 1}',
+        });
+      });
+      await fixture.state.inbox.loadMore();
+      await tester.pumpAndSettle();
+      await fixture.state.inbox.loadMore();
+      await tester.pumpAndSettle();
+      final load = find.text('Weitere Neuigkeiten laden');
+      await tester.ensureVisible(load);
+      await tester.pumpAndSettle();
+      await tester.drag(
+        find.ancestor(of: load, matching: find.byType(Scrollable)).first,
+        const Offset(0, 220),
+      );
+      await tester.pumpAndSettle();
+      final anchor = find.text('Künstliche Meldung page-2');
+      expect(anchor.hitTestable(), findsOneWidget);
+      final before = tester.getTopLeft(anchor).dy;
+      await tester.tap(load);
+      await tester.pumpAndSettle();
+      expect(fixture.state.inbox.historyTrimmed, isTrue);
+      expect(tester.getTopLeft(anchor).dy, closeTo(before, 1));
+      expect(marked, isNot(contains('extra-3')));
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  scenario('pending inbox load does not undo an intentional scroll', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 760);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final pending = Completer<http.Response>();
+    final fixture = await display(tester, (request) async {
+      final cursor = request.url.queryParameters['cursor'];
+      final number = cursor == null ? 0 : int.parse(cursor.substring(1));
+      if (number == 3) return pending.future;
+      return reply({
+        'items': [
+          for (var i = 0; i < 5; i++) notice('page-$number-$i', read: true),
+        ],
+        'unread': 0,
+        'next_cursor': 'p${number + 1}',
+      });
+    });
+    await fixture.state.inbox.loadMore();
+    await tester.pumpAndSettle();
+    await fixture.state.inbox.loadMore();
+    await tester.pumpAndSettle();
+    final load = find.text('Weitere Neuigkeiten laden');
+    await tester.ensureVisible(load);
+    await tester.pumpAndSettle();
+    await tester.tap(load);
+    await tester.pump();
+    await tester.ensureVisible(find.text('Künstliche Meldung page-0-0'));
+    await tester.pumpAndSettle();
+    final anchor = find.text('Künstliche Meldung page-0-0');
+    final before = tester.getTopLeft(anchor).dy;
+    pending.complete(
+      reply({
+        'items': [notice('page-3', read: true)],
+        'unread': 0,
+      }),
+    );
+    await tester.pumpAndSettle();
+    expect(tester.getTopLeft(anchor).dy, closeTo(before, 1));
+    expect(tester.takeException(), isNull);
+  });
+
   scenario('bounded bell remains usable at 390px with double text', (
     tester,
   ) async {
