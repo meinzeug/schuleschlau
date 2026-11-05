@@ -11,14 +11,25 @@ import de.dorfspy.schulpilot.FamilyCallNotifications
 /** Operator-owned emulator only; absent from every distributed APK/AAB. */
 class FamilyCallInstrumentation : Instrumentation() {
     private var pushReceiverOnly = false
+    private var updateProbeOnly = false
 
     override fun onCreate(arguments: Bundle?) {
         super.onCreate(arguments)
         pushReceiverOnly = arguments?.getString("mode") == "push_receiver"
+        updateProbeOnly = arguments?.getString("mode") == "update_probe"
         start()
     }
 
     override fun onStart() {
+        if (updateProbeOnly) {
+            try {
+                val test = Class.forName("de.dorfspy.schulpilot.qa.UpdateProbeRegression")
+                test.getMethod("run").invoke(test.getConstructor(Instrumentation::class.java).newInstance(this))
+            } catch (_: Throwable) {
+                finish(Activity.RESULT_CANCELED, Bundle().apply { putString("stream", "FAILED: update_probe_unavailable\n") })
+            }
+            return
+        }
         if (pushReceiverOnly) {
             PushReceiverRegression(this).run()
             return

@@ -1,0 +1,21 @@
+{
+  "account_retention_tested": false,
+  "installed_apk_matches_public_manifest": true,
+  "installed_apk_sha256": "5d0ee00f997d41a2cf5048b0f1b1a39486bea4798e91010f3a7e18aae20bd9aa",
+  "installed_apk_size": 138015520,
+  "starts": {
+    "cold_and_foreground_checked": true,
+    "installed_code": 249,
+    "no_downgrade": true,
+    "start_checks": 3
+  },
+  "upgrade": {
+    "adb_install_used_for_upgrade": false,
+    "automatic_server_check": true,
+    "automatic_verified_download": true,
+    "installed_code": 249,
+    "previous_code": 244,
+    "server_code": 249,
+    "system_install_confirmed": true
+  }
+}

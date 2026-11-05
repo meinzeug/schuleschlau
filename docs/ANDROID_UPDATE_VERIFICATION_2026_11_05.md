@@ -1,0 +1,21 @@
+# Android-Updateprüfung vom 05.11.2026
+
+Die folgenden Prüfungen betreffen den eigenen Emulator `emulator-5580`, API 36. Es wurden keine echten Kinderkonten oder privaten Lerninhalte verwendet. Die isolierte Instrumentierung erstellt nur künstliche APKs und verwendet keinen Produktionssignierschlüssel.
+
+## Ungültige Direct-Downloads
+
+Der Direct-Updater wurde in der gesonderten Debug-App `de.dorfspy.schulpilot.updateprobe` ausgeführt. Eine korrekt signierte künstliche neuere APK wurde angenommen und erzeugte genau einen abgefangenen Installer-Intent mit privater Content-URI und Leseberechtigung. Abweichende Größe, SHA-256, Paketkennung, Signatur und Versionsangabe sowie ein Downgrade und eine auf dem Emulator nicht unterstützte Mindestversion wurden zurückgewiesen. Für jede ungültige Datei wurde zusätzlich geprüft, dass der echte Installationsaufruf keinen Installer-Intent auslöst. Die Android-Installeroberfläche wurde für diese künstlichen Dateien nicht gestartet. Beide Testpakete wurden anschließend entfernt; das reguläre App-Paket blieb vorhanden.
+
+Der maschinenlesbare Beleg steht unter [android-update-validation-2026-11-05.json](evidence/android-update-validation-2026-11-05.json). Der Test belegt die native Validierung der erzeugten Debug-App; die erfasste lokale Quelldatei ist keine signierte Build-Attestierung. Der produktive Download- und Bestätigungsweg ist davon getrennt zu prüfen.
+
+## Regulärer Direct-Updateweg
+
+Nach der Aktivierung des öffentlichen Releases `1.38.94+249` aktualisierte sich auf demselben Emulator die zuvor installierte signierte Direct-App von Version `244` auf `249`: Der App-Updater rief das feste HTTPS-Manifest ab, lud die APK herunter und öffnete nach erfolgreicher Prüfung die Android-Installationsbestätigung. Die Installation wurde im Android-Dialog bestätigt; `adb install` wurde für dieses Update nicht verwendet. Anschließend zeigten Kaltstart, Rückkehr aus dem Hintergrund und ein zusätzlicher Launcher-Aufruf jeweils eine erneute Prüfung des aktuellen Versionsstands. Die maschinenlesbaren Ergebnisse stehen in [android-direct-release-update-2026-11-05.json](evidence/android-direct-release-update-2026-11-05.json).
+
+Dieser Durchlauf prüfte den Versionswechsel und Startmechanismus ohne angemeldetes Testkonto. Er beweist daher für diesen konkreten Versionswechsel nicht den Erhalt einer Anmeldung oder privater Daten. Die entsprechende vollständige Roadmap-Abnahme bleibt offen.
+
+## Play-Bundle
+
+Der Release-Nachweis für Commit `977c0d2846536b2b420490758b1d0a64fed8ac11` und Version `1.38.94+249` wurde gegen das gebaute Bundle geprüft. `bundletool validate` und `jarsigner -verify` waren erfolgreich; letzteres meldete die selbstsignierte Zertifikatskette und den fehlenden Zeitstempel. Das Manifest enthält keine Berechtigung `REQUEST_INSTALL_PACKAGES`. Das korrespondierende R8-Mapping weist auf den Play-Update-Manager; das DEX enthält die zugeordnete Klasse mit passender Mapping-ID und nicht die geprüften Direct-Downloadmarker. Das Mapping ist selbst nicht durch den Release-Nachweis signiert; die DEX-Prüfung ist daher ein zusätzlicher, kein eigenständig vollständig attestierter Codepfadbeleg.
+
+Der maschinenlesbare Beleg steht unter [android-play-update-2026-11-05.json](evidence/android-play-update-2026-11-05.json). Es fand kein Play-Upload und keine Play-Zustellung statt; aus dem Bundle ergibt sich kein Nachweis dafür.

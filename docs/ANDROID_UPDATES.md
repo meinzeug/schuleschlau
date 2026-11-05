@@ -8,7 +8,7 @@ Flavor `direct` lädt eine höhere Version automatisch vom festen Schulpilot-Dow
 
 Nach erfolgreicher Prüfung wird die APK an Androids Installationsoberfläche übergeben. Ab Android 8 muss das Betriebssystem gegebenenfalls einmalig die Installation aus dieser App erlauben. Danach bestätigt der Nutzer das Update. Keine stille Installation und keine Erweiterung der Geräteverwaltung. Ablehnung und „Später“ bleiben möglich; die Lernfolge bleibt serverseitig gespeichert. Ein erneuter Start prüft den Server wieder. Erst der tatsächliche neue Versionscode belegt eine erfolgreiche Installation.
 
-Nur der direkte Flavor enthält `REQUEST_INSTALL_PACKAGES` und den nicht exportierten, auf den Update-Cache beschränkten `FileProvider`. Diese Variante wird als Test-APK über die Website verteilt.
+Nur der direkte Flavor enthält `REQUEST_INSTALL_PACKAGES` und den nicht exportierten, auf den Update-Cache beschränkten `FileProvider`. Diese reguläre Direct-APK wird über die Website verteilt.
 
 ## Google Play
 
@@ -19,15 +19,26 @@ Ohne berechtigtes Play-Projekt, veröffentlichte Version und eine über Play ins
 ## Reproduzierbarer Build
 
 ```bash
-cd app
-export SCHULPILOT_SIGNING_PROPERTIES="$HOME/.local/share/schulpilot-signing/signing.properties"
-export SCHULPILOT_STORE_BUILD=true
-flutter build apk --flavor direct --release --dart-define=API_URL=https://schulpilot.dorfspy.de/api
-flutter build appbundle --flavor play --release --dart-define=API_URL=https://schulpilot.dorfspy.de/api
+scripts/build_release.sh
 ```
 
-Artefakte: `app/build/app/outputs/flutter-apk/app-direct-release.apk` und `app/build/app/outputs/bundle/playRelease/app-play-release.aab`. Vor Deployment die APK unter `artifacts/schulpilot-0.1.0-test.apk` ablegen; `scripts/android_manifest.py` berechnet das öffentliche Manifest aus dieser Datei. Für jedes neue Update den Versionscode erhöhen. Private Signierschlüssel unverändert außerhalb des Repositorys halten.
+Das Skript prüft die fixierte Toolchain und den Quellstand und erzeugt `artifacts/schulpilot-android.apk`, `artifacts/schulpilot-play.aab` und den zugehörigen Release-Nachweis. `scripts/android_manifest.py` berechnet das öffentliche Manifest aus der tatsächlichen Direct-APK. Für jedes neue Update den Versionscode erhöhen. Private Signierschlüssel unverändert außerhalb des Repositorys halten.
 
 ## Tatsächliche Prüfung
 
 Der native Prüftreiber `qa/android_update.py` verwendet ausschließlich den eigenen Emulator und zwei tatsächlich signierte Versionen. Er prüft neue Startabrufe und den echten Installationsdialog samt Versionswechsel. `--check-starts` prüft auf der installierten aktuellen Version Kaltstart, Hintergrundrückkehr und einen weiteren Launcher-Aufruf. Ergebnis und verbleibende Grenzen in [STATUS.md](STATUS.md).
+
+Für die lokale Negativprüfung installiert `qa/android_update_validation.py` ausschließlich eine gesonderte Debug-App mit der Kennung `de.dorfspy.schulpilot.updateprobe` und ihre Instrumentierung auf einem ausdrücklich angegebenen Emulator. Sie erstellt künstliche APKs und prüft die native Direct-Validierung für passende Dateien und Abweichungen bei Größe, Hash, Paket, Signatur, Version und Mindest-Android. Die Übergabe an den Installer wird in einer Test-Activity abgefangen; hierdurch wird keine Installation ausgelöst. Beide Testpakete werden anschließend entfernt. Die Prüfung benötigt die bereits lokal vorbereitete, fixierte Flutter-/Android-Toolchain:
+
+```bash
+cd app
+flutter pub get --offline --enforce-lockfile
+cd android
+./gradlew --offline assembleDirectDebug assembleDirectDebugAndroidTest -PsyntheticUpdateProbe
+cd ../..
+python3 qa/android_update_validation.py --serial emulator-5580 \
+  --app app/build/app/outputs/apk/direct/debug/app-direct-debug.apk \
+  --test app/build/app/outputs/apk/androidTest/direct/debug/app-direct-debug-androidTest.apk
+```
+
+Der separate Lesetest `qa/android_play_update_evidence.py --release-root <Release-Checkout>` verifiziert den signierten Release-Nachweis, das Play-Bundle, sein Manifest und Anhaltspunkte für den Play-Updatepfad im zugehörigen R8-Mapping und DEX. Das Mapping ist nicht selbst Teil des signierten Nachweises. Die Prüfung ersetzt weder einen Play-Upload noch einen tatsächlichen über Google Play ausgelieferten Updatevorgang.

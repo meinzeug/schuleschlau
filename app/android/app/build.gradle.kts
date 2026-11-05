@@ -64,6 +64,13 @@ android {
         }
     }
     buildTypes {
+        debug {
+            // The operator-only instrumentation package never replaces a
+            // regular installation or touches its private data.
+            if (project.hasProperty("syntheticUpdateProbe")) {
+                applicationIdSuffix = ".updateprobe"
+            }
+        }
         release {
             signingConfig = if (hasUploadKey) signingConfigs.getByName("upload") else null
         }
