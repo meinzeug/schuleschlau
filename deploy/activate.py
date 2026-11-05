@@ -123,6 +123,10 @@ def database_revision():
 operation = "activate" if token else "rollback"
 try:
     with release_operation(base, operation, release_id, token=token, stage="activating"):
+        # The target could have disappeared after the initial check. In a
+        # rollback the legacy-prune guard is now in place before we use it.
+        if not (release / "web/index.html").is_file() or not (release / "backend/requirements.lock").is_file():
+            raise RuntimeError("Release disappeared before activation")
         previous = current.resolve() if current.is_symlink() else None
         stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
         backup = Path(str(caddy) + ".before-schulpilot-" + stamp)

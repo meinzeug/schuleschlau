@@ -592,13 +592,59 @@ def test_manual_rollback_acquires_exclusive_lock_and_blocks_concurrency(env):
         assert lock is not None
         assert lock["operation"] == "rollback"
         assert lock["release_id"] == PREVIOUS
+        assert (env / "releases" / ".deploy-in-progress").read_text() == PREVIOUS + "\n"
+
+        # Exercise the actual previously deployed cleanup code, not a copy of
+        # the new implementation. Its directory validation must reject the
+        # marker before it creates any removal plan.
+        result = subprocess.run(["git", "show", "534009f:deploy/prune_releases.py"], cwd=ROOT,
+                                check=True, capture_output=True, text=True)
+        namespace = {"__name__": "legacy_prune_fixture"}
+        exec(compile(result.stdout, "legacy_prune_fixture", "exec"), namespace)
+        with pytest.raises((ValueError, RuntimeError, OSError)):
+            namespace["plan_prune"](env / "releases", env / "current", env / "previous")
 
         # A deploy cannot run during rollback
         with pytest.raises(stage.ReleaseLockError):
             stage.prepare(env, RELEASE_1, owner)
+        (env / "current").unlink()
+        (env / "current").symlink_to(env / "releases" / PREVIOUS)
 
     # Once rollback finishes, lock is cleanly released
     assert stage.check_lock(env, owner=owner) is None
+    assert not (env / "releases" / ".deploy-in-progress").exists()
+
+
+def test_rollback_keeps_guard_when_target_is_not_active(env):
+    with pytest.raises(stage.ReleaseLockError, match="active release changed"):
+        with stage.release_operation(env, "rollback", PREVIOUS, stage="activating"):
+            pass
+    assert stage.check_lock(env)["operation"] == "rollback"
+    assert (env / "releases" / ".deploy-in-progress").exists()
+
+
+def test_failed_rollback_retains_legacy_guard(env):
+    with pytest.raises(RuntimeError, match="synthetic failure"):
+        with stage.release_operation(env, "rollback", PREVIOUS, stage="activating"):
+            raise RuntimeError("synthetic failure")
+    assert stage.check_lock(env)["operation"] == "rollback"
+    assert (env / "releases" / ".deploy-in-progress").read_text() == PREVIOUS + "\n"
+
+
+@pytest.mark.parametrize("damage", ["missing", "changed", "symlink"])
+def test_rollback_does_not_release_lease_if_guard_is_damaged(env, damage):
+    guard = env / "releases" / ".deploy-in-progress"
+    with pytest.raises((stage.ReleaseLockError, OSError)):
+        with stage.release_operation(env, "rollback", PREVIOUS, stage="activating"):
+            (env / "current").unlink()
+            (env / "current").symlink_to(env / "releases" / PREVIOUS)
+            if damage == "changed":
+                guard.write_text(CURRENT + "\n")
+            else:
+                guard.unlink()
+                if damage == "symlink":
+                    guard.symlink_to(env / "current")
+    assert stage.check_lock(env)["operation"] == "rollback"
 
 
 @pytest.mark.parametrize("operation", ["rollback", "prune"])

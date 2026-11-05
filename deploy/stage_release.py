@@ -373,6 +373,10 @@ def release_operation(
     managed_token = lock_data['token']
     is_session_owner = token is None
     try:
+        if is_session_owner and operation == 'rollback':
+            # Legacy cleanup does not know about the lease. Make cleanup that
+            # starts after this point fail closed until rollback is complete.
+            guard_legacy_prune(base, release_id, managed_token, owner=owner)
         yield lock_data
     except BaseException:
         # A failed or interrupted rollback/prune may still have descendants
@@ -381,7 +385,10 @@ def release_operation(
         raise
     else:
         if is_session_owner:
-            release_lock(base, managed_token, owner=owner)
+            if operation == 'rollback':
+                finish_rollback(base, release_id, managed_token, owner=owner)
+            else:
+                release_lock(base, managed_token, owner=owner)
 
 
 def _directory(parent, name, owner, *, mode=None):
@@ -552,9 +559,13 @@ def guard_legacy_prune(base: Path, release_id: str, token: str, owner: int | Non
     _check_id(release_id)
     owner = _resolve_owner(base, owner)
     existing = _read_lock_file(base / '.deploy.lock', owner)
+    valid_stage = existing and (
+        (existing.get('operation') == 'deploy' and existing.get('stage') == 'staging')
+        or (existing.get('operation') == 'rollback' and existing.get('stage') in ('active', 'activating'))
+    )
     if (not token or not existing or existing.get('token') != token
-            or existing.get('release_id') != release_id or existing.get('stage') != 'staging'):
-        raise ReleaseLockError("Cannot guard release: invalid staging lease")
+            or existing.get('release_id') != release_id or not valid_stage):
+        raise ReleaseLockError("Cannot guard release: invalid release lease")
     base_fd = _base(base, owner)
     try:
         releases_fd = _directory(base_fd, 'releases', owner)
@@ -570,6 +581,30 @@ def guard_legacy_prune(base: Path, release_id: str, token: str, owner: int | Non
             os.close(releases_fd)
     finally:
         os.close(base_fd)
+
+
+@_serialize_lock_mutation
+def finish_rollback(base: Path, release_id: str, token: str, owner: int | None = None) -> None:
+    """Remove the legacy cleanup guard only after a successful rollback."""
+    _check_id(release_id)
+    owner = _resolve_owner(base, owner)
+    lock_file = base / '.deploy.lock'
+    existing = _read_lock_file(lock_file, owner)
+    if (not token or not existing or existing.get('token') != token
+            or existing.get('operation') != 'rollback'
+            or existing.get('release_id') != release_id or existing.get('stage') not in ('active', 'activating')):
+        raise ReleaseLockError('Cannot finish rollback: invalid release lease')
+    current = base / 'current'
+    if not current.is_symlink() or current.resolve(strict=True) != (base / 'releases' / release_id).resolve(strict=True):
+        raise ReleaseLockError('Cannot finish rollback: active release changed')
+    guard_file = base / 'releases' / '.deploy-in-progress'
+    fd = os.open(guard_file, os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC)
+    with os.fdopen(fd, 'r', encoding='utf-8') as stream:
+        _check_trusted_file(stream.fileno(), guard_file, owner)
+        if stream.read(128) != release_id + '\n':
+            raise ReleaseLockError('Cannot finish rollback: legacy prune guard mismatch')
+    guard_file.unlink()
+    lock_file.unlink()
 
 
 @_serialize_lock_mutation
