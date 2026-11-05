@@ -546,6 +546,7 @@ class _ChildDetailScreenState extends State<ChildDetailScreen> {
   late String? _token;
   Json? _owner;
   String? _family;
+  bool _awaitingFamilyChild = false;
   Object _sessionMarker = Object();
 
   @override
@@ -564,6 +565,7 @@ class _ChildDetailScreenState extends State<ChildDetailScreen> {
             _family != widget.state.familyId) &&
         mounted) {
       setState(() {
+        if (_family != widget.state.familyId) _awaitingFamilyChild = true;
         _token = current;
         _owner = widget.state.user;
         _family = widget.state.familyId;
@@ -575,11 +577,16 @@ class _ChildDetailScreenState extends State<ChildDetailScreen> {
   @override
   void didUpdateWidget(covariant ChildDetailScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.childId != widget.childId) {
+      _awaitingFamilyChild = false;
+      _sessionMarker = Object();
+    }
     if (!identical(oldWidget.state, widget.state)) {
       oldWidget.state.removeListener(_sessionChanged);
       widget.state.addListener(_sessionChanged);
       _token = widget.state.api.token;
       _owner = widget.state.user;
+      if (_family != widget.state.familyId) _awaitingFamilyChild = true;
       _family = widget.state.familyId;
       _sessionMarker = Object();
     }
@@ -597,6 +604,32 @@ class _ChildDetailScreenState extends State<ChildDetailScreen> {
     if (state.user == null ||
         (state.isChild && state.user?['child_id'] != widget.childId)) {
       return const SizedBox.shrink();
+    }
+    if (_awaitingFamilyChild) {
+      final owner = state.user,
+          family = state.familyId,
+          token = state.api.token;
+      return PageFrame(
+        state: state,
+        title: 'Familie gewechselt',
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Notice('Öffne ein Kind aus der ausgewählten Familie.'),
+            ActionButton(
+              label: 'Zur Familienübersicht',
+              onPressed: () async {
+                if (identical(state.user, owner) &&
+                    state.familyId == family &&
+                    state.api.token == token &&
+                    (ModalRoute.of(context)?.isCurrent ?? true)) {
+                  openRoute(context, '/app');
+                }
+              },
+            ),
+          ],
+        ),
+      );
     }
     return _ChildDetailBody(
       state,

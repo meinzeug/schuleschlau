@@ -23,10 +23,12 @@ Statusabfrage ist kein Auftrag zur KI-Erzeugung.
 Die Kinder-Heute-Seite und der Eltern-Lernüberblick binden nun auch die
 bereits geladene Ansicht an Konto, Familie und Sitzung, mit denen sie geöffnet
 wurde. Bei einem gemeldeten Wechsel verschwinden Inhalte und Aktionen sofort; ein
-noch laufender Statusabruf darf sie nicht zurückbringen. Die Ansicht wird
-unter dem neuen Kontext frisch aufgebaut und liest einmal den autorisierten
-aktuellen Stand. Ein Kind kann die Route eines anderen Kindes nicht neu laden;
-die Elternberechtigung prüft weiterhin das Backend. Die Fälle in `child_home_polling_test.dart`
+noch laufender Statusabruf darf sie nicht zurückbringen. Nach Sitzungs- oder
+Kontowechsel in derselben Familie liest ein neuer Body den autorisierten Stand.
+Bei Familienwechsel wird die alte Kinderroute nicht neu gelesen; eine
+Familienübersicht und die bewusste Wahl einer anderen Kinderroute führen weiter.
+Ein Kind kann die Route eines anderen Kindes nicht neu laden; die
+Elternberechtigung prüft weiterhin das Backend. Die Fälle in `child_home_polling_test.dart`
 und `parent_overview_refresh_test.dart` verwenden künstliche Daten und
 prüfen ausschließlich GET-Aufrufe; beide Fälle bestanden auf Dart-VM und im
 Chrome-Webrunner bei 390 × 844 Pixeln einschließlich Neubeginns. Für

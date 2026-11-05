@@ -386,17 +386,20 @@ void main() {
       home.state.notifyListeners();
       await tester.pump();
       expect(find.byType(ParentOverview), findsNothing);
-      expect(home.overviewRequests, hasLength(3));
-      home.pending.first.complete(home.reply());
-      await tester.pump();
-      expect(find.byType(ParentOverview), findsNothing);
-      home.pending.last.complete(
-        fixture.jsonResponse({'detail': 'Kein Zugriff'}, 403),
+      expect(
+        find.text('Öffne ein Kind aus der ausgewählten Familie.'),
+        findsOneWidget,
       );
+      expect(home.overviewRequests, hasLength(2));
+      home.pending.single.complete(home.reply());
       await tester.pumpAndSettle();
       expect(find.byType(ParentOverview), findsNothing);
       await tick(tester, 20);
+      expect(home.overviewRequests, hasLength(2));
+      home.router.go('/child/synthetic-other-child?bereich=overview');
+      await tester.pumpAndSettle();
       expect(home.overviewRequests, hasLength(3));
+      expect(find.text('Anderes Beispielkind'), findsWidgets);
       expect(tester.takeException(), isNull);
     },
   );

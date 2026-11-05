@@ -2155,8 +2155,9 @@ Bestandteil des bestehenden Buildvertrags.
   **05.11.2026, Sitzungswechsel:** Bereits geladene Kinder- und
   Elternübersichten verschwinden bei gemeldetem Konto-, Familien- oder
   Tokenwechsel; ein laufender
-  Statusabruf darf sie nicht zurückbringen. Die Ansicht startet einen neuen,
-  autorisierten GET unter dem geänderten Sitzungskontext.
+  Statusabruf darf sie nicht zurückbringen. In derselben Familie startet die
+  Ansicht einen autorisierten GET unter dem geänderten Konto-/Sitzungskontext;
+  nach Familienwechsel fordert sie zur neuen Kinderwahl auf.
   Die künstlichen Clienttests bestanden auf der VM und in Chrome bei 390 px
   einschließlich sicherem Neuaufbau. Sie decken keinen unbemerkten Cookie-Wechsel oder
   eine echte geräteübergreifende Zustellung ab. Der Gesamtpunkt bleibt offen.
