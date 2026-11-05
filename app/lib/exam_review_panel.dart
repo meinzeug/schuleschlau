@@ -304,13 +304,17 @@ class _ExamReviewPanelState extends State<ExamReviewPanel> {
             filename: 'classwork.jpg',
           ),
         );
+        final identity = state.api.requestIdentity();
         final response = await http.Response.fromStream(
           await state.api.client
               .send(request)
               .timeout(const Duration(seconds: 45)),
         ).timeout(const Duration(seconds: 45));
         final result = Json.from(
-          state.api.decode(response, notifyUnauthorized: scope.owner),
+          state.api.decode(
+            response,
+            notifyUnauthorized: scope.owner && state.api.ownsRequest(identity),
+          ),
         );
         if (!mounted || !scope.valid(stamp)) return;
         if (result['exam_id'] != widget.examId ||

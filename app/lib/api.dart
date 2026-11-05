@@ -31,6 +31,7 @@ class Api {
   String? token;
   VoidCallback? onUnauthorized;
   Object? Function()? currentAccount;
+  int Function()? currentAuthenticationRevision;
   Api({http.Client? client, String? base})
     : client = client ?? createClient(),
       base =
@@ -48,6 +49,35 @@ class Api {
     if (!kIsWeb) 'X-Client-Platform': 'native',
     if (token != null) 'Authorization': 'Bearer $token',
   };
+
+  // Web sessions are cookies rather than bearer tokens. The authentication
+  // revision distinguishes an old cookie request from a new login even when
+  // the same account object and null token are still temporarily present.
+  (Object?, String?, int?) requestIdentity() =>
+      (currentAccount?.call(), token, currentAuthenticationRevision?.call());
+  bool ownsRequest((Object?, String?, int?) identity) =>
+      token == identity.$2 &&
+      (currentAccount == null || identical(identity.$1, currentAccount!())) &&
+      (currentAuthenticationRevision == null ||
+          identity.$3 == currentAuthenticationRevision!());
+
+  // These endpoints use credential checks or the independent setup/web cookie;
+  // their 401 does not establish that the current app session was revoked.
+  bool _usesSession401(String method, String rawPath) {
+    final path = Uri.parse(rawPath).path;
+    if (path.startsWith('/setup/')) return false;
+    if (method == 'POST' &&
+        const {'/auth/logout', '/auth/login'}.contains(path)) {
+      return false;
+    }
+    if (method == 'GET' &&
+        (path == '/admin/withdrawals/dashboard' ||
+            RegExp(r'^/orders/[^/]+/(payment-checkout|withdrawal-form)$')
+                .hasMatch(path))) {
+      return false;
+    }
+    return true;
+  }
 
   dynamic decode(http.Response response, {bool notifyUnauthorized = true}) {
     if (response.statusCode == 204 && response.bodyBytes.isEmpty) {
@@ -84,7 +114,7 @@ class Api {
     Json? body,
     Map<String, String>? extra,
   ]) async {
-    final requestAccount = currentAccount?.call();
+    final identity = requestIdentity();
     try {
       final request = http.Request(method, Uri.parse('$base$path'));
       request.headers.addAll({
@@ -100,9 +130,7 @@ class Api {
         // Logout handles an already revoked session itself, with the captured
         // account guard. A late 401 must not clear a newer login.
         notifyUnauthorized:
-            !(method == 'POST' && path == '/auth/logout') &&
-            (currentAccount == null ||
-                identical(requestAccount, currentAccount!())),
+            _usesSession401(method, path) && ownsRequest(identity),
       );
     } on ApiError {
       rethrow;
@@ -134,6 +162,7 @@ class Api {
     String? uploadKey,
     String? purpose,
   }) async {
+    final identity = requestIdentity();
     final request = http.MultipartRequest(
       'POST',
       Uri.parse('$base/children/$childId/materials').replace(
@@ -151,6 +180,7 @@ class Api {
           await http.Response.fromStream(
             await client.send(request).timeout(const Duration(seconds: 45)),
           ).timeout(const Duration(seconds: 45)),
+          notifyUnauthorized: ownsRequest(identity),
         ),
       );
     } on ApiError {
@@ -167,6 +197,7 @@ class Api {
     Uint8List bytes,
     String requestKey,
   ) async {
+    final identity = requestIdentity();
     final request = http.MultipartRequest(
       'POST',
       Uri.parse('$base/children/$childId/grade-imports'),
@@ -181,6 +212,7 @@ class Api {
           await http.Response.fromStream(
             await client.send(request).timeout(const Duration(seconds: 45)),
           ).timeout(const Duration(seconds: 45)),
+          notifyUnauthorized: ownsRequest(identity),
         ),
       );
     } on ApiError {
@@ -193,12 +225,17 @@ class Api {
   }
 
   Future<Uint8List> bytes(String path) async {
+    final identity = requestIdentity();
     final response = await client.get(
       Uri.parse('$base$path'),
       headers: headers,
     );
     if (response.statusCode != 200) {
-      decode(response);
+      decode(
+        response,
+        notifyUnauthorized:
+            _usesSession401('GET', path) && ownsRequest(identity),
+      );
     }
     return response.bodyBytes;
   }
@@ -255,16 +292,14 @@ class Api {
   }
 
   Future<Json> _profileAvatarRequest(http.BaseRequest request) async {
-    final account = currentAccount?.call(), session = token;
+    final identity = requestIdentity();
     try {
       return Json.from(
         decode(
           await http.Response.fromStream(
             await client.send(request).timeout(const Duration(seconds: 35)),
           ).timeout(const Duration(seconds: 35)),
-          notifyUnauthorized:
-              token == session &&
-              (currentAccount == null || identical(account, currentAccount!())),
+          notifyUnauthorized: ownsRequest(identity),
         ),
       );
     } on ApiError {
@@ -280,7 +315,7 @@ class Api {
     if (!RegExp(r'^[a-f0-9]{32}$').hasMatch(revision)) {
       throw ApiError('Dieses Profilfoto ist nicht mehr aktuell.', 409);
     }
-    final account = currentAccount?.call(), session = token;
+    final identity = requestIdentity();
     try {
       final request = http.Request(
         'GET',
@@ -312,9 +347,7 @@ class Api {
             response.statusCode,
             headers: response.headers,
           ),
-          notifyUnauthorized:
-              token == session &&
-              (currentAccount == null || identical(account, currentAccount!())),
+          notifyUnauthorized: ownsRequest(identity),
         );
       }
       if (image.isEmpty ||
@@ -411,10 +444,19 @@ class AppState extends ChangeNotifier {
     : api = api ?? Api(),
       storage = storage ?? const FlutterSecureStorage() {
     this.api.currentAccount = () => user;
+    this.api.currentAuthenticationRevision = () => _authenticationRevision;
     this.api.onUnauthorized = () {
       final expectedUser = user;
       if (expectedUser != null) {
-        Future<void>.microtask(() => clear(expectedUser: expectedUser));
+        final expectedToken = this.api.token;
+        final expectedRevision = _authenticationRevision;
+        Future<void>.microtask(
+          () => clear(
+            expectedUser: expectedUser,
+            expectedToken: expectedToken,
+            expectedAuthenticationRevision: expectedRevision,
+          ),
+        );
       }
     };
     push.onActivity = () {
@@ -697,11 +739,14 @@ class AppState extends ChangeNotifier {
 
   Future<void> logout({String? expectedAccountId}) async {
     final expectedUser = user;
-    bool currentAccount() =>
+    final expectedToken = api.token;
+    bool ownsAccount() =>
         identical(user, expectedUser) &&
+        api.token == expectedToken &&
         (expectedAccountId == null || user?['id'] == expectedAccountId);
-    if (!currentAccount()) return;
-    beginAuthentication();
+    if (!ownsAccount()) return;
+    final intent = beginAuthentication();
+    bool currentAccount() => ownsAccount() && intent == _authenticationRevision;
     if (familyCalls.live) {
       await familyCalls.end().timeout(
         const Duration(seconds: 4),
@@ -720,14 +765,33 @@ class AppState extends ChangeNotifier {
       if (e.status != 401) rethrow;
     }
     if (!currentAccount()) return;
-    await clear(expectedUser: expectedUser);
+    await clear(
+      expectedUser: expectedUser,
+      expectedToken: expectedToken,
+      expectedAuthenticationRevision: intent,
+    );
   }
 
-  Future<void> clear({Json? expectedUser}) async {
-    bool currentAccount() =>
-        expectedUser == null || identical(user, expectedUser);
-    if (!currentAccount()) return;
+  Future<void> clear({
+    Json? expectedUser,
+    String? expectedToken,
+    int? expectedAuthenticationRevision,
+  }) async {
+    if ((expectedUser != null && !identical(user, expectedUser)) ||
+        (expectedAuthenticationRevision != null &&
+            (expectedAuthenticationRevision != _authenticationRevision ||
+                expectedToken != api.token))) {
+      return;
+    }
     final clearIntent = beginAuthentication();
+    bool currentAccount() =>
+        clearIntent == _authenticationRevision &&
+        (expectedUser == null || identical(user, expectedUser)) &&
+        (expectedAuthenticationRevision == null || expectedToken == api.token);
+    bool stillCleared() =>
+        clearIntent == _authenticationRevision &&
+        user == null &&
+        api.token == null;
     _authIdentifier = null;
     await familyCalls.clear();
     if (!currentAccount()) return;
@@ -742,20 +806,28 @@ class AppState extends ChangeNotifier {
     user = null;
     familyId = null;
     await notebookRequests.clear();
+    if (!stillCleared()) return;
     recoveredPhoto = null;
     recoveredPhotoPurpose = 'notebook';
     recoveredPhotos.clear();
     await pendingUploads.clear();
-    if (expectedUser != null && user != null) return;
+    if (!stillCleared()) return;
     await learningDrafts.clear();
-    if (expectedUser != null && user != null) return;
+    if (!stillCleared()) return;
     if (!kIsWeb) {
-      await _storeAuthentication(clearIntent, null);
-      if (expectedUser != null && user != null) return;
+      try {
+        await _storeAuthentication(clearIntent, null);
+      } on ApiError catch (error) {
+        if (error.status == 409 && clearIntent != _authenticationRevision) {
+          return; // A newer login owns storage; this cleanup is obsolete.
+        }
+        rethrow;
+      }
+      if (!stillCleared()) return;
       await storage.delete(key: 'camera_child');
-      if (expectedUser != null && user != null) return;
+      if (!stillCleared()) return;
       await storage.delete(key: 'camera_context');
-      if (expectedUser != null && user != null) return;
+      if (!stillCleared()) return;
     }
     notifyListeners();
   }
