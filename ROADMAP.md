@@ -1803,6 +1803,16 @@ Bestandteil des bestehenden Buildvertrags.
     Keine OCR-, echte Provider- oder App-Abnahme daraus ableiten;
     [Prüfbericht](docs/NOTEBOOK_BACKEND_EVIDENCE_2026_11_05.md).
 
+  - [x] **Fünf künstliche Materialarten in der Hefte-Oberfläche prüfen.**
+    05.11.2026: Ein wiederholbarer Flutter-Test verwendet eigene, beschriftete
+    JPEG-Layoutseiten von Arbeitsblatt, Hefter, Arbeitsheft, Buchseite und
+    Klassenarbeit. Für Kind und Eltern bei 390 und 1280 Pixeln prüft er
+    Navigation, Suche, Seitensprung über die Metadatengrenze sowie einen
+    simulierten Einzel- und Mehrseitenstart mit Quellenrevisionen. Die
+    Bildantworten und der Auftrag sind lokale Mocks. Keine echte OCR,
+    Serverautorisierung, Live-Verarbeitung oder Geräteabnahme folgt daraus;
+    der Hauptpunkt bleibt offen. [Testweg und Grenzen](docs/NOTEBOOK_MATERIAL_UI_2026_11_05.md).
+
   - [x] **Mehrdeutige Erweiterungsaufgaben im Heftverlauf gezielt absichern.**
     05.11.2026, Coding-AI: Die vorbereitete Notebook-Runde berücksichtigt
     den vollständigen zugehörigen Quellen-/Tagesverlauf. Bekannte Aufgaben

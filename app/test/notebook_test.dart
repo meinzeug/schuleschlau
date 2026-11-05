@@ -164,6 +164,12 @@ Future<(AppState, GoRouter, List<http.Request>)> open(
         ),
       ),
       GoRoute(
+        path: '/learning-preparation/:id/:job',
+        builder: (_, route) => Scaffold(
+          body: Text('Vorbereitung: ${route.pathParameters['job']}'),
+        ),
+      ),
+      GoRoute(
         path: '/material/:id/processing/:job',
         builder: (_, route) => Scaffold(
           body: Text(

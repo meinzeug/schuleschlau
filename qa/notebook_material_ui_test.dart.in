@@ -1,0 +1,289 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:schulpilot/notebook_photo.dart';
+
+import 'notebook_test.dart' as notebook;
+
+// The runner inserts bytes generated from the five checked-in synthetic JPEGs.
+/* SYNTHETIC_JPEGS */
+
+void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  setUp(() => FlutterSecureStorage.setMockInitialValues({}));
+  final titles = [
+    'Arbeitsblatt',
+    'Hefter',
+    'Arbeitsheft',
+    'Buchseite',
+    'Klassenarbeit',
+  ];
+  final names = [
+    'arbeitsblatt',
+    'hefter',
+    'arbeitsheft',
+    'buchseite',
+    'klassenarbeit',
+  ];
+  final ids = ['source0', 'source1', 'source2', 'source3', 'source4'];
+  final bytes = <String, Uint8List>{
+    for (var i = 0; i < ids.length; i++)
+      ids[i]: base64Decode(syntheticJpegs[names[i]]!),
+  };
+  final rows = <Map<String, dynamic>>[
+    for (var i = 0; i < 4; i++)
+      {
+        'id': ids[i],
+        'title': titles[i],
+        'topic': titles[i],
+        'confirmed': true,
+        'created': 1700000000 - i,
+        'revision': i + 1,
+        'has_image': true,
+        'synthetic': false,
+        'purpose': 'notebook',
+        'subject_id': notebook.mathId,
+      },
+    for (var i = 0; i < 16; i++)
+      {
+        'id': 'filler$i',
+        'title': 'Testnotiz $i',
+        'topic': 'Zusatz',
+        'confirmed': true,
+        'created': 1699999000 - i,
+        'revision': 1,
+        'has_image': false,
+        'synthetic': false,
+        'purpose': 'notebook',
+        'subject_id': notebook.mathId,
+      },
+    {
+      'id': ids[4],
+      'title': titles[4],
+      'topic': titles[4],
+      'confirmed': true,
+      'created': 1699998000,
+      'revision': 5,
+      'has_image': true,
+      'synthetic': false,
+      'purpose': 'notebook',
+      'subject_id': notebook.mathId,
+    },
+  ];
+
+  for (final parent in [false, true]) {
+    for (final width in [390.0, 1280.0]) {
+      testWidgets(
+        'five synthetic material images in ${parent ? 'parent' : 'child'} UI at $width',
+        (tester) async {
+          final imageRequests = <String>[];
+          final (_, _, requests) = await notebook.open(
+            tester,
+            shelf: true,
+            parent: parent,
+            canManage: parent,
+            width: width,
+            height: 900,
+            respond: (request) async {
+              if (request.url.path.endsWith('/subjects'))
+                return notebook.jsonReply(notebook.subjects(canManage: parent));
+              if (request.url.path.endsWith('/image')) {
+                final id = request
+                    .url
+                    .pathSegments[request.url.pathSegments.length - 2];
+                imageRequests.add(id);
+                return http.Response.bytes(
+                  bytes[id]!,
+                  200,
+                  headers: {'content-type': 'image/jpeg'},
+                );
+              }
+              final q = request.url.queryParameters['q'] ?? '';
+              final filtered = rows
+                  .where(
+                    (r) => (r['title'] as String).toLowerCase().contains(
+                      q.toLowerCase(),
+                    ),
+                  )
+                  .toList();
+              final page =
+                  int.tryParse(request.url.queryParameters['page'] ?? '') ?? 1;
+              return notebook.jsonReply({
+                'items': filtered.skip((page - 1) * 20).take(20).toList(),
+                'total': filtered.length,
+                'page': page,
+                'page_size': 20,
+                'pages': (filtered.length / 20).ceil(),
+                'supports_notebook_practice': true,
+                'can_manage': parent,
+              });
+            },
+          );
+          await notebook.tap(tester, find.text('Mathematik'));
+          for (var i = 0; i < 4; i++) {
+            expect(find.text('${i + 1} von 21'), findsWidgets);
+            expect(find.byType(NotebookPhoto), findsWidgets);
+            expect(imageRequests, contains(ids[i]));
+            final shown = tester.widgetList<Image>(
+              find.byWidgetPredicate(
+                (widget) =>
+                    widget is Image &&
+                    widget.semanticLabel == 'Fotografierte Heftseite',
+              ),
+            );
+            expect(
+              shown.any((image) {
+                final provider = image.image;
+                return provider is ResizeImage &&
+                    provider.imageProvider is MemoryImage &&
+                    listEquals(
+                      (provider.imageProvider as MemoryImage).bytes,
+                      bytes[ids[i]],
+                    );
+              }),
+              isTrue,
+              reason:
+                  'The visible photo uses the expected synthetic JPEG bytes',
+            );
+            expect(
+              find.text('Das Foto kann nicht angezeigt werden.'),
+              findsNothing,
+            );
+            if (i < 3)
+              await notebook.tap(tester, find.byTooltip('Nächste Seite'));
+          }
+          await notebook.tap(tester, find.text('4 von 21'));
+          await tester.enterText(find.byType(TextField), '21');
+          await notebook.tap(tester, find.text('Seite öffnen'));
+          expect(find.text('21 von 21'), findsWidgets);
+          expect(imageRequests, contains(ids[4]));
+          final lastPhotos = tester.widgetList<Image>(
+            find.byWidgetPredicate(
+              (widget) =>
+                  widget is Image &&
+                  widget.semanticLabel == 'Fotografierte Heftseite',
+            ),
+          );
+          expect(
+            lastPhotos.any((image) {
+              final provider = image.image;
+              return provider is ResizeImage &&
+                  provider.imageProvider is MemoryImage &&
+                  listEquals(
+                    (provider.imageProvider as MemoryImage).bytes,
+                    bytes[ids[4]],
+                  );
+            }),
+            isTrue,
+            reason: 'The final page uses the expected synthetic JPEG bytes',
+          );
+          expect(
+            requests.where((r) => r.url.queryParameters['page'] == '2'),
+            isNotEmpty,
+          );
+          await notebook.openNotebookSearch(tester);
+          await tester.enterText(find.byType(TextField), 'Arbeitsheft');
+          await notebook.tap(tester, find.text('Suchen'));
+          expect(find.text('1 von 1'), findsWidgets);
+          expect(
+            requests.where((r) => r.url.queryParameters['q'] == 'Arbeitsheft'),
+            isNotEmpty,
+          );
+          expect(requests.every((r) => r.method == 'GET'), isTrue);
+          expect(tester.takeException(), isNull);
+          await tester.pumpWidget(const SizedBox());
+        },
+      );
+    }
+  }
+  for (final parent in [false, true]) {
+    for (final width in [390.0, 1280.0]) {
+      for (final multiple in [false, true]) {
+        testWidgets(
+          'conscious ${multiple ? 'multi-page' : 'single-page'} start in ${parent ? 'parent' : 'child'} UI at $width',
+          (tester) async {
+            final (_, _, requests) = await notebook.open(
+              tester,
+              parent: parent,
+              canManage: parent,
+              width: width,
+              height: 900,
+              respond: (request) async {
+                if (request.method == 'POST')
+                  return http.Response(
+                    jsonEncode({'id': 'job', 'status': 'queued'}),
+                    202,
+                    headers: {'content-type': 'application/json'},
+                  );
+                if (request.url.path.endsWith('/subjects'))
+                  return notebook.jsonReply(
+                    notebook.subjects(canManage: parent),
+                  );
+                if (request.url.path.endsWith('/image')) {
+                  final id = request
+                      .url
+                      .pathSegments[request.url.pathSegments.length - 2];
+                  return http.Response.bytes(
+                    bytes[id]!,
+                    200,
+                    headers: {'content-type': 'image/jpeg'},
+                  );
+                }
+                return notebook.jsonReply({
+                  'items': rows.take(20).toList(),
+                  'total': rows.length,
+                  'page': 1,
+                  'page_size': 20,
+                  'pages': 2,
+                  'supports_notebook_practice': true,
+                  'can_manage': parent,
+                });
+              },
+            );
+            expect(requests.every((r) => r.method == 'GET'), isTrue);
+            await notebook.tap(
+              tester,
+              find.byKey(const ValueKey('notebook-prepare-practice')),
+            );
+            if (multiple) {
+              await notebook.tap(
+                tester,
+                find.text('Weitere Heftseiten hinzufügen'),
+              );
+              await notebook.tap(tester, find.text('Arbeitsheft'));
+            }
+            expect(requests.every((r) => r.method == 'GET'), isTrue);
+            await notebook.tap(tester, find.text('Runde vorbereiten'));
+            final sent = requests.where((r) => r.method == 'POST').single;
+            final payload = jsonDecode(sent.body) as Map<String, dynamic>;
+            expect(payload['material_id'], ids[0]);
+            expect(
+              payload['notebook_sources'],
+              multiple
+                  ? [
+                      {'id': ids[0], 'revision': 1},
+                      {'id': ids[2], 'revision': 3},
+                    ]
+                  : [
+                      {'id': ids[0], 'revision': 1},
+                    ],
+            );
+            expect(
+              sent.headers['Idempotency-Key'],
+              matches(r'^notebook-[a-f0-9]{32}$'),
+            );
+            expect(find.text('Vorbereitung: job'), findsOneWidget);
+            expect(tester.takeException(), isNull);
+            await tester.pumpWidget(const SizedBox());
+          },
+        );
+      }
+    }
+  }
+}

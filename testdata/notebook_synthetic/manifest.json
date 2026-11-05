@@ -1,0 +1,32 @@
+[
+  {
+    "name": "arbeitsblatt",
+    "file": "arbeitsblatt.jpg",
+    "sha256": "fa7e930b32a4c409254dfe4b35beccdd41a815c937fa0219750f7a9b82a77c3f",
+    "size": 123360
+  },
+  {
+    "name": "hefter",
+    "file": "hefter.jpg",
+    "sha256": "9e30d15c38b7fd4ea8e39b7c504a381388110ff6053d17ba1ec9ae15abc1e3a5",
+    "size": 155809
+  },
+  {
+    "name": "arbeitsheft",
+    "file": "arbeitsheft.jpg",
+    "sha256": "f2e543cde29b5a2f54bf3b17b25c09af7b9c7c26cffd50c6c8f251a87fd77154",
+    "size": 118060
+  },
+  {
+    "name": "buchseite",
+    "file": "buchseite.jpg",
+    "sha256": "37cf1fd760e37ef25f40b2d59bfc7342bf6bb7c6574432c99c8f69a903c0e0fc",
+    "size": 114441
+  },
+  {
+    "name": "klassenarbeit",
+    "file": "klassenarbeit.jpg",
+    "sha256": "93d978a80dbc3bfb33a34c4c3b2a262839eca1aafc8d1e2f847294ae9e559317",
+    "size": 118990
+  }
+]
