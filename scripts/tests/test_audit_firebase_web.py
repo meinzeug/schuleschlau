@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from scripts.audit_firebase_web import BASE, MODULES, WORKER_MODULES, OSV, REGISTRY, audit, osv_findings
+from scripts.audit_firebase_web import BASE, MODULES, OSV, REGISTRY, WORKER_MODULES, audit, osv_findings
 
 
 def write_worker(root, imports=WORKER_MODULES):
