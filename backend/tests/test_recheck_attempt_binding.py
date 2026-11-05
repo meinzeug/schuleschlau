@@ -6,9 +6,10 @@ from threading import Event
 import pytest
 from conftest import HEADERS
 from fastapi.testclient import TestClient
-from schulpilot.db import DB, Activity, Attempt, AttemptAssessment, Job, LearningUnit, Usage
+from schulpilot.db import DB, Activity, Attempt, AttemptAssessment, Job, LearningUnit, Mastery, Usage
 from schulpilot.main import app
 from sqlalchemy import func, select, update
+from sqlalchemy.orm.attributes import flag_modified
 from test_report_regressions import question
 
 
@@ -64,10 +65,15 @@ def test_incomplete_or_ambiguous_legacy_numbers_do_not_guess(recheck_setup, numb
     kid, uid, qid = recheck_setup
     with DB.begin() as db:
         db.get(Attempt, 'a' * 32).evaluation = numbers[0]
+        flag_modified(db.get(Attempt, 'a' * 32), 'evaluation')
         db.add(Attempt(id='f' * 32, unit_id=uid, question_id=qid, answer='2/8', outcome='incorrect',
                        assisted=True, created=101.0, evaluation=numbers[1]))
     assert kid.post(route(uid, qid), json={'attempt_id': 'a' * 32}).status_code == 409
+    assert kid.post(route(uid, qid)).status_code == 409
     check_no_recheck_writes()
+    with DB() as db:
+        assert db.get(Attempt, 'a' * 32).outcome == 'uncertain'
+        assert db.get(Attempt, 'f' * 32).outcome == 'incorrect'
 
 
 def test_newer_number_wins_even_when_clock_moves_back(recheck_setup):
@@ -77,8 +83,34 @@ def test_newer_number_wins_even_when_clock_moves_back(recheck_setup):
                        assisted=True, created=100.0, evaluation={'attempt_number': 2}))
     assert kid.post(route(uid, qid), json={'attempt_id': 'a' * 32}).status_code == 409
     check_no_recheck_writes()
-    latest = kid.post(route(uid, qid), json={'attempt_id': '0' * 32})
+    latest = kid.post(route(uid, qid))
     assert latest.status_code == 200 and latest.json()['attempt_id'] == '0' * 32
+    assert kid.post(route(uid, qid), json={'attempt_id': '0' * 32}).json()['attempt_id'] == '0' * 32
+
+
+def test_recheck_rebuild_ignores_completed_reflection_round(recheck_setup):
+    kid, uid, qid = recheck_setup
+    with DB.begin() as db:
+        unit = db.get(LearningUnit, uid)
+        unit.status = 'completed'
+        unit.completed = 1700000000
+        child_id = unit.child_id
+        reflection_q = {**unit.questions[0], 'presentation': {'evidence_kind': 'reflection'}}
+        reflection = LearningUnit(child_id=unit.child_id, subject=unit.subject, topic=unit.topic,
+                                  explanation=unit.explanation, questions=[reflection_q], status='completed',
+                                  completed=1700086400, provider='synthetic', synthetic=True)
+        db.add(reflection)
+        db.flush()
+        db.add(Attempt(unit_id=reflection.id, question_id=qid, answer='6/16', outcome='correct',
+                       assisted=False, created=1700086400, evaluation={'method': 'open_learning_v1'}))
+    response = kid.post(route(uid, qid), json={'attempt_id': 'a' * 32})
+    assert response.status_code == 200, response.text
+    with DB() as db:
+        mastery = db.scalar(select(Mastery).where(Mastery.child_id == child_id,
+                                                  Mastery.subject == 'Mathematik', Mastery.topic == 'Brüche'))
+        assert mastery.independent == 1
+        assert mastery.assisted == mastery.difficulties == mastery.uncertain_units == 0
+        assert mastery.last_practiced == '2023-11-14'
 
 
 def test_missing_foreign_and_invalid_ids_do_not_change_answers(recheck_setup, api, household):

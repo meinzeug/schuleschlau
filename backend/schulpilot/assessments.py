@@ -13,10 +13,15 @@ from .schemas import Preferences
 
 def rebuild_mastery(db, child, subject, topic):
     """Recalculate from original dated attempts; no invented practice day."""
+    from .subject_content import open_learning_unit
+
     units = list(db.scalars(select(LearningUnit).where(
         LearningUnit.child_id == child.id, LearningUnit.subject == subject, LearningUnit.topic == topic,
         LearningUnit.status == "completed", LearningUnit.round_kind != "vocabulary"
     ).order_by(LearningUnit.completed, LearningUnit.id)))
+    # Completion explicitly excludes reflection-only units from mastery.
+    # Rebuilding after a recheck must use the same set of evidence.
+    units = [unit for unit in units if not open_learning_unit(unit)]
     if not units:
         return
     mastery = db.scalar(select(Mastery).where(Mastery.child_id == child.id, Mastery.subject == subject, Mastery.topic == topic))
@@ -62,22 +67,18 @@ def recheck(db, unit, question, actor_id, *, expected_attempt_id=None):
     if question.get("language"):
         raise HTTPException(409, "Für Wörter gelten die bestätigten Bedeutungen und Varianten. Öffne die Wortkarte zur Klärung.")
     query = select(Attempt).where(Attempt.unit_id == unit.id, Attempt.question_id == question["id"])
-    if expected_attempt_id is None:
-        # Compatibility for old clients that send no request body.
-        attempt = db.scalar(query.order_by(Attempt.created.desc(), func.coalesce(Attempt.evaluation["attempt_number"].as_integer(), 0).desc(), Attempt.id.desc()).limit(1))
+    attempts = list(db.scalars(query))
+    # The sequence is assigned under the unit lock. Both old and new clients
+    # must use the same evidence; timestamps/UUIDs cannot decide a tie.
+    if len(attempts) > 1:
+        numbers = [(a.evaluation or {}).get("attempt_number") if isinstance(a.evaluation, dict) else None for a in attempts]
+        if any(type(number) is not int or number < 1 for number in numbers) or len(set(numbers)) != len(numbers):
+            raise HTTPException(409, "Die Reihenfolge dieser Antworten ist unklar. Bitte kläre sie mit der Lernhilfe.")
+        attempt = attempts[numbers.index(max(numbers))]
     else:
-        attempts = list(db.scalars(query))
-        # A question's persisted attempt_number is assigned while holding the
-        # unit lock. Never break ambiguous legacy ties with timestamps or IDs.
-        if len(attempts) > 1:
-            numbers = [(a.evaluation or {}).get("attempt_number") if isinstance(a.evaluation, dict) else None for a in attempts]
-            if any(type(number) is not int or number < 1 for number in numbers) or len(set(numbers)) != len(numbers):
-                raise HTTPException(409, "Die Reihenfolge dieser Antworten ist unklar. Bitte kläre sie mit der Lernhilfe.")
-            attempt = attempts[numbers.index(max(numbers))]
-        else:
-            attempt = attempts[0] if attempts else None
-        if not attempt or attempt.id != expected_attempt_id:
-            raise HTTPException(409, "Die Antwort hat sich geändert. Bitte lade die Runde neu.")
+        attempt = attempts[0] if attempts else None
+    if expected_attempt_id is not None and (not attempt or attempt.id != expected_attempt_id):
+        raise HTTPException(409, "Die Antwort hat sich geändert. Bitte lade die Runde neu.")
     if not attempt:
         raise HTTPException(409, "Bitte zuerst eine Antwort abgeben.")
     if db.scalar(select(AttemptAssessment.id).where(AttemptAssessment.attempt_id == attempt.id,
