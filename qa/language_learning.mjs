@@ -106,7 +106,9 @@ try {
     state.project_id=null; state.context_retry_used=true;
   }
   if(!state.preferences_set) {
-    const prefs=await parent.request.put(base+'/api/children/'+account.child_id+'/preferences',{headers,data:{weekdays:[0,1,2,3,4,5,6],daily_minutes:20,weekly_minutes:20,session_minutes:5,break_minutes:5,timezone:'Europe/Berlin'}});
+    const childState=await get(parent,'/children/'+account.child_id+'/overview?compact=true');
+    check(Number.isInteger(childState.child.preferences_revision),'own_preferences_revision_missing');
+    const prefs=await parent.request.put(base+'/api/children/'+account.child_id+'/preferences',{headers:{...headers,'If-Match':String(childState.child.preferences_revision)},data:{weekdays:[0,1,2,3,4,5,6],daily_minutes:20,weekly_minutes:20,session_minutes:5,break_minutes:5,timezone:'Europe/Berlin'}});
     check(prefs.status()===200,'own_parent_preferences_failed'); state.preferences_set=true;
   }
   page=await child.newPage();

@@ -181,6 +181,7 @@ class Child(Base):
     school_type = Column(String(80), default="", nullable=False)
     region = Column(String(80), default="", nullable=False)
     preferences = Column(JSON, default=dict, nullable=False)
+    preferences_revision = Column(Integer, default=1, server_default="1", nullable=False)
     grade_planning_enabled = Column(Boolean, default=True, server_default=true(), nullable=False)
     parent_review_settings = Column(JSON, default=dict, server_default="{}", nullable=False)
 

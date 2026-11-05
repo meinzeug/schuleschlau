@@ -4,7 +4,7 @@ import argparse
 import json
 import sys
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 
 from .config import runtime_settings
 from .db import DB, Child, Family, Membership, PushTestGrant, User, now
@@ -64,9 +64,14 @@ def run():
         expiry = int(now()) + 7 * 86400
         family.expires = expiry
         users = [user.id]
-        for child in db.scalars(select(Child).where(Child.family_id == family.id)):
+        for child in db.scalars(select(Child).where(Child.family_id == family.id).order_by(Child.id)):
             # Consent is given only for this operator-owned artificial family.
+            db.execute(update(Child).where(Child.id == child.id).values(grade=Child.grade))
+            db.refresh(child)
+            if child.preferences_revision >= 2147483647:
+                raise SystemExit("Synthetic preferences revision is exhausted; no test grant changed.")
             child.preferences = {**child.preferences, "push_consent": True, "quiet_start": 0, "quiet_end": 0}
+            child.preferences_revision += 1
             users.append(child.user_id)
         for user_id in users:
             grant = db.get(PushTestGrant, user_id)

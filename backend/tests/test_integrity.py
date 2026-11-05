@@ -104,6 +104,7 @@ def test_repeat_preferences_create_visible_goals_and_subject_days(api, household
     other_day = (today.weekday() + 1) % 7
     result = api.put(
         f"/api/children/{child['id']}/preferences",
+        headers={"If-Match": str(child["preferences_revision"])},
         json={
             "weekdays": [0, 1, 2, 3, 4, 5, 6],
             "repeat_topics": ["Englisch: unregelmäßige Verben"],

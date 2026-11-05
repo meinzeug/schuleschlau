@@ -105,7 +105,9 @@ try {
   assert(parentAccount.families.length === 1 && !parentAccount.families[0].synthetic);
   const familyId = parentAccount.families[0].id;
   if (!state.preferences_set) {
-    const preferences = await parent.request.put(base + '/api/children/' + account.child_id + '/preferences', {headers, data: {
+    const childState = await get(parent, '/children/' + account.child_id + '/overview?compact=true');
+    assert(Number.isInteger(childState.child.preferences_revision));
+    const preferences = await parent.request.put(base + '/api/children/' + account.child_id + '/preferences', {headers: {...headers, 'If-Match': String(childState.child.preferences_revision)}, data: {
       weekdays: [0, 1, 2, 3, 4, 5, 6], daily_minutes: 20, weekly_minutes: 20, session_minutes: 5, break_minutes: 5, timezone: 'Europe/Berlin',
     }});
     assert.equal(preferences.status(), 200);

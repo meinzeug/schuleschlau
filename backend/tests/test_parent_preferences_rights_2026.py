@@ -33,7 +33,7 @@ def test_preferences_rechecks_authority_after_waiting_for_child(api, household, 
     with TestClient(app, headers=HEADERS) as client:
         login = client.post("/api/auth/login", json={"username": "synthetic-manager", "password": "secure-parent-pass-123"})
         assert login.status_code == 200
-        headers = {**HEADERS, "Authorization": "Bearer " + login.json()["token"]}
+        headers = {**HEADERS, "Authorization": "Bearer " + login.json()["token"], "If-Match": "1"}
         with DB() as db:
             session_id = db.scalar(select(Session.id).where(Session.user_id == parent_id))
         payload = schemas.Preferences(**before).model_dump(mode="json")

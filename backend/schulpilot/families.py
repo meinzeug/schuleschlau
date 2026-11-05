@@ -1,11 +1,12 @@
 import hashlib
 import json
+import re
 import tempfile
 import zipfile
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from sqlalchemy import delete, func, select, update
 from sqlalchemy.exc import IntegrityError
 from starlette.background import BackgroundTask
@@ -65,6 +66,7 @@ def child_data(db, child):
         "school_type": child.school_type,
         "region": child.region,
         "preferences": s.Preferences(**child.preferences).model_dump(mode="json"),
+        "preferences_revision": child.preferences_revision,
     }
 
 
@@ -180,9 +182,18 @@ def update_child(child_id: str, data: s.ChildUpdate,
 
 
 @router.put("/children/{child_id}/preferences")
-def preferences(child_id: str, data: s.Preferences, p=Depends(parent), db=Depends(get_db)):
+def preferences(child_id: str, data: s.Preferences, if_match: str | None = Header(None),
+                p=Depends(parent), db=Depends(get_db)):
     user_id, session_id = p.user.id, p.session.id
     child = child_access(db, p, child_id, write=True)
+    if if_match is None:
+        return JSONResponse(status_code=428, content={"code": "preferences_revision_required",
+                            "detail": "Bitte die App aktualisieren und die Lernvorgaben neu öffnen."})
+    if not re.fullmatch(r'(?:[1-9][0-9]{0,9}|"[1-9][0-9]{0,9}")', if_match):
+        raise HTTPException(400, "Die Version der Lernvorgaben ist ungültig. Bitte neu öffnen.")
+    expected = int(if_match.strip('"'))
+    if expected > 2147483647:
+        raise HTTPException(400, "Die Version der Lernvorgaben ist ungültig. Bitte neu öffnen.")
     db.execute(update(Child).where(Child.id == child.id).values(grade=Child.grade))
     # A parent can lose membership or have their session revoked while waiting
     # for this lock. Do not persist an older authorized request afterwards.
@@ -191,7 +202,14 @@ def preferences(child_id: str, data: s.Preferences, p=Depends(parent), db=Depend
 
     lock_session_after_child(db, user_id, session_id)
     child = child_access(db, p, child_id, write=True)
+    if child.preferences_revision != expected:
+        db.rollback()
+        return JSONResponse(status_code=409, content={"code": "preferences_revision_conflict",
+                            "detail": "Die Lernvorgaben wurden geändert. Bitte vergleiche den gespeicherten Stand; dein Entwurf bleibt erhalten."})
+    if child.preferences_revision >= 2147483647:
+        raise HTTPException(409, "Die Lernvorgaben können gerade nicht gespeichert werden. Bitte den Betreiber informieren.")
     child.preferences = data.model_dump(mode="json")
+    child.preferences_revision += 1
     if not data.push_consent:
         from .db import PushDevice
 

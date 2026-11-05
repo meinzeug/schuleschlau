@@ -173,7 +173,10 @@ def logout():
 def prepare(parent, data):
     demo = data["demo"]
     family_id = verify_own(demo)
-    native.check(parent.put(f"/children/{demo['child_id']}/preferences", json=PREFERENCES))
+    current = native.check(parent.get(f"/children/{demo['child_id']}/overview?compact=true"))
+    revision = current["child"]["preferences_revision"]
+    native.check(parent.put(f"/children/{demo['child_id']}/preferences", json=PREFERENCES,
+                            headers={"If-Match": str(revision)}))
     material = native.check(parent.get("/materials/" + demo["material_id"]))
     if material["confirmed"] or not material["synthetic"] or material.get("fixture_id") or material.get("school_day_id"):
         raise RuntimeError("Expected the fixed standalone unconfirmed Demo page")

@@ -150,11 +150,17 @@ prüfen Gerätewiderruf und Abmeldung in beiden Reihenfolgen sowie die umgekehrt
 Sperrreihenfolge eines Familienanrufs. Dies gilt für diesen Schreibpfad und ist
 keine Zusicherung für andere Endpunkte.
 
-Offene Grenze: `PUT /children/{id}/preferences` ersetzt weiterhin den gesamten
-Stand ohne Revisionsvergleich. Zwei ältere Elternformulare können daher bei
-parallelem Speichern andere Änderungen einschließlich Push-Einwilligung
-überschreiben. Ein abwärtskompatibler Revisions-/Konfliktablauf für API und UI
-ist eigenständig zu entwerfen und zu testen; die Rechteprüfung löst das nicht.
+`PUT /children/{id}/preferences` fordert `If-Match` mit der separat in
+`child.preferences_revision` gelieferten positiven Ganzzahl. Nach der
+Kindersperre werden Sitzung, Rechte und Revision geprüft; ein veralteter Stand
+liefert 409, eine fehlende Vorbedingung 428. Weder Vorgaben noch Pushgeräte,
+Aufträge oder Audit werden dabei geändert. Erfolgreiches Speichern erhöht die
+Revision auch dann, wenn die Werte identisch sind; eine spätere Rückkehr zu
+gleichen Werten reaktiviert keinen alten Entwurf. Die Antwort bleibt die
+bisherige Preferences-Struktur. Alte Clients ohne Versionsangabe können diese
+Vorgaben nicht mehr speichern und müssen aktualisiert werden. Migration 0047
+erhält bestehende Werte, startet ihre Revision bei 1 und verweigert einen
+Rückbau, der den Schutz entfernen würde. Keine stille Konfliktwiederholung.
 
 - `GET /api/children/{id}/parent-insights[?review_id=...]`: aktuelle Belege,
   gespeicherter Bericht, Status und begrenzte Berichtshistorie.

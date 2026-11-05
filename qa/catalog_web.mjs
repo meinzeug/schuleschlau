@@ -109,7 +109,9 @@ try {
     }});
     assert.equal(signed.status(), 200, 'owned_parent_configuration_login_failed');
     assert.equal((await signed.json()).user.id, account.user.id);
-    const prefs = await parent.request.put(base + '/api/children/' + account.child_id + '/preferences', {headers, data: {
+    const childState = await get(parent, '/children/' + account.child_id + '/overview?compact=true');
+    assert(Number.isInteger(childState.child.preferences_revision), 'owned_preferences_revision_missing');
+    const prefs = await parent.request.put(base + '/api/children/' + account.child_id + '/preferences', {headers: {...headers, 'If-Match': String(childState.child.preferences_revision)}, data: {
       weekdays: [0, 1, 2, 3, 4, 5, 6], daily_minutes: 20, weekly_minutes: 20,
       session_minutes: 5, break_minutes: 5, timezone: 'Europe/Berlin',
     }});

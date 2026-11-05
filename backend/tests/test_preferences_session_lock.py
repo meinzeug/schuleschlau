@@ -30,7 +30,7 @@ def test_revocation_first_aborts_preferences_without_writes(api, household, acti
         pytest.skip("Requires real PostgreSQL NOWAIT row locking")
     _, child = household
     before, sid, data = data_for(child["id"])
-    headers = {**HEADERS, "Authorization": api.headers["Authorization"]}
+    headers = {**HEADERS, "Authorization": api.headers["Authorization"], "If-Match": "1"}
     held, proceed = Event(), Event()
     def after_statement(conn, cursor, statement, parameters, context, executemany):
         if not held.is_set() and statement.lower().startswith("update sessions set revoked"):
@@ -75,7 +75,7 @@ def test_preferences_first_hold_session_until_commit_before_revocation(api, hous
         assert proceed.wait(10)
         return value
     monkeypatch.setattr(security, "lock_session_after_child", hold)
-    headers = {**HEADERS, "Authorization": api.headers["Authorization"]}
+    headers = {**HEADERS, "Authorization": api.headers["Authorization"], "If-Match": "1"}
     def save():
         with TestClient(app, headers=headers) as client:
             return client.put(f"/api/children/{child['id']}/preferences", json=data)
@@ -135,7 +135,7 @@ def test_family_call_session_first_aborts_preferences_without_deadlock(api, hous
         return original_call_lock(db, call, unit=unit)
     monkeypatch.setattr(security, "lock_session_after_child", before_session)
     monkeypatch.setattr(family_calls, "lock", before_call_child)
-    headers = {**HEADERS, "Authorization": api.headers["Authorization"]}
+    headers = {**HEADERS, "Authorization": api.headers["Authorization"], "If-Match": "1"}
     with kid() as child_client:
         call = start(child_client)
         def save():

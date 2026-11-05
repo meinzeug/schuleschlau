@@ -69,7 +69,7 @@ def test_child_requires_parent_consent_and_later_withdrawal_stops_send(api, hous
         blocked = kid.get("/api/notifications/config").json()
         assert not blocked["available"] and "hier selbst einschalten" in blocked["notice"]
         assert kid.put("/api/notifications/device", json={"token": "x" * 50, "platform": "android"}).status_code == 403
-        response = api.put(f"/api/children/{child['id']}/preferences", json={"push_consent": True})
+        response = api.put(f"/api/children/{child['id']}/preferences", json={"push_consent": True}, headers={"If-Match": "1"})
         assert response.status_code == 200
         # The parent's account-level permission never registers either device.
         # The child explicitly registers the token from its own session.
@@ -80,7 +80,7 @@ def test_child_requires_parent_consent_and_later_withdrawal_stops_send(api, hous
         assert kid.get("/api/notifications/devices").json()[0]["current"] is True
         assert api.get("/api/notifications/devices").json() == []
         assert kid.put(f"/api/children/{child['id']}/preferences", json={"push_consent": True}).status_code == 403
-        assert api.put(f"/api/children/{child['id']}/preferences", json={"push_consent": False}).status_code == 200
+        assert api.put(f"/api/children/{child['id']}/preferences", json={"push_consent": False}, headers={"If-Match": "2"}).status_code == 200
         with DB() as db:
             assert db.get(PushDevice, d["id"]) is None
         assert not kid.get("/api/notifications/config").json()["available"]

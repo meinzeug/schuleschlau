@@ -138,8 +138,8 @@ async function get(context, route, expected = 200) {
   check(response.status() === expected, 'authorized_api_read_failed_' + response.status());
   return expected === 200 ? response.json() : null;
 }
-async function put(context, route, data, expected = 200) {
-  const response = await context.request.put(base + '/api' + route, {headers, data, maxRedirects: 0});
+async function put(context, route, data, expected = 200, extra = {}) {
+  const response = await context.request.put(base + '/api' + route, {headers: {...headers, ...extra}, data, maxRedirects: 0});
   check(response.status() === expected, 'own_api_update_failed_' + response.status());
   return expected === 200 ? response.json() : null;
 }
@@ -384,8 +384,11 @@ async function configureOwnMinimumGoals() {
   next.setUTCDate(next.getUTCDate() + 1);
   journal.desired_preferences ??= {...data.child.preferences, weekdays: [], daily_minutes: 5,
     weekly_minutes: 5, session_minutes: 5, pause_until: next.toISOString().slice(0, 10)};
+  journal.preferences_revision ??= data.child.preferences_revision;
+  check(Number.isInteger(journal.preferences_revision), 'owned_preferences_revision_required');
   if (!journal.preferences_saved) {
-    await put(parent, '/children/' + journal.demo.child_id + '/preferences', journal.desired_preferences);
+    await put(parent, '/children/' + journal.demo.child_id + '/preferences', journal.desired_preferences, 200,
+      {'If-Match': String(journal.preferences_revision)});
     journal.preferences_saved = true;
     await save();
   }
@@ -489,9 +492,12 @@ async function homeProof(label) {
 async function requireActualMinimumGoal() {
   step('parent_requires_five_actual_minutes_after_explicit_free_day_start');
   if (!journal.required_goal_started) {
+    const current = await overview();
+    check(current.child.preferences.pause_until === journal.desired_preferences.pause_until &&
+      current.child.preferences.weekdays.length === 0, 'owned_preferences_changed_before_goal_start');
     await put(parent, '/children/' + journal.demo.child_id + '/preferences', {
       ...journal.desired_preferences, weekdays: [0, 1, 2, 3, 4, 5, 6], pause_until: null,
-    });
+    }, 200, {'If-Match': String(current.child.preferences_revision)});
     journal.required_goal_started = true;
     journal.goal_required = true;
     await save();

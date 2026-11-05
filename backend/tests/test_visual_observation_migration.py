@@ -20,8 +20,9 @@ with DB.begin() as db:
     db.add(Family(id='f'*32, name='Artificial family'))
     db.add(User(id='u'*32, username='artificial-child',display_name='Artificial child',password_hash='not-a-login',role='child',verified=True))
     db.flush()
-    db.add(Child(id='c'*32, family_id='f'*32,user_id='u'*32,grade=6))
-    db.flush()
+    children=Table('children',MetaData(),autoload_with=db.connection())
+    db.execute(children.insert().values(id='c'*32, family_id='f'*32,user_id='u'*32,grade=6,
+        subjects=[],school_type='',region='',preferences={'daily_minutes': 35}))
     materials=Table('materials',MetaData(),autoload_with=db.connection())
     values={'id':'m'*32,'child_id':'c'*32,'title':'Original','status':'review',
             'subject':'Mathematik','topic':'Brüche','content':'Originaltext',
@@ -31,12 +32,14 @@ command.upgrade(config, 'head')
 with engine.begin() as connection:
     row=connection.execute(select(Table('materials',MetaData(),autoload_with=connection))).mappings().one()
     assert row['content']=='Originaltext' and row['visual_observations']==[]
-    assert connection.exec_driver_sql('select version_num from alembic_version').scalar_one()=='0046'
+    child=connection.execute(select(Table('children',MetaData(),autoload_with=connection))).mappings().one()
+    assert child['preferences']=={'daily_minutes': 35} and child['preferences_revision']==1
+    assert connection.exec_driver_sql('select version_num from alembic_version').scalar_one()=='0047'
 sys.path.insert(0, 'deploy')
 from visual_restore_probe import probe
 with DB.begin() as db:
     probe(db, 'synthetic-test-key')
-print('legacy material preserved, visual defaults empty, head 0046, signed replay verified')
+print('legacy material and preferences preserved, head 0047, signed replay verified')
 '''
 
 
@@ -58,7 +61,7 @@ def test_0044_real_upgrade_preserves_old_material(tmp_path):
         run = subprocess.run([sys.executable, '-c', SCRIPT], cwd=root, env=environment,
                              capture_output=True, text=True, timeout=90)
         assert run.returncode == 0, run.stdout + run.stderr
-        assert 'head 0046' in run.stdout
+        assert 'head 0047' in run.stdout
     finally:
         if original:
             with engine.begin() as connection:

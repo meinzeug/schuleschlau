@@ -163,7 +163,7 @@ def test_parent_plan_pause_and_bounded_time(api, household):
         "session_minutes": 15,
         "pause_until": None,
     }
-    assert api.put(f"/api/children/{child['id']}/preferences", json=prefs).status_code == 200
+    assert api.put(f"/api/children/{child['id']}/preferences", json=prefs, headers={"If-Match": "1"}).status_code == 200
     for i in range(4):
         assert (
             api.post(
@@ -178,7 +178,7 @@ def test_parent_plan_pause_and_bounded_time(api, household):
     with DB() as db:
         today = local_day(db.get(Child, child["id"]))
     prefs["pause_until"] = (today + timedelta(days=5)).isoformat()
-    api.put(f"/api/children/{child['id']}/preferences", json=prefs)
+    assert api.put(f"/api/children/{child['id']}/preferences", json=prefs, headers={"If-Match": "2"}).status_code == 200
     plan = api.get(f"/api/children/{child['id']}/overview").json()["plan"]
     assert plan["paused"] and plan["available_minutes"] == 0 and not plan["today"]
 

@@ -11,22 +11,29 @@ from sqlalchemy.engine import make_url
 SCRIPT = r'''
 from alembic import command
 from alembic.config import Config
-from sqlalchemy import MetaData, Table, inspect, select
+from sqlalchemy import MetaData, Table, event, inspect, select
+from sqlalchemy.orm import Session as ORMSession
 from schulpilot.db import DB, engine, Family, User, Child, LearningUnit, Attempt
 from schulpilot.parent_reminder_models import ParentGoalReminder
+from schulpilot.subject_registry import bind_known_subjects
 config = Config('backend/alembic.ini')
 command.upgrade(config, '0039')
+# The live subject-binding hook loads today's Child ORM shape. At this point
+# the fixture deliberately uses the real 0039 schema, before later columns.
+event.remove(ORMSession, 'before_flush', bind_known_subjects)
 with DB.begin() as db:
     db.add(Family(id='f'*32, name='Artificial family'))
     db.add_all([User(id='a'*32, username='artificial-parent',display_name='Artificial parent',password_hash='not-a-login',role='parent',verified=True),
                 User(id='b'*32, username='artificial-child',display_name='Artificial child',password_hash='not-a-login',role='child',verified=True)])
     db.flush()
-    db.add(Child(id='c'*32, family_id='f'*32,user_id='b'*32,grade=7,preferences={'marker':'unchanged'}))
-    db.flush()
+    children=Table('children',MetaData(),autoload_with=db.connection())
+    db.execute(children.insert().values(id='c'*32, family_id='f'*32,user_id='b'*32,grade=7,
+        subjects=[],school_type='',region='',preferences={'marker':'unchanged'}))
     db.add(LearningUnit(id='d'*32,child_id='c'*32,subject='Mathematik',topic='Synthetic paused round',explanation='Unchanged',questions=[],provider='synthetic',status='paused'))
     db.add(ParentGoalReminder(user_id='a'*32,child_id='c'*32,revision=3,enabled=False,weekdays=[0,2],time='18:10',timezone='Europe/Berlin',daily_minimum=True,exam_sessions=False))
     db.flush()
     db.add(Attempt(id='e'*32,unit_id='d'*32,question_id='q1',answer='1/2 🧪 e\u0301',outcome='uncertain',evaluation={'preserve':True}))
+event.listen(ORMSession, 'before_flush', bind_known_subjects)
 old_tables = set(inspect(engine).get_table_names())
 def snapshot():
     with engine.connect() as conn:
