@@ -2182,9 +2182,15 @@ def request_provider(config, function, payload, image_bytes=None, *, synthetic_f
         try:
             with httpx.Client(timeout=httpx.Timeout(120, connect=10), follow_redirects=False) as client:
                 response = client.post(url, headers=headers, json=body)
+        except httpx.TimeoutException:
+            raise ProviderError(
+                "Der KI-Anbieter hat zu lange gebraucht. Kein automatischer Wiederholungsversuch; mögliche Kosten bleiben reserviert.",
+                code="provider_timeout",
+            ) from None
         except httpx.HTTPError:
             raise ProviderError(
-                "KI-Anbieter ist nicht erreichbar. Kein automatischer Wiederholungsversuch; mögliche Kosten bleiben reserviert."
+                "KI-Anbieter ist nicht erreichbar. Kein automatischer Wiederholungsversuch; mögliche Kosten bleiben reserviert.",
+                code="provider_unavailable",
             ) from None
     if response.status_code != 200:
         if config.provider == "codex":
@@ -2223,10 +2229,16 @@ def request_provider(config, function, payload, image_bytes=None, *, synthetic_f
                 "Die Vorbereitung hat ein technisches Problem. Deine Fotos bleiben gespeichert.",
                 code="invalid_output", billing_result=diagnostic,
             )
-        raise ProviderError(
-            f"KI-Anbieter meldet HTTP {response.status_code}. Schlüssel, Modell, Freigabe oder Kontingent prüfen.",
-            billing_result=diagnostic,
-        )
+        status = response.status_code
+        if status == 429:
+            message, code = "Die Lern-KI ist gerade ausgelastet. Deine bisherigen Inhalte bleiben gespeichert.", "provider_busy"
+        elif status in (408, 504):
+            message, code = "Die Lern-KI hat zu lange gebraucht. Deine bisherigen Inhalte bleiben gespeichert.", "provider_timeout"
+        elif 500 <= status <= 599:
+            message, code = "Die Lern-KI ist gerade nicht verfügbar. Deine bisherigen Inhalte bleiben gespeichert.", "provider_unavailable"
+        else:
+            message, code = f"KI-Anbieter meldet HTTP {status}. Schlüssel, Modell, Freigabe oder Kontingent prüfen.", "not_configured"
+        raise ProviderError(message, code=code, billing_result=diagnostic)
     validation_phase = "json"
     try:
         # Encrypted reasoning metadata is not the generated learning content.
@@ -2240,7 +2252,7 @@ def request_provider(config, function, payload, image_bytes=None, *, synthetic_f
             raw = response.json()
         except ValueError:
             raise ProviderError(
-                "Die Antwort des KI-Anbieters war nicht lesbar. Bitte später erneut versuchen."
+                "Die Antwort des KI-Anbieters war nicht lesbar. Bitte später erneut versuchen.", code="invalid_output"
             ) from None
         validation_phase = "envelope"
         if not isinstance(raw, dict):
@@ -2277,7 +2289,7 @@ def request_provider(config, function, payload, image_bytes=None, *, synthetic_f
         elif config.provider == "openrouter":
             choices = raw.get("choices")
             if not isinstance(choices, list) or not choices or not isinstance(choices[0], dict):
-                raise ProviderError("Die KI hat keine Lernantwort geliefert. Bitte später erneut versuchen.")
+                raise ProviderError("Die KI hat keine Lernantwort geliefert. Bitte später erneut versuchen.", code="invalid_output")
             choice = choices[0]
             if choice.get("error") is not None:
                 annotate_openrouter_error(billing_result, choice["error"])
@@ -2285,10 +2297,12 @@ def request_provider(config, function, payload, image_bytes=None, *, synthetic_f
             if choice.get("finish_reason") != "stop":
                 if choice.get("finish_reason") == "length":
                     raise ProviderError(
-                        "Die KI hat die begrenzte Ausgabelänge erreicht. Die unvollständige Antwort wurde verworfen; kein automatischer Wiederholungsversuch."
+                        "Die KI hat die begrenzte Ausgabelänge erreicht. Die unvollständige Antwort wurde verworfen; kein automatischer Wiederholungsversuch.",
+                        code="invalid_output",
                     )
                 raise ProviderError(
-                    "Die KI hat keine abgeschlossene Antwort geliefert. Die Ausgabe wurde verworfen; kein automatischer Wiederholungsversuch."
+                    "Die KI hat keine abgeschlossene Antwort geliefert. Die Ausgabe wurde verworfen; kein automatischer Wiederholungsversuch.",
+                    code="invalid_output",
                 )
             message = choice.get("message")
             if (
@@ -2296,7 +2310,7 @@ def request_provider(config, function, payload, image_bytes=None, *, synthetic_f
                 or not isinstance(message.get("content"), str)
                 or not message["content"].strip()
             ):
-                raise ProviderError("Die KI hat eine Antwort ohne Inhalt geliefert. Bitte später erneut versuchen.")
+                raise ProviderError("Die KI hat eine Antwort ohne Inhalt geliefert. Bitte später erneut versuchen.", code="invalid_output")
             text = message["content"]
             input_tokens, output_tokens = usage.get("prompt_tokens"), usage.get("completion_tokens")
         else:

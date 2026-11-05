@@ -1477,6 +1477,13 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Ausgabelängen, Schemafehler und Providerstörungen systematisch behandeln**
 
+  - [x] **Tatsächliche Adapterfehler im Paketworker zuordnen und absichern.**
+    HTTP-Auslastung, Timeout und Serverfehler sowie defekte oder abgeschnittene
+    Ausgaben werden ohne Anbietertexte klassifiziert. Ein synthetischer
+    Drei-Teile-Test prüft den echten Adapter mit lokalem HTTP-Transport,
+    Abrechnung, erhaltene Teilresultate und den bewussten Wiederholungsweg auf
+    SQLite und PostgreSQL. [Prüfung und Grenzen](docs/OPENROUTER_FAILURE_E2E_2026_11_05.md).
+
   - [ ] **Bruchaufgaben für initiale Paketpartitionen vorab verbindlich planen.**
     Ein versionierter Paketadapter soll nur für ein eindeutig gewähltes
     Mathematikfach und ausdrücklich bestätigte, zur Quellenrevision passende

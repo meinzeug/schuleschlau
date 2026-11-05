@@ -303,7 +303,7 @@ def test_openrouter_is_bound_to_model_upstream_and_has_safe_errors(api, househol
     try:
         request_provider(config, "unit", {})
     except ProviderError as error:
-        assert "HTTP 500" in str(error) and "PRIVATE_SYNTHETIC_PROVIDER_ECHO" not in str(error)
+        assert error.code == "provider_unavailable" and "PRIVATE_SYNTHETIC_PROVIDER_ECHO" not in str(error)
     else:
         raise AssertionError("Provider error was hidden")
 
