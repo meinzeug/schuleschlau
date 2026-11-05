@@ -509,7 +509,7 @@ void main() {
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
   });
-  testWidgets('Confirmed child pages can be selected and deleted together', (
+  testWidgets('Children can select and delete only unconfirmed pages', (
     tester,
   ) async {
     final requests = <http.Request>[];
@@ -525,10 +525,17 @@ void main() {
         total = 1;
         return reply({'deleted_count': 2});
       }
-      return reply(listing(total: total));
+      final data = listing(total: total);
+      for (final row in data['items'] as List) {
+        row['confirmed'] = row['id'] == 'm2';
+      }
+      return reply(data);
     });
-    expect(find.byTooltip('Heftseite löschen'), findsNWidgets(3));
+    expect(find.byTooltip('Heftseite löschen'), findsNWidgets(2));
     await tap(tester, find.text('Seiten auswählen'));
+    expect(find.text('Alle auswählen'), findsNothing);
+    expect(find.text('Alles löschen'), findsNothing);
+    expect(find.byType(Checkbox), findsNWidgets(2));
     await tap(tester, find.byType(Checkbox).at(0));
     await tap(tester, find.byType(Checkbox).at(1));
     await tap(tester, find.text('Auswahl löschen (2)'));
@@ -547,21 +554,54 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
+  testWidgets('Child keeps an existing selection on a protected page', (
+    tester,
+  ) async {
+    await open(tester, (request) async {
+      final page = int.parse(request.url.queryParameters['page']!);
+      final data = listing(page: page, total: 21);
+      for (final row in data['items'] as List) {
+        row['confirmed'] = page != 1;
+      }
+      return reply(data);
+    });
+    await tap(tester, find.text('Seiten auswählen'));
+    await tap(tester, find.byType(Checkbox).first);
+    await tap(tester, find.byTooltip('Nächste Seite'));
+    expect(find.text('1 ausgewählt'), findsOneWidget);
+    expect(find.text('Auswahl aufheben'), findsOneWidget);
+    expect(find.text('Alle auswählen'), findsNothing);
+    expect(find.text('Alles löschen'), findsNothing);
+    expect(find.byType(Checkbox), findsNothing);
+    await tap(tester, find.text('Auswahl aufheben'));
+    expect(find.text('1 ausgewählt'), findsNothing);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('Select all spans pagination and cancelling deletes nothing', (
     tester,
   ) async {
     Json? selection;
     final posts = <String>[];
-    await open(tester, (request) async {
-      if (request.method == 'POST') {
-        posts.add(request.url.path);
-        selection = jsonDecode(request.body) as Json;
-        return reply({'count': 1205, 'selection_token': 'filtered-all-pages'});
-      }
-      return reply(
-        listing(page: int.parse(request.url.queryParameters['page']!)),
-      );
-    });
+    await open(
+      tester,
+      (request) async {
+        if (request.method == 'POST') {
+          posts.add(request.url.path);
+          selection = jsonDecode(request.body) as Json;
+          return reply({
+            'count': 1205,
+            'selection_token': 'filtered-all-pages',
+          });
+        }
+        return reply(
+          listing(page: int.parse(request.url.queryParameters['page']!)),
+        );
+      },
+      parent: true,
+      canManage: true,
+    );
     await tap(tester, find.text('Seiten auswählen'));
     await tap(tester, find.text('Alle auswählen'));
     await tap(tester, find.byTooltip('Nächste Seite'));
@@ -589,7 +629,9 @@ void main() {
         return reply(data);
       }, width: 320);
       expect(find.byTooltip('Mit KI neu lesen'), findsOneWidget);
-      expect(find.byTooltip('Heftseite löschen'), findsOneWidget);
+      expect(find.byTooltip('Heftseite löschen'), findsNothing);
+      expect(find.text('Seiten auswählen'), findsNothing);
+      expect(find.text('Alles löschen'), findsNothing);
       await tap(tester, find.byTooltip('Mit KI neu lesen'));
       expect(find.text('Seite neu einlesen?'), findsOneWidget);
       await tap(tester, find.text('Abbrechen'));

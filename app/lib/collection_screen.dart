@@ -955,16 +955,17 @@ class _PagedCollectionState extends State<_PagedCollectionBody> {
         label: Text(selectingPages ? 'Auswahl aufheben' : 'Seiten auswählen'),
       ),
       if (selectingPages) ...[
-        TextButton.icon(
-          onPressed: deletingMaterial != null
-              ? null
-              : () => setState(() {
-                  allMatchingPages = true;
-                  selectedPages.clear();
-                }),
-          icon: const Icon(Icons.select_all_rounded),
-          label: const Text('Alle auswählen'),
-        ),
+        if (!widget.state.isChild)
+          TextButton.icon(
+            onPressed: deletingMaterial != null
+                ? null
+                : () => setState(() {
+                    allMatchingPages = true;
+                    selectedPages.clear();
+                  }),
+            icon: const Icon(Icons.select_all_rounded),
+            label: const Text('Alle auswählen'),
+          ),
         Text(
           allMatchingPages
               ? '$total Seiten in dieser Liste ausgewählt'
@@ -982,13 +983,14 @@ class _PagedCollectionState extends State<_PagedCollectionBody> {
           ),
         ),
       ],
-      TextButton.icon(
-        onPressed: deletingMaterial != null
-            ? null
-            : () => deletePages(all: true),
-        icon: const Icon(Icons.delete_sweep_outlined),
-        label: const Text('Alles löschen'),
-      ),
+      if (!widget.state.isChild)
+        TextButton.icon(
+          onPressed: deletingMaterial != null
+              ? null
+              : () => deletePages(all: true),
+          icon: const Icon(Icons.delete_sweep_outlined),
+          label: const Text('Alles löschen'),
+        ),
       if (deletingMaterial == 'selection')
         const SizedBox(
           width: 20,
@@ -1393,7 +1395,12 @@ class _PagedCollectionState extends State<_PagedCollectionBody> {
                     ],
                   ),
                 ),
-              if (canSelectPages && items.isNotEmpty) selectionTools(total),
+              if (canSelectPages &&
+                  (selectingPages ||
+                      (items.isNotEmpty &&
+                          (widget.state.isParent ||
+                              items.any(canDeleteMaterial)))))
+                selectionTools(total),
               ...rows(items),
               if (pages > 1)
                 Padding(
@@ -1899,7 +1906,9 @@ class _PagedCollectionState extends State<_PagedCollectionBody> {
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : roundActions(item)
-                  : canDeleteMaterial(item) && !selectingPages
+                  : !selectingPages &&
+                        (canDeleteMaterial(item) ||
+                            materialCanReprocess(widget.state, item))
                   ? Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -1911,13 +1920,14 @@ class _PagedCollectionState extends State<_PagedCollectionBody> {
                                 : () => rereadPage(item),
                             icon: const Icon(Icons.document_scanner_outlined),
                           ),
-                        IconButton(
-                          tooltip: 'Heftseite löschen',
-                          onPressed: deletingMaterial != null
-                              ? null
-                              : () => deletePages(item: item),
-                          icon: const Icon(Icons.delete_outline_rounded),
-                        ),
+                        if (canDeleteMaterial(item))
+                          IconButton(
+                            tooltip: 'Heftseite löschen',
+                            onPressed: deletingMaterial != null
+                                ? null
+                                : () => deletePages(item: item),
+                            icon: const Icon(Icons.delete_outline_rounded),
+                          ),
                       ],
                     )
                   : opening == item['id']

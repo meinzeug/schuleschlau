@@ -129,6 +129,11 @@ aber keine globale Auswahl oder pauschale Komplettlöschung. Eltern mit
 Verwaltungsrecht behalten die gezählte Löschvorschau einschließlich der
 ausdrücklich angezeigten verknüpften Runden und Antwortversuche. Erneutes
 Einlesen bestätigter Seiten bleibt für Kinder und berechtigte Eltern möglich.
+Die Gesamtseitenliste blendet bestätigte Kinderseiten und globale Löschaktionen
+bei der Auswahl aus. Ob eine unbestätigte Seite bereits indirekt mit einer
+Lernrunde oder einem Elternauftrag verknüpft ist, meldet die Listenansicht nicht;
+auch dafür bleibt die erneute Backendprüfung maßgeblich und lehnt geschützte
+Seiten ab, ohne einen Teil der Auswahl zu löschen.
 
 ## Historische Heftaktionen ab1.11.0+50
 
