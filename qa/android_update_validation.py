@@ -13,8 +13,8 @@ import re
 import shutil
 import subprocess
 import tempfile
-from pathlib import Path
 from datetime import datetime, timezone
+from pathlib import Path
 
 PACKAGE = 'de.dorfspy.schulpilot.updateprobe'
 TEST_PACKAGE = PACKAGE + '.test'
