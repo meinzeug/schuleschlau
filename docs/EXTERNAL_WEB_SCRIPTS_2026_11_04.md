@@ -71,8 +71,9 @@ Wiederholung: `python3 scripts/audit_firebase_npm_tree.py`. Das Skript prüft
 den im Bootstrap gewählten Umfang, den Lock, npm-Auflösung, Versions-,
 Lizenz- und Integritätsangaben der Registry und OSV mit Pagination. Es
 installiert keine Pakete und führt keine Paketinstallationsskripte aus. Die
-Lizenz- und Integritätsangaben werden miteinander verglichen; Paketarchive
-werden dabei nicht heruntergeladen oder gehasht. Änderungen am SDK erfordern
+Lizenz- und Integritätsangaben werden miteinander verglichen. Am 04.11. wurden
+Paketarchive noch nicht heruntergeladen oder gehasht; siehe die Ergänzung vom
+05.11. unten. Änderungen am SDK erfordern
 einen neu geprüften Lock. Das npm-Ergebnis kann sich durch neue Meldungen
 ändern und ist kein Nachweis für noch unbekannte Schwachstellen.
 
@@ -82,3 +83,28 @@ CDN-Dateien gebündelt sind. Insbesondere ein mittels Versionsbereich
 aufgelöstes Paket wie `tslib` kann im CDN von diesem Lock abweichen. Die
 gesonderte Bestandserfassung der CDN-Dateien und die ungeprüfte
 Bundlezuordnung bleiben bestehen.
+
+## Ergänzung 05.11.: Archivprüfung der aufgelösten npm-Pakete
+
+Die neun im vorhandenen Lock aufgelösten Paketarchive wurden direkt von den
+festgelegten Registry-URLs geladen und ihre tatsächlichen Bytes mit dem jeweils
+gesperrten SHA-512-Wert verglichen. Alle neun stimmten überein; die erneute
+OSV-Abfrage meldete am Prüfzeitpunkt keine Kennungen für die konkreten neun
+Versionen und die drei zuvor gesondert erfassten Wurzelpakete. Der datierte
+[Prüfbeleg](dependency-inventory/firebase-npm-20261104/archive-audit-20261105.json)
+enthält Größen, Integritätswerte und die zeitgebundenen Abfrageergebnisse.
+
+Das Prüfwerkzeug lädt für jedes Paket nur die exakt im Lock und in der
+Registry-Metadatei übereinstimmende HTTPS-URL auf `registry.npmjs.org`, folgt
+bei den Archiven keinen Weiterleitungen und begrenzt die Antwortgröße auf vier
+Megabyte. Fehlende, veränderte, übergroße oder falsch kodierte Archive führen
+zum Fehler. Archive werden weder entpackt noch installiert oder ausgeführt;
+auch npm-Installationsskripte werden nicht gestartet. Der lokale Offline-Test
+prüft Integritätsfehler und unerwartete URLs. Eine erneute Kontrolle verwendet
+`python3 scripts/audit_firebase_npm_tree.py`.
+
+Der überprüfte Lock ist weiterhin lediglich eine bestimmte npm-Auflösung. Die
+Verwendung dieser Paketarchive in Googles CDN-Dateien, die Vollständigkeit der
+Lizenzpflichten und unbekannte Sicherheitslücken sind dadurch nicht belegt.
+Das Ergebnis ist keine Signaturprüfung einer unabhängigen Vertrauensstelle;
+der Lock und seine Herkunft müssen selbst geprüft und geschützt werden.

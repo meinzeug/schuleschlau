@@ -1919,6 +1919,13 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Sicherheitsprüfung der übrigen Lieferkette ergänzen**
 
+  - [x] **Festgelegte Firebase-npm-Paketarchive tatsächlich prüfen.** Alle
+    neun Archive der dokumentierten Auflösung wurden begrenzt und ohne
+    Weiterleitung geladen und gegen den gesperrten SHA-512-Wert geprüft; die
+    erneute OSV-Abfrage und der datierte Beleg sind dokumentiert. Die
+    CDN-Zuordnung, externe Prüfsignaturen und Lizenzpflichten bleiben offen.
+    [Prüfung und Grenzen](docs/EXTERNAL_WEB_SCRIPTS_2026_11_04.md#ergänzung-0511-archivprüfung-der-aufgelösten-npm-pakete).
+
   **04.11.2026, erweiterte Bestandsaufnahme:** Ein npm-Lock für die direkten
   und transitiven Firebase-App-/Messaging-Abhängigkeiten sowie POM-Lizenzen
   für 106 zuvor inventarisierte Maven-Koordinaten sind mit Prüfsummen und

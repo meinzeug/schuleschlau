@@ -4,11 +4,15 @@
 The lock describes an npm resolution, not proof of the contents of a CDN bundle.
 No account information is sent and no npm install scripts are run.
 """
+import base64
+import binascii
 import hashlib
+import hmac
 import json
 import re
 import subprocess
 import sys
+import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import quote, urlsplit
@@ -22,6 +26,41 @@ ROOT = Path(__file__).resolve().parents[1]
 INVENTORY = ROOT / 'docs/dependency-inventory/firebase-npm-20261104'
 REGISTRY = 'https://registry.npmjs.org/'
 ROOTS = {'@firebase/app': '0.16.2', '@firebase/messaging': '0.13.3'}
+MAX_ARCHIVE_BYTES = 4_000_000
+
+
+class NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
+def fetch_archive(url):
+    """Read a bounded package from the pinned HTTPS registry without redirects."""
+    parsed = urlsplit(url)
+    if parsed.scheme != 'https' or parsed.netloc != 'registry.npmjs.org' or parsed.query or parsed.fragment:
+        raise ValueError('Invalid npm archive URL')
+    opener = urllib.request.build_opener(NoRedirect())
+    with opener.open(urllib.request.Request(url), timeout=30) as response:
+        if response.status != 200:
+            raise ValueError('Invalid npm archive response')
+        return response.read(MAX_ARCHIVE_BYTES + 1)
+
+
+def verify_archive(content, integrity):
+    """Check raw registry archive bytes against one exact locked SRI SHA-512."""
+    if not isinstance(content, bytes) or not content or len(content) > MAX_ARCHIVE_BYTES:
+        raise ValueError('Invalid npm archive size')
+    if not isinstance(integrity, str) or not integrity.startswith('sha512-'):
+        raise ValueError('Invalid npm archive integrity')
+    try:
+        expected = base64.b64decode(integrity.removeprefix('sha512-'), validate=True)
+    except (binascii.Error, ValueError):
+        raise ValueError('Invalid npm archive integrity') from None
+    if len(expected) != hashlib.sha512().digest_size:
+        raise ValueError('Invalid npm archive integrity')
+    if not hmac.compare_digest(hashlib.sha512(content).digest(), expected):
+        raise ValueError('npm archive integrity mismatch')
+    return {'bytes': len(content), 'sha512': integrity}
 
 
 def locked_packages(inventory):
@@ -51,7 +90,7 @@ def locked_packages(inventory):
                 or resolved.query or resolved.fragment):
             raise ValueError('Invalid npm lock entry')
         key = (name, version)
-        detail = {'license': license_name, 'integrity': integrity}
+        detail = {'license': license_name, 'integrity': integrity, 'resolved': entry['resolved']}
         if key in found and found[key] != detail:
             raise ValueError('Conflicting npm lock entries')
         found[key] = detail
@@ -69,7 +108,7 @@ def check_tree(inventory):
     )
 
 
-def audit_tree(inventory=INVENTORY, get=fetch, verify_tree=check_tree):
+def audit_tree(inventory=INVENTORY, get=fetch, verify_tree=check_tree, archive_get=fetch_archive):
     packages = locked_packages(inventory)
     verify_tree(inventory)
     rows = []
@@ -78,10 +117,13 @@ def audit_tree(inventory=INVENTORY, get=fetch, verify_tree=check_tree):
         metadata = json.loads(get(url))
         if (metadata.get('name') != name or metadata.get('version') != version
                 or metadata.get('license') != detail['license']
-                or metadata.get('dist', {}).get('integrity') != detail['integrity']):
+                or metadata.get('dist', {}).get('integrity') != detail['integrity']
+                or metadata.get('dist', {}).get('tarball') != detail['resolved']):
             raise ValueError(f'npm metadata mismatch: {name}@{version}')
+        archive = verify_archive(archive_get(detail['resolved']), detail['integrity'])
         rows.append({'name': name, 'version': version, 'license': detail['license'],
-                     'integrity': detail['integrity'], 'vulnerability_ids': osv_findings(name, version, get)})
+                     'integrity': detail['integrity'], 'archive': archive,
+                     'vulnerability_ids': osv_findings(name, version, get)})
     return {'npm_root': ROOTS, 'firebase_sdk': VERSION,
             'lock_sha256': hashlib.sha256((inventory / 'package-lock.json').read_bytes()).hexdigest(),
             'packages': rows}
