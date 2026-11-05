@@ -30,7 +30,8 @@ def built(tmp_path):
     root = tmp_path
     for path, data in {'app/pubspec.yaml': b'version: 1.0.0+1\n', 'toolchain.json': b'{}',
                        'backend/app.py': b'backend', 'deploy/unit': b'unit', 'workers/main': b'worker',
-                       'app/build/web/index.html': b'web', 'artifacts/schulpilot-play.aab': b'play'}.items():
+                       'app/build/web/index.html': b'web', 'artifacts/schulpilot-play.aab': b'play',
+                       'artifacts/repair-source.tar.gz': b'verified repair source'}.items():
         write(root, path, data)
     commit = 'a' * 40
     raw = release.encode(release.payload(root, commit))
@@ -53,28 +54,32 @@ def test_accepts_matching_artifacts(built):
 def test_repair_binding_requires_verified_hash_and_signed_commit(built):
     root, commit = built
     _, proof, _ = release.verify(root, commit, simulated_verified_apk)
-    info = {'verified': True, 'source_commit': commit, 'sha256': 'a' * 64}
+    repair_sha = release.digest(root / 'artifacts/repair-source.tar.gz')
+    info = {'verified': True, 'source_commit': commit, 'sha256': repair_sha}
     parsed_proof = json.loads(base64.b64decode(proof))
-    assert release.bind_repair(info, parsed_proof, commit) == 'a' * 64
+    assert release.bind_repair(info, parsed_proof, commit) == repair_sha
     for changed in (
         {**info, 'verified': False},
         {**info, 'source_commit': 'b' * 40},
         {**info, 'sha256': 'x' * 64},
         {**info, 'sha256': None},
+        {**info, 'sha256': 'a' * 64},
     ):
         with pytest.raises(ValueError):
             release.bind_repair(changed, parsed_proof, commit)
     with pytest.raises(ValueError):
         release.bind_repair(info, {**parsed_proof, 'source_commit': 'c' * 40}, commit)
+    with pytest.raises(ValueError):
+        release.bind_repair(info, {**parsed_proof, 'format': 1}, commit)
     command = ['python3', str(MODULE), 'bind-repair', proof, commit]
     result = subprocess.run(command, input=json.dumps(info), text=True, capture_output=True, check=True)
-    assert result.stdout.strip() == 'a' * 64
+    assert result.stdout.strip() == repair_sha
     result = subprocess.run(command, input=json.dumps({**info, 'verified': False}), text=True, capture_output=True)
     assert result.returncode != 0
 
 
 @pytest.mark.parametrize('path', ['app/build/web/index.html', 'backend/app.py', 'deploy/unit', 'workers/main',
-                                  'artifacts/schulpilot-play.aab', 'toolchain.json'])
+                                  'artifacts/schulpilot-play.aab', 'artifacts/repair-source.tar.gz', 'toolchain.json'])
 def test_rejects_changed_inputs(built, path):
     root, commit = built
     write(root, path, b'manipulated')
@@ -133,6 +138,12 @@ def test_staged_checks_actual_transferred_files(built, tmp_path):
     repair.write_bytes(original_repair.read_bytes())
     bad_command = [*command[:-1], 'x' * 64]
     assert subprocess.run(bad_command, input=source, text=True, capture_output=True).returncode != 0
+    # A valid-looking replacement digest must not override the signed proof.
+    replacement = b'another source archive'
+    repair.write_bytes(replacement)
+    replacement_command = [*command[:-1], release.digest(repair)]
+    assert subprocess.run(replacement_command, input=source, text=True, capture_output=True).returncode != 0
+    repair.write_bytes(original_repair.read_bytes())
     subprocess.run(command, input=source, text=True, check=True)
     uploaded_apk = staged / 'downloads/schulpilot-android.apk'
     original = uploaded_apk.read_bytes()
@@ -165,6 +176,58 @@ def test_deploy_checks_verified_archive_after_upload_and_immediately_before_acti
     assert 'rsync -a --chown=root:root --chmod=Fgo=rX artifacts/android-release.json' in script
     assert 'os.umask(0o077)' in script
     assert 'os.fchmod(output.fileno(),0o644)' in script
+
+
+def test_build_creates_and_verifies_repair_archive_before_signed_attestation():
+    script = (MODULE.parent / 'build_release.sh').read_text()
+    generate = script.index('prepare_repair_source.py --commit')
+    verify = script.index('prepare_repair_source.py --commit', generate + 1)
+    prepare = script.index('release_attestation.py prepare')
+    sign = script.index('build apk --flavor direct')
+    finish = script.index('release_attestation.py finish')
+    assert generate < verify < prepare < sign < finish
+    assert '--verify' in script[verify:prepare]
+
+
+def test_signed_repair_archive_cannot_be_a_symlink(built, tmp_path):
+    root, commit = built
+    repair = root / 'artifacts/repair-source.tar.gz'
+    repair.unlink()
+    outside = tmp_path / 'outside'
+    outside.write_bytes(b'verified repair source')
+    repair.symlink_to(outside)
+    with pytest.raises(ValueError, match='unsafe repair'):
+        release.verify(root, commit, simulated_verified_apk)
+
+
+def test_repair_archive_builder_rejects_symlink_output_without_touching_target(tmp_path, monkeypatch):
+    import sys
+
+    monkeypatch.syspath_prepend(str(MODULE.parents[1] / 'backend'))
+    spec = importlib.util.spec_from_file_location('prepare_repair_source', MODULE.parent / 'prepare_repair_source.py')
+    builder = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(builder)
+    commit = 'a' * 40
+
+    def fake_git(command, cwd, **kwargs):
+        if command[1:3] == ['rev-parse', 'HEAD']:
+            return commit
+        if command[1:3] == ['status', '--porcelain']:
+            return b''
+        if command[1:3] == ['ls-tree', '-r']:
+            return ''
+        raise AssertionError(command)
+
+    monkeypatch.setattr(builder.subprocess, 'check_output', fake_git)
+    monkeypatch.setattr(builder, 'archive_bytes', lambda files, head: b'archive')
+    target = tmp_path / 'important'
+    target.write_bytes(b'keep')
+    output = tmp_path / 'repair-source.tar.gz'
+    output.symlink_to(target)
+    monkeypatch.setattr(sys, 'argv', ['prepare_repair_source.py', '--commit', commit, '--output', str(output)])
+    with pytest.raises(SystemExit, match='symlinked'):
+        builder.main()
+    assert target.read_bytes() == b'keep'
 
 
 def test_dirty_worktree_and_ignored_backend_extra_rejected(built, monkeypatch):

@@ -74,9 +74,9 @@ def bind_repair(repair, proof, commit):
     if not isinstance(repair, dict) or not isinstance(proof, dict):
         raise ValueError('Invalid repair binding')
     sha = repair.get('sha256')
-    if (repair.get('verified') is not True or repair.get('source_commit') != commit
+    if (repair.get('verified') is not True or repair.get('source_commit') != commit or proof.get('format') != 2
             or proof.get('source_commit') != commit or not isinstance(sha, str)
-            or not re.fullmatch(r'[0-9a-f]{64}', sha)):
+            or not re.fullmatch(r'[0-9a-f]{64}', sha) or proof.get('repair_sha256') != sha):
         raise ValueError('Repair source and signed release do not match')
     return sha
 
@@ -85,11 +85,15 @@ def payload(root, commit):
     version = re.search(r'^version:\s*(\S+)$', (root / 'app/pubspec.yaml').read_text(), re.M)
     if not version:
         raise ValueError('Missing app version')
-    return {'format': 1, 'source_commit': commit, 'version': version[1],
+    repair = root / 'artifacts/repair-source.tar.gz'
+    if repair.is_symlink() or not repair.is_file():
+        raise ValueError('Missing or unsafe repair source archive')
+    return {'format': 2, 'source_commit': commit, 'version': version[1],
             'toolchain_sha256': digest(root / 'toolchain.json'),
             'sources_sha256': tree(root, ['backend', 'deploy', 'workers'], exclude_cache=True),
             'web_sha256': tree(root / 'app/build', ['web']),
-            'play_aab_sha256': digest(root / 'artifacts/schulpilot-play.aab')}
+            'play_aab_sha256': digest(root / 'artifacts/schulpilot-play.aab'),
+            'repair_sha256': digest(repair)}
 
 
 def apk_proof(apk):
@@ -138,7 +142,8 @@ def main():
         apk_sha, raw, public_sha, repair_sha = sys.argv[3], base64.b64decode(sys.argv[4], validate=True), sys.argv[5], sys.argv[6]
         proof = json.loads(raw)
         repair = root / 'repair-source.tar.gz'
-        if (not re.fullmatch(r'[0-9a-f]{64}', repair_sha) or repair.is_symlink()
+        if (not re.fullmatch(r'[0-9a-f]{64}', repair_sha) or proof.get('format') != 2
+                or proof.get('repair_sha256') != repair_sha or repair.is_symlink()
                 or not repair.is_file() or digest(repair) != repair_sha):
             raise ValueError('Uploaded repair source differs from verified archive')
         if raw != encode(proof) or digest(root / 'downloads/schulpilot-android.apk') != apk_sha:

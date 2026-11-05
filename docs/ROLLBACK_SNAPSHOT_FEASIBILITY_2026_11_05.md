@@ -26,6 +26,18 @@ Ein dritter Fall bestätigt, dass der vorhandene Digest-Walker symbolische Links
 verwirft; ein künftiger Kopierer muss sie darüber hinaus bereits beim Lesen
 vermeiden und vor Prüfung niemals aus privatem Staging veröffentlichen.
 
+Ein isolierter Vorbereitungsschritt ergänzt das künftige Release-Attest um den
+SHA-256 des deterministischen Repair-Quellarchivs. Der Build erzeugt und prüft
+das Archiv vor dem Signieren der APK; das Deployment prüft anschließend, dass
+der lokal verifizierte und der übertragene Archivhash mit dem signierten Attest
+übereinstimmen. Die Archivdatei wird lokal atomar ersetzt und ein symbolisches
+Linkziel abgelehnt. Alte Atteste ohne diese Bindung erhalten sie nicht
+nachträglich. Dieser Schritt ist weder eine Snapshot- noch eine Rollbackfreigabe:
+Für die tatsächliche Rücksetzung fehlen weiterhin eine vertrauenswürdige
+Signaturprüfung auf dem Rückweg, ein gegen die vollständigen Bindungen geprüfter
+Kopiervorgang, eine pfadkorrekte Umgebung und die Kompatibilitätsprüfung der
+gespeicherten Daten. Bis zu deren Abnahme bleibt der Hauptpunkt offen.
+
 Für eine **zukünftige** Implementierung sind mindestens folgende Punkte offen:
 
 1. Zielrelease, Lease und Marker revisionsgebunden erfassen; ausschließlich

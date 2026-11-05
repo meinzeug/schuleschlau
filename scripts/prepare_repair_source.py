@@ -3,8 +3,10 @@
 import argparse
 import hashlib
 import json
+import os
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend"))
@@ -30,7 +32,17 @@ def main():
             raise SystemExit("Repair source package differs from the clean exact build commit.")
     else:
         args.output.parent.mkdir(parents=True, exist_ok=True)
-        args.output.write_bytes(raw)
+        if args.output.is_symlink():
+            raise SystemExit('Refusing to replace a symlinked repair source package.')
+        fd, name = tempfile.mkstemp(prefix='.repair-source-', dir=args.output.parent)
+        try:
+            with os.fdopen(fd, 'wb') as target:
+                target.write(raw)
+                target.flush()
+                os.fsync(target.fileno())
+            os.replace(name, args.output)
+        finally:
+            Path(name).unlink(missing_ok=True)
     print(json.dumps({"source_commit": head, "files": len(files), "bytes": len(raw), "sha256": hashlib.sha256(raw).hexdigest(), "verified": args.verify}))
 
 
