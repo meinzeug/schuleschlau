@@ -1706,6 +1706,15 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Kinderwege, Navigation und Wiederaufnahme vollständig abnehmen**
 
+  **05.11.2026, Teilkorrektur Rundenstart:** Schlägt das ausdrückliche
+  Öffnen einer bereits fertigen Runde fehl, bleibt eine kurze Erklärung
+  direkt auf der Seite sichtbar und das Kind kann bewusst erneut öffnen.
+  Ein Planungskonflikt nennt weiterhin den Grund. Bei entzogenem Zugriff
+  wird die veraltete Startaktion entfernt; verspätete Antworten für eine
+  andere Sitzung oder einen verdeckten Bildschirm werden verworfen. Die
+  Prüfung erzeugt keine Lernrunde und wiederholt keinen KI-Auftrag. Die
+  vollständige Mehrgeräte- und Browserabnahme bleibt offen.
+
   **04.11.2026, aktive Runde:** Ein bei Rückkehr noch laufender GET führt
   einen gezielten Folgeabruf aus; eine ausgetauschte Sitzung kann keine alte
   Antwort anzeigen. Nach 403/404 verschwindet die private Ansicht; 429 wird

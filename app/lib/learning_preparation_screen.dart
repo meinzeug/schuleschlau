@@ -52,6 +52,8 @@ class _LearningPreparationScreenState extends State<_LearningPreparationBody>
   Json? job;
   Timer? poll;
   Object? error;
+  Object? startError;
+  bool startTargetUnavailable = false;
   String? readingJob;
   bool refreshAfterRead = false;
   late final Json? owner;
@@ -101,6 +103,8 @@ class _LearningPreparationScreenState extends State<_LearningPreparationBody>
         setState(() {
           job = null;
           error = null;
+          startError = null;
+          startTargetUnavailable = false;
         });
       }
     }
@@ -157,6 +161,7 @@ class _LearningPreparationScreenState extends State<_LearningPreparationBody>
         setState(() {
           job = result;
           error = null;
+          startTargetUnavailable = false;
         });
       }
     } catch (e) {
@@ -226,7 +231,9 @@ class _LearningPreparationScreenState extends State<_LearningPreparationBody>
                             ? 'Dein Lernplan konnte nicht vorbereitet werden.'
                             : 'Diese Runde konnte nicht vorbereitet werden.'
                       : error != null
-                      ? missingJob
+                      ? startTargetUnavailable
+                            ? 'Diese Runde ist nicht mehr verfügbar.'
+                            : missingJob
                             ? 'Vorbereitung nicht gefunden.'
                             : 'Wir können gerade nicht nachsehen.'
                       : job?['status'] == 'queued'
@@ -267,6 +274,18 @@ class _LearningPreparationScreenState extends State<_LearningPreparationBody>
                   ),
                   SizedBox(height: 12),
                 ],
+                if (ready && startError != null) ...[
+                  Semantics(
+                    liveRegion: true,
+                    child: Text(
+                      startError is ApiError &&
+                              (startError as ApiError).status == 409
+                          ? (startError as ApiError).message
+                          : 'Das Öffnen hat nicht geklappt. Versuche es noch einmal.',
+                    ),
+                  ),
+                  SizedBox(height: 12),
+                ],
                 SizedBox(height: 16),
                 if (ready)
                   ActionButton(
@@ -283,7 +302,27 @@ class _LearningPreparationScreenState extends State<_LearningPreparationBody>
                       final requestJob = widget.jobId;
                       final id = job!['result']['unit_id'];
                       if (widget.state.isChild) {
-                        await widget.state.api.post('/units/$id/start');
+                        setState(() => startError = null);
+                        try {
+                          await widget.state.api.post('/units/$id/start');
+                        } catch (e) {
+                          if (context.mounted &&
+                              sameOwner &&
+                              (route?.isCurrent ?? true) &&
+                              widget.jobId == requestJob) {
+                            setState(() {
+                              if (e is ApiError &&
+                                  (e.status == 403 || e.status == 404)) {
+                                job = null;
+                                error = e;
+                                startTargetUnavailable = true;
+                              } else {
+                                startError = e;
+                              }
+                            });
+                          }
+                          return;
+                        }
                       }
                       if (context.mounted &&
                           sameOwner &&
