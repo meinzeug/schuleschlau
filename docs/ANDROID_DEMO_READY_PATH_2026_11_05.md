@@ -28,9 +28,9 @@ entscheiden, ob die Darstellung tatsächlich bereit ist; fehlen Referenz oder
 Beleg, bleibt sie unvollständig und es wird keine Fertigmeldung erfunden.
 Die Darstellung verändert keine Aufgabenlösungen oder Lernnachweise.
 
-Dieser Code und seine isolierten Tests beweisen noch **keine** sichtbare
-Zustellung oder Navigation im Emulator. Nach Review und Deployment ist dazu ein
-neues synthetisches Konto mit explizitem Geräte-Opt-in notwendig; der reale
-Abschluss, FCM-Annahme, sichtbare Meldung und das Öffnen genau dieser eigenen
-Runde sind einzeln zu beobachten. Keine echte KI wird für diese Demorunde
-aufgerufen; eine nachgewiesene Anbietererzeugung ist ein gesonderter Test.
+Der spätere Emulatorlauf hat den gespeicherten Abschluss, FCM-Annahme,
+sichtbare Meldung und das Öffnen genau dieser eigenen Runde beobachtet; die
+Nachbereinigung ist getrennt dokumentiert. Einzelheiten und Grenzen stehen im
+[Ende-zu-Ende-Bericht](ANDROID_ROUND_READY_E2E_2026_11_05.md). Keine echte KI
+wird für diese Demorunde aufgerufen; eine nachgewiesene Anbietererzeugung ist
+ein gesonderter Test.

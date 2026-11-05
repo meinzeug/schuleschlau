@@ -1427,7 +1427,15 @@ Bestandteil des bestehenden Buildvertrags.
   bedienen.
 
   **Abnahme:** Gerät/Androidversion, konkrete Abläufe, Beobachtungen, Fehler und Korrekturen dokumentiert und Testdaten regulär bereinigt sind.
-- [ ] **P1 – Benachrichtigungen auf echtem Gerät sichtbar prüfen**
+- [x] **P1 – Benachrichtigungen auf Android sichtbar prüfen**
+
+  **Abnahme 05.11.2026:** Im ausdrücklich akzeptierten Android-Emulator sind
+  Vordergrundzustellung, Hintergrundzustellung und das Öffnen der eindeutig
+  zugeordneten geschützten Demo-Lernrunde sichtbar geprüft. Der zunächst
+  unvollständige automatische Cleanup bleibt im Rohbericht erhalten; die
+  nachträgliche Abmeldung sowie Geräte- und Familienlöschung sind gesondert
+  belegt. Dies belegt weder physische Geräte noch eine KI-generierte Runde.
+  [Ende-zu-Ende-Nachweis](docs/ANDROID_ROUND_READY_E2E_2026_11_05.md).
 
   - [x] **Android-Emulator: Vordergrundzustellung sichtbar prüfen.**
     Ein eigener künstlicher Account erhielt nach Elternfreigabe und Geräte-Opt-in
@@ -1445,11 +1453,11 @@ Bestandteil des bestehenden Buildvertrags.
   ist erst nach einem tatsächlichen Emulatorlauf nachgewiesen.
   [Prüfumfang](docs/ANDROID_DEMO_READY_PATH_2026_11_05.md).
 
-  **05.11.2026:** Ein weiterer künstlicher Emulatorlauf bestätigte die
+  **Frühere Teilprüfung 05.11.2026:** Ein künstlicher Emulatorlauf bestätigte die
   sichtbare Hintergrundzustellung nach Prozessende sowie die neutrale
   In-App-Meldung im Vordergrund. Die native Vordergrundanzeige konnte der
-  Prüflauf nicht sicher belegen; auch die geschützte Lernrundennavigation
-  bleibt offen. Testgerät und Testfamilie wurden bereinigt.
+  Prüflauf noch nicht sicher belegen; auch die geschützte Lernrundennavigation
+  war damals offen. Beides wurde später wie oben beschrieben nachgeprüft.
   [Einzelheiten](docs/ANDROID_PUSH_2026_11_05.md).
 
   - [x] **Android-Emulator: sichtbare Hintergrundzustellung nach App-Stopp.**
