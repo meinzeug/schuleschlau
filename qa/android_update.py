@@ -62,8 +62,11 @@ def main():
     parser.add_argument("--prepare", type=Path)
     parser.add_argument("--check-starts", action="store_true")
     parser.add_argument("--upgrade", action="store_true")
+    parser.add_argument("--expected-version-code", type=int)
     args = parser.parse_args()
     release = httpx.get("https://schulpilot.dorfspy.de/api/app-release", timeout=20).raise_for_status().json()
+    if args.expected_version_code is not None and release.get("version_code") != args.expected_version_code:
+        raise RuntimeError("Public release version changed before update")
     if args.prepare or args.check_starts:
         if args.prepare:
             adb("install", "-r", str(args.prepare.resolve()))
@@ -80,7 +83,8 @@ def main():
         if args.check_starts:
             launch()  # An additional launcher intent while already visible.
             wait_until(lambda: log().count("Installed version is current") >= current_before + 3)
-        assert installed_code() >= release["version_code"]
+        if installed_code() < release["version_code"]:
+            raise RuntimeError("Installed version is older than the public release")
         print(
             json.dumps(
                 {
@@ -96,7 +100,8 @@ def main():
         parser.error("Use --prepare SEED.apk, --check-starts or --upgrade")
     old = installed_code()
     target = release["version_code"]
-    assert target > old, "Deploy the higher signed release before testing the update"
+    if target <= old:
+        raise RuntimeError("Deploy the higher signed release before testing the update")
     adb("shell", "am", "force-stop", PACKAGE)
     launch()
     wait_until(
