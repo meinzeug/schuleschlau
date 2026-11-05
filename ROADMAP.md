@@ -1720,6 +1720,15 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Benachrichtigung und direkte Zielnavigation vollständig prüfen**
 
+  - [x] **Position beim Nachladen in der Gesamtansicht erhalten.**
+    Eine weiterhin sichtbare Karte bleibt beim Austausch unterschiedlich hoher
+    Cacheseiten verankert. Konto-, Filter- und spätere Scrollaktionen verwerfen
+    veraltete Korrekturen; alte Anker werden bei Aktualisierung entfernt.
+    Widget- und Chrome-Prüfungen einschließlich Smartphonebreite und
+    Lesemarkierungen bestanden. Im virtuellen Glockenmenü und ohne erhaltene
+    sichtbare Ankerkarte bleibt das Verhalten gesondert zu prüfen.
+    [Nachweis und Grenzen](docs/NOTIFICATION_SCROLL_2026_11_05.md).
+
   - [x] **Tageskarten auch bei vielen anderen Kontextformen deduplizieren.**
     Der vollständige Kontext wird vor der Auswahl der neuesten Karte
     strukturell verglichen; SQLite- und PostgreSQL-Fälle prüfen mehr als 500
