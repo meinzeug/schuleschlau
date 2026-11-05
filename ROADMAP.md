@@ -1429,6 +1429,22 @@ Bestandteil des bestehenden Buildvertrags.
   **Abnahme:** Gerät/Androidversion, konkrete Abläufe, Beobachtungen, Fehler und Korrekturen dokumentiert und Testdaten regulär bereinigt sind.
 - [ ] **P1 – Benachrichtigungen auf echtem Gerät sichtbar prüfen**
 
+  - [x] **Android-Emulator: Vordergrundzustellung sichtbar prüfen.**
+    Ein eigener künstlicher Account erhielt nach Elternfreigabe und Geräte-Opt-in
+    genau eine eindeutig zugeordnete Testzustellung. App-Hinweis und neutrale
+    Android-Systembenachrichtigung waren sichtbar. Das Testkonto wurde gelöscht;
+    ein zuvor fehlgeschlagener, befristeter Demo-Anlageversuch bleibt mit seinen
+    Bereinigungsgrenzen dokumentiert. Der direkte Weg in eine fertige Lernrunde
+    ist damit noch nicht abgenommen.
+    [Nachweis](docs/ANDROID_FOREGROUND_PUSH_2026_11_05.md).
+
+  **Vorbereitung des direkten Lernrundentests:** Ein streng auf freigegebene,
+  serverseitige Demoinhalte begrenzter Pfad ist lokal mit Backend- und
+  Renderertests geprüft. Produktions-Push-Stopp, Quellenprüfungen und
+  Testfreigaben bleiben wirksam. Die sichtbare Zustellung mit direktem Ziel
+  ist erst nach einem tatsächlichen Emulatorlauf nachgewiesen.
+  [Prüfumfang](docs/ANDROID_DEMO_READY_PATH_2026_11_05.md).
+
   **05.11.2026:** Ein weiterer künstlicher Emulatorlauf bestätigte die
   sichtbare Hintergrundzustellung nach Prozessende sowie die neutrale
   In-App-Meldung im Vordergrund. Die native Vordergrundanzeige konnte der
@@ -1515,6 +1531,15 @@ Bestandteil des bestehenden Buildvertrags.
     Drei-Teile-Test prüft den echten Adapter mit lokalem HTTP-Transport,
     Abrechnung, erhaltene Teilresultate und den bewussten Wiederholungsweg auf
     SQLite und PostgreSQL. [Prüfung und Grenzen](docs/OPENROUTER_FAILURE_E2E_2026_11_05.md).
+
+  - [x] **Unveröffentlichte Teilpakete bei der Wiederholungssperre berücksichtigen.**
+    Der bestehende Dezimalplaner prüft private Teilbelege desselben Kindes und
+    Fachs bei Planung und Veröffentlichung. Regulär abgelaufene Altbelege
+    bleiben ausschließlich konservative Ausschlüsse, ohne Löschfristen zu
+    verlängern oder eine Veröffentlichung zu erlauben. SQLite- und
+    PostgreSQL-Tests prüfen auch gleichzeitige Aufträge und bereinigte Altstände.
+    Die eigentliche Bruchplanung bleibt offen.
+    [Prüfung und Grenzen](docs/PACKAGE_PENDING_HISTORY_2026_11_05.md).
 
   - [ ] **Bruchaufgaben für initiale Paketpartitionen vorab verbindlich planen.**
     Ein versionierter Paketadapter soll nur für ein eindeutig gewähltes
