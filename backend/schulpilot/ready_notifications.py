@@ -10,7 +10,7 @@ import re
 from fastapi import HTTPException
 from sqlalchemy import select, tuple_
 
-from .db import DB, Assignment, Child, Job, LearningUnit, Material, Message, SchoolDay, UnitSource, now
+from .db import DB, Assignment, Child, Family, Job, LearningUnit, Material, Message, SchoolDay, UnitSource, now
 from .providers import ProviderError
 from .security import insert_ignore
 from .source_lineage import digest, usable_source
@@ -32,7 +32,21 @@ def valid_unit_path(value):
 
 
 def valid_unit(db, unit, child):
-    if not unit or unit.child_id != child.id or unit.synthetic or unit.status != "not_started":
+    if not unit or unit.child_id != child.id or unit.status != "not_started":
+        return False
+    family = db.get(Family, child.family_id)
+    if not family:
+        return False
+    # A bounded, locally generated example allows an explicitly granted demo
+    # family to exercise the real notification and route. Never turn an actual
+    # provider unit or an ordinary family's unit into a synthetic test by label.
+    if family.synthetic:
+        from .notifications import test_allowed
+
+        if (not unit.synthetic or unit.provider != "synthetic" or unit.model != "fixed-fractions-v1"
+                or not test_allowed(db, child.user_id)):
+            return False
+    elif unit.synthetic:
         return False
     from .visual_reference_models import UnitVisualSnapshot
     from .visual_references import projection
@@ -40,15 +54,25 @@ def valid_unit(db, unit, child):
     if db.get(UnitVisualSnapshot, unit.id) is not None and projection(db, unit)["explanation_visual_status"] != "ready":
         return False
     refs = list(db.scalars(select(UnitSource).where(UnitSource.unit_id == unit.id)))
+    if family.synthetic and (
+        len(refs) != 1 or refs[0].material_id != unit.material_id
+        or unit.assignment_id or unit.review_of or unit.school_day_id or unit.round_kind != "learning"
+    ):
+        return False
     if refs:
         return all(
             (material := db.get(Material, ref.material_id)) is not None
             and material.child_id == child.id
             and material.revision == ref.revision
             and material.confirmed
+            and (not family.synthetic or (
+                material.synthetic and material.fixture_id is None and material.path is None
+            ))
             and usable_source(db, material, ref.revision)
             for ref in refs
         )
+    if family.synthetic:
+        return False
     assignment = db.get(Assignment, unit.assignment_id) if unit.assignment_id else None
     return bool(
         assignment
@@ -64,6 +88,13 @@ def authority(db, job, child):
     value = job.payload.get(ORIGIN)
     if value:
         validate(db, child, value)
+        family = db.get(Family, child.family_id)
+        if family and family.synthetic:
+            from .notifications import test_allowed
+
+            if (job.kind != "unit" or not test_allowed(db, child.user_id)
+                    or not test_allowed(db, value["user_id"])):
+                return False
         return True
     if job.kind == "package" and job.payload.get("preparation_id"):
         from .school_preparation import _check_sources, _state
@@ -93,6 +124,18 @@ def unit_ids(job):
     return []
 
 
+def valid_job_unit(db, job, unit, child):
+    if not valid_unit(db, unit, child):
+        return False
+    family = db.get(Family, child.family_id)
+    if not family.synthetic:
+        return True
+    # The test is for one explicit request over the same demo page. A later
+    # job or a different input must not acquire that unit's test notification.
+    return bool(job.kind == "unit" and job.payload.get("material_id") == unit.material_id
+                and not job.payload.get("assignment_id") and not job.payload.get("review_of"))
+
+
 def remember(db, job):
     """Called after a committed success, under Child lock. Idempotent receipts."""
     if not job or job.status != "completed" or not job.finished or job.kind not in (*ROUND_KINDS, "package"):
@@ -114,7 +157,7 @@ def remember(db, job):
     old = len(receipts)
     for identifier in dict.fromkeys(unit_ids(job)):
         unit = db.get(LearningUnit, identifier)
-        if not valid_unit(db, unit, child):
+        if not valid_job_unit(db, job, unit, child):
             continue
         mid = digest([KIND, job.id, unit.id])[:32]
         if any(row.get("message_id") == mid for row in receipts):
@@ -212,7 +255,7 @@ def events_for_child(db, child, current, *, retention=86400, message_ids=None):
                 continue
             unit, message = db.get(LearningUnit, identifier), db.get(Message, mid)
             if (
-                not valid_unit(db, unit, child)
+                not valid_job_unit(db, job, unit, child)
                 or not message
                 or message.child_id != child.id
                 or message.kind != KIND
@@ -248,6 +291,11 @@ def day_route(db, day, child):
     """Only saved rounds from this exact completed package can be a target."""
     from .school_preparation import notice_allowed
 
+    # The synthetic test exception is limited to an individually requested
+    # round with completion_origin; the day pipeline has a different contract.
+    family = db.get(Family, child.family_id)
+    if not family or family.synthetic:
+        return None
     state = day.preparation or {}
     if state.get("status") != "ready" or not notice_allowed(db, day):
         return None

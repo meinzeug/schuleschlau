@@ -1,5 +1,6 @@
 """Deterministic, explicitly synthetic fixtures, never a fallback AI provider."""
 
+import copy
 import secrets
 from fractions import Fraction
 
@@ -93,6 +94,35 @@ def sample_unit(variant=0, difficulty="normal"):
     # Keep generated legacy fixtures in the same shape as stored legacy units:
     # absent optional presentation blocks stay absent rather than becoming null.
     return UnitOutput.model_validate(data).model_dump(exclude_none=True)
+
+
+def with_demo_visuals(data, payload):
+    """Add a fixed source-bound example; the normal graphics validator decides readiness."""
+    context = payload.get("visual_context") or {}
+    excerpt = "Beispiel: 2/4 = 1/2."
+    source = next((row for row in context.get("sources", []) if row.get("subject") == "Mathematik"
+                   and row.get("group_id") is None and excerpt in row.get("content", "")), None)
+    reference = next((row for row in context.get("references", []) if row.get("id") == "math.fraction.part_whole"
+                      and row.get("version") == 1 and row.get("subject") == "Mathematik"), None)
+    if not context.get("required") or not source or not reference:
+        return data
+
+    def step(disclosure):
+        return {"id": "demo_fraction", "text": "Beispiel aus dem Demoheft: 2 von 4 gleich großen Teilen.",
+                "competence_id": None, "disclosure": disclosure,
+                "reference": {"id": reference["id"], "version": reference["version"]},
+                "source_refs": [source["ref"]],
+                "presentation": {"version": 1, "evidence_kind": "knowledge", "blocks": [{
+                    "kind": "fraction", "title": "Beispiel aus dem Demoheft: 2/4", "disclosure": disclosure,
+                    "source_excerpt": excerpt, "labels": [], "numbers": [2, 4], "connections": [],
+                    "unit": "", "variant": "",
+                }]}}
+
+    result = copy.deepcopy(data)
+    result["explanation_steps"] = [step("given")]
+    for question in result["questions"]:
+        question["explanation_steps"] = [step("solution")]
+    return result
 
 
 @router.post("/demo", status_code=201)

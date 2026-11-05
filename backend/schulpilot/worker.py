@@ -519,6 +519,10 @@ def _process(job_id):
 
                 with DB() as db:
                     data = synthetic_report(db, db.get(LearningUnit, job.payload["review_of"]), "check")["next_unit"]
+            elif function == "unit":
+                from .synthetic import with_demo_visuals
+
+                data = with_demo_visuals(data, payload)
         else:
             provider_requested = True
             request_config = ProviderConfig(**config_values)
