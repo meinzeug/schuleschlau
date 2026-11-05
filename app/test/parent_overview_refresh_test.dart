@@ -355,18 +355,21 @@ void main() {
     home.state.api.token = 'synthetic-new-session';
     home.state.notifyListeners();
     await tester.pump();
+    expect(
+      tester.allWidgets.where(
+        (widget) =>
+            widget.key?.toString().contains('synthetic-new-session') ?? false,
+      ),
+      isEmpty,
+      reason: 'Session tokens must not appear in widget diagnostics.',
+    );
     expect(find.byType(ParentOverview), findsNothing);
-    home.pending.single.complete(home.reply());
-    await tester.pumpAndSettle();
-    await tick(tester, 20);
-    expect(find.byType(ParentOverview), findsNothing);
-    expect(home.overviewRequests, hasLength(2));
-    home.router.go('/elsewhere');
-    await tester.pumpAndSettle();
-    home.data['practice_summary']['practiced_tasks'] = 4;
-    home.router.go('/child/${home.childId}?bereich=overview');
-    await tester.pump();
     expect(home.overviewRequests, hasLength(3));
+    home.pending.first.complete(home.reply());
+    await tester.pump();
+    expect(find.byType(ParentOverview), findsNothing);
+    expect(home.overviewRequests, hasLength(3));
+    home.data['practice_summary']['practiced_tasks'] = 4;
     home.pending.last.complete(home.reply());
     await tester.pumpAndSettle();
     expect(find.byType(ParentOverview), findsOneWidget);
@@ -383,11 +386,17 @@ void main() {
       home.state.notifyListeners();
       await tester.pump();
       expect(find.byType(ParentOverview), findsNothing);
-      home.pending.single.complete(home.reply());
+      expect(home.overviewRequests, hasLength(3));
+      home.pending.first.complete(home.reply());
+      await tester.pump();
+      expect(find.byType(ParentOverview), findsNothing);
+      home.pending.last.complete(
+        fixture.jsonResponse({'detail': 'Kein Zugriff'}, 403),
+      );
       await tester.pumpAndSettle();
       expect(find.byType(ParentOverview), findsNothing);
       await tick(tester, 20);
-      expect(home.overviewRequests, hasLength(2));
+      expect(home.overviewRequests, hasLength(3));
       expect(tester.takeException(), isNull);
     },
   );
@@ -403,11 +412,18 @@ void main() {
       };
       home.state.notifyListeners();
       await tester.pump();
-      home.pending.single.complete(home.reply());
+      expect(find.byType(ParentOverview), findsNothing);
+      expect(home.overviewRequests, hasLength(3));
+      home.pending.first.complete(home.reply());
+      await tester.pump();
+      expect(find.byType(ParentOverview), findsNothing);
+      home.pending.last.complete(
+        fixture.jsonResponse({'detail': 'Kein Zugriff'}, 403),
+      );
       await tester.pumpAndSettle();
       expect(find.byType(ParentOverview), findsNothing);
       await tick(tester, 20);
-      expect(home.overviewRequests, hasLength(2));
+      expect(home.overviewRequests, hasLength(3));
       expect(tester.takeException(), isNull);
     },
   );

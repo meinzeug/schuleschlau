@@ -2153,10 +2153,12 @@ Bestandteil des bestehenden Buildvertrags.
     ein übergreifender Geräte- und Ereigniskanalnachweis bleibt offen.
     [Umfang](docs/REALTIME_STATUS.md).
   **05.11.2026, Sitzungswechsel:** Bereits geladene Kinder- und
-  Elternübersichten verschwinden bei gemeldetem Tokenwechsel; ein laufender
-  Statusabruf darf sie nicht zurückbringen oder einen Folgeabruf auslösen.
+  Elternübersichten verschwinden bei gemeldetem Konto-, Familien- oder
+  Tokenwechsel; ein laufender
+  Statusabruf darf sie nicht zurückbringen. Die Ansicht startet einen neuen,
+  autorisierten GET unter dem geänderten Sitzungskontext.
   Die künstlichen Clienttests bestanden auf der VM und in Chrome bei 390 px
-  einschließlich Neuöffnung. Sie decken keinen unbemerkten Cookie-Wechsel oder
+  einschließlich sicherem Neuaufbau. Sie decken keinen unbemerkten Cookie-Wechsel oder
   eine echte geräteübergreifende Zustellung ab. Der Gesamtpunkt bleibt offen.
 
   - [x] **Fotoverarbeitungsstatus über zwei künstliche Sitzungen prüfen.**

@@ -542,7 +542,90 @@ class ChildDetailScreen extends StatefulWidget {
   State<ChildDetailScreen> createState() => _ChildDetailScreenState();
 }
 
-class _ChildDetailScreenState extends State<ChildDetailScreen>
+class _ChildDetailScreenState extends State<ChildDetailScreen> {
+  late String? _token;
+  Json? _owner;
+  String? _family;
+  Object _sessionMarker = Object();
+
+  @override
+  void initState() {
+    super.initState();
+    _token = widget.state.api.token;
+    _owner = widget.state.user;
+    _family = widget.state.familyId;
+    widget.state.addListener(_sessionChanged);
+  }
+
+  void _sessionChanged() {
+    final current = widget.state.api.token;
+    if ((_token != current ||
+            !identical(_owner, widget.state.user) ||
+            _family != widget.state.familyId) &&
+        mounted) {
+      setState(() {
+        _token = current;
+        _owner = widget.state.user;
+        _family = widget.state.familyId;
+        _sessionMarker = Object();
+      });
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant ChildDetailScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.state, widget.state)) {
+      oldWidget.state.removeListener(_sessionChanged);
+      widget.state.addListener(_sessionChanged);
+      _token = widget.state.api.token;
+      _owner = widget.state.user;
+      _family = widget.state.familyId;
+      _sessionMarker = Object();
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.state.removeListener(_sessionChanged);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = widget.state;
+    if (state.user == null ||
+        (state.isChild && state.user?['child_id'] != widget.childId)) {
+      return const SizedBox.shrink();
+    }
+    return _ChildDetailBody(
+      state,
+      key: ObjectKey(_sessionMarker),
+      childId: widget.childId,
+      childMode: widget.childMode,
+      section: widget.section,
+    );
+  }
+}
+
+class _ChildDetailBody extends StatefulWidget {
+  final AppState state;
+  final String childId;
+  final bool childMode;
+  final String section;
+  const _ChildDetailBody(
+    this.state, {
+    super.key,
+    required this.childId,
+    required this.childMode,
+    required this.section,
+  });
+
+  @override
+  State<_ChildDetailBody> createState() => _ChildDetailBodyState();
+}
+
+class _ChildDetailBodyState extends State<_ChildDetailBody>
     with WidgetsBindingObserver {
   int get tab => switch (widget.section) {
     'plan' => 1,
@@ -685,7 +768,7 @@ class _ChildDetailScreenState extends State<ChildDetailScreen>
   }
 
   @override
-  void didUpdateWidget(covariant ChildDetailScreen oldWidget) {
+  void didUpdateWidget(covariant _ChildDetailBody oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.childId != widget.childId ||
         !identical(oldWidget.state, widget.state)) {

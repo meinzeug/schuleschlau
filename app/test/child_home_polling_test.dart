@@ -67,10 +67,6 @@ class PendingHome {
       initialLocation: '/app',
       routes: [
         GoRoute(path: '/app', builder: (_, _) => DashboardScreen(state)),
-        GoRoute(
-          path: '/elsewhere',
-          builder: (_, _) => const Scaffold(body: Text('Andere Ansicht')),
-        ),
       ],
     );
   }
@@ -113,6 +109,46 @@ Future<void> startPoll(WidgetTester tester) async {
 
 void main() {
   setUp(() => FlutterSecureStorage.setMockInitialValues({}));
+  testWidgets('Another child cannot open an old child route', (tester) async {
+    final home = PendingHome();
+    final router = GoRouter(
+      initialLocation: '/app',
+      routes: [
+        GoRoute(
+          path: '/app',
+          builder: (_, _) => ChildDetailScreen(
+            home.state,
+            childId: home.data['child']['id'],
+            childMode: true,
+          ),
+        ),
+      ],
+    );
+    addTearDown(() async {
+      await tester.pumpWidget(const SizedBox.shrink());
+      router.dispose();
+      home.router.dispose();
+    });
+    await tester.pumpWidget(
+      MaterialApp.router(theme: appTheme(), routerConfig: router),
+    );
+    await tester.pumpAndSettle();
+    await startPoll(tester);
+    home.state.user = {
+      ...home.state.user!,
+      'id': 'other-synthetic-child-user',
+      'child_id': 'other-child',
+    };
+    // ignore: invalid_use_of_protected_member, invalid_use_of_visible_for_testing_member
+    home.state.notifyListeners();
+    await tester.pump();
+    expect(find.byType(ChildTodayHero), findsNothing);
+    home.reads.single.complete(home.reply());
+    await tester.pumpAndSettle();
+    expect(find.byType(ChildTodayHero), findsNothing);
+    expect(home.requests, hasLength(2));
+    expect(tester.takeException(), isNull);
+  });
   testWidgets('A replaced session immediately hides the child home', (
     tester,
   ) async {
@@ -123,17 +159,20 @@ void main() {
     // ignore: invalid_use_of_protected_member, invalid_use_of_visible_for_testing_member
     home.state.notifyListeners();
     await tester.pump();
+    expect(
+      tester.allWidgets.where(
+        (widget) =>
+            widget.key?.toString().contains('new-synthetic-session') ?? false,
+      ),
+      isEmpty,
+      reason: 'Session tokens must not appear in widget diagnostics.',
+    );
     expect(find.byType(ChildTodayHero), findsNothing);
+    expect(home.requests, hasLength(3));
     home.recognized();
-    home.reads.single.complete(home.reply());
-    await tester.pumpAndSettle();
-    await tester.pump(const Duration(seconds: 20));
-    expect(find.byType(ChildTodayHero), findsNothing);
-    expect(home.requests, hasLength(2));
-    home.router.go('/elsewhere');
-    await tester.pumpAndSettle();
-    home.router.go('/app');
+    home.reads.first.complete(home.reply());
     await tester.pump();
+    expect(find.byType(ChildTodayHero), findsNothing);
     expect(home.requests, hasLength(3));
     home.reads.last.complete(home.reply());
     await tester.pumpAndSettle();
