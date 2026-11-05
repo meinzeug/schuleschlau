@@ -1790,6 +1790,17 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Hefte, Materialarten und Suche im digitalen Ranzen abnehmen**
 
+  - [x] **Kinder-Löschung auf unbestätigte freie Quellen begrenzen.**
+    Die Kinderansicht und sämtliche Löschwege schützen bestätigte Seiten,
+    verknüpfte Übungen und Elternaufträge sowie fortgeschrittene Tagesabgaben;
+    gemischte Auswahlen werden insgesamt abgelehnt. Das Backend prüft nach
+    der Sperre Quellen und Berechtigungen erneut. Eltern mit Schreibrecht
+    behalten die gezählte Löschvorschau. Ein echter lokaler Browsertest mit
+    künstlichen Konten und gezielte PostgreSQL-Rennen ergänzen Flutter- und
+    API-Tests. Der unmittelbare Sitzungswiderruf nach der letzten Prüfung bis
+    zum Commit ist nicht vollständig serialisiert und bleibt gesondert offen;
+    siehe [Prüfung](docs/NOTEBOOK_BROWSER_REGRESSION_2026_11_05.md).
+
   - [x] **Lokalen Hefte-Browserlauf mit Löschvorschau reproduzierbar prüfen.**
     05.11.2026: Ein isolierter Chrome-/SQLite-Lauf mit künstlichen Konten
     und fünf künstlichen Layoutseiten prüft Eltern-Löschvorschau mit
