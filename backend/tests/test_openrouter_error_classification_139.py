@@ -28,10 +28,11 @@ class OpenRouterErrorClassification(unittest.TestCase):
             ('rate_limit_exceeded','provider_busy','Die KI ist gerade ausgelastet. Bitte später erneut versuchen.'),
             ('provider_overloaded','provider_busy','Die KI ist gerade ausgelastet. Bitte später erneut versuchen.'),
             ('timeout','provider_timeout','Die KI hat zu lange gebraucht und abgebrochen. Bitte später erneut versuchen.'),
-            ('authentication','provider_unavailable','Die KI-Verbindung muss vom Betreiber geprüft werden. Deine Fotos bleiben gespeichert.'),
-            ('permission_denied','provider_unavailable','Die KI-Verbindung muss vom Betreiber geprüft werden. Deine Fotos bleiben gespeichert.'),
-            ('payment_required','provider_unavailable','Die KI-Verbindung muss vom Betreiber geprüft werden. Deine Fotos bleiben gespeichert.'),
-            ('invalid_request','provider_unavailable','Die KI-Verbindung muss vom Betreiber geprüft werden. Deine Fotos bleiben gespeichert.'),
+            ('authentication','not_configured','Die KI-Verbindung muss vom Betreiber geprüft werden. Deine Fotos bleiben gespeichert.'),
+            ('permission_denied','not_configured','Die KI-Verbindung muss vom Betreiber geprüft werden. Deine Fotos bleiben gespeichert.'),
+            ('payment_required','not_configured','Die KI-Verbindung muss vom Betreiber geprüft werden. Deine Fotos bleiben gespeichert.'),
+            ('invalid_request','not_configured','Die KI-Verbindung muss vom Betreiber geprüft werden. Deine Fotos bleiben gespeichert.'),
+            ('invalid_schema','invalid_output','Der KI-Anbieter hat die Antwort abgebrochen. Bitte später erneut versuchen.'),
             ('server','provider_unavailable','Der KI-Anbieter hat die Antwort abgebrochen. Bitte später erneut versuchen.'),
         ]:
             with self.subTest(category=category):
@@ -46,13 +47,29 @@ class OpenRouterErrorClassification(unittest.TestCase):
     def test_unknown_and_malformed_envelopes_are_unavailable_without_zero_cost_claim(self):
         for value in (None,[],0,'PRIVATE-SYNTHETIC',{}, {'metadata':[]},
                 {'metadata':{'error_type':None}}, {'metadata':{'error_type':'future_unknown'}},
-                {'metadata':{'error_type':['timeout']}}, {'code':429,'message':'PRIVATE-SYNTHETIC'}):
+                {'metadata':{'error_type':['timeout']}}, {'code':True}, {'code':' 429'}, {'code':429.0},
+                {'code':'429 PRIVATE-SYNTHETIC'}, {'code':500}):
             with self.subTest(shape=type(value).__name__):
                 self.assertEqual(SCOPE['openrouter_failure_code'](value),'provider_unavailable')
                 self.assertEqual(SCOPE['openrouter_failure'](value),
                     'Der KI-Anbieter hat die Antwort abgebrochen. Bitte später erneut versuchen.')
                 self.assertIsNone(SCOPE['ProviderError'](SCOPE['openrouter_failure'](value),
                     code=SCOPE['openrouter_failure_code'](value)).billing_result)
+
+    def test_explicit_numeric_codes_without_category_have_bounded_classification(self):
+        for raw, expected, message in [
+            (429,'provider_busy','Die KI ist gerade ausgelastet. Bitte später erneut versuchen.'),
+            ('429','provider_busy','Die KI ist gerade ausgelastet. Bitte später erneut versuchen.'),
+            (408,'provider_timeout','Die KI hat zu lange gebraucht und abgebrochen. Bitte später erneut versuchen.'),
+            ('504','provider_timeout','Die KI hat zu lange gebraucht und abgebrochen. Bitte später erneut versuchen.'),
+            (401,'not_configured','Der KI-Anbieter hat die Antwort abgebrochen. Bitte später erneut versuchen.'),
+            ('422','not_configured','Der KI-Anbieter hat die Antwort abgebrochen. Bitte später erneut versuchen.'),
+        ]:
+            with self.subTest(code=raw):
+                value={'code':raw, 'message':'PRIVATE-SYNTHETIC'}
+                self.assertEqual(SCOPE['openrouter_failure_code'](value),expected)
+                self.assertEqual(SCOPE['openrouter_failure'](value),message)
+                self.assertNotIn('PRIVATE-SYNTHETIC',SCOPE['openrouter_failure'](value))
 
     def test_both_actual_error_raise_hooks_forward_same_envelope_and_only_add_code(self):
         hooks=[]
