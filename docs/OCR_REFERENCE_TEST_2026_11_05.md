@@ -44,3 +44,25 @@ mit unterschiedlichen Licht- und Perspektivverhältnissen sowie die reguläre
 Dateiwahl und der Zuschnitt für diesen Vierseitenlauf. Ein Emulatorlauf mit
 anderen künstlichen Seiten ist separat dokumentiert. Deshalb bleibt die
 umfassende OCR-Abnahme in der Roadmap offen.
+
+## Erneuter Anbieterfall nach Ausrollen der Lageprüfung
+
+Auf dem produktiven Release `a3feaa8` wurde der reguläre Ablauf am 05.11.2026
+mit einer neu angelegten künstlichen Familie und denselben vier fest
+freigegebenen Fotos erneut **einmal bewusst** gestartet. Der automatische
+Prüfmodus führte nach vier Erkennungen und vier Gegenprüfungen auch zwei
+Paketpartitionen aus. Alle zehn Aufrufe waren erfolgreich und kosteten
+zusammen 0,163519 USD; unbekannte Kosten: null. Nach 250,6 Sekunden meldete
+der Server `ready`. Es wurden keine Antworten gespeichert und keine Aufträge
+wiederholt.
+
+Bei Referenzfoto 04 überlappten sich diesmal die Lageangaben aus den beiden
+Lesungen für die rote Durchstreichung und die rote Wiederholung jeweils. Beide
+Markierungen und beide Lageangaben blieben in den Daten erhalten; die neue
+Konfliktwarnung erschien nicht. Das entspricht in diesem Fall der Eingabe,
+belegt aber **nicht**, dass ein tatsächlicher Konflikt bei diesem Lauf live
+angezeigt wurde. Die zuvor beobachtete Abweichung und ihr isolierter
+Regressionstest bleiben oben beschrieben. Die letzte sichtbare Aufgabe erhielt
+getrennt den Hinweis, dass nach dem Gleichheitszeichen keine Fortsetzung zu
+sehen sei. Die künstliche Familie wurde über den regulären Endpunkt gelöscht;
+Zugangsdaten und temporäre Diagnosekopien wurden entfernt.
