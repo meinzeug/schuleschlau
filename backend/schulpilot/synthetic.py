@@ -1,6 +1,7 @@
 """Deterministic, explicitly synthetic fixtures, never a fallback AI provider."""
 
 import copy
+import re
 import secrets
 from fractions import Fraction
 
@@ -107,8 +108,8 @@ def with_demo_visuals(data, payload):
     if not context.get("required") or not source or not reference:
         return data
 
-    def step(disclosure):
-        return {"id": "demo_fraction", "text": "Beispiel aus dem Demoheft: 2 von 4 gleich großen Teilen.",
+    def step(disclosure, text):
+        return {"id": "demo_fraction", "text": text + "\n\nDie Grafik zeigt das Beispiel 2/4 aus dem Demoheft.",
                 "competence_id": None, "disclosure": disclosure,
                 "reference": {"id": reference["id"], "version": reference["version"]},
                 "source_refs": [source["ref"]],
@@ -119,9 +120,20 @@ def with_demo_visuals(data, payload):
                 }]}}
 
     result = copy.deepcopy(data)
-    result["explanation_steps"] = [step("given")]
+    # The stored explanation and its visible step describe the same fraction
+    # as the graphic. Keep the rules and every question's solution intact.
+    result["explanation"] = result["explanation"].replace(
+        "Bei 1/4 ist das Ganze in vier Teile geteilt; einer davon ist gemeint.",
+        "Bei 2/4 ist das Ganze in vier Teile geteilt; zwei davon sind gemeint.",
+    )
+    result["explanation_steps"] = [step("given", result["explanation"])]
     for question in result["questions"]:
-        question["explanation_steps"] = [step("solution")]
+        # The graphic is deliberately a *separate* source example. Spell the
+        # task's fractional result out so the graphics validator cannot mistake
+        # it for a label of the unrelated source example.
+        text = re.sub(r"(?<!\d)(\d+)/([1-9]\d*)(?!\d)",
+                      lambda m: f"der Bruch mit Zähler {m[1]} und Nenner {m[2]}", question["explanation"])
+        question["explanation_steps"] = [step("solution", text)]
     return result
 
 

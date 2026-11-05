@@ -1,0 +1,728 @@
+[
+  {
+    "subject": "Mathematik",
+    "topic": "Brüche",
+    "explanation": "Ein Ganzes kann in gleich große Teile geteilt werden. Bei 2/4 ist das Ganze in vier Teile geteilt; zwei davon sind gemeint. Der Nenner steht unten, der Zähler oben. Bei gleichem Nenner addierst du die Zähler. Beim Kürzen teilst du oben und unten durch dieselbe Zahl.",
+    "questions": [
+      {
+        "id": "sum",
+        "type": "choice",
+        "prompt": "Was ergibt 1/4 + 1/4?",
+        "options": [
+          "2/4",
+          "2/8",
+          "1/8"
+        ],
+        "answer": "2/4",
+        "accepted": [],
+        "hints": [
+          "Der Nenner bleibt beim Addieren gleich.",
+          "Addiere nur die Zähler: 1 + 1."
+        ],
+        "explanation": "1 + 1 = 2. Der Nenner bleibt 4. Das Ergebnis ist 2/4.",
+        "explanation_steps": [
+          {
+            "id": "demo_fraction",
+            "text": "1 + 1 = 2. Der Nenner bleibt 4. Das Ergebnis ist der Bruch mit Zähler 2 und Nenner 4.\n\nDie Grafik zeigt das Beispiel 2/4 aus dem Demoheft.",
+            "competence_id": null,
+            "disclosure": "solution",
+            "reference": {
+              "id": "math.fraction.part_whole",
+              "version": 1
+            },
+            "source_refs": [
+              "p1"
+            ],
+            "presentation": {
+              "version": 1,
+              "evidence_kind": "knowledge",
+              "blocks": [
+                {
+                  "kind": "fraction",
+                  "title": "Beispiel aus dem Demoheft: 2/4",
+                  "disclosure": "solution",
+                  "source_excerpt": "Beispiel: 2/4 = 1/2.",
+                  "labels": [],
+                  "numbers": [
+                    2,
+                    4
+                  ],
+                  "connections": [],
+                  "unit": "",
+                  "variant": ""
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "reduce",
+        "type": "gap",
+        "prompt": "Kürze 2/4 vollständig: 2/4 = __ (als Bruch)",
+        "options": [],
+        "answer": "1/2",
+        "accepted": [
+          "1 / 2"
+        ],
+        "hints": [
+          "Teile Zähler und Nenner durch 2."
+        ],
+        "explanation": "2 geteilt durch 2 ist 1. 4 geteilt durch 2 ist 2. Daraus wird 1/2.",
+        "explanation_steps": [
+          {
+            "id": "demo_fraction",
+            "text": "2 geteilt durch 2 ist 1. 4 geteilt durch 2 ist 2. Daraus wird der Bruch mit Zähler 1 und Nenner 2.\n\nDie Grafik zeigt das Beispiel 2/4 aus dem Demoheft.",
+            "competence_id": null,
+            "disclosure": "solution",
+            "reference": {
+              "id": "math.fraction.part_whole",
+              "version": 1
+            },
+            "source_refs": [
+              "p1"
+            ],
+            "presentation": {
+              "version": 1,
+              "evidence_kind": "knowledge",
+              "blocks": [
+                {
+                  "kind": "fraction",
+                  "title": "Beispiel aus dem Demoheft: 2/4",
+                  "disclosure": "solution",
+                  "source_excerpt": "Beispiel: 2/4 = 1/2.",
+                  "labels": [],
+                  "numbers": [
+                    2,
+                    4
+                  ],
+                  "connections": [],
+                  "unit": "",
+                  "variant": ""
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "parts",
+        "type": "match",
+        "prompt": "Ordne die Begriffe ihrer Bedeutung zu.",
+        "options": [
+          "Zähler|Anzahl ausgewählter Teile",
+          "Nenner|Anzahl aller gleich großen Teile"
+        ],
+        "answer": "Anzahl ausgewählter Teile;Anzahl aller gleich großen Teile",
+        "accepted": [],
+        "hints": [
+          "Der Zähler zählt die Teile, die gemeint sind."
+        ],
+        "explanation": "Der Nenner beschreibt die Einteilung des Ganzen, der Zähler die ausgewählten Teile.",
+        "explanation_steps": [
+          {
+            "id": "demo_fraction",
+            "text": "Der Nenner beschreibt die Einteilung des Ganzen, der Zähler die ausgewählten Teile.\n\nDie Grafik zeigt das Beispiel 2/4 aus dem Demoheft.",
+            "competence_id": null,
+            "disclosure": "solution",
+            "reference": {
+              "id": "math.fraction.part_whole",
+              "version": 1
+            },
+            "source_refs": [
+              "p1"
+            ],
+            "presentation": {
+              "version": 1,
+              "evidence_kind": "knowledge",
+              "blocks": [
+                {
+                  "kind": "fraction",
+                  "title": "Beispiel aus dem Demoheft: 2/4",
+                  "disclosure": "solution",
+                  "source_excerpt": "Beispiel: 2/4 = 1/2.",
+                  "labels": [],
+                  "numbers": [
+                    2,
+                    4
+                  ],
+                  "connections": [],
+                  "unit": "",
+                  "variant": ""
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "name",
+        "type": "short",
+        "prompt": "Wie heißt die Zahl unter dem Bruchstrich? Ein Wort reicht.",
+        "options": [],
+        "answer": "Nenner",
+        "accepted": [
+          "der Nenner"
+        ],
+        "hints": [
+          "Der Begriff beginnt mit N."
+        ],
+        "explanation": "Die Zahl unter dem Bruchstrich heißt Nenner.",
+        "explanation_steps": [
+          {
+            "id": "demo_fraction",
+            "text": "Die Zahl unter dem Bruchstrich heißt Nenner.\n\nDie Grafik zeigt das Beispiel 2/4 aus dem Demoheft.",
+            "competence_id": null,
+            "disclosure": "solution",
+            "reference": {
+              "id": "math.fraction.part_whole",
+              "version": 1
+            },
+            "source_refs": [
+              "p1"
+            ],
+            "presentation": {
+              "version": 1,
+              "evidence_kind": "knowledge",
+              "blocks": [
+                {
+                  "kind": "fraction",
+                  "title": "Beispiel aus dem Demoheft: 2/4",
+                  "disclosure": "solution",
+                  "source_excerpt": "Beispiel: 2/4 = 1/2.",
+                  "labels": [],
+                  "numbers": [
+                    2,
+                    4
+                  ],
+                  "connections": [],
+                  "unit": "",
+                  "variant": ""
+                }
+              ]
+            }
+          }
+        ]
+      }
+    ],
+    "explanation_steps": [
+      {
+        "id": "demo_fraction",
+        "text": "Ein Ganzes kann in gleich große Teile geteilt werden. Bei 2/4 ist das Ganze in vier Teile geteilt; zwei davon sind gemeint. Der Nenner steht unten, der Zähler oben. Bei gleichem Nenner addierst du die Zähler. Beim Kürzen teilst du oben und unten durch dieselbe Zahl.\n\nDie Grafik zeigt das Beispiel 2/4 aus dem Demoheft.",
+        "competence_id": null,
+        "disclosure": "given",
+        "reference": {
+          "id": "math.fraction.part_whole",
+          "version": 1
+        },
+        "source_refs": [
+          "p1"
+        ],
+        "presentation": {
+          "version": 1,
+          "evidence_kind": "knowledge",
+          "blocks": [
+            {
+              "kind": "fraction",
+              "title": "Beispiel aus dem Demoheft: 2/4",
+              "disclosure": "given",
+              "source_excerpt": "Beispiel: 2/4 = 1/2.",
+              "labels": [],
+              "numbers": [
+                2,
+                4
+              ],
+              "connections": [],
+              "unit": "",
+              "variant": ""
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "subject": "Mathematik",
+    "topic": "Brüche",
+    "explanation": "Ein Ganzes kann in gleich große Teile geteilt werden. Bei 2/4 ist das Ganze in vier Teile geteilt; zwei davon sind gemeint. Der Nenner steht unten, der Zähler oben. Bei gleichem Nenner addierst du die Zähler. Beim Kürzen teilst du oben und unten durch dieselbe Zahl.",
+    "questions": [
+      {
+        "id": "sum",
+        "type": "choice",
+        "prompt": "Was ergibt 1/6 + 2/6?",
+        "options": [
+          "3/6",
+          "3/12",
+          "1/12"
+        ],
+        "answer": "3/6",
+        "accepted": [],
+        "hints": [
+          "Der Nenner bleibt beim Addieren gleich.",
+          "Addiere nur die Zähler: 1 + 2."
+        ],
+        "explanation": "1 + 2 = 3. Der Nenner bleibt 6. Das Ergebnis ist 3/6.",
+        "explanation_steps": [
+          {
+            "id": "demo_fraction",
+            "text": "1 + 2 = 3. Der Nenner bleibt 6. Das Ergebnis ist der Bruch mit Zähler 3 und Nenner 6.\n\nDie Grafik zeigt das Beispiel 2/4 aus dem Demoheft.",
+            "competence_id": null,
+            "disclosure": "solution",
+            "reference": {
+              "id": "math.fraction.part_whole",
+              "version": 1
+            },
+            "source_refs": [
+              "p1"
+            ],
+            "presentation": {
+              "version": 1,
+              "evidence_kind": "knowledge",
+              "blocks": [
+                {
+                  "kind": "fraction",
+                  "title": "Beispiel aus dem Demoheft: 2/4",
+                  "disclosure": "solution",
+                  "source_excerpt": "Beispiel: 2/4 = 1/2.",
+                  "labels": [],
+                  "numbers": [
+                    2,
+                    4
+                  ],
+                  "connections": [],
+                  "unit": "",
+                  "variant": ""
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "reduce",
+        "type": "gap",
+        "prompt": "Kürze 2/4 vollständig: 2/4 = __ (als Bruch)",
+        "options": [],
+        "answer": "1/2",
+        "accepted": [
+          "1 / 2"
+        ],
+        "hints": [
+          "Teile Zähler und Nenner durch 2."
+        ],
+        "explanation": "2 geteilt durch 2 ist 1. 4 geteilt durch 2 ist 2. Daraus wird 1/2.",
+        "explanation_steps": [
+          {
+            "id": "demo_fraction",
+            "text": "2 geteilt durch 2 ist 1. 4 geteilt durch 2 ist 2. Daraus wird der Bruch mit Zähler 1 und Nenner 2.\n\nDie Grafik zeigt das Beispiel 2/4 aus dem Demoheft.",
+            "competence_id": null,
+            "disclosure": "solution",
+            "reference": {
+              "id": "math.fraction.part_whole",
+              "version": 1
+            },
+            "source_refs": [
+              "p1"
+            ],
+            "presentation": {
+              "version": 1,
+              "evidence_kind": "knowledge",
+              "blocks": [
+                {
+                  "kind": "fraction",
+                  "title": "Beispiel aus dem Demoheft: 2/4",
+                  "disclosure": "solution",
+                  "source_excerpt": "Beispiel: 2/4 = 1/2.",
+                  "labels": [],
+                  "numbers": [
+                    2,
+                    4
+                  ],
+                  "connections": [],
+                  "unit": "",
+                  "variant": ""
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "parts",
+        "type": "match",
+        "prompt": "Ordne die Begriffe ihrer Bedeutung zu.",
+        "options": [
+          "Zähler|Anzahl ausgewählter Teile",
+          "Nenner|Anzahl aller gleich großen Teile"
+        ],
+        "answer": "Anzahl ausgewählter Teile;Anzahl aller gleich großen Teile",
+        "accepted": [],
+        "hints": [
+          "Der Zähler zählt die Teile, die gemeint sind."
+        ],
+        "explanation": "Der Nenner beschreibt die Einteilung des Ganzen, der Zähler die ausgewählten Teile.",
+        "explanation_steps": [
+          {
+            "id": "demo_fraction",
+            "text": "Der Nenner beschreibt die Einteilung des Ganzen, der Zähler die ausgewählten Teile.\n\nDie Grafik zeigt das Beispiel 2/4 aus dem Demoheft.",
+            "competence_id": null,
+            "disclosure": "solution",
+            "reference": {
+              "id": "math.fraction.part_whole",
+              "version": 1
+            },
+            "source_refs": [
+              "p1"
+            ],
+            "presentation": {
+              "version": 1,
+              "evidence_kind": "knowledge",
+              "blocks": [
+                {
+                  "kind": "fraction",
+                  "title": "Beispiel aus dem Demoheft: 2/4",
+                  "disclosure": "solution",
+                  "source_excerpt": "Beispiel: 2/4 = 1/2.",
+                  "labels": [],
+                  "numbers": [
+                    2,
+                    4
+                  ],
+                  "connections": [],
+                  "unit": "",
+                  "variant": ""
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "name",
+        "type": "short",
+        "prompt": "Wie heißt die Zahl unter dem Bruchstrich? Ein Wort reicht.",
+        "options": [],
+        "answer": "Nenner",
+        "accepted": [
+          "der Nenner"
+        ],
+        "hints": [
+          "Der Begriff beginnt mit N."
+        ],
+        "explanation": "Die Zahl unter dem Bruchstrich heißt Nenner.",
+        "explanation_steps": [
+          {
+            "id": "demo_fraction",
+            "text": "Die Zahl unter dem Bruchstrich heißt Nenner.\n\nDie Grafik zeigt das Beispiel 2/4 aus dem Demoheft.",
+            "competence_id": null,
+            "disclosure": "solution",
+            "reference": {
+              "id": "math.fraction.part_whole",
+              "version": 1
+            },
+            "source_refs": [
+              "p1"
+            ],
+            "presentation": {
+              "version": 1,
+              "evidence_kind": "knowledge",
+              "blocks": [
+                {
+                  "kind": "fraction",
+                  "title": "Beispiel aus dem Demoheft: 2/4",
+                  "disclosure": "solution",
+                  "source_excerpt": "Beispiel: 2/4 = 1/2.",
+                  "labels": [],
+                  "numbers": [
+                    2,
+                    4
+                  ],
+                  "connections": [],
+                  "unit": "",
+                  "variant": ""
+                }
+              ]
+            }
+          }
+        ]
+      }
+    ],
+    "explanation_steps": [
+      {
+        "id": "demo_fraction",
+        "text": "Ein Ganzes kann in gleich große Teile geteilt werden. Bei 2/4 ist das Ganze in vier Teile geteilt; zwei davon sind gemeint. Der Nenner steht unten, der Zähler oben. Bei gleichem Nenner addierst du die Zähler. Beim Kürzen teilst du oben und unten durch dieselbe Zahl.\n\nDie Grafik zeigt das Beispiel 2/4 aus dem Demoheft.",
+        "competence_id": null,
+        "disclosure": "given",
+        "reference": {
+          "id": "math.fraction.part_whole",
+          "version": 1
+        },
+        "source_refs": [
+          "p1"
+        ],
+        "presentation": {
+          "version": 1,
+          "evidence_kind": "knowledge",
+          "blocks": [
+            {
+              "kind": "fraction",
+              "title": "Beispiel aus dem Demoheft: 2/4",
+              "disclosure": "given",
+              "source_excerpt": "Beispiel: 2/4 = 1/2.",
+              "labels": [],
+              "numbers": [
+                2,
+                4
+              ],
+              "connections": [],
+              "unit": "",
+              "variant": ""
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "subject": "Mathematik",
+    "topic": "Brüche",
+    "explanation": "Ein Ganzes kann in gleich große Teile geteilt werden. Bei 2/4 ist das Ganze in vier Teile geteilt; zwei davon sind gemeint. Der Nenner steht unten, der Zähler oben. Bei gleichem Nenner addierst du die Zähler. Beim Kürzen teilst du oben und unten durch dieselbe Zahl.",
+    "questions": [
+      {
+        "id": "sum",
+        "type": "choice",
+        "prompt": "Was ergibt 1/8 + 2/8?",
+        "options": [
+          "3/8",
+          "3/16",
+          "1/16"
+        ],
+        "answer": "3/8",
+        "accepted": [],
+        "hints": [
+          "Der Nenner bleibt beim Addieren gleich.",
+          "Addiere nur die Zähler: 1 + 2."
+        ],
+        "explanation": "1 + 2 = 3. Der Nenner bleibt 8. Das Ergebnis ist 3/8.",
+        "explanation_steps": [
+          {
+            "id": "demo_fraction",
+            "text": "1 + 2 = 3. Der Nenner bleibt 8. Das Ergebnis ist der Bruch mit Zähler 3 und Nenner 8.\n\nDie Grafik zeigt das Beispiel 2/4 aus dem Demoheft.",
+            "competence_id": null,
+            "disclosure": "solution",
+            "reference": {
+              "id": "math.fraction.part_whole",
+              "version": 1
+            },
+            "source_refs": [
+              "p1"
+            ],
+            "presentation": {
+              "version": 1,
+              "evidence_kind": "knowledge",
+              "blocks": [
+                {
+                  "kind": "fraction",
+                  "title": "Beispiel aus dem Demoheft: 2/4",
+                  "disclosure": "solution",
+                  "source_excerpt": "Beispiel: 2/4 = 1/2.",
+                  "labels": [],
+                  "numbers": [
+                    2,
+                    4
+                  ],
+                  "connections": [],
+                  "unit": "",
+                  "variant": ""
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "reduce",
+        "type": "gap",
+        "prompt": "Kürze 2/4 vollständig: 2/4 = __ (als Bruch)",
+        "options": [],
+        "answer": "1/2",
+        "accepted": [
+          "1 / 2"
+        ],
+        "hints": [
+          "Teile Zähler und Nenner durch 2."
+        ],
+        "explanation": "2 geteilt durch 2 ist 1. 4 geteilt durch 2 ist 2. Daraus wird 1/2.",
+        "explanation_steps": [
+          {
+            "id": "demo_fraction",
+            "text": "2 geteilt durch 2 ist 1. 4 geteilt durch 2 ist 2. Daraus wird der Bruch mit Zähler 1 und Nenner 2.\n\nDie Grafik zeigt das Beispiel 2/4 aus dem Demoheft.",
+            "competence_id": null,
+            "disclosure": "solution",
+            "reference": {
+              "id": "math.fraction.part_whole",
+              "version": 1
+            },
+            "source_refs": [
+              "p1"
+            ],
+            "presentation": {
+              "version": 1,
+              "evidence_kind": "knowledge",
+              "blocks": [
+                {
+                  "kind": "fraction",
+                  "title": "Beispiel aus dem Demoheft: 2/4",
+                  "disclosure": "solution",
+                  "source_excerpt": "Beispiel: 2/4 = 1/2.",
+                  "labels": [],
+                  "numbers": [
+                    2,
+                    4
+                  ],
+                  "connections": [],
+                  "unit": "",
+                  "variant": ""
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "parts",
+        "type": "match",
+        "prompt": "Ordne die Begriffe ihrer Bedeutung zu.",
+        "options": [
+          "Zähler|Anzahl ausgewählter Teile",
+          "Nenner|Anzahl aller gleich großen Teile"
+        ],
+        "answer": "Anzahl ausgewählter Teile;Anzahl aller gleich großen Teile",
+        "accepted": [],
+        "hints": [
+          "Der Zähler zählt die Teile, die gemeint sind."
+        ],
+        "explanation": "Der Nenner beschreibt die Einteilung des Ganzen, der Zähler die ausgewählten Teile.",
+        "explanation_steps": [
+          {
+            "id": "demo_fraction",
+            "text": "Der Nenner beschreibt die Einteilung des Ganzen, der Zähler die ausgewählten Teile.\n\nDie Grafik zeigt das Beispiel 2/4 aus dem Demoheft.",
+            "competence_id": null,
+            "disclosure": "solution",
+            "reference": {
+              "id": "math.fraction.part_whole",
+              "version": 1
+            },
+            "source_refs": [
+              "p1"
+            ],
+            "presentation": {
+              "version": 1,
+              "evidence_kind": "knowledge",
+              "blocks": [
+                {
+                  "kind": "fraction",
+                  "title": "Beispiel aus dem Demoheft: 2/4",
+                  "disclosure": "solution",
+                  "source_excerpt": "Beispiel: 2/4 = 1/2.",
+                  "labels": [],
+                  "numbers": [
+                    2,
+                    4
+                  ],
+                  "connections": [],
+                  "unit": "",
+                  "variant": ""
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "name",
+        "type": "short",
+        "prompt": "Wie heißt die Zahl unter dem Bruchstrich? Ein Wort reicht.",
+        "options": [],
+        "answer": "Nenner",
+        "accepted": [
+          "der Nenner"
+        ],
+        "hints": [
+          "Der Begriff beginnt mit N."
+        ],
+        "explanation": "Die Zahl unter dem Bruchstrich heißt Nenner.",
+        "explanation_steps": [
+          {
+            "id": "demo_fraction",
+            "text": "Die Zahl unter dem Bruchstrich heißt Nenner.\n\nDie Grafik zeigt das Beispiel 2/4 aus dem Demoheft.",
+            "competence_id": null,
+            "disclosure": "solution",
+            "reference": {
+              "id": "math.fraction.part_whole",
+              "version": 1
+            },
+            "source_refs": [
+              "p1"
+            ],
+            "presentation": {
+              "version": 1,
+              "evidence_kind": "knowledge",
+              "blocks": [
+                {
+                  "kind": "fraction",
+                  "title": "Beispiel aus dem Demoheft: 2/4",
+                  "disclosure": "solution",
+                  "source_excerpt": "Beispiel: 2/4 = 1/2.",
+                  "labels": [],
+                  "numbers": [
+                    2,
+                    4
+                  ],
+                  "connections": [],
+                  "unit": "",
+                  "variant": ""
+                }
+              ]
+            }
+          }
+        ]
+      }
+    ],
+    "explanation_steps": [
+      {
+        "id": "demo_fraction",
+        "text": "Ein Ganzes kann in gleich große Teile geteilt werden. Bei 2/4 ist das Ganze in vier Teile geteilt; zwei davon sind gemeint. Der Nenner steht unten, der Zähler oben. Bei gleichem Nenner addierst du die Zähler. Beim Kürzen teilst du oben und unten durch dieselbe Zahl.\n\nDie Grafik zeigt das Beispiel 2/4 aus dem Demoheft.",
+        "competence_id": null,
+        "disclosure": "given",
+        "reference": {
+          "id": "math.fraction.part_whole",
+          "version": 1
+        },
+        "source_refs": [
+          "p1"
+        ],
+        "presentation": {
+          "version": 1,
+          "evidence_kind": "knowledge",
+          "blocks": [
+            {
+              "kind": "fraction",
+              "title": "Beispiel aus dem Demoheft: 2/4",
+              "disclosure": "given",
+              "source_excerpt": "Beispiel: 2/4 = 1/2.",
+              "labels": [],
+              "numbers": [
+                2,
+                4
+              ],
+              "connections": [],
+              "unit": "",
+              "variant": ""
+            }
+          ]
+        }
+      }
+    ]
+  }
+]

@@ -40,9 +40,17 @@ def make_demo(api, *, parent_grant=True, child_grant=True):
         child = db.get(Child, demo["child_id"])
         child.preferences = {"push_consent": True, "quiet_start": 0, "quiet_end": 0}
         if parent_grant:
-            db.add(PushTestGrant(user_id=demo["user"]["id"], expires=int(now()) + 3600))
+            db.add(
+                PushTestGrant(
+                    user_id=demo["user"]["id"], expires=int(now()) if parent_grant == "expired" else int(now()) + 3600
+                )
+            )
         if child_grant:
-            db.add(PushTestGrant(user_id=child.user_id, expires=int(now()) + 3600))
+            db.add(
+                PushTestGrant(
+                    user_id=child.user_id, expires=int(now()) if child_grant == "expired" else int(now()) + 3600
+                )
+            )
     result = api.put(
         "/api/materials/" + demo["material_id"] + "/confirm",
         json={
@@ -70,7 +78,7 @@ def make_demo(api, *, parent_grant=True, child_grant=True):
         child = db.get(Child, demo["child_id"])
         unit = db.get(LearningUnit, job.result["unit_id"])
         assert unit.synthetic and unit.provider == "synthetic" and unit.model == "fixed-fractions-v1"
-        if parent_grant and child_grant:
+        if parent_grant is True and child_grant is True:
             from schulpilot.source_lineage import learning_source
 
             assert ready.authority(db, job, child)
@@ -138,7 +146,9 @@ def test_granted_demo_round_emits_one_real_bound_receipt_and_neutral_push(api, t
         client.__exit__(None, None, None)
 
 
-@pytest.mark.parametrize("parent_grant,child_grant", [(False, True), (True, False), (False, False)])
+@pytest.mark.parametrize(
+    "parent_grant,child_grant", [(False, True), (True, False), (False, False), ("expired", True), (True, "expired")]
+)
 def test_demo_notice_requires_both_requester_and_child_grants_at_creation(api, parent_grant, child_grant):
     _, job_id, _, _ = make_demo(api, parent_grant=parent_grant, child_grant=child_grant)
     with DB.begin() as db:
@@ -151,6 +161,8 @@ def test_demo_notice_requires_both_requester_and_child_grants_at_creation(api, p
     [
         "child_grant",
         "parent_grant",
+        "child_grant_expired",
+        "parent_grant_expired",
         "parent_session",
         "child_session",
         "source_revision",
@@ -176,9 +188,13 @@ def test_demo_push_rechecks_grants_authority_and_device_before_send(api, tmp_pat
             child = db.get(Child, demo["child_id"])
             dev = db.get(PushDevice, dev_id)
             job = db.get(Job, job_id)
-            if change in ("child_grant", "parent_grant"):
-                user_id = child_user_id if change == "child_grant" else demo["user"]["id"]
-                db.delete(db.get(PushTestGrant, user_id))
+            if change in ("child_grant", "parent_grant", "child_grant_expired", "parent_grant_expired"):
+                user_id = child_user_id if change.startswith("child_") else demo["user"]["id"]
+                grant = db.get(PushTestGrant, user_id)
+                if change.endswith("_expired"):
+                    grant.expires = int(now())
+                else:
+                    db.delete(grant)
             elif change == "parent_session":
                 db.get(Session, job.payload[ready.ORIGIN]["session_id"]).revoked = True
             elif change == "child_session":
@@ -306,12 +322,27 @@ def test_demo_visual_is_a_labelled_example_and_never_replaces_answers(variant):
     assert "explanation_steps" not in data
     assert [q["answer"] for q in data["questions"]] == [q["answer"] for q in result["questions"]]
     for step in [*result["explanation_steps"], *(q["explanation_steps"][0] for q in result["questions"])]:
-        assert "Beispiel aus dem Demoheft" in step["text"]
+        assert "Beispiel 2/4 aus dem Demoheft" in step["text"]
         assert "Beispiel aus dem Demoheft" in step["presentation"]["blocks"][0]["title"]
         assert step["presentation"]["blocks"][0]["numbers"] == [2, 4]
     for question in result["questions"]:
         assert question["explanation_steps"][0]["disclosure"] == "solution"
         assert public_steps(question["explanation_steps"], closed=False, hints=3) == []
+    intro = result["explanation_steps"][0]["text"]
+    assert result["explanation"] in intro
+    assert "Bei gleichem Nenner addierst du die Zähler" in intro
+    assert "Beim Kürzen teilst du oben und unten durch dieselbe Zahl" in intro
+    for question in result["questions"]:
+        step_text = question["explanation_steps"][0]["text"]
+        assert question["explanation"].split(".")[0] in step_text
+    numerator, denominator = result["questions"][0]["answer"].split("/")
+    assert f"Zähler {numerator} und Nenner {denominator}" in result["questions"][0]["explanation_steps"][0]["text"]
+    assert "Zähler 1 und Nenner 2" in result["questions"][1]["explanation_steps"][0]["text"]
+    import json
+    from pathlib import Path
+
+    fixture = Path(__file__).resolve().parents[2] / "app/test/fixtures/demo_visual_steps.json"
+    assert json.loads(fixture.read_text())[variant] == result
     missing = {"visual_context": {**payload["visual_context"], "sources": []}}
     assert with_demo_visuals(data, missing) == data
 
@@ -356,5 +387,33 @@ def test_revoking_production_push_after_queue_prevents_fcm_send(api, tmp_path, m
         with DB() as db:
             delivery = db.scalar(select(PushDelivery))
             assert delivery.status == "failed" and delivery.error_code == "NOT_CONFIGURED"
+    finally:
+        client.__exit__(None, None, None)
+
+
+def test_demo_fcm_timeout_is_not_retried_or_requeued(api, tmp_path, monkeypatch):
+    enable(tmp_path)
+    demo, _, _, _ = make_demo(api)
+    client = child_client(demo)
+    try:
+        device(client)
+        with DB.begin() as db:
+            notifications.prepare(db)
+        attempted = []
+
+        def timeout(*args, **kwargs):
+            attempted.append(True)
+            raise notifications.FcmError("TRANSPORT_OR_AUTH_ERROR")
+
+        monkeypatch.setattr(notifications, "send_fcm", timeout)
+        assert notifications.deliver_one(DB)
+        with DB.begin() as db:
+            notifications.prepare(db)
+        assert not notifications.deliver_one(DB)
+        with DB() as db:
+            deliveries = list(db.scalars(select(PushDelivery)))
+            assert len(deliveries) == 1 and deliveries[0].status == "failed"
+            assert deliveries[0].error_code == "TRANSPORT_OR_AUTH_ERROR"
+        assert len(attempted) == 1
     finally:
         client.__exit__(None, None, None)
