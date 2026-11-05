@@ -109,6 +109,31 @@ Future<void> startPoll(WidgetTester tester) async {
 
 void main() {
   setUp(() => FlutterSecureStorage.setMockInitialValues({}));
+  testWidgets('Own child home reloads when its family is first resolved', (
+    tester,
+  ) async {
+    final home = await mount(tester);
+    expect(home.state.familyId, isNull);
+    await startPoll(tester);
+    home.state.familyId = 'own-synthetic-family';
+    // ignore: invalid_use_of_protected_member, invalid_use_of_visible_for_testing_member
+    home.state.notifyListeners();
+    await tester.pump();
+    expect(find.byType(ChildTodayHero), findsNothing);
+    expect(home.requests, hasLength(3));
+    home.recognized();
+    home.reads.first.complete(home.reply());
+    await tester.pump();
+    expect(find.byType(ChildTodayHero), findsNothing);
+    home.reads.last.complete(home.reply());
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<ChildTodayHero>(find.byType(ChildTodayHero)).title,
+      'Deine Heftseiten sind erkannt.',
+    );
+    expect(home.requests.every((request) => request.method == 'GET'), isTrue);
+    expect(tester.takeException(), isNull);
+  });
   testWidgets('Another child cannot open an old child route', (tester) async {
     final home = PendingHome();
     final router = GoRouter(

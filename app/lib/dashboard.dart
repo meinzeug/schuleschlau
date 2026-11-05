@@ -565,7 +565,11 @@ class _ChildDetailScreenState extends State<ChildDetailScreen> {
             _family != widget.state.familyId) &&
         mounted) {
       setState(() {
-        if (_family != widget.state.familyId) _awaitingFamilyChild = true;
+        if (widget.state.isChild) {
+          _awaitingFamilyChild = false;
+        } else if (_family != widget.state.familyId) {
+          _awaitingFamilyChild = true;
+        }
         _token = current;
         _owner = widget.state.user;
         _family = widget.state.familyId;
@@ -579,14 +583,17 @@ class _ChildDetailScreenState extends State<ChildDetailScreen> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.childId != widget.childId) {
       _awaitingFamilyChild = false;
-      _sessionMarker = Object();
     }
     if (!identical(oldWidget.state, widget.state)) {
       oldWidget.state.removeListener(_sessionChanged);
       widget.state.addListener(_sessionChanged);
       _token = widget.state.api.token;
       _owner = widget.state.user;
-      if (_family != widget.state.familyId) _awaitingFamilyChild = true;
+      if (widget.state.isChild) {
+        _awaitingFamilyChild = false;
+      } else if (_family != widget.state.familyId) {
+        _awaitingFamilyChild = true;
+      }
       _family = widget.state.familyId;
       _sessionMarker = Object();
     }

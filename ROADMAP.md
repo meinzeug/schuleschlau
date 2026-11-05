@@ -2157,7 +2157,8 @@ Bestandteil des bestehenden Buildvertrags.
   Tokenwechsel; ein laufender
   Statusabruf darf sie nicht zurückbringen. In derselben Familie startet die
   Ansicht einen autorisierten GET unter dem geänderten Konto-/Sitzungskontext;
-  nach Familienwechsel fordert sie zur neuen Kinderwahl auf.
+  nach Familienwechsel fordert sie Eltern zur neuen Kinderwahl auf; Kinder
+  laden ihre eigene Route erneut.
   Die künstlichen Clienttests bestanden auf der VM und in Chrome bei 390 px
   einschließlich sicherem Neuaufbau. Sie decken keinen unbemerkten Cookie-Wechsel oder
   eine echte geräteübergreifende Zustellung ab. Der Gesamtpunkt bleibt offen.
