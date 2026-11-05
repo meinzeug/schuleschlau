@@ -149,6 +149,18 @@ def compile_candidates(payload, *, count=2, slots=None):
                  if p.get("subject") == "Mathematik" and p.get("group_id") == groups[0].get("id")), None)
     slots = slots or (_specs(plan, count) if plan and plan["entry_mode"] != "existing_contract" else [{"id": f"q{i + 1}"} for i in range(count)])
     foundations = [r for r in prepared.compile_candidates(payload) if r.get("question_core") and r["disclosure"] == "solution"]
+    # A fixed prerequisite has its own immutable question and picture; it does
+    # not consume a fresh decimal example. Resolve it before checking the
+    # finite candidate pool, otherwise a valid mixed round can fail even when
+    # all of its actual application slots have an unused pair.
+    fixed = {}
+    for slot in slots:
+        if slot.get("type"):
+            candidate = next((r for r in foundations if r["question_core"]["id"] == slot["id"]), None)
+            if candidate is None:
+                return []
+            fixed[slot["id"]] = candidate
+    needed = sum(not slot.get("type") for slot in slots)
     contents = [s["content"] for s in sources]
     excluded = original_pairs(contents + payload.get("previous_prompts", [])) + payload.get(HISTORY, [])
     for source in sources:
@@ -156,23 +168,30 @@ def compile_candidates(payload, *, count=2, slots=None):
         if not proof:
             continue
         fresh = [n for n in inputs(proof["numbers"][2]) if signature(Decimal(n[0]) / 10**n[2], Decimal(n[1]) / 10**n[2]) not in excluded]
-        if len(fresh) < count:
+        if len(fresh) < needed:
             raise ValueError("Für diese Regel sind alle vorbereiteten neuen Zahlenpaare bereits geübt.")
         # Stable source/plan-specific starting point, not always the same pair
         # for every child/upload. History is still the authoritative exclusion.
-        offset = int(prepared._digest({"source": source, "plan": payload.get("package_plan_digest")})[:8], 16) % len(fresh)
-        ordered = fresh[offset:] + fresh[:offset]
+        offset = int(prepared._digest({"source": source, "plan": payload.get("package_plan_digest")})[:8], 16) % len(fresh) if fresh else 0
+        ordered = fresh[offset:] + fresh[:offset] if needed else []
         fresh = []
         for candidate in ordered:
             if all(not set(candidate[:2]) & set(n[:2]) and sum(candidate[:2]) != sum(n[:2]) for n in fresh):
                 fresh.append(candidate)
-                if len(fresh) == count:
+                if len(fresh) == needed:
                     break
-        if len(fresh) != count:
+        if len(fresh) != needed:
             raise ValueError("Für diese Regel fehlen ausreichend verschiedene neue Zahlenpaare.")
         result = []
         for ref in references:
-            for index, numbers in enumerate([proof["numbers"], *fresh]):
+            # Associate fresh examples with free slots, never with the index
+            # of a fixed prerequisite. Preserve the original slot order.
+            planned = iter(fresh)
+            for index, slot in enumerate([None, *slots]):
+                if slot is not None and slot.get("type"):
+                    result.append(copy.deepcopy(fixed[slot["id"]]))
+                    continue
+                numbers = proof["numbers"] if slot is None else next(planned)
                 stage = "given" if index == 0 else "solution"
                 task = core(numbers)
                 text = (f"Schreibe die Kommas untereinander. Addiere zuerst die Nachkommastellen, dann die Einer. "
@@ -181,13 +200,6 @@ def compile_candidates(payload, *, count=2, slots=None):
                        "reference": {"id": REFERENCE, "version": ref["version"]}, "source_refs": [source["ref"]],
                        "disclosure": stage, "text": text, "block": block(numbers, proof["quote"], stage)}
                 if index:
-                    slot = slots[index - 1]
-                    if slot.get("type"):
-                        fixed = next((r for r in foundations if r["question_core"]["id"] == slot["id"]), None)
-                        if fixed is None:
-                            return []  # Leave unsupported fixed diagnostics with their established compiler.
-                        result.append(fixed)
-                        continue
                     row["question_core"] = {"id": slot["id"], **task, **({"learning_goal_id": slot["learning_goal_id"]} if slot.get("learning_goal_id") else {})}
                 row["id"] = "pd_" + prepared._digest({"revision": REVISION, "source": source, "candidate": row,
                     "plan": payload.get("package_plan_digest"), "partition": payload["package_partition"], "reference": ref["digest"]})[:24]

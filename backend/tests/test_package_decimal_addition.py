@@ -228,6 +228,73 @@ def test_curated_foundation_and_new_decimal_task_keep_their_own_cores_and_graphi
     assert practice['question_core']['id'] == 'main_synthetic_1'
 
 
+@pytest.mark.parametrize('fixed_first', [True, False])
+def test_fixed_prerequisite_does_not_need_a_second_unused_decimal_pair(fixed_first):
+    from schulpilot import competences, learning_entry
+
+    value = payload()
+    probe = learning_entry._probe(competences.catalogue()['math.fractions.meaning'], 'decimal-synthetic', set(), '1')
+    plan = {'group_id': 'g1', 'subject': 'Mathematik', 'entry_mode': 'prerequisite_probe',
+            'prefix': 'synthetic', 'probes': [probe], 'allocation_version': 2}
+    value['learning_entry'] = {'units': [plan], 'references': [competences.resolve_reference(probe['reference_id'], competences.VERSION)]}
+    with DB() as db:
+        value = visual_references.with_foundation_context(db, value)
+    # All but one of the finite examples are already known. The fixed probe
+    # is not a decimal task and must not use up this remaining example.
+    available = [13, 25, 1]
+    value[decimal.HISTORY] = [decimal.signature(Decimal(a) / 10, Decimal(b) / 10)
+                              for a, b, _ in decimal.inputs(1) if [a, b, 1] != available]
+    free = {'id': 'new_decimal'}
+    slots = [probe, free] if fixed_first else [free, probe]
+    intro, *tasks = decimal.compile_candidates(value, slots=slots)
+    assert [r['question_core']['id'] for r in tasks] == [s['id'] for s in slots]
+    actual_fixed = next(r for r in tasks if r['kind'] == 'fraction')
+    assert actual_fixed['question_core'] == {k: probe[k] for k in learning_entry.CORE}
+    actual_decimal = next(r for r in tasks if r['kind'] == decimal.KIND)
+    assert actual_decimal['block']['numbers'] == available
+    assert all(actual_decimal['question_core'][k] == v for k, v in decimal.core(available).items())
+    assert intro['block']['numbers'] == [12, 6, 1]
+    if fixed_first:
+        # Exercise the actual entry/schema/graphic pipeline, not just the
+        # arithmetic helper, with the same exhausted private history.
+        from test_package_entry_graphics_145 import bind as bind_entry
+        _, binding = bind_entry(value)
+        intro, *rows = binding.candidates
+        wire = {'units': [{'group_id': 'g1', 'subject': 'Mathematik', 'topic': 'Dezimalzahlen addieren',
+            'explanation': intro['text'], 'explanation_steps': [wire_step(intro)],
+            'questions': [{**row['question_core'], 'hints': ['Denke in kleinen Schritten.'],
+                'explanation': row['text'], 'presentation': None, 'field_group': None,
+                'explanation_steps': [wire_step(row)]} for row in rows]}]}
+        output = binding.hydrate(wire)
+        learning_entry.validate_entry_output(value, output)
+        output = PackageOutput.model_validate(output).model_dump(mode='json')
+        with DB() as db:
+            visual_references.validate_output(db, output, value)
+    value[decimal.HISTORY].append(decimal.signature(Decimal('1.3'), Decimal('2.5')))
+    with pytest.raises(ValueError, match='bereits geübt'):
+        decimal.compile_candidates(value, slots=slots)
+
+
+def test_legacy_all_fixed_prerequisites_do_not_divide_by_empty_pool():
+    from schulpilot import competences, learning_entry
+
+    value = payload()
+    probes = [learning_entry._probe(competences.catalogue()[key], 'decimal-fixed', set(), str(i))
+              for i, key in enumerate(('math.fractions.meaning', 'math.fractions.components'))]
+    plan = {'group_id': 'g1', 'subject': 'Mathematik', 'entry_mode': 'prerequisite_probe',
+            'prefix': 'legacy', 'probes': probes}
+    value['learning_entry'] = {'units': [plan], 'references': [
+        competences.resolve_reference(probe['reference_id'], competences.VERSION) for probe in probes]}
+    with DB() as db:
+        value = visual_references.with_foundation_context(db, value)
+    value[decimal.HISTORY] = [decimal.signature(Decimal(a) / 10, Decimal(b) / 10)
+                              for a, b, _ in decimal.inputs(1)]
+    intro, *questions = decimal.compile_candidates(value)
+    assert intro['block']['numbers'] == [12, 6, 1]
+    assert [row['question_core'] for row in questions] == [
+        {key: probe[key] for key in learning_entry.CORE} for probe in probes]
+
+
 def test_feedback_points_to_decimal_place_without_changing_answer_or_claiming_a_diagnosis():
     from schulpilot.answer_evaluation import evaluate
     question = {**decimal.core([46, 51, 1]), 'explanation_steps': [{

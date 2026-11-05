@@ -1557,6 +1557,14 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Ausgabelängen, Schemafehler und Providerstörungen systematisch behandeln**
 
+  - [x] **Feste Grundlagenfragen bei knappen Dezimalbeispielen erhalten.**
+    Ein bereits festes Vorwissen verbraucht kein neues Zahlenpaar. Auch wenn
+    genau ein unbenutztes Paar für einen freien Anwendungsplatz bleibt, kann
+    die Vorbereitung mit unveränderter Frage, Lösung und Grafik stattfinden.
+    Ist kein Paar mehr verfügbar, wird weiterhin vor dem Anbieteraufruf sicher
+    abgebrochen. Künstliche Tests prüfen beide Platzreihenfolgen und den echten
+    Schema- und Grafikvertrag; dies schließt die Bruchplanung nicht ab.
+
   - [x] **Tatsächliche Adapterfehler im Paketworker zuordnen und absichern.**
     HTTP-Auslastung, Timeout und Serverfehler sowie defekte oder abgeschnittene
     Ausgaben werden ohne Anbietertexte klassifiziert. Ein synthetischer
