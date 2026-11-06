@@ -58,15 +58,17 @@ Future<void> openPlanItem(
   BuildContext context,
   AppState state,
   Json data,
-  dynamic item,
-) async {
+  dynamic item, {
+  bool Function()? stillValid,
+}) async {
   final owner = state.user, family = state.familyId, session = state.api.token;
   final route = ModalRoute.of(context);
   bool currentAccount() =>
       owner != null &&
       identical(state.user, owner) &&
       state.familyId == family &&
-      state.api.token == session;
+      state.api.token == session &&
+      (stillValid == null || stillValid());
   bool currentRoute() => context.mounted && (route?.isCurrent ?? true);
   Future<Json?> requestInContext(Future<Json> Function() request) async {
     if (!currentAccount() || !currentRoute()) return null;

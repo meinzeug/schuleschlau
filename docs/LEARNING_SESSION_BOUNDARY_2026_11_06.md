@@ -24,6 +24,22 @@ bestanden; sechs gezielte Fälle zu Sitzungswechseln bestanden ebenfalls im
 Chrome-Webrunner. Die Tests simulieren die API und sind kein Nachweis für
 einen tatsächlichen Serverwiderruf.
 
+Bei Austausch des gesamten `AppState` löst sich die Lernvorschau nun vom
+alten Listener und bindet Konto, Familie und Sitzung neu. Ein alter laufender
+Start bleibt an seine ursprüngliche Ansicht gebunden. Der neue Nutzer kann
+bereits eine eigene Runde öffnen; ein verspäteter alter Abschluss darf weder
+navigieren noch den Ladezustand der neuen Aktion beenden. Zwei künstliche
+Widgettests reproduzierten zuvor die leere Vorschau und prüfen nun auch die
+beiden überlappenden Startantworten. Die Serverrechte werden weiterhin bei
+jeder Anfrage durchgesetzt. Beide gezielten Fälle bestanden auf der VM und im
+Chrome-Webrunner; mit der Vorbereitungssuite bestanden 30 VM-Fälle. Der
+Test-Chromium wurde nach dem erfolgreichen Lauf beim Beenden durch SIGKILL
+gestoppt, nachdem SIGTERM nicht ausreichte.
+
+Ein zusätzlicher VM-Fall prüft, dass die bloße erneute Abfrage der Übersicht
+nach Rückkehr eine bereits gestartete Runde bei unverändertem Konto und
+unveränderter angezeigter Datenbasis nicht an der Navigation hindert.
+
 Dies erkennt eine Änderung des Client-Tokens. Ein vom Client nicht bemerkter
 Wechsel des HttpOnly-Webcookies bei unverändertem Token `null` ist damit nicht
 nachgewiesen; separate sitzungsgebundene Browser-/Cookieprüfungen und die

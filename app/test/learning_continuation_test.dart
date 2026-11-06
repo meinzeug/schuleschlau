@@ -425,6 +425,129 @@ void main() {
   }
 
   testWidgets(
+    'replacing AppState reloads next step and discards old overview',
+    (tester) async {
+      final pending = Completer<http.Response>();
+      final oldState = stateFor((_) => pending.future);
+      oldState.api.token = 'old-synthetic-session';
+      final entry = item('new')..['topic'] = 'Neues Thema';
+      final newState = stateFor((_) async => response(overview([entry])));
+      newState.api.token = 'new-synthetic-session';
+      final selected = ValueNotifier(oldState);
+      final router = routerFor(
+        oldState,
+        ValueListenableBuilder<AppState>(
+          valueListenable: selected,
+          builder: (_, state, _) =>
+              LearningNextStep(state: state, childId: 'child'),
+        ),
+      );
+      await tester.pumpWidget(
+        MaterialApp.router(theme: appTheme(), routerConfig: router),
+      );
+      selected.value = newState;
+      await tester.pumpAndSettle();
+      expect(find.text('Mathematik · Neues Thema'), findsOneWidget);
+      pending.complete(response(overview([item('old')])));
+      await tester.pumpAndSettle();
+      expect(find.text('Mathematik · Neues Thema'), findsOneWidget);
+      expect(find.text('Mathematik · Brüche'), findsNothing);
+      await tester.pumpWidget(const SizedBox());
+      router.dispose();
+      selected.dispose();
+    },
+  );
+
+  testWidgets('replacing AppState prevents late old-unit navigation', (
+    tester,
+  ) async {
+    final pending = Completer<http.Response>();
+    final oldState = stateFor(
+      (r) async => r.method == 'POST'
+          ? pending.future
+          : response(overview([item('old')])),
+    );
+    oldState.api.token = 'old-synthetic-session';
+    final entry = item('new')..['topic'] = 'Neues Thema';
+    final newPending = Completer<http.Response>();
+    final newState = stateFor(
+      (r) async =>
+          r.method == 'POST' ? newPending.future : response(overview([entry])),
+    );
+    newState.api.token = 'new-synthetic-session';
+    final selected = ValueNotifier(oldState);
+    final router = routerFor(
+      oldState,
+      ValueListenableBuilder<AppState>(
+        valueListenable: selected,
+        builder: (_, state, _) =>
+            LearningNextStep(state: state, childId: 'child'),
+      ),
+    );
+    await tester.pumpWidget(
+      MaterialApp.router(theme: appTheme(), routerConfig: router),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Weiterlernen'));
+    await tester.pump();
+    selected.value = newState;
+    await tester.pumpAndSettle();
+    expect(find.text('Mathematik · Neues Thema'), findsOneWidget);
+    expect(find.text('Weiterlernen'), findsOneWidget);
+    await tester.tap(find.text('Weiterlernen'));
+    await tester.pump();
+    expect(find.textContaining('Schritt wird geöffnet'), findsOneWidget);
+    pending.complete(response({}));
+    await tester.pump();
+    expect(find.text('Saved unit opened'), findsNothing);
+    expect(find.text('Mathematik · Neues Thema'), findsOneWidget);
+    expect(find.textContaining('Schritt wird geöffnet'), findsOneWidget);
+    newPending.complete(response({}));
+    await tester.pumpAndSettle();
+    expect(find.text('Saved unit opened'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+    router.dispose();
+    selected.dispose();
+  });
+
+  testWidgets(
+    'resuming overview while start is pending keeps valid navigation',
+    (tester) async {
+      final pendingStart = Completer<http.Response>();
+      final pendingOverview = Completer<http.Response>();
+      var reads = 0;
+      final state = stateFor((r) async {
+        if (r.method == 'POST') return pendingStart.future;
+        reads++;
+        return reads == 1
+            ? response(overview([item('ready')]))
+            : pendingOverview.future;
+      });
+      final router = routerFor(
+        state,
+        LearningNextStep(state: state, childId: 'child'),
+      );
+      await tester.pumpWidget(
+        MaterialApp.router(theme: appTheme(), routerConfig: router),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Weiterlernen'));
+      await tester.pump();
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pump();
+      expect(reads, 2);
+      pendingStart.complete(response({}));
+      await tester.pumpAndSettle();
+      expect(find.text('Saved unit opened'), findsOneWidget);
+      pendingOverview.complete(response(overview([item('ready')])));
+      await tester.pump();
+      await tester.pumpWidget(const SizedBox());
+      router.dispose();
+    },
+  );
+
+  testWidgets(
     'binding parent task is still binding after minimum and opens saved unit directly',
     (tester) async {
       var starts = 0;

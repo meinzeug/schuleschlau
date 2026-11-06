@@ -29,8 +29,8 @@ class _LearningNextStepState extends State<LearningNextStep>
   Json? data;
   bool loading = true;
   bool failed = false;
-  late final Json? owner;
-  late final String? family, session;
+  late Json? owner;
+  late String? family, session;
   bool reading = false, opening = false;
   bool routeVisible = true, foreground = true;
   bool get current =>
@@ -38,7 +38,7 @@ class _LearningNextStepState extends State<LearningNextStep>
       identical(widget.state.user, owner) &&
       widget.state.familyId == family &&
       widget.state.api.token == session;
-  int version = 0;
+  int version = 0, openingRevision = 0;
 
   @override
   void initState() {
@@ -57,11 +57,20 @@ class _LearningNextStepState extends State<LearningNextStep>
   @override
   void didUpdateWidget(covariant LearningNextStep oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.state != widget.state) {
+      oldWidget.state.removeListener(accountChanged);
+      owner = widget.state.user;
+      family = widget.state.familyId;
+      session = widget.state.api.token;
+      widget.state.addListener(accountChanged);
+    }
     if (oldWidget.childId != widget.childId ||
         oldWidget.currentUnitId != widget.currentUnitId ||
         oldWidget.state != widget.state) {
       version++;
+      openingRevision++;
       reading = false;
+      opening = false;
       data = null;
       loading = true;
       failed = false;
@@ -92,9 +101,11 @@ class _LearningNextStepState extends State<LearningNextStep>
   void accountChanged() {
     if (!current && mounted) {
       version++;
+      openingRevision++;
       setState(() {
         data = null;
         reading = false;
+        opening = false;
       });
     }
   }
@@ -102,6 +113,7 @@ class _LearningNextStepState extends State<LearningNextStep>
   @override
   void dispose() {
     version++;
+    openingRevision++;
     widget.state.removeListener(accountChanged);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
@@ -162,11 +174,11 @@ class _LearningNextStepState extends State<LearningNextStep>
       );
     }
     final rendered = data;
-    bool canOpen() =>
+    bool actionStillCurrent() =>
         current &&
         identical(data, rendered) &&
-        !reading &&
         ModalRoute.of(context)?.isCurrent != false;
+    bool canOpen() => actionStillCurrent() && !reading;
     final plan = Json.from(data?['plan'] as Map? ?? {});
     final next = nextLearningItem(data!, excludeUnitId: widget.currentUnitId);
     final minimumOpen =
@@ -195,6 +207,11 @@ class _LearningNextStepState extends State<LearningNextStep>
         ],
         if (available)
           ActionPanel(
+            key: ValueKey((
+              ObjectKey(widget.state),
+              widget.childId,
+              widget.currentUnitId,
+            )),
             enabled: !opening,
             actionLabel: opening
                 ? 'Schritt wird geöffnet …'
@@ -205,13 +222,26 @@ class _LearningNextStepState extends State<LearningNextStep>
                 : 'Noch eine Runde',
             onPressed: () async {
               if (!canOpen() || data == null || opening) return;
+              final openingStamp = ++openingRevision;
               setState(() => opening = true);
               try {
-                await openPlanItem(context, widget.state, data!, next);
+                await openPlanItem(
+                  context,
+                  widget.state,
+                  data!,
+                  next,
+                  stillValid: actionStillCurrent,
+                );
               } catch (error) {
-                if (context.mounted && current) showError(context, error);
+                if (context.mounted &&
+                    current &&
+                    openingStamp == openingRevision) {
+                  showError(context, error);
+                }
               } finally {
-                if (current) setState(() => opening = false);
+                if (current && openingStamp == openingRevision) {
+                  setState(() => opening = false);
+                }
               }
             },
             child: Column(

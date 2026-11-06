@@ -1857,6 +1857,14 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Kinderwege, Navigation und Wiederaufnahme vollständig abnehmen**
 
+  - [x] **Lernvorschau bei Austausch des App-Zustands wiederaufnehmen.**
+    Die Ansicht bindet sich beim Austausch des AppState an dessen Konto und
+    Sitzung. Alte Übersichten und späte Startantworten überschreiben die neue
+    Ansicht nicht; ein bereits laufender Start der neuen Sitzung bleibt bis zu
+    seiner eigenen Antwort gesperrt. Künstliche Widgetfälle decken den zuvor
+    reproduzierten Fehler ab. [Umfang](docs/LEARNING_SESSION_BOUNDARY_2026_11_06.md).
+    Die vollständige geräteübergreifende Abnahme bleibt offen.
+
   - [x] **Lernfortsetzung an den Client-Sitzungstoken binden.** Eine alte
     Quellenabfrage darf nach Tokenwechsel keine neue Runde reservieren; späte
     Startantworten navigieren nicht in die neue Sitzung. Die Vorschau entfernt
