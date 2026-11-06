@@ -5,7 +5,12 @@ import {chromium} from 'playwright';
 import {restrictBrowserNetwork, closeRestrictedBrowserContext} from './browser_network_guard.mjs';
 
 const listen = server => new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
-const close = server => new Promise(resolve => server.close(resolve));
+const close = server => new Promise((resolve, reject) => {
+  // The deliberately stalled /timeout fixture can leave active HTTP sockets.
+  // Stop accepting new connections first and close only these local servers.
+  server.close(error => error ? reject(error) : resolve());
+  server.closeAllConnections();
+});
 const withDeadline = async (promise, label, timeoutMs = 10000) => {
   let timer;
   try {
@@ -22,6 +27,8 @@ let slowStarted;
 const slowSeen = new Promise(resolve => { slowStarted = resolve; });
 let closeTimeoutStarted;
 const closeTimeoutSeen = new Promise(resolve => { closeTimeoutStarted = resolve; });
+let cleanupProbeStarted;
+const cleanupProbeSeen = new Promise(resolve => { cleanupProbeStarted = resolve; });
 const foreign = http.createServer((_req, res) => { foreignRequests++; res.end('foreign'); });
 foreign.on('upgrade', (_req, socket) => { foreignUpgrades++; socket.destroy(); });
 await listen(foreign);
@@ -42,11 +49,16 @@ const originServer = http.createServer((req, res) => {
     // The test guard's short timeout must abort the page and fail cleanup.
   } else if (req.url === '/timeout-during-close') {
     closeTimeoutStarted();
+  } else if (req.url === '/cleanup-probe') {
+    // Keep a client socket open deliberately to prove server/browser teardown.
+    cleanupProbeStarted();
   } else res.end('<html>synthetic fixture</html>');
 });
 await listen(originServer);
 const base = `http://127.0.0.1:${originServer.address().port}`;
 const browser = await chromium.launch({headless: true, executablePath: '/opt/google/chrome/chrome', args: ['--no-sandbox']});
+let strandedClosed;
+let testFailure;
 try {
   process.stdout.write('Checking normal browser guard\n');
   const context = await browser.newContext({serviceWorkers: 'block'});
@@ -74,7 +86,7 @@ try {
   process.stdout.write('Checking in-flight browser guard teardown\n');
   await slowPage.goto(base);
   const pending = slowPage.evaluate(() => fetch('/slow').catch(() => null)).catch(() => null);
-  await Promise.race([slowSeen, new Promise((_, reject) => setTimeout(() => reject(new Error('slow fetch did not reach local server')), 10000))]);
+  await withDeadline(slowSeen, 'slow fetch reaching local server');
   const closing = closeRestrictedBrowserContext(context);
   await Promise.all([
     withDeadline(slowPage.evaluate(async url => { try { await fetch(url); } catch {} }, foreignOrigin).catch(() => {}), 'foreign request during teardown'),
@@ -103,14 +115,33 @@ try {
   const timeoutPage = await timeoutContext.newPage();
   await timeoutPage.goto(base);
   const pendingTimeout = timeoutPage.evaluate(() => fetch('/timeout-during-close').catch(() => null)).catch(() => null);
-  await Promise.race([closeTimeoutSeen, new Promise((_, reject) => setTimeout(() => reject(new Error('timeout fetch did not reach local server')), 10000))]);
+  await withDeadline(closeTimeoutSeen, 'timeout fetch reaching local server');
   await assert.rejects(withDeadline(closeRestrictedBrowserContext(timeoutContext), 'timeout during teardown'), /Synthetic browser network guard failed/);
   await pendingTimeout;
   assert.equal(foreignRequests, 0);
   assert.equal(foreignUpgrades, 0);
-  process.stdout.write('Synthetic browser direct HTTP, redirect, WebSocket and in-flight teardown guards passed\n');
+  const stranded = http.get(base + '/cleanup-probe');
+  stranded.on('error', () => {}); // Closing this deliberately open socket is expected.
+  strandedClosed = new Promise(resolve => stranded.once('close', resolve));
+  await withDeadline(cleanupProbeSeen, 'open cleanup fixture');
+} catch (error) {
+  testFailure = error;
 } finally {
-  await browser.close();
-  await close(originServer);
-  await close(foreign);
+  // Close the local fixture servers first: pending route.fetch requests can
+  // otherwise prevent browser.close from finishing. Attempt every cleanup even
+  // if another one fails, and never report a successful test on cleanup failure.
+  const originClosed = close(originServer);
+  const foreignClosed = close(foreign);
+  const results = await Promise.allSettled([
+    withDeadline(browser.close(), 'browser cleanup', 40000),
+    withDeadline(originClosed, 'fixture server cleanup'),
+    withDeadline(foreignClosed, 'foreign fixture server cleanup'),
+    ...(strandedClosed ? [withDeadline(strandedClosed, 'open fixture socket cleanup')] : []),
+  ]);
+  const failures = results.filter(result => result.status === 'rejected').map(result => result.reason);
+  if (failures.length) {
+    testFailure = new AggregateError(testFailure ? [testFailure, ...failures] : failures, 'Synthetic browser test cleanup failed');
+  }
 }
+if (testFailure) throw testFailure;
+process.stdout.write('Synthetic browser direct HTTP, redirect, WebSocket and in-flight teardown guards passed\n');
