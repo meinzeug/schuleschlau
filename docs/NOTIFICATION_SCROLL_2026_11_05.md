@@ -78,8 +78,8 @@ Ein 429 löst keinen automatischen Wiederholungsversuch über die
 Vordergrundwiederaufnahme aus. Ein unbekannter serverseitiger Rechteentzug ist
 ohne Widerrufssignal erst nach einem entsprechenden Serverfehler erkennbar.
 Nach Timeout bleibt der alte Stand erhalten und die nächste bewusste oder
-periodische Aktualisierung kann erneut versuchen. Zwei aufeinanderfolgende
-Verzögerungen beim Nachladen können als Ladefehler erscheinen.
+periodische Aktualisierung kann erneut versuchen. Im damaligen Stand konnten
+zwei aufeinanderfolgende Verzögerungen beim Nachladen als Ladefehler erscheinen.
 
 125 künstliche Flutter-VM-Tests bestanden, darunter UI-Drag und Fling bei
 periodischem Refresh, Kontext- und Vordergrundwechsel, Leserevision, Timeout,
@@ -90,3 +90,21 @@ gezielte Webrunner-Tests für Drag und Fling bei periodischem Refresh bestanden
 in Chrome bei 390 Pixeln. Die vollständige Flutter-Analyse wurde wegen einer
 langanhaltenden I/O-Blockade ohne Ergebnis abgebrochen. Die anschließende
 gezielte Dart-Analyse aller geänderten Dart-Dateien ergab keine Befunde.
+
+## Ergänzung 06.11.2026: Wiederholte Verzögerung beim Nachladen
+
+Zwei aufeinanderfolgende Gesten oder Lesebestätigungen erschöpfen weiterhin
+die feste Obergrenze von zwei GETs. Da hierbei kein Ladefehler vorliegt,
+bleiben die bisherige Liste und der Cursor erhalten und es erscheint keine
+falsche Fehlermeldung. Die Schaltfläche „Weitere laden“ und ein späteres
+Scrollen erlauben einen neuen bewussten Versuch. Kein altes Ergebnis wird
+nach einer Lesebestätigung oder während einer Geste veröffentlicht.
+
+Zwei künstliche Inbox-Tests prüfen getrennt zweimalige Gestenverzögerung und
+zweimalige Lesebestätigung, das unberührte Ergebnis, den erhaltenen Cursor
+und die erfolgreiche nachfolgende Aktion. Die vorhandenen Fälle für
+Rechteentzug und Abbruch bleiben gesondert erhalten. Dies ist keine vollständige
+Geräte- oder geräteübergreifende Zustellungsabnahme.
+Ein zusätzlicher Widgettest bei 390 × 760 Pixeln simuliert beide Verzögerungen,
+tippt danach den sichtbaren Glockenbutton „Weitere laden“ an und prüft die
+Anzeige der dritten Antwort; die beiden Gesten selbst werden darin simuliert.

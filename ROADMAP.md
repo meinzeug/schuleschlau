@@ -2038,6 +2038,14 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Benachrichtigung und direkte Zielnavigation vollständig prüfen**
 
+  - [x] **Falschen Ladefehler bei wiederholter Scrollverzögerung vermeiden.**
+    Zwei Gesten oder Lesebestätigungen erschöpfen die begrenzten GET-Versuche,
+    ohne einen Netzwerkfehler vorzutäuschen. Liste und Cursor bleiben erhalten;
+    die nächste Aktion kann neu laden. Künstliche Flutter-Tests prüfen beide
+    Fälle samt Wiederaufnahme; ein 390-Pixel-Widgettest bedient danach den
+    vorhandenen Glockenbutton. [Umfang](docs/NOTIFICATION_SCROLL_2026_11_05.md).
+    Die geräteübergreifende Abnahme bleibt offen.
+
   - [x] **Glockenliste beim Nachladen und Live-Refresh stabil halten.**
     Sichtbare Meldungen bleiben beim Nachladen verankert. Während Ziehen oder
     Ausrollen wird eine erfolgreiche Aktualisierung begrenzt zurückgestellt

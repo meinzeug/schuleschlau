@@ -327,7 +327,11 @@ class NotificationInbox extends ChangeNotifier {
           break;
         }
       }
-      if (data == null) throw StateError('Read state changed while loading');
+      // Two legitimate gestures or read acknowledgements can exhaust the
+      // bounded retries without a network failure. Keep the cursor and loaded
+      // items intact so the next user action can try again; publishing either
+      // stale response would undo a receipt or interrupt an active gesture.
+      if (data == null) return;
       final page = _parsePage(data, cursor);
       if (page.next != null && _seenCursors.contains(page.next)) {
         throw const _CursorLoop();

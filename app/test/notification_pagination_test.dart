@@ -59,6 +59,44 @@ void main() {
     inbox.dispose();
   });
 
+  test(
+    'two gestures defer without a false error and allow another load',
+    () async {
+      var pages = 0;
+      final inbox = NotificationInbox(
+        Api(
+          base: 'https://example.invalid/api',
+          client: MockClient((r) async {
+            if (r.url.queryParameters['cursor'] == null) {
+              return response([
+                {'id': 'head', 'read': true},
+              ], 'next');
+            }
+            pages++;
+            return response([
+              {'id': pages < 3 ? 'stale-$pages' : 'fresh', 'read': true},
+            ]);
+          }),
+        ),
+      );
+      inbox.activate('child', family: 'family', session: 'session');
+      await Future<void>.delayed(Duration.zero);
+      await inbox.loadMore(
+        beforePublish: () async => NoticePublishGate.delayed,
+      );
+      expect(pages, 2);
+      expect(inbox.items.map((item) => item['id']), ['head']);
+      expect(inbox.nextCursor, 'next');
+      expect(inbox.moreError, isNull);
+      expect(inbox.loadingMore, isFalse);
+      await inbox.loadMore();
+      expect(pages, 3);
+      expect(inbox.items.map((item) => item['id']), ['head', 'fresh']);
+      expect(inbox.moreError, isNull);
+      inbox.dispose();
+    },
+  );
+
   for (final change in ['cancelled', 'account', 'background']) {
     test(
       'blocked page is discarded after $change and does not retain loading',
@@ -148,6 +186,59 @@ void main() {
       isTrue,
     );
     expect(inbox.unread, 1);
+    inbox.dispose();
+  });
+
+  test('two reads keep receipts and allow a new explicit load', () async {
+    var pages = 0;
+    var receipts = 0;
+    final inbox = NotificationInbox(
+      Api(
+        base: 'https://example.invalid/api',
+        client: MockClient((r) async {
+          if (r.method == 'POST') {
+            receipts++;
+            return http.Response(
+              '{}',
+              200,
+              headers: {'content-type': 'application/json'},
+            );
+          }
+          if (r.url.queryParameters['cursor'] == null) {
+            return response([
+              {'id': 'a', 'read': false},
+              {'id': 'b', 'read': false},
+            ], 'next');
+          }
+          pages++;
+          return response([
+            {'id': 'a', 'read': pages < 3 ? false : true},
+            {'id': 'b', 'read': pages < 3 ? false : true},
+            {'id': pages < 3 ? 'stale' : 'fresh', 'read': false},
+          ]);
+        }),
+      ),
+    );
+    inbox.activate('child', family: 'family', session: 'session');
+    await Future<void>.delayed(Duration.zero);
+    var gates = 0;
+    await inbox.loadMore(
+      beforePublish: () async {
+        await inbox.markRead([++gates == 1 ? 'a' : 'b']);
+        return NoticePublishGate.ready;
+      },
+    );
+    expect(pages, 2);
+    expect(receipts, 2);
+    expect(inbox.items.map((item) => item['id']), ['a', 'b']);
+    expect(inbox.items.every((item) => item['read'] == true), isTrue);
+    expect(inbox.nextCursor, 'next');
+    expect(inbox.moreError, isNull);
+    expect(inbox.loadingMore, isFalse);
+    await inbox.loadMore();
+    expect(pages, 3);
+    expect(inbox.items.map((item) => item['id']), ['a', 'b', 'fresh']);
+    expect(inbox.items.take(2).every((item) => item['read'] == true), isTrue);
     inbox.dispose();
   });
 

@@ -10,6 +10,7 @@ import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:schulpilot/api.dart';
+import 'package:schulpilot/notification_inbox.dart';
 import 'package:schulpilot/notification_panel.dart';
 import 'package:schulpilot/notification_visibility.dart';
 import 'package:schulpilot/push_transport.dart';
@@ -1172,6 +1173,46 @@ void main() {
     await tester.tap(button);
     await tester.pumpAndSettle();
     expect(find.text('Künstliche Meldung older'), findsOneWidget);
+  });
+
+  scenario('bell keeps a usable more button after two deferred pages', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 760);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    var pageCalls = 0;
+    final fixture = await display(tester, (request) async {
+      if (request.method == 'POST') return reply({});
+      if (request.url.queryParameters['cursor'] == null) {
+        return reply({
+          'items': [notice('head', read: true)],
+          'next_cursor': 'next',
+        });
+      }
+      pageCalls++;
+      return reply({
+        'items': [notice(pageCalls < 3 ? 'stale' : 'fresh', read: true)],
+        'next_cursor': null,
+      });
+    }, bell: true);
+    await tester.tap(find.byKey(const ValueKey('notification-bell')));
+    await tester.pumpAndSettle();
+    final loading = fixture.state.inbox.loadMore(
+      beforePublish: () async => NoticePublishGate.delayed,
+    );
+    await tester.pumpAndSettle();
+    await loading;
+    expect(pageCalls, 2);
+    expect(find.text('Künstliche Meldung stale'), findsNothing);
+    expect(find.textContaining('Laden nicht möglich'), findsNothing);
+    final more = find.byKey(const ValueKey('notification-load-more'));
+    expect(more.hitTestable(), findsOneWidget);
+    await tester.tap(more);
+    await tester.pumpAndSettle();
+    expect(pageCalls, 3);
+    expect(find.text('Künstliche Meldung fresh'), findsOneWidget);
   });
 
   scenario('unread view does not claim unseen pages are read and loads them', (
