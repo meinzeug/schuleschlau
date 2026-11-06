@@ -68,6 +68,18 @@ REQUIRED_LIFECYCLE_TESTS = {
         "test_malformed_revisions_fail_without_updates[1]",
     )
 } | {
+    ("backend.tests.test_expected_account_guard", name)
+    for name in (
+        "test_mismatch_rejects_read_and_mutation_without_logging_out[get-/api/auth/me]",
+        "test_mismatch_rejects_read_and_mutation_without_logging_out[post-/api/auth/logout]",
+        "test_header_does_not_grant_authentication",
+        "test_child_session_remains_restricted_despite_parent_assertion",
+        "test_explicit_login_switches_accounts_then_rejects_old_assertion",
+        "test_stale_assertion_does_not_prevent_explicit_fresh_login",
+        "test_stale_account_is_rejected_before_photo_intake",
+        "test_push_config_does_not_treat_account_mismatch_as_anonymous",
+    )
+} | {
     ("backend.tests.test_review_consent_stale_identity", name)
     for name in (
         "test_stale_loaded_installation_must_not_change_operator_approval[True]",
