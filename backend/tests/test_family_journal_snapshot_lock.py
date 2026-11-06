@@ -5,6 +5,7 @@ from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from threading import Event
 
+import pytest
 from conftest import HEADERS
 from fastapi.testclient import TestClient
 from schulpilot import erasure
@@ -113,3 +114,50 @@ def test_revoked_owner_session_cannot_revoke_member_after_snapshot_wait(api, hou
     with DB() as db:
         assert db.get(Membership, identifier) is not None
         assert db.scalar(select(ErasureRequest.id).where(ErasureRequest.target == identifier)) is None
+
+
+@pytest.mark.parametrize("revoke_session", [False, True])
+def test_child_deletion_observes_journal_snapshot_and_session(api, household, monkeypatch, revoke_session):
+    from schulpilot.db import Child, Session
+    from schulpilot.security import digest
+
+    _, child = household
+    token = api.headers["Authorization"].removeprefix("Bearer ")
+    with DB() as db:
+        session_id = db.scalar(select(Session.id).where(Session.token_hash == digest(token)))
+    lockfile = settings.data_dir / ".erasure-ledger.lock"
+    lockfile.touch(mode=0o600, exist_ok=True)
+    attempted = Event()
+    original = erasure.journal_write_lock
+
+    @contextmanager
+    def traced_lock():
+        attempted.set()
+        with original():
+            yield
+
+    monkeypatch.setattr(erasure, "journal_write_lock", traced_lock)
+    headers = {**HEADERS, "Authorization": "Bearer " + token}
+
+    def delete():
+        with TestClient(app, headers=headers) as client:
+            return client.request("DELETE", f"/api/children/{child['id']}", json={"password": "secure-parent-pass-123"})
+
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        with lockfile.open("rb") as snapshot:
+            fcntl.flock(snapshot, fcntl.LOCK_SH)
+            deletion = pool.submit(delete)
+            assert attempted.wait(8)
+            with DB.begin() as db:
+                assert db.get(Child, child["id"]) is not None
+                assert db.scalar(select(ErasureRequest.id).where(ErasureRequest.target == child["id"])) is None
+                if revoke_session:
+                    db.get(Session, session_id).revoked = True
+        response = deletion.result(12)
+    assert response.status_code == (401 if revoke_session else 200), response.text
+    with DB() as db:
+        assert (db.get(Child, child["id"]) is not None) is revoke_session
+        event = db.scalar(select(ErasureRequest).where(ErasureRequest.target == child["id"]))
+        assert (event is None) is revoke_session
+        if event:
+            assert event.published is True

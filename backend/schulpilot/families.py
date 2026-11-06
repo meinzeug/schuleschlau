@@ -484,14 +484,25 @@ def unlink_uploads(paths):
 
 @router.delete("/children/{child_id}")
 def delete_child(child_id: str, data: s.ConfirmPassword, p=Depends(parent), db=Depends(get_db)):
-    child = child_access(db, p, child_id, write=True)
-    if not verify_password(data.password, p.user.password_hash):
-        raise HTTPException(403, "Elternpasswort ist nicht richtig.")
-    paths = remove_child(db, child)
-    audit(db, p.user.id, "child.delete", child_id)
-    db.commit()
-    from .erasure import flush_journal
+    from .erasure import flush_journal, journal_write_lock
+    from .security import lock_session_after_child
 
+    user_id, session_id = p.user.id, p.session.id
+    with journal_write_lock():
+        child_access(db, p, child_id, write=True)
+        # Use the same Unit → Child → Session order as material and tutor
+        # mutations, while the journal snapshot boundary is held outside it.
+        list(db.scalars(select(LearningUnit.id).where(LearningUnit.child_id == child_id)
+                        .order_by(LearningUnit.id).with_for_update()))
+        db.execute(update(Child).where(Child.id == child_id).values(grade=Child.grade))
+        db.expire_all()
+        lock_session_after_child(db, user_id, session_id)
+        child = child_access(db, p, child_id, write=True)
+        if not verify_password(data.password, p.user.password_hash):
+            raise HTTPException(403, "Elternpasswort ist nicht richtig.")
+        paths = remove_child(db, child)
+        audit(db, p.user.id, "child.delete", child_id)
+        db.commit()
     flush_journal()
     unlink_uploads(paths)
     return {"message": "Kinderkonto, Sitzungen und Lerndaten gelöscht. Backups verfallen spätestens nach 14 Tagen."}
