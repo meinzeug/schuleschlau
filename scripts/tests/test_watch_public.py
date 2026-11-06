@@ -107,3 +107,16 @@ def test_interrupted_transaction_lock_error_is_reported(tmp_path):
     (tmp_path / '.pull.lock').touch()
     with patch.object(watch.fcntl, 'flock', side_effect=OSError('unavailable')):
         assert watch.interrupted_offsite_transaction(tmp_path) is True
+
+
+def test_supervised_handoff_marker_is_visible_after_pull_lock_is_released(tmp_path):
+    import fcntl
+
+    marker = tmp_path / '.offsite-handoff.pending'
+    marker.touch()
+    lock_path = tmp_path / '.pull.lock'
+    lock_path.touch()
+    with lock_path.open('rb') as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        assert watch.interrupted_offsite_transaction(tmp_path) is False
+    assert watch.interrupted_offsite_transaction(tmp_path) is True

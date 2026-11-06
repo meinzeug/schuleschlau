@@ -22,7 +22,7 @@ def interrupted_offsite_transaction(base):
     symlink as an absent marker.
     """
     markers = (base / '.erasure-ledger.pending', base / '.erasure-ledger.previous',
-               base / '.offsite-status.previous')
+               base / '.offsite-status.previous', base / '.offsite-handoff.pending')
     if not any(os.path.lexists(path) for path in markers):
         return False
     try:
