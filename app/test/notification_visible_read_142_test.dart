@@ -476,6 +476,75 @@ void main() {
     },
   );
 
+  for (final full in [false, true]) {
+    testWidgets('a new login intent blocks an older notice action ($full)', (
+      tester,
+    ) async {
+      final f = NoticeFixture(1);
+      try {
+        await f.show(tester, full: full);
+        if (!full) {
+          await tester.tap(find.byKey(const ValueKey('notification-bell')));
+          await tester.pumpAndSettle();
+        }
+        final writes = f.writes.length;
+        f.state.beginAuthentication();
+        await tester.tap(find.text('Hinweis own 0'));
+        await tester.pumpAndSettle();
+        expect(find.text('Ziel 0'), findsNothing);
+        expect(f.writes, hasLength(writes));
+        expect(tester.takeException(), isNull);
+      } finally {
+        await f.dispose(tester);
+      }
+    });
+    for (final fails in [false, true]) {
+      testWidgets(
+        'a new login intent cancels delayed notice navigation ($full, $fails)',
+        (tester) async {
+          final f = NoticeFixture(1)..delayedPost = Completer<http.Response>();
+          try {
+            await f.show(tester, full: full);
+            if (!full) {
+              await tester.tap(find.byKey(const ValueKey('notification-bell')));
+              await tester.pumpAndSettle();
+            }
+            expect(f.writes, isNotEmpty);
+            await tester.tap(find.text('Hinweis own 0'));
+            await tester.pump();
+            final intent = f.state.beginAuthentication();
+            f.delayedPost!.complete(response({}, fails ? 503 : 200));
+            await tester.pumpAndSettle();
+            expect(find.text('Ziel 0'), findsNothing);
+            expect(
+              find.textContaining('Lesemarkierung konnte nicht gespeichert'),
+              findsNothing,
+            );
+            // A cancelled login must not leave the notice action permanently busy.
+            f.state.cancelAuthentication(intent);
+            if (full) {
+              // Returning from the login route rebuilds the screen and its
+              // action callbacks under the current authentication revision.
+              f.router.go('/app');
+              await tester.pumpAndSettle();
+              f.router.go('/notifications');
+              await tester.pumpAndSettle();
+            } else {
+              await tester.tap(find.byKey(const ValueKey('notification-bell')));
+              await tester.pumpAndSettle();
+            }
+            await tester.tap(find.text('Hinweis own 0'));
+            await tester.pumpAndSettle();
+            expect(find.text('Ziel 0'), findsOneWidget);
+            expect(tester.takeException(), isNull);
+          } finally {
+            await f.dispose(tester);
+          }
+        },
+      );
+    }
+  }
+
   test(
     'overlapping visibility and click share one pending owned acknowledgement',
     () async {

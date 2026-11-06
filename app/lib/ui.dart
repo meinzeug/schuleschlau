@@ -3051,11 +3051,13 @@ class _NotificationBellState extends State<NotificationBell>
     Json? snapshot,
     String? family,
     String? token,
+    int? authentication,
   ) async {
     final state = widget.state;
     final route = ModalRoute.of(context);
     if (_opening ||
         !_sameHeaderAccount(state, snapshot) ||
+        state.api.currentAuthenticationRevision?.call() != authentication ||
         state.familyId != family ||
         state.api.token != token ||
         route?.isCurrent == false) {
@@ -3072,6 +3074,7 @@ class _NotificationBellState extends State<NotificationBell>
           revision == _openRevision &&
           identical(widget.state, state) &&
           _sameHeaderAccount(state, snapshot) &&
+          state.api.currentAuthenticationRevision?.call() == authentication &&
           state.familyId == family &&
           state.api.token == token &&
           route?.isCurrent != false) {
@@ -3088,6 +3091,9 @@ class _NotificationBellState extends State<NotificationBell>
         state.familyId == family &&
         state.api.token == token) {
       setState(() => _opening = false);
+      if (state.api.currentAuthenticationRevision?.call() != authentication) {
+        return;
+      }
       if (route?.isCurrent != false) context.go(item['route'] as String);
     }
   }
@@ -3101,6 +3107,7 @@ class _NotificationBellState extends State<NotificationBell>
       final account = state.user?['id'] as String?;
       final snapshot = state.user;
       final family = state.familyId, token = state.api.token;
+      final authentication = state.api.currentAuthenticationRevision?.call();
       final menuHeight =
           (MediaQuery.sizeOf(context).height -
                   MediaQuery.viewInsetsOf(context).bottom -
@@ -3257,13 +3264,15 @@ class _NotificationBellState extends State<NotificationBell>
             if (inbox.items.isNotEmpty)
               NotificationReadScope(
                 inbox: inbox,
-                scope: (ObjectKey(snapshot), family, token),
+                scope: (ObjectKey(snapshot), family, token, authentication),
                 isCurrent: () =>
                     mounted &&
                     _menu.isOpen &&
                     _sameHeaderAccount(state, snapshot) &&
                     state.familyId == family &&
                     state.api.token == token &&
+                    state.api.currentAuthenticationRevision?.call() ==
+                        authentication &&
                     ModalRoute.of(context)?.isCurrent != false,
                 onError: () {
                   if (!_opening) {
@@ -3323,6 +3332,7 @@ class _NotificationBellState extends State<NotificationBell>
                                       snapshot,
                                       family,
                                       token,
+                                      authentication,
                                     ),
                               child: SizedBox(
                                 width: (width - 64).clamp(0, 256).toDouble(),

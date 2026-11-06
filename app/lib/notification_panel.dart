@@ -133,11 +133,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     Json? owner,
     String? family,
     String? token,
+    int? authentication,
   ) async {
     final state = widget.state;
     final route = ModalRoute.of(context);
     if (opening != null ||
         !identical(state.user, owner) ||
+        state.api.currentAuthenticationRevision?.call() != authentication ||
         state.familyId != family ||
         state.api.token != token ||
         route?.isCurrent == false) {
@@ -152,6 +154,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           revision == openRevision &&
           identical(widget.state, state) &&
           identical(state.user, owner) &&
+          state.api.currentAuthenticationRevision?.call() == authentication &&
           state.familyId == family &&
           state.api.token == token &&
           route?.isCurrent != false) {
@@ -170,6 +173,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       return;
     }
     setState(() => opening = null);
+    // A login can begin before the account or web cookie changes. A late
+    // acknowledgement from the old view must not navigate that newer flow.
+    if (state.api.currentAuthenticationRevision?.call() != authentication) {
+      return;
+    }
     if (route?.isCurrent != false) context.go(item['route']);
   }
 
@@ -307,6 +315,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Widget build(BuildContext context) {
     final owner = widget.state.user;
     final token = widget.state.api.token, family = widget.state.familyId;
+    final authentication = widget.state.api.currentAuthenticationRevision
+        ?.call();
     return PageFrame(
       state: widget.state,
       title: 'Benachrichtigungen',
@@ -334,6 +344,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           ObjectKey(owner),
           family,
           token,
+          authentication,
           onlyUnread,
           search.text,
           selectedChild,
@@ -344,6 +355,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             mounted &&
             identical(widget.state.user, owner) &&
             widget.state.api.token == token &&
+            widget.state.api.currentAuthenticationRevision?.call() ==
+                authentication &&
             widget.state.familyId == family &&
             ModalRoute.of(context)?.isCurrent != false,
         onError: () => toast(
@@ -794,8 +807,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                   ),
                                   trailing: Icon(Icons.chevron_right_rounded),
                                   onTap: opening == null
-                                      ? () =>
-                                            openItem(item, owner, family, token)
+                                      ? () => openItem(
+                                          item,
+                                          owner,
+                                          family,
+                                          token,
+                                          authentication,
+                                        )
                                       : null,
                                 ),
                               ),

@@ -2106,6 +2106,17 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Benachrichtigung und direkte Zielnavigation vollständig prüfen**
 
+  - [x] **Verzögerte Benachrichtigungsnavigation bei neuer Anmeldung stoppen.**
+    06.11.2026: Eine neue Anmeldeabsicht kann beginnen, bevor Konto und Cookie
+    wechseln. Glockenmenü und Gesamtansicht zeigen dann keine verspätete
+    Lesefehler-Meldung und navigieren nach einer zuvor begonnenen Quittierung
+    nicht mehr zu deren altem Ziel. Die Schaltfläche ist nach Abbruch der
+    Anmeldung und Rückkehr zur Ansicht wieder bedienbar. Künstliche Widgettests prüfen Erfolg und Fehler
+    der verzögerten Quittierung in beiden Ansichten; vor der Korrektur führten
+    beide Ansichten noch zum alten Ziel. Bereits an den Server gesendete
+    Lesebelege werden nicht rückgängig gemacht. Dies ersetzt keine vollständige
+    Geräte- oder Pushabnahme.
+
   - [x] **Falschen Ladefehler bei wiederholter Scrollverzögerung vermeiden.**
     Zwei Gesten oder Lesebestätigungen erschöpfen die begrenzten GET-Versuche,
     ohne einen Netzwerkfehler vorzutäuschen. Liste und Cursor bleiben erhalten;
