@@ -44,3 +44,66 @@ verzögerte Antworten und ältere Clients behandeln. Der beobachtete Race
 wurde weder durch den Lernplan-Fix noch durch den gesonderten Logout-Fix
 behoben. Bis eine vollständige Lösung samt echten Cookie-Racetests existiert,
 bleibt dieser Punkt offen.
+
+## Konkreter Entwurf: serverseitig widerrufbare Generation
+
+Ein möglicher Fix benötigt einen gemeinsamen, serverseitig verwalteten
+Browserkontext und eine monoton vergebene Anmeldegeneration. Der Kontext ist
+kein Ersatz für eine Sitzung und darf für sich allein weder Inhalte noch
+Anmeldung autorisieren. Bei einer ausdrücklich begonnenen Kontoaktion wird
+unter Datenbanksperre eine neue Generation reserviert. Das abschließende
+Ausstellen der Sitzung muss dieselbe Generation in derselben Transaktion
+prüfen; bei einer neueren Kontoaktion darf die alte keine gültige Sitzung mehr
+erzeugen. Bereits ausgestellte ältere Sitzungen dieses Browserkontexts müssen
+serverseitig ungültig werden. Auf erfolgreichen Google- und Demo-Zugängen und
+beim Logout muss dieselbe Regel gelten; ein lokaler Flutter-Zähler reicht
+nicht. Die Reihenfolge bedeutet dabei zunächst **Serverannahmereihenfolge**;
+sie beweist nicht, welche Aktion in zwei Tabs der Mensch zuerst ausgelöst
+hat.
+
+Eine bereits gesendete alte Antwort kann den Cookie trotzdem später ersetzen:
+Der Browser speichert Set-Cookie außerhalb der Flutter-Kontrolle. Die ältere
+Generation muss beim nächsten geschützten Request serverseitig abgelehnt
+werden. Dadurch wird ein falscher Kontoübergang verhindert; die neuere gültige
+Sitzung kann im Browser dennoch verloren gehen und eine bewusste erneute
+Anmeldung erforderlich werden. Diese Verfügbarkeitsgrenze darf nicht als
+verlustfreie Wiederherstellung ausgegeben werden.
+
+Zusätzlich ist ein an die aktuell angezeigte Sitzung gebundener,
+nicht-autorisierender Erwartungswert für geschützte Requests zu prüfen: Der
+Server vergleicht ihn mit der durch den HttpOnly-Cookie authentifizierten
+Sitzung, bevor er private Daten zurückgibt oder ändert. Ein anderer aktiver
+Tab darf nicht still den Benutzer der dargestellten Ansicht austauschen. Ein
+Sitzungsbezeichner allein ist kein Zugangstoken und ersetzt weder bestehende
+Sitzungs- noch Familienrechte. Für direkten Bild-/PDF-Abruf, Downloads,
+SSE/Push, Serviceworker, Kaltstart und native Bearerzugänge ist eine jeweils
+passende Bindung erforderlich; unbeprüfte Ausnahmen würden die Zusicherung
+aufheben.
+
+Vor einer Implementierung sind folgende Punkte zu lösen und nachzuweisen:
+
+- Wie entsteht bei einem erstmalig anonymen Webbesuch eine gemeinsame
+  Browserbindung, wenn zwei Tabs gleichzeitig initialisieren und beide
+  Set-Cookie-Antworten in beliebiger Reihenfolge ankommen? Auch Browserdaten-
+  Löschung, private Fenster und getrennte Android-/Systembrowser sind zu
+  beachten. Ein zufällig vom Client gelieferter Wert ist keine Berechtigung.
+- Transaktionen müssen unter PostgreSQL die Generation bei konkurrierender
+  Reservierung, Sitzungserstellung und Widerruf atomar sperren und erneut
+  prüfen. Netzwerkabbruch, Abbruch nach Commit und erneute Anfrage dürfen
+  weder alte Sitzungen wiederbeleben noch ein automatisches Login auslösen.
+- Migration und Release-Reihenfolge müssen für vorhandene gültige Sitzungen
+  und gecachte Webclients ausdrücklich definiert werden. Ein alter Client
+  darf die neue Bindung nicht durch Weglassen eines Headers umgehen; zugleich
+  darf eine neue obligatorische Prüfung nicht unbemerkt alle bestehenden
+  Download-, Google-, Setup- und nativen Abläufe beschädigen.
+- Tests müssen künstliche echte HTTP-Cookies und mindestens zwei Browsertabs
+  mit kontrolliert vertauschten Antworten verwenden: beide Login-Reihenfolgen,
+  Fehler und Abbruch, ältere Antwort nach neuem Login und nach Logout,
+  Google-Start/-Abschluss, Demo sowie einen Requests-vorher-und-nachher-Test
+  auf private Lesung **und** Mutation. Flutter-Zustand und native Trennung
+  benötigen eigene Prüfungen. Der obige Test ist dafür nur der Ausgangspunkt.
+
+Der Entwurf ist nicht implementiert; insbesondere sind atomare
+Browserbootstrap-Bindung und die kontrollierte Behandlung alter Clients
+weiter offen. Eine sofortige pauschale Änderung von `authenticated()` oder
+`beginAuthentication()` wäre daher nicht ausreichend geprüft.
