@@ -949,7 +949,11 @@ def _claim_expiring_family_batch():
         if len(markers) > 1:
             raise RuntimeError("Ambiguous family retention cursor")
         cursor = markers[0].name.removeprefix(_FAMILY_CURSOR_PREFIX) if markers else ""
-        if cursor and not re.fullmatch(r"[a-f0-9]{32}", cursor):
+        # Existing installations can contain legacy IDs which predate the
+        # current UUID-hex generator. PostgreSQL's Family.id is String(32);
+        # retain the exact ID and accept every nonempty value fitting that
+        # schema rather than stalling all retention on an older family.
+        if markers and (not cursor or len(cursor) > 32):
             raise RuntimeError("Invalid family retention cursor")
         base = select(Family.id).where(Family.expires.is_not(None), Family.expires < int(now()))
         ids = list(db.scalars(base.where(Family.id > cursor).order_by(Family.id).limit(_FAMILY_RETENTION_BATCH)))
@@ -957,7 +961,7 @@ def _claim_expiring_family_batch():
         if remaining and cursor:
             ids.extend(db.scalars(base.where(Family.id <= cursor).order_by(Family.id).limit(remaining)))
         if ids:
-            if any(not re.fullmatch(r"[a-f0-9]{32}", identifier) for identifier in ids):
+            if any(not identifier or len(identifier) > 32 for identifier in ids):
                 raise RuntimeError("Invalid expired family ID")
             if markers:
                 db.delete(markers[0])

@@ -239,6 +239,28 @@ def test_family_retention_claims_are_serialized_and_survive_worker_restart(house
     assert worker._claim_expiring_family_batch() == identifiers[9:12]
 
 
+def test_family_retention_cursor_accepts_legacy_family_ids():
+    from schulpilot.db import ServiceState
+
+    identifiers = ["legacy-family-1", "legacy-family-2"]
+    with DB.begin() as db:
+        db.add_all([Family(id=identifier, name="Synthetic", synthetic=True, expires=int(now()) - 1)
+                    for identifier in identifiers])
+    assert worker._claim_expiring_family_batch() == identifiers
+    with DB() as db:
+        assert db.get(ServiceState, "frc:legacy-family-2") is not None
+    assert worker._claim_expiring_family_batch() == identifiers
+
+
+def test_family_retention_rejects_empty_persisted_cursor():
+    from schulpilot.db import ServiceState
+
+    with DB.begin() as db:
+        db.add(ServiceState(name="frc:", updated=int(now())))
+    with pytest.raises(RuntimeError, match="Invalid family retention cursor"):
+        worker._claim_expiring_family_batch()
+
+
 def test_expired_family_replay_preserves_parent_and_other_family(household):
     from schulpilot.db import Base, Membership, User
     from test_grade_erasure_restore_regression import isolated_restore
