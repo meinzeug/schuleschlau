@@ -46,6 +46,7 @@ class _ParentPlanScreenState extends State<ParentPlanScreen> {
   int generation = 0, section = 1, page = 1, refresh = 0, operation = 0;
   bool loading = false, includeCompleted = false, busy = false;
   bool loadFailed = false, compactTopics = false;
+  int? dataAuthentication;
   final Map<String, String> preparationKeys = {};
   ModalRoute<dynamic>? editorRoute;
   final search = TextEditingController();
@@ -74,6 +75,26 @@ class _ParentPlanScreenState extends State<ParentPlanScreen> {
       identical(widget.state.user, owner) &&
       family == widget.state.familyId &&
       session == widget.state.api.token;
+  bool get currentView =>
+      own &&
+      data != null &&
+      !loadFailed &&
+      widget.state.api.currentAuthenticationRevision?.call() ==
+          dataAuthentication;
+
+  // The authentication intent can change before AppState emits a notification.
+  // Require an explicit read before acting on an already-rendered plan.
+  bool requireCurrentView() {
+    if (currentView) return true;
+    if (own && data != null && !loadFailed && !loading) {
+      setState(() {
+        loadFailed = true;
+        error =
+            'Die Anmeldung hat sich geändert. Bitte lade den Lernplan erneut.';
+      });
+    }
+    return false;
+  }
 
   @override
   void initState() {
@@ -209,7 +230,7 @@ class _ParentPlanScreenState extends State<ParentPlanScreen> {
   }
 
   void showTopic(String topic, {String? id}) {
-    if (!own || busy || loading) return;
+    if (!requireCurrentView() || busy || loading) return;
     section = 1;
     assignmentId = id;
     query = id == null ? topic : '';
@@ -303,13 +324,13 @@ class _ParentPlanScreenState extends State<ParentPlanScreen> {
   }
 
   void selectSection(int value) {
-    if (!own || section == value) return;
+    if (!requireCurrentView() || section == value) return;
     setState(() => section = value);
     rememberView();
   }
 
   void filterTopics(VoidCallback change) {
-    if (!own || loading || busy) return;
+    if (!requireCurrentView() || loading || busy) return;
     FocusManager.instance.primaryFocus?.unfocus();
     change();
     page = 1;
@@ -317,7 +338,7 @@ class _ParentPlanScreenState extends State<ParentPlanScreen> {
   }
 
   void applySearch({bool clear = false}) {
-    if (!own || loading || busy) return;
+    if (!requireCurrentView() || loading || busy) return;
     FocusManager.instance.primaryFocus?.unfocus();
     final value = clear ? '' : search.text.trim();
     if (clear) search.clear();
@@ -416,6 +437,7 @@ class _ParentPlanScreenState extends State<ParentPlanScreen> {
       }
       setState(() {
         data = value;
+        dataAuthentication = authentication;
         page = value['pagination']['page'];
         loading = false;
         refresh++;
@@ -451,8 +473,13 @@ class _ParentPlanScreenState extends State<ParentPlanScreen> {
     Json? existing,
     Json? copyFrom,
   }) async {
-    if (!own || data == null || busy || loading || loadFailed) return;
+    if (!requireCurrentView() || busy || loading) return;
     final child = widget.childId;
+    final authentication = dataAuthentication;
+    bool current() =>
+        currentView &&
+        child == widget.childId &&
+        dataAuthentication == authentication;
     final action = ++operation;
     setState(() => busy = true);
     ModalRoute<bool>? openedRoute;
@@ -476,26 +503,32 @@ class _ParentPlanScreenState extends State<ParentPlanScreen> {
         source: source,
         sourceUnit: sourceUnit,
         existing: existing,
-        isCurrent: () => own && child == widget.childId && action == operation,
+        isCurrent: () => current() && action == operation,
         onRoute: (route) {
           openedRoute = route;
           editorRoute = route;
         },
       );
-      if (own && child == widget.childId && action == operation) {
+      if (current() && action == operation) {
         section = 1;
         await load();
       }
     } finally {
       if (identical(editorRoute, openedRoute)) editorRoute = null;
       if (own && child == widget.childId && action == operation) {
-        setState(() => busy = false);
+        setState(() {
+          busy = false;
+          if (!current()) {
+            loadFailed = true;
+            error = 'Die Anmeldung hat sich geändert. Bitte lade den Lernplan erneut.';
+          }
+        });
       }
     }
   }
 
   Future<void> prepare(Json topic) async {
-    if (!own || busy || loading || loadFailed) return;
+    if (!requireCurrentView() || busy || loading) return;
     final child = widget.childId, id = topic['id'] as String;
     final authentication = widget.state.api.currentAuthenticationRevision
         ?.call();
@@ -534,13 +567,19 @@ class _ParentPlanScreenState extends State<ParentPlanScreen> {
       }
     } finally {
       if (own && child == widget.childId && action == operation) {
-        setState(() => busy = false);
+        setState(() {
+          busy = false;
+          if (!current()) {
+            loadFailed = true;
+            error = 'Die Anmeldung hat sich geändert. Bitte lade den Lernplan erneut.';
+          }
+        });
       }
     }
   }
 
   Future<void> complete(Json topic, {bool remove = false}) async {
-    if (!own ||
+    if (!requireCurrentView() ||
         busy ||
         loading ||
         loadFailed ||
@@ -751,17 +790,24 @@ class _ParentPlanScreenState extends State<ParentPlanScreen> {
               children: [
                 if (existing != null)
                   FilledButton.icon(
-                    onPressed: () =>
-                        openRoute(context, '/unit/${existing['id']}'),
+                    onPressed: () {
+                      if (requireCurrentView()) {
+                        openRoute(context, '/unit/${existing['id']}');
+                      }
+                    },
                     icon: const Icon(Icons.visibility_outlined),
                     label: const Text('Gespeicherte Runde ansehen'),
                   )
                 else if (pending != null)
                   FilledButton.icon(
-                    onPressed: () => openRoute(
-                      context,
-                      '/learning-preparation/${widget.childId}/${pending['id']}',
-                    ),
+                    onPressed: () {
+                      if (requireCurrentView()) {
+                        openRoute(
+                          context,
+                          '/learning-preparation/${widget.childId}/${pending['id']}',
+                        );
+                      }
+                    },
                     icon: const Icon(Icons.hourglass_top_rounded),
                     label: const Text('Vorbereitung ansehen'),
                   )
@@ -780,8 +826,11 @@ class _ParentPlanScreenState extends State<ParentPlanScreen> {
                   ),
                 if (topic['material_id'] != null)
                   TextButton.icon(
-                    onPressed: () =>
-                        openRoute(context, '/material/${topic['material_id']}'),
+                    onPressed: () {
+                      if (requireCurrentView()) {
+                        openRoute(context, '/material/${topic['material_id']}');
+                      }
+                    },
                     icon: const Icon(Icons.auto_stories_outlined),
                     label: Text(
                       topic['source_status'] == 'needs_review'
@@ -802,7 +851,7 @@ class _ParentPlanScreenState extends State<ParentPlanScreen> {
                   topic['id'],
                   topic['revision'],
                 ),
-                isCurrent: () => own && child == widget.childId,
+                isCurrent: () => currentView && child == widget.childId,
                 children: [
                   Wrap(
                     spacing: 8,
@@ -855,7 +904,11 @@ class _ParentPlanScreenState extends State<ParentPlanScreen> {
                         '${statusLabel(unit['status'])}${unit['revision'] != null && topic['revision'] != null && unit['revision'] != topic['revision'] ? ' · Frühere Auftragsfassung' : ''}',
                       ),
                       trailing: const Icon(Icons.chevron_right),
-                      onTap: () => openRoute(context, '/unit/${unit['id']}'),
+                      onTap: () {
+                        if (requireCurrentView()) {
+                          openRoute(context, '/unit/${unit['id']}');
+                        }
+                      },
                     ),
                 ],
               ),
@@ -996,7 +1049,7 @@ class _ParentPlanScreenState extends State<ParentPlanScreen> {
                         child: ActionPanel(
                           actionLabel: 'Gespeicherte Lernrunde ansehen',
                           onPressed: () {
-                            if (!own ||
+                            if (!requireCurrentView() ||
                                 loading ||
                                 viewChild != widget.childId) {
                               return;
@@ -1172,7 +1225,8 @@ class _ParentPlanScreenState extends State<ParentPlanScreen> {
                         family,
                         viewChild,
                       ),
-                      isCurrent: () => own && viewChild == widget.childId,
+                      isCurrent: () =>
+                          currentView && viewChild == widget.childId,
                       active: filtered,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1404,6 +1458,7 @@ class _ParentPlanScreenState extends State<ParentPlanScreen> {
                                 onPressed: loading || page <= 1
                                     ? null
                                     : () {
+                                        if (!requireCurrentView()) return;
                                         page--;
                                         load();
                                       },
@@ -1419,6 +1474,7 @@ class _ParentPlanScreenState extends State<ParentPlanScreen> {
                                         page >= data!['pagination']['pages']
                                     ? null
                                     : () {
+                                        if (!requireCurrentView()) return;
                                         page++;
                                         load();
                                       },
@@ -1438,7 +1494,8 @@ class _ParentPlanScreenState extends State<ParentPlanScreen> {
                         family,
                         viewChild,
                       ),
-                      isCurrent: () => own && viewChild == widget.childId,
+                      isCurrent: () =>
+                          currentView && viewChild == widget.childId,
                       active: false,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1452,6 +1509,7 @@ class _ParentPlanScreenState extends State<ParentPlanScreen> {
                                   onPressed: busy || loading
                                       ? null
                                       : () async {
+                                          if (!requireCurrentView()) return;
                                           final child = widget.childId;
                                           final selected =
                                               await pickLibraryMaterial(
@@ -1459,7 +1517,7 @@ class _ParentPlanScreenState extends State<ParentPlanScreen> {
                                                 widget.state,
                                                 child,
                                               );
-                                          if (own &&
+                                          if (requireCurrentView() &&
                                               child == widget.childId &&
                                               selected != null) {
                                             await add(source: selected);
@@ -1514,7 +1572,8 @@ class _ParentPlanScreenState extends State<ParentPlanScreen> {
                         family,
                         viewChild,
                       ),
-                      isCurrent: () => own && viewChild == widget.childId,
+                      isCurrent: () =>
+                          currentView && viewChild == widget.childId,
                       active: false,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1548,12 +1607,13 @@ class _ParentPlanScreenState extends State<ParentPlanScreen> {
                                 if (data!['can_manage'] == true)
                                   TextButton.icon(
                                     onPressed: () async {
+                                      if (!requireCurrentView()) return;
                                       await preferencesDialog(
                                         context,
                                         widget.state,
                                         Json.from(data!['child']),
                                       );
-                                      if (own) await load();
+                                      if (requireCurrentView()) await load();
                                     },
                                     icon: const Icon(Icons.tune_rounded),
                                     label: const Text('Lernvorgaben anpassen'),
@@ -1566,13 +1626,15 @@ class _ParentPlanScreenState extends State<ParentPlanScreen> {
                             onPressed: loading || busy
                                 ? null
                                 : () {
-                                    if (own && viewChild == widget.childId) {
+                                    if (requireCurrentView() &&
+                                        viewChild == widget.childId) {
                                       showParentDeadlines(
                                         context,
                                         widget.state,
                                         widget.childId,
                                         isCurrent: () =>
-                                            own && viewChild == widget.childId,
+                                            currentView &&
+                                            viewChild == widget.childId,
                                         onRoute: (route) => editorRoute = route,
                                       );
                                     }
@@ -1684,7 +1746,9 @@ class _ParentPlanScreenState extends State<ParentPlanScreen> {
                                     'vocabulary',
                                   ].contains(item['kind'])
                                   ? () {
-                                      if (!own || loading) return;
+                                      if (!requireCurrentView() || loading) {
+                                        return;
+                                      }
                                       if (item['kind'] == 'assignment') {
                                         showTopic(
                                           '${item['topic']}',

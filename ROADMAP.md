@@ -2517,6 +2517,19 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Echtzeitstatus gezielt und zuverlässig bereitstellen**
 
+  - [x] **Alte Eltern-Lernplanaktionen an die geladene Anmeldeabsicht binden.**
+    Bereits sichtbare Themenkarten, Wochenaktionen und Auftragseditoren prüfen
+    eine neue Anmeldeabsicht vor der Aktion und verlangen zunächst einen
+    lesenden Planabgleich. Ein erneuter lesender Planabruf gibt die Aktionen wieder
+    frei; eine späte Speicherantwort löst keinen zweiten Auftrag aus. Da ein
+    Pending-Signal fehlt, kann ein expliziter Neuladevorgang während noch
+    laufender Anmeldung die alte Sitzung wieder freigeben; der umfassende
+    Schutz während der Anmeldung bleibt deshalb offen. Der
+    Anmeldebeginn sendet noch kein eigenes Änderungssignal: Ein passiv offener
+    Editor verschwindet erst bei einer regulären Statusmeldung, Bedienung oder
+    Ende seiner laufenden Anfrage. Ein unbemerkter Cookiewechsel aus einem
+    anderen Tab bleibt offen. [Prüfgrenzen](docs/PARENT_PLAN_LOGIN_RACES_2026_11_06.md).
+
   - [x] **Eltern-Lernkompass vor Sitzungswechsel und Rechteentzug schützen.**
     06.11.2026: Ein gemeldeter Tokenwechsel entfernt gespeicherte private
     Berichte; eine neue Anmeldeabsicht blockiert alte Aktionen und verwirft

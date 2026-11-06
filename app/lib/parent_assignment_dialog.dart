@@ -116,9 +116,11 @@ class _AssignmentEditorState extends State<_AssignmentEditor> {
   ]);
   bool get dirty => baseline != fingerprint();
   Future<void> requestClose() async {
-    if (!current || saving || !topmost || discardRoute?.isActive == true) {
+    if (!current) {
+      contextChanged();
       return;
     }
+    if (saving || !topmost || discardRoute?.isActive == true) return;
     if (!dirty && !uncertain) {
       close();
       return;
@@ -304,7 +306,11 @@ class _AssignmentEditorState extends State<_AssignmentEditor> {
   }
 
   Future<void> save() async {
-    if (!current || saving || !topmost) return;
+    if (!current) {
+      contextChanged();
+      return;
+    }
+    if (saving || !topmost) return;
     if (!uncertain) {
       final invalid = form.currentState!.validateGranularly();
       if (invalid.isNotEmpty) {
@@ -371,7 +377,11 @@ class _AssignmentEditorState extends State<_AssignmentEditor> {
       });
       reveal(() => feedback.currentContext);
     } finally {
-      if (current) setState(() => saving = false);
+      if (current) {
+        setState(() => saving = false);
+      } else if (mounted) {
+        contextChanged();
+      }
     }
   }
 
