@@ -37,3 +37,21 @@ für den Lernkompass und benachbarte Elternansichten auf der VM.
 Der Chrome-Webrunner meldete nach sieben bestandenen Fällen einen Fehler beim
 Beenden seines Chromium-Prozesses; dies betrifft die Aufräumphase des Tests,
 nicht einen Nachweis der Prozessbeendigung.
+
+## Wiederaufnahme nach abgebrochener Anmeldung
+
+Eine unabhängige Nachprüfung zeigte, dass die zuvor dauerhaft gespeicherte
+Anmelderevision auch nach einem Abbruch unverändert blieb. Die Elternansicht
+konnte dadurch nach Rückkehr dauerhaft leer bleiben. Bei gleicher Nutzer- und
+Familienidentität zeigt sie nun einen bewussten Lese-Neustart an. Es werden
+zuerst sämtliche vorigen Generationen und gespeicherten privaten Daten
+verworfen und erst dann eine neue Anfrageidentität für einen GET gebunden.
+Auch ein veralteter, noch sichtbarer Aktionsbutton zeigt die Wiederaufnahme,
+ohne selbst eine KI-Anfrage auszulösen.
+
+Vier neue VM-Fälle prüfen die tatsächliche Routenrückkehr nach dem Abbruch,
+die Wiederaufnahme ohne automatischen Schreibaufruf, den Abschluss einer
+überholten Statusabfrage und überlappende alte und neue KI-Aufträge. Alte
+GET- und POST-Antworten dürfen nach einem bewussten
+Neuladen weder den neuen Bericht überschreiben noch den neuen Ladezustand
+beenden. Der echte Server prüft den neu angeforderten Zugriff erneut.

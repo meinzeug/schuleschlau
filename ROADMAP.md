@@ -2518,7 +2518,9 @@ Bestandteil des bestehenden Buildvertrags.
     verspätete Antworten. Beim Austausch des App-Zustands bindet sich die
     Ansicht neu. Bei HTTP 401/403 aus Bericht, Vergleich oder Einstellungen
     werden auch die privaten Vergleichsdaten entfernt und laufende Lese- und
-    Schreibantworten verworfen. Die künstlichen Tests decken keinen
+    Schreibantworten verworfen. Nach abgebrochener Anmeldung kann derselbe
+    Elternzugang den Stand bewusst neu laden; alte Antworten können keine
+    neue Aktion überschreiben. Die künstlichen Tests decken keinen
     unbemerkten Cookiewechsel aus einem anderen Tab ab. Einzelheiten und
     Prüfgrenzen: [Nachweis](docs/PARENT_INSIGHTS_SCOPE_2026_11_06.md).
 

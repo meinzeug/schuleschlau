@@ -136,6 +136,157 @@ void main() {
   });
 
   testWidgets(
+    'after cancelling login the same parent can reload without accepting an old response',
+    (tester) async {
+      final delayed = Completer<http.Response>();
+      var reads = 0;
+      final state = account(
+        MockClient((r) async {
+          reads++;
+          if (reads == 2) return delayed.future;
+          return response(insight());
+        }),
+      );
+      await mount(tester, state);
+      await tester.tap(find.byTooltip('Lernkompass neu laden'));
+      await tester.pump();
+      Navigator.of(tester.element(find.byType(ParentInsightsPanel))).push(
+        MaterialPageRoute<void>(
+          builder: (_) => const Scaffold(body: Text('Anmeldung')),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+      final auth = state.beginAuthentication();
+      state.cancelAuthentication(auth);
+      Navigator.of(tester.element(find.text('Anmeldung'))).pop();
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+      final reload = find.text('Lernkompass erneut laden');
+      expect(reload, findsOneWidget);
+      expect(reads, 2);
+      await tester.tap(reload);
+      await tester.pump();
+      await tester.pump();
+      expect(reads, 3);
+      expect(find.textContaining('Bruchaddition'), findsWidgets);
+      final stale = insight();
+      stale['topics'] = [
+        {
+          'ref': 'old',
+          'subject': 'Alt',
+          'topic': 'Überholter Bericht',
+          'assisted_tasks': 1,
+        },
+      ];
+      delayed.complete(response(stale));
+      await tester.pump();
+      await tester.pump();
+      expect(find.textContaining('Überholter Bericht'), findsNothing);
+      expect(find.textContaining('Bruchaddition'), findsWidgets);
+    },
+  );
+
+  testWidgets(
+    'an abandoned login surfaces recovery without an automatic write',
+    (tester) async {
+      var reads = 0, writes = 0;
+      final state = account(
+        MockClient((r) async {
+          if (r.method == 'GET')
+            reads++;
+          else
+            writes++;
+          return response(insight());
+        }),
+      );
+      await mount(tester, state);
+      final button = find.text('Jetzt mit KI auswerten');
+      await tester.ensureVisible(button);
+      await tester.pump();
+      final auth = state.beginAuthentication();
+      state.cancelAuthentication(auth);
+      await tester.tap(button);
+      await tester.pump();
+      expect(writes, 0);
+      expect(reads, 1);
+      expect(find.text('Lernkompass erneut laden'), findsOneWidget);
+    },
+  );
+
+  testWidgets('a stale pending read reveals recovery when login is abandoned', (
+    tester,
+  ) async {
+    final delayed = Completer<http.Response>();
+    var reads = 0;
+    final state = account(
+      MockClient((r) async {
+        if (++reads == 1) return delayed.future;
+        return response(insight());
+      }),
+    );
+    await mount(tester, state);
+    final auth = state.beginAuthentication();
+    state.cancelAuthentication(auth);
+    delayed.complete(response(insight()));
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('Lernkompass erneut laden'), findsOneWidget);
+    expect(find.textContaining('Bruchaddition'), findsNothing);
+    expect(reads, 1);
+    await tester.tap(find.text('Lernkompass erneut laden'));
+    await tester.pump();
+    await tester.pump();
+    expect(reads, 2);
+    expect(find.textContaining('Bruchaddition'), findsWidgets);
+  });
+
+  testWidgets(
+    'an old action cannot finish a newly started action after recovery',
+    (tester) async {
+      final oldPost = Completer<http.Response>();
+      final newPost = Completer<http.Response>();
+      var reads = 0, writes = 0;
+      final state = account(
+        MockClient((r) async {
+          if (r.method == 'GET') {
+            reads++;
+            return response(insight());
+          }
+          return ++writes == 1 ? oldPost.future : newPost.future;
+        }),
+      );
+      await mount(tester, state);
+      final button = find.text('Jetzt mit KI auswerten');
+      await tester.ensureVisible(button);
+      await tester.pump();
+      await tester.tap(button);
+      await tester.pump();
+      final auth = state.beginAuthentication();
+      state.cancelAuthentication(auth);
+      // Rebuild as it happens when returning to the retained route.
+      await mount(tester, state);
+      await tester.tap(find.text('Lernkompass erneut laden'));
+      await tester.pump();
+      await tester.pump();
+      await tester.ensureVisible(button);
+      await tester.pump();
+      await tester.tap(button);
+      await tester.pump();
+      expect(writes, 2);
+      oldPost.complete(response({}));
+      await tester.pump();
+      await tester.pump();
+      expect(reads, 2);
+      expect(find.text('Neue KI-Auswertung anfordern …'), findsOneWidget);
+      newPost.complete(response({}));
+      await tester.pump();
+      await tester.pump();
+      expect(reads, 3);
+    },
+  );
+
+  testWidgets(
     'revoked access clears a previously saved report after an action',
     (tester) async {
       final state = account(

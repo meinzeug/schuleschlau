@@ -60,12 +60,12 @@ class _ParentInsightsPanelState extends State<ParentInsightsPanel>
   late Json? owner;
   late String? family;
   late (Object?, String?, int?) identity;
-  bool get own =>
+  bool get sameOwner =>
       mounted &&
       owner != null &&
       identical(widget.state.user, owner) &&
-      family == widget.state.familyId &&
-      widget.state.api.ownsRequest(identity);
+      family == widget.state.familyId;
+  bool get own => sameOwner && widget.state.api.ownsRequest(identity);
   bool get active => own && foreground && routeVisible;
   String get route => '/children/${widget.childId}/parent-insights';
 
@@ -116,6 +116,31 @@ class _ParentInsightsPanelState extends State<ParentInsightsPanel>
     compactExpanded = false;
     loading = busy = false;
     operationLabel = null;
+  }
+
+  bool canAct() {
+    if (own) return true;
+    // beginAuthentication does not notify listeners. An interaction with an
+    // old rendered button must therefore reveal recovery rather than silently
+    // doing nothing or sending an action with obsolete report data.
+    if (sameOwner) setState(() {});
+    return false;
+  }
+
+  void showIdentityRecoveryIfNeeded() {
+    if (sameOwner && !own) setState(() {});
+  }
+
+  void reloadForCurrentIdentity() {
+    if (!sameOwner || widget.state.isChild) return;
+    setState(() {
+      forgetPrivateReport();
+      identity = widget.state.api.requestIdentity();
+      error = null;
+    });
+    // This is an explicit read only. Invalidate the preceding generations
+    // before beginning so an old response cannot overwrite the new report.
+    load();
   }
 
   @override
@@ -183,7 +208,7 @@ class _ParentInsightsPanelState extends State<ParentInsightsPanel>
   }
 
   Future<void> load() async {
-    if (!active) return;
+    if (!canAct() || !active) return;
     poll?.cancel();
     final stamp = ++generation;
     final child = widget.childId;
@@ -251,11 +276,13 @@ class _ParentInsightsPanelState extends State<ParentInsightsPanel>
           loading = false;
         });
       }
+    } finally {
+      showIdentityRecoveryIfNeeded();
     }
   }
 
   Future<void> compare(String? id) async {
-    if (!own || loading || busy || id == data?['latest']?['id']) return;
+    if (!canAct() || loading || busy || id == data?['latest']?['id']) return;
     final child = widget.childId, selected = data?['latest']?['id'];
     final stamp = ++comparisonGeneration;
     setState(() {
@@ -298,6 +325,8 @@ class _ParentInsightsPanelState extends State<ParentInsightsPanel>
           comparing = false;
         });
       }
+    } finally {
+      showIdentityRecoveryIfNeeded();
     }
   }
 
@@ -336,7 +365,7 @@ class _ParentInsightsPanelState extends State<ParentInsightsPanel>
   );
 
   Future<void> prepare() async {
-    if (!own || busy || loading) return;
+    if (!canAct() || busy || loading) return;
     final child = widget.childId;
     final action = ++operation;
     requestKey ??= homeworkKey();
@@ -372,11 +401,12 @@ class _ParentInsightsPanelState extends State<ParentInsightsPanel>
           operationLabel = null;
         });
       }
+      showIdentityRecoveryIfNeeded();
     }
   }
 
   Future<void> enable(bool enabled) async {
-    if (!own || busy || loading || data == null) return;
+    if (!canAct() || busy || loading || data == null) return;
     final child = widget.childId;
     final action = ++operation;
     setState(() {
@@ -408,12 +438,28 @@ class _ParentInsightsPanelState extends State<ParentInsightsPanel>
           operationLabel = null;
         });
       }
+      showIdentityRecoveryIfNeeded();
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (!own || widget.state.isChild) return const SizedBox.shrink();
+    if (!sameOwner || widget.state.isChild) return const SizedBox.shrink();
+    if (!own) {
+      return Panel(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Deine Anmeldung hat sich geändert.'),
+            TextButton.icon(
+              onPressed: reloadForCurrentIdentity,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Lernkompass erneut laden'),
+            ),
+          ],
+        ),
+      );
+    }
     final latest = data?['latest'] as Map?;
     final report = latest?['report'] as Map?;
     final savedTopics = (latest?['observations']?['topics'] as List? ?? [])
@@ -527,7 +573,7 @@ class _ParentInsightsPanelState extends State<ParentInsightsPanel>
                 ),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () {
-                  if (!own || child != widget.childId) return;
+                  if (!canAct() || child != widget.childId) return;
                   openRoute(
                     context,
                     Uri(
@@ -608,7 +654,7 @@ class _ParentInsightsPanelState extends State<ParentInsightsPanel>
                 topic: topics[finding['topic_ref']],
                 childId: widget.childId,
                 enabled: own && !loading,
-                isCurrent: () => own && child == widget.childId,
+                isCurrent: () => canAct() && child == widget.childId,
               ),
             if (findings.length > visibleFindings.length)
               Text(
@@ -630,7 +676,7 @@ class _ParentInsightsPanelState extends State<ParentInsightsPanel>
                   enabled: topics[step['topic_ref']] != null && own && !loading,
                   actionLabel: 'Belege zu diesem Schritt ansehen',
                   onPressed: () {
-                    if (!own || child != widget.childId) return;
+                    if (!canAct() || child != widget.childId) return;
                     final target = topics[step['topic_ref']];
                     if (target == null) return;
                     openRoute(
@@ -695,7 +741,7 @@ class _ParentInsightsPanelState extends State<ParentInsightsPanel>
               if (widget.showPlanLink)
                 OutlinedButton.icon(
                   onPressed: () {
-                    if (!own || child != widget.childId) return;
+                    if (!canAct() || child != widget.childId) return;
                     openRoute(context, '/parent-plan/$child');
                   },
                   icon: const Icon(Icons.route_outlined),
@@ -737,7 +783,7 @@ class _ParentInsightsPanelState extends State<ParentInsightsPanel>
               onChanged: busy || loading
                   ? null
                   : (value) {
-                      if (!own || value == selectedReview) return;
+                      if (!canAct() || value == selectedReview) return;
                       setState(() {
                         selectedReview = value;
                         comparison = null;
@@ -802,7 +848,7 @@ class _ParentInsightsPanelState extends State<ParentInsightsPanel>
                 onPressed: loading || busy
                     ? null
                     : () {
-                        if (!own) return;
+                        if (!canAct()) return;
                         setState(() {
                           selectedReview = null;
                           comparison = null;
