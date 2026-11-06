@@ -2504,12 +2504,24 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Abnahmen systematisch und wiederholbar automatisieren**
 
+  - [x] **Zwei-Eltern-Konfliktprüfung im Browser-Gate verankern.** Zwei
+    künstliche Eltern bearbeiten dieselben Lernvorgaben in getrennten
+    Smartphone-Browserkontexten. Eine veraltete Änderung wird mit 409
+    abgewiesen und der Entwurf bleibt sichtbar; ein alter API-Vertrag ohne
+    Revision erhält 428. Die gespeicherte Push-Freigabe bleibt entzogen und
+    es entstehen keine KI-Aufträge. Der lokale Chrome-Fall und die
+    Fremddatenbank-Abwehr bestanden; der Runner verlangt beide Ergebnisse
+    ohne Skip. Browser-Netzwerksperre und begrenzte Loopback-API-Zugriffe
+    bleiben aktiv. Die vollständige CI und weitere Browserabnahmen bleiben
+    für den jeweiligen Quellstand gesondert nachzuweisen.
+    [Umfang und Grenzen](docs/PARENT_CAS_BROWSER_GATE_2026_11_06.md).
+
   - [x] **Künstliche Browserabläufe als CI-Gate vorbereiten.** Der bestehende
     Flutter-Build startet den Hefter- und den 390-px-Lernablauf in isoliertem
     Chrome gegen eine temporäre SQLite-Datenbank. Browserseiten sperren fremde
     HTTP-Ziele, HTTP-Weiterleitungen, WebSockets und Service Worker; das ist
     keine Netzwerkisolierung des Betriebssystems oder der Chrome-Hintergrunddienste.
-    Die vier vorgeschriebenen Testfälle
+    Die jeweils vorgeschriebenen Testfälle
     müssen im JUnit-Beleg einmal und ohne Skip oder Fehler vorliegen. Die
     Runner-Verträge prüfen auch fehlende, doppelte und übersprungene Fälle.
     Auf Basis `075874c` bestand der kombinierte lokale Lauf mit künstlichen

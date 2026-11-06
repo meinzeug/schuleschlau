@@ -31,6 +31,7 @@ class LocalRunnerSafety(unittest.TestCase):
         self.assertEqual(env["TMPDIR"], "/local/scratch")
         self.assertEqual(env["NOTEBOOK_LOCAL_BROWSER"], "1")
         self.assertEqual(env["RECALL_MOBILE_BROWSER"], "1")
+        self.assertEqual(env["PARENT_PREFS_CAS_BROWSER"], "1")
         self.assertEqual(env["PYTEST_DISABLE_PLUGIN_AUTOLOAD"], "1")
 
     def test_workflow_runs_browser_contract_against_fresh_web_build(self):
@@ -49,6 +50,8 @@ class LocalRunnerSafety(unittest.TestCase):
             ("test_notebook_local_browser", "test_notebook_browser_rejects_external_database_before_import"),
             ("test_recall_mobile_browser", "test_synthetic_recall_journey_in_390px_browser"),
             ("test_recall_mobile_browser", "test_recall_browser_rejects_external_database_before_import"),
+            ("test_preferences_browser_cas", "test_real_browser_preferences_cas"),
+            ("test_preferences_browser_cas", "test_browser_cas_refuses_external_test_database_before_import"),
         )
         with tempfile.TemporaryDirectory() as scratch:
             path = Path(scratch) / "results.xml"

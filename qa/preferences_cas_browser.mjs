@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {chromium} from 'playwright';
+import {restrictBrowserNetwork, closeRestrictedBrowserContext} from './browser_network_guard.mjs';
 
 const input = JSON.parse(readFileSync(0, 'utf8'));
 const url = new URL(input.base);
@@ -11,6 +12,8 @@ assert(Number(url.port) >= 1024);
 assert.equal(input.first, 'parent@example.org');
 assert.equal(input.second, 'synthetic-cas-parent');
 assert.equal(input.password, 'secure-parent-pass-123');
+assert.match(input.child, /^[a-f0-9]{32}$/);
+assert.match(input.family, /^[a-f0-9]{32}$/);
 const browser = await chromium.launch({headless:true, executablePath:'/opt/google/chrome/chrome', args:['--no-sandbox']});
 const contexts = [];
 let phase = 'setup';
@@ -40,8 +43,9 @@ async function type(page, locator, value) {
   await page.keyboard.type(value,{delay:3}); await page.keyboard.press('Tab'); await page.waitForTimeout(150);
 }
 async function login(user) {
-  const context=await browser.newContext({viewport:{width:390,height:900},isMobile:true,hasTouch:true});
+  const context=await browser.newContext({viewport:{width:390,height:900},isMobile:true,hasTouch:true,serviceWorkers:'block'});
   contexts.push(context);
+  await restrictBrowserNetwork(context,input.base);
   const page=await context.newPage();
   page.on('pageerror',()=>errors.push(phase));
   page.on('request',r=>{const path=new URL(r.url()).pathname;if(path.startsWith('/api/')&&r.method()!=='GET')writes.push({path,method:r.method()});});
@@ -94,11 +98,13 @@ try {
   assert.equal(await draft.inputValue(),'200');
   assert.equal(writes.filter(x=>x.path.endsWith('/preferences')).length,2);
   // Exercise the old API contract, without pretending to run an old APK.
-  const family=await second.context.request.get(input.base+`/api/families/${input.family}`);
+  // Playwright's APIRequestContext is outside the page router; use only the
+  // validated loopback origin and never follow redirects from this endpoint.
+  const family=await second.context.request.get(input.base+`/api/families/${input.family}`,{maxRedirects:0});
   assert.equal(family.status(),200);
   const snapshot=(await family.json()).children.find(row=>row.id===input.child).preferences;
   const oldClient=await second.context.request.put(input.base+`/api/children/${input.child}/preferences`, {
-    headers:{'X-Schulpilot-Request':'1'}, data:snapshot,
+    headers:{'X-Schulpilot-Request':'1'}, data:snapshot, maxRedirects:0,
   });
   assert.equal(oldClient.status(),428);
   const oldError=await oldClient.json();
@@ -106,4 +112,4 @@ try {
   assert(oldError.detail.includes('App aktualisieren'));
   assert.deepEqual(errors,[]);
   process.stdout.write('synthetic two-parent CAS browser passed\n');
-} finally {for(const ctx of contexts)await ctx.close();await browser.close();}
+} finally {try {for(const ctx of contexts)await closeRestrictedBrowserContext(ctx);} finally {await browser.close();}}
