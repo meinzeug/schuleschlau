@@ -45,5 +45,17 @@ try {
   const out=await second.evaluate(async ()=>{const r=await fetch('/api/auth/logout',{method:'POST',headers:{'X-Schulpilot-Request':'1'}});return r.status;});
   assert.equal(out,200);
   assert.equal(await second.evaluate(async ()=>(await fetch('/api/auth/me')).status),401,'logout must revoke the session');
+  const anonymous = await first.evaluate(async () => {
+    const headers={'Content-Type':'application/json','X-Schulpilot-Request':'1'};
+    const prepare=await fetch('/api/auth/google/prepare',{method:'POST',headers,body:'{}'});
+    const body=await prepare.json();
+    const start=await fetch('/api/auth/google/start',{method:'POST',headers,body:JSON.stringify({request:body.request})});
+    return {status:start.status,id:body.flow_id};
+  });
+  assert.equal(anonymous.status,200,'anonymous flow started');
+  assert.equal((await login(second,'parent@example.org')).status,200);
+  assert.equal(await second.evaluate(async ()=>(await fetch('/api/auth/logout',{method:'POST',headers:{'X-Schulpilot-Request':'1'}})).status),200);
+  const revoked=await first.evaluate(async id=>(await fetch('/api/auth/google/result',{method:'POST',headers:{'Content-Type':'application/json','X-Schulpilot-Request':'1'},body:JSON.stringify({flow_id:id})})).status,anonymous.id);
+  assert.equal(revoked,400,'logout must invalidate flow started before the session');
   process.stdout.write('synthetic real-browser cookie race passed\n');
 } finally {await context.close();await browser.close();}

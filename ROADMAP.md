@@ -2384,11 +2384,14 @@ Bestandteil des bestehenden Buildvertrags.
 
   - [x] **Neuen Google-Flow vor verspätetem Cookie-Löschen schützen.**
     06.11.2026: Logout und Abschluss löschen das gemeinsame Google-Flow-Cookie
-    nicht mehr per verzögerbarer Antwort; serverseitiger Verbrauch und die
-    sitzungsgebundene Logout-Löschung bleiben wirksam. Ein isolierter
+    nicht mehr per verzögerbarer Antwort. Logout widerruft zusätzlich den
+    mitgesendeten Browser-Flow, auch wenn er vor der Sitzung anonym begonnen
+    wurde. Das versionierte Cookie ist dafür unter `/api/auth` erreichbar;
+    ältere begonnene Google-Flows müssen neu gestartet werden. Ein isolierter
     Zwei-Tab-Chrometest prüft einen neu gestarteten Flow nach verzögerter
-    Logoutantwort, API-Fälle prüfen die Ergebnisarten und Replay. Ungebundene
-    alte Flows und weitere Login-Antwortrennen bleiben offen.
+    Logoutantwort, API-Fälle prüfen die Ergebnisarten, Replay und Widerruf
+    während eines künstlich angehaltenen Google-Exchanges. Weitere Login- und
+    Start-Antwortrennen bleiben offen.
     [Prüfung und Grenzen](docs/AUTH_401_SESSION_RACE_2026_11_05.md).
 
   - [x] **Späte 401-Antworten an die ursprüngliche Sitzung binden.**

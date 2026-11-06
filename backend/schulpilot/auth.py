@@ -262,10 +262,18 @@ def me(p=Depends(authenticated), db=Depends(get_db)):
 
 
 @router.post("/logout")
-def logout(response: Response, p=Depends(authenticated), db=Depends(get_db)):
+def logout(request: Request, response: Response, p=Depends(authenticated), db=Depends(get_db)):
     from sqlalchemy import delete
+    from .google_login import COOKIE
 
     db.execute(delete(GoogleFlow).where(GoogleFlow.previous_session_id == p.session.id))
+    # The current browser flow may have been created before this session and
+    # therefore have no previous_session_id. The widened cookie path lets us
+    # revoke exactly the binding sent with this request, including an
+    # anonymous one, without a late Set-Cookie deleting a newer tab's flow.
+    browser = request.cookies.get(COOKIE)
+    if browser:
+        db.execute(delete(GoogleFlow).where(GoogleFlow.browser_digest == digest(browser)))
     if p.user.role == "child":
         db.execute(update(Child).where(Child.user_id == p.user.id).values(grade=Child.grade))
     db.execute(update(Session).where(Session.id == p.session.id).values(revoked=True))

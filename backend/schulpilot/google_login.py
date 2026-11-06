@@ -40,8 +40,12 @@ from .db import (
 from .security import audit, authenticated, decrypt, digest, encrypt, parent, password_hash, rate_limit, verify_password
 
 router = APIRouter(prefix="/auth/google", tags=["Eltern-Anmeldung"])
-COOKIE = "sp_google"
-COOKIE_PATH = "/api/auth/google"
+# The previous cookie was scoped to /api/auth/google and was not sent to
+# logout. Version the name as well as broadening the path: otherwise browsers
+# could send both path variants under the same name. In-flight old flows must
+# be started again after the upgrade.
+COOKIE = "sp_google_v2"
+COOKIE_PATH = "/api/auth"
 TOKEN = r"^[A-Za-z0-9_-]{32,128}$"
 FAILURES = {
     "cancelled": "Die Google-Anmeldung wurde abgebrochen.",
@@ -243,9 +247,12 @@ def callback(request: Request, db=Depends(get_db)):
     if not claimed.rowcount:
         return RedirectResponse(settings.public_url + "/auth/google/complete#error=invalid", status_code=303)
     verifier, nonce_digest = decrypt(flow.encrypted_verifier), flow.nonce_digest
+    flow_id, platform = flow.id, flow.platform
     flow.encrypted_verifier = None
     db.commit()  # A callback can never cause a second Google exchange.
     failure = "invalid"
+    subject = email = None
+    email_authoritative = False
     if request.query_params.get("error"):
         failure = "cancelled"
     else:
@@ -266,22 +273,37 @@ def callback(request: Request, db=Depends(get_db)):
                 or not hmac.compare_digest(digest(claims["nonce"]), nonce_digest)
             ):
                 raise ValueError("Invalid claims")
-            flow.subject, flow.email, flow.phase = claims["sub"], email, "verified"
+            subject = claims["sub"]
             # For a third-party address Google can confirm an old ownership
             # check, without being authoritative for its current mailbox.
-            flow.email_authoritative = bool(email.endswith(("@gmail.com", "@googlemail.com")) or claims.get("hd"))
+            email_authoritative = bool(email.endswith(("@gmail.com", "@googlemail.com")) or claims.get("hd"))
             failure = None
         except (httpx.HTTPError, OSError):
             failure = "unavailable"
         except Exception:
             # Never expose a Google token, response, SQL parameter or traceback.
             failure = "invalid"
-    if failure:
-        flow.phase, flow.failure = "failed", failure
-    ticket = secrets.token_urlsafe(48) if flow.platform == "native" else None
-    flow.ticket_digest = digest(ticket) if ticket else None
+    ticket = secrets.token_urlsafe(48) if platform == "native" else None
+    # Logout can revoke the binding while the external exchange is in flight.
+    # Update only the same still-live exchange; never recreate a deleted flow
+    # or fail with an ORM stale-object exception after a successful logout.
+    changed = db.execute(
+        update(GoogleFlow)
+        .where(GoogleFlow.id == flow_id, GoogleFlow.phase == "exchanging", GoogleFlow.expires > now())
+        .values(
+            phase="failed" if failure else "verified",
+            failure=failure,
+            subject=subject if not failure else None,
+            email=email if not failure else None,
+            email_authoritative=email_authoritative if not failure else False,
+            ticket_digest=digest(ticket) if ticket else None,
+        )
+    )
+    if not changed.rowcount:
+        db.rollback()
+        return RedirectResponse(settings.public_url + "/auth/google/complete#error=invalid", status_code=303)
     db.commit()
-    fragment = urlencode({"flow": flow.id, **({"ticket": ticket} if ticket else {})})
+    fragment = urlencode({"flow": flow_id, **({"ticket": ticket} if ticket else {})})
     return RedirectResponse(settings.public_url + "/auth/google/complete#" + fragment, status_code=303)
 
 

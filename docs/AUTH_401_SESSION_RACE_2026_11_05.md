@@ -40,22 +40,37 @@ Der Browserlauf verwendet isoliertes SQLite, keine produktiven Konten und keine
 Flutter-Oberfläche. Login und Widerruf wurden zusätzlich in API-Tests geprüft.
 
 **Google-Flow-Cookie, 06.11.2026:** Abmeldung und Google-Abschluss senden
-keinen Löschheader für das gemeinsam genutzte `sp_google`-Cookie mehr. Ein
+keinen Löschheader für das gemeinsam genutzte Google-Flow-Cookie mehr. Ein
 abgeschlossener Flow wird stattdessen serverseitig einmalig verbraucht und
 seine Browserbindung entfernt; bei Logout werden die an die abgemeldete
 Sitzung gebundenen Flows gelöscht. Der alte HttpOnly-Wert läuft nach
-höchstens zehn Minuten ab und ersetzt keine Sitzung. Ein isolierter
+höchstens zehn Minuten ab und ersetzt keine Sitzung. Das Cookie heißt nun
+`sp_google_v2` und gilt für `/api/auth`, damit auch der Logout-Endpunkt seine
+aktuelle Browserbindung erhält. Logout widerruft den mitgesendeten Flow
+gezielt serverseitig, auch wenn er ursprünglich ohne Sitzung gestartet wurde.
+Vor dem Update begonnene Flows mit dem alten Cookie müssen neu gestartet
+werden. Ein isolierter
 Chrome-Test hält die Logoutantwort zurück, startet in einem anderen Tab nach
 einem neuen Login einen neuen Google-Flow und prüft nach Freigabe der alten
 Antwort seinen unveränderten Pending-Status. Es werden kein echtes
 Google-Konto und kein externer Anbieter verwendet. API-Tests prüfen zusätzlich
 die Löschheader bei Login-, Verknüpfungs- und Bestätigungsergebnis sowie die
 Verweigerung eines verbrauchten beziehungsweise beim Logout gelöschten Flows.
+Nach der zusätzlichen Browserbindung bestanden die Google-/Logout-API-Tests
+jeweils mit 30 bestandenen und einem übersprungenen Browsertest in isoliertem
+SQLite und PostgreSQL 16; der isolierte Chrome-Zwei-Tab-Test bestand separat.
+Der künstlich angehaltene Austausch prüft auch, dass eine zeitgleich widerrufene
+Browserbindung nach der Anbieterantwort nicht wiederhergestellt wird.
 
-**Weiter offen:** Ein laufender, ursprünglich ohne Sitzung gestarteter alter
-Flow kann durch einen späteren Logout nicht anhand einer Sitzung gelöscht
-werden. Auch verspätete erfolgreiche Loginantworten beziehungsweise Start- und
-Abschlussantworten mehrerer Google-Flows benötigen gesonderte Raceprüfungen.
+**Weiter offen:** Verspätete erfolgreiche Loginantworten beziehungsweise Start-
+und Abschlussantworten mehrerer Google-Flows benötigen gesonderte Raceprüfungen;
+insbesondere kann ein noch ausstehender Start erst nach dem Logout sein Cookie
+setzen. Bereits abgeschlossene Sitzungsantworten können nach einem Logout
+eintreffen. Die Korrektur widerruft den Browser-Flow, den der Logoutrequest
+tatsächlich mitgesendet hat, und die an seine Sitzung gebundenen Flows.
+Ein nativer Flow, dessen Systembrowser und App getrennte Cookie-Speicher haben
+und der keiner Sitzung zugeordnet ist, lässt sich darüber nicht widerrufen;
+Geräte-Proof und Callback-Ticket bleiben trotzdem erforderlich.
 Bereits gestartete native
 Ressourcenbereinigungen lassen sich durch diese nachgelagerten Checks nicht
 rückwirkend abbrechen. Die Änderung garantiert weder die Handhabung aller

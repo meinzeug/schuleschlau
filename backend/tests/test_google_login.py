@@ -209,7 +209,7 @@ def test_existing_email_never_links_without_password(api, mailbox, google):
     callback(api, state)
     linked_response = result(api, linked)
     assert linked_response.json()["status"] == "linked"
-    assert not any(value.startswith("sp_google=") for value in linked_response.headers.get_list("set-cookie"))
+    assert not any(value.startswith(g.COOKIE + "=") for value in linked_response.headers.get_list("set-cookie"))
     assert api.get("/api/auth/google/identity").json()["linked"]
     assert api.request("DELETE", "/api/auth/google/identity", json={"password": "wrong"}).status_code == 403
     assert (
@@ -363,7 +363,7 @@ def test_third_party_google_email_needs_actual_mailbox_confirmation(api, mailbox
     flow, state = begin(api, google)
     callback(api, state)
     r = result(api, flow, registration=registration())
-    assert not any(value.startswith("sp_google=") for value in r.headers.get_list("set-cookie"))
+    assert not any(value.startswith(g.COOKIE + "=") for value in r.headers.get_list("set-cookie"))
     assert r.json() == {"status": "verification_required", "access_notice":
         "Der Lernzugang für neue Familien wird noch vorbereitet. Neue KI-Aufträge sind bis zur Freigabe einer Testphase oder eines bezahlten Tarifs gesperrt."}
     assert "token" not in r.json()
@@ -383,7 +383,7 @@ def test_logout_does_not_clear_a_newer_google_flow_cookie(api, mailbox, google):
     old_flow, _ = begin(api, google, native=False)
     logout = api.post('/api/auth/logout')
     assert logout.status_code == 200
-    assert not any(value.startswith('sp_google=') for value in logout.headers.get_list('set-cookie'))
+    assert not any(value.startswith(g.COOKIE + '=') for value in logout.headers.get_list('set-cookie'))
     # The earlier flow is invalid on the server even though its browser cookie
     # expires naturally. A later anonymous flow can proceed normally.
     assert result(api, old_flow).status_code == 400
@@ -399,9 +399,82 @@ def test_finished_google_response_does_not_clear_a_later_flow_cookie(api, google
     callback(api, state)
     finished = result(api, old_flow, registration=registration())
     assert finished.status_code == 200
-    assert not any(value.startswith('sp_google=') for value in finished.headers.get_list('set-cookie'))
+    assert not any(value.startswith(g.COOKIE + '=') for value in finished.headers.get_list('set-cookie'))
     # Consumption, not deletion of a shared browser cookie, prevents replay.
     assert result(api, old_flow).status_code == 400
     new_flow, state = begin(api, google, native=False)
     callback(api, state)
     assert result(api, new_flow).json()['status'] == 'authenticated'
+
+
+def test_logout_cancels_browser_flow_started_anonymously_before_password_login(api, google):
+    first, state = begin(api, google, native=False)
+    callback(api, state)
+    assert result(api, first, registration=registration()).json()['status'] == 'authenticated'
+    assert api.post('/api/auth/logout').status_code == 200
+    pending, state = begin(api, google, native=False)
+    assert callback(api, state).status_code == 303
+    login = api.post('/api/auth/login', json={
+        'username': 'google-parent@example.org', 'password': 'secure-parent-pass-123',
+    })
+    assert login.status_code == 200
+    assert api.post('/api/auth/logout').status_code == 200
+    assert result(api, pending).status_code == 400
+    assert api.get('/api/auth/me').status_code == 401
+
+
+def test_old_cookie_name_does_not_authorize_inflight_flow_after_upgrade(api, google):
+    flow, state = begin(api, google, native=False)
+    value = api.cookies.get(g.COOKIE)
+    api.cookies.clear()
+    api.cookies.set('sp_google', value, path='/api/auth/google')
+    assert 'error=invalid' in callback(api, state).headers['location']
+    assert result(api, flow).status_code == 403
+
+
+def test_browser_flow_cookie_is_visible_to_logout_but_not_other_api_paths(api, google):
+    _, _ = begin(api, google, native=False)
+    cookie = next(c for c in api.cookies.jar if c.name == g.COOKIE)
+    assert cookie.path == '/api/auth'
+    assert cookie.has_nonstandard_attr('HttpOnly')
+
+
+def test_logout_during_google_exchange_does_not_revive_browser_flow(api, mailbox, google, monkeypatch):
+    import threading
+    from concurrent.futures import ThreadPoolExecutor
+
+    register(api, mailbox)
+    api.headers.pop('Authorization', None)
+    api.cookies.clear()
+    pending, state = begin(api, google, native=False)
+    browser_token = api.cookies.get(g.COOKIE)
+    assert api.post('/api/auth/login', json={
+        'username': 'parent@example.org', 'password': 'secure-parent-pass-123',
+    }).status_code == 200
+    exchanging, release = threading.Event(), threading.Event()
+    original = g.exchange_code
+
+    def delayed_exchange(*args):
+        exchanging.set()
+        if not release.wait(20):
+            raise RuntimeError('Synthetic exchange gate timed out')
+        return original(*args)
+
+    monkeypatch.setattr(g, 'exchange_code', delayed_exchange)
+
+    def complete():
+        with TestClient(app, headers={'X-Schulpilot-Request': '1'}) as browser:
+            browser.cookies.set(g.COOKIE, browser_token, path=g.COOKIE_PATH)
+            return callback(browser, state)
+
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        future = pool.submit(complete)
+        try:
+            assert exchanging.wait(20)
+            assert api.post('/api/auth/logout').status_code == 200
+        finally:
+            release.set()
+        returned = future.result(timeout=20)
+    assert 'error=invalid' in returned.headers['location']
+    assert result(api, pending).status_code == 400
+    assert api.get('/api/auth/me').status_code == 401
