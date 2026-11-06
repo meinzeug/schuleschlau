@@ -5,12 +5,14 @@ import logging
 import re
 import signal
 import time
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from fastapi import HTTPException
-from sqlalchemy import delete, or_, select, update
+from sqlalchemy import delete, or_, select, text, update
+from sqlalchemy.exc import OperationalError
 
 from . import schemas as s
 from .config import settings
@@ -871,7 +873,82 @@ def reap_interrupted(cutoff=None):
     return count
 
 
+class _MaintenanceDeferred(Exception):
+    """A concurrent action prevented a safe retention pass; retry later."""
+
+
+@contextmanager
+def _retention_transaction():
+    from .erasure import journal_write_lock
+
+    # All outbox commits must hold the same outer lock as a snapshot.
+    with journal_write_lock():
+        try:
+            with DB.begin() as db:
+                if db.bind.dialect.name == "postgresql":
+                    # Defensive bound for unanticipated FK/cascade conflicts.
+                    # This limits each lock wait, not total transaction time.
+                    db.execute(text("SET LOCAL lock_timeout = '500ms'"))
+                yield db
+        except OperationalError as error:
+            if getattr(error.orig, "sqlstate", None) not in {"55P03", "40P01"}:
+                raise
+            raise _MaintenanceDeferred from error
+
+
+def _lock_expiring_family(db, family_id):
+    """Lock the affected rows without waiting and recheck snapshot membership."""
+    if db.bind.dialect.name != "postgresql":
+        return db.get(Family, family_id)
+    from .db import Membership, User
+
+    child_rows = list(db.execute(select(Child.id, Child.user_id).where(Child.family_id == family_id).order_by(Child.id)))
+    parent_ids = list(db.scalars(select(Membership.user_id).where(Membership.family_id == family_id).order_by(Membership.user_id)))
+    user_ids = sorted({*parent_ids, *(row.user_id for row in child_rows)})
+    token_condition = or_(Token.family_id == family_id, Token.user_id.in_(user_ids))
+    token_ids = list(db.scalars(select(Token.id).where(token_condition).order_by(Token.id).with_for_update(nowait=True)))
+    family = db.scalar(select(Family).where(Family.id == family_id).with_for_update(nowait=True).execution_options(populate_existing=True))
+    if family is None or family.expires is None or family.expires >= int(now()):
+        return None
+    current_children = list(db.execute(select(Child.id, Child.user_id).where(Child.family_id == family_id).order_by(Child.id)))
+    current_parents = list(db.scalars(select(Membership.user_id).where(Membership.family_id == family_id).order_by(Membership.user_id)))
+    if current_children != child_rows or current_parents != parent_ids:
+        raise _MaintenanceDeferred
+    child_ids = [row.id for row in child_rows]
+    unit_ids = list(db.scalars(select(LearningUnit.id).where(LearningUnit.child_id.in_(child_ids)).order_by(LearningUnit.id).with_for_update(nowait=True)))
+    list(db.scalars(select(Child.id).where(Child.id.in_(child_ids)).order_by(Child.id).with_for_update(nowait=True)))
+    if list(db.scalars(select(LearningUnit.id).where(LearningUnit.child_id.in_(child_ids)).order_by(LearningUnit.id))) != unit_ids:
+        raise _MaintenanceDeferred
+    list(db.scalars(select(User.id).where(User.id.in_(user_ids)).order_by(User.id).with_for_update(nowait=True)))
+    list(db.scalars(select(Session.id).where(Session.user_id.in_(user_ids)).order_by(Session.id).with_for_update(nowait=True)))
+    if list(db.scalars(select(Token.id).where(token_condition).order_by(Token.id))) != token_ids:
+        raise _MaintenanceDeferred
+    return family
+
+
 def maintenance():
+    try:
+        return _maintenance()
+    except _MaintenanceDeferred:
+        # Grades may already have committed in their own transactions before
+        # the large pass. Publish their outbox even when that pass rolls back.
+        from .erasure import flush_journal
+
+        flush_journal()
+        log.warning("Retention pass deferred due to concurrent database activity")
+    except Exception:
+        # Earlier independently committed retention work still needs its
+        # outbox published; preserve the original failure if that also fails.
+        from .erasure import flush_journal
+
+        try:
+            flush_journal()
+        except Exception as error:
+            log.error("Retention journal flush failed type=%s", type(error).__name__)
+        raise
+
+
+def _maintenance():
     from .learning_assets import reap_interrupted as reap_asset_jobs
 
     # Asset publication and expiry share Child -> Build locks. Do not inherit
@@ -886,12 +963,8 @@ def maintenance():
     expire_grade_sources(int(now()) - 7 * 86400, int(now()) - 365 * 86400, unresolved_grade_children)
     paths = []
     repair_paths = []
-    from .erasure import journal_write_lock
-
-    # This maintenance transaction creates deletion outbox events for several
-    # resource types. Take the journal lock before any DB write/row lock, and
-    # release it before the later flush_journal() acquires it again.
-    with journal_write_lock(), DB.begin() as db:
+    # This pass journals deletions and releases the journal before flushing.
+    with _retention_transaction() as db:
         from .commerce import maintenance as commerce_maintenance
         from .operator_incidents import maintenance as incident_maintenance
         from .order_withdrawals import maintenance as withdrawal_maintenance
@@ -912,6 +985,9 @@ def maintenance():
             # Demo owner users are not attached to other families.
             from .db import Membership, User
 
+            family = _lock_expiring_family(db, family.id)
+            if family is None:
+                continue
             owners = list(db.scalars(select(Membership.user_id).where(Membership.family_id == family.id)))
             paths.extend(remove_family(db, family))
             db.flush()
@@ -1032,18 +1108,6 @@ def maintenance():
         from .preparation_retention import purge as purge_preparation_receipts
 
         purge_preparation_receipts(db, int(now()))
-        # Also remove interrupted export files. Uploads have independent DB
-        # ownership; unfinished writes are never served from the webroot.
-        exports = settings.data_dir / "exports"
-        if exports.is_dir():
-            for pattern in ("family-*.zip", "child-*.zip"):
-                for file in exports.glob(pattern):
-                    try:
-                        if file.stat().st_mtime < now() - 3600:
-                            file.unlink(missing_ok=True)
-                    except FileNotFoundError:
-                        # A completed response may remove it concurrently.
-                        pass
         # Bundled, in-app reminders only; no sensitive lock-screen messages.
         for child in db.scalars(select(Child)):
             prefs = s.Preferences(**child.preferences)
@@ -1075,6 +1139,18 @@ def maintenance():
     from .erasure import flush_journal, prune_journal, prune_orphan_images
 
     flush_journal()
+    # Also remove interrupted export files. Uploads have independent DB
+    # ownership; unfinished writes are never served from the webroot.
+    exports = settings.data_dir / "exports"
+    if exports.is_dir():
+        for pattern in ("family-*.zip", "child-*.zip"):
+            for file in exports.glob(pattern):
+                try:
+                    if file.stat().st_mtime < now() - 3600:
+                        file.unlink(missing_ok=True)
+                except FileNotFoundError:
+                    # A completed response may remove it concurrently.
+                    pass
     unlink_uploads(paths)
     # Only our fixed flat patch namespace, never an arbitrary stored path.
     repair_root = (settings.data_dir / "operator-repairs").resolve()
