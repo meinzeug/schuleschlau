@@ -291,6 +291,7 @@ def test_photo_auth_checks_are_bounded_without_consuming_the_database_pool(monke
 def test_privacy_revocation_waits_for_photo_commit_on_postgres(api, household, monkeypatch):
     import json
     from pathlib import Path
+
     from schulpilot.config import settings
     from schulpilot.db import Installation, engine
     from schulpilot.security import encrypt
