@@ -45,3 +45,39 @@ Reservierung als unbekannt erhalten. Das Paket wird nicht übernommen. Ein
 verspätetes Providerergebnis wird im allgemeinen Paketpfad nicht als
 Kostenbeleg nachgetragen; ein vorhandener Generierungsbeleg kann über den
 bestehenden Abgleich verarbeitet werden. Diese Einschränkung gilt weiter.
+
+## Ergänzende Prüfung auf Status-Neuladen und Prüfungsabbruch
+
+Eine unabhängige Gegenprüfung fand ein zweites konkretes Rennen: Vier Worker
+leeren nach ihrer ersten Statusprüfung den ORM-Cache. Vor der Ergänzung konnte
+ein dazwischen abgebrochener Job deshalb mit dem neu geladenen `failed` als
+Vergleichswert wieder abgeschlossen werden. Auch dieses Verhalten wurde mit
+einem tatsächlichen Grafikworker und künstlicher Ausgabe auf getrenntem
+PostgreSQL reproduziert. Alle vier Stellen prüfen nach dem Leeren des Caches
+erneut auf `running`; danach bleibt der Vergleichswert bis zur Änderung
+bestehen. Eine spätere Statusänderung löst wie oben den Transaktionsrücklauf
+aus. Die besonderen Asset- und Materialprüfungen prüfen den aktualisierten
+Jobstatus bereits. Das betrifft keine Aussage über unbedingte SQL-Updates.
+
+Alle acht vorhandenen `update(Job)`-Aufrufstellen begrenzen ihre Übergänge durch
+Statusprädikate. Die normale Wiederholung eines unterbrochenen Paketjobs legt
+einen Auftrag mit neuer ID an; der alte `failed`-Status und dessen unbekannter
+Verbrauch bleiben bestehen. Ein neuer unbedingter SQL-Übergang oder eine
+manuelle Reaktivierung von `failed` zu `running` würde diesen Schutz aushebeln;
+die Untersuchung ist kein Datenbank-Constraint gegen solche Änderungen.
+
+Bei der Löschung einer Klassenarbeitsquelle werden laufende Analyse- und
+Nacharbeitsjobs nun atomar als `failed_unknown` abgerechnet, ohne die
+Reservierung freizugeben oder eine kostenlose Ausführung zu behaupten.
+Wiederholte Löschung bucht nicht erneut. Ein angehaltener künstlicher
+Anbieteraufruf kann danach keinen Bericht übernehmen. Für noch nicht gestartete
+Aufträge bleibt der bestehende Nullkostenweg erhalten. Der No-op-Paketpfad
+setzt den Jobstatus vor der Kostenbuchung und verwendet damit ausdrücklich die
+gleiche Job→Usage-Reihenfolge wie der Reaper.
+
+Nach diesen Ergänzungen bestanden 14 gezielte Tests auf isoliertem PostgreSQL
+und 11 auf SQLite (dort zwei PostgreSQL-Rennen übersprungen). Die breiteren
+Läufe von zuvor wurden nicht als vollständig neu ausgeführt ausgewiesen; ein
+historischer Test zur Prüfungsbuchung wurde auf den verbesserten Zustand
+`failed_unknown` bei unveränderter Reservierung aktualisiert und ist in beiden
+gezielten Läufen enthalten.

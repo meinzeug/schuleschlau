@@ -169,10 +169,12 @@ def defer_package(db, job, *, before_call=False):
         return False
     _saved(db, day, _state(day), job=job)
     if before_call:
+        # Match the reaper's Job -> Usage lock order explicitly, even if the
+        # saved-result payload is unchanged and would not trigger a flush.
+        job.status, job.finished = "completed", int(now())
         usage = db.scalar(select(Usage).where(Usage.job_id == job.id))
         if usage:
             settle(db, usage, Result({}, 0, 0, 0))
-        job.status, job.finished = "completed", int(now())
     return True
 
 

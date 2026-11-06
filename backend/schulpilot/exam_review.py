@@ -1164,11 +1164,15 @@ def cancel_jobs(db, exam_id):
         if cancelled.rowcount and usage:
             settle(db, usage, Result({}, 0, 0, 0), failed=True)
         elif not cancelled.rowcount:
-            db.execute(
+            interrupted = db.execute(
                 update(Job)
                 .where(Job.id == job.id, Job.status == "running")
                 .values(status="failed", error="Die Arbeitsquelle wurde entfernt.", finished=int(now()))
             )
+            if interrupted.rowcount and usage:
+                # A dispatched call can still be billed. Preserve its full
+                # reservation as unknown; no retry or zero-cost claim.
+                settle(db, usage, failed=True)
 
 
 def purge_exam_review(db, exam_id):
@@ -1187,11 +1191,13 @@ def purge_exam_review(db, exam_id):
             if cancelled.rowcount and usage:
                 settle(db, usage, Result({}, 0, 0, 0), failed=True)
             elif not cancelled.rowcount:
-                db.execute(
+                interrupted = db.execute(
                     update(Job)
                     .where(Job.id == job.id, Job.status == "running")
                     .values(status="failed", error="Die Arbeitsquelle wurde entfernt.", finished=int(now()))
                 )
+                if interrupted.rowcount and usage:
+                    settle(db, usage, failed=True)
         job.payload = {key: value for key, value in job.payload.items() if key != "exam_review_practice"}
     db.execute(delete(ExamScanBatch).where(ExamScanBatch.exam_id == exam_id))
     db.execute(delete(ExamReviewPractice).where(ExamReviewPractice.exam_id == exam_id))

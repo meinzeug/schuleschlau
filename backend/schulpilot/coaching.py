@@ -1662,6 +1662,10 @@ def process_practice(job_id):
                 return
             db.execute(update(Child).where(Child.id == job.child_id).values(grade=Child.grade))
             db.expire_all()
+            # Expiring also refreshes the optimistic Job token. Never adopt a
+            # newer interrupted/cancelled state as permission to publish.
+            if job.status != "running":
+                return
             authority(db, job)
             unit = db.get(LearningUnit, job.payload["unit_id"])
             item = db.get(UnitCoaching, unit.id) if unit else None

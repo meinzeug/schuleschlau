@@ -744,7 +744,8 @@ def test_source_removed_during_claimed_work_keeps_unknown_cost_reserved(paper, t
         assert usage.status == "reserved" and usage.cost_micros is None
         tutor.purge_source_turns(db, [paper["material_id"]], child_id=paper["child_id"])
         assert db.get(Job, job_id).status == "failed"
-        assert usage.status == "reserved" and usage.cost_micros is None
+        assert usage.status == "failed_unknown" and usage.cost_micros is None
+        assert usage.reserved_micros > 0 and usage.settlement_version == 1
     exam_review.process(job_id)
     assert not transport["calls"]
 

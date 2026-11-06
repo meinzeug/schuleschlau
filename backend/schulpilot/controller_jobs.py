@@ -132,6 +132,10 @@ def process(job_id):
             child = authority(db, job)
             db.execute(update(Child).where(Child.id == child.id).values(grade=Child.grade))
             db.expire_all()
+            # Expiring also refreshes the optimistic Job token. Never adopt a
+            # newer interrupted/cancelled state as permission to publish.
+            if job.status != "running":
+                return
             child = authority(db, job)
             current = job_config(db, job, "unit")
             external_allowed(current, db=db)

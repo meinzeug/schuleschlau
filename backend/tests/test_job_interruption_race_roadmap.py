@@ -175,3 +175,56 @@ def test_late_failed_provider_does_not_replace_the_interruption(api, household, 
         assert usage.reserved_micros > 0 and usage.settlement_version == 1
         assert db.get(Attempt, old['attempt']).answer == 'Künstliche Altantwort'
     assert snapshot(day_id).get('package_outputs', {}) == {}
+
+
+def test_retry_never_reactivates_an_interrupted_job(api, household, monkeypatch):
+    day_id, _, _ = artificial_day(api, household)
+    requests = []
+    monkeypatch.setattr(worker, 'request_provider', lambda config, function, payload, image_bytes=None,
+        *, synthetic_fixture=False: requests.append(payload['package_partition']) or
+        Result(bounded_output(payload), 20, 40, 101, cost_source='reported'))
+    preparation(api, day_id, 'original-before-interruption')
+    school_preparation.advance_one()
+    with DB() as db:
+        original = worker.claim(db)
+    with DB.begin() as db:
+        db.get(Job, original).started = 1
+    assert worker.reap_interrupted() == 1
+    school_preparation.advance_one()
+    with DB() as db:
+        assert worker.claim(db) is None
+    preparation(api, day_id, 'explicit-new-job-after-interruption')
+    school_preparation.advance_one()
+    with DB() as db:
+        replacement = worker.claim(db)
+    assert replacement and replacement != original
+    worker.process(replacement)
+    assert requests == [0]
+    with DB() as db:
+        old_job, new_job = db.get(Job, original), db.get(Job, replacement)
+        assert old_job.status == 'failed' and old_job.error_code == 'interrupted'
+        assert new_job.status == 'completed'
+        old_usage = db.scalar(select(Usage).where(Usage.job_id == original))
+        assert old_usage.status == 'failed_unknown' and old_usage.settlement_version == 1
+
+
+def test_covered_noop_package_settles_only_after_completion_and_never_calls_provider(api, household, monkeypatch):
+    from schulpilot import school_day
+
+    day_id, _, old = artificial_day(api, household)
+    preparation(api, day_id, 'covered-sources-noop')
+    school_preparation.advance_one()
+    with DB() as db:
+        job_id = worker.claim(db)
+    assert job_id
+    monkeypatch.setattr(school_day, 'package_plan', lambda *args: {'groups': []})
+    monkeypatch.setattr(worker, 'request_provider', lambda *a, **kw: pytest.fail('No-op must not dispatch provider'))
+    with DB.begin() as db:
+        assert school_preparation.defer_package(db, db.get(Job, job_id), before_call=True)
+    assert worker.reap_interrupted(cutoff=2_000_000_000) == 0
+    with DB() as db:
+        job = db.get(Job, job_id)
+        usage = db.scalar(select(Usage).where(Usage.job_id == job_id))
+        assert job.status == 'completed' and job.result['deferred'] is True
+        assert usage.settlement_version == 1 and usage.cost_micros == 0
+        assert db.get(Attempt, old['attempt']).answer == 'Künstliche Altantwort'
