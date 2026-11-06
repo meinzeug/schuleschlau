@@ -55,6 +55,14 @@ REQUIRED_LIFECYCLE_TESTS = {
         "test_known_cost_and_fee_without_prior_balance_remain_successful",
     )
 } | {
+    ("backend.tests.test_review_consent_stale_identity", name)
+    for name in (
+        "test_stale_loaded_installation_must_not_change_operator_approval[True]",
+        "test_stale_loaded_installation_must_not_change_operator_approval[False]",
+        "test_http_settings_interleaving_preserves_latest_approval[True]",
+        "test_http_settings_interleaving_preserves_latest_approval[False]",
+    )
+} | {
     ("backend.tests.test_schulbuddy_installation_serialization", name)
     for name in (
         "test_completed_revocation_before_installation_lock_discards_work[enqueue]",

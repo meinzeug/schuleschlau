@@ -126,6 +126,7 @@ jobs:
           backend/tests/test_schulbuddy_session_serialization.py
           backend/tests/test_schulbuddy_config_serialization.py
           backend/tests/test_schulbuddy_installation_serialization.py
+          backend/tests/test_review_consent_stale_identity.py
           backend/tests/test_preferences_cas_2026.py::test_parallel_preferences_same_revision_has_one_winner
           backend/tests/test_source_evaluation.py::test_child_or_family_erased_during_diagnosis_keeps_no_private_output
           --junitxml="${{ runner.temp }}/postgres-concurrency.xml"
