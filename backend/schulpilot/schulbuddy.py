@@ -20,6 +20,7 @@ from .db import (
     Attempt,
     Child,
     Family,
+    Installation,
     Job,
     LearningUnit,
     Material,
@@ -97,6 +98,25 @@ def lock_provider_for_commit(db):
                 raise
             db.rollback()
             raise HTTPException(409, "Die KI-Einstellung wird gerade geändert. Bitte später erneut versuchen.") from None
+
+
+def lock_installation_for_commit(db):
+    """Protect persisted operator approval within the final database transaction."""
+    statement = select(Installation.id).where(Installation.id == 1)
+    if db.bind.dialect.name == "postgresql":
+        # Other paths take Installation before usage or provider rows. Never
+        # wait for it here while holding those rows: a conflicting operator
+        # edit wins and this entire transaction is rolled back.
+        statement = statement.with_for_update(read=True, nowait=True)
+    try:
+        identifier = db.scalar(statement)
+    except OperationalError as error:
+        if getattr(error.orig, "sqlstate", None) != "55P03":
+            raise
+        db.rollback()
+        raise HTTPException(409, "Die Datenschutzfreigabe wird gerade geändert. Bitte später erneut versuchen.") from None
+    if identifier != 1:
+        raise HTTPException(503, "Die Datenschutzfreigabe ist gerade nicht verfügbar.")
 
 
 def resolve(db, p, scope):
@@ -594,6 +614,7 @@ def ask(data: BuddyQuestion, idempotency_key: str = Header(..., min_length=16, m
     # previously validated route only after securing the provider rows, so a
     # concurrent stop/edit either wins or follows this short commit.
     lock_provider_for_commit(db)
+    lock_installation_for_commit(db)
     final_config = configured(db)
     if provider_snapshot(db, final_config) != job_payload["model_binding"]:
         raise HTTPException(409, "Die KI-Einstellung wurde geändert. Bitte erneut versuchen.")
@@ -757,6 +778,7 @@ def process(job_id):
                 # Never hold provider rows while waiting for external inference.
                 # Usage locks come first; a conflict rolls everything back.
                 lock_provider_for_commit(db)
+                lock_installation_for_commit(db)
             # Preserve a pending cost-overrun stop before refreshing provider
             # rows in configured(); an overrun then fails the normal recheck.
             db.flush()

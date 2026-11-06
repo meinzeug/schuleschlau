@@ -1870,6 +1870,15 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Schulbuddy als sicheren kontextbezogenen Lernbegleiter prüfen**
 
+  - [x] **Tutor-Commit gegen parallelen Datenschutzwiderruf schützen.**
+    Die bei der Reservierung und Veröffentlichung frisch geprüfte Installations-
+    freigabe wird in derselben Transaktion bis zum Commit gesichert. Bei
+    Konflikt rollen Auftragsänderungen zurück, tatsächlich angefallene Kosten
+    bleiben erhalten. Künstliche PostgreSQL-Rennen verwenden den echten
+    Admin-Widerruf sowie bekannte und unbekannte Preise. Während der Inferenz
+    bleibt die Betreiberaktion möglich; die Gesamtdauer der nachfolgenden
+    Hilfebuchung ist nicht hart begrenzt. [Beleg und Grenzen](docs/SCHULBUDDY_SESSION_SERIALIZATION_2026_11_06.md#nachtrag-widerruf-der-installationsfreigabe).
+
   - [x] **Schulbuddy bei gleichzeitigem Gerätewiderruf serialisieren.**
     Auftragsreservierung und Veröffentlichung verwenden nach der Kindersperre
     den bestehenden nichtwartenden Session-Guard. Ein vor der Anbieterprüfung
@@ -1879,8 +1888,9 @@ Bestandteil des bestehenden Buildvertrags.
     Familienanruf und der Admin-Kontosperre sind mit künstlichen PostgreSQL-Fällen geprüft.
     Auch Providerrevision und Notstopp werden vor dem Commit unter kurzer
     nichtwartender Zeilensperre nachgeprüft; echte Inferenz hält diese Sperre
-    nicht. Der parallele Widerruf der Installationsfreigabe bleibt gesondert
-    offen. Eine externe
+    nicht. Der damals noch offene gleichzeitige Widerruf der
+    Installationsfreigabe wurde anschließend gesondert abgesichert, siehe
+    Nachtrag im Prüfbericht. Eine externe
     Anfrage, die im Moment des Widerrufs bereits läuft, lässt sich nicht
     nachträglich zurückholen. [Prüfung und Grenzen](docs/SCHULBUDDY_SESSION_SERIALIZATION_2026_11_06.md).
 

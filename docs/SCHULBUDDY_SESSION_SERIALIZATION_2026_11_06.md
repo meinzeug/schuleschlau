@@ -76,11 +76,10 @@ bleibt verworfen. Die Fehlerabrechnung kann kurz auf eine bereits gehaltene
 Providerzeile warten, sie gibt einen tatsächlich bekannten Beleg nicht frei.
 
 `external_allowed` liest zusätzlich die Installations-/Datenschutzfreigabe.
-Dieser Stand schützt nur die genannten Provider- und Sessionzeilen bis zum
-Commit; ein paralleler Widerruf der Installationsfreigabe ist damit nicht
-serialisiert. Auch ein bereits gestarteter externer Aufruf bleibt unverändert.
-Eine weitergehende Absicherung benötigt eine eigene Prüfung der bestehenden
-Reihenfolge und tatsächlicher Widerrufspfade.
+Der zunächst implementierte Stand schützte nur die genannten Provider- und
+Sessionzeilen bis zum Commit; die zusätzliche, später geprüfte Serialisierung
+der Installationsfreigabe ist im Nachtrag unten beschrieben. Ein bereits
+gestarteter externer Aufruf bleibt unverändert.
 
 Die künstliche Gegenprüfung mit dokumentierter Gebühr, bekanntem Preis und
 anfangs fehlender Kostenbalance entdeckte einen weiteren Fehler durch den
@@ -98,3 +97,46 @@ fehlgeschlagene und übersprungene Fälle ab. Die Auswahlprüfung bestand mit 34
 künstlichen Unterfällen. Darüber hinaus bestanden getrennte PostgreSQL-Läufe
 für Tutor und Kostenkontrollen sowie 65 SQLite-Tutor- und 31 SQLite-Kostenfälle.
 Ein GitHub-Lauf und ein Deployment sind daraus noch nicht abzuleiten.
+
+## Nachtrag: Widerruf der Installationsfreigabe
+
+Bei zwei künstlichen PostgreSQL-Abläufen wurde nach der bis dahin letzten
+Freigabeprüfung der tatsächliche Admin-Widerruf gespeichert, bevor der
+Tutorauftrag beziehungsweise die Antwort committen konnte. Vor der Ergänzung
+wurde der veraltete Auftrag beziehungsweise die Antwort dennoch übernommen.
+
+Die beiden betroffenen kurzen Datenbanktransaktionen nehmen jetzt nach den
+Usage- und Providerzeilen einen `FOR SHARE NOWAIT`-Lock auf Installation und
+prüfen die dort hinterlegte Freigabe anschließend erneut. Die Freigabe ist
+bis zum Commit gegen paralleles Speichern serialisiert. Bei Konflikt scheitert
+die Aktion kontrolliert; es gibt weder eine automatische Wiederholung noch
+verlorene Providerkosten. Eine fehlende Installationszeile wird nicht als
+Freigabe interpretiert. SQLite verwendet weiterhin die schon durch den
+Child-Update gehaltene Schreibtransaktion. Der Inferenzaufruf selbst hält
+keine Installationssperre, sodass der Betreiber währenddessen widerrufen kann.
+
+Die PostgreSQL-Gegenproben verwenden den echten Admin-Speicherweg: Widerruf
+vor dem Guard, umgekehrte Commitreihenfolge, Widerruf während künstlich
+angehaltener Inferenz und Konflikt mit gehaltener Installationszeile. Ein
+separater umgekehrter Installation→Provider-Akteur bestätigt den
+kontrollierten NOWAIT-Konflikt. Für bekannte und unbekannte Kosten und für
+Überhänge durch Anbieterpreis beziehungsweise belegte Gebühren bleiben
+Abrechnung und Notstopp erhalten; keine Antwort oder Hilfe wird bei Konflikt
+übernommen. Die Bild-, Lernpaket- und sonstigen anderen Workerpfade werden
+hierdurch nicht pauschal abgesichert.
+
+Nach Erwerb der Provider- und Installationssperren kann der Kinderpfad noch
+Hilfeereignisse und Controllerzustände für laufende Einheiten speichern. Die
+Adminänderung kann deshalb länger als eine einzelne SQL-Operation auf den
+Abschluss warten; eine feste obere Dauer wurde nicht gemessen. Eine bereits
+versandte externe Anfrage lässt sich nicht zurückholen. Ein zwischen zwei
+Prüfungen vollständig widerrufener und erneut freigegebener Zustand ist nicht
+als eigene historische Freigaberevision an den Auftrag gebunden. Diese Tests
+beweisen keine globale Deadlockfreiheit oder fachliche KI-Qualität.
+
+Die elf neuen Prüfungen sind in der verbindlichen PostgreSQL-CI-Auswahl und
+ihrem JUnit-Identitätsprüfer enthalten. Die vollständige Auswahl bestand lokal
+mit 57 Fällen ohne Skip; der Gate-Selbsttest bestand mit 45 Unterfällen. Im
+SQLite-Tutorlauf bestanden 67 Fälle, neun PostgreSQL-Sperrtests wurden dort
+absichtlich übersprungen. Ein GitHub-Lauf oder produktive Installation ist aus
+lokalen Ergebnissen nicht abzuleiten.

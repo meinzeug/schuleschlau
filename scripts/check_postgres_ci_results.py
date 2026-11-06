@@ -54,6 +54,21 @@ REQUIRED_LIFECYCLE_TESTS = {
         "test_overrun_conflict_retains_exact_cost_and_sets_stop[child_fee]",
         "test_known_cost_and_fee_without_prior_balance_remain_successful",
     )
+} | {
+    ("backend.tests.test_schulbuddy_installation_serialization", name)
+    for name in (
+        "test_completed_revocation_before_installation_lock_discards_work[enqueue]",
+        "test_completed_revocation_before_installation_lock_discards_work[publish]",
+        "test_operator_revocation_waits_for_guarded_commit[enqueue]",
+        "test_operator_revocation_waits_for_guarded_commit[publish]",
+        "test_admin_can_revoke_during_provider_call_and_known_cost_survives[None]",
+        "test_admin_can_revoke_during_provider_call_and_known_cost_survives[42]",
+        "test_busy_installation_row_fails_closed_with_no_duplicate_cost[enqueue]",
+        "test_busy_installation_row_fails_closed_with_no_duplicate_cost[publish]",
+        "test_installation_first_actor_never_deadlocks_with_tutor_usage_and_provider",
+        "test_busy_installation_keeps_overrun_cost_once_and_sets_stop[provider]",
+        "test_busy_installation_keeps_overrun_cost_once_and_sets_stop[child_fee]",
+    )
 }
 
 
