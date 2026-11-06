@@ -273,4 +273,30 @@ void main() {
     await tester.pumpAndSettle();
     expect(f.requests.length, before + 1);
   });
+  testWidgets('failed filter cannot be reset across a login intent', (
+    tester,
+  ) async {
+    final f = cards.Fixture();
+    f.state.collectionViews['parent-plan:child'] = {
+      'section': 1,
+      'q': 'Nicht ungefiltert',
+    };
+    await f.mount(tester, '/parent-plan/child');
+    expect(
+      find.textContaining('auf diesem Server noch nicht verfügbar.'),
+      findsOneWidget,
+    );
+    final count = f.requests.length;
+    final revision = f.state.beginAuthentication();
+    await tester.tap(find.text('Themenfilter zurücksetzen'));
+    await tester.pumpAndSettle();
+    expect(f.requests.length, count);
+    f.state.cancelAuthentication(revision);
+    await tester.tap(find.text('Lernplan erneut laden'));
+    await tester.pumpAndSettle();
+    expect(f.requests.last.url.queryParameters['q'], 'Nicht ungefiltert');
+    await tester.tap(find.text('Themenfilter zurücksetzen'));
+    await tester.pumpAndSettle();
+    expect(f.requests.last.url.queryParameters.containsKey('q'), isFalse);
+  });
 }

@@ -69,3 +69,11 @@ geprüfte Stand ohne den zusätzlichen Paginierungsfall bestand acht gezielte
 Chrome-Webrunner-Fälle; die Läufe sind keine echte tabübergreifende
 Cookieprüfung. Die bestehende Plan-/Listen-/Editorsuite bestand im vorigen
 Stand zusammen mit den damals sieben gezielten Fällen mit 36 VM-Fällen.
+
+Nachlauf: Ein fehlgeschlagener gefilterter Abruf auf älteren Backends muss
+weiterhin ein Zurücksetzen der Suche erlauben, obwohl absichtlich keine
+ungefilterten Karten geladen wurden. Der Filter-Neuversuch ist daher an die
+Revision des fehlgeschlagenen Abrufs gebunden; nach einem Anmeldebeginn ist
+zuerst ein erneuter Leseabgleich nötig. Die vollständige Filter- und die
+Anmelde-Rennsuite bestanden zusammen mit 23 VM-Fällen einschließlich beider
+Grenzen. Das zuvor beschriebene fehlende Pending-Signal bleibt offen.

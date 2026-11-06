@@ -46,7 +46,7 @@ class _ParentPlanScreenState extends State<ParentPlanScreen> {
   int generation = 0, section = 1, page = 1, refresh = 0, operation = 0;
   bool loading = false, includeCompleted = false, busy = false;
   bool loadFailed = false, compactTopics = false;
-  int? dataAuthentication;
+  int? dataAuthentication, failedAuthentication;
   final Map<String, String> preparationKeys = {};
   ModalRoute<dynamic>? editorRoute;
   final search = TextEditingController();
@@ -95,6 +95,15 @@ class _ParentPlanScreenState extends State<ParentPlanScreen> {
     }
     return false;
   }
+
+  // A failed filtered GET has no usable cards but its filters must remain
+  // editable under the same authentication intent, including on old servers.
+  bool requireCurrentFilter() =>
+      (own &&
+          loadFailed &&
+          widget.state.api.currentAuthenticationRevision?.call() ==
+              failedAuthentication) ||
+      requireCurrentView();
 
   @override
   void initState() {
@@ -330,7 +339,7 @@ class _ParentPlanScreenState extends State<ParentPlanScreen> {
   }
 
   void filterTopics(VoidCallback change) {
-    if (!requireCurrentView() || loading || busy) return;
+    if (!requireCurrentFilter() || loading || busy) return;
     FocusManager.instance.primaryFocus?.unfocus();
     change();
     page = 1;
@@ -338,7 +347,7 @@ class _ParentPlanScreenState extends State<ParentPlanScreen> {
   }
 
   void applySearch({bool clear = false}) {
-    if (!requireCurrentView() || loading || busy) return;
+    if (!requireCurrentFilter() || loading || busy) return;
     FocusManager.instance.primaryFocus?.unfocus();
     final value = clear ? '' : search.text.trim();
     if (clear) search.clear();
@@ -452,6 +461,7 @@ class _ParentPlanScreenState extends State<ParentPlanScreen> {
           if (e is ApiError && [401, 403, 404].contains(e.status)) data = null;
           loading = false;
           loadFailed = true;
+          failedAuthentication = authentication;
         });
       }
     } finally {
@@ -461,6 +471,7 @@ class _ParentPlanScreenState extends State<ParentPlanScreen> {
         setState(() {
           loading = false;
           loadFailed = true;
+          failedAuthentication = authentication;
           error = 'Die Anmeldung hat sich geändert. Bitte lade den Lernplan erneut.';
         });
       }
