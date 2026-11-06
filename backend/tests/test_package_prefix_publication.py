@@ -131,6 +131,7 @@ def test_stale_or_unbound_prefix_is_refused_atomically(api, household, monkeypat
 
 def test_published_unit_is_not_recreated_after_explicit_erasure(api, household, monkeypatch):
     from schulpilot.db import Child
+    from schulpilot.erasure import journal_write_lock
     from schulpilot.package_publication import publication_records
     from schulpilot.unit_erasure import remove
 
@@ -138,7 +139,7 @@ def test_published_unit_is_not_recreated_after_explicit_erasure(api, household, 
     response = publish(api, household, day_id)
     assert response.status_code == 200, response.text
     uid = response.json()["unit_ids"][0]
-    with DB.begin() as db:
+    with journal_write_lock(), DB.begin() as db:
         remove(db, db.get(Child, child["id"]), [uid])
         db.flush()
         day = db.get(SchoolDay, day_id)

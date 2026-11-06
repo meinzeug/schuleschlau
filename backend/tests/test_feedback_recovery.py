@@ -200,6 +200,7 @@ def test_recovering_superseded_answer_preserves_possible_other_device_exposure(g
 
 
 def test_possible_exposure_is_private_exported_and_removed_with_unit_or_retention(guided):
+    from schulpilot.erasure import journal_write_lock
     from schulpilot.families import export_child
     from schulpilot.unit_erasure import remove
     from schulpilot.worker import maintenance
@@ -219,7 +220,7 @@ def test_possible_exposure_is_private_exported_and_removed_with_unit_or_retentio
     assert activity.status_code == 200
     assert not any(entry["kind"] == "feedback_possible" for entry in activity.json())
     maintenance()
-    with DB.begin() as db:
+    with journal_write_lock(), DB.begin() as db:
         assert db.get(Activity, old_id) is None
         assert db.get(Activity, current_id) is not None
         remove(db, db.get(Child, child_id), [uid])
