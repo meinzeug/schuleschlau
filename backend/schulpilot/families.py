@@ -524,27 +524,38 @@ def delete_child(child_id: str, data: s.ConfirmPassword, p=Depends(parent), db=D
 
 @router.delete("/account")
 def delete_account(data: s.ConfirmPassword, p=Depends(parent), db=Depends(get_db)):
+    from .admin_users import deletion_shape, lock_target
+    from .erasure import flush_journal, journal_write_lock, request
+    from .security import lock_session_after_child
+
+    user_id, session_id = p.user.id, p.session.id
     if not verify_password(data.password, p.user.password_hash):
         raise HTTPException(403, "Elternpasswort ist nicht richtig.")
-    paths = []
-    owned = list(
-        db.scalars(
-            select(Family)
-            .join(Membership, Membership.family_id == Family.id)
-            .where(Membership.user_id == p.user.id, Membership.permission == "owner")
-        )
-    )
-    for family in owned:
-        paths.extend(remove_family(db, family))
-    from .erasure import flush_journal, request
+    with journal_write_lock():
+        # Reuse the existing cross-family Token → Family → Unit → Child → User
+        # locking and its post-lock unit/token/family revision checks.
+        user = lock_target(db, user_id, family_delete=True)
+        lock_session_after_child(db, user_id, session_id)
+        if user.role != "parent" or not verify_password(data.password, user.password_hash):
+            raise HTTPException(403, "Elternpasswort ist nicht richtig.")
+        impact, blockers, _ = deletion_shape(db, user, "account_and_sole_families")
+        if blockers:
+            raise HTTPException(409, "Das Konto kann so noch nicht gelöscht werden. "
+                                "Bitte kläre zuerst die Mitglieder und Inhaberschaft der gemeinsamen Familie.")
+        paths = []
+        for family_id in impact["family_ids"]:
+            paths.extend(remove_family(db, db.get(Family, family_id)))
+        # Memberships in shared families are removed with the account, but the
+        # shared family and the other parent's data must survive restoration.
+        for member in db.scalars(select(Membership).where(Membership.user_id == user_id)):
+            request(db, "membership", member.id)
+        request(db, "user", user_id)
+        from .profile_images import deletion_paths as avatar_deletion_paths
 
-    request(db, "user", p.user.id)
-    from .profile_images import deletion_paths as avatar_deletion_paths
-
-    paths.extend(avatar_deletion_paths(db, p.user.id))
-    db.execute(delete(User).where(User.id == p.user.id))
-    audit(db, p.user.id, "account.delete", p.user.id)
-    db.commit()
+        paths.extend(avatar_deletion_paths(db, user_id))
+        db.execute(delete(User).where(User.id == user_id))
+        audit(db, user_id, "account.delete", user_id)
+        db.commit()
     flush_journal()
     unlink_uploads(paths)
     return {

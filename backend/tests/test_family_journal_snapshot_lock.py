@@ -161,3 +161,80 @@ def test_child_deletion_observes_journal_snapshot_and_session(api, household, mo
         assert (event is None) is revoke_session
         if event:
             assert event.published is True
+
+
+def test_bad_child_delete_password_is_rejected_before_journal_wait(api, household, monkeypatch):
+    _, child = household
+    lockfile = settings.data_dir / ".erasure-ledger.lock"
+    lockfile.touch(mode=0o600, exist_ok=True)
+    attempted = Event()
+    original = erasure.journal_write_lock
+
+    @contextmanager
+    def traced_lock():
+        attempted.set()
+        with original():
+            yield
+
+    monkeypatch.setattr(erasure, "journal_write_lock", traced_lock)
+    headers = {**HEADERS, "Authorization": api.headers["Authorization"]}
+
+    def delete():
+        with TestClient(app, headers=headers) as client:
+            return client.request("DELETE", f"/api/children/{child['id']}", json={"password": "synthetic-wrong-password"})
+
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        with lockfile.open("rb") as snapshot:
+            fcntl.flock(snapshot, fcntl.LOCK_SH)
+            response = pool.submit(delete).result(8)
+            assert response.status_code == 403
+            assert not attempted.is_set()
+
+
+@pytest.mark.parametrize("revoke_session", [False, True])
+def test_parent_account_deletion_observes_snapshot_and_session(api, household, monkeypatch, revoke_session):
+    from schulpilot.db import Child, Session
+    from schulpilot.security import digest
+
+    parent, child = household
+    token = api.headers["Authorization"].removeprefix("Bearer ")
+    with DB() as db:
+        session_id = db.scalar(select(Session.id).where(Session.token_hash == digest(token)))
+    lockfile = settings.data_dir / ".erasure-ledger.lock"
+    lockfile.touch(mode=0o600, exist_ok=True)
+    attempted = Event()
+    original = erasure.journal_write_lock
+
+    @contextmanager
+    def traced_lock():
+        attempted.set()
+        with original():
+            yield
+
+    monkeypatch.setattr(erasure, "journal_write_lock", traced_lock)
+    headers = {**HEADERS, "Authorization": "Bearer " + token}
+
+    def delete():
+        with TestClient(app, headers=headers) as client:
+            return client.request("DELETE", "/api/account", json={"password": "secure-parent-pass-123"})
+
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        with lockfile.open("rb") as snapshot:
+            fcntl.flock(snapshot, fcntl.LOCK_SH)
+            deletion = pool.submit(delete)
+            assert attempted.wait(8)
+            with DB.begin() as db:
+                assert db.get(Child, child["id"]) is not None
+                assert db.get(User, parent["id"]) is not None
+                assert db.scalar(select(ErasureRequest.id).where(ErasureRequest.target == child["id"])) is None
+                if revoke_session:
+                    db.get(Session, session_id).revoked = True
+        response = deletion.result(12)
+    assert response.status_code == (401 if revoke_session else 200), response.text
+    with DB() as db:
+        assert (db.get(Child, child["id"]) is not None) is revoke_session
+        assert (db.get(User, parent["id"]) is not None) is revoke_session
+        event = db.scalar(select(ErasureRequest).where(ErasureRequest.target == child["id"]))
+        assert (event is None) is revoke_session
+        if event:
+            assert event.published is True
