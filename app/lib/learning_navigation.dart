@@ -60,11 +60,25 @@ Future<void> openPlanItem(
   Json data,
   dynamic item,
 ) async {
-  final owner = state.user, family = state.familyId;
+  final owner = state.user, family = state.familyId, session = state.api.token;
   final route = ModalRoute.of(context);
   bool currentAccount() =>
-      owner != null && identical(state.user, owner) && state.familyId == family;
+      owner != null &&
+      identical(state.user, owner) &&
+      state.familyId == family &&
+      state.api.token == session;
   bool currentRoute() => context.mounted && (route?.isCurrent ?? true);
+  Future<Json?> requestInContext(Future<Json> Function() request) async {
+    if (!currentAccount() || !currentRoute()) return null;
+    try {
+      return await request();
+    } catch (_) {
+      // Do not surface an old request's error in a different session or route.
+      if (!currentAccount() || !currentRoute()) return null;
+      rethrow;
+    }
+  }
+
   if (!currentAccount() || !currentRoute()) return;
   if (state.isChild && state.user?['child_id'] != data['child']?['id']) return;
   if (item['kind'] == 'unit' && item['pending_feedback'] == true) {
@@ -86,15 +100,16 @@ Future<void> openPlanItem(
         'Diese Etappe ist nicht mehr verfügbar. Bitte lade die Themen erneut.',
       );
     }
-    final queued = await state.api.post(
-      '/school-days/$dayId/blocks/$blockId',
-      {},
-      {
+    final queued = await requestInContext(
+      () => state.api.post('/school-days/$dayId/blocks/$blockId', {}, {
         'Idempotency-Key':
             'learn-${DateTime.now().microsecondsSinceEpoch}-${identityHashCode(Object())}',
-      },
+      }),
     );
-    if (context.mounted && currentAccount() && currentRoute()) {
+    if (queued != null &&
+        context.mounted &&
+        currentAccount() &&
+        currentRoute()) {
       openRoute(
         context,
         '/learning-preparation/${data['child']['id']}/${queued['id']}',
@@ -137,25 +152,37 @@ Future<void> openPlanItem(
             'page_size': '1',
           },
         );
-        final found = await state.api.get(path.toString());
-        if (!currentAccount() || !context.mounted || !currentRoute()) return;
+        final found = await requestInContext(
+          () => state.api.get(path.toString()),
+        );
+        if (found == null ||
+            !currentAccount() ||
+            !context.mounted ||
+            !currentRoute()) {
+          return;
+        }
         final items = found['items'] as List;
         if (items.isNotEmpty) materialId = items.first['id'];
       }
     }
-    final queued = await state.api.post(
-      '/children/${data['child']['id']}/units',
-      {
-        'material_id': materialId,
-        'assignment_id': item['kind'] == 'assignment' ? item['id'] : null,
-        'review_of': item['kind'] == 'review' ? item['id'] : null,
-      },
-      {
-        'Idempotency-Key':
-            'learn-${DateTime.now().microsecondsSinceEpoch}-${identityHashCode(Object())}',
-      },
+    final queued = await requestInContext(
+      () => state.api.post(
+        '/children/${data['child']['id']}/units',
+        {
+          'material_id': materialId,
+          'assignment_id': item['kind'] == 'assignment' ? item['id'] : null,
+          'review_of': item['kind'] == 'review' ? item['id'] : null,
+        },
+        {
+          'Idempotency-Key':
+              'learn-${DateTime.now().microsecondsSinceEpoch}-${identityHashCode(Object())}',
+        },
+      ),
     );
-    if (context.mounted && currentAccount() && currentRoute()) {
+    if (queued != null &&
+        context.mounted &&
+        currentAccount() &&
+        currentRoute()) {
       openRoute(
         context,
         '/learning-preparation/${data['child']['id']}/${queued['id']}',
@@ -165,7 +192,10 @@ Future<void> openPlanItem(
   }
   if (unitId != null) {
     if (!currentAccount() || !context.mounted || !currentRoute()) return;
-    await state.api.post('/units/$unitId/start');
+    final started = await requestInContext(
+      () => state.api.post('/units/$unitId/start'),
+    );
+    if (started == null) return;
     if (context.mounted && currentAccount() && currentRoute()) {
       openRoute(context, '/unit/$unitId');
     }

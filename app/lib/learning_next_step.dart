@@ -30,13 +30,14 @@ class _LearningNextStepState extends State<LearningNextStep>
   bool loading = true;
   bool failed = false;
   late final Json? owner;
-  late final String? family;
+  late final String? family, session;
   bool reading = false, opening = false;
   bool routeVisible = true, foreground = true;
   bool get current =>
       mounted &&
       identical(widget.state.user, owner) &&
-      widget.state.familyId == family;
+      widget.state.familyId == family &&
+      widget.state.api.token == session;
   int version = 0;
 
   @override
@@ -44,6 +45,7 @@ class _LearningNextStepState extends State<LearningNextStep>
     super.initState();
     owner = widget.state.user;
     family = widget.state.familyId;
+    session = widget.state.api.token;
     WidgetsBinding.instance.addObserver(this);
     foreground =
         WidgetsBinding.instance.lifecycleState == null ||

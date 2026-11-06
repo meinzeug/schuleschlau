@@ -199,6 +199,140 @@ void main() {
       router.dispose();
     },
   );
+
+  testWidgets(
+    'session change during source lookup never starts an old assignment',
+    (tester) async {
+      final pending = Completer<http.Response>();
+      var writes = 0;
+      final state = stateFor((r) async {
+        if (r.method == 'GET') return pending.future;
+        writes++;
+        return response({'id': 'unexpected'});
+      });
+      state.api.token = 'old-synthetic-session';
+      final data = overview([item('assignment', kind: 'assignment')]);
+      final router = routerFor(
+        state,
+        Builder(
+          builder: (context) => Scaffold(
+            body: TextButton(
+              onPressed: () =>
+                  openPlanItem(context, state, data, data['plan']['today'][0]),
+              child: const Text('Start lookup'),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpWidget(
+        MaterialApp.router(theme: appTheme(), routerConfig: router),
+      );
+      await tester.tap(find.text('Start lookup'));
+      await tester.pump();
+      state.api.token = 'new-synthetic-session';
+      pending.complete(
+        response({
+          'items': [
+            {'id': 'source'},
+          ],
+        }),
+      );
+      await tester.pumpAndSettle();
+      expect(writes, 0);
+      expect(find.text('Start lookup'), findsOneWidget);
+      expect(find.text('Preparation opened'), findsNothing);
+      await tester.pumpWidget(const SizedBox());
+      router.dispose();
+    },
+  );
+
+  for (final kind in ['unit', 'study_path', 'material']) {
+    testWidgets('session change discards late $kind start response', (
+      tester,
+    ) async {
+      final pending = Completer<http.Response>();
+      var writes = 0;
+      final state = stateFor((r) async {
+        if (r.method == 'POST') {
+          writes++;
+          return pending.future;
+        }
+        return response({});
+      });
+      state.api.token = 'old-synthetic-session';
+      final entry = item('start', kind: kind);
+      if (kind == 'study_path') entry['block_id'] = 'block';
+      final data = overview([entry]);
+      final router = routerFor(
+        state,
+        Builder(
+          builder: (context) => Scaffold(
+            body: TextButton(
+              onPressed: () => openPlanItem(context, state, data, entry),
+              child: const Text('Start chosen item'),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpWidget(
+        MaterialApp.router(theme: appTheme(), routerConfig: router),
+      );
+      await tester.tap(find.text('Start chosen item'));
+      await tester.pump();
+      expect(writes, 1);
+      state.api.token = 'new-synthetic-session';
+      pending.complete(response({'id': 'job'}));
+      await tester.pumpAndSettle();
+      expect(writes, 1);
+      expect(find.text('Start chosen item'), findsOneWidget);
+      expect(find.text('Preparation opened'), findsNothing);
+      expect(find.text('Saved unit opened'), findsNothing);
+      await tester.pumpWidget(const SizedBox());
+      router.dispose();
+    });
+  }
+
+  for (final replaceSession in [false, true]) {
+    testWidgets('start error follows its session (replaced: $replaceSession)', (
+      tester,
+    ) async {
+      final pending = Completer<http.Response>();
+      var surfaced = 0;
+      final state = stateFor((r) => pending.future);
+      state.api.token = 'old-synthetic-session';
+      final entry = item('ready');
+      final data = overview([entry]);
+      final router = routerFor(
+        state,
+        Builder(
+          builder: (context) => Scaffold(
+            body: TextButton(
+              onPressed: () async {
+                try {
+                  await openPlanItem(context, state, data, entry);
+                } catch (_) {
+                  surfaced++;
+                }
+              },
+              child: const Text('Start with error'),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpWidget(
+        MaterialApp.router(theme: appTheme(), routerConfig: router),
+      );
+      await tester.tap(find.text('Start with error'));
+      await tester.pump();
+      if (replaceSession) state.api.token = 'new-synthetic-session';
+      pending.complete(response({'detail': 'synthetic failure'}, 500));
+      await tester.pumpAndSettle();
+      expect(surfaced, replaceSession ? 0 : 1);
+      expect(find.text('Saved unit opened'), findsNothing);
+      await tester.pumpWidget(const SizedBox());
+      router.dispose();
+    });
+  }
   test('resume wins while future dates, completed and current units remain excluded', () {
     final data = overview([
       item('future', status: 'active')..['scheduled_for'] = '2026-10-18',
@@ -249,6 +383,46 @@ void main() {
       router.dispose();
     },
   );
+
+  for (final pendingRead in [false, true]) {
+    testWidgets(
+      'next step hides old data on session change (pending: $pendingRead)',
+      (tester) async {
+        final pending = Completer<http.Response>();
+        var writes = 0;
+        final state = stateFor((r) async {
+          if (r.method != 'GET') {
+            writes++;
+            return response({});
+          }
+          return pendingRead
+              ? pending.future
+              : response(overview([item('ready')]));
+        });
+        state.api.token = 'old-synthetic-session';
+        final router = routerFor(
+          state,
+          LearningNextStep(state: state, childId: 'child'),
+        );
+        await tester.pumpWidget(
+          MaterialApp.router(theme: appTheme(), routerConfig: router),
+        );
+        if (!pendingRead) {
+          await tester.pumpAndSettle();
+          expect(find.text('Weiterlernen'), findsOneWidget);
+        }
+        state.api.token = 'new-synthetic-session';
+        state.notifyListeners();
+        await tester.pump();
+        if (pendingRead) pending.complete(response(overview([item('ready')])));
+        await tester.pumpAndSettle();
+        expect(find.text('Weiterlernen'), findsNothing);
+        expect(writes, 0);
+        await tester.pumpWidget(const SizedBox());
+        router.dispose();
+      },
+    );
+  }
 
   testWidgets(
     'binding parent task is still binding after minimum and opens saved unit directly',

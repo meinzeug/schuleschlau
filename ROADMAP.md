@@ -1857,6 +1857,13 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Kinderwege, Navigation und Wiederaufnahme vollständig abnehmen**
 
+  - [x] **Lernfortsetzung an den Client-Sitzungstoken binden.** Eine alte
+    Quellenabfrage darf nach Tokenwechsel keine neue Runde reservieren; späte
+    Startantworten navigieren nicht in die neue Sitzung. Die Vorschau entfernt
+    frühere Daten. Künstliche Widgetfälle prüfen auch die Fehlerweitergabe;
+    ein nicht bemerkter HttpOnly-Cookiewechsel und die vollständige
+    Geräteabnahme bleiben offen. [Prüfumfang](docs/LEARNING_SESSION_BOUNDARY_2026_11_06.md).
+
   **05.11.2026, Teilkorrektur Rundenstart:** Schlägt das ausdrückliche
   Öffnen einer bereits fertigen Runde fehl, bleibt eine kurze Erklärung
   direkt auf der Seite sichtbar und das Kind kann bewusst erneut öffnen.
