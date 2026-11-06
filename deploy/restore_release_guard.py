@@ -83,7 +83,8 @@ def inspect(show, target, *, current=Path("/opt/schulpilot/current"), rollback=F
         # entry point when the current symlink is atomically replaced.
         unit = (target / "deploy/schulpilot-restore-check.service").read_text()
         expected = f"ExecStart={current}/venv/bin/python {current}/deploy/restore_check.py"
-        if sum(line == expected for line in unit.splitlines()) != 1:
+        commands = [line for line in unit.splitlines() if line.partition("=")[0].strip() == "ExecStart"]
+        if commands != [expected]:
             raise RestoreConfigurationError("Target restore unit is incompatible")
         return
     if runtime.parent != runtime_base or not re.fullmatch(r"[0-9a-f]{40}", runtime.name) or runtime.is_symlink():

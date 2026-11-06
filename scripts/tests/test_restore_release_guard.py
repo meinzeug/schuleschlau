@@ -94,6 +94,15 @@ def test_target_unit_change_does_not_pass_using_old_current(tmp_path):
         guard.inspect(output(Path("/opt/schulpilot/current")), target)
 
 
+def test_target_unit_cannot_add_second_start_command(tmp_path):
+    target = tmp_path / "target"
+    tree(target)
+    with (target / "deploy/schulpilot-restore-check.service").open("a") as unit:
+        unit.write("ExecStart = /bin/true\n")
+    with pytest.raises(guard.RestoreConfigurationError, match="Target restore unit"):
+        guard.inspect(output(Path("/opt/schulpilot/current")), target)
+
+
 def test_rollback_never_silently_switches_current_restore_reader(tmp_path):
     target, active = tmp_path / "older", tmp_path / "active"
     tree(target)
