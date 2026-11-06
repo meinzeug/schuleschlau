@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {chromium} from 'playwright';
+import {restrictBrowserNetwork} from './browser_network_guard.mjs';
 
 const input = JSON.parse(readFileSync(0, 'utf8'));
 const base = new URL(input.base);
@@ -47,10 +48,7 @@ async function control(path,method='POST') {
 async function login() {
   if(context) await context.close();
   context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,serviceWorkers:'block'});
-  await context.route('**/*', route => {
-    const url=new URL(route.request().url());
-    return url.origin===input.base || ['data:','blob:'].includes(url.protocol) ? route.continue() : route.abort();
-  });
+  await restrictBrowserNetwork(context, input.base);
   page=await context.newPage();
   page.on('pageerror',()=>pageErrors.push(phase));
   page.on('response',r=>{const u=new URL(r.url());if(u.origin===input.base&&u.pathname.startsWith('/api/')&&r.status()>=500)serverErrors.push(u.pathname.replace(/[a-f0-9]{32}/g,':id'));});
@@ -64,6 +62,7 @@ async function shot(name) {await page.screenshot({path:`${input.screens}/${name}
 try {
   // First context exists only so the loopback controller can move the test clock.
   context=await browser.newContext({viewport:{width:390,height:844},serviceWorkers:'block'});
+  await restrictBrowserNetwork(context, input.base);
   let done=false, rounds=0;
   for(let day=0;day<12;day++) {
     const advance=await control('advance');

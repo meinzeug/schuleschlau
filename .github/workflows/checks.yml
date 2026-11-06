@@ -188,6 +188,7 @@ jobs:
           git rev-parse HEAD
           node --version
           /opt/google/chrome/chrome --version
+          node qa/test_browser_network_guard.mjs
           python -m unittest discover -s qa -p test_run_notebook_local_browser.py
           python qa/run_notebook_local_browser.py --web-dir app/build/web
   flutter:

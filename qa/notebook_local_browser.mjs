@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {chromium} from 'playwright';
+import {restrictBrowserNetwork} from './browser_network_guard.mjs';
 
 const input = JSON.parse(readFileSync(0, 'utf8'));
 const address = new URL(input.base);
@@ -39,11 +40,7 @@ async function type(locator, value) {
 }
 async function login(username, width) {
   context=await browser.newContext({viewport:{width,height:900}, isMobile:width===390, hasTouch:width===390, serviceWorkers:'block'});
-  await context.route('**/*', route => {
-    const url = new URL(route.request().url());
-    return url.origin === input.base || ['data:', 'blob:'].includes(url.protocol)
-      ? route.continue() : route.abort();
-  });
+  await restrictBrowserNetwork(context, input.base);
   page=await context.newPage(); page.on('pageerror',()=>pageErrors.push(phase));
   page.on('response',r=>{const u=new URL(r.url());if(u.origin===input.base&&u.pathname.startsWith('/api/')&&r.status()>=500)serverErrors.push(u.pathname.replace(/[a-f0-9]{32}/g,':id'));});
   await open('/login');

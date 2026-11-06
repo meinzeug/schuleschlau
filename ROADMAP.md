@@ -2483,8 +2483,10 @@ Bestandteil des bestehenden Buildvertrags.
 
   - [x] **Künstliche Browserabläufe als CI-Gate vorbereiten.** Der bestehende
     Flutter-Build startet den Hefter- und den 390-px-Lernablauf in isoliertem
-    Chrome gegen eine temporäre SQLite-Datenbank; fremde Browserziele und
-    Service Worker bleiben gesperrt. Die vier vorgeschriebenen Testfälle
+    Chrome gegen eine temporäre SQLite-Datenbank. Browserseiten sperren fremde
+    HTTP-Ziele, HTTP-Weiterleitungen, WebSockets und Service Worker; das ist
+    keine Netzwerkisolierung des Betriebssystems oder der Chrome-Hintergrunddienste.
+    Die vier vorgeschriebenen Testfälle
     müssen im JUnit-Beleg einmal und ohne Skip oder Fehler vorliegen. Die
     Runner-Verträge prüfen auch fehlende, doppelte und übersprungene Fälle.
     Auf Basis `075874c` bestand der kombinierte lokale Lauf mit künstlichen
