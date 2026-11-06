@@ -3,7 +3,7 @@
 import pytest
 from fastapi import HTTPException
 from schulpilot.db import DB, Assignment, Attempt, Audit, Job, LearningUnit, Material, UnitSource, VocabularyItem, now
-from schulpilot.erasure import reconcile
+from schulpilot.erasure import journal_write_lock, reconcile
 from schulpilot.source_cleanup import apply, selection
 from schulpilot.worker import maintenance
 from sqlalchemy import select
@@ -39,7 +39,7 @@ def test_preview_apply_retains_valid_heft_roots_and_manual_words(api, household)
         goal_id = goal.id
         db.add(Job(child_id=child['id'], kind='unit', status='completed', payload={'assignment_id': goal_id},
                    result={'assignment_id': goal_id}, idempotency='erased-order-job'))
-    with DB.begin() as db:
+    with journal_write_lock(), DB.begin() as db:
         default = selection(db, child['id'])
         assert default['unit_ids'] == [detached] and default['assignment_count'] == 0
         picked = selection(db, child['id'], include_manual_assignments=True)
@@ -107,7 +107,7 @@ def test_assignment_restore_journal_is_idempotent_and_child_scoped(api, househol
         assert db.get(Assignment, ids[0]) is None and db.get(Assignment, ids[1]) is not None
     from schulpilot.config import settings
     from schulpilot.erasure import flush_journal, request, verify
-    with DB.begin() as db:
+    with journal_write_lock(), DB.begin() as db:
         request(db, 'assignment', ids[1])
     flush_journal()
     records = [verify(raw, settings.master_key) for raw in (settings.data_dir/'erasure-ledger.jsonl').read_text().splitlines()]

@@ -517,7 +517,7 @@ def crop_snapshot(row):
     return SimpleNamespace(content=row.snapshot["content"], source_blocks=row.snapshot["source_blocks"])
 
 
-def purge_diagnostic_outputs(db, material_ids):
+def purge_diagnostic_outputs(db, material_ids, *, unlink_files=True):
     """Call before material deletion; only our bounded private diagnostic files."""
     from .config import settings
     from .source_evaluation import WORK_ID
@@ -526,7 +526,8 @@ def purge_diagnostic_outputs(db, material_ids):
     directory = settings.data_dir / "operator-diagnostics" / WORK_ID
     selected = set(material_ids)
     for row in db.scalars(select(SourceEvaluationCase).where(SourceEvaluationCase.material_id.in_(selected))):
-        (directory / (row.id + ".json")).unlink(missing_ok=True)
+        if unlink_files:
+            (directory / (row.id + ".json")).unlink(missing_ok=True)
         if row.job_id and (job := db.get(Job, row.job_id)):
             job.payload = {"operator_evaluation": row.id, "diagnostic_only": True, "source_removed": True}
             if job.status == "operator_held":

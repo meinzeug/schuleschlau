@@ -1046,3 +1046,9 @@ def init_db():
 def get_db():
     with DB() as db:
         yield db
+
+
+# Install the erasure guards even when a caller uses SQLAlchemy directly
+# without first importing the erasure helper. The import is deliberately last:
+# erasure itself references the models and engine defined above.
+from . import erasure as _erasure_guard  # noqa: E402,F401

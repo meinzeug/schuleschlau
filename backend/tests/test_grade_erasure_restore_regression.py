@@ -8,7 +8,7 @@ import pytest
 from schulpilot import erasure
 from schulpilot.config import settings
 from schulpilot.db import DB, Base, LearningUnit, SchoolGrade, engine
-from schulpilot.erasure import flush_journal, reconcile, request, verify
+from schulpilot.erasure import flush_journal, journal_write_lock, reconcile, request, verify
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session
 
@@ -62,7 +62,7 @@ def test_current_journal_prevents_grade_resurrection(api, household, tmp_path, m
         snapshot = {table: list(db.execute(table.select()).mappings()) for table in Base.metadata.sorted_tables}
 
     # A separate record provides a positive control for journal signing and replay.
-    with DB.begin() as db:
+    with journal_write_lock(), DB.begin() as db:
         request(db, "unit", control_id)
         db.delete(db.get(LearningUnit, control_id))
     flush_journal()

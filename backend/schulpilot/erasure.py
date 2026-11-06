@@ -11,15 +11,111 @@ import json
 import os
 import re
 import tempfile
+import threading
 from contextlib import contextmanager
+from contextvars import ContextVar
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, event, select
+from sqlalchemy.engine import Engine
+from sqlalchemy.orm import Session as OrmSession
+from sqlalchemy.sql.dml import Insert
 
 from .config import settings
 from .db import DB, Assignment, Child, ErasureRequest, Family, LearningUnit, Material, Membership, SchoolDay, User, now
 
 VOCABULARY_SCOPES = ("vocab_item", "vocab_import", "vocab_set")
 SCOPES = ("family", "child", "user", "material", "membership", "unit", "assignment", "grade", "grade_import", "grade_slot", *VOCABULARY_SCOPES)
+
+_journal_owner = ContextVar("schulpilot_journal_owner", default=None)
+_SESSION_LOCK_KEY = "schulpilot_erasure_lock"
+_CONNECTION_LOCK_KEY = "schulpilot_erasure_connection_lock"
+
+
+def _current_journal_owner():
+    token = _journal_owner.get()
+    if (token is None or not token["active"] or token["pid"] != os.getpid()
+            or token["thread"] != threading.get_ident()):
+        raise RuntimeError("Erasure transaction requires the journal write lock")
+    return token
+
+
+def _require_journal_owner(db):
+    token = _current_journal_owner()
+    recorded = db.info.setdefault(_SESSION_LOCK_KEY, token)
+    if recorded is not token:
+        raise RuntimeError("Erasure transaction outlived its journal write lock")
+
+
+def _uses_application_pool(db):
+    from .db import engine
+
+    bind = db.get_bind(mapper=ErasureRequest)
+    bound_engine = getattr(bind, "engine", bind)
+    return getattr(bound_engine, "pool", None) is engine.pool
+
+
+@event.listens_for(OrmSession, "before_flush")
+def _guard_erasure_flush(db, _context, _instances):
+    if any(isinstance(item, ErasureRequest) for item in db.new) and _uses_application_pool(db):
+        _require_journal_owner(db)
+
+
+@event.listens_for(OrmSession, "do_orm_execute")
+def _guard_erasure_insert(state):
+    table = getattr(state.statement, "table", None)
+    if (state.is_insert and getattr(table, "name", None) == ErasureRequest.__tablename__
+            and _uses_application_pool(state.session)):
+        _require_journal_owner(state.session)
+
+
+@event.listens_for(Engine, "before_execute")
+def _guard_erasure_connection_insert(connection, clause, _multiparams, _params, _options):
+    # Guard SQLAlchemy Core and legacy bulk paths on the application engine.
+    # Other separately created restore engines must be able to import snapshots.
+    from .db import engine
+
+    if (connection.engine.pool is engine.pool and isinstance(clause, Insert)
+            and getattr(clause.table, "name", None) == ErasureRequest.__tablename__):
+        if connection.get_execution_options().get("isolation_level") == "AUTOCOMMIT":
+            raise RuntimeError("Erasure records require a transactional connection")
+        token = _current_journal_owner()
+        recorded = connection.info.setdefault(_CONNECTION_LOCK_KEY, token)
+        if recorded is not token:
+            raise RuntimeError("Erasure transaction outlived its journal write lock")
+
+
+@event.listens_for(Engine, "commit")
+def _guard_erasure_connection_commit(connection):
+    recorded = connection.info.get(_CONNECTION_LOCK_KEY)
+    if recorded is not None:
+        if _current_journal_owner() is not recorded:
+            raise RuntimeError("Erasure transaction outlived its journal write lock")
+        # The event runs before DBAPI commit. Retain the marker until pool
+        # reset: commit can fail while leaving the physical transaction open.
+
+
+@event.listens_for(Engine, "reset")
+def _clear_erasure_pool_connection(dbapi_connection, connection_record, _reset_state):
+    if _CONNECTION_LOCK_KEY in connection_record.info:
+        # SQLAlchemy can regard a transaction as inactive after a failed
+        # commit and skip its ordinary pool rollback even though the DBAPI
+        # transaction is still open. Force the physical rollback *before*
+        # clearing the guard; a failure invalidates the pooled connection.
+        dbapi_connection.rollback()
+        connection_record.info.pop(_CONNECTION_LOCK_KEY, None)
+
+
+@event.listens_for(OrmSession, "before_commit")
+def _guard_erasure_commit(db):
+    if (_SESSION_LOCK_KEY in db.info
+            or (any(isinstance(item, ErasureRequest) for item in db.new) and _uses_application_pool(db))):
+        _require_journal_owner(db)
+
+
+@event.listens_for(OrmSession, "after_transaction_end")
+def _clear_erasure_transaction(db, transaction):
+    if transaction.parent is None:
+        db.info.pop(_SESSION_LOCK_KEY, None)
 
 
 def validate_grade_details(details):
@@ -54,6 +150,7 @@ def request(db, scope, target, *, details=None):
         validate_grade_details(details)
     elif details is not None:
         raise ValueError('Unexpected erasure details')
+    _require_journal_owner(db)
     db.add(ErasureRequest(scope=scope, target=target, details=details))
 
 
@@ -87,10 +184,18 @@ def verify(raw, key):
 @contextmanager
 def journal_write_lock():
     """Serialize a deletion commit against an authenticated journal snapshot."""
+    if _journal_owner.get() is not None:
+        raise RuntimeError("Nested journal write locks are not supported")
     fd = os.open(settings.data_dir / ".erasure-ledger.lock", os.O_CREAT | os.O_RDWR, 0o600)
     with os.fdopen(fd, "r+") as lock_file:
         fcntl.flock(lock_file, fcntl.LOCK_EX)
-        yield
+        token = {"active": True, "pid": os.getpid(), "thread": threading.get_ident()}
+        context_token = _journal_owner.set(token)
+        try:
+            yield
+        finally:
+            token["active"] = False
+            _journal_owner.reset(context_token)
 
 
 def flush_journal():
@@ -218,9 +323,9 @@ def reconcile(db, records):
         if row is None:
             continue
         if scope == "family":
-            paths.extend(remove_family(db, row))
+            paths.extend(remove_family(db, row, journal=False))
         elif scope == "child":
-            paths.extend(remove_child(db, row))
+            paths.extend(remove_child(db, row, journal=False))
         elif scope == "user":
             from .profile_images import deletion_paths
 
@@ -246,7 +351,7 @@ def reconcile(db, records):
             remove(db, db.get(Child, row.child_id), linked_ids(db, row.child_id, [row.id]), journal=False)
             from .source_lineage import purge_diagnostic_outputs
 
-            purge_diagnostic_outputs(db, [row.id])
+            purge_diagnostic_outputs(db, [row.id], unlink_files=False)
             purge_source_turns(db, [row.id], child_id=row.child_id)
             if row.path:
                 paths.append(row.path)

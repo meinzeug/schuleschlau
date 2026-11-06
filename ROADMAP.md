@@ -1071,6 +1071,15 @@ Die folgenden Punkte beschreiben ausstehende, wiederholbare Betriebs- und Freiga
   automatisierte Freigabeprüfung ersetzt keinen unabhängigen Sicherheitstest.
 - [ ] **P1 – Datenlebenszyklus und Löschung pro Datenart prüfen**
 
+  - [x] **Löschjournal-Sperre für SQLAlchemy-Schreibwege prüfen und
+    Restore-Replay von Betriebsdiagnosedateien trennen.** Normale ORM-,
+    Core- und Bulk-Schreibwege auf dem Anwendungspool verlangen bis zum
+    Commit dieselbe Journal-Schreibsperre. Ein Replay von Familien-, Kinder-
+    oder Materiallöschungen löscht keine Diagnose-Dateien der laufenden
+    Installation. Künstliche SQLite-/PostgreSQL-Fälle prüfen beide Grenzen;
+    Roh-SQL, alte Prozesse, Offsite-ACK und vollständige Wiederherstellung
+    bleiben gesondert offen. [Umfang](docs/ERASURE_LOCK_AND_REPLAY_2026_11_06.md).
+
   - [x] **Abgelaufene Nachrichten im Restore erneut bereinigen.** Der
     Wiederherstellungsabgleich verwendet dieselbe 365-Tage-Grenze wie der
     Worker, nach der Journalprüfung und nur in der separaten Datenbank. Die

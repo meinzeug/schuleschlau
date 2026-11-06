@@ -438,14 +438,16 @@ def revoke_member(family_id: str, membership_id: str, p=Depends(parent), db=Depe
     return {"message": "Familienrechte und Sitzungen widerrufen."}
 
 
-def remove_child(db, child):
+def remove_child(db, child, *, journal=True):
     from .erasure import request
     from .profile_images import deletion_paths as avatar_deletion_paths
     from .source_lineage import purge_diagnostic_outputs
 
-    purge_diagnostic_outputs(db, list(db.scalars(select(Material.id).where(Material.child_id == child.id))))
-    request(db, "child", child.id)
-    request(db, "user", child.user_id)
+    purge_diagnostic_outputs(db, list(db.scalars(select(Material.id).where(Material.child_id == child.id))),
+                             unlink_files=journal)
+    if journal:
+        request(db, "child", child.id)
+        request(db, "user", child.user_id)
     paths = list(db.scalars(select(Material.path).where(Material.child_id == child.id, Material.path.is_not(None))))
     user = db.get(User, child.user_id)
     if user:
@@ -460,16 +462,17 @@ def remove_child(db, child):
     return paths
 
 
-def remove_family(db, family):
+def remove_family(db, family, *, journal=True):
     from .commerce import erase_family_orders
 
     erase_family_orders(db, family.id)
     from .erasure import request
 
-    request(db, "family", family.id)
+    if journal:
+        request(db, "family", family.id)
     paths = []
     for child in list(db.scalars(select(Child).where(Child.family_id == family.id))):
-        paths.extend(remove_child(db, child))
+        paths.extend(remove_child(db, child, journal=journal))
     db.execute(delete(UsageBucket).where(UsageBucket.id.like(f"{family.id}:%")))
     db.delete(family)
     return paths
