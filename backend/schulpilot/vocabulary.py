@@ -167,23 +167,27 @@ def get_import(child_id: str, import_id: str, p=Depends(authenticated), db=Depen
 
 @router.delete("/children/{child_id}/vocabulary/imports/{import_id}")
 def discard_import(child_id: str, import_id: str, p=Depends(authenticated), db=Depends(get_db)):
-    child = child_access(db, p, child_id, write=p.user.role == "parent")
-    lock_child(db, child)
-    child = child_access(db, p, child_id, write=p.user.role == "parent")
-    row = db.get(VocabularyImport, import_id, populate_existing=True)
-    if not row:
-        return {"message": "Die Wortvorschläge sind nicht mehr offen."}
-    if row.child_id != child.id:
-        raise HTTPException(404, "Wortvorschläge nicht gefunden.")
-    job = db.get(Job, row.job_id) if row.job_id else None
-    if row.status != "review" or (job and job.status in ("queued", "running")):
-        raise HTTPException(409, "Nur noch nicht übernommene Wortvorschläge können verworfen werden. Laufende Erkennungen und gespeicherte Wörter bleiben geschützt.")
-    rate_limit(db, "vocabulary-discard:" + p.user.id, 30, 3600, commit=False)
-    from .erasure import flush_journal, request
+    from .erasure import flush_journal, journal_write_lock, request
+    from .security import lock_session_after_child
 
-    request(db, "vocab_import", row.id)
-    db.delete(row)
-    db.commit()
+    user_id, session_id = p.user.id, p.session.id
+    with journal_write_lock():
+        child = child_access(db, p, child_id, write=p.user.role == "parent")
+        lock_child(db, child)
+        lock_session_after_child(db, user_id, session_id)
+        child = child_access(db, p, child_id, write=p.user.role == "parent")
+        row = db.get(VocabularyImport, import_id, populate_existing=True)
+        if not row:
+            return {"message": "Die Wortvorschläge sind nicht mehr offen."}
+        if row.child_id != child.id:
+            raise HTTPException(404, "Wortvorschläge nicht gefunden.")
+        job = db.get(Job, row.job_id) if row.job_id else None
+        if row.status != "review" or (job and job.status in ("queued", "running")):
+            raise HTTPException(409, "Nur noch nicht übernommene Wortvorschläge können verworfen werden. Laufende Erkennungen und gespeicherte Wörter bleiben geschützt.")
+        rate_limit(db, "vocabulary-discard:" + p.user.id, 30, 3600, commit=False)
+        request(db, "vocab_import", row.id)
+        db.delete(row)
+        db.commit()
     flush_journal()
     return {"message": "Nur offene Wortvorschläge verworfen. Heftseite, Wortschatz und Übungsbelege bleiben erhalten."}
 
@@ -668,19 +672,27 @@ def reveal(child_id: str, item_id: str, revision: int | None = Query(None, ge=1)
 @router.delete("/children/{child_id}/vocabulary/{item_id}")
 def delete_item(child_id: str, item_id: str, revision: int | None = Query(None, ge=1),
                 p=Depends(authenticated), db=Depends(get_db)):
-    child = child_access(db, p, child_id, write=p.user.role == "parent")
-    lock_child(db, child)
-    rate_limit(db, "vocabulary-delete:" + p.user.id, 60, 3600, commit=False)
-    item = db.get(VocabularyItem, item_id)
-    if not item or item.child_id != child.id:
-        raise HTTPException(404, "Wort nicht gefunden.")
-    if revision is not None and item.revision != revision:
-        raise HTTPException(409, "Das Wort wurde inzwischen geändert. Bitte die aktuelle Fassung erneut prüfen.")
-    from .erasure import flush_journal, request
+    from .erasure import flush_journal, journal_write_lock, request
+    from .security import lock_session_after_child
 
-    request(db, "vocab_item", item.id)
-    db.delete(item)
-    db.commit()
+    # The snapshot lock precedes Child and all other write locks; the outbox
+    # commit cannot occur between a locked export's pending check and snapshot.
+    # Release it before flush_journal, which acquires the same lock itself.
+    user_id, session_id = p.user.id, p.session.id
+    with journal_write_lock():
+        child = child_access(db, p, child_id, write=p.user.role == "parent")
+        lock_child(db, child)
+        lock_session_after_child(db, user_id, session_id)
+        child = child_access(db, p, child_id, write=p.user.role == "parent")
+        rate_limit(db, "vocabulary-delete:" + p.user.id, 60, 3600, commit=False)
+        item = db.get(VocabularyItem, item_id)
+        if not item or item.child_id != child.id:
+            raise HTTPException(404, "Wort nicht gefunden.")
+        if revision is not None and item.revision != revision:
+            raise HTTPException(409, "Das Wort wurde inzwischen geändert. Bitte die aktuelle Fassung erneut prüfen.")
+        request(db, "vocab_item", item.id)
+        db.delete(item)
+        db.commit()
     flush_journal()
     return {"message": "Wort und Wiederholungszustand gelöscht. Bereits abgegebene Antworten bleiben im Lernverlauf."}
 
@@ -827,20 +839,24 @@ def rename_collection(child_id: str, collection_id: str, data: CollectionName,
 @router.delete("/children/{child_id}/vocabulary/collections/{collection_id}")
 def erase_collection(child_id: str, collection_id: str, data: CollectionErase,
                      p=Depends(authenticated), db=Depends(get_db)):
-    child = child_access(db, p, child_id, write=p.user.role == "parent")
-    lock_child(db, child)
-    child = child_access(db, p, child_id, write=p.user.role == "parent")
-    row = own_collection(db, child, collection_id)
-    if db.scalar(select(VocabularyImport.id).where(VocabularyImport.collection_id == row.id, VocabularyImport.status != "confirmed")):
-        raise HTTPException(409, "Für diese Sammlung sind noch Wörter zum Prüfen offen. Bitte diese zuerst abschließen.")
-    if collection_data(db, row)["snapshot"] != data.snapshot:
-        raise HTTPException(409, "Die Sammlung wurde inzwischen geändert. Bitte ihre aktuelle Vorschau prüfen.")
-    rate_limit(db, "vocabulary-collection:" + p.user.id, 30, 3600, commit=False)
-    from .erasure import flush_journal, request
+    from .erasure import flush_journal, journal_write_lock, request
+    from .security import lock_session_after_child
 
-    request(db, "vocab_set", row.id)
-    db.delete(row)
-    db.commit()
+    user_id, session_id = p.user.id, p.session.id
+    with journal_write_lock():
+        child = child_access(db, p, child_id, write=p.user.role == "parent")
+        lock_child(db, child)
+        lock_session_after_child(db, user_id, session_id)
+        child = child_access(db, p, child_id, write=p.user.role == "parent")
+        row = own_collection(db, child, collection_id)
+        if db.scalar(select(VocabularyImport.id).where(VocabularyImport.collection_id == row.id, VocabularyImport.status != "confirmed")):
+            raise HTTPException(409, "Für diese Sammlung sind noch Wörter zum Prüfen offen. Bitte diese zuerst abschließen.")
+        if collection_data(db, row)["snapshot"] != data.snapshot:
+            raise HTTPException(409, "Die Sammlung wurde inzwischen geändert. Bitte ihre aktuelle Vorschau prüfen.")
+        rate_limit(db, "vocabulary-collection:" + p.user.id, 30, 3600, commit=False)
+        request(db, "vocab_set", row.id)
+        db.delete(row)
+        db.commit()
     flush_journal()
     return {"message": "Sammlung entfernt. Wörter, Wiederholungsstände und Antworten bleiben erhalten."}
 

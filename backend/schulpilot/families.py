@@ -393,35 +393,47 @@ def revoke_invite(family_id: str, invitation_id: str, p=Depends(parent), db=Depe
 
 @router.delete("/families/{family_id}/members/{membership_id}")
 def revoke_member(family_id: str, membership_id: str, p=Depends(parent), db=Depends(get_db)):
-    family_access(db, p, family_id, owner=True)
-    membership = db.scalar(select(Membership).where(Membership.id == membership_id, Membership.family_id == family_id))
-    if not membership or membership.permission == "owner":
-        raise HTTPException(403, "Familieninhaber kann hier nicht entfernt werden.")
-    from .erasure import flush_journal, request
+    from .erasure import flush_journal, journal_write_lock, request
+    from .security import lock_session_after_child
 
-    # Personal reminder edits take Child before reading membership. Use the
-    # same lock here, so an in-flight save cannot restore an opt-in after this
-    # revocation. Keep saved checks and request receipts as historical facts.
-    # Serialize with create_child before taking the family-wide child snapshot.
-    db.execute(update(Family).where(Family.id == family_id).values(name=Family.name))
-    child_ids = list(db.scalars(select(Child.id).where(Child.family_id == family_id).order_by(Child.id)))
-    for child_id in child_ids:
-        db.execute(update(Child).where(Child.id == child_id).values(grade=Child.grade))
-    from .parent_reminder_models import ParentGoalReminder
+    user_id, session_id = p.user.id, p.session.id
+    with journal_write_lock():
+        family_access(db, p, family_id, owner=True)
+        membership = db.scalar(select(Membership).where(Membership.id == membership_id, Membership.family_id == family_id))
+        if not membership or membership.permission == "owner":
+            raise HTTPException(403, "Familieninhaber kann hier nicht entfernt werden.")
 
-    db.execute(update(ParentGoalReminder).where(
-        ParentGoalReminder.user_id == membership.user_id,
-        ParentGoalReminder.child_id.in_(child_ids),
-    ).values(enabled=False, revision=ParentGoalReminder.revision + 1, updated=int(now()), next_check=0))
-    request(db, "membership", membership.id)
-    db.delete(membership)
-    # Revoke sessions as well as checking membership on every request.
-    db.execute(update(Session).where(Session.user_id == membership.user_id).values(revoked=True))
-    from .exam_review import clear_user_drafts
+        # Personal reminder edits take Child before reading membership. Use the
+        # same lock here, so an in-flight save cannot restore an opt-in after this
+        # revocation. Keep saved checks and request receipts as historical facts.
+        # Serialize with create_child before taking the family-wide child snapshot.
+        db.execute(update(Family).where(Family.id == family_id).values(name=Family.name))
+        child_ids = list(db.scalars(select(Child.id).where(Child.family_id == family_id).order_by(Child.id)))
+        for child_id in child_ids:
+            db.execute(update(Child).where(Child.id == child_id).values(grade=Child.grade))
+        lock_session_after_child(db, user_id, session_id)
+        # The journal lock may have delayed this request. Recheck that the
+        # owner and target membership still exist under the family/child locks.
+        db.expire_all()
+        family_access(db, p, family_id, owner=True)
+        membership = db.scalar(select(Membership).where(Membership.id == membership_id, Membership.family_id == family_id))
+        if not membership or membership.permission == "owner":
+            raise HTTPException(403, "Familieninhaber kann hier nicht entfernt werden.")
+        from .parent_reminder_models import ParentGoalReminder
 
-    clear_user_drafts(db, membership.user_id)
-    audit(db, p.user.id, "family.member_revoke", membership_id)
-    db.commit()
+        db.execute(update(ParentGoalReminder).where(
+            ParentGoalReminder.user_id == membership.user_id,
+            ParentGoalReminder.child_id.in_(child_ids),
+        ).values(enabled=False, revision=ParentGoalReminder.revision + 1, updated=int(now()), next_check=0))
+        request(db, "membership", membership.id)
+        db.delete(membership)
+        # Revoke sessions as well as checking membership on every request.
+        db.execute(update(Session).where(Session.user_id == membership.user_id).values(revoked=True))
+        from .exam_review import clear_user_drafts
+
+        clear_user_drafts(db, membership.user_id)
+        audit(db, p.user.id, "family.member_revoke", membership_id)
+        db.commit()
     flush_journal()
     return {"message": "Familienrechte und Sitzungen widerrufen."}
 
