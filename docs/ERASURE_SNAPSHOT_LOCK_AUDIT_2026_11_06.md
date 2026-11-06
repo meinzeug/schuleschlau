@@ -71,3 +71,14 @@ bisherigen Reconcile-Implementierung lesbar. Die Änderung erzeugt keine
 rückwirkenden Belege für Owner-Konten, die vor dieser Korrektur ohne User-
 Tombstone gelöscht wurden; deren alte Sicherungen benötigen gesonderte
 nachvollziehbare Prüfung.
+
+Eine Familien-, Kinder- oder betroffene Benutzer-ID, die das bestehende
+Journalformat nicht unterstützt, wird nicht verändert oder ersatzweise
+journalisiert. Nach der Sperre prüft die Retention alle betroffenen IDs, bevor
+sie die Familie oder zugehörige Daten verändert; die Familie bleibt erhalten
+und der Worker meldet einen Fehler ohne private Kennung. Andere Familien und
+wartende Aufträge laufen weiter. Leere Familien-IDs werden gesondert gemeldet
+und aus beiden Richtungen des Cursors ausgeschlossen. Betreiber müssen diese
+Datensätze separat und nachvollziehbar bereinigen; die Warnung belegt keine
+erfolgte Löschung. Das PostgreSQL-Schema begrenzt Familien-IDs auf 32 Zeichen;
+eine längere ID in SQLite bleibt ein expliziter Retentionfehler.

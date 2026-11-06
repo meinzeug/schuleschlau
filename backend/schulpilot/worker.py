@@ -955,7 +955,12 @@ def _claim_expiring_family_batch():
         # schema rather than stalling all retention on an older family.
         if markers and (not cursor or len(cursor) > 32):
             raise RuntimeError("Invalid family retention cursor")
-        base = select(Family.id).where(Family.expires.is_not(None), Family.expires < int(now()))
+        # Empty IDs cannot be represented as a cursor and cannot be journaled.
+        # Surface the broken row separately; never let it prevent other work.
+        expired = (Family.expires.is_not(None), Family.expires < int(now()))
+        if db.scalar(select(Family.id).where(*expired, Family.id == "").limit(1)) is not None:
+            log.error("Expired family has an unsupported ID; retention deferred for operator review")
+        base = select(Family.id).where(*expired, Family.id != "")
         ids = list(db.scalars(base.where(Family.id > cursor).order_by(Family.id).limit(_FAMILY_RETENTION_BATCH)))
         remaining = _FAMILY_RETENTION_BATCH - len(ids)
         if remaining and cursor:
@@ -978,6 +983,12 @@ def _expire_families():
 
     ids = _claim_expiring_family_batch()
     for family_id in ids:
+        # Reconciliation and journal authentication accept only canonical
+        # IDs. Never delete a legacy-ID family without a replayable tombstone;
+        # move past it so unrelated families and maintenance can proceed.
+        if not re.fullmatch(r"[a-f0-9]{32}", family_id):
+            log.error("Expired family has an unsupported ID; retention deferred for operator review")
+            continue
         paths = []
         try:
             with _retention_transaction() as db:
@@ -985,6 +996,16 @@ def _expire_families():
                 if family is None or family.expires is None or family.expires >= int(now()):
                     continue
                 owners = list(db.scalars(select(Membership.user_id).where(Membership.family_id == family.id)))
+                child_rows = list(db.execute(select(Child.id, Child.user_id).where(Child.family_id == family.id)))
+                # remove_family journals every child/user and may journal the
+                # remaining family members. Validate the complete locked set
+                # before any cascade or billing mutation; do not disguise or
+                # silently drop an unsupported identifier.
+                identifiers = [family.id, *owners, *(value for row in child_rows for value in row)]
+                if any(not isinstance(value, str) or not re.fullmatch(r"[a-f0-9]{32}", value)
+                       for value in identifiers):
+                    log.error("Expired family has an unsupported ID; retention deferred for operator review")
+                    continue
                 paths.extend(remove_family(db, family))
                 db.flush()
                 for user_id in owners:

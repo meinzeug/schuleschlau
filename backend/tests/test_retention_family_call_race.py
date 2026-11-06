@@ -252,6 +252,128 @@ def test_family_retention_cursor_accepts_legacy_family_ids():
     assert worker._claim_expiring_family_batch() == identifiers
 
 
+@pytest.mark.parametrize("legacy_id", ["legacy-family-1", ""])
+def test_unsupported_family_id_does_not_block_worker_and_is_never_deleted(
+    legacy_id, household, monkeypatch, tmp_path, caplog
+):
+    from dataclasses import replace
+
+    from schulpilot import (
+        ai_accounting,
+        exam_review,
+        material_review,
+        operator_probe,
+        parent_insights,
+        school_preparation,
+    )
+    from schulpilot.db import Base, Job
+    from sqlalchemy.orm import Session
+    from test_grade_erasure_restore_regression import isolated_restore
+
+    _, child = household
+    valid_id = "a" * 32
+    monkeypatch.setattr(erasure, "settings", replace(settings, data_dir=tmp_path))
+    with DB.begin() as db:
+        db.add_all([Family(id=identifier, name="Synthetic", synthetic=True, expires=int(now()) - 1)
+                    for identifier in (valid_id, legacy_id)])
+        job = Job(child_id=child["id"], kind="synthetic", payload={}, idempotency="synthetic-legacy-retention")
+        db.add(job)
+        db.flush()
+        job_id = job.id
+    with DB() as db:
+        snapshot = {table: list(db.execute(table.select()).mappings()) for table in Base.metadata.sorted_tables}
+
+    monkeypatch.setattr(worker, "init_db", lambda: None)
+    monkeypatch.setattr(worker.signal, "signal", lambda *_: None)
+    monkeypatch.setattr(worker, "running", True)
+    monkeypatch.setattr(operator_probe, "work_one", lambda *_: False)
+    monkeypatch.setattr(worker, "deliver_one", lambda *_: None)
+    monkeypatch.setattr(school_preparation, "advance_one", lambda: False)
+    monkeypatch.setattr(material_review, "advance_one", lambda: False)
+    monkeypatch.setattr(exam_review, "advance_scan_one", lambda: False)
+    monkeypatch.setattr(ai_accounting, "reconcile_one", lambda: None)
+    monkeypatch.setattr(parent_insights, "schedule_one", lambda: None)
+    monkeypatch.setattr(worker, "prepare_notifications", lambda *_: None)
+    processed = []
+
+    def finish(identifier):
+        processed.append(identifier)
+        worker.running = False
+
+    def unexpected_sleep(*_):
+        raise AssertionError("Worker did not reach the queued synthetic job")
+
+    monkeypatch.setattr(worker, "process", finish)
+    monkeypatch.setattr(worker.time, "sleep", unexpected_sleep)
+    worker.main()
+    assert processed == [job_id]
+    # A subsequent pass wraps from an already persisted cursor; it must not
+    # select an empty ID or block the rest of the maintenance loop.
+    worker.maintenance()
+    assert "unsupported ID; retention deferred for operator review" in caplog.text
+    if legacy_id:
+        assert legacy_id not in caplog.text
+    with DB() as db:
+        assert db.get(Family, valid_id) is None
+        assert db.get(Family, legacy_id) is not None
+        assert db.get(Job, job_id).status == "running"
+        assert db.scalar(select(ErasureRequest.id).where(ErasureRequest.target == legacy_id)) is None
+        event = db.scalar(select(ErasureRequest).where(ErasureRequest.target == valid_id))
+        assert event is not None and event.scope == "family" and event.published
+    records = [erasure.verify(line, settings.master_key)
+               for line in (tmp_path / "erasure-ledger.jsonl").read_text().splitlines()]
+    with isolated_restore() as restored:
+        Base.metadata.create_all(restored)
+        with restored.begin() as connection:
+            for table, rows in snapshot.items():
+                if rows:
+                    connection.execute(table.insert(), [dict(row) for row in rows])
+        with Session(restored) as db:
+            erasure.reconcile(db, records)
+            db.commit()
+            assert db.get(Family, valid_id) is None
+            assert db.get(Family, legacy_id) is not None
+
+
+@pytest.mark.parametrize("invalid_part", ["child", "child_user", "parent_user"])
+def test_retention_defers_entire_family_with_unjournalable_linked_id(
+    invalid_part, monkeypatch, tmp_path, caplog
+):
+    from dataclasses import replace
+
+    from schulpilot.db import Membership, User
+
+    valid_family, deferred_family = "a" * 32, "b" * 32
+    child_id = "legacy-child" if invalid_part == "child" else "c" * 32
+    child_user_id = "legacy-child-user" if invalid_part == "child_user" else "d" * 32
+    parent_user_id = "legacy-parent-user" if invalid_part == "parent_user" else "e" * 32
+    monkeypatch.setattr(erasure, "settings", replace(settings, data_dir=tmp_path))
+    with DB.begin() as db:
+        db.add_all([Family(id=identifier, name="Synthetic", synthetic=True, expires=int(now()) - 1)
+                    for identifier in (valid_family, deferred_family)])
+        db.add_all([
+            User(id=child_user_id, username="synthetic-retention-child", display_name="Synthetic",
+                 password_hash="unused", role="child", verified=True),
+            User(id=parent_user_id, username="synthetic-retention-parent", display_name="Synthetic",
+                 password_hash="unused", role="parent", verified=True),
+        ])
+        db.flush()
+        db.add(Child(id=child_id, family_id=deferred_family, user_id=child_user_id, grade=6))
+        db.add(Membership(family_id=deferred_family, user_id=parent_user_id, permission="owner"))
+    worker._expire_families()
+    with DB() as db:
+        assert db.get(Family, valid_family) is None
+        assert db.get(Family, deferred_family) is not None
+        assert db.get(Child, child_id) is not None
+        assert db.get(User, child_user_id) is not None
+        assert db.get(User, parent_user_id) is not None
+        assert db.scalar(select(ErasureRequest.id).where(ErasureRequest.target == deferred_family)) is None
+        valid = db.scalar(select(ErasureRequest).where(ErasureRequest.target == valid_family))
+        assert valid is not None and valid.published
+    assert "unsupported ID; retention deferred for operator review" in caplog.text
+    assert "legacy-" not in caplog.text
+
+
 def test_family_retention_rejects_empty_persisted_cursor():
     from schulpilot.db import ServiceState
 

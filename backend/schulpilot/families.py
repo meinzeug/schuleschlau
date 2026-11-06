@@ -514,6 +514,14 @@ def delete_child(child_id: str, data: s.ConfirmPassword, p=Depends(parent), db=D
         child = child_access(db, p, child_id, write=True)
         if not verify_password(data.password, p.user.password_hash):
             raise HTTPException(403, "Elternpasswort ist nicht richtig.")
+        # User/session cascades may otherwise wait while a concurrent action
+        # holds the child's session and waits for this Child. Lock the user
+        # first to prevent late session FK inserts, then its sessions, without
+        # waiting while Child is held. The common helper rolls back on 409.
+        from .admin_users import _target_rows
+
+        _target_rows(db, select(User.id).where(User.id == child.user_id), nowait=True)
+        _target_rows(db, select(Session.id).where(Session.user_id == child.user_id).order_by(Session.id), nowait=True)
         paths = remove_child(db, child)
         audit(db, p.user.id, "child.delete", child_id)
         db.commit()

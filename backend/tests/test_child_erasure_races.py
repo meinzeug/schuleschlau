@@ -8,10 +8,35 @@ import pytest
 from conftest import HEADERS
 from fastapi.testclient import TestClient
 from schulpilot import security
-from schulpilot.db import DB, Child, ErasureRequest, LearningUnit, engine
+from schulpilot.db import DB, Child, ErasureRequest, LearningUnit, Session, engine
 from schulpilot.main import app
 from sqlalchemy import event, select, text, update
 from sqlalchemy.exc import IntegrityError
+
+
+def test_child_erasure_does_not_wait_on_held_child_session(api, child_api, household):
+    if engine.dialect.name != 'postgresql':
+        pytest.skip('Requires PostgreSQL row locks')
+    _, child = household
+    cid = child['id']
+    headers = {**HEADERS, 'Authorization': api.headers['Authorization']}
+
+    def remove():
+        with TestClient(app, headers=headers) as client:
+            return client.request('DELETE', f'/api/children/{cid}', json={'password': 'secure-parent-pass-123'})
+
+    with DB.begin() as holder:
+        user_id = holder.get(Child, cid).user_id
+        assert holder.scalar(select(Session.id).where(Session.user_id == user_id).with_for_update())
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            # This synthetic lock represents a concurrent child-session action;
+            # it is not evidence of a specific production call deadlock.
+            response = pool.submit(remove).result(8)
+            assert response.status_code == 409, response.text
+    with DB() as db:
+        assert db.get(Child, cid) is not None
+        assert db.scalar(select(ErasureRequest.id).where(ErasureRequest.target == cid)) is None
+    assert remove().status_code == 200
 
 
 def test_late_unit_after_snapshot_rejects_child_erasure(api, household):
