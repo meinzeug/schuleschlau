@@ -1329,9 +1329,12 @@ Bestandteil des bestehenden Buildvertrags.
   - [x] **Aktive Restore-Konfiguration vor Migration abgleichen.** Bei einem
     bestehenden Release vergleicht die Aktivierung die von systemd geladene
     Restore-Anweisung vor Änderungen und erneut vor der Migration. Ein
-    abweichender separater Runtime-Pfad muss mit den Backend-, Migrations- und
-    Betriebsquellen des Zielstands übereinstimmen; eine veraltete Runtime
-    blockiert den Wechsel. Synthetische Tests prüfen unter anderem fehlende und
+    abweichender separater Runtime-Pfad muss bei Migration mit den Backend-,
+    Migrations- und Betriebsquellen des Zielstands übereinstimmen. Bei einem
+    ausdrücklichen Rollback bleibt der Reader des zuvor aktiven Stands erhalten;
+    ein von `current` abhängiger Reader blockiert diesen Rückweg. Das Deployment
+    prüft bereits vor dem Stopp der Reparaturdienste, beim Aktivieren wird erneut
+    geprüft. Eine veraltete Runtime blockiert den Wechsel. Synthetische Tests prüfen unter anderem fehlende und
     abweichende Dateien, Unit-Overrides und den Abbruch vor Seiteneffekten.
     Die Prüfung ersetzt weder einen koordinierten Zwei-Host-Wechsel noch einen
     tatsächlichen Restore, Laufzeit-/Abhängigkeitsprüfung oder Sperren gegen

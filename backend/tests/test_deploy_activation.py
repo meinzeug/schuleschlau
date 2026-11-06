@@ -177,26 +177,30 @@ class Activation:
         if self.failure == "journal_missing_drained" and self.backup_checks == 2:
             raise RuntimeError("backup invocation lacks a complete journal snapshot")
 
-    def verify_restore(self, release):
+    def verify_restore(self, release, *, rollback=False, active=None, check_interpreter=False):
         assert release == self.new
+        assert active == self.old
         self.restore_checks += 1
+        assert check_interpreter == (self.restore_checks == 2)
         if self.failure == f"restore_guard_{self.restore_checks}":
             raise RuntimeError("incompatible restore runtime")
 
 
-def test_incompatible_restore_aborts_before_any_release_side_effect(tmp_path, monkeypatch):
+@pytest.mark.parametrize("rollback_compatible", [False, True])
+def test_incompatible_restore_aborts_before_any_release_side_effect(tmp_path, monkeypatch, rollback_compatible):
     activation = Activation(tmp_path, "restore_guard_1")
     with pytest.raises(RuntimeError, match="incompatible restore runtime"):
-        activation.execute(monkeypatch)
+        activation.execute(monkeypatch, rollback_compatible)
     assert activation.current.resolve() == activation.old
     assert activation.commands == []
     assert activation.fragment.read_text() == "old fragment"
 
 
-def test_restore_rechecked_after_reload_before_migration(tmp_path, monkeypatch):
+@pytest.mark.parametrize("rollback_compatible", [False, True])
+def test_restore_rechecked_after_reload_before_migration(tmp_path, monkeypatch, rollback_compatible):
     activation = Activation(tmp_path, "restore_guard_2")
     with pytest.raises(RuntimeError, match="incompatible restore runtime"):
-        activation.execute(monkeypatch)
+        activation.execute(monkeypatch, rollback_compatible)
     assert activation.current.resolve() == activation.old
     assert activation.restore_checks == 2
     assert not any("schulpilot.migrate" in command for command in activation.commands)

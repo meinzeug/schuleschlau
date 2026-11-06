@@ -17,13 +17,14 @@ remote_stage="/opt/schulpilot/staging/$release"
 lock_token="$(ssh dorfspy python3 - prepare "$release" < deploy/stage_release.py)"
 deploy_aborted=true
 repair_restart_done=false
+repair_stop_attempted=false
 
 cleanup_deployment() {
   if [[ "$deploy_aborted" == true ]]; then
     echo "Deployment failed or aborted; preserving stage and lease for operator inspection..." >&2
     ssh dorfspy python3 - abort "$release" "$lock_token" < deploy/stage_release.py 2>/dev/null || true
   fi
-  if [[ "$repair_restart_done" != true ]]; then
+  if [[ "$repair_stop_attempted" == true && "$repair_restart_done" != true ]]; then
     echo "Repair services remain stopped: verify source/schema and restart explicitly after resolving deployment failure." >&2
   fi
 }
@@ -51,9 +52,22 @@ with os.fdopen(fd,'w') as output:
     output.flush()
     os.fchmod(output.fileno(),0o644)
 PY
+# Reject an incompatible loaded restore override while repair services are
+# still running. Activation rechecks after upload and again before migration;
+# this early check is not a lock and cannot rule out later operator changes.
+ssh dorfspy python3 - "$remote_stage" <<'PY'
+import importlib.util,sys
+from pathlib import Path
+target=Path(sys.argv[1])
+spec=importlib.util.spec_from_file_location('restore_release_guard',target/'deploy/restore_release_guard.py')
+module=importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+module.verify_deploy_preflight(target)
+PY
 # Preserve explicit operator activation; never auto-install/enable repair services.
 # A failed activation leaves them stopped, including after rollback. The operator
 # must verify old schema/source compatibility before an explicit restart.
+repair_stop_attempted=true
 repair_state_encoded="$(ssh dorfspy python3 - <<'PY'
 import base64,json,subprocess
 from pathlib import Path

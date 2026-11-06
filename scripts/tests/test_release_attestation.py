@@ -164,7 +164,11 @@ def test_deploy_checks_verified_archive_after_upload_and_immediately_before_acti
     publish = script.index('python3 - publish')
     third = script.index('python3 - staged', second + 1)
     activate = script.index('deploy/activate.py $release')
+    preflight = script.index("module.verify_deploy_preflight(target)")
+    stop_repair = script.index("subprocess.run(['systemctl','stop',*reversed(installed)]")
     assert verify < upload < permissions < first < second < publish < third < activate
+    assert first < preflight < stop_repair < second
+    assert script.index('repair_stop_attempted=true') < stop_repair
     assert 'remote_stage="/opt/schulpilot/staging/$release"' in script
     assert 'python3 - prepare "$release" < deploy/stage_release.py' in script
     assert script.index('python3 - prepare "$release"') < script.index('deploy/bootstrap_host.py')
