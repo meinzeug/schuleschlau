@@ -400,7 +400,24 @@ def _protected_readings(data, snapshot):
         return " ".join(left.split()) == " ".join(right.split())
 
     def warning(block, message):
-        block["reading_uncertainties"] = list(dict.fromkeys([*block.get("reading_uncertainties", []), message]))[:8]
+        current = list(dict.fromkeys(block.get("reading_uncertainties", [])))
+        if message not in current and len(current) >= 8:
+            # The block cannot hold a ninth warning. Keep its old warnings;
+            # surface the new one and a distinct page-wide overflow warning.
+            # The latter must not coincide with any block-local warning, even
+            # if another block already carries the same conflict message.
+            # Earlier page notices that exceed the bound remain in snapshots.
+            local_notices = {notice for item in [*blocks, *originals, *(v for _, v in retained)]
+                             for notice in item.get("reading_uncertainties", [])}
+            base = "Weitere Hinweise konnten nicht einzeln übernommen werden. Bitte die ganze Seite prüfen."
+            page_notice, suffix = base, 1
+            while page_notice in local_notices or page_notice == message:
+                suffix += 1
+                page_notice = f"{base} ({suffix})"
+            previous = [notice for notice in result["uncertainties"] if notice not in (message, page_notice)]
+            result["uncertainties"] = [*list(dict.fromkeys(previous))[:28], message, page_notice]
+        else:
+            block["reading_uncertainties"] = list(dict.fromkeys([*current, message]))
 
     for index, old in enumerate(originals):
         if not (
@@ -453,6 +470,19 @@ def _protected_readings(data, snapshot):
                           if same(candidate["text"], old["text"])), None)
         blocks.insert(blocks.index(following) if following is not None else len(blocks), block)
     result["content"] = "\n\n".join(block["text"] for block in blocks)
+    # The public extraction contract requires a page notice for a partial
+    # reading. Copy local notices verbatim, as TranscriptionOutput does: the
+    # source filter can then still identify them as scoped to their block.
+    # Preserve earlier page warnings and the existing schema limit.
+    local = [notice for block in blocks for notice in block.get("reading_uncertainties", [])]
+    if local:
+        if result["legibility"] == "readable":
+            result["legibility"] = "partial"
+        result["uncertainties"] = list(dict.fromkeys([*result["uncertainties"], *local]))[:30]
+        if not any(notice.strip() for notice in result["uncertainties"]):
+            # Keep any blank page warning, which means page-wide uncertainty,
+            # while ensuring the partial-reading schema has a visible notice.
+            result["uncertainties"][-1:] = [local[0]]
     return result
 
 

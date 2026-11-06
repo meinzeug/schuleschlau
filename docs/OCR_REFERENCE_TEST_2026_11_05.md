@@ -66,3 +66,25 @@ Regressionstest bleiben oben beschrieben. Die letzte sichtbare Aufgabe erhielt
 getrennt den Hinweis, dass nach dem Gleichheitszeichen keine Fortsetzung zu
 sehen sei. Die künstliche Familie wurde über den regulären Endpunkt gelöscht;
 Zugangsdaten und temporäre Diagnosekopien wurden entfernt.
+
+## Nachprüfung des Gegencheck-Übergangs
+
+Ein späterer künstlicher Worker-Regressionstest bildete den ursprünglich
+beobachteten Fall nicht nur im Zusammenführen, sondern bis zur anschließenden
+Produktionsvalidierung nach: Bei unterschiedlichen Korrekturbereichen wurde
+zwar ein lokaler Hinweis hinzugefügt, aber kein Seitenhinweis. Die Validierung
+lehnte daraufhin die als teilweise lesbar markierte Gegenprüfung ab. Der
+frühere isolierte Mergetest allein hatte diesen Fehler nicht erfasst.
+
+Lokale Hinweise werden nun in die begrenzte Seitenhinweisliste übernommen,
+ohne ihren wortgleichen Blockbezug zu verlieren. Sind bereits acht Hinweise
+im Block gespeichert, wird ein weiterer Konflikt mit einem eindeutig
+seitenweiten Sammelhinweis angezeigt und die ganze Seite vorsorglich
+ausgeschlossen; ältere Details bleiben in den Rohsnapshots erhalten. Leere
+Seitenhinweise bleiben konservativ seitenweit wirksam. Ein erhaltener lokaler
+Erstlesehinweis setzt die Lesbarkeit auch dann auf teilweise, wenn der zweite
+Durchgang sie als vollständig einstufte. Der isolierte Gegencheck mit
+künstlichen Transportantworten prüft Jobstatus, beide unveränderten
+Lesesnapshots, die ausgeschlossene betroffene Stelle und einen weiterhin
+nutzbaren unbeteiligten Absatz. Dies ist keine weitere Live-Anbieterprüfung
+und kein Nachweis für allgemeine OCR-Vollständigkeit.

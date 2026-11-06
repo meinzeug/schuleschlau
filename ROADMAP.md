@@ -704,6 +704,16 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – OCR anhand vollständig referenzierter künstlicher Seiten prüfen**
 
+  - [x] **Unsichere Korrekturbereiche durch den Gegencheck erhalten.**
+    Beim Abgleich zweier verschiedener Markierungspositionen fehlte der
+    vorgeschriebene Seitenhinweis; die anschließende Validierung ließ den Job
+    scheitern. Der Merge übernimmt lokale Hinweise begrenzt in die Seitenliste
+    und erhält ihre Blockzuordnung. Auch ein übernommener Erstlesehinweis setzt
+    die Lesbarkeit auf teilweise. Der künstliche Worker-Test prüft beide
+    Lesesnapshots, den nutzbaren Rest und den ausgeschlossenen Bereich; die
+    umfassende Fotoqualitätsabnahme bleibt offen.
+    [Einordnung](docs/OCR_REFERENCE_TEST_2026_11_05.md).
+
   - [x] **Vier Referenzfotos im regulären OpenRouter-Ablauf vergleichen.**
     Alle vier künstlichen Seiten durchliefen Erkennung und Gegenprüfung; ein
     abgedeckter Bereich blieb unlesbar gekennzeichnet. Widersprüchliche

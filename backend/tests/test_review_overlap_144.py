@@ -1,6 +1,8 @@
 """Rotated artificial photos: bounding-box overlap cannot erase literal blocks."""
 from types import SimpleNamespace
 
+import pytest
+
 from schulpilot.material_review import _protected_readings
 
 
@@ -104,3 +106,79 @@ def test_uncertain_location_stays_ineligible_but_unrelated_text_remains_usable()
     source = learning_source(None, material)
     assert source['content'] == safe['text']
     assert [item['reason'] for item in source['exclusions']] == ['reading_uncertain']
+
+
+@pytest.mark.parametrize('count', [1, 30])
+def test_full_whitespace_page_notices_cannot_hide_local_conflict_or_break_validation(count):
+    from schulpilot.extraction import validate_material
+    from schulpilot.source_lineage import learning_source
+
+    first = _correction({'left': 10, 'top': 10, 'right': 20, 'bottom': 20})
+    second = _correction({'left': 50, 'top': 50, 'right': 60, 'bottom': 60})
+    safe = block('Ein sicherer Satz.', 'unknown')
+    old = block('Ergebnis 11/15', 'unknown', annotations=[first])
+    new = block('Ergebnis 11/15', 'unknown', annotations=[second])
+    data = {'subject': 'Mathematik', 'topic': 'Brüche', 'homework': [],
+            'source_blocks': [safe, new], 'content': '', 'legibility': 'readable',
+            'uncertainties': [' ' * n for n in range(1, count + 1)]}
+    result = validate_material(_protected_readings(data, SimpleNamespace(snapshot={'source_blocks': [safe, old]})))
+    assert result['legibility'] == 'partial' and len(result['uncertainties']) <= 30
+    assert any(notice.strip() for notice in result['uncertainties'])
+    assert any(not notice.strip() for notice in result['uncertainties'])
+    material = SimpleNamespace(id='a' * 32, revision=1, purpose='notebook', confirmed=True,
+                               legibility=result['legibility'], uncertainties=result['uncertainties'],
+                               content=result['content'], source_blocks=result['source_blocks'])
+    assert learning_source(None, material)['content'] == ''
+
+
+def test_full_block_warning_list_still_surfaces_conflicting_correction():
+    from schulpilot.extraction import validate_material
+    from schulpilot.source_lineage import learning_source
+
+    first = _correction({'left': 10, 'top': 10, 'right': 20, 'bottom': 20})
+    second = _correction({'left': 50, 'top': 50, 'right': 60, 'bottom': 60})
+    safe = block('Ein sicherer Satz.', 'unknown')
+    old = block('Ergebnis 11/15', 'unknown', annotations=[first])
+    old['reading_uncertainties'] = [f'Alte Unsicherheit {n}' for n in range(8)]
+    new = block('Ergebnis 11/15', 'unknown', annotations=[second])
+    data = {'subject': 'Mathematik', 'topic': 'Brüche', 'homework': [],
+            'source_blocks': [safe, new], 'content': '', 'legibility': 'readable', 'uncertainties': []}
+    result = validate_material(_protected_readings(data, SimpleNamespace(snapshot={'source_blocks': [safe, old]})))
+    assert result['source_blocks'][1]['reading_uncertainties'] == old['reading_uncertainties']
+    assert any('Bildbereiche einer Korrektur unterscheiden' in notice for notice in result['uncertainties'])
+    material = SimpleNamespace(id='a' * 32, revision=1, purpose='notebook', confirmed=True,
+                               legibility=result['legibility'], uncertainties=result['uncertainties'],
+                               content=result['content'], source_blocks=result['source_blocks'])
+    assert learning_source(None, material)['content'] == ''  # page-wide overflow warning
+
+
+def test_full_page_and_block_limits_keep_a_page_wide_overflow_even_if_conflict_text_is_local_elsewhere():
+    from schulpilot.extraction import validate_material
+    from schulpilot.source_lineage import learning_source
+
+    first = _correction({'left': 10, 'top': 10, 'right': 20, 'bottom': 20})
+    second = _correction({'left': 50, 'top': 50, 'right': 60, 'bottom': 60})
+    safe = block('Ein sicherer Satz.', 'unknown')
+    old = block('Ergebnis 11/15', 'unknown', annotations=[first])
+    old['reading_uncertainties'] = [f'Alte Unsicherheit {n}' for n in range(8)]
+    new = block('Ergebnis 11/15', 'unknown', annotations=[second])
+    helpers = []
+    for i in range(3):
+        item = block(f'Weiterer Abschnitt {i}', 'unknown')
+        item['reading_uncertainties'] = [f'Andere Unsicherheit {i}-{j}' for j in range(8)]
+        helpers.append(item)
+    conflict = 'Die Bildbereiche einer Korrektur unterscheiden sich. Bitte die Markierung im ganzen Foto prüfen.'
+    helpers[0]['reading_uncertainties'][0] = conflict
+    local = [*old['reading_uncertainties'], *(notice for item in helpers for notice in item['reading_uncertainties'])]
+    page = [*local[:29], 'Bisher nicht zuordenbare Seitenwarnung']
+    data = {'subject': 'Mathematik', 'topic': 'Brüche', 'homework': [],
+            'source_blocks': [safe, new, *helpers], 'content': '', 'legibility': 'readable', 'uncertainties': page}
+    result = validate_material(_protected_readings(data, SimpleNamespace(snapshot={'source_blocks': [safe, old, *helpers]})))
+    assert len(result['uncertainties']) <= 30
+    all_local = {notice for item in result['source_blocks'] for notice in item.get('reading_uncertainties', [])}
+    assert any('Weitere Hinweise konnten nicht einzeln' in notice and notice not in all_local
+               for notice in result['uncertainties'])
+    material = SimpleNamespace(id='a' * 32, revision=1, purpose='notebook', confirmed=True,
+                               legibility=result['legibility'], uncertainties=result['uncertainties'],
+                               content=result['content'], source_blocks=result['source_blocks'])
+    assert learning_source(None, material)['content'] == ''

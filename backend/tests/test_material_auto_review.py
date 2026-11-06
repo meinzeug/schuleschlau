@@ -238,6 +238,64 @@ def test_ambiguous_block_excluded_while_safe_text_available(pipeline):
         assert review.public_status(db, m)["status"] == "checked_with_gaps"
 
 
+def test_correction_location_conflict_survives_the_real_countercheck_pipeline(pipeline):
+    """A conflict remains a local gap, not a failed check or a trusted answer."""
+    def mark(top, bottom):
+        return dict(kind="correction", quote="11/15", color="red",
+                    image_region=dict(left=600, top=top, right=700, bottom=bottom))
+
+    def version(annotation):
+        return TranscriptionOutput.model_validate(transcription(blocks=[
+            dict(kind="paragraph", text="Ein Bruch beschreibt Teile eines Ganzen."),
+            dict(kind="formula", text="2/5 + 1/3 = 11/15", annotations=[annotation]),
+        ])).as_material()
+
+    pipeline["outputs"][:] = [version(mark(100, 200)), version(mark(400, 500))]
+    page = upload(pipeline)
+    first(pipeline, page)
+    identifier = check(pipeline)
+    with DB() as db:
+        job = db.get(Job, identifier)
+        assert job.status == "completed", job.error
+        material = db.get(Material, page["id"])
+        assert material.legibility == "partial" and material.confirmed
+        assert material.source_blocks[1]["reading_uncertainties"]
+        assert material.source_blocks[1]["reading_uncertainties"][0] in material.uncertainties
+        assert len(material.source_blocks[1]["annotations"]) == 2
+        source = learning_source(db, material)
+        assert source["content"] == "Ein Bruch beschreibt Teile eines Ganzen."
+        assert [item["reason"] for item in source["exclusions"]] == ["reading_uncertain"]
+        assert review.public_status(db, material)["status"] == "checked_with_gaps"
+        versions = list(db.scalars(select(SourceRevision).where(SourceRevision.material_id == material.id)
+                                   .order_by(SourceRevision.sequence)))
+        assert [v.cause for v in versions] == ["extraction", "auto_check_reading", "auto_check"]
+        assert len(versions[0].snapshot["source_blocks"][1]["annotations"]) == 1
+        assert len(versions[1].snapshot["source_blocks"][1]["annotations"]) == 1
+
+
+def test_retained_first_reading_warning_downgrades_complete_second_reading(pipeline):
+    """A second model's optimism does not silently clear a preserved warning."""
+    mark = dict(kind="correction", quote="11/15", color="red",
+                image_region=dict(left=600, top=100, right=700, bottom=200))
+    text = "2/5 + 1/3 = 11/15"
+    def version(uncertainties):
+        return TranscriptionOutput.model_validate(transcription(blocks=[
+            dict(kind="formula", text=text, annotations=[mark], reading_uncertainties=uncertainties),
+        ])).as_material()
+
+    pipeline["outputs"][:] = [version(["Die rote Markierung ist unklar."]), version([])]
+    page = upload(pipeline)
+    first(pipeline, page)
+    identifier = check(pipeline)
+    with DB() as db:
+        assert db.get(Job, identifier).status == "completed"
+        material = db.get(Material, page["id"])
+        assert material.legibility == "partial"
+        assert "Die rote Markierung ist unklar." in material.uncertainties
+        assert learning_source(db, material)["content"] == ""
+        assert review.public_status(db, material)["status"] == "checked_with_gaps"
+
+
 def test_visible_wrong_student_work_preserved_not_replaced_with_right_answer(pipeline):
     wrong = TranscriptionOutput.model_validate(
         transcription(blocks=[dict(kind="formula", text="1+1=3", literal_role="student_work")])
