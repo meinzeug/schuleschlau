@@ -886,7 +886,12 @@ def maintenance():
     expire_grade_sources(int(now()) - 7 * 86400, int(now()) - 365 * 86400, unresolved_grade_children)
     paths = []
     repair_paths = []
-    with DB.begin() as db:
+    from .erasure import journal_write_lock
+
+    # This maintenance transaction creates deletion outbox events for several
+    # resource types. Take the journal lock before any DB write/row lock, and
+    # release it before the later flush_journal() acquires it again.
+    with journal_write_lock(), DB.begin() as db:
         from .commerce import maintenance as commerce_maintenance
         from .operator_incidents import maintenance as incident_maintenance
         from .order_withdrawals import maintenance as withdrawal_maintenance
