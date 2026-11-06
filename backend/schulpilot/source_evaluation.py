@@ -292,7 +292,7 @@ def run_case(grant_id, material_id, tier, case_key):
             probe_tier=tier,
             operator_evaluation=case_id,
         )
-        usage_id = usage.id
+        usage_id, reserved_micros = usage.id, usage.reserved_micros
         child_id = job.child_id
     result, output, error_kind, sent, target = None, None, None, False, None
     try:
@@ -309,8 +309,10 @@ def run_case(grant_id, material_id, tier, case_key):
         data = validate_material(result.data, image_bytes)
         with DB.begin() as db:
             row = db.get(SourceEvaluationCase, case_id)
-            grant = db.get(SourceEvaluationGrant, row.grant_id)
+            grant = db.get(SourceEvaluationGrant, row.grant_id) if row and row.grant_id else None
             job = db.get(Job, job_id)
+            if not grant or not job:
+                raise ValueError("source_or_job_changed")
             reserve_guard(db, db.get(Family, grant.family_id), job.child_id, job_id, "extract", tier, case_id)
             output = {
                 "case_id": case_id,
@@ -328,6 +330,10 @@ def run_case(grant_id, material_id, tier, case_key):
     except Exception as error:
         # Never print upstream bodies, image data, transcripts or credentials.
         error_kind = type(error).__name__
+        # A failed write must not leave a partial private output advertised.
+        output = None
+        if target is not None:
+            target.unlink(missing_ok=True)
         result = result or getattr(error, "billing_result", None)
         if not sent:
             result = Result({}, input_tokens=0, output_tokens=0, cost_micros=0, cost_source="cancelled")
@@ -348,8 +354,29 @@ def run_case(grant_id, material_id, tier, case_key):
                 if target is not None:
                     target.unlink(missing_ok=True)
             usage = db.get(Usage, usage_id)
-            settle(db, usage, result, failed=error_kind is not None)
-            settled(db, case_id, usage)
+            case = db.get(SourceEvaluationCase, case_id)
+            if usage is None:
+                # Child/family erasure cascades the Usage and Job rows. Keep
+                # the content-free diagnostic ledger's full conservative
+                # hold, even when an unbookable provider result arrived late.
+                output = None
+                error_kind = error_kind or "billing_receipt_removed"
+                if target is not None:
+                    target.unlink(missing_ok=True)
+                if case:
+                    case.status, case.charged_micros = "finished", None
+                    audit(db, "local-operator", "source.diagnostic_finished", case_id)
+                cost_micros, billing_status = None, "receipt_unavailable"
+            else:
+                settle(db, usage, result, failed=error_kind is not None)
+                if case and case.job_id is None and usage.job_id == job_id:
+                    # Job deletion nulls the FK but not the Usage job_id.
+                    case.status = "finished"
+                    case.charged_micros = 0 if usage.status == "failed_not_sent" else usage.cost_micros
+                    audit(db, "local-operator", "source.diagnostic_finished", case_id)
+                else:
+                    settled(db, case_id, usage)
+                cost_micros, billing_status = usage.cost_micros, usage.status
             if job and job.status == "operator_held":
                 job.status = "failed" if error_kind else "completed"
                 job.finished = int(now())
@@ -362,9 +389,9 @@ def run_case(grant_id, material_id, tier, case_key):
                 "error_kind": error_kind,
                 "used_or_held_micros": used_micros(db),
                 "cap_micros": CAP_MICROS,
-                "cost_micros": usage.cost_micros,
-                "reserved_micros": usage.reserved_micros,
-                "billing_status": usage.status,
+                "cost_micros": cost_micros,
+                "reserved_micros": usage.reserved_micros if usage else reserved_micros,
+                "billing_status": billing_status,
             }
     if output is not None:
         summary["private_output"] = "server-private-diagnostic-only"

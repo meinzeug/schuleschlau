@@ -266,3 +266,125 @@ def test_deleted_source_between_output_and_finalization_stays_failed(api, househ
         assert usage.status == ("failed_billed" if cost is not None else "failed_unknown")
         assert usage.cost_micros == row.charged_micros == cost
         assert used_micros(session) == (cost if cost is not None else usage.reserved_micros)
+
+
+@pytest.mark.parametrize("target_kind", ["child", "family"])
+@pytest.mark.parametrize("when", ["during_provider", "after_output"])
+@pytest.mark.parametrize("cleanup", [True, False])
+def test_child_or_family_erased_during_diagnosis_keeps_no_private_output(api, household, monkeypatch, target_kind, when, cleanup):
+    from contextlib import contextmanager
+    from schulpilot import db as database
+    from schulpilot.db import Child
+    from sqlalchemy import update
+
+    family_id, child_id, mid, gid, _ = authorized(household)
+    calls = []
+
+    def erase():
+        with DB.begin() as session:
+            session.execute(update(Child).where(Child.id == child_id).values(grade=Child.grade))
+            # The second variant checks the finalizer independently, even if
+            # an earlier cleanup did not remove the diagnostic file.
+            if cleanup:
+                purge_diagnostic_outputs(session, [mid])
+            session.delete(session.get(Child if target_kind == "child" else Family,
+                                       child_id if target_kind == "child" else family_id))
+
+    def fake(config, function, payload, image, *, synthetic_fixture):
+        calls.append(function)
+        if when == "during_provider":
+            erase()
+        return Result(dict(subject="Mathematik", topic="Künstliche Diagnose", content="2+2=4",
+            source_blocks=[dict(kind="formula", text="2+2=4")], uncertainties=[], homework=[],
+            legibility="readable"), input_tokens=10, output_tokens=10, cost_micros=100,
+            cost_source="reported", request_receipt={"version": 1, "image_detail": "high", "schema_sha256": "a" * 64})
+
+    class InjectAfterOutput:
+        transactions = 0
+
+        @contextmanager
+        def begin(self):
+            self.transactions += 1
+            number = self.transactions
+            with DB.begin() as session:
+                yield session
+            if number == 4 and when == "after_output":
+                erase()
+
+    monkeypatch.setattr(providers, "request_provider", fake)
+    monkeypatch.setattr(database, "DB", InjectAfterOutput())
+    summary = run_case(gid, mid, "sol", "synthetic-erasure-account")
+    assert calls == ["extract"] and summary["accepted"] is False
+    assert summary["billing_status"] == "receipt_unavailable" and summary["cost_micros"] is None
+    assert "private_output" not in summary and "2+2" not in str(summary)
+    output = settings.data_dir / "operator-diagnostics" / WORK_ID / (summary["case_id"] + ".json")
+    assert not output.exists()
+    with DB() as session:
+        row = session.get(SourceEvaluationCase, summary["case_id"])
+        assert row.status == "finished" and row.job_id is None and row.material_id is None
+        assert row.charged_micros is None and used_micros(session) == row.reserved_micros > 0
+        assert session.scalar(select(func.count()).select_from(Usage)) == 0
+        assert session.get(Child, child_id) is None
+
+
+def test_job_removed_but_usage_retained_is_settled_without_private_output(api, household, monkeypatch):
+    from contextlib import contextmanager
+    from schulpilot import db as database
+
+    _, _, mid, gid, _ = authorized(household)
+
+    def fake(config, function, payload, image, *, synthetic_fixture):
+        return Result(dict(subject="Mathematik", topic="Künstliche Diagnose", content="2+2=4",
+            source_blocks=[dict(kind="formula", text="2+2=4")], uncertainties=[], homework=[],
+            legibility="readable"), input_tokens=10, output_tokens=10, cost_micros=100,
+            cost_source="reported", request_receipt={"version": 1, "image_detail": "high", "schema_sha256": "a" * 64})
+
+    class InjectAfterOutput:
+        transactions = 0
+
+        @contextmanager
+        def begin(self):
+            self.transactions += 1
+            number = self.transactions
+            with DB.begin() as session:
+                yield session
+            if number == 4:
+                with DB.begin() as session:
+                    case = session.scalar(select(SourceEvaluationCase).where(SourceEvaluationCase.material_id == mid))
+                    session.delete(session.get(Job, case.job_id))
+
+    monkeypatch.setattr(providers, "request_provider", fake)
+    monkeypatch.setattr(database, "DB", InjectAfterOutput())
+    summary = run_case(gid, mid, "sol", "synthetic-erasure-job")
+    assert summary["accepted"] is False and summary["billing_status"] == "failed_billed"
+    assert "private_output" not in summary
+    assert not (settings.data_dir / "operator-diagnostics" / WORK_ID / (summary["case_id"] + ".json")).exists()
+    with DB() as session:
+        case = session.get(SourceEvaluationCase, summary["case_id"])
+        usage = session.scalar(select(Usage))
+        assert case.job_id is None and case.status == "finished"
+        assert case.charged_micros == usage.cost_micros == 100
+
+
+def test_failed_private_output_write_removes_partial_file_and_books_cost(api, household, monkeypatch):
+    import json
+
+    _, _, mid, gid, _ = authorized(household)
+    def fake(config, function, payload, image, *, synthetic_fixture):
+        return Result(dict(subject="Mathematik", topic="Künstliche Diagnose", content="2+2=4",
+            source_blocks=[dict(kind="formula", text="2+2=4")], uncertainties=[], homework=[],
+            legibility="readable"), input_tokens=10, output_tokens=10, cost_micros=100,
+            cost_source="reported", request_receipt={"version": 1, "image_detail": "high", "schema_sha256": "a" * 64})
+    def fail_after_partial(value, stream, **kwargs):
+        stream.write("partial synthetic data")
+        raise OSError("synthetic interrupted write")
+
+    monkeypatch.setattr(providers, "request_provider", fake)
+    monkeypatch.setattr(json, "dump", fail_after_partial)
+    summary = run_case(gid, mid, "sol", "synthetic-partial-output")
+    assert summary["accepted"] is False and summary["billing_status"] == "failed_billed"
+    assert "private_output" not in summary
+    assert not (settings.data_dir / "operator-diagnostics" / WORK_ID / (summary["case_id"] + ".json")).exists()
+    with DB() as session:
+        case = session.get(SourceEvaluationCase, summary["case_id"])
+        assert session.get(Job, case.job_id).status == "failed" and case.charged_micros == 100
