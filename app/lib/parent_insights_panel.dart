@@ -59,11 +59,13 @@ class _ParentInsightsPanelState extends State<ParentInsightsPanel>
   Timer? poll;
   late Json? owner;
   late String? family;
+  late (Object?, String?, int?) identity;
   bool get own =>
       mounted &&
       owner != null &&
       identical(widget.state.user, owner) &&
-      family == widget.state.familyId;
+      family == widget.state.familyId &&
+      widget.state.api.ownsRequest(identity);
   bool get active => own && foreground && routeVisible;
   String get route => '/children/${widget.childId}/parent-insights';
 
@@ -72,6 +74,7 @@ class _ParentInsightsPanelState extends State<ParentInsightsPanel>
     super.initState();
     owner = widget.state.user;
     family = widget.state.familyId;
+    identity = widget.state.api.requestIdentity();
     widget.state.addListener(identityChanged);
     WidgetsBinding.instance.addObserver(this);
     load();
@@ -89,15 +92,44 @@ class _ParentInsightsPanelState extends State<ParentInsightsPanel>
         comparing = false;
         error = null;
         requestKey = null;
+        selectedReview = null;
+        historyNotice = null;
+        loading = busy = false;
+        operationLabel = null;
         compactExpanded = false;
       });
     }
   }
 
+  // A permission failure invalidates every cached part of this child's report,
+  // not just the request that happened to discover it.
+  void forgetPrivateReport() {
+    poll?.cancel();
+    generation++;
+    operation++;
+    data = comparison = null;
+    comparisonId = comparisonError = null;
+    comparisonGeneration++;
+    comparing = false;
+    selectedReview = historyNotice = null;
+    requestKey = null;
+    compactExpanded = false;
+    loading = busy = false;
+    operationLabel = null;
+  }
+
   @override
   void didUpdateWidget(covariant ParentInsightsPanel oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.childId != widget.childId) {
+    if (oldWidget.state != widget.state) {
+      oldWidget.state.removeListener(identityChanged);
+      widget.state.addListener(identityChanged);
+      owner = widget.state.user;
+      family = widget.state.familyId;
+      identity = widget.state.api.requestIdentity();
+    }
+    if (oldWidget.state != widget.state ||
+        oldWidget.childId != widget.childId) {
       generation++;
       operation++;
       poll?.cancel();
@@ -210,7 +242,9 @@ class _ParentInsightsPanelState extends State<ParentInsightsPanel>
           return;
         }
         setState(() {
-          if (e is ApiError && [401, 403, 404].contains(e.status)) data = null;
+          if (e is ApiError && [401, 403, 404].contains(e.status)) {
+            forgetPrivateReport();
+          }
           error = e is ApiError
               ? e.message
               : 'Der Lernkompass konnte gerade nicht geladen werden.';
@@ -255,7 +289,12 @@ class _ParentInsightsPanelState extends State<ParentInsightsPanel>
           stamp == comparisonGeneration &&
           data?['latest']?['id'] == selected) {
         setState(() {
-          comparisonError = e is ApiError ? e.message : 'Der Vergleich konnte gerade nicht geladen werden. Die gewählte Auswertung bleibt erhalten.';
+          if (e is ApiError && [401, 403].contains(e.status)) {
+            forgetPrivateReport();
+            error = e.message;
+          } else {
+            comparisonError = e is ApiError ? e.message : 'Der Vergleich konnte gerade nicht geladen werden. Die gewählte Auswertung bleibt erhalten.';
+          }
           comparing = false;
         });
       }
@@ -319,9 +358,12 @@ class _ParentInsightsPanelState extends State<ParentInsightsPanel>
         if (e is ApiError && e.status >= 400 && e.status < 500) {
           requestKey = null;
         }
-        setState(
-          () => error = e is ApiError ? e.message : 'Die Anfrage ist noch nicht bestätigt. Mit erneutem Tippen gleichst du dieselbe Anfrage ab.',
-        );
+        setState(() {
+          if (e is ApiError && [401, 403].contains(e.status)) {
+            forgetPrivateReport();
+          }
+          error = e is ApiError ? e.message : 'Die Anfrage ist noch nicht bestätigt. Mit erneutem Tippen gleichst du dieselbe Anfrage ab.';
+        });
       }
     } finally {
       if (own && child == widget.childId && action == operation) {
@@ -350,11 +392,14 @@ class _ParentInsightsPanelState extends State<ParentInsightsPanel>
       if (own && child == widget.childId && action == operation) await load();
     } catch (e) {
       if (own && child == widget.childId && action == operation) {
-        setState(
-          () => error = e is ApiError
+        setState(() {
+          if (e is ApiError && [401, 403].contains(e.status)) {
+            forgetPrivateReport();
+          }
+          error = e is ApiError
               ? e.message
-              : 'Die Einstellung konnte nicht gespeichert werden.',
-        );
+              : 'Die Einstellung konnte nicht gespeichert werden.';
+        });
       }
     } finally {
       if (own && child == widget.childId && action == operation) {
@@ -481,16 +526,19 @@ class _ParentInsightsPanelState extends State<ParentInsightsPanel>
                   ],
                 ),
                 trailing: const Icon(Icons.chevron_right),
-                onTap: () => openRoute(
-                  context,
-                  Uri(
-                    path: '/progress/${widget.childId}',
-                    queryParameters: {
-                      'fach': t['subject'],
-                      'thema': t['topic'],
-                    },
-                  ).toString(),
-                ),
+                onTap: () {
+                  if (!own || child != widget.childId) return;
+                  openRoute(
+                    context,
+                    Uri(
+                      path: '/progress/${widget.childId}',
+                      queryParameters: {
+                        'fach': t['subject'],
+                        'thema': t['topic'],
+                      },
+                    ).toString(),
+                  );
+                },
               ),
             if (allAttention.length > attention.length)
               Text(
@@ -646,8 +694,10 @@ class _ParentInsightsPanelState extends State<ParentInsightsPanel>
                 ),
               if (widget.showPlanLink)
                 OutlinedButton.icon(
-                  onPressed: () =>
-                      openRoute(context, '/parent-plan/${widget.childId}'),
+                  onPressed: () {
+                    if (!own || child != widget.childId) return;
+                    openRoute(context, '/parent-plan/$child');
+                  },
                   icon: const Icon(Icons.route_outlined),
                   label: const Text('Lernplan öffnen'),
                 ),

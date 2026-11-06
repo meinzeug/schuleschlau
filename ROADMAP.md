@@ -2512,6 +2512,16 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Echtzeitstatus gezielt und zuverlässig bereitstellen**
 
+  - [x] **Eltern-Lernkompass vor Sitzungswechsel und Rechteentzug schützen.**
+    06.11.2026: Ein gemeldeter Tokenwechsel entfernt gespeicherte private
+    Berichte; eine neue Anmeldeabsicht blockiert alte Aktionen und verwirft
+    verspätete Antworten. Beim Austausch des App-Zustands bindet sich die
+    Ansicht neu. Bei HTTP 401/403 aus Bericht, Vergleich oder Einstellungen
+    werden auch die privaten Vergleichsdaten entfernt und laufende Lese- und
+    Schreibantworten verworfen. Die künstlichen Tests decken keinen
+    unbemerkten Cookiewechsel aus einem anderen Tab ab. Einzelheiten und
+    Prüfgrenzen: [Nachweis](docs/PARENT_INSIGHTS_SCOPE_2026_11_06.md).
+
   - [x] **Neuen Google-Flow vor verspätetem Cookie-Löschen schützen.**
     06.11.2026: Logout und Abschluss löschen das gemeinsame Google-Flow-Cookie
     nicht mehr per verzögerbarer Antwort. Logout widerruft zusätzlich den
