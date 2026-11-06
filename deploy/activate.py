@@ -21,6 +21,10 @@ try:
     from backup_release_check import verify_invocation_log
 except ImportError:
     from deploy.backup_release_check import verify_invocation_log
+try:
+    from restore_release_guard import verify as verify_restore_configuration
+except ImportError:
+    from deploy.restore_release_guard import verify as verify_restore_configuration
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("release_id")
@@ -180,6 +184,11 @@ try:
         if not (release / "web/index.html").is_file() or not (release / "backend/requirements.lock").is_file():
             raise RuntimeError("Release disappeared before activation")
         previous = current.resolve() if current.is_symlink() else None
+        if previous and not rollback_compatible:
+            # A managed service file may be overridden by an operator drop-in.
+            # Check the effective command before stopping any service or doing
+            # a migration; repeat after daemon-reload just before migration.
+            verify_restore_configuration(release)
         stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
         backup = Path(str(caddy) + ".before-schulpilot-" + stamp)
         shutil.copy2(caddy, backup)
@@ -254,6 +263,8 @@ try:
                     key, value = line.split("=", 1)
                     environment[key] = " ".join(shlex.split(value)) if value else ""
             if not rollback_compatible:
+                if previous:
+                    verify_restore_configuration(release)
                 schema_before = database_revision()
                 migration_started = True
                 subprocess.run(

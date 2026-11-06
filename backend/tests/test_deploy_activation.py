@@ -22,6 +22,7 @@ class Activation:
         self.root, self.failure, self.changed_schema = root, failure, changed_schema
         self.commands, self.command_releases, self.schema_reads, self.restarts, self.backup_checks = [], [], 0, [], 0
         self.clock_reads = 0
+        self.restore_checks = 0
         self.backup_starts = 0
         self.base = root / "opt/schulpilot"
         self.old = self.base / "releases" / OLD
@@ -157,6 +158,7 @@ class Activation:
 
         replacements = {
             "backup_release_check": SimpleNamespace(verify_invocation_log=self.verify_backup_log),
+            "restore_release_guard": SimpleNamespace(verify=self.verify_restore),
             "pathlib": SimpleNamespace(Path=self.path),
             "subprocess": SimpleNamespace(run=self.run),
             "time": SimpleNamespace(sleep=lambda _: None, monotonic_ns=self.monotonic_ns),
@@ -174,6 +176,30 @@ class Activation:
         assert output == "synthetic invocation log"
         if self.failure == "journal_missing_drained" and self.backup_checks == 2:
             raise RuntimeError("backup invocation lacks a complete journal snapshot")
+
+    def verify_restore(self, release):
+        assert release == self.new
+        self.restore_checks += 1
+        if self.failure == f"restore_guard_{self.restore_checks}":
+            raise RuntimeError("incompatible restore runtime")
+
+
+def test_incompatible_restore_aborts_before_any_release_side_effect(tmp_path, monkeypatch):
+    activation = Activation(tmp_path, "restore_guard_1")
+    with pytest.raises(RuntimeError, match="incompatible restore runtime"):
+        activation.execute(monkeypatch)
+    assert activation.current.resolve() == activation.old
+    assert activation.commands == []
+    assert activation.fragment.read_text() == "old fragment"
+
+
+def test_restore_rechecked_after_reload_before_migration(tmp_path, monkeypatch):
+    activation = Activation(tmp_path, "restore_guard_2")
+    with pytest.raises(RuntimeError, match="incompatible restore runtime"):
+        activation.execute(monkeypatch)
+    assert activation.current.resolve() == activation.old
+    assert activation.restore_checks == 2
+    assert not any("schulpilot.migrate" in command for command in activation.commands)
 
 
 @pytest.mark.parametrize("rollback_compatible", [False, True])
