@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {chromium} from 'playwright';
-import {restrictBrowserNetwork} from './browser_network_guard.mjs';
+import {restrictBrowserNetwork, closeRestrictedBrowserContext} from './browser_network_guard.mjs';
 
 const input = JSON.parse(readFileSync(0, 'utf8'));
 const address = new URL(input.base);
@@ -81,7 +81,7 @@ try {
   await tap(page.getByRole('button',{name:'Mit KI neu lesen',exact:true}));
   await tap(page.getByRole('button',{name:'Abbrechen',exact:true}));
   assert.equal(mutations.length,rereadBefore,'cancelled reread must not create a job');
-  await context.close();
+  await closeRestrictedBrowserContext(context); context=undefined;
 
   for (const [index,width,multiple] of [[0,390,false],[1,1280,true]]) {
     phase='child-'+width;
@@ -115,7 +115,7 @@ try {
     assert.equal(requestBody.material_id,current.id);
     assert.equal(requestBody.notebook_sources.length,multiple?2:1);
     for(const ref of requestBody.notebook_sources){const match=own.items.find(row=>row.id===ref.id);assert(match);assert.equal(ref.revision,match.revision);}
-    await context.close();
+    await closeRestrictedBrowserContext(context); context=undefined;
   }
   phase='child-unconfirmed-delete';await login('notebook-browser-third',390);
   const third=input.children[2];
@@ -136,4 +136,7 @@ try {
   assert.equal(mutations.filter(x=>x.path.endsWith('/bulk-delete')).length,1);
   assert(!mutations.some(x=>/\/reprocess$/.test(x.path)));
   process.stdout.write('Isolated notebook browser checks passed\n');
-} finally {if(serverErrors.length)process.stderr.write('Synthetic API 5xx: '+JSON.stringify(serverErrors)+'\n');await context?.close();await browser.close();}
+} finally {
+  if(serverErrors.length)process.stderr.write('Synthetic API 5xx: '+JSON.stringify(serverErrors)+'\n');
+  try { await closeRestrictedBrowserContext(context); } finally { await browser.close(); }
+}

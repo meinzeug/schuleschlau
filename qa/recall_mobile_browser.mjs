@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {chromium} from 'playwright';
-import {restrictBrowserNetwork} from './browser_network_guard.mjs';
+import {restrictBrowserNetwork, closeRestrictedBrowserContext} from './browser_network_guard.mjs';
 
 const input = JSON.parse(readFileSync(0, 'utf8'));
 const base = new URL(input.base);
@@ -46,7 +46,7 @@ async function control(path,method='POST') {
   return response.json();
 }
 async function login() {
-  if(context) await context.close();
+  if(context) {await closeRestrictedBrowserContext(context); context=undefined;}
   context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,serviceWorkers:'block'});
   await restrictBrowserNetwork(context, input.base);
   page=await context.newPage();
@@ -126,4 +126,4 @@ try {
     await page.screenshot({path:`${input.screens}/recall-error.png`}).catch(()=>{});
   }
   throw error;
-} finally {await context?.close();await browser.close();}
+} finally {try {await closeRestrictedBrowserContext(context);} finally {await browser.close();}}
