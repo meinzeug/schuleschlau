@@ -6,6 +6,17 @@ import {restrictBrowserNetwork, closeRestrictedBrowserContext} from './browser_n
 
 const listen = server => new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 const close = server => new Promise(resolve => server.close(resolve));
+const withDeadline = async (promise, label, timeoutMs = 10000) => {
+  let timer;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise((_, reject) => { timer = setTimeout(() => reject(new Error(`${label} timed out`)), timeoutMs); }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+};
 let foreignRequests = 0, foreignUpgrades = 0;
 let slowStarted;
 const slowSeen = new Promise(resolve => { slowStarted = resolve; });
@@ -65,8 +76,10 @@ try {
   const pending = slowPage.evaluate(() => fetch('/slow').catch(() => null)).catch(() => null);
   await Promise.race([slowSeen, new Promise((_, reject) => setTimeout(() => reject(new Error('slow fetch did not reach local server')), 10000))]);
   const closing = closeRestrictedBrowserContext(context);
-  await slowPage.evaluate(async url => { try { await fetch(url); } catch {} }, foreignOrigin).catch(() => {});
-  await closing;
+  await Promise.all([
+    withDeadline(slowPage.evaluate(async url => { try { await fetch(url); } catch {} }, foreignOrigin).catch(() => {}), 'foreign request during teardown'),
+    withDeadline(closing, 'in-flight teardown'),
+  ]);
   await pending;
   assert.equal(foreignRequests, 0, 'teardown must not allow foreign HTTP');
   assert.equal(foreignUpgrades, 0, 'teardown must not allow foreign WebSockets');
@@ -91,7 +104,7 @@ try {
   await timeoutPage.goto(base);
   const pendingTimeout = timeoutPage.evaluate(() => fetch('/timeout-during-close').catch(() => null)).catch(() => null);
   await Promise.race([closeTimeoutSeen, new Promise((_, reject) => setTimeout(() => reject(new Error('timeout fetch did not reach local server')), 10000))]);
-  await assert.rejects(closeRestrictedBrowserContext(timeoutContext), /Synthetic browser network guard failed/);
+  await assert.rejects(withDeadline(closeRestrictedBrowserContext(timeoutContext), 'timeout during teardown'), /Synthetic browser network guard failed/);
   await pendingTimeout;
   assert.equal(foreignRequests, 0);
   assert.equal(foreignUpgrades, 0);

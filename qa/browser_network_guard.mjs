@@ -1,6 +1,7 @@
 // Browser-level guard for synthetic fixtures. This is not an OS network sandbox:
 // Playwright APIRequestContext and background Chromium traffic are separate.
 const routeFailures = new WeakMap();
+const routeHandlers = new WeakMap();
 
 export async function restrictBrowserNetwork(context, base, {fetchTimeoutMs = 30000} = {}) {
   const allowed = new URL(base);
@@ -13,7 +14,15 @@ export async function restrictBrowserNetwork(context, base, {fetchTimeoutMs = 30
   await context.routeWebSocket('**/*', socket => socket.close({code: 1008, reason: 'Synthetic test only'}));
   const failures = [];
   routeFailures.set(context, failures);
-  await context.route('**/*', async route => {
+  const handlers = new Set();
+  routeHandlers.set(context, handlers);
+  await context.route('**/*', route => {
+    const handled = handleRoute(route);
+    handlers.add(handled);
+    handled.finally(() => handlers.delete(handled));
+    return handled;
+  });
+  async function handleRoute(route) {
     try {
       const url = new URL(route.request().url());
       if (['data:', 'blob:'].includes(url.protocol)) return await route.continue();
@@ -31,7 +40,7 @@ export async function restrictBrowserNetwork(context, base, {fetchTimeoutMs = 30
       // test's close operation to fail even if its page assertions happened to pass.
       try { await route.abort('failed'); } catch { /* already disconnected */ }
     }
-  });
+  }
 }
 
 // Stop browser traffic before removing routes; otherwise a request created
@@ -41,11 +50,16 @@ export async function closeRestrictedBrowserContext(context) {
   if (!context) return;
   try {
     await context.setOffline(true);
+    // Drain our own handlers first: Playwright's unrouteAll can mark an
+    // active route handled before route.fetch finishes, deadlocking teardown.
+    const handlers = routeHandlers.get(context) || new Set();
+    while (handlers.size) await Promise.allSettled([...handlers]);
     await context.unrouteAll({behavior: 'wait'});
     const failures = routeFailures.get(context) || [];
     if (failures.length) throw new AggregateError(failures, 'Synthetic browser network guard failed');
   } finally {
     routeFailures.delete(context);
+    routeHandlers.delete(context);
     await context.close();
   }
 }
