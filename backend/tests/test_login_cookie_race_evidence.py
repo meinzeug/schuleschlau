@@ -6,6 +6,7 @@ Uses the same isolated-database opt-in guard as the logout browser test.
 import asyncio
 import json
 import os
+import signal
 import socket
 import subprocess
 import tempfile
@@ -96,31 +97,38 @@ def test_late_successful_login_response_replaces_newer_browser_cookie(household,
     thread = threading.Thread(target=server.run, kwargs={'sockets': [sock]}, daemon=True)
     thread.start()
     chrome = None
+    profile = None
     try:
         for _ in range(100):
             if server.started:
                 break
             time.sleep(.05)
         assert server.started
-        with tempfile.TemporaryDirectory(prefix='sp-login-race-chrome-') as profile:
-            chrome = subprocess.Popen(['/opt/google/chrome/chrome', '--headless', '--no-sandbox', '--disable-gpu',
-                                       '--no-first-run', f'--user-data-dir={profile}', f'http://127.0.0.1:{port}/'],
-                                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
-            assert done.wait(40), 'synthetic browser did not complete'
-            assert not outcome.get('error'), outcome
-            assert outcome['old']['status'] == 200
-            assert outcome['newer']['status'] == 200
-            assert outcome['before']['id'] == new_id
-            assert outcome['after']['id'] == old['id']
+        profile = tempfile.TemporaryDirectory(prefix='sp-login-race-chrome-')
+        chrome = subprocess.Popen(['/opt/google/chrome/chrome', '--headless', '--no-sandbox', '--disable-gpu',
+                                   '--disable-background-networking', '--no-first-run',
+                                   f'--user-data-dir={profile.name}', f'http://127.0.0.1:{port}/'],
+                                  stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+        assert done.wait(40), 'synthetic browser did not complete'
+        assert not outcome.get('error'), outcome
+        assert outcome['old']['status'] == 200
+        assert outcome['newer']['status'] == 200
+        assert outcome['before']['id'] == new_id
+        assert outcome['after']['id'] == old['id']
     finally:
         release.set()
         if chrome:
-            chrome.terminate()
+            try:
+                os.killpg(chrome.pid, signal.SIGTERM)
+            except ProcessLookupError:
+                pass
             try:
                 chrome.wait(timeout=10)
             except subprocess.TimeoutExpired:
-                chrome.kill()
+                os.killpg(chrome.pid, signal.SIGKILL)
                 chrome.wait(timeout=10)
+        if profile:
+            profile.cleanup()
         server.should_exit = True
         thread.join(timeout=10)
         sock.close()
