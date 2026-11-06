@@ -488,14 +488,28 @@ def delete_child(child_id: str, data: s.ConfirmPassword, p=Depends(parent), db=D
     from .security import lock_session_after_child
 
     user_id, session_id = p.user.id, p.session.id
+    if not verify_password(data.password, p.user.password_hash):
+        raise HTTPException(403, "Elternpasswort ist nicht richtig.")
     with journal_write_lock():
         child_access(db, p, child_id, write=True)
         # Use the same Unit → Child → Session order as material and tutor
         # mutations, while the journal snapshot boundary is held outside it.
-        list(db.scalars(select(LearningUnit.id).where(LearningUnit.child_id == child_id)
-                        .order_by(LearningUnit.id).with_for_update()))
-        db.execute(update(Child).where(Child.id == child_id).values(grade=Child.grade))
+        locked_units = list(db.scalars(select(LearningUnit.id).where(LearningUnit.child_id == child_id)
+                                       .order_by(LearningUnit.id).with_for_update()))
+        if db.bind.dialect.name == "postgresql":
+            # Full FOR UPDATE also blocks FK KEY SHARE from a new Unit insert.
+            db.scalar(select(Child.id).where(Child.id == child_id).with_for_update())
+        elif db.bind.dialect.name == "sqlite":
+            db.execute(update(Child).where(Child.id == child_id).values(grade=Child.grade))
+        else:
+            raise RuntimeError("Child deletion locking requires PostgreSQL or SQLite")
         db.expire_all()
+        # A round may have been committed while acquiring Child. Deleting it
+        # without the earlier Unit lock would violate the global lock order.
+        current_units = list(db.scalars(select(LearningUnit.id).where(LearningUnit.child_id == child_id)
+                                        .order_by(LearningUnit.id)))
+        if current_units != locked_units:
+            raise HTTPException(409, "Lernrunden wurden inzwischen geändert. Bitte erneut versuchen.")
         lock_session_after_child(db, user_id, session_id)
         child = child_access(db, p, child_id, write=True)
         if not verify_password(data.password, p.user.password_hash):
