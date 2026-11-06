@@ -21,6 +21,8 @@ def snapshot(db):
     )
     queued = db.scalar(select(func.count()).select_from(Job).where(Job.status == "queued", Job.created < stamp - 300))
     running = db.scalar(select(func.count()).select_from(Job).where(Job.status == "running", Job.started < stamp - 240))
+    oldest_queued = db.scalar(select(func.min(Job.created)).where(Job.status == "queued"))
+    oldest_running = db.scalar(select(func.min(Job.started)).where(Job.status == "running"))
     unpublished = db.scalar(select(func.count()).select_from(ErasureRequest).where(ErasureRequest.published.is_(False)))
     push_errors = db.scalar(
         select(func.count())
@@ -33,6 +35,9 @@ def snapshot(db):
         "jobs": counts,
         "stalled_queued": queued,
         "stalled_running": running,
+        # None means no matching timestamp, not a known age of zero.
+        "oldest_queued_seconds": max(0, stamp - oldest_queued) if oldest_queued is not None else None,
+        "oldest_running_seconds": max(0, stamp - oldest_running) if oldest_running is not None else None,
         "pending_erasure_journal": unpublished,
         "push_failures_24h": push_errors,
     }

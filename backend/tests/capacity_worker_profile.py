@@ -8,8 +8,11 @@ import io
 import json
 import math
 import os
+import queue
 import random
 import resource
+import stat
+import tempfile
 import threading
 import time
 from collections import Counter
@@ -26,6 +29,34 @@ from schulpilot.providers import Result
 from sqlalchemy import func, select
 from sqlalchemy.engine import make_url
 from test_school_day import allow_synthetic_test_transport
+
+
+def require_private_profile_database():
+    """Check at collection, before the shared fixture can drop any tables."""
+    database_url = os.environ.get('TEST_DATABASE_URL')
+    if not database_url:
+        raise RuntimeError('Run this profile only through scripts/test_postgres.py')
+    url = make_url(database_url)
+    socket_dir = Path(url.query.get('host', ''))
+    root = socket_dir.parent
+    if (url.drivername != 'postgresql+psycopg' or url.database != 'schulpilot_isolated_test'
+            or url.host is not None or str(url.query.get('port')) != '55440'
+            or socket_dir.name != 'socket' or root.parent != Path(tempfile.gettempdir())
+            or not root.name.startswith('schulpilot-isolated-pg-')
+            or root.is_symlink() or socket_dir.is_symlink()):
+        raise RuntimeError('Capacity profile requires the private local PostgreSQL runner')
+    try:
+        for path in (root, socket_dir):
+            meta = path.stat()
+            if not stat.S_ISDIR(meta.st_mode) or meta.st_uid != os.getuid() or stat.S_IMODE(meta.st_mode) != 0o700:
+                raise RuntimeError('Capacity profile socket directory is not private')
+        if not stat.S_ISSOCK((socket_dir / '.s.PGSQL.55440').stat().st_mode):
+            raise RuntimeError('Capacity profile requires the runner socket')
+    except FileNotFoundError as exc:
+        raise RuntimeError('Capacity profile requires a running isolated PostgreSQL runner') from exc
+
+
+require_private_profile_database()
 
 
 def percentile(values):
@@ -50,7 +81,7 @@ def children(pid):
         return []
 
 
-def test_bounded_multi_family_worker_profile(api, household, mailbox, monkeypatch):
+def run_worker_profile(api, household, mailbox, monkeypatch, *, provider_delay, worker_threads):
     assert engine.dialect.name == 'postgresql', 'Requires an isolated PostgreSQL test cluster'
     allow_synthetic_test_transport()
     _, child = household
@@ -69,12 +100,21 @@ def test_bounded_multi_family_worker_profile(api, household, mailbox, monkeypatc
     del pixels
 
     provider_calls = []
+    provider_lock = threading.Lock()
+    provider_parallel = {'current': 0, 'maximum': 0}
 
     def fake_provider(config, function, payload, image_bytes=None, *, synthetic_fixture=False):
         assert function == 'extract' and image_bytes and not synthetic_fixture
-        provider_calls.append(function)
-        # Explicit synthetic service time; not a measurement of provider speed.
-        time.sleep(.1)
+        with provider_lock:
+            provider_calls.append(function)
+            provider_parallel['current'] += 1
+            provider_parallel['maximum'] = max(provider_parallel['maximum'], provider_parallel['current'])
+        try:
+            # Explicit synthetic service time; not a measurement of provider speed.
+            time.sleep(provider_delay)
+        finally:
+            with provider_lock:
+                provider_parallel['current'] -= 1
         return Result({'subject': 'Mathematik', 'topic': 'Künstlicher Test',
                        'content': 'Künstlicher Seiteninhalt: 1 + 1 = 2.',
                        'uncertainties': [], 'homework': []}, 10, 20, 0)
@@ -153,18 +193,44 @@ def test_bounded_multi_family_worker_profile(api, household, mailbox, monkeypatc
                 return worker.claim(db)
 
         claim_started = time.perf_counter()
-        with ThreadPoolExecutor(max_workers=4) as pool:
-            claimed = list(pool.map(claim_one, range(4)))
-        assert len(set(claimed)) == 4 and all(item in job_ids for item in claimed)
+        claim_workers = 4 if worker_threads == 1 else worker_threads
+        with ThreadPoolExecutor(max_workers=claim_workers) as pool:
+            claimed = list(pool.map(claim_one, range(claim_workers)))
+        assert len(set(claimed)) == claim_workers and all(item in job_ids for item in claimed)
+
+        preclaimed = queue.Queue()
+        for identifier in claimed:
+            preclaimed.put(identifier)
+
+        queue_stop = threading.Event()
+        queue_samples = []
+        queue_errors = []
+
+        def sample_queue():
+            try:
+                while not queue_stop.is_set():
+                    with DB() as db:
+                        queued = db.scalar(select(func.count()).select_from(Job).where(Job.status == 'queued'))
+                        running = db.scalar(select(func.count()).select_from(Job).where(Job.status == 'running'))
+                        oldest_queued = db.scalar(select(func.min(Job.created)).where(Job.status == 'queued'))
+                    queue_samples.append({
+                        'queued': queued,
+                        'running': running,
+                        'oldest_queued_s': max(0, int(time.time()) - oldest_queued) if oldest_queued else 0,
+                    })
+                    queue_stop.wait(.5)
+            except Exception as exc:
+                queue_errors.append(type(exc).__name__)
 
         def drain_worker():
-            for identifier in claimed:
-                worker.process(identifier)
             while True:
-                with DB() as db:
-                    identifier = worker.claim(db)
-                if identifier is None:
-                    break
+                try:
+                    identifier = preclaimed.get_nowait()
+                except queue.Empty:
+                    with DB() as db:
+                        identifier = worker.claim(db)
+                    if identifier is None:
+                        break
                 worker.process(identifier)
 
         mixed = []
@@ -182,10 +248,18 @@ def test_bounded_multi_family_worker_profile(api, household, mailbox, monkeypatc
                 }))
         # The real worker drains the queue while other independent sessions
         # concurrently read lists, upload, and repeat existing reservations.
-        with ThreadPoolExecutor(max_workers=1) as executor:
-            processing = executor.submit(drain_worker)
-            mixed_results = batch('mixed-api-with-worker', mixed, 8)
-            processing.result()
+        queue_sampler = threading.Thread(target=sample_queue, daemon=True)
+        queue_sampler.start()
+        try:
+            with ThreadPoolExecutor(max_workers=worker_threads) as executor:
+                processing = [executor.submit(drain_worker) for _ in range(worker_threads)]
+                mixed_results = batch('mixed-api-with-worker', mixed, 8)
+                for process in processing:
+                    process.result()
+        finally:
+            queue_stop.set()
+            queue_sampler.join(timeout=5)
+        assert not queue_sampler.is_alive() and not queue_errors and queue_samples
         for task, response in zip(mixed, mixed_results, strict=True):
             index, method, path, _ = task
             expected = 200 if method == 'GET' else (202 if path.endswith('/extract') else 201)
@@ -200,13 +274,20 @@ def test_bounded_multi_family_worker_profile(api, household, mailbox, monkeypatc
             assert db.scalar(select(func.count()).select_from(Material)) == 12
             assert db.scalar(select(func.count()).select_from(Usage)) == 8
         assert len(provider_calls) == 8
+        assert provider_parallel['current'] == 0 and provider_parallel['maximum'] == worker_threads
         report = {'synthetic': True, 'database': 'isolated PostgreSQL', 'transport': 'in-process ASGI',
                   'families': 8, 'image_bytes': len(image), 'profile': profile,
                   'queue_initial': 8, 'queue_final': 0, 'queue_age_before_drain_s': queue_age_before,
                   'queue_age_drain_completed_s': max(0, int(time.time()) - oldest),
-                  'contending_claimers': 4, 'unique_claims': 4, 'jobs_completed': 8,
+                  'queue_sample_count': len(queue_samples),
+                  'queue_sampled_max_queued': max(item['queued'] for item in queue_samples),
+                  'queue_sampled_max_running': max(item['running'] for item in queue_samples),
+                  'queue_sampled_max_queued_age_s': max(item['oldest_queued_s'] for item in queue_samples),
+                  'contending_claimers': claim_workers, 'unique_claims': len(set(claimed)), 'jobs_completed': 8,
                   'synthetic_provider_calls': len(provider_calls), 'external_provider_calls': 0,
-                  'mock_provider_delay_s': .1, 'worker_elapsed_s': round(worker_elapsed, 3),
+                  'mock_provider_delay_s': provider_delay, 'worker_threads': worker_threads,
+                  'mock_provider_max_parallel': provider_parallel['maximum'],
+                  'worker_elapsed_s': round(worker_elapsed, 3),
                   'total_wall_s': round(time.perf_counter() - wall_start, 3),
                   'python_cpu_s': round(time.process_time() - cpu_start, 3),
                   'python_maxrss_kib': resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,
@@ -215,3 +296,7 @@ def test_bounded_multi_family_worker_profile(api, household, mailbox, monkeypatc
     finally:
         stop.set()
         sampler.join(timeout=2)
+
+
+def test_bounded_multi_family_worker_profile(api, household, mailbox, monkeypatch):
+    run_worker_profile(api, household, mailbox, monkeypatch, provider_delay=.1, worker_threads=1)

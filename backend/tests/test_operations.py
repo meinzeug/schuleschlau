@@ -149,6 +149,49 @@ def test_successful_queue_snapshot_reports_measured_zero_and_real_counts(api, ho
         assert snapshot(db)['jobs']['running'] == 1
 
 
+def test_queue_age_is_aggregated_private_and_distinguishes_unknown(api, household, monkeypatch):
+    _, child = household
+    monkeypatch.setattr('schulpilot.operations.now', lambda: 10_000)
+    with DB.begin() as db:
+        initial = snapshot(db)
+        assert initial['oldest_queued_seconds'] is None
+        assert initial['oldest_running_seconds'] is None
+        db.add_all([
+            Job(child_id=child['id'], kind='synthetic', payload={}, status='queued',
+                idempotency='queue-age-old', created=9_600),
+            Job(child_id=child['id'], kind='synthetic', payload={}, status='queued',
+                idempotency='queue-age-new', created=9_990),
+            Job(child_id=child['id'], kind='synthetic', payload={}, status='running',
+                idempotency='running-age-old', created=9_000, started=9_700),
+            Job(child_id=child['id'], kind='synthetic', payload={}, status='completed',
+                idempotency='completed-ignore', created=1, started=1),
+        ])
+    with DB() as db:
+        data = snapshot(db)
+        assert data['oldest_queued_seconds'] == 400
+        assert data['oldest_running_seconds'] == 300
+        assert data['stalled_queued'] == 1
+        assert data['stalled_running'] == 1
+        assert 'queue-age-old' not in json.dumps(data)
+
+
+def test_queue_age_clamps_future_clock_values_and_handles_missing_started(household, monkeypatch):
+    _, child = household
+    monkeypatch.setattr('schulpilot.operations.now', lambda: 10_000)
+    with DB.begin() as db:
+        db.add_all([
+            Job(child_id=child['id'], kind='synthetic', payload={}, status='queued',
+                idempotency='queue-age-future', created=10_001),
+            Job(child_id=child['id'], kind='synthetic', payload={}, status='running',
+                idempotency='running-no-start', created=9_999, started=None),
+        ])
+    with DB() as db:
+        data = snapshot(db)
+        assert data['oldest_queued_seconds'] == 0
+        assert data['oldest_running_seconds'] is None
+        assert data['jobs']['running'] == 1
+
+
 def test_operator_approval_is_distinct_from_an_unavailable_private_route(api):
     object.__setattr__(settings, "real_data_approved", True)
     object.__setattr__(settings, "privacy_evidence", "Operator approval; synthetic test")

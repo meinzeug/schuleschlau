@@ -407,6 +407,15 @@ Dieses Suffix und die Zielprüfungen sind nur Schutzprüfungen und beweisen nich
 
 Die Speicherwarnung verwendet den für normale Nutzer verfügbaren Platz und berechnet den Belegungsanteil aus `used / (used + free)`; für Root reservierte Dateisystemblöcke verfälschen den Grenzwert dadurch nicht. Sie meldet `disk_space` bei über 90 % nutzbarer Belegung oder weniger als 1 GiB freiem Platz. Eine isolierte Regression deckt reservierte Blöcke und Grenzwerte ab. Eine Warnung ersetzt weder Kapazitätsplanung noch eine Prüfung des Wachstumstrends; die tatsächliche Auslastung und Alarmzustellung müssen am jeweiligen Betriebsstand gesondert geprüft werden.
 
+Die private Betriebsübersicht und das lokale Operations-CLI enthalten zusätzlich
+`oldest_queued_seconds` und `oldest_running_seconds`: das Alter des jeweils
+ältesten wartenden beziehungsweise laufenden Auftrags, ohne Inhalte oder
+Kennungen. `null` bedeutet, dass kein passender Zeitstempel vorhanden ist;
+die Zahl der passenden Aufträge bleibt gesondert unter `jobs` sichtbar. Bei
+einem zukünftigen Zeitstempel durch Uhrabweichung wird das Alter auf null
+begrenzt. Diese Beobachtung verändert keine Warnschwellen und ist für sich
+allein kein Nachweis einer Anbieter- oder Nutzerkapazität.
+
 Optionale technische Alarmmails gehen über das bereits autorisierte SMTP an `OPERATIONS_ALERT_EMAIL`. Der Freigabe-Recorder verwendet dafür das eigene vorhandene Operatorpostfach, wenn noch kein Empfänger gesetzt ist. Keine Kindernamen, Themen oder Antworten in Alarmen. Meldungen werden gebündelt, bei derselben Störung höchstens alle sechs Stunden; ein SMTP-Fehler bleibt als Fehler sichtbar. `scripts/monitor_mail_smoke.py` sendet genau einen ausdrücklich als TEST gekennzeichneten Alarm an dasselbe autorisierte Gmail-Postfach und prüft ausschließlich dessen eindeutige Testnachricht per Read-only-IMAP.
 
 Zusätzliche Datenfristen: einzelne Verbrauchsmetadaten 90 Tage, administrative Auditereignisse 180 Tage, Monatskontingente aktueller plus zwölf vorherige Monate. Das sind keine Rechnungen. Für einen späteren Zahlungsbetrieb sind Rechnungsaufbewahrung, Tarifpreise und Zahlungsanbieter gesondert einzurichten.

@@ -1565,6 +1565,14 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Kapazitätsannahmen vor wachsendem Betrieb messen**
 
+  - [x] **Warteschlangenalter und gleichzeitige Worker isoliert prüfen.**
+    Eine neue private aggregierte Metrik zeigt das Alter des ältesten wartenden
+    und laufenden Auftrags ohne Inhaltsdaten. Acht künstliche Familien mit zwei
+    konkurrierenden Workern, wiederholten Uploads/Reservierungen und einem
+    simulierten 2-Sekunden-Anbieter wurden unter isoliertem PostgreSQL auf
+    `tmpfs` geprüft. Die Messung ist kein Nachweis produktiver Kapazität oder
+    echter Anbieterlaufzeiten. [Nachweis](docs/CAPACITY_DELAYED_PROFILE_2026_11_06.md).
+
   - [x] **Warteschlange unter künstlicher Konkurrenz messen.** Acht Familien,
     doppelte Uploads und Reservierungen sowie vier Worker-Claims auf einem
     CPU-Kern und isoliertem PostgreSQL wurden gemessen. Der simulierte
