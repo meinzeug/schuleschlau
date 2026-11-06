@@ -273,3 +273,57 @@ def test_normal_main_does_not_pace_or_pull_with_recovery_marker(tmp_path, monkey
     monkeypatch.setattr(offsite, "pull", lambda *_: pytest.fail("must not pull"))
     with pytest.raises(offsite.InterruptedTransfer):
         offsite.main()
+
+
+def test_internal_entry_runs_actual_pull_on_synthetic_transport(tmp_path):
+    """Exercise actual pull/ledger/ACK paths, replacing only the SSH transport."""
+    tmp_path.chmod(0o700)
+    lock = os.open(tmp_path / ".pull.lock", os.O_RDWR | os.O_CREAT, 0o600)
+    fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    parent, child = socket.socketpair(socket.AF_UNIX, socket.SOCK_SEQPACKET)
+    pidfd = os.pidfd_open(os.getpid())
+    runid = "2" * 32
+    worker = r"""
+import hashlib,importlib.util,json,sys
+from datetime import datetime,timezone
+from types import SimpleNamespace
+spec=importlib.util.spec_from_file_location('synthetic_offsite',sys.argv[1]);mod=importlib.util.module_from_spec(spec);spec.loader.exec_module(mod)
+root,lock,pidfd,channel,runid=sys.argv[2:]
+archive=b'synthetic-ciphertext'; name='20261101T120000Z.tar.enc'
+def fake_run(args, **kwargs):
+    cmd=args[-1]
+    if cmd.endswith(' inventory'):
+        now=int(datetime(2026,11,1,12,tzinfo=timezone.utc).timestamp())
+        return SimpleNamespace(stdout=json.dumps({'server_now':now,'backups':[{'name':name,'size':len(archive),'sha256':hashlib.sha256(archive).hexdigest()}]}))
+    if ' read ' in cmd: kwargs['stdout'].write(archive)
+    elif cmd.endswith('export_ledger.py'): kwargs['stdout'].write(b'SPB1'+b'x'*28)
+    elif ' --ack ' in cmd: pass
+    else: raise RuntimeError('unexpected synthetic transport')
+    return SimpleNamespace()
+mod.run=fake_run;mod.pace_recent_success=lambda _:None
+sys.argv=['offsite_backup.py','--destination',root,'--supervised-lock-fd',lock,'--supervised-pid-fd',pidfd,'--supervised-channel-fd',channel,'--supervised-run-id',runid]
+mod.main()
+"""
+    process = subprocess.Popen(
+        [sys.executable, "-c", worker, str(SOURCE), str(tmp_path), str(lock), str(pidfd), str(child.fileno()), runid],
+        pass_fds=(lock, pidfd, child.fileno()),
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.PIPE,
+    )
+    child.close()
+    parent.settimeout(5)
+    try:
+        assert parent.recv(128) == ("READY " + runid).encode()
+        assert parent.recv(128) == ("DONE " + runid).encode()
+        assert process.wait(timeout=5) == 0
+        assert (tmp_path / "20261101T120000Z.tar.enc").read_bytes() == b"synthetic-ciphertext"
+        assert (tmp_path / "erasure-ledger.enc").read_bytes() == b"SPB1" + b"x" * 28
+        assert (tmp_path / "last-success.json").exists()
+        assert (tmp_path / offsite.HANDOFF_MARKER).exists()
+    finally:
+        if process.poll() is None:
+            process.kill()
+            process.wait()
+        parent.close()
+        os.close(lock)
+        os.close(pidfd)
