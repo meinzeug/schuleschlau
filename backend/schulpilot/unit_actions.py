@@ -42,41 +42,43 @@ def preview(unit_id: str, p=Depends(authenticated), db=Depends(get_db)):
 
 @router.post("/units/{unit_id}/delete")
 def confirm(unit_id: str, data: DeleteConfirm, p=Depends(authenticated), db=Depends(get_db)):
+    from .erasure import flush_journal, journal_write_lock
+
     user_id, session_id = p.user.id, p.session.id
-    unit, child = owned(db, p, unit_id)
-    try:
-        token = json.loads(crypt().decrypt(data.selection_token.encode(), ttl=TTL))
-        if (token["v"], token["actor"], token["session"], token["unit"], token["child"]) != (
-            1,
-            p.user.id,
-            p.session.id,
-            unit.id,
-            child.id,
-        ):
-            raise ValueError("scope")
-    except (InvalidToken, ValueError, KeyError, TypeError):
-        raise HTTPException(409, "Die Löschvorschau ist abgelaufen. Bitte erneut auswählen.") from None
-    list(
-        db.scalars(
-            select(LearningUnit.id).where(LearningUnit.child_id == child.id).order_by(LearningUnit.id).with_for_update()
+    with journal_write_lock():
+        unit, child = owned(db, p, unit_id)
+        try:
+            token = json.loads(crypt().decrypt(data.selection_token.encode(), ttl=TTL))
+            if (token["v"], token["actor"], token["session"], token["unit"], token["child"]) != (
+                1,
+                p.user.id,
+                p.session.id,
+                unit.id,
+                child.id,
+            ):
+                raise ValueError("scope")
+        except (InvalidToken, ValueError, KeyError, TypeError):
+            raise HTTPException(409, "Die Löschvorschau ist abgelaufen. Bitte erneut auswählen.") from None
+        list(
+            db.scalars(
+                select(LearningUnit.id).where(LearningUnit.child_id == child.id).order_by(LearningUnit.id).with_for_update()
+            )
         )
-    )
-    db.execute(update(Child).where(Child.id == child.id).values(grade=Child.grade))
-    db.expire_all()
-    from .security import lock_session_after_child
+        db.execute(update(Child).where(Child.id == child.id).values(grade=Child.grade))
+        db.expire_all()
+        from .security import lock_session_after_child
 
-    lock_session_after_child(db, user_id, session_id)
-    unit, child = owned(db, p, unit_id)
-    ensure_idle(db, child.id)
-    if unit_erasure.snapshot(db, [unit.id]) != token["snapshot"]:
-        raise HTTPException(409, "Die Lernrunde wurde inzwischen geändert. Bitte die Vorschau neu öffnen.")
-    result = unit_erasure.remove(db, child, [unit.id])
-    from .erasure import flush_journal
-    from .learning import record
-    from .security import audit
+        lock_session_after_child(db, user_id, session_id)
+        unit, child = owned(db, p, unit_id)
+        ensure_idle(db, child.id)
+        if unit_erasure.snapshot(db, [unit.id]) != token["snapshot"]:
+            raise HTTPException(409, "Die Lernrunde wurde inzwischen geändert. Bitte die Vorschau neu öffnen.")
+        result = unit_erasure.remove(db, child, [unit.id])
+        from .learning import record
+        from .security import audit
 
-    record(db, child.id, "unit_deleted", {"count": result})
-    audit(db, p.user.id, "learning.unit_deleted", unit_id)
-    db.commit()
+        record(db, child.id, "unit_deleted", {"count": result})
+        audit(db, p.user.id, "learning.unit_deleted", unit_id)
+        db.commit()
     flush_journal()
     return {"deleted_count": result}
