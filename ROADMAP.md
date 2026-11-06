@@ -2293,8 +2293,15 @@ Bestandteil des bestehenden Buildvertrags.
     native Tokens werden berücksichtigt; eine neue Kontoübernahme wartet
     auf private lokale Bereinigung. 125 kombinierte VM- und 38 gezielte
     Chrome-Fälle sowie unabhängiger Review bestanden. Ein älterer
-    tabübergreifender Logout-Cookie-Wettlauf bleibt gesondert offen.
+    tabübergreifender Wettlauf beim Google-Flow bleibt gesondert offen.
     [Nachweis und Grenzen](docs/AUTH_401_SESSION_RACE_2026_11_05.md).
+
+  - [x] **Verspäteten Logout gegen ein neueres Web-Sitzungscookie absichern.**
+    06.11.2026, isolierter Zwei-Tab-Chrometest mit künstlichen Konten: Die alte
+    Logout-Antwort löscht eine neue Anmeldung nicht; nach echtem Logout ist der
+    alte, bis zum Cookieablauf gespeicherte Wert serverseitig widerrufen. Der
+    eigenständige Google-Flow-Wettlauf bleibt offen. Einzelheiten und Grenzen:
+    [Nachweis](docs/AUTH_401_SESSION_RACE_2026_11_05.md).
 
   - [x] **Wiederaufnahme beim erneuten Einlesen einer Heftseite absichern.**
     05.11.2026, Coding-AI, Änderungen auf Basis `f38673a`: Nach Hintergrund, überdeckter Route und

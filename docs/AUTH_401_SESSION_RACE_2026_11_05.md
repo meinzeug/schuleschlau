@@ -27,11 +27,22 @@ Antwort. Der blockierte Bereinigungsfall prüft einen wirklichen Kontowechsel,
 Speicherlöschung und den Fehlermodus. Tests auf VM und im Chrome-Webrunner ersetzen keinen Test echter
 Server-Cookies und mehrerer Browser-Tabs.
 
-**Offen:** Ein vor einer neuen Web-Anmeldung bereits abgesendeter Logout kann
-später eintreffen und sein serverseitiges `Set-Cookie` zum Löschen nach dem
-neuen Login im Browser anwenden. Der Browser verarbeitet diesen Header
-unabhängig vom Flutter-Response-Handler; die lokale Revisionsprüfung löst das
-nicht. Dies betrifft insbesondere mehrere Tabs und erfordert eine gesonderte
-Server-/Browserlösung mit echtem Race-Test. Auch bereits gestartete native
+**Sitzungscookie, 06.11.2026:** Ein Logout widerruft weiterhin zuerst die
+zugehörige Sitzung in der Datenbank, sendet aber keinen Löschheader für
+`sp_session`. Die zurückgehaltene Antwort einer alten Sitzung kann dadurch
+einen zwischenzeitlich gesetzten Login-Cookie nicht entfernen. Der alte,
+widerrufene HttpOnly-Cookie bleibt bis zum normalen Ablauf oder einem neuen
+Login im Browser gespeichert; er berechtigt serverseitig nicht mehr zum
+Zugriff. Ein lokaler Chrome-Test hielt die echte Logout-Antwort zwischen zwei
+Tabs zurück, meldete ein zweites künstliches Konto an und prüfte, dass es
+angemeldet blieb. Ein weiterer Logout ergab anschließend bei `/auth/me` 401.
+Der Browserlauf verwendet isoliertes SQLite, keine produktiven Konten und keine
+Flutter-Oberfläche. Login und Widerruf wurden zusätzlich in API-Tests geprüft.
+
+**Weiter offen:** Ein älterer Logout kann noch den Cookie eines neu begonnenen
+Google-Anmeldeflows löschen; umgekehrt darf ein laufender, ungebundener alter
+Flow durch einen Logout nicht unbemerkt fortbestehen. Beide Fälle benötigen
+eine gesonderte Lösung und echte Flow-Racetests. Bereits gestartete native
 Ressourcenbereinigungen lassen sich durch diese nachgelagerten Checks nicht
-rückwirkend abbrechen.
+rückwirkend abbrechen. Die Änderung garantiert weder die Handhabung aller
+parallelen Loginantworten noch einen geräteübergreifenden Widerrufshinweis.

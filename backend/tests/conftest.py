@@ -12,6 +12,8 @@ if test_url and os.getenv("NOTEBOOK_LOCAL_BROWSER") == "1":
     raise RuntimeError(
         "Notebook browser checks require an automatically isolated SQLite database; unset TEST_DATABASE_URL."
     )
+if test_url and os.getenv("LOGOUT_COOKIE_RACE_BROWSER") == "1":
+    raise RuntimeError("Logout browser checks require an automatically isolated SQLite database; unset TEST_DATABASE_URL.")
 _directory = tempfile.mkdtemp(prefix="schulpilot-tests-")
 if test_url:
     if not (make_url(test_url).database or "").endswith("_test"):

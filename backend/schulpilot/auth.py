@@ -279,7 +279,10 @@ def logout(response: Response, p=Depends(authenticated), db=Depends(get_db)):
         if child:
             clear_drafts(db, child.id)
     db.commit()
-    response.delete_cookie("sp_session", path="/api", secure=settings.environment == "production", samesite="strict")
+    # The revoked HttpOnly cookie is no longer an authorization credential.
+    # Do not clear sp_session here: this response can arrive after a new login
+    # in another tab and would erase its newer cookie. The revoked value cannot
+    # authenticate and expires normally unless replaced by a later login.
     response.delete_cookie("sp_google", path="/api/auth/google")
     return {"message": "Abgemeldet."}
 
