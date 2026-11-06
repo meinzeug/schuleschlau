@@ -193,10 +193,11 @@ void main() {
       var reads = 0, writes = 0;
       final state = account(
         MockClient((r) async {
-          if (r.method == 'GET')
+          if (r.method == 'GET') {
             reads++;
-          else
+          } else {
             writes++;
+          }
           return response(insight());
         }),
       );
