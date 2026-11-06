@@ -797,8 +797,8 @@ def process(job_id):
                 {"subject": unit.subject, "topic": unit.topic, "school_day_id": day.id, "phase": block["phase"]},
                 unit.id,
             )
-            settle(db, db.scalar(select(Usage).where(Usage.job_id == job.id)), result)
             job.status, job.finished, job.result = "completed", int(now()), {"unit_id": unit.id}
+            settle(db, db.scalar(select(Usage).where(Usage.job_id == job.id)), result)
     except Exception as error:
         reason = (
             str(error)
@@ -807,7 +807,7 @@ def process(job_id):
         )
         with DB.begin() as db:
             job = db.get(Job, job_id)
-            if job:
+            if job and job.status == "running":
                 from .job_failures import failure_code
 
                 job.status, job.error, job.finished = "failed", reason[:500], int(now())

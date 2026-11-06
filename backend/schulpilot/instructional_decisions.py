@@ -492,8 +492,8 @@ def process(job_id):
             save(db, unit, plan)
             observe(db, unit, "instructional_plan_ready", "decision:" + job.id,
                 [ref for step in plan["steps"] for ref in step["evidence_refs"]])
-            settle(db, db.scalar(select(Usage).where(Usage.job_id == job.id)), result)
             job.status, job.finished, job.result = "completed", int(now()), {"unit_id": unit.id}
+            settle(db, db.scalar(select(Usage).where(Usage.job_id == job.id)), result)
     except Exception as error:
         with DB.begin() as db:
             job = db.get(Job, job_id)

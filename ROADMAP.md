@@ -1667,6 +1667,13 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Ausgabelängen, Schemafehler und Providerstörungen systematisch behandeln**
 
+  - [x] **Unterbrochene Aufträge und verspätete Ergebnisse atomar trennen.**
+    Statusänderungen verwenden einen optimistischen Vergleich; der begrenzte
+    Reaper prüft Status und Alter beim Abbruch erneut. Transaktionale Tests auf
+    isoliertem PostgreSQL decken beide Rennrichtungen, Erhalt alter Antworten
+    und einmalige Kostenbuchung ab. Späte Ergebnisse werden verworfen;
+    unbekannte Kosten bleiben reserviert. [Beleg und Grenzen](docs/JOB_INTERRUPTION_RACE_2026_11_06.md).
+
   - [x] **Feste Grundlagenfragen bei knappen Dezimalbeispielen erhalten.**
     Ein bereits festes Vorwissen verbraucht kein neues Zahlenpaar. Auch wenn
     genau ein unbenutztes Paar für einen freien Anwendungsplatz bleibt, kann

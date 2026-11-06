@@ -1487,8 +1487,8 @@ def process(job_id):
                 remember(db, "unit", unit, result.catalog_assignment)
                 if item.next_unit_id and (next_unit := db.get(LearningUnit, item.next_unit_id)):
                     remember(db, "unit", next_unit, result.catalog_assignment)
-            settle(db, db.scalar(select(Usage).where(Usage.job_id == job.id)), result)
             job.status, job.finished, job.result = "completed", int(now()), {"unit_id": unit.id}
+            settle(db, db.scalar(select(Usage).where(Usage.job_id == job.id)), result)
     except Exception as error:
         reason = (
             str(error)
@@ -1497,7 +1497,7 @@ def process(job_id):
         )
         with DB.begin() as db:
             job = db.get(Job, job_id)
-            if job:
+            if job and job.status == "running":
                 job.status, job.error, job.finished = "failed", reason[:500], int(now())
                 item = db.get(UnitCoaching, job.payload["unit_id"])
                 if item and item.job_id == job.id:
@@ -1715,8 +1715,8 @@ def process_practice(job_id):
                 from .catalog_ai import remember
 
                 remember(db, "unit", db.get(LearningUnit, item.next_unit_id), result.catalog_assignment)
-            settle(db, db.scalar(select(Usage).where(Usage.job_id == job.id)), result)
             job.status, job.finished, job.result = "completed", int(now()), {"unit_id": item.next_unit_id}
+            settle(db, db.scalar(select(Usage).where(Usage.job_id == job.id)), result)
     except Exception as error:
         reason = (
             str(error)
@@ -1725,7 +1725,7 @@ def process_practice(job_id):
         )
         with DB.begin() as db:
             job = db.get(Job, job_id)
-            if job:
+            if job and job.status == "running":
                 job.status, job.error, job.finished = "failed", reason[:500], int(now())
                 usage = db.scalar(select(Usage).where(Usage.job_id == job.id))
                 if usage:

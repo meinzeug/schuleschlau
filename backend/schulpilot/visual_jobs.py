@@ -164,8 +164,8 @@ def process(job_id):
                 steps=steps, question_steps={row["id"]: _hydrate(row["explanation_steps"], payload["visual_context"]) for row in value["questions"]},
                 receipts=[{"reference": row["reference"], "source_refs": row["source_refs"]} for row in steps],
                 source_bindings=[source_binding(ref) for ref in payload["visual_context"]["sources"]], notice=""))
-            settle(db, db.scalar(select(Usage).where(Usage.job_id == job.id)), result)
             job.status, job.finished, job.result = "completed", int(now()), {"unit_id": unit.id, "visual_status": "ready"}
+            settle(db, db.scalar(select(Usage).where(Usage.job_id == job.id)), result)
     except Exception as error:
         with DB.begin() as db:
             job = db.get(Job, job_id)

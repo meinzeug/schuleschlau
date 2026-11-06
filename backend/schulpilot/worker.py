@@ -805,10 +805,12 @@ def _process(job_id):
                     for unit_id in unit_ids:
                         if unit_id and (saved_unit := db.get(LearningUnit, unit_id)):
                             remember(db, "unit", saved_unit, result.catalog_assignment)
-            if usage:
-                settle(db, usage, result)
+            # Flush the optimistic job transition before locking Usage. The
+            # interrupted-job reaper takes Job -> Usage in the same order.
             job.status = "completed"
             job.finished = int(now())
+            if usage:
+                settle(db, usage, result)
     except Exception as exc:
         # Do not log provider bodies, prompts, photos, answers or credentials.
         message = (
@@ -820,7 +822,7 @@ def _process(job_id):
             message = str(exc.detail)
         with DB.begin() as db:
             job = db.get(Job, job_id)
-            if job:
+            if job and job.status == "running":
                 job.status = "failed"
                 from .job_failures import failure_code
 
@@ -838,12 +840,44 @@ def _process(job_id):
         log.warning("job_failed id=%s type=%s", job_id, type(exc).__name__)
 
 
+def reap_interrupted(cutoff=None):
+    """Interrupt still-stale jobs exactly once, without holding child locks.
+
+    The candidate scan is only a hint. The status and timestamp are checked
+    again by the atomic update, so a worker completing in between wins. Each
+    job has a short independent transaction and unknown costs stay reserved.
+    Asset builds have their own Child -> Build -> Job reaper.
+    """
+    cutoff = int(now()) - 240 if cutoff is None else cutoff
+    with DB() as db:
+        candidates = list(db.scalars(select(Job.id).where(
+            Job.status == "running", Job.started < cutoff,
+            or_(Job.kind.is_(None), Job.kind != "learning_asset"),
+        ).order_by(Job.started, Job.id).limit(100)))
+    count = 0
+    for job_id in candidates:
+        with DB.begin() as db:
+            changed = db.execute(update(Job).where(
+                Job.id == job_id, Job.status == "running", Job.started < cutoff,
+                or_(Job.kind.is_(None), Job.kind != "learning_asset"),
+            ).values(status="failed", error_code="interrupted", finished=int(now()),
+                error="Worker wurde unterbrochen. Kein automatischer Wiederholungsversuch; mögliche Kosten bleiben reserviert."))
+            if not changed.rowcount:
+                continue
+            usage = db.scalar(select(Usage).where(Usage.job_id == job_id))
+            if usage:
+                settle(db, usage, failed=True)
+            count += 1
+    return count
+
+
 def maintenance():
     from .learning_assets import reap_interrupted as reap_asset_jobs
 
     # Asset publication and expiry share Child -> Build locks. Do not inherit
     # unrelated commerce/family locks from the large maintenance transaction.
     reap_asset_jobs()
+    reap_interrupted()
     from .grade_erasure import expire_grade_sources, expire_grades
 
     unresolved_grade_children = expire_grades(int(now()) - 365 * 86400)
@@ -860,16 +894,6 @@ def maintenance():
         withdrawal_maintenance(db)
         commerce_maintenance(db)
         repair_paths = incident_maintenance(db)
-        stale = list(db.scalars(select(Job).where(Job.status == "running", Job.started < int(now()) - 240,
-            or_(Job.kind.is_(None), Job.kind != "learning_asset"))))
-        for job in stale:
-            job.status = "failed"
-            job.error_code = "interrupted"
-            job.error = "Worker wurde unterbrochen. Kein automatischer Wiederholungsversuch; mögliche Kosten bleiben reserviert."
-            job.finished = int(now())
-            usage = db.scalar(select(Usage).where(Usage.job_id == job.id))
-            if usage:
-                settle(db, usage, failed=True)
         for operation in db.scalars(
             select(OperatorJob).where(OperatorJob.status == "running", OperatorJob.started < int(now()) - 600)
         ):

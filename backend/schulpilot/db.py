@@ -951,6 +951,12 @@ class Job(Base):
     finished = Column(Integer)
     idempotency = Column(String(120), unique=True, nullable=False)
 
+    # A result must never revive a job which was interrupted or cancelled
+    # after the worker read it.  This uses the existing monotonic status as an
+    # optimistic token and leaves the established Unit -> Child lock order
+    # intact. Bulk transitions must still include their own status predicate.
+    __mapper_args__ = {"version_id_col": status, "version_id_generator": False}
+
 
 class RateBucket(Base):
     __tablename__ = "rate_buckets"

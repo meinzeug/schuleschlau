@@ -163,8 +163,8 @@ def process(job_id):
                 from .catalog_ai import remember
 
                 remember(db, "unit", followup, result.catalog_assignment)
-            settle(db, db.scalar(select(Usage).where(Usage.job_id == job.id)), result)
             job.status, job.finished, job.result = "completed", int(now()), {"unit_id": followup.id}
+            settle(db, db.scalar(select(Usage).where(Usage.job_id == job.id)), result)
     except Exception as error:
         with DB.begin() as db:
             job = db.get(Job, job_id)
