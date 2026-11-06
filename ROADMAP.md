@@ -1857,6 +1857,17 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Kinderwege, Navigation und Wiederaufnahme vollständig abnehmen**
 
+  - [x] **Lernaktionen an die lokale Anmeldeabsicht binden.** Beginnt während
+    einer laufenden Abfrage oder eines Rundenstarts eine neue Anmeldung im
+    selben Appzustand, werden alte Ergebnisse und Fehler nicht mehr für eine
+    Folgeaktion, Navigation oder Vorschau verwendet. Die Änderung erkennt auch
+    diesen Zwischenzustand, wenn Nutzerobjekt und Webtoken noch gleich sind.
+    Eine ungültige Vorschau oder Statusabfrage kann bewusst neu geladen werden;
+    bereits abgeschickte Anfragen bleiben davon unberührt. Künstliche
+    Widgetfälle prüfen Quellenabfrage, Zufallsthema, Vorbereitungsstatus und
+    Rundenstart. Ein unbemerkter Cookie-Wechsel in einem anderen Tab und die
+    vollständige geräteübergreifende Abnahme bleiben offen.
+
   - [x] **Lernvorschau bei Austausch des App-Zustands wiederaufnehmen.**
     Die Ansicht bindet sich beim Austausch des AppState an dessen Konto und
     Sitzung. Alte Übersichten und späte Startantworten überschreiben die neue

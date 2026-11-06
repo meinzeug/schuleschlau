@@ -65,6 +65,155 @@ GoRouter routerFor(AppState state, Widget screen) => GoRouter(
 );
 
 void main() {
+  testWidgets('a stale preparation read offers an explicit refresh', (
+    tester,
+  ) async {
+    final pending = Completer<http.Response>();
+    var reads = 0;
+    final state = stateFor((r) async {
+      reads++;
+      if (reads == 1) return pending.future;
+      return response({
+        'kind': 'unit',
+        'status': 'completed',
+        'result': {'unit_id': 'ready'},
+      });
+    });
+    final router = routerFor(
+      state,
+      LearningPreparationScreen(state, childId: 'child', jobId: 'job'),
+    );
+    await tester.pumpWidget(
+      MaterialApp.router(theme: appTheme(), routerConfig: router),
+    );
+    await tester.pump();
+    state.beginAuthentication();
+    pending.complete(
+      response({
+        'kind': 'unit',
+        'status': 'completed',
+        'result': {'unit_id': 'old'},
+      }),
+    );
+    await tester.pump();
+    expect(find.text('Los geht’s'), findsNothing);
+    expect(find.text('Status neu laden'), findsOneWidget);
+    expect(reads, 1);
+    await tester.tap(find.text('Status neu laden'));
+    await tester.pumpAndSettle();
+    expect(find.text('Los geht’s'), findsOneWidget);
+    expect(reads, 2);
+    await tester.pumpWidget(const SizedBox());
+    router.dispose();
+    state.dispose();
+  });
+
+  testWidgets('a stale preview read offers an explicit refresh', (
+    tester,
+  ) async {
+    final pending = Completer<http.Response>();
+    var reads = 0;
+    final state = stateFor((r) async {
+      reads++;
+      if (reads == 1) return pending.future;
+      return response(overview([item('new')]));
+    });
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: appTheme(),
+        home: Scaffold(
+          body: LearningNextStep(state: state, childId: 'child'),
+        ),
+      ),
+    );
+    await tester.pump();
+    state.beginAuthentication();
+    pending.complete(response(overview([item('old')])));
+    await tester.pump();
+    expect(find.text('Neu laden'), findsOneWidget);
+    expect(reads, 1);
+    await tester.tap(find.text('Neu laden'));
+    await tester.pumpAndSettle();
+    expect(find.text('Weiterlernen'), findsOneWidget);
+    expect(reads, 2);
+    await tester.pumpWidget(const SizedBox());
+    state.dispose();
+  });
+  testWidgets('a new authentication intent suppresses an old source lookup', (
+    tester,
+  ) async {
+    final pending = Completer<http.Response>();
+    var writes = 0;
+    final state = stateFor((r) async {
+      if (r.method == 'GET') return pending.future;
+      writes++;
+      return response({'id': 'job'});
+    });
+    final data = overview([item('assignment', kind: 'assignment')]);
+    final router = routerFor(
+      state,
+      Builder(
+        builder: (context) => Scaffold(
+          body: TextButton(
+            onPressed: () =>
+                openPlanItem(context, state, data, data['plan']['today'][0]),
+            child: const Text('Start lookup'),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpWidget(
+      MaterialApp.router(theme: appTheme(), routerConfig: router),
+    );
+    await tester.tap(find.text('Start lookup'));
+    await tester.pump();
+    state.beginAuthentication();
+    pending.complete(
+      response({
+        'items': [
+          {'id': 'source'},
+        ],
+      }),
+    );
+    await tester.pumpAndSettle();
+    expect(writes, 0);
+    expect(find.text('Preparation opened'), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+    router.dispose();
+    state.dispose();
+  });
+
+  testWidgets('a new authentication intent suppresses an old ready start', (
+    tester,
+  ) async {
+    final pending = Completer<http.Response>();
+    final state = stateFor(
+      (r) async => r.method == 'GET'
+          ? response({
+              'kind': 'unit',
+              'status': 'completed',
+              'result': {'unit_id': 'ready'},
+            })
+          : pending.future,
+    );
+    final router = routerFor(
+      state,
+      LearningPreparationScreen(state, childId: 'child', jobId: 'job'),
+    );
+    await tester.pumpWidget(
+      MaterialApp.router(theme: appTheme(), routerConfig: router),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Los geht’s'));
+    await tester.pump();
+    state.beginAuthentication();
+    pending.complete(response({}));
+    await tester.pumpAndSettle();
+    expect(find.text('Saved unit opened'), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+    router.dispose();
+    state.dispose();
+  });
   testWidgets(
     'leaving a saved-unit start cannot be undone by its late response',
     (tester) async {

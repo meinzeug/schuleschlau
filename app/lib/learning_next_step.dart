@@ -122,6 +122,7 @@ class _LearningNextStepState extends State<LearningNextStep>
   Future<void> load() async {
     if (!current || reading) return;
     final requested = ++version;
+    final requestIdentity = widget.state.api.requestIdentity();
     setState(() {
       loading = reading = true;
       failed = false;
@@ -130,7 +131,9 @@ class _LearningNextStepState extends State<LearningNextStep>
       final result = await widget.state.api.get(
         '/children/${widget.childId}/overview?compact=true',
       );
-      if (current && requested == version) {
+      if (current &&
+          requested == version &&
+          widget.state.api.ownsRequest(requestIdentity)) {
         setState(() {
           data = result;
           loading = reading = false;
@@ -138,8 +141,20 @@ class _LearningNextStepState extends State<LearningNextStep>
         });
       }
     } catch (_) {
-      if (current && requested == version) {
+      if (current &&
+          requested == version &&
+          widget.state.api.ownsRequest(requestIdentity)) {
         setState(() {
+          loading = reading = false;
+          failed = true;
+        });
+      }
+    } finally {
+      if (current &&
+          requested == version &&
+          !widget.state.api.ownsRequest(requestIdentity)) {
+        setState(() {
+          data = null;
           loading = reading = false;
           failed = true;
         });

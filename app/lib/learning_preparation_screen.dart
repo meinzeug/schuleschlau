@@ -137,6 +137,9 @@ class _LearningPreparationScreenState extends State<_LearningPreparationBody>
   Future<void> load() async {
     final id = widget.jobId;
     if (readingJob == id || !sameOwner) return;
+    final requestIdentity = widget.state.api.requestIdentity();
+    bool currentRequest() =>
+        sameOwner && widget.state.api.ownsRequest(requestIdentity);
     readingJob = id;
     try {
       var result = await widget.state.api.get('/jobs/$id');
@@ -146,7 +149,7 @@ class _LearningPreparationScreenState extends State<_LearningPreparationBody>
           recovery is String &&
           recovery != id &&
           RegExp(r'^[a-f0-9]{32}$').hasMatch(recovery) &&
-          sameOwner) {
+          currentRequest()) {
         result = await widget.state.api.get('/jobs/$recovery');
       }
       if (![
@@ -157,7 +160,7 @@ class _LearningPreparationScreenState extends State<_LearningPreparationBody>
       ].contains(result['kind'])) {
         throw ApiError('Diese Vorbereitung gehört zu einem anderen Schritt.');
       }
-      if (mounted && sameOwner && id == widget.jobId) {
+      if (mounted && currentRequest() && id == widget.jobId) {
         setState(() {
           job = result;
           error = null;
@@ -165,9 +168,20 @@ class _LearningPreparationScreenState extends State<_LearningPreparationBody>
         });
       }
     } catch (e) {
-      if (mounted && sameOwner && id == widget.jobId) setState(() => error = e);
+      if (mounted && currentRequest() && id == widget.jobId) {
+        setState(() => error = e);
+      }
     } finally {
       if (readingJob == id) readingJob = null;
+      if (sameOwner && !widget.state.api.ownsRequest(requestIdentity)) {
+        setState(() {
+          job = null;
+          error = ApiError(
+            'Der Stand hat sich möglicherweise geändert. Bitte lade ihn erneut.',
+            409,
+          );
+        });
+      }
       if (refreshAfterRead) {
         refreshAfterRead = false;
         if (mounted &&
@@ -299,6 +313,11 @@ class _LearningPreparationScreenState extends State<_LearningPreparationBody>
                       if (!sameOwner) return;
                       final route = ModalRoute.of(context);
                       if (route?.isCurrent == false) return;
+                      final requestIdentity = widget.state.api
+                          .requestIdentity();
+                      bool currentRequest() =>
+                          sameOwner &&
+                          widget.state.api.ownsRequest(requestIdentity);
                       final requestJob = widget.jobId;
                       final id = job!['result']['unit_id'];
                       if (widget.state.isChild) {
@@ -307,7 +326,7 @@ class _LearningPreparationScreenState extends State<_LearningPreparationBody>
                           await widget.state.api.post('/units/$id/start');
                         } catch (e) {
                           if (context.mounted &&
-                              sameOwner &&
+                              currentRequest() &&
                               (route?.isCurrent ?? true) &&
                               widget.jobId == requestJob) {
                             setState(() {
@@ -325,7 +344,7 @@ class _LearningPreparationScreenState extends State<_LearningPreparationBody>
                         }
                       }
                       if (context.mounted &&
-                          sameOwner &&
+                          currentRequest() &&
                           (route?.isCurrent ?? true) &&
                           widget.jobId == requestJob) {
                         openRoute(context, '/unit/$id');

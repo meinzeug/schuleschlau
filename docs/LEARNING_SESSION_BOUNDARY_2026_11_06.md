@@ -44,3 +44,21 @@ Dies erkennt eine Änderung des Client-Tokens. Ein vom Client nicht bemerkter
 Wechsel des HttpOnly-Webcookies bei unverändertem Token `null` ist damit nicht
 nachgewiesen; separate sitzungsgebundene Browser-/Cookieprüfungen und die
 umfassende Geräteabnahme bleiben erforderlich.
+
+Auch eine neue Anmeldeabsicht innerhalb desselben AppState besitzt eine neue
+Anmelderevision, selbst wenn das alte Benutzerobjekt und der Webtoken zunächst
+gleich bleiben. Lernfortsetzung, Zufallsthema und vorbereitete Runde verwerfen
+Ergebnisse laufender Anfragen nach dieser Änderung, bevor sie eine Folgeaktion
+auslösen, navigieren oder alte Fehler anzeigen. Ein bereits abgesendeter POST
+kann nicht zurückgerufen werden. Ungültig gewordene Status- und Vorschauabrufe
+bieten ein bewusstes Neuladen an, statt eine alte Antwort zu zeigen oder von
+selbst einen neuen Auftrag auszulösen. Die Tests verwenden künstliche Konten
+und simulierten Transport; ein Wechsel des Cookies durch einen anderen Tab
+ohne gemeldete Anmeldeabsicht wird davon nicht erfasst.
+
+Die beiden gezielten Tests zu Quellenabfrage und vorbereitetem Rundenstart
+schlugen mit dem vorherigen Code fehl: Die Quellenabfrage löste noch einen
+POST aus und die fertige Runde wurde noch geöffnet. Mit der Änderung bestanden
+beide. Insgesamt bestanden 47 einschlägige Flutter-VM-Fälle und die fünf neuen
+Fälle im Chrome-Webrunner. Die fünf Chrome-Fälle simulieren API-Antworten;
+sie sind kein Test eines realen Cookie-Wechsels oder Provideraufrufs.

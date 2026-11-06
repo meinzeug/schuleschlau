@@ -127,7 +127,11 @@ class _LearningSubjectsState extends State<LearningSubjectsScreen> {
       return;
     }
     final route = ModalRoute.of(context);
-    bool stillHere() => current && (route?.isCurrent ?? true);
+    final requestIdentity = state.api.requestIdentity();
+    bool stillHere() =>
+        current &&
+        state.api.ownsRequest(requestIdentity) &&
+        (route?.isCurrent ?? true);
     searchFocus.unfocus();
     setState(() => starting = true);
     try {
@@ -443,9 +447,7 @@ class _LearningSubjectsState extends State<LearningSubjectsScreen> {
             compactTitle: detail
                 ? (subject?['title'] ?? 'Deine Themen')
                 : 'Lernen',
-            title: detail
-                ? (subject?['title'] ?? 'Deine Themen')
-                : 'Lernen',
+            title: detail ? (subject?['title'] ?? 'Deine Themen') : 'Lernen',
             description: detail
                 ? (topicRounds
                       ? 'Hier sind deine Runden zu diesem Thema.'

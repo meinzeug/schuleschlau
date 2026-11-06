@@ -168,6 +168,34 @@ Future<void> tap(WidgetTester t, Finder finder) async {
 }
 
 void main() {
+  testWidgets('Authentication intent discards a delayed random choice', (
+    t,
+  ) async {
+    final calls = <http.Request>[];
+    final pending = Completer<http.Response>();
+    final (state, _) = await open(
+      t,
+      calls,
+      initial: '/learn/child/subject/$math',
+      respond: (q) async {
+        if (q.url.path.endsWith('/learning/subjects')) {
+          return response(catalog());
+        }
+        if (q.url.path.endsWith('/learning')) return response(listing());
+        if (q.url.path.endsWith('/random')) return pending.future;
+        return response({'items': []});
+      },
+    );
+    await t.ensureVisible(find.text('Zufälliges Thema üben'));
+    await t.tap(find.text('Zufälliges Thema üben'));
+    await t.pump();
+    state.beginAuthentication();
+    pending.complete(response({'item': round(), 'date': '2026-10-28'}));
+    await t.pumpAndSettle();
+    expect(calls.where((q) => q.method == 'POST'), isEmpty);
+    expect(find.text('Gespeicherte Runde round'), findsNothing);
+    expect(t.takeException(), isNull);
+  });
   for (final width in [320.0, 390.0, 1280.0]) {
     testWidgets('Subjects first, then only that subject topics at $width px', (
       t,
