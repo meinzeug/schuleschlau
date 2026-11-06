@@ -2525,6 +2525,16 @@ Bestandteil des bestehenden Buildvertrags.
     Pending-Flag genügt nicht. Der reproduzierende Test beweist den Fehler,
     nicht dessen Behebung. [Befund und Lösungsgrenzen](docs/WEB_LOGIN_COOKIE_RACE_2026_11_06.md).
 
+  - [x] **Abweichendes Browserkonto bei gekennzeichneten API-Zugriffen ablehnen.**
+    Die gemeinsame App sendet das angezeigte Konto als zusätzliche Prüfung;
+    Rechte stammen weiterhin ausschließlich aus der Serversitzung. Ein
+    fremdes Konto führt auf geschützten Aufrufen zu 409, einschließlich vor
+    Fotoannahme und bei der Benachrichtigungskonfiguration. Künstliche
+    Browser-, PostgreSQL- und Flutter-Fälle belegen den begrenzten Schutz.
+    Alte Clients, headerlose Zugriffe und mehrere Sitzungen desselben Kontos
+    bleiben Teil des darüber offenen Cookie-Problems.
+    [Prüfung](docs/ACCOUNT_ASSERTION_2026_11_06.md).
+
   - [x] **Alte Eltern-Lernplanaktionen an die geladene Anmeldeabsicht binden.**
     Bereits sichtbare Themenkarten, Wochenaktionen und Auftragseditoren prüfen
     eine neue Anmeldeabsicht vor der Aktion und verlangen zunächst einen
