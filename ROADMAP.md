@@ -1619,6 +1619,15 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Kapazitätsannahmen vor wachsendem Betrieb messen**
 
+  - [ ] **API-Speicherschutz beim gleichzeitigen Fotoimport beheben.**
+    Die getrennte Prozessprüfung auf PostgreSQL und Loopback reproduzierte bei
+    acht künstlichen Familien einen OOM-Kill am produktiven 350-MiB-API-Limit.
+    Die zuvor bestandenen In-Process-Tests hatten dieses Limit nicht abgebildet.
+    Eine reine Serialisierung des Dekoders reicht bei großen Bildern und
+    parallelen Leseanfragen nicht zuverlässig aus; sie wurde nicht übernommen.
+    Die vorhandene Bildqualität und 16-MP-Grenze nicht still absenken.
+    [Test, Messwerte und offene Lösung](docs/CAPACITY_PROCESS_FAILURE_2026_11_06.md).
+
   - [x] **Pool-Blockade bei parallelen Reservierungen beheben.** Eine zweite
     Datenbanksitzung innerhalb der Freigabeprüfung blockierte bei gefülltem
     Pool laufende Transaktionen. Ein synthetischer PostgreSQL-Lastfall zeigte
