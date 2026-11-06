@@ -264,6 +264,7 @@ def me(p=Depends(authenticated), db=Depends(get_db)):
 @router.post("/logout")
 def logout(request: Request, response: Response, p=Depends(authenticated), db=Depends(get_db)):
     from sqlalchemy import delete
+
     from .google_login import COOKIE
 
     db.execute(delete(GoogleFlow).where(GoogleFlow.previous_session_id == p.session.id))
