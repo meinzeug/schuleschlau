@@ -1637,6 +1637,16 @@ Bestandteil des bestehenden Buildvertrags.
     Die vorhandene Bildqualität und 16-MP-Grenze nicht still absenken.
     [Test, Messwerte und offene Lösung](docs/CAPACITY_PROCESS_FAILURE_2026_11_06.md).
 
+    **06.11.2026, lokal umgesetzt:** Die Normalisierung läuft in einem eigenen,
+    begrenzten Fotodienst; die API begrenzt die Aufnahme und prüft Sitzung,
+    Familienrechte und Freigabe nach dem Dekodieren erneut. Zwei künstliche
+    Mischlasten mit großen JPEG- beziehungsweise PNG-Bildern blieben ohne OOM;
+    bei Überlast waren ausdrückliche Wiederholungen erforderlich. PostgreSQL-,
+    Aktivierungs- und Überwachungstests sowie isolierte systemd-Proben bestanden.
+    Produktive Installation und Rückkehr sind noch nicht geprüft; langsame
+    angemeldete Uploads und andere Bildverarbeitungspfade bleiben separat zu
+    betrachten. Deshalb bleibt dieser Punkt offen.
+
   - [x] **Pool-Blockade bei parallelen Reservierungen beheben.** Eine zweite
     Datenbanksitzung innerhalb der Freigabeprüfung blockierte bei gefülltem
     Pool laufende Transaktionen. Ein synthetischer PostgreSQL-Lastfall zeigte
