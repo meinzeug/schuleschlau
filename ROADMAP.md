@@ -1326,6 +1326,17 @@ Bestandteil des bestehenden Buildvertrags.
   Toolchain-Warnungen sind dadurch nicht ersetzt.
 - [ ] **P0 – Deployment und Rückkehr belegen**
 
+  - [x] **Unvollständige Sicherungen vor Release gesondert erkennen.**
+    06.11.2026: Fehlt das Löschjournal oder ist es unzugänglich, bleibt das
+    verschlüsselte Archiv mit gekennzeichnetem Status erhalten; der Dienst
+    meldet einen Fehler. Die Releaseprüfung bindet den frischen Dienstlauf
+    zusätzlich an seinen eigenen systemd-Invocation-Beleg und die passende
+    Archiv-/Statusdatei. Damit erkennt sie unvollständige Sicherungen auch beim
+    Übergang von der älteren Dienstversion, die noch Erfolg meldete. Künstliche
+    Fehler-, Dateimanipulations- und Aktivierungsfälle prüfen den Abbruch vor
+    dem Versionswechsel. Dies beweist keine Journalvollständigkeit oder echte
+    Wiederherstellung; der Hauptpunkt bleibt offen.
+
   **05.11.2026, isolierte Machbarkeitsprüfung:** Ein vor dem Marker
   gebildeter Löschplan kann das alte Rollbackziel weiterhin entfernen. Ein
   nach Markeranlage neu benannter Snapshot wird von diesem Plan nicht erfasst,

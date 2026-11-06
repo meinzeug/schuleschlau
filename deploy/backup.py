@@ -88,7 +88,7 @@ def publish_backup(partial, final, journal):
             os.close(fd)
 
 
-def create_backup(destination, data_dir, key_path, *, stamp=None):
+def create_backup(destination, data_dir, key_path, *, stamp=None, require_journal=False):
     destination.mkdir(exist_ok=True, mode=0o700)
     stamp = stamp or datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     final = destination / (stamp + ".tar.enc")
@@ -130,12 +130,17 @@ def create_backup(destination, data_dir, key_path, *, stamp=None):
     if journal != "present":
         print("SCHULPILOT backup: deletion journal " + journal + "; restore requires investigation.", file=sys.stderr)
     print("SCHULPILOT backup created: " + final.name + "; deletion journal: " + journal)
+    if require_journal and journal != "present":
+        # Preserve the encrypted archive and its sidecar for investigation,
+        # while making systemd and release gates report an incomplete backup.
+        raise RuntimeError("Backup retained, but the deletion journal snapshot is unavailable")
     return final
 
 
 def main():
     with guarded_operation():
-        create_backup(Path("/var/backups/schulpilot"), Path("/var/lib/schulpilot"), Path("/etc/schulpilot/backup.key"))
+        create_backup(Path("/var/backups/schulpilot"), Path("/var/lib/schulpilot"),
+                      Path("/etc/schulpilot/backup.key"), require_journal=True)
 
 
 if __name__ == "__main__":

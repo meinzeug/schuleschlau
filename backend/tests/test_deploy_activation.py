@@ -79,6 +79,15 @@ class Activation:
             self.backup_starts += 1
             if self.failure == "unknown_start_drained" and self.backup_starts == 2:
                 raise subprocess.CalledProcessError(1, command)
+        if command == ["systemctl", "show", "schulpilot-backup.service", "--value", "-p", "InvocationID"]:
+            changed = self.failure == "invocation_changed_drained" and self.backup_checks == 2
+            return subprocess.CompletedProcess(command, 0, stdout=("b" if changed else "a") * 32 + "\n")
+        if command and command[0] == "journalctl":
+            assert command == ["journalctl", "--no-pager", "--quiet", "--output=cat",
+                               "_SYSTEMD_INVOCATION_ID=" + "a" * 32]
+            if self.failure == "journal_unavailable_drained" and self.backup_checks == 2:
+                raise subprocess.CalledProcessError(1, command)
+            return subprocess.CompletedProcess(command, 0, stdout="synthetic invocation log")
         if command[:3] == ["systemctl", "show", "schulpilot-backup.service"]:
             self.backup_checks += 1
             result = "failed" if self.failure == "second_backup" and self.backup_checks == 2 else "success"
@@ -92,7 +101,7 @@ class Activation:
             end = start + 1
             fields = {"Result": result, "ActiveState": "inactive", "SubState": "dead", "Job": "",
                 "ExecMainStartTimestampMonotonic": str(start), "ExecMainExitTimestampMonotonic": str(end),
-                "ExecMainCode": "1", "ExecMainStatus": "0"}
+                "ExecMainCode": "1", "ExecMainStatus": "0", "InvocationID": "a" * 32}
             if self.failure == "active_drained" and self.backup_checks == 2:
                 fields["ActiveState"] = "activating"
             if self.failure == "job_drained" and self.backup_checks == 2:
@@ -105,6 +114,8 @@ class Activation:
                 fields["ExecMainExitTimestampMonotonic"] = str(start - 1)
             if self.failure == "missing_drained" and self.backup_checks == 2:
                 del fields["Job"]
+            if self.failure == "invalid_invocation_drained" and self.backup_checks == 2:
+                fields["InvocationID"] = "not-an-invocation"
             return subprocess.CompletedProcess(command, 0, stdout="".join(f"{key}={value}\n" for key, value in fields.items()))
         if command == ["systemctl", "restart", *WRITERS]:
             self.restarts.append((self.current.resolve(), kwargs.get("check")))
@@ -145,6 +156,7 @@ class Activation:
             return Health()
 
         replacements = {
+            "backup_release_check": SimpleNamespace(verify_invocation_log=self.verify_backup_log),
             "pathlib": SimpleNamespace(Path=self.path),
             "subprocess": SimpleNamespace(run=self.run),
             "time": SimpleNamespace(sleep=lambda _: None, monotonic_ns=self.monotonic_ns),
@@ -157,6 +169,11 @@ class Activation:
         monkeypatch.setattr(sys, "argv", [str(SCRIPT), NEW, *(["--rollback-compatible"] if rollback_compatible else []),
                                          *(["--token", token] if token else [])])
         return runpy.run_path(str(SCRIPT), init_globals={"__builtins__": {**vars(builtins), "__import__": imports}})
+
+    def verify_backup_log(self, output):
+        assert output == "synthetic invocation log"
+        if self.failure == "journal_missing_drained" and self.backup_checks == 2:
+            raise RuntimeError("backup invocation lacks a complete journal snapshot")
 
 
 @pytest.mark.parametrize("rollback_compatible", [False, True])
@@ -329,13 +346,22 @@ def test_joined_backup_is_followed_by_fresh_backup_after_writer_drain(tmp_path, 
     assert activation.current.resolve() == activation.new
 
 
-@pytest.mark.parametrize("failure", ["stale_drained_exhausted", "active_drained", "job_drained", "future_drained", "malformed_drained", "backwards_drained", "missing_drained"])
+@pytest.mark.parametrize("failure", ["stale_drained_exhausted", "active_drained", "job_drained", "future_drained", "malformed_drained", "backwards_drained", "missing_drained", "journal_missing_drained", "invocation_changed_drained", "invalid_invocation_drained"])
 def test_uncertain_or_repeated_stale_drained_backup_never_switches(tmp_path, monkeypatch, failure):
     activation = Activation(tmp_path, failure)
     with pytest.raises(RuntimeError, match="backup"):
         activation.execute(monkeypatch)
     starts = [cmd for cmd in activation.commands if cmd == ["systemctl", "start", "schulpilot-backup.service"]]
     assert len(starts) == (3 if failure == "stale_drained_exhausted" else 2)
+    assert activation.current.resolve() == activation.old
+    assert activation.restarts == [(activation.old, True)]
+    assert not any("schulpilot.migrate" in command for command in activation.commands)
+
+
+def test_unavailable_invocation_journal_stops_before_migration(tmp_path, monkeypatch):
+    activation = Activation(tmp_path, "journal_unavailable_drained")
+    with pytest.raises(subprocess.CalledProcessError):
+        activation.execute(monkeypatch)
     assert activation.current.resolve() == activation.old
     assert activation.restarts == [(activation.old, True)]
     assert not any("schulpilot.migrate" in command for command in activation.commands)

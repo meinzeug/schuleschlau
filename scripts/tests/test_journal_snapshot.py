@@ -158,6 +158,40 @@ def test_encrypted_backup_preserves_database_when_journal_is_missing(tmp_path, m
     export_ledger.require_backup_journal(destination, second.name, hashlib.sha256(encrypted_second).hexdigest())
 
 
+@pytest.mark.parametrize("journal_state", ["missing", "unavailable"])
+def test_incomplete_backup_is_retained_but_cannot_report_success(tmp_path, monkeypatch, journal_state):
+    data, destination = tmp_path / "data", tmp_path / "backups"
+    data.mkdir()
+    (data / "uploads").mkdir()
+    if journal_state == "unavailable":
+        # A readable journal without its stable lock must not be treated as captured.
+        (data / "erasure-ledger.jsonl").write_text("synthetic\n")
+    key = tmp_path / "key"
+    key.write_bytes(b"synthetic-backup-key")
+    monkeypatch.setattr(backup.subprocess, "run", lambda args, *, stdout, check: stdout.write(b"synthetic dump"))
+    name = "20261106T120000Z.tar.enc"
+    with pytest.raises(RuntimeError, match="journal snapshot is unavailable"):
+        backup.create_backup(destination, data, key, stamp="20261106T120000Z", require_journal=True)
+    encrypted = (destination / name).read_bytes()
+    content = AESGCM(hashlib.sha256(key.read_bytes()).digest()).decrypt(encrypted[4:16], encrypted[16:], b"SPB1")
+    with tarfile.open(fileobj=io.BytesIO(content)) as archive:
+        assert archive.extractfile("database.dump").read() == b"synthetic dump"
+        assert json.load(archive.extractfile("erasure-journal-status.json")) == {"journal": journal_state}
+    assert json.loads((destination / (name + ".journal.json")).read_text()) == {
+        "backup": name, "journal": journal_state,
+    }
+
+
+def test_backup_service_requires_journal_snapshot(monkeypatch):
+    from contextlib import nullcontext
+
+    calls = []
+    monkeypatch.setattr(backup, "guarded_operation", lambda: nullcontext())
+    monkeypatch.setattr(backup, "create_backup", lambda *args, **kwargs: calls.append(kwargs))
+    backup.main()
+    assert calls == [{"require_journal": True}]
+
+
 @pytest.mark.parametrize("reader", ["backup", "export", "restore"])
 def test_rotation_and_readers_share_stable_lock(tmp_path, reader):
     ledger = tmp_path / "erasure-ledger.jsonl"

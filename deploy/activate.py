@@ -17,6 +17,10 @@ try:
     from release_lock import ReleaseLockError, release_operation, update_lock
 except ImportError:
     from deploy.release_lock import ReleaseLockError, release_operation, update_lock
+try:
+    from backup_release_check import verify_invocation_log
+except ImportError:
+    from deploy.backup_release_check import verify_invocation_log
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("release_id")
@@ -102,7 +106,7 @@ def checked_backup():
             ["systemctl", "show", "schulpilot-backup.service", "--no-pager",
              "-p", "Result", "-p", "ActiveState", "-p", "SubState", "-p", "Job",
              "-p", "ExecMainStartTimestampMonotonic", "-p", "ExecMainExitTimestampMonotonic",
-             "-p", "ExecMainCode", "-p", "ExecMainStatus"],
+             "-p", "ExecMainCode", "-p", "ExecMainStatus", "-p", "InvocationID"],
             check=True, capture_output=True, text=True,
         ).stdout
         fields = {}
@@ -112,7 +116,7 @@ def checked_backup():
                 raise RuntimeError("Pre-deployment database backup status is invalid")
             fields[key] = value
         required = {"Result", "ActiveState", "SubState", "Job", "ExecMainStartTimestampMonotonic",
-                    "ExecMainExitTimestampMonotonic", "ExecMainCode", "ExecMainStatus"}
+                    "ExecMainExitTimestampMonotonic", "ExecMainCode", "ExecMainStatus", "InvocationID"}
         if (set(fields) != required or fields["Result"] != "success" or fields["ActiveState"] != "inactive"
                 or fields["SubState"] != "dead" or fields["Job"] or fields["ExecMainCode"] != "1"
                 or fields["ExecMainStatus"] != "0"):
@@ -126,6 +130,20 @@ def checked_backup():
         if start_us <= 0 or exit_us < start_us or exit_us > now_us:
             raise RuntimeError("Pre-deployment database backup timestamps are invalid")
         if start_us >= started_after:
+            invocation = fields["InvocationID"]
+            if not re.fullmatch(r"[0-9a-f]{32}", invocation):
+                raise RuntimeError("Pre-deployment backup invocation is unavailable")
+            journal = subprocess.run(
+                ["journalctl", "--no-pager", "--quiet", "--output=cat", "_SYSTEMD_INVOCATION_ID=" + invocation],
+                check=True, capture_output=True, text=True, timeout=10,
+            ).stdout
+            verify_invocation_log(journal)
+            current = subprocess.run(
+                ["systemctl", "show", "schulpilot-backup.service", "--value", "-p", "InvocationID"],
+                check=True, capture_output=True, text=True, timeout=10,
+            ).stdout.strip()
+            if current != invocation:
+                raise RuntimeError("Pre-deployment backup invocation changed during verification")
             return
         # The first call joined an older successful execution. Start one new
         # backup, then require proof it crossed the original watermark.
