@@ -376,6 +376,45 @@ void main() {
     await tester.pumpWidget(SizedBox());
   });
 
+  testWidgets(
+    'changed browser account can be signed out from the visible menu',
+    (tester) async {
+      final requests = <String>[];
+      final state = AppState(
+        api: Api(
+          base: 'https://example.invalid/api',
+          client: MockClient((request) async {
+            requests.add('${request.method} ${request.url.path}');
+            if (request.url.path == '/api/auth/logout') {
+              return http.Response(
+                '{"detail":"Das Konto auf diesem Gerät hat sich geändert. Bitte melde dich erneut an."}',
+                409,
+                headers: {
+                  'content-type': 'application/json',
+                  'x-schulpilot-account-changed': '1',
+                },
+              );
+            }
+            return _response({'available': false});
+          }),
+        ),
+      )..user = _user('child');
+      final router = await _open(tester, state);
+      requests.clear();
+      await tester.tap(find.byKey(const ValueKey('account-menu')));
+      await tester.pumpAndSettle();
+      expect(find.text('Abmelden'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('account-logout')));
+      await tester.pumpAndSettle();
+      expect(requests, ['POST /api/auth/logout']);
+      expect(state.user, isNull);
+      expect(router.routeInformationProvider.value.uri.path, '/login');
+      expect(find.text('Ziel /login'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
   for (final sameAccount in [false, true]) {
     for (final status in [200, 401]) {
       test(

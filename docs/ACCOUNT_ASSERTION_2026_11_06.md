@@ -39,3 +39,17 @@ Demo-Anmeldungen sowie direkte Browsernavigationen erhalten dadurch keine
 serverseitige Anmeldegeneration. Die Einführung dieser begrenzten Prüfung
 schließt deshalb weder die in `WEB_LOGIN_COOKIE_RACE_2026_11_06.md`
 beschriebene Ursache noch den gesamten Roadmap-Hauptpunkt.
+
+Bei `/notifications/config` fällt nur eine fehlende oder ungültige Sitzung
+(401) auf die öffentliche Konfiguration zurück. Ein Konto-Konflikt (409) darf
+insbesondere die Push-Freigabeprüfung eines Kindes nicht umgehen. Ein
+synthetischer Test prüft Kind ohne Freigabe, falschen Kontoheader und anonymen
+Zugriff. Die Foto-Annahme weist einen falschen Kontoheader bereits vor der
+Verarbeitung zurück; der Test prüft unveränderte Material- und Auftragszahlen.
+
+Der untersuchte Eltern-Auftragseditor behält Eingaben nach dem 409 sichtbar im
+offenen Formular und fordert zum Kopieren vor der erneuten Anmeldung auf. Das
+Kontomenü bietet anschließend einen erreichbaren Abmeldeweg. Das ist kein
+kontenübergreifend gespeicherter Entwurf: Beim ausdrücklichen Abmelden gelten
+weiterhin die bestehenden Datenschutzregeln zum Löschen lokaler Daten. Andere
+Editoren sind durch diesen einzelnen Test nicht auf Eingabenerhalt geprüft.

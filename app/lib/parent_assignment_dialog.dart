@@ -372,7 +372,11 @@ class _AssignmentEditorState extends State<_AssignmentEditor> {
       setState(() {
         uncertain = uncertain || ambiguous;
         pendingBody = uncertain ? Json.from(body) : null;
-        error = e is ApiError ? e.message : 'Die Speicherung ist noch nicht bestätigt. Deine Eingaben bleiben erhalten.';
+        error = e is ApiError && e.code == 'account_changed'
+            ? 'Das Konto hat sich geändert. Deine Eingaben stehen noch hier. Kopiere sie, bevor du dich erneut anmeldest.'
+            : e is ApiError
+            ? e.message
+            : 'Die Speicherung ist noch nicht bestätigt. Deine Eingaben bleiben erhalten.';
         if (!uncertain) requestKey = homeworkKey();
       });
       reveal(() => feedback.currentContext);

@@ -299,4 +299,48 @@ void main() {
     await tester.pumpAndSettle();
     expect(f.requests.last.url.queryParameters.containsKey('q'), isFalse);
   });
+
+  testWidgets(
+    'account conflict keeps an unsent assignment visible for copying',
+    (tester) async {
+      final f = cards.Fixture();
+      f.state.user!['families'] = [
+        {'id': 'family', 'permission': 'owner'},
+      ];
+      f.state.familyId = 'family';
+      (f.plan['child'] as Map)['id'] = 'child';
+      f.respond = (request) async {
+        if (request.method == 'POST' &&
+            request.url.path.endsWith('/assignments')) {
+          return http.Response(
+            '{"detail":"Das Konto auf diesem Gerät hat sich geändert. Bitte melde dich erneut an."}',
+            409,
+            headers: {
+              'content-type': 'application/json',
+              'x-schulpilot-account-changed': '1',
+            },
+          );
+        }
+        return null;
+      };
+      await f.mount(tester, '/parent-plan/child?ansicht=topics');
+      await tester.ensureVisible(find.text('Eigenes Thema setzen'));
+      await tester.tap(find.text('Eigenes Thema setzen'));
+      await tester.pumpAndSettle();
+      final fields = find.byType(TextFormField);
+      await tester.enterText(fields.at(0), 'Mathematik');
+      await tester.enterText(fields.at(1), 'Künstliches Thema');
+      await tester.ensureVisible(find.text('Speichern').last);
+      await tester.tap(find.text('Speichern').last);
+      await tester.pumpAndSettle();
+      expect(
+        find.textContaining('Kopiere sie, bevor du dich erneut anmeldest.'),
+        findsOneWidget,
+      );
+      expect(find.text('Künstliches Thema'), findsOneWidget);
+      expect(find.text('Mathematik'), findsWidgets);
+      expect(find.text('Ein Lernziel vorgeben'), findsOneWidget);
+      expect(f.requests.where((r) => r.method == 'POST'), hasLength(1));
+    },
+  );
 }
