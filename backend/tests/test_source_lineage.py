@@ -271,6 +271,7 @@ def test_formula_crop_by_stable_block_id_is_private_revision_bound_get_only(api,
 
 
 def test_normalized_output_bound_is_checked_before_disk_or_material_write(api, household, monkeypatch):
+    from schulpilot import photo_isolation
     from test_providers import configured
 
     user, child = household
@@ -280,14 +281,20 @@ def test_normalized_output_bound_is_checked_before_disk_or_material_write(api, h
     folder = settings.data_dir / "uploads"
     before_files = set(folder.iterdir()) if folder.exists() else set()
 
-    def oversized(self, target, *args, **kwargs):
-        target.write(b"x" * (10 * 1024 * 1024 + 1))
-
-    monkeypatch.setattr(Image.Image, "save", oversized)
+    # Simulate the isolated decoder's framed response; monkeypatching Pillow in
+    # this process cannot alter the separate decoder process.
+    payload = b'{"status":"output_too_large"}'
+    seen = []
+    def oversized(raw):
+        seen.append(raw)
+        return len(payload).to_bytes(4, "big") + payload
+    monkeypatch.delenv("PHOTO_TEST_SOCKET", raising=False)
+    monkeypatch.setattr(photo_isolation, "_isolated_test_result", oversized)
     response = api.post(
         f"/api/children/{child['id']}/materials", files={"file": ("synthetic.png", out.getvalue(), "image/png")}
     )
     assert response.status_code == 413, response.text
+    assert seen == [out.getvalue()]
     assert (set(folder.iterdir()) if folder.exists() else set()) == before_files
     with DB() as db:
         assert db.scalar(select(func.count()).select_from(Material)) == 0

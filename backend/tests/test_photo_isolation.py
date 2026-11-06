@@ -1,5 +1,9 @@
 import io
+import json
+import random
 import subprocess
+import sys
+from pathlib import Path
 
 import pytest
 from fastapi import HTTPException
@@ -62,6 +66,30 @@ def test_decompression_bomb_is_rejected_by_decoder():
     with pytest.raises(HTTPException) as exc:
         normalize_photo(output.getvalue())
     assert exc.value.status_code == 422
+
+
+def test_real_decoder_rejects_oversized_normalized_jpeg():
+    # A valid, bounded input can grow past the output limit when normalized to
+    # quality 95. Check the actual encoding separately so a status-only fake or
+    # a change to the output limit cannot make this regression pass by itself.
+    pixels = random.Random(1304).randbytes(3200 * 3200 * 3)
+    image = Image.frombytes('RGB', (3200, 3200), pixels)
+    del pixels
+    source = io.BytesIO()
+    image.save(source, format='JPEG', quality=80)
+    image.close()
+    raw = source.getvalue()
+    assert 0 < len(raw) <= 10 * 1024 * 1024
+    with Image.open(io.BytesIO(raw)) as decoded:
+        output = io.BytesIO()
+        decoded.save(output, format='JPEG', quality=95)
+        assert len(output.getbuffer()) > 10 * 1024 * 1024
+    decoder = Path(__file__).resolve().parents[1] / 'schulpilot/photo_decoder.py'
+    result = subprocess.run([sys.executable, '-I', str(decoder)], input=raw, capture_output=True,
+                            timeout=30, check=True, env={'LANG': 'C.UTF-8', 'PATH': '/usr/bin:/bin'})
+    length = int.from_bytes(result.stdout[:4], 'big')
+    assert json.loads(result.stdout[4:4 + length]) == {'status': 'output_too_large'}
+    assert result.stdout[4 + length:] == b''
 
 
 def test_invalid_photo_and_decoder_failure_are_safe(monkeypatch):
