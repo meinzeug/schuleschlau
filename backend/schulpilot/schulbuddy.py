@@ -12,6 +12,7 @@ import re
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from pydantic import ValidationError
 from sqlalchemy import delete, func, select, update
+from sqlalchemy.exc import OperationalError
 
 from .db import (
     DB,
@@ -59,6 +60,43 @@ def protocol_fields(value):
         if result.get(key) is None:
             result.pop(key, None)
     return result
+
+
+def lock_sender_after_child(db, user_id, session_id):
+    """Serialize a tutor write without a User/Session lock-order cycle."""
+    # Inserting a turn takes an implicit User FK KEY SHARE. Account operations
+    # take User FOR UPDATE before revoking Session. If we acquired Session
+    # first, that late FK lock could deadlock with the account operation.
+    # Acquire a compatible read lock on User first, but do not wait while
+    # holding Child. SHARE additionally prevents a concurrent disable update.
+    if db.bind.dialect.name == "postgresql":
+        try:
+            db.scalar(select(User.id).where(User.id == user_id).with_for_update(read=True, nowait=True))
+        except OperationalError as error:
+            if getattr(error.orig, "sqlstate", None) != "55P03":
+                raise
+            db.rollback()
+            raise HTTPException(409, "Eine andere Kontoaktion läuft. Bitte erneut versuchen.") from None
+    from .security import lock_session_after_child
+
+    return lock_session_after_child(db, user_id, session_id)
+
+
+def lock_provider_for_commit(db):
+    """Make a final provider check atomic with this short database commit.
+
+    This comes after reservation/settlement, not before usage-bucket writes,
+    matching the billing path. Never keep the lock over a provider call.
+    """
+    if db.bind.dialect.name == "postgresql":
+        try:
+            list(db.scalars(select(ProviderConfig.id).where(ProviderConfig.id.in_((1, 2)))
+                            .order_by(ProviderConfig.id).with_for_update(nowait=True)))
+        except OperationalError as error:
+            if getattr(error.orig, "sqlstate", None) != "55P03":
+                raise
+            db.rollback()
+            raise HTTPException(409, "Die KI-Einstellung wird gerade geändert. Bitte später erneut versuchen.") from None
 
 
 def resolve(db, p, scope):
@@ -508,6 +546,10 @@ def ask(data: BuddyQuestion, idempotency_key: str = Header(..., min_length=16, m
     db.execute(update(Child).where(Child.id == child.id).values(grade=Child.grade))
     db.expire_all()
     child = db.get(Child, child.id, populate_existing=True)
+    # Family-call acceptance takes Session before Child. Use the existing
+    # non-waiting guard after Child so concurrent logout/revocation either
+    # commits first or waits until this reservation has committed.
+    lock_sender_after_child(db, p.user.id, p.session.id)
     session = db.get(Session, p.session.id, populate_existing=True)
     user = db.get(User, p.user.id, populate_existing=True)
     if (not session or session.revoked or session.expires <= now() or now() - session.seen > 7 * 86400
@@ -548,6 +590,13 @@ def ask(data: BuddyQuestion, idempotency_key: str = Header(..., min_length=16, m
     db.add_all([job, turn])
     db.flush()
     reserve(db, db.get(Family, child.family_id), child.id, job.id, "schulbuddy")
+    # Reservation has already acquired its usage buckets. Recheck the exact
+    # previously validated route only after securing the provider rows, so a
+    # concurrent stop/edit either wins or follows this short commit.
+    lock_provider_for_commit(db)
+    final_config = configured(db)
+    if provider_snapshot(db, final_config) != job_payload["model_binding"]:
+        raise HTTPException(409, "Die KI-Einstellung wurde geändert. Bitte erneut versuchen.")
     audit(db, p.user.id, "schulbuddy.question", turn.id)
     db.commit()
     return public_turn(db, turn)
@@ -684,6 +733,10 @@ def process(job_id):
                 .order_by(LearningUnit.id).with_for_update().execution_options(populate_existing=True))) \
                 if payload["role"] == "child" and not payload.get("current_learning_asset") and not payload.get("archived_question") else []
             db.execute(update(Child).where(Child.id == job.child_id).values(grade=Child.grade))
+            # Serialize publication and help accounting with revocation. The
+            # provider call is already over; a conflict must fail closed and
+            # retain its potentially unknown cost rather than retrying it.
+            lock_sender_after_child(db, turn.user_id, turn.session_id)
             p, child = authority(db, turn)
             config = configured(db, verify_catalog=True)
             if (scope_context(db, p, BuddyScope(**turn.scope))[6] != job.payload["signature"]
@@ -692,9 +745,23 @@ def process(job_id):
                 raise ProviderError("Bereich, Rechte, Lernbelege oder Modellbindung wurden während der Antwort geändert.")
             turn.status, turn.reply, turn.error = "ready", reply, None
             job.status, job.finished, job.result = "completed", int(now()), {"question_id": turn.id}
+            # Claim the Job before Usage, like the interruption reaper. Then
+            # suppress autoflush until the provider NOWAIT lock: settle can
+            # mark ProviderConfig dirty for a price/fee overrun, and an
+            # implicit UPDATE here could otherwise wait while holding Usage.
+            db.flush()
             usage = db.scalar(select(Usage).where(Usage.job_id == job.id))
-            if usage:
-                settle(db, usage, result)
+            with db.no_autoflush:
+                if usage:
+                    settle(db, usage, result)
+                # Never hold provider rows while waiting for external inference.
+                # Usage locks come first; a conflict rolls everything back.
+                lock_provider_for_commit(db)
+            # Preserve a pending cost-overrun stop before refreshing provider
+            # rows in configured(); an overrun then fails the normal recheck.
+            db.flush()
+            if provider_snapshot(db, configured(db)) != job.payload["model_binding"]:
+                raise ProviderError("Die KI-Einstellung wurde während der Antwort geändert.")
             if p.user.role == "child":
                 record_help(db, turn, ongoing_units, refs, reply,
                             feedback_only=payload.get("current_question", {}).get("feedback_pending", False),

@@ -31,6 +31,29 @@ REQUIRED_LIFECYCLE_TESTS = {
     for cleanup in (True, False)
     for when in ("during_provider", "after_output")
     for target in ("child", "family")
+} | {
+    ("backend.tests.test_schulbuddy_session_serialization", name)
+    for name in (
+        "test_held_revocation_cannot_enqueue_a_tutor_request",
+        "test_held_revocation_cannot_publish_a_late_tutor_reply[None]",
+        "test_held_revocation_cannot_publish_a_late_tutor_reply[42]",
+        "test_tutor_commit_wins_before_real_session_revocation[enqueue]",
+        "test_tutor_commit_wins_before_real_session_revocation[publish]",
+        "test_family_call_session_first_conflicts_without_deadlock",
+        "test_user_lock_busy_fails_closed_before_enqueuing_parent_request",
+        "test_admin_disabling_parent_does_not_deadlock_with_parent_tutor",
+    )
+} | {
+    ("backend.tests.test_schulbuddy_config_serialization", name)
+    for name in (
+        "test_notstop_committed_after_snapshot_discards_reply",
+        "test_locked_provider_row_fails_closed_after_provider_call",
+        "test_locked_provider_row_rolls_back_new_reservation",
+        "test_real_emergency_stop_waits_only_for_short_final_commit",
+        "test_overrun_conflict_retains_exact_cost_and_sets_stop[provider]",
+        "test_overrun_conflict_retains_exact_cost_and_sets_stop[child_fee]",
+        "test_known_cost_and_fee_without_prior_balance_remain_successful",
+    )
 }
 
 

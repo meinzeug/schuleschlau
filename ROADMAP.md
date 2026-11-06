@@ -1870,6 +1870,20 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Schulbuddy als sicheren kontextbezogenen Lernbegleiter prüfen**
 
+  - [x] **Schulbuddy bei gleichzeitigem Gerätewiderruf serialisieren.**
+    Auftragsreservierung und Veröffentlichung verwenden nach der Kindersperre
+    den bestehenden nichtwartenden Session-Guard. Ein vor der Anbieterprüfung
+    widerrufener Zugang sendet keinen Auftrag; bei Konflikt nach dem Versand
+    werden Antwort und Hilfebeleg verworfen und unbekannte Kosten bleiben
+    reserviert. Beide Transaktionsrichtungen und die Sperrreihenfolge beim
+    Familienanruf und der Admin-Kontosperre sind mit künstlichen PostgreSQL-Fällen geprüft.
+    Auch Providerrevision und Notstopp werden vor dem Commit unter kurzer
+    nichtwartender Zeilensperre nachgeprüft; echte Inferenz hält diese Sperre
+    nicht. Der parallele Widerruf der Installationsfreigabe bleibt gesondert
+    offen. Eine externe
+    Anfrage, die im Moment des Widerrufs bereits läuft, lässt sich nicht
+    nachträglich zurückholen. [Prüfung und Grenzen](docs/SCHULBUDDY_SESSION_SERIALIZATION_2026_11_06.md).
+
   - [x] **Laufende Antworten an die sichtbare Aufgabenrevision binden.**
     Änderungen an Wortlaut, Optionen oder Lösung verwerfen verspätete
     Tutorantworten für aktive und archivierte Aufgaben. Künstliche SQLite- und

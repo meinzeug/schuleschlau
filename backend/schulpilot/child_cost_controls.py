@@ -104,7 +104,13 @@ def usage_quote(usage, fallback=None, balance=None):
 
 def sync_balance(db, usage, fallback=None):
     """One balance per original Usage; recomputation cannot double-book money."""
-    row = db.get(UsageCostBalance, usage.id)
+    # With autoflush intentionally disabled, a balance created earlier in the
+    # same settlement is not yet in the database or the identity map. Reuse it
+    # instead of enqueueing a second INSERT with the same primary key.
+    row = next((candidate for candidate in db.new
+                if isinstance(candidate, UsageCostBalance) and candidate.usage_id == usage.id), None)
+    if row is None:
+        row = db.get(UsageCostBalance, usage.id)
     quote = usage_quote(usage, fallback, row)
     if not quote:
         return None
