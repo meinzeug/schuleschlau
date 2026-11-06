@@ -2,10 +2,10 @@
 import threading
 
 import pytest
-from sqlalchemy import func, select
 from schulpilot import school_preparation, worker
 from schulpilot.db import DB, Attempt, Job, LearningUnit, Usage, engine
 from schulpilot.providers import Result
+from sqlalchemy import func, select
 from test_package_parts_worker import artificial_day, bounded_output, preparation, snapshot
 
 

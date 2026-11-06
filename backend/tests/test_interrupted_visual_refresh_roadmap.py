@@ -2,15 +2,15 @@
 import threading
 
 import pytest
-from sqlalchemy import select
 from schulpilot import visual_jobs, worker
-from schulpilot.db import DB, Job, Attempt, engine
+from schulpilot.db import DB, Attempt, Job, engine
 from schulpilot.visual_reference_models import UnitVisualSnapshot
-from test_visual_jobs import generated_visual_unit, legacy, start  # noqa: F401
+from sqlalchemy import select
+from test_visual_jobs import generated_visual_unit, legacy, start  # noqa: F401  (pytest fixtures)
 
 
 @pytest.mark.skipif(engine.dialect.name != 'postgresql', reason='real row locking requires PostgreSQL')
-def test_expired_job_is_rechecked_before_a_late_graphic_is_published(api, legacy, monkeypatch):
+def test_expired_job_is_rechecked_before_a_late_graphic_is_published(api, legacy, monkeypatch):  # noqa: F811
     unit_id, _, _, calls = legacy
     job_id = start(api, unit_id).json()['id']
     with DB.begin() as db:

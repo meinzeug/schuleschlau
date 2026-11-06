@@ -20,9 +20,9 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from urllib.parse import urlparse
 
+import httpx
 from conftest import HEADERS, create_child, register
 from fastapi.testclient import TestClient
-import httpx
 from PIL import Image
 from schulpilot import worker
 from schulpilot.db import DB, Job, Material, Usage, engine

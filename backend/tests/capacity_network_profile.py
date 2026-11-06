@@ -7,7 +7,6 @@ import threading
 import time
 
 import uvicorn
-
 from capacity_worker_profile import run_worker_profile
 from schulpilot.main import app
 

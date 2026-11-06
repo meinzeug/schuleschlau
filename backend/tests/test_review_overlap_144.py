@@ -2,7 +2,6 @@
 from types import SimpleNamespace
 
 import pytest
-
 from schulpilot.material_review import _protected_readings
 
 

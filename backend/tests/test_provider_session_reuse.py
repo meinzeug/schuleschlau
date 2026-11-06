@@ -3,7 +3,7 @@ import json
 
 import pytest
 from schulpilot.config import runtime_settings
-from schulpilot.db import Child, DB, Installation, ProviderConfig
+from schulpilot.db import DB, Child, Installation, ProviderConfig
 from schulpilot.providers import ProviderError, external_allowed
 from schulpilot.security import encrypt
 from test_school_day import allow_synthetic_test_transport

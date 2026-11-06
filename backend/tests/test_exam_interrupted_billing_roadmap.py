@@ -2,15 +2,15 @@
 import uuid
 
 import pytest
-from sqlalchemy import select
 from schulpilot import exam_review
 from schulpilot.db import DB, Job, Usage
-from test_exam_reviews import paper, transport  # noqa: F401
+from sqlalchemy import select
+from test_exam_reviews import paper, transport  # noqa: F401  (pytest fixtures)
 
 
 @pytest.mark.parametrize('path', ['analysis', 'practice'])
 @pytest.mark.parametrize('state', ['queued', 'running'])
-def test_exam_cancellation_settles_once_without_assuming_running_call_is_free(paper, path, state):
+def test_exam_cancellation_settles_once_without_assuming_running_call_is_free(paper, path, state):  # noqa: F811
     with DB.begin() as db:
         payload = {'exam_id': paper['exam_id']} if path == 'analysis' else {
             'exam_review_practice': {'exam_id': paper['exam_id']}}
@@ -40,8 +40,9 @@ def test_exam_cancellation_settles_once_without_assuming_running_call_is_free(pa
             assert usage.cost_micros == 0
 
 
-def test_running_exam_provider_result_after_source_cancellation_stays_discarded(paper, transport):
+def test_running_exam_provider_result_after_source_cancellation_stays_discarded(paper, transport):  # noqa: F811
     import threading
+
     from schulpilot.worker import claim
     from test_exam_reviews import analyze
 

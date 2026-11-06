@@ -219,6 +219,7 @@ def test_bounded_transport_is_diagnostic_only_and_outputs_stay_server_private(ap
 def test_deleted_source_between_output_and_finalization_stays_failed(api, household, monkeypatch, cost):
     """Simulate erasure exactly after the private output transaction commits."""
     from contextlib import contextmanager
+
     from schulpilot import db as database
     from schulpilot.db import Child
     from sqlalchemy import update
@@ -273,6 +274,7 @@ def test_deleted_source_between_output_and_finalization_stays_failed(api, househ
 @pytest.mark.parametrize("cleanup", [True, False])
 def test_child_or_family_erased_during_diagnosis_keeps_no_private_output(api, household, monkeypatch, target_kind, when, cleanup):
     from contextlib import contextmanager
+
     from schulpilot import db as database
     from schulpilot.db import Child
     from sqlalchemy import update
@@ -329,6 +331,7 @@ def test_child_or_family_erased_during_diagnosis_keeps_no_private_output(api, ho
 
 def test_job_removed_but_usage_retained_is_settled_without_private_output(api, household, monkeypatch):
     from contextlib import contextmanager
+
     from schulpilot import db as database
 
     _, _, mid, gid, _ = authorized(household)
