@@ -23,8 +23,23 @@ try {
   for(let n=0;n<100&&!waiting;n++) {waiting=(await (await context.request.get(input.base+'/__race/status')).json()).pending;if(!waiting)await new Promise(r=>setTimeout(r,50));}
   assert(waiting,'real old logout must reach its held response');
   const current=await login(second,'synthetic-new-parent');assert.equal(current.status,200);assert.equal(current.body.user.id,input.new_user);
+  const flow = await second.evaluate(async () => {
+    const headers={'Content-Type':'application/json','X-Schulpilot-Request':'1'};
+    const prepare=await fetch('/api/auth/google/prepare',{method:'POST',headers,body:'{}'});
+    if (!prepare.ok) return {status:prepare.status};
+    const body=await prepare.json();
+    const start=await fetch('/api/auth/google/start',{method:'POST',headers,body:JSON.stringify({request:body.request})});
+    return {status:start.status, id:body.flow_id};
+  });
+  assert.equal(flow.status,200,'new tab started its own local Google flow');
   await context.request.get(input.base+'/__race/release');
   assert.equal(await first.evaluate(()=>window.pendingLogout),200);
+  const google=await second.evaluate(async id=>{
+    const r=await fetch('/api/auth/google/result',{method:'POST',headers:{'Content-Type':'application/json','X-Schulpilot-Request':'1'},body:JSON.stringify({flow_id:id})});
+    return {status:r.status,body:await r.json()};
+  },flow.id);
+  assert.equal(google.status,200,'old logout must not erase the new flow cookie');
+  assert.equal(google.body.status,'pending');
   const me=await second.evaluate(async ()=>{const r=await fetch('/api/auth/me');return {status:r.status,body:await r.json()};});
   assert.equal(me.status,200,'old logout response must not erase the new login');assert.equal(me.body.id,input.new_user);
   const out=await second.evaluate(async ()=>{const r=await fetch('/api/auth/logout',{method:'POST',headers:{'X-Schulpilot-Request':'1'}});return r.status;});

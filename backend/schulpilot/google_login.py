@@ -301,6 +301,9 @@ def revoke_previous(db, flow):
 
 
 def finish(db, flow):
+    # Consume the server-side binding instead of clearing the shared browser
+    # cookie in the response: another tab may already have started a new flow.
+    # The invalidated HttpOnly cookie then expires naturally within ten minutes.
     result = db.execute(
         update(GoogleFlow)
         .where(GoogleFlow.id == flow.id, GoogleFlow.phase == "verified")
@@ -382,7 +385,6 @@ def result(data: Result, request: Request, response: Response, db=Depends(get_db
         except IntegrityError:
             db.rollback()
             raise HTTPException(409, FAILURES["link"]) from None
-        response.delete_cookie(COOKIE, path=COOKIE_PATH)
         return {"status": "linked"}
     created_parent = False
     if identity:
@@ -444,11 +446,9 @@ def result(data: Result, request: Request, response: Response, db=Depends(get_db
             token,
         )
         db.commit()
-        response.delete_cookie(COOKIE, path=COOKIE_PATH)
         return {"status": "verification_required", "access_notice": registration_notice(db)}
     revoke_previous(db, flow)
     audit(db, user.id, "account.google_login", user.id)
-    response.delete_cookie(COOKIE, path=COOKIE_PATH)
     login = auth.create_session(
         db, user, response, request, "Android · Google" if flow.platform == "native" else "Browser · Google")
     return {"status": "authenticated", **login,

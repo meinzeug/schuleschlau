@@ -283,7 +283,9 @@ def logout(response: Response, p=Depends(authenticated), db=Depends(get_db)):
     # Do not clear sp_session here: this response can arrive after a new login
     # in another tab and would erase its newer cookie. The revoked value cannot
     # authenticate and expires normally unless replaced by a later login.
-    response.delete_cookie("sp_google", path="/api/auth/google")
+    # Likewise, a late logout response must not erase a Google flow started in
+    # another tab after this request. Its old flow was deleted above and the
+    # HttpOnly cookie has a short expiry; it is not itself an account session.
     return {"message": "Abgemeldet."}
 
 

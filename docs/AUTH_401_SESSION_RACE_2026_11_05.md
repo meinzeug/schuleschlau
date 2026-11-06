@@ -39,10 +39,24 @@ angemeldet blieb. Ein weiterer Logout ergab anschließend bei `/auth/me` 401.
 Der Browserlauf verwendet isoliertes SQLite, keine produktiven Konten und keine
 Flutter-Oberfläche. Login und Widerruf wurden zusätzlich in API-Tests geprüft.
 
-**Weiter offen:** Ein älterer Logout kann noch den Cookie eines neu begonnenen
-Google-Anmeldeflows löschen; umgekehrt darf ein laufender, ungebundener alter
-Flow durch einen Logout nicht unbemerkt fortbestehen. Beide Fälle benötigen
-eine gesonderte Lösung und echte Flow-Racetests. Bereits gestartete native
+**Google-Flow-Cookie, 06.11.2026:** Abmeldung und Google-Abschluss senden
+keinen Löschheader für das gemeinsam genutzte `sp_google`-Cookie mehr. Ein
+abgeschlossener Flow wird stattdessen serverseitig einmalig verbraucht und
+seine Browserbindung entfernt; bei Logout werden die an die abgemeldete
+Sitzung gebundenen Flows gelöscht. Der alte HttpOnly-Wert läuft nach
+höchstens zehn Minuten ab und ersetzt keine Sitzung. Ein isolierter
+Chrome-Test hält die Logoutantwort zurück, startet in einem anderen Tab nach
+einem neuen Login einen neuen Google-Flow und prüft nach Freigabe der alten
+Antwort seinen unveränderten Pending-Status. Es werden kein echtes
+Google-Konto und kein externer Anbieter verwendet. API-Tests prüfen zusätzlich
+die Löschheader bei Login-, Verknüpfungs- und Bestätigungsergebnis sowie die
+Verweigerung eines verbrauchten beziehungsweise beim Logout gelöschten Flows.
+
+**Weiter offen:** Ein laufender, ursprünglich ohne Sitzung gestarteter alter
+Flow kann durch einen späteren Logout nicht anhand einer Sitzung gelöscht
+werden. Auch verspätete erfolgreiche Loginantworten beziehungsweise Start- und
+Abschlussantworten mehrerer Google-Flows benötigen gesonderte Raceprüfungen.
+Bereits gestartete native
 Ressourcenbereinigungen lassen sich durch diese nachgelagerten Checks nicht
 rückwirkend abbrechen. Die Änderung garantiert weder die Handhabung aller
 parallelen Loginantworten noch einen geräteübergreifenden Widerrufshinweis.

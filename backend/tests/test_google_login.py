@@ -207,7 +207,9 @@ def test_existing_email_never_links_without_password(api, mailbox, google):
     )
     linked, state = begin(api, google, intent="link", password="secure-parent-pass-123")
     callback(api, state)
-    assert result(api, linked).json()["status"] == "linked"
+    linked_response = result(api, linked)
+    assert linked_response.json()["status"] == "linked"
+    assert not any(value.startswith("sp_google=") for value in linked_response.headers.get_list("set-cookie"))
     assert api.get("/api/auth/google/identity").json()["linked"]
     assert api.request("DELETE", "/api/auth/google/identity", json={"password": "wrong"}).status_code == 403
     assert (
@@ -361,6 +363,7 @@ def test_third_party_google_email_needs_actual_mailbox_confirmation(api, mailbox
     flow, state = begin(api, google)
     callback(api, state)
     r = result(api, flow, registration=registration())
+    assert not any(value.startswith("sp_google=") for value in r.headers.get_list("set-cookie"))
     assert r.json() == {"status": "verification_required", "access_notice":
         "Der Lernzugang für neue Familien wird noch vorbereitet. Neue KI-Aufträge sind bis zur Freigabe einer Testphase oder eines bezahlten Tarifs gesperrt."}
     assert "token" not in r.json()
@@ -372,3 +375,33 @@ def test_third_party_google_email_needs_actual_mailbox_confirmation(api, mailbox
     flow, state = begin(api, google)
     callback(api, state)
     assert result(api, flow).json()["status"] == "authenticated"
+
+
+def test_logout_does_not_clear_a_newer_google_flow_cookie(api, mailbox, google):
+    """A delayed logout response must not erase another tab's newer flow."""
+    register(api, mailbox)
+    old_flow, _ = begin(api, google, native=False)
+    logout = api.post('/api/auth/logout')
+    assert logout.status_code == 200
+    assert not any(value.startswith('sp_google=') for value in logout.headers.get_list('set-cookie'))
+    # The earlier flow is invalid on the server even though its browser cookie
+    # expires naturally. A later anonymous flow can proceed normally.
+    assert result(api, old_flow).status_code == 400
+    api.headers.pop('Authorization', None)
+    new_flow, state = begin(api, google, native=False)
+    assert callback(api, state).status_code == 303
+    assert result(api, new_flow).json()['status'] == 'registration_required'
+
+
+def test_finished_google_response_does_not_clear_a_later_flow_cookie(api, google):
+    """A held completion response must not remove the next tab's nonce."""
+    old_flow, state = begin(api, google, native=False)
+    callback(api, state)
+    finished = result(api, old_flow, registration=registration())
+    assert finished.status_code == 200
+    assert not any(value.startswith('sp_google=') for value in finished.headers.get_list('set-cookie'))
+    # Consumption, not deletion of a shared browser cookie, prevents replay.
+    assert result(api, old_flow).status_code == 400
+    new_flow, state = begin(api, google, native=False)
+    callback(api, state)
+    assert result(api, new_flow).json()['status'] == 'authenticated'

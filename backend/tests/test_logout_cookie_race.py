@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pytest
 import uvicorn
-from schulpilot import main
+from schulpilot import google_login, main
 from schulpilot.config import settings
 from schulpilot.db import DB, Child, User
 from schulpilot.main import app
@@ -55,6 +55,11 @@ def test_isolated_logout_cookie_cannot_clear_a_new_web_login(household, tmp_path
     sock.bind(('127.0.0.1', 0))
     sock.listen(128)
     port = sock.getsockname()[1]
+    # A local-only provider stub allows the browser to start a real OIDC flow
+    # without opening Google or sending a synthetic identity off the machine.
+    monkeypatch.setattr(google_login, 'client_config', lambda db: {
+        'client_id': '123456-synthetic.apps.googleusercontent.com',
+    })
     monkeypatch.setattr(main, 'settings', replace(settings, public_url=f'http://127.0.0.1:{port}'))
     server = uvicorn.Server(uvicorn.Config(isolated, log_level='error', lifespan='off'))
     thread = threading.Thread(target=server.run, kwargs={'sockets': [sock]}, daemon=True)

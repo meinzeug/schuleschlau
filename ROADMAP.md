@@ -2382,6 +2382,15 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Echtzeitstatus gezielt und zuverlässig bereitstellen**
 
+  - [x] **Neuen Google-Flow vor verspätetem Cookie-Löschen schützen.**
+    06.11.2026: Logout und Abschluss löschen das gemeinsame Google-Flow-Cookie
+    nicht mehr per verzögerbarer Antwort; serverseitiger Verbrauch und die
+    sitzungsgebundene Logout-Löschung bleiben wirksam. Ein isolierter
+    Zwei-Tab-Chrometest prüft einen neu gestarteten Flow nach verzögerter
+    Logoutantwort, API-Fälle prüfen die Ergebnisarten und Replay. Ungebundene
+    alte Flows und weitere Login-Antwortrennen bleiben offen.
+    [Prüfung und Grenzen](docs/AUTH_401_SESSION_RACE_2026_11_05.md).
+
   - [x] **Späte 401-Antworten an die ursprüngliche Sitzung binden.**
     05.11.2026, Coding-AI, Änderungen auf Basis `f38673a` und `d02c48b`:
     JSON-, Foto-, PDF-, Datei- und Avataranfragen löschen eine spätere
