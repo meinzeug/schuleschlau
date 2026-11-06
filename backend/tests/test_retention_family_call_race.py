@@ -65,7 +65,9 @@ def test_family_retention_defers_during_real_call_and_flushes_previous_outbox(
                 assert db.get(SchoolGrade, target) is None
                 event = db.scalar(select(ErasureRequest).where(ErasureRequest.target == target))
                 assert event is not None and event.scope == "grade" and event.published
-            assert stale.exists(), "Deferred cleanup must not unlink the export"
+            # The separate general retention transaction has succeeded; its
+            # own old-export cleanup is independent of the deferred family.
+            assert not stale.exists()
         finally:
             release.set()
         response = accepted.result(timeout=15)
@@ -73,8 +75,8 @@ def test_family_retention_defers_during_real_call_and_flushes_previous_outbox(
         # longer authorized. What matters is a clean response, not a deadlock.
         assert response.status_code == 409, response.text
         assert "bereits beendet" in response.json()["detail"]
-    # A later scheduled pass may remove the expired family and export only
-    # after the concurrent operation releases its database locks.
+    # A later scheduled pass removes the family after the concurrent
+    # operation releases its database locks.
     worker.maintenance()
     with DB() as db:
         assert db.get(Family, family_id) is None
@@ -106,3 +108,60 @@ def test_unexpected_retention_error_publishes_earlier_outbox_and_preserves_expor
         event = db.scalar(select(ErasureRequest).where(ErasureRequest.target == target))
         assert event is not None and event.published
     assert stale.exists()
+
+
+def test_family_retention_batches_rotate_past_busy_family_and_publish_each(household, monkeypatch):
+    identifiers = ["f" + f"{number:031x}" for number in range(8)]
+    with DB.begin() as db:
+        db.add_all([Family(id=identifier, name="Synthetic", synthetic=True, expires=int(now()) - 1)
+                    for identifier in identifiers])
+    monkeypatch.setattr(worker, "_expired_family_cursor", "")
+    monkeypatch.setattr(worker, "_FAMILY_RETENTION_BATCH", 3)
+    original = worker._lock_expiring_family
+    busy = True
+
+    def collision(db, family_id):
+        if busy and family_id == identifiers[0]:
+            raise worker._MaintenanceDeferred
+        return original(db, family_id)
+
+    monkeypatch.setattr(worker, "_lock_expiring_family", collision)
+    for expected in (6, 3, 1):
+        worker._expire_families()
+        with DB() as db:
+            remaining = list(db.scalars(select(Family.id).where(Family.id.in_(identifiers))))
+            assert len(remaining) == expected
+            assert identifiers[0] in remaining
+            events = list(db.scalars(select(ErasureRequest).where(ErasureRequest.target.in_(identifiers))))
+            assert len(events) == 8 - expected and all(event.published for event in events)
+    busy = False
+    worker._expire_families()
+    with DB() as db:
+        assert not list(db.scalars(select(Family.id).where(Family.id.in_(identifiers))))
+        events = list(db.scalars(select(ErasureRequest).where(ErasureRequest.target.in_(identifiers))))
+        assert len(events) == 8 and all(event.published for event in events)
+
+
+def test_family_retention_commit_survives_journal_flush_failure(household, monkeypatch):
+    family_id = "f" * 31 + "0"
+    with DB.begin() as db:
+        db.add(Family(id=family_id, name="Synthetic", synthetic=True, expires=int(now()) - 1))
+    monkeypatch.setattr(worker, "_expired_family_cursor", "")
+    original = erasure.flush_journal
+
+    def fail_flush():
+        raise OSError("synthetic journal interruption")
+
+    monkeypatch.setattr(erasure, "flush_journal", fail_flush)
+    with pytest.raises(OSError, match="synthetic journal interruption"):
+        worker._expire_families()
+    with DB() as db:
+        assert db.get(Family, family_id) is None
+        events = list(db.scalars(select(ErasureRequest).where(ErasureRequest.target == family_id)))
+        assert len(events) == 1 and not events[0].published
+    monkeypatch.setattr(erasure, "flush_journal", original)
+    original()
+    worker._expire_families()
+    with DB() as db:
+        events = list(db.scalars(select(ErasureRequest).where(ErasureRequest.target == family_id)))
+        assert len(events) == 1 and events[0].published

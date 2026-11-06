@@ -47,8 +47,6 @@ def test_expired_word_retention_waits_for_journal_snapshot(household, monkeypatc
 
 
 def test_retention_and_explicit_word_deletion_do_not_deadlock_or_duplicate(api, household, monkeypatch):
-    from threading import Lock
-
     from conftest import HEADERS
     from fastapi.testclient import TestClient
     from schulpilot.main import app
@@ -61,23 +59,25 @@ def test_retention_and_explicit_word_deletion_do_not_deadlock_or_duplicate(api, 
         db.flush()
         identifier = item.id
     held, proceed, other_attempt = Event(), Event(), Event()
-    count, count_lock = [0], Lock()
-    original = erasure.journal_write_lock
+    original_lock = erasure.journal_write_lock
+    original_transaction = worker._retention_transaction
 
     @contextmanager
     def traced_lock():
-        with count_lock:
-            count[0] += 1
-            current = count[0]
-            if current == 2:
-                other_attempt.set()
-        with original():
-            if current == 1:
-                held.set()
-                assert proceed.wait(10)
+        if held.is_set():
+            other_attempt.set()
+        with original_lock():
             yield
 
+    @contextmanager
+    def traced_transaction():
+        with original_transaction() as db:
+            held.set()
+            assert proceed.wait(10)
+            yield db
+
     monkeypatch.setattr(erasure, "journal_write_lock", traced_lock)
+    monkeypatch.setattr(worker, "_retention_transaction", traced_transaction)
     headers = {**HEADERS, "Authorization": api.headers["Authorization"]}
 
     def delete_item():

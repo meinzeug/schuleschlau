@@ -52,6 +52,8 @@ from .synthetic import sample_unit
 
 log = logging.getLogger("schulpilot.worker")
 running = True
+_expired_family_cursor = ""
+_FAMILY_RETENTION_BATCH = 8
 
 
 def unit_sources(db, job):
@@ -926,6 +928,48 @@ def _lock_expiring_family(db, family_id):
     return family
 
 
+def _expire_families():
+    """Bound the number of expired families and release the journal per family.
+
+    The cursor rotates within the worker process so a busy family does not
+    indefinitely hide later IDs. Restart resets it; it is not a durable lease.
+    """
+    global _expired_family_cursor
+    from .db import Membership, User
+    from .erasure import flush_journal
+    from .profile_images import deletion_paths
+
+    cutoff = int(now())
+    with DB() as db:
+        base = select(Family.id).where(Family.expires.is_not(None), Family.expires < cutoff)
+        ids = list(db.scalars(base.where(Family.id > _expired_family_cursor).order_by(Family.id)
+                              .limit(_FAMILY_RETENTION_BATCH)))
+        remaining = _FAMILY_RETENTION_BATCH - len(ids)
+        if remaining and _expired_family_cursor:
+            ids.extend(db.scalars(base.where(Family.id <= _expired_family_cursor).order_by(Family.id).limit(remaining)))
+    if ids:
+        _expired_family_cursor = ids[-1]
+    for family_id in ids:
+        paths = []
+        try:
+            with _retention_transaction() as db:
+                family = _lock_expiring_family(db, family_id)
+                if family is None or family.expires is None or family.expires >= int(now()):
+                    continue
+                owners = list(db.scalars(select(Membership.user_id).where(Membership.family_id == family.id)))
+                paths.extend(remove_family(db, family))
+                db.flush()
+                for user_id in owners:
+                    if not db.scalar(select(Membership.id).where(Membership.user_id == user_id)):
+                        paths.extend(deletion_paths(db, user_id))
+                        db.execute(delete(User).where(User.id == user_id))
+        except _MaintenanceDeferred:
+            log.warning("Expired family retention deferred due to concurrent database activity")
+            continue
+        flush_journal()
+        unlink_uploads(paths)
+
+
 def maintenance():
     try:
         return _maintenance()
@@ -961,6 +1005,12 @@ def _maintenance():
     if unresolved_grade_children:
         log.warning("Grade retention requires source review for %d child accounts", len(unresolved_grade_children))
     expire_grade_sources(int(now()) - 7 * 86400, int(now()) - 365 * 86400, unresolved_grade_children)
+    # Earlier per-grade transactions committed independently; publish before
+    # potentially deferring or processing individual expired families.
+    from .erasure import flush_journal
+
+    flush_journal()
+    _expire_families()
     paths = []
     repair_paths = []
     # This pass journals deletions and releases the journal before flushing.
@@ -981,22 +1031,6 @@ def _maintenance():
                 "Prüfung wurde unterbrochen. Keine automatische Wiederholung.",
             )
         db.execute(delete(OperatorJob).where(OperatorJob.created < int(now()) - 90 * 86400))
-        for family in list(db.scalars(select(Family).where(Family.expires.is_not(None), Family.expires < int(now())))):
-            # Demo owner users are not attached to other families.
-            from .db import Membership, User
-
-            family = _lock_expiring_family(db, family.id)
-            if family is None:
-                continue
-            owners = list(db.scalars(select(Membership.user_id).where(Membership.family_id == family.id)))
-            paths.extend(remove_family(db, family))
-            db.flush()
-            for user_id in owners:
-                if not db.scalar(select(Membership.id).where(Membership.user_id == user_id)):
-                    from .profile_images import deletion_paths
-
-                    paths.extend(deletion_paths(db, user_id))
-                    db.execute(delete(User).where(User.id == user_id))
         db.execute(delete(Session).where(Session.expires < int(now()) - 7 * 86400))
         db.execute(delete(Token).where(Token.expires < int(now()) - 7 * 86400))
         db.execute(delete(GoogleFlow).where(GoogleFlow.expires < int(now())))
