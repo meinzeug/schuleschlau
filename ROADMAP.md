@@ -1804,6 +1804,17 @@ Bestandteil des bestehenden Buildvertrags.
     PostgreSQL-Fälle prüfen den bestehenden Fehlerpfad. Die konservative
     Hilfeanrechnung und die noch offene fachliche Abnahme bleiben unverändert.
 
+  - [x] **Gespeicherte Schulbuddy-Antworten an die Aufgabenfassung binden.**
+    Eine bereits fertige Antwort wird bei korrigiertem Aufgabenwortlaut,
+    geänderten Optionen oder geänderter Lösung als veraltet gekennzeichnet und
+    nicht für eine neue Modellanfrage weiterverwendet. Alte Antworten ohne
+    überprüfbaren Aufgabenfingerabdruck bleiben lesbar, aber nicht fortsetzbar.
+    Frühere Antworten und Hilfeereignisse werden nicht verändert. Künstliche
+    API-/Worker-Tests auf SQLite und isoliertem PostgreSQL belegen außerdem den
+    Rechteentzug vor und während des simulierten Anbieteraufrufs; vorhandene
+    Sitzungs- und Quellwechseltests bleiben erhalten. Die fachliche Qualität
+    tatsächlicher KI-Antworten ist dadurch nicht abgenommen.
+
   **Teilprüfung 02.11.2026:** 44 synthetische SQLite-Fälle und die zwei dort
   übersprungenen Parallelitätsfälle auf PostgreSQL bestanden; Umfang und
   Grenzen: [Regressionsbericht](docs/ROADMAP_REGRESSION_2026_11_02.md#schulbuddy).

@@ -283,9 +283,30 @@ def scope_context(db, p, scope):
     return child, normalized, context_key, label, payload, refs, signature
 
 
+def question_changed(db, turn):
+    """Old chat must not become context for a corrected saved exercise.
+
+    Jobs created before question fingerprints were recorded cannot establish
+    which version produced their reply. Keep those replies readable but do not
+    feed them back to the model as though they were current.
+    """
+    question_id = (turn.scope or {}).get("question_id")
+    if not question_id:
+        return False
+    unit = db.get(LearningUnit, (turn.scope or {}).get("unit_id"))
+    job = db.get(Job, turn.job_id)
+    stored = (job.payload or {}).get("question_fingerprint") if job else None
+    if not unit or unit.child_id != turn.child_id or not isinstance(stored, str):
+        return True
+    question = next((q for q in unit.questions if q.get("id") == question_id), None)
+    return question is None or fingerprint(question) != stored
+
+
 def source_changed(db, turn):
     from .source_lineage import learning_source
 
+    if question_changed(db, turn):
+        return True
     if turn.scope.get("learning_asset_instance_id"):
         try:
             user, job = db.get(User, turn.user_id), db.get(Job, turn.job_id)
@@ -320,6 +341,8 @@ def public_turn(db, turn):
             error = error or "Diese Frage konnte nicht beantwortet werden. Kein automatischer weiterer Versuch."
     reply = turn.reply or {}
     changed = source_changed(db, turn)
+    previous_notice = ("Diese gespeicherte Antwort gehört zu einer älteren oder nicht mehr überprüfbaren Aufgabenfassung. "
+                       if question_changed(db, turn) else "Diese gespeicherte Antwort und ihre Zitate gehören zu einer älteren Quellenfassung. ")
     return {"id": turn.id, "request_key": turn.request_key, "job_id": turn.job_id, "status": status,
             "question": turn.question, "reply_to": turn.reply_to, "context_key": turn.context_key,
             "answer": reply.get("answer"), "next_question": reply.get("next_question"),
@@ -327,7 +350,7 @@ def public_turn(db, turn):
             "starters": reply.get("starters", []), "source_changed": changed,
             "model": (job.payload or {}).get("model_binding", {}).get("model") if job else None,
             "reasoning_effort": "high", "notice":
-                "Diese gespeicherte Antwort und ihre Zitate gehören zu einer älteren Quellenfassung. Für die aktuelle Fassung eine neue Frage stellen. " + NOTICE if changed else NOTICE}
+                previous_notice + "Für die aktuelle Fassung eine neue Frage stellen. " + NOTICE if changed else NOTICE}
 
 
 def starters_for(page_kind, label, payload):
@@ -514,8 +537,14 @@ def ask(data: BuddyQuestion, idempotency_key: str = Header(..., min_length=16, m
     rate_limit(db, "schulbuddy:" + p.user.id, 8, 60, commit=False)
     config = configured(db, verify_catalog=True)
     binding = provider_snapshot(db, config)
-    job = Job(id=turn.job_id, child_id=child.id, kind="schulbuddy", idempotency=job_key,
-        payload={"turn_id": turn.id, "signature": signature, "family_id": child.family_id, "model_binding": binding})
+    job_payload = {"turn_id": turn.id, "signature": signature, "family_id": child.family_id, "model_binding": binding}
+    if normalized.get("question_id"):
+        unit = db.get(LearningUnit, normalized["unit_id"])
+        question = next((q for q in unit.questions if q.get("id") == normalized["question_id"]), None)
+        if question is None:
+            raise HTTPException(409, "Diese Aufgabe ist nicht mehr verfügbar. Bitte den Lernraum neu öffnen.")
+        job_payload["question_fingerprint"] = fingerprint(question)
+    job = Job(id=turn.job_id, child_id=child.id, kind="schulbuddy", idempotency=job_key, payload=job_payload)
     db.add_all([job, turn])
     db.flush()
     reserve(db, db.get(Family, child.family_id), child.id, job.id, "schulbuddy")
