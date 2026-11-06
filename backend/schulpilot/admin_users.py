@@ -728,63 +728,65 @@ def confirm_delete(
     p=Depends(expected_admin),
     db=Depends(get_db),
 ):
-    user, old, request_digest = start(db, p, user_id, "delete", idempotency_key, data, family_delete=True)
-    if old:
-        if old.result.get("cleanup_confirmed") is not True:
-            raise HTTPException(409, "Konto und Datenbankeinträge wurden gelöscht. Die Dateibereinigung ist nicht bestätigt; bitte den Betrieb prüfen.")
-        return {key: value for key, value in old.result.items() if key != "cleanup_confirmed"}
-    preview = db.get(AdminUserOperation, data.preview_id, populate_existing=True)
-    if (
-        not preview
-        or preview.action != "delete_preview"
-        or preview.actor_id != p.user.id
-        or preview.session_id != p.session.id
-        or preview.target_id != user_id
-        or preview.expires <= now()
-        or preview.result.get("preview_digest") != data.preview_digest
-        or preview.result.get("revision") != data.revision
-    ):
-        raise HTTPException(
-            409, "Diese Löschvorschau ist abgelaufen oder gehört zu einem anderen Konto oder Gerät. Bitte neu prüfen."
-        )
-    scope = preview.result["scope"]
-    impact, blockers, binding = deletion_shape(db, user, scope)
-    if blockers or digest({"revision": data.revision, "scope": scope, "binding": binding}) != data.preview_digest:
-        raise HTTPException(
-            409, "Betroffene Familien, Kinder oder Daten wurden geändert. Bitte eine neue Löschvorschau prüfen."
-        )
-    from .erasure import flush_journal
-    from .erasure import request as erase
-    from .families import remove_child, remove_family, unlink_uploads
-    from .profile_images import deletion_paths
+    from .erasure import flush_journal, journal_write_lock
 
-    paths = []
-    if user.role == "child":
-        paths.extend(remove_child(db, child_of(db, user)))
-    else:
-        for identifier in impact["family_ids"]:
-            paths.extend(remove_family(db, db.get(Family, identifier)))
-        # Explicit membership journal protects a shared family on restore too.
-        for member in db.scalars(select(Membership).where(Membership.user_id == user_id)):
-            erase(db, "membership", member.id)
-        erase(db, "user", user_id)
-        paths.extend(deletion_paths(db, user_id))
-        db.execute(delete(User).where(User.id == user_id))
-    result = {
-        "message": "Die bestätigten Konten und Daten wurden gelöscht; geteilte Familien bleiben erhalten.",
-        "user_id": user_id,
-        "deleted": True,
-        "revision": None,
-        "impact": impact,
-    }
-    # Minimal IDs/counts only; remove older previews for this deleted target.
-    db.execute(delete(AdminUserOperation).where(AdminUserOperation.target_id.in_(impact["user_ids"])))
-    # Commit an honest receipt before any irreversible filesystem operation.
-    # A crash, journal error or failed unlink leaves this pending instead of
-    # replaying a claim that the private files have definitely been removed.
-    operation = receipt(db, p, user_id, "delete", idempotency_key, request_digest,
-                        result | {"cleanup_confirmed": False})
-    finish(db, result)
+    with journal_write_lock():
+        user, old, request_digest = start(db, p, user_id, "delete", idempotency_key, data, family_delete=True)
+        if old:
+            if old.result.get("cleanup_confirmed") is not True:
+                raise HTTPException(409, "Konto und Datenbankeinträge wurden gelöscht. Die Dateibereinigung ist nicht bestätigt; bitte den Betrieb prüfen.")
+            return {key: value for key, value in old.result.items() if key != "cleanup_confirmed"}
+        preview = db.get(AdminUserOperation, data.preview_id, populate_existing=True)
+        if (
+            not preview
+            or preview.action != "delete_preview"
+            or preview.actor_id != p.user.id
+            or preview.session_id != p.session.id
+            or preview.target_id != user_id
+            or preview.expires <= now()
+            or preview.result.get("preview_digest") != data.preview_digest
+            or preview.result.get("revision") != data.revision
+        ):
+            raise HTTPException(
+                409, "Diese Löschvorschau ist abgelaufen oder gehört zu einem anderen Konto oder Gerät. Bitte neu prüfen."
+            )
+        scope = preview.result["scope"]
+        impact, blockers, binding = deletion_shape(db, user, scope)
+        if blockers or digest({"revision": data.revision, "scope": scope, "binding": binding}) != data.preview_digest:
+            raise HTTPException(
+                409, "Betroffene Familien, Kinder oder Daten wurden geändert. Bitte eine neue Löschvorschau prüfen."
+            )
+        from .erasure import request as erase
+        from .families import remove_child, remove_family, unlink_uploads
+        from .profile_images import deletion_paths
+
+        paths = []
+        if user.role == "child":
+            paths.extend(remove_child(db, child_of(db, user)))
+        else:
+            for identifier in impact["family_ids"]:
+                paths.extend(remove_family(db, db.get(Family, identifier)))
+            # Explicit membership journal protects a shared family on restore too.
+            for member in db.scalars(select(Membership).where(Membership.user_id == user_id)):
+                erase(db, "membership", member.id)
+            erase(db, "user", user_id)
+            paths.extend(deletion_paths(db, user_id))
+            db.execute(delete(User).where(User.id == user_id))
+        result = {
+            "message": "Die bestätigten Konten und Daten wurden gelöscht; geteilte Familien bleiben erhalten.",
+            "user_id": user_id,
+            "deleted": True,
+            "revision": None,
+            "impact": impact,
+        }
+        # Minimal IDs/counts only; remove older previews for this deleted target.
+        db.execute(delete(AdminUserOperation).where(AdminUserOperation.target_id.in_(impact["user_ids"])))
+        # Commit an honest receipt before any irreversible filesystem operation.
+        # A crash, journal error or failed unlink leaves this pending instead of
+        # replaying a claim that the private files have definitely been removed.
+        operation = receipt(db, p, user_id, "delete", idempotency_key, request_digest,
+                            result | {"cleanup_confirmed": False})
+        finish(db, result)
     flush_journal()
     unlink_uploads(paths)
     operation.result = result | {"cleanup_confirmed": True}
