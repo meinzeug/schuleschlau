@@ -63,15 +63,49 @@ solche Qualitätsänderung oder eine Absenkung erlaubter Bildgrößen wurde nich
 vorgenommen. PNG, EXIF-Rotation und Bildbombenprüfung wurden durch diese
 Untersuchung nicht geändert oder neu abgenommen.
 
+## Lokal getesteter Lösungsstand
+
+Ein isolierter Fotodecoder läuft als eigener lokaler Dienst in einer separaten
+256-MiB-cgroup. API und Dienst überprüfen ihre Unix-Socket-Gegenstellen;
+der Dienst erhält keine Provider- oder Datenbankkonfiguration. Fotoanfragen werden
+vor dem Einlesen begrenzt, bei Überlast oder Dienstausfall mit 503 abgewiesen
+und können ausdrücklich wiederholt werden. Nach dem Dekodieren werden
+Sitzung, Familienberechtigung und Importfreigabe erneut geprüft. Das betrifft
+Heft- und Klassenarbeitsfotos; andere Bildpfade wie Profilbilder und
+Quellausschnitte sind nicht umfasst. Bildqualität, 16-MP-Grenze und erlaubte
+Formate bleiben erhalten.
+
+Ein lokaler PostgreSQL-Mischlastlauf mit vier künstlichen Familien, acht
+15.920.100-Pixel-JPEG-Uploads, parallel lesenden Clients und einem einzelnen
+CPU-Kern bestand. Fünf explizite Wiederholungen nach Überlast waren nötig;
+acht Uploadantworten waren 201, die API-cgroup erreichte 226.934.784 von
+367.001.600 Byte und die Fotodienst-cgroup 224.149.504 von 268.435.456 Byte;
+kein OOM wurde gemeldet. Dies beschreibt genau diesen Lauf, keinen garantierten
+Durchsatz oder allgemeine Überlastfestigkeit. Die lokale Socket- und
+Systemd-User-Probe verwendete ausschließlich künstliche Daten. Eine separate
+Systemd-Testunit zeigte beim Wechsel zwischen künstlichen Releases einen
+korrekten Decoderwechsel und dass ein laufender Decoder beim Dienstneustart
+beendet wurde; das ist keine Prüfung der Produktionsunit oder von activate.py.
+
+Ein weiterer Lauf mit einem stark komprimierbaren künstlichen RGBA-PNG derselben
+Pixelzahl bestand mit vier expliziten Überlast-Wiederholungen; API-Spitze
+140.439.552 Byte, Fotodienst-Spitze 174.780.416 Byte, kein OOM. Das ist kein
+Nachweis für alle Bildinhalte oder weitere Lastkombinationen.
+
+Authentifizierte Nutzer können den einzelnen Uploadslot wiederholt mit langsam
+übertragenen Anfragen bis zur absoluten 60-Sekunden-Frist belegen; dies ist
+eine bekannte Fairnessgrenze. Die zusätzlichen Mount- und Netznamespace-
+Negativproben decken ausgewählte lokale Brokerpfade ab, keine vollständige
+Prüfung gegen jede mögliche Kompromittierung. Ein produktiver Wechsel setzt
+den unabhängigen Review, eine reale Testaktivierung mit Rückweg, gesicherte
+Datensicherung und Prüfungen auf dem Zielsystem voraus. Insbesondere dürfen
+Rollback und Pruning nicht mit alten Werkzeugen erfolgen, die den neuen Dienst
+nicht kennen.
+
 ## Noch erforderlich
 
-Eine Lösung muss bereits das Einlesen paralleler Multipart-Anfragen und die
-Dekodierung begrenzen, ohne die bisherigen erlaubten Formate, die 16-MP-Grenze,
-EXIF-Ausrichtung, Qualität und idempotente Wiederholungen unbemerkt zu ändern.
-Ein gesondert begrenzter Decoderprozess kann untersucht werden; ein API-Abbruch
-muss auch beim Überschreiten seines Speichers vermieden und der Ablehnungsweg
-für die App verständlich und wiederholbar sein. Nach dem Fix müssen die oben
-aufgeführten Mischlasten und große Fotos mehrfach unter den tatsächlichen
-Prozessgrenzen bestehen. Auch weitere parallele API-Wege und eine längere
-Lastdauer bleiben dann gesondert zu prüfen. Der große Roadmap-Punkt für
+Die produktiven Dienstdefinitionen und die vollständige Aktivierungs- und
+Rückrollkette müssen auf dem Zielsystem nachgewiesen werden. Die Mischlasten
+und weitere parallele API-Wege müssen mit längerer Laufdauer und unter den
+tatsächlichen Prozessgrenzen geprüft werden. Der große Roadmap-Punkt für
 Kapazität bleibt offen.

@@ -458,6 +458,8 @@ def test_prune_checks_optional_dispatcher_and_allows_safe_states(env, monkeypatc
 
     def systemctl(args, **kwargs):
         service = args[-1]
+        if service == "schulpilot-photo.service":
+            return subprocess.CompletedProcess(args, 0, stdout="MainPID=0\nLoadState=not-found\nActiveState=inactive\n")
         if service == "schulpilot-repair-dispatcher.service":
             return subprocess.CompletedProcess(args, 0, stdout=dispatcher_state)
         return subprocess.CompletedProcess(args, 0, stdout={
@@ -497,6 +499,8 @@ def test_prune_refuses_stale_or_uncertain_dispatcher(env, monkeypatch, dispatche
 
     def systemctl(args, **kwargs):
         service = args[-1]
+        if service == "schulpilot-photo.service":
+            return subprocess.CompletedProcess(args, 0, stdout="MainPID=0\nLoadState=not-found\nActiveState=inactive\n")
         if service == "schulpilot-repair-dispatcher.service":
             return subprocess.CompletedProcess(args, 0, stdout=dispatcher_state)
         return subprocess.CompletedProcess(args, 0, stdout={

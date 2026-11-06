@@ -1,5 +1,8 @@
+import asyncio
 import json
 import logging
+import re
+import threading
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -64,6 +67,7 @@ from .config import runtime_settings, settings
 from .db import DB, ProviderConfig, init_db
 from .operations import router as operations_router
 from .providers import ProviderError, config_for_function, external_allowed
+from .security import authenticated, child_access
 
 log = logging.getLogger("schulpilot.api")
 
@@ -128,6 +132,86 @@ class ActualBodyLimit:
 
 
 app.add_middleware(ActualBodyLimit)
+
+
+# Bound intake before FastAPI parses multipart. Keep the slot until the entire
+# ASGI response and request cleanup finish, even on disconnect or cancellation.
+_PHOTO_REQUEST_SLOT = threading.BoundedSemaphore(1)
+_PHOTO_AUTH_SLOT = threading.BoundedSemaphore(4)
+_PHOTO_REQUEST_PATH = re.compile(r"^/api/(?:children/[^/]+/materials|exams/[^/]+/pages)$")
+_PHOTO_BODY_TIMEOUT = 60
+_PHOTO_WAIT_TIMEOUT = 2
+
+
+def authorize_photo_before_intake(scope):
+    # Preliminary check prevents an unauthenticated or unrelated requester
+    # occupying the single intake slot. The endpoint checks everything again.
+    request = Request(scope)
+    authorization = request.headers.get('authorization', '')
+    if not (authorization.startswith('Bearer ') and authorization[7:]) and not request.cookies.get('sp_session'):
+        raise HTTPException(401, 'Bitte erneut anmelden.')
+    if not _PHOTO_AUTH_SLOT.acquire(blocking=False):
+        raise HTTPException(503, 'Bitte versuche es gleich noch einmal.', headers={'Retry-After': '2'})
+    try:
+        parts = request.url.path.split('/')
+        with DB() as db:
+            principal = authenticated(request, db)
+            if parts[2] == 'children':
+                child_access(db, principal, parts[3], write=principal.user.role == 'parent')
+            else:
+                exam_review.preflight_upload_access(db, principal, parts[3])
+    finally:
+        _PHOTO_AUTH_SLOT.release()
+
+
+class PhotoIntakeLimit:
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        path = scope.get("path", "")
+        if scope.get("type") != "http" or scope.get("method") != "POST" or not _PHOTO_REQUEST_PATH.fullmatch(path):
+            return await self.app(scope, receive, send)
+        try:
+            await run_in_threadpool(authorize_photo_before_intake, scope)
+        except HTTPException as exc:
+            return await JSONResponse({'detail': exc.detail}, status_code=exc.status_code,
+                                      headers={'Cache-Control': 'no-store', **(exc.headers or {})})(scope, receive, send)
+        loop = asyncio.get_running_loop()
+        deadline = loop.time() + _PHOTO_WAIT_TIMEOUT
+        while not _PHOTO_REQUEST_SLOT.acquire(blocking=False):
+            if loop.time() >= deadline:
+                response = JSONResponse(
+                    {"detail": "Viele Fotos werden gerade verarbeitet. Bitte versuche es gleich noch einmal."},
+                    status_code=503, headers={"Retry-After": "2", "Cache-Control": "no-store"},
+                )
+                return await response(scope, receive, send)
+            await asyncio.sleep(.05)
+        body_deadline = loop.time() + _PHOTO_BODY_TIMEOUT
+        body_complete = False
+
+        async def timed_receive():
+            nonlocal body_complete
+            if body_complete:
+                return await receive()
+            remaining = body_deadline - loop.time()
+            if remaining <= 0:
+                raise HTTPException(408, 'Das Foto wurde zu langsam übertragen. Bitte versuche es erneut.')
+            try:
+                message = await asyncio.wait_for(receive(), timeout=remaining)
+                if message.get('type') == 'http.request' and not message.get('more_body', False):
+                    body_complete = True
+                return message
+            except TimeoutError:
+                raise HTTPException(408, 'Das Foto wurde zu langsam übertragen. Bitte versuche es erneut.') from None
+
+        try:
+            await self.app(scope, timed_receive, send)
+        finally:
+            _PHOTO_REQUEST_SLOT.release()
+
+
+app.add_middleware(PhotoIntakeLimit)
 
 
 def installation_gate_required():

@@ -606,8 +606,56 @@ def test_upload_is_atomically_attached_and_replay_cannot_move_photo(api, paper):
     no_learning()
 
 
+@pytest.mark.parametrize('change', ['session', 'revision'])
+def test_exam_upload_rechecks_after_decode_without_holding_child_lock(api, paper, monkeypatch, change):
+    import threading
+    from schulpilot import materials
+    from schulpilot.db import Child
+    from test_school_day import allow_synthetic_test_transport
+
+    allow_synthetic_test_transport()
+    entered, release = threading.Event(), threading.Event()
+    original = materials.normalize_photo
+    def blocked(raw):
+        entered.set()
+        assert release.wait(10)
+        return original(raw)
+    monkeypatch.setattr(materials, 'normalize_photo', blocked)
+    response = []
+    image = io.BytesIO()
+    Image.new('RGB', (30, 30), (120, 110, 150)).save(image, 'PNG')
+    def upload():
+        response.append(api.post(f"/api/exams/{paper['exam_id']}/pages?revision=1",
+            files={'file': ('synthetic.png', image.getvalue(), 'image/png')},
+            headers={'Idempotency-Key': uuid.uuid4().hex}))
+    thread = threading.Thread(target=upload)
+    thread.start()
+    try:
+        assert entered.wait(5)
+        # This write takes the same child lock used by later validation. It
+        # must finish while decoding remains deliberately blocked.
+        with DB.begin() as db:
+            db.execute(update(Child).where(Child.id == paper['child_id']).values(id=Child.id))
+            if change == 'session':
+                token = api.headers['Authorization'][7:]
+                db.execute(update(Session).where(Session.token_hash == digest(token)).values(revoked=True))
+            else:
+                db.execute(update(Exam).where(Exam.id == paper['exam_id']).values(revision=2))
+    finally:
+        release.set()
+        thread.join(timeout=12)
+    assert not thread.is_alive() and len(response) == 1
+    assert response[0].status_code == (401 if change == 'session' else 409)
+    with DB() as db:
+        assert db.scalar(select(func.count()).select_from(ExamReviewPage)) == 1
+        assert db.scalar(select(func.count()).select_from(Material)) == 2
+
+
 @pytest.mark.parametrize("role", ["admin", "foreign", "view", "sibling"])
-def test_private_review_role_guards_are_not_bypassed_by_exam_identifier(api, paper, role):
+def test_private_review_role_guards_are_not_bypassed_by_exam_identifier(api, paper, role, monkeypatch):
+    from schulpilot import materials
+    decoded = []
+    monkeypatch.setattr(materials, 'normalize_photo', lambda raw: decoded.append(True))
     token = uuid.uuid4().hex
     with DB.begin() as db:
         user = User(
@@ -638,6 +686,11 @@ def test_private_review_role_guards_are_not_bypassed_by_exam_identifier(api, pap
             paper["path"] + "/analyze", json=context(paper), headers={"Idempotency-Key": uuid.uuid4().hex}
         )
         assert mutation.status_code == (403 if role in ("view", "admin") else 404)
+        upload = other.post(f"/api/exams/{paper['exam_id']}/pages?revision=1",
+            files={'file': ('synthetic.png', b'synthetic', 'image/png')},
+            headers={'Idempotency-Key': uuid.uuid4().hex})
+        assert upload.status_code == (403 if role in ('view', 'admin') else 404)
+        assert not decoded
     no_learning()
 
 

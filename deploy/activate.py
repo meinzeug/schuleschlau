@@ -25,6 +25,26 @@ try:
     from restore_release_guard import verify as verify_restore_configuration
 except ImportError:
     from deploy.restore_release_guard import verify as verify_restore_configuration
+try:
+    from photo_release import (
+        ensure_isolated_identity,
+        inspect_photo,
+        restore_previous_photo,
+        start_candidate,
+        stop_old_photo,
+        undo_candidate_enable,
+        verify_photo_definition,
+    )
+except ImportError:
+    from deploy.photo_release import (
+        ensure_isolated_identity,
+        inspect_photo,
+        restore_previous_photo,
+        start_candidate,
+        stop_old_photo,
+        undo_candidate_enable,
+        verify_photo_definition,
+    )
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("release_id")
@@ -49,9 +69,11 @@ new_writers_may_have_started = False
 schema_before = None
 environment = None
 unit_snapshots = None
+photo_previous = None
+photo_candidate_started = False
 
 UNIT_NAMES = (
-    "schulpilot-api.service", "schulpilot-worker.service", "schulpilot-backup.service",
+    "schulpilot-api.service", "schulpilot-worker.service", "schulpilot-photo.service", "schulpilot-backup.service",
     "schulpilot-backup.timer", "schulpilot-backup-retention.service", "schulpilot-backup-retention.timer",
     "schulpilot-monitor.service", "schulpilot-monitor.timer",
     "schulpilot-restore-check.service", "schulpilot-restore-check.timer",
@@ -222,13 +244,22 @@ try:
                 destinations += [Path("/etc/systemd/system") / name for name in TURN_NAMES]
                 destinations.append(turn / "refresh_certificate.py")
             unit_snapshots = snapshot_files(destinations)
+            photo_previous = inspect_photo()
+            verify_photo_definition(photo_previous, previous)
+            photo_supported = (release / "deploy/schulpilot-photo.service").is_file()
+            if photo_supported:
+                ensure_isolated_identity(release)
             if previous:
                 # Stop first: a crash/restart must not resolve the new current pointer
                 # against the old database, including on an explicit code rollback.
                 subprocess.run(["systemctl", "stop", "schulpilot-api", "schulpilot-worker"], check=True)
+            stop_old_photo(photo_previous)
+            if previous:
                 # This uses the old current release and captures work finished while
                 # the worker was draining, before the pointer or schema is changed.
                 checked_backup()
+            if not photo_supported and photo_previous.loaded:
+                subprocess.run(["systemctl", "disable", "schulpilot-photo.service"], check=True)
             temporary = base / ".current-new"
             temporary.unlink(missing_ok=True)
             temporary.symlink_to(release)
@@ -237,6 +268,8 @@ try:
                 source = release / "deploy" / name
                 if source.is_file():
                     shutil.copy2(source, Path("/etc/systemd/system") / name)
+            if not photo_supported:
+                Path("/etc/systemd/system/schulpilot-photo.service").unlink(missing_ok=True)
             # An existing operator-installed relay is maintained, never auto-installed.
             if turn_installed:
                 for name in TURN_NAMES:
@@ -248,6 +281,8 @@ try:
                     shutil.copy2(source, turn / "refresh_certificate.py")
                     (turn / "refresh_certificate.py").chmod(0o644)
             subprocess.run(["systemctl", "daemon-reload"], check=True)
+            if photo_supported:
+                verify_photo_definition(inspect_photo(), release)
             timers = ["schulpilot-backup.timer"]
             if (release / "deploy/schulpilot-backup-retention.timer").is_file():
                 timers.append("schulpilot-backup-retention.timer")
@@ -273,6 +308,11 @@ try:
                     env=environment,
                     check=True,
                 )
+            if photo_supported:
+                # Start in its own cgroup and verify matching service + decoder +
+                # locked dependencies as the API UID before any new writer starts.
+                photo_candidate_started = True
+                start_candidate(release)
             # A failed restart can still have started one writer. SQL schema equality
             # cannot prove compatibility with JSON formats persisted by the new code.
             new_writers_may_have_started = True
@@ -283,7 +323,10 @@ try:
             for optional in ("schulpilot-backup-retention.timer", "schulpilot-restore-check.timer", "schulpilot-monitor.timer"):
                 if optional not in timers and Path("/etc/systemd/system", optional).exists():
                     subprocess.run(["systemctl", "stop", optional], check=True)
-            subprocess.run(["systemctl", "enable", "schulpilot-api", "schulpilot-worker", *timers], check=True)
+            enable_services = ["schulpilot-api", "schulpilot-worker", *timers]
+            if photo_supported:
+                enable_services.append("schulpilot-photo.service")
+            subprocess.run(["systemctl", "enable", *enable_services], check=True)
             subprocess.run(["systemctl", "start", *timers], check=True)
             healthy = False
             for _ in range(30):
@@ -310,6 +353,13 @@ try:
                 # Stop possible writers before any recovery checks; retain this release
                 # as the reader for JSON it may already have stored.
                 subprocess.run(["systemctl", "stop", "schulpilot-api", "schulpilot-worker"], check=False)
+            if photo_candidate_started:
+                try:
+                    undo_candidate_enable(photo_previous)
+                except Exception:
+                    print("Could not stop candidate photo service; verify it before restarting writers.", file=sys.stderr)
+                    # Do not restart previous writers while an uncertain decoder runs.
+                    new_writers_may_have_started = True
             caddy.write_text(before)
             if fragment_before is not None:
                 fragment.write_text(fragment_before)
@@ -330,6 +380,8 @@ try:
                     temporary.unlink(missing_ok=True)
                     temporary.symlink_to(previous)
                     temporary.replace(current)
+                    if photo_previous:
+                        restore_previous_photo(photo_previous)
                     subprocess.run(["systemctl", "restart", "schulpilot-api", "schulpilot-worker"], check=True)
                 except Exception:
                     subprocess.run(["systemctl", "stop", "schulpilot-api", "schulpilot-worker"], check=False)

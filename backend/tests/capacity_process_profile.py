@@ -5,6 +5,7 @@ Run only via scripts/test_postgres.py; no external provider is ever called.
 import io
 import json
 import os
+import pwd
 import random
 import signal
 import socket
@@ -55,12 +56,16 @@ def test_bounded_process_capacity(api, household, mailbox):
             accounts.append((client.headers['Authorization'], other['id']))
 
     dimensions, quality = ((3990, 3990), 65) if os.getenv("CAPACITY_LARGE") == "1" else ((1800, 1200), 90)
-    pixels = random.Random(5519).randbytes(dimensions[0] * dimensions[1] * 3)
     output = io.BytesIO()
-    Image.frombytes('RGB', dimensions, pixels).save(output, format='JPEG', quality=quality)
+    if os.getenv('CAPACITY_PNG') == '1':
+        assert os.getenv('CAPACITY_LARGE') == '1'
+        Image.new('RGBA', dimensions, (10, 50, 70, 130)).save(output, format='PNG')
+    else:
+        pixels = random.Random(5519).randbytes(dimensions[0] * dimensions[1] * 3)
+        Image.frombytes('RGB', dimensions, pixels).save(output, format='JPEG', quality=quality)
+        del pixels
     image = output.getvalue()
-    del pixels
-    assert len(image) > 234000
+    assert len(image) > (0 if os.getenv('CAPACITY_PNG') == '1' else 234000)
     listener = socket.socket()
     listener.bind(('127.0.0.1', 0))
     port = listener.getsockname()[1]
@@ -77,6 +82,11 @@ def test_bounded_process_capacity(api, household, mailbox):
                 for role, entry in list(cgroups.items()):
                     try:
                         entry['memory_peak'] = int((entry['path'] / 'memory.peak').read_text())
+                        current = int((entry['path'] / 'memory.current').read_text())
+                        if current > entry.get('observed_current', 0):
+                            entry['observed_current'] = current
+                            stats = dict(row.split() for row in (entry['path'] / 'memory.stat').read_text().splitlines())
+                            entry['stats_at_peak'] = {k: stats[k] for k in ('anon', 'file', 'kernel', 'sock', 'shmem') if k in stats}
                         entry['events'] = (entry['path'] / 'memory.events').read_text().strip().replace('\n', ',')
                     except OSError:
                         pass
@@ -86,14 +96,33 @@ def test_bounded_process_capacity(api, household, mailbox):
             cgroup = Path(f'/proc/{pid}/cgroup').read_text().strip().split(':', 2)[2]
             cgroups[role] = {'path': Path('/sys/fs/cgroup') / cgroup.lstrip('/'), 'memory_peak': 0, 'events': ''}
         try:
+            photo_socket = root / 'decoder.sock'
             def start(role, memory, *args):
                 log = (root / (role + '.log')).open('w+')
                 cmd = ['systemd-run', '--user', '--quiet', '--scope', '-p', 'MemoryMax=' + memory,
                        '-p', 'TasksMax=64', sys.executable, helper, role, str(root), str(port), *args]
-                proc = subprocess.Popen(cmd, stdout=log, stderr=log, start_new_session=True)
+                env = {**os.environ, 'PHOTO_TEST_SOCKET': str(photo_socket)}
+                proc = subprocess.Popen(cmd, stdout=log, stderr=log, start_new_session=True, env=env)
                 processes.append((proc, log))
                 return proc
 
+            photo_log = (root / 'photo.log').open('w+')
+            photo_script = str(Path(__file__).resolve().parents[1] / 'schulpilot/photo_service.py')
+            wrapper = ('import os,runpy,sys;from pathlib import Path;'
+                       'Path(sys.argv[4]).write_text(str(os.getpid()));'
+                       'sys.argv=sys.argv[1:4];runpy.run_path(sys.argv[0],run_name="__main__")')
+            photo_cmd = ['systemd-run', '--user', '--quiet', '--scope', '-p', 'MemoryMax=256M',
+                         '-p', 'TasksMax=16', sys.executable, '-I', '-c', wrapper, photo_script,
+                         str(photo_socket), pwd.getpwuid(os.getuid()).pw_name, str(root / 'photo.ready')]
+            photo_process = subprocess.Popen(photo_cmd, stdout=photo_log, stderr=photo_log, start_new_session=True)
+            processes.append((photo_process, photo_log))
+            photo_pid = wait_ready(root / 'photo.ready', photo_process)
+            track('photo', photo_pid)
+            assert int((cgroups['photo']['path'] / 'memory.max').read_text()) == 256 * 1024 * 1024
+            deadline = time.monotonic() + 15
+            while not photo_socket.exists() and time.monotonic() < deadline:
+                time.sleep(.05)
+            assert photo_socket.exists() and photo_process.poll() is None
             api_process = start('api', '350M')
             api_pid = wait_ready(root / 'api.ready', api_process)
             track('api', api_pid)
@@ -205,7 +234,7 @@ def test_bounded_process_capacity(api, household, mailbox):
         finally:
             stop_sampling.set()
             sampler.join(timeout=5)
-            print('CAPACITY_CGROUPS=' + json.dumps({role: {'memory_peak': v['memory_peak'], 'events': v['events']} for role, v in cgroups.items()}, sort_keys=True), flush=True)
+            print('CAPACITY_CGROUPS=' + json.dumps({role: {'memory_peak': v['memory_peak'], 'events': v['events'], 'current_sample': v.get('observed_current'), 'stats_at_peak': v.get('stats_at_peak')} for role, v in cgroups.items()}, sort_keys=True), flush=True)
             for process, log in reversed(processes):
                 if process.poll() is None:
                     os.killpg(process.pid, signal.SIGTERM)

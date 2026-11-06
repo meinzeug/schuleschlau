@@ -123,6 +123,27 @@ def validate_restore_report(report, now):
     return None
 
 
+def photo_service_failure(unit=Path('/etc/systemd/system/schulpilot-photo.service'),
+                          required=Path('/opt/schulpilot/current/backend/schulpilot/photo_isolation.py')):
+    """Check required photo service and its release-bound private socket."""
+    if not required.is_file():
+        return None  # A pre-photo release does not depend on this service.
+    if not unit.is_file():
+        return 'photo_service_missing'
+    try:
+        if subprocess.run(['systemctl', 'is-active', '--quiet', 'schulpilot-photo.service'], timeout=10).returncode:
+            return 'photo_service_inactive'
+        result = subprocess.run(
+            ['runuser', '-u', 'schulpilot', '-g', 'schulpilot-photo', '--',
+             '/opt/schulpilot/current/venv/bin/python', '-I',
+             '/opt/schulpilot/current/backend/schulpilot/photo_health.py', '--monitor'],
+            timeout=85, capture_output=True, check=False,
+        )
+        return None if result.returncode == 0 else 'photo_service_unavailable'
+    except (OSError, subprocess.SubprocessError):
+        return 'photo_service_unavailable'
+
+
 def environment(path):
     values = {}
     for line in Path(path).read_text().splitlines():
@@ -220,6 +241,9 @@ def main():
         if not deployment_in_progress:
             failures.append("api_health")
     if not deployment_in_progress:
+        photo_failure = photo_service_failure()
+        if photo_failure:
+            failures.append(photo_failure)
         try:
             result = subprocess.run(
                 [

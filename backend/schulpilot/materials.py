@@ -1,23 +1,41 @@
 import hashlib
 import io
 import re
+import threading
 
 from fastapi import APIRouter, Depends, File, Header, HTTPException, UploadFile
 from fastapi.responses import Response
-from PIL import Image, ImageFilter, ImageOps, ImageStat, UnidentifiedImageError
+from PIL import Image
 from sqlalchemy import or_, select, update
 
 from . import schemas as s
 from .config import runtime_settings, settings
-from .db import Assignment, Child, Family, Job, LearningUnit, Material, ProviderConfig, UnitSource, get_db, now, uid
+from .db import (
+    Assignment,
+    Child,
+    Family,
+    Installation,
+    Job,
+    LearningUnit,
+    Material,
+    ProviderConfig,
+    UnitSource,
+    get_db,
+    now,
+    uid,
+)
 from .fixtures import FIXTURE_ID, LIVE_FIXTURE_IDS, worksheet
 from .learning import material_data as learning_material_data
 from .learning import record
+from .photo_isolation import normalize_photo
 from .providers import ProviderError, config_for_function, external_allowed, reserve
-from .security import authenticated, child_access, rate_limit
+from .security import authenticated, child_access, lock_session_after_child, rate_limit
 
 router = APIRouter(tags=["Materialien und KI-Aufträge"])
 Image.MAX_IMAGE_PIXELS = 16_000_000
+# A disconnected request can release the ASGI slot while its synchronous
+# decoder thread is still running. Never read another raw photo in that case.
+_SYNC_PHOTO_SLOT = threading.BoundedSemaphore(1)
 
 
 def material_data(material):
@@ -68,15 +86,25 @@ def upload(
     exam_id: str | None = None,
     exam_revision: int | None = None,
 ):
+    if not _SYNC_PHOTO_SLOT.acquire(blocking=False):
+        raise HTTPException(503, "Viele Fotos werden gerade verarbeitet. Bitte versuche es gleich noch einmal.",
+                            headers={"Retry-After": "2"})
+    try:
+        return _upload_under_slot(child_id, file, school_day_id, purpose, idempotency_key, p, db, exam_id, exam_revision)
+    finally:
+        _SYNC_PHOTO_SLOT.release()
+
+
+def _upload_under_slot(child_id, file, school_day_id, purpose, idempotency_key, p, db, exam_id, exam_revision):
     child = child_access(db, p, child_id, write=p.user.role == "parent")
     if purpose not in ("notebook", "homework", "exam") or (purpose in ("homework", "exam") and school_day_id):
         raise HTTPException(422, "Bitte einen gültigen Fotobereich wählen.")
     if purpose == "exam":
-        from .exam_review import access
+        from .exam_review import preflight_upload_access
 
         if not exam_id or type(exam_revision) is not int or exam_revision < 1:
             raise HTTPException(422, "Bitte das Foto einer aktuellen schriftlichen Arbeit zuordnen.")
-        exam, owner = access(db, p, exam_id, write=True)
+        exam, owner = preflight_upload_access(db, p, exam_id)
         if owner.id != child.id:
             raise HTTPException(404, "Arbeit nicht gefunden.")
     elif exam_id is not None or exam_revision is not None:
@@ -97,40 +125,22 @@ def upload(
     raw = file.file.read(10 * 1024 * 1024 + 1)
     if len(raw) > 10 * 1024 * 1024:
         raise HTTPException(413, "Das Bild darf höchstens 10 MB groß sein.")
-    try:
-        with Image.open(io.BytesIO(raw)) as source:
-            if source.format not in ("JPEG", "PNG", "WEBP"):
-                raise ValueError("format")
-            if source.width * source.height > Image.MAX_IMAGE_PIXELS:
-                raise ValueError("dimensions")
-            upload_geometry = {"input_width": source.width, "input_height": source.height, "input_bytes": len(raw)}
-            image = ImageOps.exif_transpose(source).convert("RGB")
-            image.thumbnail((3200, 3200))
-            warnings = []
-            if min(image.size) < 600:
-                warnings.append("Das Foto ist klein. Bitte prüfen, ob der Text gut lesbar ist.")
-            probe = image.copy()
-            probe.thumbnail((320, 320))
-            probe = probe.convert("L").filter(ImageFilter.FIND_EDGES)
-            if (
-                min(probe.size) > 4
-                and ImageStat.Stat(probe.crop((2, 2, probe.width - 2, probe.height - 2))).var[0] < 70
-            ):
-                warnings.append(
-                    "Das Foto enthält wenig erkennbare Details und könnte unscharf oder leer sein. Bitte prüfen."
-                )
-            output = io.BytesIO()
-            image.save(output, format="JPEG", quality=95)  # EXIF/GPS/XMP are discarded.
-            upload_geometry.update(width=image.width, height=image.height, output_bytes=len(output.getvalue()), orientation="baked")
-    except (UnidentifiedImageError, ValueError, OSError, Image.DecompressionBombError):
-        raise HTTPException(
-            422, "Bitte ein gültiges JPEG-, PNG- oder WebP-Bild mit höchstens 16 Megapixeln wählen."
-        ) from None
-    if len(output.getvalue()) > 10 * 1024 * 1024:
-        raise HTTPException(413, "Der bereinigte Fotoexport überschreitet10 MB. Bitte einen kleineren gut lesbaren Ausschnitt abgeben.")
+    output, upload_geometry, warnings = normalize_photo(raw)
     digest = hashlib.sha256(output.getvalue()).hexdigest()
     # One lock per child also serializes replay checks, day state and file ownership.
     db.execute(update(Child).where(Child.id == child.id).values(grade=Child.grade))
+    # The bounded decoder can outlive a session or family permission. Serialize
+    # with revocation in the established Child -> Session order and discard the
+    # pre-decode ORM snapshot before returning a replay or persisting anything.
+    lock_session_after_child(db, p.user.id, p.session.id)
+    db.expire_all()
+    child = child_access(db, p, child_id, write=p.user.role == "parent")
+    # Serialize with operator approval changes before saving or returning a replay.
+    db.execute(update(Installation).where(Installation.id == 1).values(revision=Installation.revision))
+    family = db.get(Family, child.family_id, populate_existing=True)
+    site = runtime_settings(db, fresh=True)
+    if family.synthetic or not (site.real_data_approved and site.privacy_evidence):
+        raise HTTPException(503, "Der Materialimport ist gerade nicht freigegeben.")
     if idempotency_key:
         existing = db.scalar(
             select(Material).where(Material.child_id == child.id, Material.upload_key == idempotency_key)
@@ -166,8 +176,6 @@ def upload(
     directory.mkdir(parents=True, exist_ok=True, mode=0o700)
     path = uid() + ".jpg"
     destination = directory / path
-    destination.write_bytes(output.getvalue())
-    destination.chmod(0o600)
     material = Material(
         purpose=purpose,
         child_id=child.id,
@@ -181,6 +189,8 @@ def upload(
         synthetic=False,
     )
     try:
+        destination.write_bytes(output.getvalue())
+        destination.chmod(0o600)
         db.add(material)
         db.flush()
         from .source_lineage import PREPROCESS_VERSION

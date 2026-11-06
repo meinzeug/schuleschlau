@@ -1,0 +1,35 @@
+[Unit]
+Description=SCHULPILOT private bounded photo normalizer
+After=local-fs.target
+
+[Service]
+User=schulpilot-photo
+Group=schulpilot-photo
+RuntimeDirectory=schulpilot-photo
+RuntimeDirectoryMode=0750
+WorkingDirectory=/opt/schulpilot/current/backend
+UMask=0077
+ExecStart=/usr/bin/env -i PATH=/usr/bin:/bin LANG=C.UTF-8 /opt/schulpilot/current/venv/bin/python -I /opt/schulpilot/current/backend/schulpilot/photo_service.py /run/schulpilot-photo/decoder.sock schulpilot
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+PrivateNetwork=true
+# Mask host brokers and data; bind only this service's owned IPC directory.
+TemporaryFileSystem=/run:ro /var:ro
+BindPaths=/run/schulpilot-photo
+ProtectSystem=strict
+ProtectHome=true
+InaccessiblePaths=-/etc/schulpilot -/var/lib/schulpilot -/var/backups/schulpilot -/run/postgresql -/run/schulpilot-codex -/run/schulpilot-provider -/run/schulpilot-repair -/opt/merchagent -/opt/ai-artist-studio -/opt/artist-cli -/opt/buddys-art
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_UNIX
+CapabilityBoundingSet=
+MemoryMax=256M
+TasksMax=16
+
+[Install]
+WantedBy=multi-user.target

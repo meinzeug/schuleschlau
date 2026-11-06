@@ -18,7 +18,7 @@ BASE = Path("/opt/schulpilot")
 RELEASES = BASE / "releases"
 RELEASE_ID = re.compile(r"\d{8}T\d{6}Z-[0-9a-f]{7,40}\Z")
 SERVICES = ("schulpilot-api.service", "schulpilot-worker.service")
-OPTIONAL_RELEASE_SERVICES = ("schulpilot-repair-dispatcher.service",)
+OPTIONAL_RELEASE_SERVICES = ("schulpilot-repair-dispatcher.service", "schulpilot-photo.service")
 
 
 class PruneError(RuntimeError):
@@ -104,8 +104,8 @@ def _assert_services_use_kept_releases(kept: set[Path]) -> None:
         if not any(release == cwd or release in cwd.parents for release in kept):
             raise PruneError(f"{service} is using a release outside current/previous")
 
-    # Unlike the isolated repair broker, the optional dispatcher executes from
-    # current/backend. A still-running old dispatcher must not lose its code.
+    # Both optional services execute from a release. An old live process must
+    # not lose its code; absent/inactive services remain compatible with legacy.
     for service in OPTIONAL_RELEASE_SERVICES:
         result = subprocess.run(
             ["systemctl", "show", "--property=LoadState", "--property=ActiveState", "--property=MainPID", service],

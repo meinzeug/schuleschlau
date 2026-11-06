@@ -32,7 +32,7 @@ from .exam_review_schemas import (
 )
 from .model_routing import job_config
 from .providers import ProviderError, Result, external_allowed, request_provider, reserve, settle
-from .security import Principal, audit, authenticated, child_user, digest, rate_limit
+from .security import Principal, audit, authenticated, child_access, child_user, digest, rate_limit
 from .tutor_schemas import TutorOutput
 
 router = APIRouter(tags=["Schriftliche Arbeiten besprechen"])
@@ -64,6 +64,16 @@ def access(db, p, exam_id, *, write=False):
     p = fresh_actor(db, p) if write else p
     exam, child = access_exam(db, p, exam_id, write=write)
     if write and exam.archived:
+        raise HTTPException(409, "Diese Arbeit ist archiviert.")
+    return exam, child
+
+
+def preflight_upload_access(db, p, exam_id):
+    # Read-only early check: the authoritative write/revision check happens
+    # after image decoding under the established Child -> Session lock order.
+    exam, child = access(db, p, exam_id)
+    child_access(db, p, child.id, write=True)
+    if exam.archived:
         raise HTTPException(409, "Diese Arbeit ist archiviert.")
     return exam, child
 
@@ -383,7 +393,7 @@ def upload_page(
 ):
     from .materials import upload
 
-    exam, child = access(db, p, exam_id, write=True)
+    exam, child = preflight_upload_access(db, p, exam_id)
     upload(child.id, file, purpose="exam", idempotency_key=key, p=p, db=db, exam_id=exam.id, exam_revision=revision)
     exam = db.get(Exam, exam.id, populate_existing=True)
     return projection(db, p, exam, child)
