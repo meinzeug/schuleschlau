@@ -58,8 +58,10 @@ Die Gruppierungshilfen sind vorbereitende Bausteine. Sie ersetzen weder die
 persistierte Gesamtplanung noch das Schema, die parallele Veröffentlichung,
 die Fehlermatrix oder den echten künstlichen Anbieterpfad.
 
-Die beiden künstlichen Gruppentests bestanden auf SQLite und isoliertem
-PostgreSQL. Ein weiterer SQLite-Lauf mit 137 Fällen prüfte die bestehende
+Drei künstliche Gruppentests bestanden auf SQLite und isoliertem
+PostgreSQL. Sie zeigen auch die Bindung der Identität an Quellrevision und
+Referenzdigest; der Digest wird durch diese Helfer nicht gegen die Datenbank
+authentifiziert. Ein weiterer SQLite-Lauf mit 137 Fällen prüfte die bestehende
 Erweiterung für Lernweg-, Heft- und Materialrunden sowie die neuen
 Gruppenhelfer. Der Test verwendet keinen echten Anbieter und führt keine
 Paketgenerierung aus.

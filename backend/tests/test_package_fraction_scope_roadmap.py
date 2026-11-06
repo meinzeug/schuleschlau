@@ -45,3 +45,21 @@ def test_grouped_introduction_preserves_scope_and_never_adopts_task_solution(hou
     assert all(row['disclosure'] == 'given' for row in intros)
     assert all(row['block']['numbers'] != candidate['proof']['output'] for row in intros)
     assert expansion._introductions(context, [candidate], group_id='missing') == []
+
+
+def test_grouped_source_revision_and_reference_digest_bind_distinct_proof_ids(household):
+    context, task = grouped(household)
+    original = expansion._candidate(context, task, 'apply', group_id='g1')
+    revised = copy.deepcopy(context)
+    revised['sources'][0]['revision'] += 1
+    changed_source = expansion._candidate(revised, task, 'apply', group_id='g1')
+    assert changed_source['proof']['source_digest'] != original['proof']['source_digest']
+    assert changed_source['id'] != original['id']
+    changed = copy.deepcopy(context)
+    reference = next(row for row in changed['references'] if row['id'] == expansion.RECIPE)
+    reference['digest'] = '0' * 64
+    changed_reference = expansion._candidate(changed, task, 'apply', group_id='g1')
+    assert changed_reference['proof']['reference_digest'] != original['proof']['reference_digest']
+    assert changed_reference['id'] != original['id']
+    # The higher-level validator must still verify the reference digest against
+    # its stored immutable recipe. This helper binds it but does not certify it.

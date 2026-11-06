@@ -68,6 +68,6 @@ fehlender Auswahl und nichttextuellem Inhalt werden verworfen. Vorhandene
 Paketabschnitte und Antwortbelege bleiben jeweils erhalten; kein GET und kein
 Workerlauf erzeugt einen erneuten Modellaufruf. Die bewusste Wiederaufnahme
 setzt nach dem Fehler beim fehlenden Abschnitt an. Die 45 synthetischen Fälle
-bestanden auf SQLite. Diese Simulation belegt weder die derzeitige Anbieter-
+bestanden auf SQLite und isoliertem PostgreSQL. Diese Simulation belegt weder die derzeitige Anbieter-
 verfügbarkeit noch reale Kosten oder eine vollständige Matrix aller denkbaren
 Transporte.
