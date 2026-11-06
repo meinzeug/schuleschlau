@@ -1,4 +1,5 @@
 import errno
+import fcntl
 import importlib.util
 import os
 import stat
@@ -36,6 +37,62 @@ def root(tmp_path):
     (base / 'current').symlink_to(releases / CURRENT)
     (base / 'previous').symlink_to(releases / PREVIOUS)
     return base
+
+
+@pytest.mark.parametrize('replacement', ['guard', 'root'])
+def test_waiting_lease_mutation_rejects_replaced_guard_or_root(root, tmp_path, monkeypatch, replacement):
+    """A waiter must not mutate while another operation holds the new guard."""
+    lease = stage.acquire_lock(root, 'deploy', RELEASE)
+    guard = root / '.deploy.guard'
+    old_fd = os.open(guard, os.O_RDWR | os.O_NOFOLLOW)
+    real_flock = fcntl.flock
+    real_flock(old_fd, fcntl.LOCK_EX)
+    waiting = threading.Event()
+    outcomes = []
+
+    def observed_flock(fd, operation):
+        if fd != old_fd and operation == fcntl.LOCK_EX:
+            waiting.set()
+        return real_flock(fd, operation)
+
+    def mutate():
+        try:
+            stage.update_lock(root, lease['token'], stage='changed')
+            outcomes.append('mutated')
+        except Exception as exc:
+            outcomes.append(exc)
+
+    monkeypatch.setattr(stage.fcntl, 'flock', observed_flock)
+    worker = threading.Thread(target=mutate)
+    worker.start()
+    new_fd = None
+    try:
+        assert waiting.wait(5)
+        if replacement == 'guard':
+            guard.rename(root / '.old-guard')
+        else:
+            old_root = tmp_path / 'old-root'
+            root.rename(old_root)
+            root.mkdir(mode=0o700)
+            lock = root / '.deploy.lock'
+            lock.write_bytes((old_root / '.deploy.lock').read_bytes())
+            lock.chmod(0o600)
+        guard.write_bytes(b'')
+        guard.chmod(0o600)
+        new_fd = os.open(guard, os.O_RDWR | os.O_NOFOLLOW)
+        real_flock(new_fd, fcntl.LOCK_EX)
+        real_flock(old_fd, fcntl.LOCK_UN)
+        worker.join(5)
+        assert not worker.is_alive()
+        assert len(outcomes) == 1 and isinstance(outcomes[0], stage.ReleaseLockError)
+        assert stage.check_lock(root)['stage'] == 'preparing'
+    finally:
+        real_flock(old_fd, fcntl.LOCK_UN)
+        os.close(old_fd)
+        if new_fd is not None:
+            real_flock(new_fd, fcntl.LOCK_UN)
+            os.close(new_fd)
+        worker.join(5)
 
 
 def test_unfinished_upload_is_invisible_to_old_prune_then_published_atomically(root):

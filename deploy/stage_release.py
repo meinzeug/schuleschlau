@@ -221,6 +221,19 @@ def _serialize_lock_mutation(function):
                 _check_trusted_file(fd, base / '.deploy.guard', owner)
                 fcntl.flock(fd, fcntl.LOCK_EX)
                 try:
+                    # flock can wait while the named root or guard is
+                    # replaced. Holding the old inode then serializes with
+                    # nobody using the new one; refuse before any mutation.
+                    opened = os.fstat(base_fd)
+                    try:
+                        named = os.lstat(base)
+                        if (not stat.S_ISDIR(named.st_mode)
+                                or opened.st_uid != owner or opened.st_mode & 0o022
+                                or (opened.st_dev, opened.st_ino) != (named.st_dev, named.st_ino)):
+                            raise ReleaseLockError('Release root changed while waiting for guard')
+                        _check_trusted_file(fd, base / '.deploy.guard', owner)
+                    except OSError as exc:
+                        raise ReleaseLockError('Release guard or root disappeared') from exc
                     return function(*args, **kwargs)
                 finally:
                     fcntl.flock(fd, fcntl.LOCK_UN)
