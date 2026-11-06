@@ -275,49 +275,52 @@ def delete_preview(child_id: str, data: DeletePreview, p=Depends(authenticated),
 
 
 def bulk_delete(child_id: str, data: DeleteConfirm, p=Depends(authenticated), db=Depends(get_db)):
+    from .erasure import journal_write_lock
+
     user_id, session_id = p.user.id, p.session.id
-    child = child_access(db, p, child_id, write=p.user.role == "parent")
-    try:
-        token = json.loads(crypt().decrypt(data.selection_token.encode(), ttl=TTL))
-        if (token["v"], token["actor"], token["session"], token["child"]) != (2, p.user.id, p.session.id, child.id):
-            raise ValueError("scope")
-        selection = DeletePreview.model_validate(token["selection"])
-    except (InvalidToken, ValueError, KeyError, TypeError):
-        raise HTTPException(
-            409, "Die Löschvorschau ist abgelaufen oder gehört zu einer anderen Anmeldung. Bitte erneut auswählen."
-        ) from None
-    rows = selection_rows(db, p, child, selection)
-    ids = [m.id for m in rows]
-    ensure_child_deletable(db, p, child, rows, [])
-    locked_units = lock_units(db, child.id, ids)
-    db.execute(update(Child).where(Child.id == child.id).values(grade=Child.grade))
-    db.expire_all()
-    from .security import lock_session_after_child
+    with journal_write_lock():
+        child = child_access(db, p, child_id, write=p.user.role == "parent")
+        try:
+            token = json.loads(crypt().decrypt(data.selection_token.encode(), ttl=TTL))
+            if (token["v"], token["actor"], token["session"], token["child"]) != (2, p.user.id, p.session.id, child.id):
+                raise ValueError("scope")
+            selection = DeletePreview.model_validate(token["selection"])
+        except (InvalidToken, ValueError, KeyError, TypeError):
+            raise HTTPException(
+                409, "Die Löschvorschau ist abgelaufen oder gehört zu einer anderen Anmeldung. Bitte erneut auswählen."
+            ) from None
+        rows = selection_rows(db, p, child, selection)
+        ids = [m.id for m in rows]
+        ensure_child_deletable(db, p, child, rows, [])
+        locked_units = lock_units(db, child.id, ids)
+        db.execute(update(Child).where(Child.id == child.id).values(grade=Child.grade))
+        db.expire_all()
+        from .security import lock_session_after_child
 
-    lock_session_after_child(db, user_id, session_id)
-    child = child_access(db, p, child_id, write=p.user.role == "parent")
-    rows = selection_rows(db, p, child, selection)
-    if len(rows) != token["count"] or snapshot(rows) != token["snapshot"]:
-        raise HTTPException(
-            409, "Die Seitenauswahl wurde inzwischen geändert. Nichts wurde gelöscht. Bitte die Vorschau neu öffnen."
-        )
-    from .unit_erasure import linked_ids
-    from .unit_erasure import snapshot as unit_snapshot
+        lock_session_after_child(db, user_id, session_id)
+        child = child_access(db, p, child_id, write=p.user.role == "parent")
+        rows = selection_rows(db, p, child, selection)
+        if len(rows) != token["count"] or snapshot(rows) != token["snapshot"]:
+            raise HTTPException(
+                409, "Die Seitenauswahl wurde inzwischen geändert. Nichts wurde gelöscht. Bitte die Vorschau neu öffnen."
+            )
+        from .unit_erasure import linked_ids
+        from .unit_erasure import snapshot as unit_snapshot
 
-    current_units = linked_ids(db, child.id, ids)
-    if current_units != locked_units or unit_snapshot(db, current_units) != token["units_snapshot"]:
-        raise HTTPException(
-            409, "Neue Übungen wurden gespeichert. Nichts wurde gelöscht. Bitte die Vorschau neu öffnen."
-        )
-    ensure_child_deletable(db, p, child, rows, current_units)
-    ensure_idle(db, child.id)
-    if current_units and not data.delete_linked_units:
-        raise HTTPException(409, "Die verknüpften Übungen und Antworten werden mitgelöscht. Bitte die App aktualisieren und erneut bestätigen.")
-    paths = delete_rows(db, child, rows)
-    from .security import audit
+        current_units = linked_ids(db, child.id, ids)
+        if current_units != locked_units or unit_snapshot(db, current_units) != token["units_snapshot"]:
+            raise HTTPException(
+                409, "Neue Übungen wurden gespeichert. Nichts wurde gelöscht. Bitte die Vorschau neu öffnen."
+            )
+        ensure_child_deletable(db, p, child, rows, current_units)
+        ensure_idle(db, child.id)
+        if current_units and not data.delete_linked_units:
+            raise HTTPException(409, "Die verknüpften Übungen und Antworten werden mitgelöscht. Bitte die App aktualisieren und erneut bestätigen.")
+        paths = delete_rows(db, child, rows)
+        from .security import audit
 
-    audit(db, p.user.id, "notebook.pages_and_rounds_deleted", child.id)
-    db.commit()
+        audit(db, p.user.id, "notebook.pages_and_rounds_deleted", child.id)
+        db.commit()
     remove_files(paths)
     return {"deleted_count": len(rows)}
 

@@ -478,57 +478,59 @@ def synthetic_pages(day_id: str, p=Depends(authenticated), db=Depends(get_db)):
 
 @router.delete("/school-days/{day_id}/pages/{material_id}")
 def remove_page(day_id: str, material_id: str, p=Depends(authenticated), db=Depends(get_db)):
+    from .erasure import flush_journal, journal_write_lock, request
+
     user_id, session_id = p.user.id, p.session.id
-    day, child = get_day(db, p, day_id)
-    child_access(db, p, child.id, write=p.user.role == "parent")
-    material = db.get(Material, material_id)
-    if not material or material.school_day_id != day.id or material.child_id != child.id:
-        raise HTTPException(404, "Seite nicht gefunden.")
-    lock_material_units(db, child.id, material_id)
-    day, child = get_day(db, p, day_id, write=True, allow_archived=True)
-    db.expire_all()
-    from .security import lock_session_after_child
+    with journal_write_lock():
+        day, child = get_day(db, p, day_id)
+        child_access(db, p, child.id, write=p.user.role == "parent")
+        material = db.get(Material, material_id)
+        if not material or material.school_day_id != day.id or material.child_id != child.id:
+            raise HTTPException(404, "Seite nicht gefunden.")
+        lock_material_units(db, child.id, material_id)
+        day, child = get_day(db, p, day_id, write=True, allow_archived=True)
+        db.expire_all()
+        from .security import lock_session_after_child
 
-    lock_session_after_child(db, user_id, session_id)
-    day, child = get_day(db, p, day_id, allow_archived=True)
-    child_access(db, p, child.id, write=p.user.role == "parent")
-    idle(db, child.id)
-    material = db.get(Material, material_id, populate_existing=True)
-    if not material or material.school_day_id != day.id or material.child_id != child.id:
-        raise HTTPException(404, "Seite nicht gefunden.")
-    if (day.stage not in ("collecting", "review") and material.status != "unreadable") or material.confirmed:
-        raise HTTPException(
-            409,
-            "Nur ungeprüfte Seiten können hier gelöscht werden. Bestätigte Inhalte verwalten deine Eltern.",
-        )
-    if material.synthetic and material.fixture_id in DAY_FIXTURE_IDS and db.get(Family, child.family_id).synthetic:
-        raise HTTPException(409, "Diese Beispielseiten gehören zusammen. Bitte nutze beide Seiten.")
-    # Older review clients never acknowledged loss of linked answers. Route
-    # those selections through the counted, revision-bound notebook deletion.
-    from .material_actions import ensure_child_deletable
-    from .unit_erasure import linked_ids
+        lock_session_after_child(db, user_id, session_id)
+        day, child = get_day(db, p, day_id, allow_archived=True)
+        child_access(db, p, child.id, write=p.user.role == "parent")
+        idle(db, child.id)
+        material = db.get(Material, material_id, populate_existing=True)
+        if not material or material.school_day_id != day.id or material.child_id != child.id:
+            raise HTTPException(404, "Seite nicht gefunden.")
+        if (day.stage not in ("collecting", "review") and material.status != "unreadable") or material.confirmed:
+            raise HTTPException(
+                409,
+                "Nur ungeprüfte Seiten können hier gelöscht werden. Bestätigte Inhalte verwalten deine Eltern.",
+            )
+        if material.synthetic and material.fixture_id in DAY_FIXTURE_IDS and db.get(Family, child.family_id).synthetic:
+            raise HTTPException(409, "Diese Beispielseiten gehören zusammen. Bitte nutze beide Seiten.")
+        # Older review clients never acknowledged loss of linked answers. Route
+        # those selections through the counted, revision-bound notebook deletion.
+        from .material_actions import ensure_child_deletable
+        from .unit_erasure import linked_ids
 
-    ensure_child_deletable(db, p, child, [material], [])
-    linked = linked_ids(db, child.id, [material.id])
-    ensure_child_deletable(db, p, child, [material], linked)
-    if linked:
-        raise HTTPException(409, "Diese Seite hat verknüpfte Übungen. Bitte die App aktualisieren und die Löschvorschau verwenden; sie entfernt Seite, Übungen und Antworten gemeinsam.")
-    path = material.path
-    from .erasure import flush_journal, request
-    from .source_lineage import purge_diagnostic_outputs
-    from .tutor import purge_source_turns
+        ensure_child_deletable(db, p, child, [material], [])
+        linked = linked_ids(db, child.id, [material.id])
+        ensure_child_deletable(db, p, child, [material], linked)
+        if linked:
+            raise HTTPException(409, "Diese Seite hat verknüpfte Übungen. Bitte die App aktualisieren und die Löschvorschau verwenden; sie entfernt Seite, Übungen und Antworten gemeinsam.")
+        path = material.path
+        from .source_lineage import purge_diagnostic_outputs
+        from .tutor import purge_source_turns
 
-    purge_diagnostic_outputs(db, [material.id])
-    purge_source_turns(db, [material.id], child_id=material.child_id)
-    request(db, "material", material.id)
-    db.delete(material)
-    day.revision += 1
-    db.flush()
-    from .school_preparation import sources_removed
+        purge_diagnostic_outputs(db, [material.id])
+        purge_source_turns(db, [material.id], child_id=material.child_id)
+        request(db, "material", material.id)
+        db.delete(material)
+        day.revision += 1
+        db.flush()
+        from .school_preparation import sources_removed
 
-    sources_removed(db, day)
-    record(db, child.id, "school_day_page_removed")
-    db.commit()
+        sources_removed(db, day)
+        record(db, child.id, "school_day_page_removed")
+        db.commit()
     flush_journal()
     if path:
         from .private_images import remove

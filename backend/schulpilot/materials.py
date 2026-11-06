@@ -614,31 +614,37 @@ def delete_material(material_id: str, p=Depends(authenticated), db=Depends(get_d
         from .school_day import remove_page
 
         return remove_page(material.school_day_id, material.id, p=p, db=db)
-    child_access(db, p, child.id, write=p.user.role == "parent")
-    # Older clients promise that answers survive. Require the new counted
-    # preview/confirmation whenever removal also affects saved learning rounds.
-    from .material_actions import delete_rows, ensure_child_deletable, ensure_idle, remove_files, snapshot
-    from .unit_erasure import linked_ids
+    from .erasure import journal_write_lock
 
-    original_snapshot = snapshot([material])
-    ensure_child_deletable(db, p, child, [material], [])
-    lock_material_units(db, child.id, material_id)
-    material, child = get_material(db, p, material_id, True)
-    db.expire_all()
-    from .security import lock_session_after_child
+    with journal_write_lock():
+        material, child = get_material(db, p, material_id)
+        if p.user.role == "child" and material.school_day_id and not material.confirmed:
+            raise HTTPException(409, "Die Seite wurde inzwischen geändert. Bitte erneut auswählen.")
+        child_access(db, p, child.id, write=p.user.role == "parent")
+        # Older clients promise that answers survive. Require the new counted
+        # preview/confirmation whenever removal also affects saved learning rounds.
+        from .material_actions import delete_rows, ensure_child_deletable, ensure_idle, remove_files, snapshot
+        from .unit_erasure import linked_ids
 
-    lock_session_after_child(db, user_id, session_id)
-    material, child = get_material(db, p, material_id)
-    child_access(db, p, child.id, write=p.user.role == "parent")
-    if snapshot([material]) != original_snapshot:
-        raise HTTPException(409, "Die Seite wurde inzwischen geändert. Bitte neu laden und erneut auswählen.")
-    ensure_idle(db, child.id)
-    linked = linked_ids(db, child.id, [material_id])
-    ensure_child_deletable(db, p, child, [material], linked)
-    if linked:
-        raise HTTPException(409, "Diese Seite hat verknüpfte Übungen. Bitte die App aktualisieren und die Löschvorschau in deinen Heften verwenden.")
-    paths = delete_rows(db, child, [material])
-    db.commit()
+        original_snapshot = snapshot([material])
+        ensure_child_deletable(db, p, child, [material], [])
+        lock_material_units(db, child.id, material_id)
+        material, child = get_material(db, p, material_id, True)
+        db.expire_all()
+        from .security import lock_session_after_child
+
+        lock_session_after_child(db, user_id, session_id)
+        material, child = get_material(db, p, material_id)
+        child_access(db, p, child.id, write=p.user.role == "parent")
+        if snapshot([material]) != original_snapshot:
+            raise HTTPException(409, "Die Seite wurde inzwischen geändert. Bitte neu laden und erneut auswählen.")
+        ensure_idle(db, child.id)
+        linked = linked_ids(db, child.id, [material_id])
+        ensure_child_deletable(db, p, child, [material], linked)
+        if linked:
+            raise HTTPException(409, "Diese Seite hat verknüpfte Übungen. Bitte die App aktualisieren und die Löschvorschau in deinen Heften verwenden.")
+        paths = delete_rows(db, child, [material])
+        db.commit()
     remove_files(paths)
     return {"message": "Heftseite und Foto gelöscht."}
 

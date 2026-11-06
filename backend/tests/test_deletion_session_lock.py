@@ -215,8 +215,11 @@ def test_family_call_session_first_does_not_deadlock_with_child_first_deletion(a
 def test_real_family_revocation_and_parent_deletion_are_serialized(api, household, mailbox, monkeypatch, first):
     if engine.dialect.name != "postgresql":
         pytest.skip("Requires real PostgreSQL row locks")
+    from contextlib import contextmanager
+    from threading import Lock
+
     from conftest import register
-    from schulpilot import materials
+    from schulpilot import erasure
     from schulpilot.db import Membership
     from sqlalchemy import event
 
@@ -232,7 +235,21 @@ def test_real_family_revocation_and_parent_deletion_are_serialized(api, househol
             membership_id = membership.id
         member_headers = {**HEADERS, "Authorization": member_client.headers["Authorization"]}
         owner_headers = {**HEADERS, "Authorization": api.headers["Authorization"]}
-        held, proceed, other_ready = Event(), Event(), Event()
+        held, proceed = Event(), Event()
+        second_journal_attempt = Event()
+        count_lock, count = Lock(), [0]
+        original_journal_lock = erasure.journal_write_lock
+
+        @contextmanager
+        def observed_journal_lock():
+            with count_lock:
+                count[0] += 1
+                if count[0] == 2:
+                    second_journal_attempt.set()
+            with original_journal_lock():
+                yield
+
+        monkeypatch.setattr(erasure, "journal_write_lock", observed_journal_lock)
         def delete_page():
             with TestClient(app, headers=member_headers) as client:
                 return client.delete(f"/api/materials/{mid}")
@@ -248,12 +265,6 @@ def test_real_family_revocation_and_parent_deletion_are_serialized(api, househol
                 return value
             monkeypatch.setattr(security, "lock_session_after_child", hold_session)
         else:
-            original = materials.lock_material_units
-            def before_child(db, child_id, material_id):
-                value = original(db, child_id, material_id)
-                other_ready.set()
-                return value
-            monkeypatch.setattr(materials, "lock_material_units", before_child)
             def after_statement(conn, cursor, statement, parameters, context, executemany):
                 if not held.is_set() and statement.lower().startswith("update children set"):
                     held.set()
@@ -264,24 +275,20 @@ def test_real_family_revocation_and_parent_deletion_are_serialized(api, househol
                 first_future = pool.submit(delete_page if first == "deletion" else revoke)
                 assert held.wait(8)
                 second_future = pool.submit(revoke if first == "deletion" else delete_page)
-                if first == "family_revocation":
-                    assert other_ready.wait(8)  # deletion is now trying to acquire Child
-                else:
-                    deadline = monotonic() + 8
-                    blocked = False
-                    while monotonic() < deadline and not blocked:
-                        with DB() as db:
-                            blocked = bool(db.scalar(text(
-                                "SELECT count(*) FROM pg_stat_activity WHERE datname = current_database() "
-                                "AND wait_event_type = 'Lock' AND lower(query) LIKE '%update children%'"
-                            )))
-                        if not blocked:
-                            sleep(0.05)
-                    assert blocked, "Family revocation did not reach the locked Child"
+                # Both mutations now serialize earlier on the journal lock;
+                # assert the second has reached that lock rather than waiting
+                # for an impossible child-row lock acquisition.
+                assert second_journal_attempt.wait(8)
+                assert not second_future.done()
                 proceed.set()
                 first_response, second_response = first_future.result(12), second_future.result(12)
                 assert first_response.status_code == 200, first_response.text
-                assert second_response.status_code == (200 if first == "deletion" else 401), second_response.text
+                if first == "deletion":
+                    assert second_response.status_code == 200, second_response.text
+                else:
+                    # The revoked member may be rejected by the fresh family
+                    # check (404) before the session check (401).
+                    assert second_response.status_code in (401, 404), second_response.text
         finally:
             proceed.set()
             if first == "family_revocation":
