@@ -1,10 +1,11 @@
 # Löschjournal: Inventar der Snapshot-Sperren
 
-Stand: isolierte Entwicklung, **nicht produktiv ausgerollt**. Ein Journalexport
-prüft die Outbox unter einer gemeinsamen Lesesperre. Ein Lösch-Commit, der diese
-Sperre nicht ebenfalls exklusiv nimmt, kann nach der Prüfung erfolgen. Das
-Beispiel `test_unguarded_outbox_commit_after_probe_is_a_documented_snapshot_gap`
-zeigt diese Grenze bewusst; es ist kein Erfolgstest für vollständige Abdeckung.
+Stand: isolierte Entwicklung, **nicht produktiv ausgerollt**. Der bestehende
+Journalexport prüft die Outbox noch nicht unter seiner Lesesperre. Ein separat
+erprobter Export mit dieser Prüfung wurde bewusst nicht in diesen Stand
+übernommen: Ein Lösch-Commit, der die Sperre nicht ebenfalls exklusiv nimmt,
+kann nach der Prüfung erfolgen. Einzelne gesicherte Einstiegspunkte belegen
+deshalb weder eine vollständige Outbox-Abdeckung noch einen sicheren Offsite-Export.
 
 ## Nachvollzogene Pfade
 
@@ -45,8 +46,9 @@ bereits gefunden sind. Insbesondere vor jeder Änderung sämtliche Aufrufe von
    er auf das Journal wartet. Parallelität mit laufendem Export und Cleanup
    unter begrenzten Testtimeouts prüfen.
 4. Export und ACK nur mit erfolgreicher Outboxprüfung erlauben; DB-Ausfall und
-   unbekannte Antwort bleiben Fehler. Nach vollständiger Pfadabdeckung den
-   Gegenbeispieltest durch einen realen End-to-End-Racetest ersetzen. Status,
+   unbekannte Antwort müssen Fehler bleiben. Den separat erprobten Export und
+   seine Tests erst nach vollständiger Pfadabdeckung integrieren und einen
+   realen End-to-End-Racetest ergänzen. Status,
    Clock-Synchronisation, fehlende Journalgenerationen und Outbox nach Abstürzen
    bleiben weiterhin gesondert zu prüfen.
 
