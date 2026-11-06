@@ -1682,6 +1682,12 @@ Bestandteil des bestehenden Buildvertrags.
     abgebrochen. Künstliche Tests prüfen beide Platzreihenfolgen und den echten
     Schema- und Grafikvertrag; dies schließt die Bruchplanung nicht ab.
 
+  - [x] **Weitere Anbieterabbrüche mit und ohne Kostenbeleg isoliert prüfen.**
+    Die synthetische Paketmatrix prüft weitere HTTP-Fehler und unvollständige
+    Antwortarten einschließlich einmaliger Verbuchung gemeldeter Fehlerkosten,
+    erhaltene Teilergebnisse und ausdrücklich gestartete Wiederaufnahme.
+    [Beleg und Grenzen](docs/OPENROUTER_FAILURE_E2E_2026_11_05.md#ergänzung-am-6-november-2026).
+
   - [x] **Tatsächliche Adapterfehler im Paketworker zuordnen und absichern.**
     HTTP-Auslastung, Timeout und Serverfehler sowie defekte oder abgeschnittene
     Ausgaben werden ohne Anbietertexte klassifiziert. Ein synthetischer

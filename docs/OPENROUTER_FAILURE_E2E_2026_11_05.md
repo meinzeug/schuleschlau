@@ -55,3 +55,19 @@ frühere künstliche Anbieteraufrufe und ihre gemessenen Kosten
 [OPENROUTER_VISUAL_TEST_2026_11_04.md](OPENROUTER_VISUAL_TEST_2026_11_04.md).
 Offen bleiben die sichere Vorabplanung initialer Bruch-Paketaufgaben, weitere
 Fehlerursachen und belastbare repräsentative Produktivitätsnachweise.
+
+## Ergänzung am 6. November 2026
+
+Die künstliche lokale HTTP-Matrix deckt zusätzlich HTTP 401, 402, 403, 404,
+409 und 422 ab. Für HTTP 400, 429 und 503 ist außerdem jeweils ein
+synthetischer Kostenbeleg im Fehlerbody enthalten; die gemeldeten Kosten werden
+in diesem Fall einmal als fehlgeschlagener, berechneter Auftrag gebucht, statt
+fälschlich die unbekannte Reservierung stehenzulassen. Antworten mit
+`content_filter`, `tool_calls`, `error` oder unbekanntem Abschlussgrund sowie
+fehlender Auswahl und nichttextuellem Inhalt werden verworfen. Vorhandene
+Paketabschnitte und Antwortbelege bleiben jeweils erhalten; kein GET und kein
+Workerlauf erzeugt einen erneuten Modellaufruf. Die bewusste Wiederaufnahme
+setzt nach dem Fehler beim fehlenden Abschnitt an. Die 45 synthetischen Fälle
+bestanden auf SQLite. Diese Simulation belegt weder die derzeitige Anbieter-
+verfügbarkeit noch reale Kosten oder eine vollständige Matrix aller denkbaren
+Transporte.

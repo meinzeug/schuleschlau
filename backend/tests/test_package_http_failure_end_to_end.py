@@ -29,14 +29,29 @@ def test_untrusted_error_codes_are_closed_categories(value, expected):
 @pytest.mark.parametrize(("fault", "expected", "billed"), [
     ("http400", "not_configured", False),
     ("http400_schema", "invalid_output", False),
+    ("http400_billed", "not_configured", True),
+    ("http401", "not_configured", False),
+    ("http402", "not_configured", False),
+    ("http403", "not_configured", False),
+    ("http404", "not_configured", False),
+    ("http409", "not_configured", False),
+    ("http422", "not_configured", False),
     ("http429", "provider_busy", False),
+    ("http429_billed", "provider_busy", True),
     ("http408", "provider_timeout", False),
     ("http500", "provider_unavailable", False),
     ("http503", "provider_unavailable", False),
+    ("http503_billed", "provider_unavailable", True),
     ("http504", "provider_timeout", False),
     ("timeout", "provider_timeout", False),
     ("network", "provider_unavailable", False),
     ("truncated", "invalid_output", True),
+    ("finish_content_filter", "invalid_output", True),
+    ("finish_tool_calls", "invalid_output", True),
+    ("finish_error", "invalid_output", True),
+    ("finish_unknown", "invalid_output", True),
+    ("no_choices", "invalid_output", True),
+    ("nonstring_content", "invalid_output", True),
     ("invalid_json", "invalid_output", True),
     ("invalid_envelope_json", "invalid_output", False),
     ("invalid_usage", "invalid_output", False),
@@ -65,11 +80,14 @@ def test_http_error_is_settled_once_and_only_explicit_retry_continues(api, house
         if fault == "network":
             raise httpx.ConnectError("synthetic network", request=request)
         if fault.startswith("http"):
-            status = 400 if fault == "http400_schema" else int(fault[4:])
+            status = int(fault[4:].split("_")[0])
             metadata = {"raw": marker}
             if fault == "http400_schema":
                 metadata["provider_error_code"] = "invalid_json_schema"
-            return httpx.Response(status, json={"error": {"code": status, "message": marker, "metadata": metadata}})
+            data = {"error": {"code": status, "message": marker, "metadata": metadata}}
+            if fault.endswith("_billed"):
+                data["usage"] = {"prompt_tokens": 5, "completion_tokens": 7, "cost": 0.000137}
+            return httpx.Response(status, json=data)
         if fault == "invalid_envelope_json":
             return httpx.Response(200, content=b"{not-json")
         if fault == "invalid_usage":
@@ -88,9 +106,12 @@ def test_http_error_is_settled_once_and_only_explicit_retry_continues(api, house
             else:
                 payload["choices"] = [{"error": error}]
             return httpx.Response(200, json=payload)
-        content = {"truncated": "{}", "invalid_json": "not-json", "empty": "", "schema": "{}"}[fault]
-        return httpx.Response(200, json={"choices": [{"finish_reason": "length" if fault == "truncated" else "stop",
-            "message": {"content": content}}], "usage": {"prompt_tokens": 5, "completion_tokens": 7, "cost": 0.000137}})
+        content = {"truncated": "{}", "invalid_json": "not-json", "empty": "", "schema": "{}",
+                   "nonstring_content": {"synthetic": marker}}.get(fault, "{}")
+        finish = fault.removeprefix("finish_") if fault.startswith("finish_") else "length" if fault == "truncated" else "stop"
+        choices = [] if fault == "no_choices" else [{"finish_reason": finish, "message": {"content": content}}]
+        return httpx.Response(200, json={"choices": choices,
+            "usage": {"prompt_tokens": 5, "completion_tokens": 7, "cost": 0.000137}})
 
     monkeypatch.setattr(providers.httpx, "Client", lambda **kw: real_client(transport=httpx.MockTransport(handler)))
     monkeypatch.setattr(providers, "external_allowed", lambda *a, **kw: None)
