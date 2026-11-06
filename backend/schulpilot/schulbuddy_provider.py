@@ -72,7 +72,7 @@ def configured(db, *, verify_catalog=False, probe=False):
     config = ProviderConfig(**values)
     # Existing privacy, capability, isolation and operator stop guards apply.
     try:
-        external_allowed(config, synthetic_fixture=probe)
+        external_allowed(config, synthetic_fixture=probe, db=db)
     except ProviderError as e:
         raise HTTPException(503, str(e)) from None
     budget_snapshot(base, config)

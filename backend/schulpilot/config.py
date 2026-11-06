@@ -100,16 +100,26 @@ RUNTIME_FIELDS = frozenset(
 )
 
 
-def runtime_settings(db=None):
+def runtime_settings(db=None, *, fresh=False):
     """Read persisted operator settings in every process; no restart or secret echo."""
     from .db import DB, Installation
     from .security import decrypt
 
     if db is None:
         with DB() as session:
-            return runtime_settings(session)
-    row = db.get(Installation, 1)
-    if not row or not row.encrypted_settings:
+            return runtime_settings(session, fresh=fresh)
+    if fresh:
+        # Query the value, not the ORM identity map, so an operator's later
+        # revocation is visible under the database's normal isolation level.
+        # Do not flush or overwrite unrelated uncommitted ORM changes.
+        from sqlalchemy import select
+
+        with db.no_autoflush:
+            encrypted = db.scalar(select(Installation.encrypted_settings).where(Installation.id == 1))
+    else:
+        row = db.get(Installation, 1)
+        encrypted = row.encrypted_settings if row else None
+    if not encrypted:
         return settings
-    values = json.loads(decrypt(row.encrypted_settings))
+    values = json.loads(decrypt(encrypted))
     return replace(settings, **{k: v for k, v in values.items() if k in RUNTIME_FIELDS})

@@ -207,14 +207,14 @@ def status():
         ai, reason = True, None
         try:
             for function in ("extract", "unit"):
-                external_allowed(config_for_function(config, function), image=function == "extract")
+                external_allowed(config_for_function(config, function), image=function == "extract", db=db)
         except ProviderError as error:
             ai, reason = False, str(error)
         synthetic_ai = bool(site.synthetic_ai_enabled)
         if synthetic_ai:
             try:
                 for function in ("extract", "unit"):
-                    external_allowed(config_for_function(config, function), image=function == "extract", synthetic_fixture=True)
+                    external_allowed(config_for_function(config, function), image=function == "extract", synthetic_fixture=True, db=db)
             except ProviderError:
                 synthetic_ai = False
     return {

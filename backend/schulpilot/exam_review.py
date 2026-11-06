@@ -977,7 +977,7 @@ def process(job_id):
                 config.revision,
             ):
                 raise ProviderError("Die KI-Einstellungen wurden geändert.")
-            external_allowed(config)
+            external_allowed(config, db=db)
             if turn:
                 turn.status = "running"
             else:
@@ -1011,7 +1011,7 @@ def process(job_id):
                 name: values[name] for name in ("provider", "model", "revision")
             }:
                 raise ProviderError("Die KI-Einstellung wurde während der Besprechung geändert.")
-            external_allowed(config)
+            external_allowed(config, db=db)
             if turn:
                 turn.status, turn.reply, turn.error = "ready", checked, None
             else:
@@ -1462,7 +1462,7 @@ def validate_scan_job(db, job):
         config.revision,
     ):
         raise ProviderError("Die reservierte Bilderkennung wurde geändert.")
-    external_allowed(config, image=True)
+    external_allowed(config, image=True, db=db)
 
 
 def _advance_scan(db, row):

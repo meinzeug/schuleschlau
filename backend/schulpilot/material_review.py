@@ -246,7 +246,8 @@ def guard(db, job, *, reserved=True):
         ):
             raise ProviderError("Die KI-Einstellung für diese Seitenprüfung wurde geändert.")
         external_allowed(
-            config, image=True, synthetic_fixture=bool(material.synthetic and material.fixture_id and family.synthetic)
+            config, image=True, synthetic_fixture=bool(material.synthetic and material.fixture_id and family.synthetic),
+            db=db,
         )
     return material, snapshot, child, family
 

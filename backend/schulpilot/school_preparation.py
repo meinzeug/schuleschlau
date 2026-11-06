@@ -121,7 +121,7 @@ def validate_job(db, job):
     config = job_config(db, job)
     material = db.get(Material, job.payload.get("material_id"))
     fixture = bool(material and material.fixture_id in LIVE_FIXTURE_IDS and material.synthetic and family.synthetic)
-    external_allowed(config, image=job.kind == "extract", synthetic_fixture=fixture)
+    external_allowed(config, image=job.kind == "extract", synthetic_fixture=fixture, db=db)
     usage = db.scalar(select(Usage).where(Usage.job_id == job.id))
     if not usage or (
         usage.provider != config.provider or usage.model != config.model or usage.config_revision != config.revision

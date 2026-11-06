@@ -285,7 +285,7 @@ def process(job_id):
             usage = db.scalar(select(Usage).where(Usage.job_id == job.id))
             if not usage or (usage.provider, usage.model, usage.config_revision) != (config.provider, config.model, config.revision):
                 raise ProviderError("Die KI-Einstellung wurde geändert. Bitte neu vorbereiten.")
-            external_allowed(config)
+            external_allowed(config, db=db)
             values = {c.name: getattr(config, c.name) for c in ProviderConfig.__table__.columns}
             row.status = "running"
             from .catalog_ai import with_catalog_context
@@ -311,7 +311,7 @@ def process(job_id):
             usage = db.scalar(select(Usage).where(Usage.job_id == job.id))
             if not usage or (usage.provider, usage.model, usage.config_revision) != (config.provider, config.model, config.revision):
                 raise ProviderError("Die KI-Einstellung wurde während der Verarbeitung geändert.")
-            external_allowed(config)
+            external_allowed(config, db=db)
             output, questions = checked_output(result.data, payload, row)
             unit = LearningUnit(id=uid(), child_id=row.child_id, subject=s.TARGETS[row.target_locale].split(" · ")[0],
                 topic=output.title, explanation="Bearbeite die Aufgaben in Ruhe. Deine Antworten bleiben gespeichert." if row.mode == "exam" else output.explanation,

@@ -353,7 +353,7 @@ def validate_reprocess_job(db, job):
         config.revision,
     ):
         raise ProviderError("Die KI-Einstellungen haben sich geändert. Bitte erneut einlesen lassen.")
-    external_allowed(config, image=True, synthetic_fixture=False)
+    external_allowed(config, image=True, synthetic_fixture=False, db=db)
     return child, family
 
 

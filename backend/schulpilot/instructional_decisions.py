@@ -464,7 +464,7 @@ def process(job_id):
             if signature != job.payload["signature"]:
                 raise ProviderError("Der Lernstand wurde geändert.")
             config = job_config(db, job, "decision")
-            external_allowed(config)
+            external_allowed(config, db=db)
             values = {column.name: getattr(config, column.name) for column in config.__table__.columns}
         provider_requested = True
         result = request_provider(type(config)(**values), "decision", payload)
@@ -478,7 +478,7 @@ def process(job_id):
             db.expire_all()
             authority(db, job)  # Permissions may have changed while waiting for the child lock.
             current_config = job_config(db, job, "decision")
-            external_allowed(current_config)
+            external_allowed(current_config, db=db)
             if (current_config.revision, current_config.model) != (values["revision"], values["model"]):
                 raise ProviderError("Die KI-Einstellung wurde geändert.")
             if not unit or unit.status != "active" or context(db, unit)[0] != job.payload["signature"]:

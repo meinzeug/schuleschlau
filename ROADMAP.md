@@ -1579,6 +1579,14 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Kapazitätsannahmen vor wachsendem Betrieb messen**
 
+  - [x] **Pool-Blockade bei parallelen Reservierungen beheben.** Eine zweite
+    Datenbanksitzung innerhalb der Freigabeprüfung blockierte bei gefülltem
+    Pool laufende Transaktionen. Ein synthetischer PostgreSQL-Lastfall zeigte
+    den Fehler vor und das Ergebnis nach dem Fix über echte lokale HTTP-Sockets;
+    Privatsphäre-Widerruf und ungespeicherte Daten wurden gesondert geprüft.
+    Die erweiterte Lastprobe ersetzt keine Kapazitätsfreigabe.
+    [Nachweis](docs/CAPACITY_LOOPBACK_2026_11_06.md).
+
   - [x] **Warteschlangenalter und gleichzeitige Worker isoliert prüfen.**
     Eine neue private aggregierte Metrik zeigt das Alter des ältesten wartenden
     und laufenden Auftrags ohne Inhaltsdaten. Acht künstliche Familien mit zwei

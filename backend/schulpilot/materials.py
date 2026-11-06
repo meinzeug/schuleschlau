@@ -33,7 +33,7 @@ def synthetic_fixture(child_id: str, p=Depends(authenticated), db=Depends(get_db
     if not db.get(Family, child.family_id).synthetic:
         raise HTTPException(403, "Der externe KI-Test ist ausschließlich im synthetischen Testraum verfügbar.")
     try:
-        external_allowed(config_for_function(db.get(ProviderConfig, 1), "extract"), image=True, synthetic_fixture=True)
+        external_allowed(config_for_function(db.get(ProviderConfig, 1), "extract"), image=True, synthetic_fixture=True, db=db)
     except ProviderError as error:
         raise HTTPException(503, str(error)) from None
     rate_limit(db, "fixture:" + p.user.id, 3, 3600)

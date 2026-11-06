@@ -81,7 +81,7 @@ def create_grant(db, operator_id, family_id, material_ids, *, expires_in=3600):
             },
         )
         validate_ready(chosen, image=True, synthetic=False)
-        external_allowed(chosen, image=True, synthetic_fixture=False)
+        external_allowed(chosen, image=True, synthetic_fixture=False, db=db)
     sources = []
     for mid in material_ids:
         material = db.get(Material, mid)

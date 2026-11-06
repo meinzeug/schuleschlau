@@ -18,9 +18,11 @@ import time
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from urllib.parse import urlparse
 
 from conftest import HEADERS, create_child, register
 from fastapi.testclient import TestClient
+import httpx
 from PIL import Image
 from schulpilot import worker
 from schulpilot.db import DB, Job, Material, Usage, engine
@@ -81,12 +83,18 @@ def children(pid):
         return []
 
 
-def run_worker_profile(api, household, mailbox, monkeypatch, *, provider_delay, worker_threads):
+def run_worker_profile(api, household, mailbox, monkeypatch, *, provider_delay, worker_threads,
+                       families=8, network_base=None, gate_reservations=False):
     assert engine.dialect.name == 'postgresql', 'Requires an isolated PostgreSQL test cluster'
+    assert 1 <= families <= 16 and 1 <= worker_threads <= min(4, families)
+    if network_base is not None:
+        target = urlparse(network_base)
+        assert (target.scheme, target.hostname, target.path, target.query, target.fragment) == (
+            'http', '127.0.0.1', '', '', '') and target.port and not target.username
     allow_synthetic_test_transport()
     _, child = household
     accounts = [(api.headers['Authorization'], child['id'])]
-    for index in range(1, 8):
+    for index in range(1, families):
         with TestClient(app, headers=HEADERS, client=(f'198.18.0.{index + 1}', 50000)) as client:
             parent = register(client, mailbox, email=f'capacity-probe-{index}@example.org')
             other = create_child(client, parent, username=f'capacity-probe-child-{index}')
@@ -144,10 +152,15 @@ def run_worker_profile(api, household, mailbox, monkeypatch, *, provider_delay, 
             def one(task):
                 index, method, path, kwargs = task
                 token, _ = accounts[index]
-                with TestClient(app, headers={**HEADERS, 'Authorization': token},
-                                client=(f'198.18.0.{index + 1}', 50000)) as client:
+                options = {'headers': {**HEADERS, 'Authorization': token}}
+                client = (httpx.Client(base_url=network_base, trust_env=False, timeout=30, **options)
+                          if network_base else TestClient(app, client=(f'198.18.0.{index + 1}', 50000), **options))
+                with client:
                     started = time.perf_counter()
-                    response = client.request(method, path, **kwargs)
+                    try:
+                        response = client.request(method, path, **kwargs)
+                    except httpx.HTTPError as error:
+                        return 0, {'transport_error': type(error).__name__}, (time.perf_counter() - started) * 1000
                     return response.status_code, response.json(), (time.perf_counter() - started) * 1000
 
             start = time.perf_counter()
@@ -156,34 +169,58 @@ def run_worker_profile(api, household, mailbox, monkeypatch, *, provider_delay, 
             profile.append({'operation': label, 'concurrency': concurrency, 'count': len(result),
                             'elapsed_s': round(time.perf_counter() - start, 3),
                             'p95_ms': percentile([v[2] for v in result]),
-                            'status': dict(Counter(str(v[0]) for v in result))})
+                            'status': dict(Counter(str(v[0]) for v in result)),
+                            'transport_errors': dict(Counter(v[1]['transport_error'] for v in result if v[0] == 0))})
+            if network_base:
+                print('\nCAPACITY_STAGE=' + json.dumps(profile[-1], sort_keys=True), flush=True)
             return result
 
-        for concurrency in (1, 4, 8):
-            tasks = [(i % 8, 'GET', f'/api/children/{accounts[i % 8][1]}/overview', {})
-                     for i in range(24)]
+        for concurrency in ((1, 4, 8, 16) if families == 16 else (1, 4, 8)):
+            tasks = [(i % families, 'GET', f'/api/children/{accounts[i % families][1]}/overview', {})
+                     for i in range(3 * families)]
             assert all(item[0] == 200 for item in batch('overview', tasks, concurrency))
 
         uploads = [(i, 'POST', f'/api/children/{child_id}/materials', {
             'files': {'file': ('synthetic.jpg', image, 'image/jpeg')},
             'headers': {'Idempotency-Key': f'capacity-upload-{i:04d}'},
         }) for i, (_, child_id) in enumerate(accounts) for _ in range(2)]
-        responses = batch('upload-replay', uploads, 8)
+        responses = batch('upload-replay', uploads, families)
         assert all(item[0] == 201 for item in responses)
-        material_ids = [responses[i * 2][1]['id'] for i in range(8)]
-        assert all(responses[i * 2 + 1][1]['id'] == material_ids[i] for i in range(8))
+        material_ids = [responses[i * 2][1]['id'] for i in range(families)]
+        assert all(responses[i * 2 + 1][1]['id'] == material_ids[i] for i in range(families))
         jobs = [(i, 'POST', f'/api/materials/{material_id}/extract', {
             'headers': {'Idempotency-Key': f'capacity-extract-{i:04d}'},
         }) for i, material_id in enumerate(material_ids) for _ in range(2)]
-        responses = batch('reservation-replay', jobs, 8)
+        if gate_reservations:
+            from schulpilot import providers
+
+            assert network_base and families == 15
+            # Match SQLAlchemy's default 5 + 10 pool size. Each request has its
+            # own already-open transaction and waits only in this synthetic
+            # barrier before the real provider safety/reservation path.
+            gate = threading.Barrier(families, timeout=15)
+            original = providers.external_allowed
+
+            def gated_provider_check(*args, **kwargs):
+                gate.wait()
+                return original(*args, **kwargs)
+
+            monkeypatch.setattr(providers, 'external_allowed', gated_provider_check)
+            monkeypatch.setattr(engine.pool, '_timeout', 2)
+            try:
+                gated = batch('saturated-pool-reservations', jobs[::2], families)
+            finally:
+                monkeypatch.setattr(providers, 'external_allowed', original)
+            assert all(item[0] == 202 for item in gated)
+        responses = batch('reservation-replay', jobs, families)
         assert all(item[0] == 202 for item in responses)
-        job_ids = [responses[i * 2][1]['id'] for i in range(8)]
-        assert all(responses[i * 2 + 1][1]['id'] == job_ids[i] for i in range(8))
-        assert len(set(job_ids)) == 8
+        job_ids = [responses[i * 2][1]['id'] for i in range(families)]
+        assert all(responses[i * 2 + 1][1]['id'] == job_ids[i] for i in range(families))
+        assert len(set(job_ids)) == families
         with DB() as db:
-            assert db.scalar(select(func.count()).select_from(Material)) == 8
-            assert db.scalar(select(func.count()).select_from(Job).where(Job.status == 'queued')) == 8
-            assert db.scalar(select(func.count()).select_from(Usage)) == 8
+            assert db.scalar(select(func.count()).select_from(Material)) == families
+            assert db.scalar(select(func.count()).select_from(Job).where(Job.status == 'queued')) == families
+            assert db.scalar(select(func.count()).select_from(Usage)) == families
             oldest = db.scalar(select(func.min(Job.created)).where(Job.status == 'queued'))
         queue_age_before = max(0, int(time.time()) - oldest)
 
@@ -253,7 +290,7 @@ def run_worker_profile(api, household, mailbox, monkeypatch, *, provider_delay, 
         try:
             with ThreadPoolExecutor(max_workers=worker_threads) as executor:
                 processing = [executor.submit(drain_worker) for _ in range(worker_threads)]
-                mixed_results = batch('mixed-api-with-worker', mixed, 8)
+                mixed_results = batch('mixed-api-with-worker', mixed, families)
                 for process in processing:
                     process.result()
         finally:
@@ -269,21 +306,22 @@ def run_worker_profile(api, household, mailbox, monkeypatch, *, provider_delay, 
         worker_elapsed = time.perf_counter() - claim_started
         with DB() as db:
             states = list(db.scalars(select(Job.status)))
-            assert states.count('completed') == 8 and len(states) == 8
-            assert db.scalar(select(func.sum(Job.attempts))) == 8
-            assert db.scalar(select(func.count()).select_from(Material)) == 12
-            assert db.scalar(select(func.count()).select_from(Usage)) == 8
-        assert len(provider_calls) == 8
+            assert states.count('completed') == families and len(states) == families
+            assert db.scalar(select(func.sum(Job.attempts))) == families
+            assert db.scalar(select(func.count()).select_from(Material)) == families + min(families, 4)
+            assert db.scalar(select(func.count()).select_from(Usage)) == families
+        assert len(provider_calls) == families
         assert provider_parallel['current'] == 0 and provider_parallel['maximum'] == worker_threads
-        report = {'synthetic': True, 'database': 'isolated PostgreSQL', 'transport': 'in-process ASGI',
-                  'families': 8, 'image_bytes': len(image), 'profile': profile,
-                  'queue_initial': 8, 'queue_final': 0, 'queue_age_before_drain_s': queue_age_before,
+        report = {'synthetic': True, 'database': 'isolated PostgreSQL',
+                  'transport': 'localhost TCP HTTP' if network_base else 'in-process ASGI',
+                  'families': families, 'image_bytes': len(image), 'profile': profile,
+                  'queue_initial': families, 'queue_final': 0, 'queue_age_before_drain_s': queue_age_before,
                   'queue_age_drain_completed_s': max(0, int(time.time()) - oldest),
                   'queue_sample_count': len(queue_samples),
                   'queue_sampled_max_queued': max(item['queued'] for item in queue_samples),
                   'queue_sampled_max_running': max(item['running'] for item in queue_samples),
                   'queue_sampled_max_queued_age_s': max(item['oldest_queued_s'] for item in queue_samples),
-                  'contending_claimers': claim_workers, 'unique_claims': len(set(claimed)), 'jobs_completed': 8,
+                  'contending_claimers': claim_workers, 'unique_claims': len(set(claimed)), 'jobs_completed': families,
                   'synthetic_provider_calls': len(provider_calls), 'external_provider_calls': 0,
                   'mock_provider_delay_s': provider_delay, 'worker_threads': worker_threads,
                   'mock_provider_max_parallel': provider_parallel['maximum'],

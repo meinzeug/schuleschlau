@@ -441,7 +441,7 @@ def synthetic_pages(day_id: str, p=Depends(authenticated), db=Depends(get_db)):
         raise HTTPException(409, "Bitte zuerst Seiten sammeln.")
     idle(db, child.id)
     try:
-        external_allowed(config_for_function(db.get(ProviderConfig, 1), "extract"), image=True, synthetic_fixture=True)
+        external_allowed(config_for_function(db.get(ProviderConfig, 1), "extract"), image=True, synthetic_fixture=True, db=db)
     except ProviderError as error:
         raise HTTPException(503, str(error)) from None
     rate_limit(db, "day-fixtures:" + p.user.id, 3, 86400, commit=False)

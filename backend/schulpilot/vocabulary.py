@@ -583,7 +583,7 @@ def process(job_id):
             usage = db.scalar(select(Usage).where(Usage.job_id == job.id))
             if not usage or (usage.provider, usage.model, usage.config_revision) != (config.provider, config.model, config.revision):
                 raise ProviderError("Die KI-Einstellung wurde geändert. Bitte neu vorbereiten.")
-            external_allowed(config)
+            external_allowed(config, db=db)
             values = {c.name: getattr(config, c.name) for c in ProviderConfig.__table__.columns}
             row.status = "running"
             db.commit()
@@ -617,7 +617,7 @@ def process(job_id):
             usage = db.scalar(select(Usage).where(Usage.job_id == job.id))
             if not usage or (usage.provider, usage.model, usage.config_revision) != (config.provider, config.model, config.revision):
                 raise ProviderError("Die KI-Einstellung wurde während der Verarbeitung geändert.")
-            external_allowed(config)
+            external_allowed(config, db=db)
             row.status, row.pairs, row.error = "review", output.model_dump()["pairs"], None
             job.status, job.finished, job.result = "completed", int(now()), {"import_id": row.id}
             settle(db, usage, result)

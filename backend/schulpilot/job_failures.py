@@ -117,7 +117,7 @@ def generation_availability(db, family, function, *, child_id=None, job_id=None,
             "message": "Neue KI-Schritte sind vorübergehend angehalten. Deine gespeicherten Inhalte bleiben da.",
         }
     try:
-        external_allowed(config, image=function == "extract")
+        external_allowed(config, image=function == "extract", db=db)
     except ProviderError as error:
         return {"code": "not_configured", "message": str(error)}
     return None

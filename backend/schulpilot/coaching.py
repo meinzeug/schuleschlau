@@ -1739,7 +1739,7 @@ def verify_current_provider(db, unit, values, function, job):
     current = job_config(db, job, function)
     if (current.revision, current.provider, current.model) != (values["revision"], values["provider"], values["model"]):
         raise ProviderError("Die KI-Einstellungen wurden während der Vorbereitung geändert.")
-    external_allowed(current)
+    external_allowed(current, db=db)
     family = db.get(Family, db.get(Child, unit.child_id).family_id)
     if family.expires and family.expires < now():
         raise ProviderError("Dieser Zugang ist abgelaufen. Die Antworten bleiben gespeichert.")

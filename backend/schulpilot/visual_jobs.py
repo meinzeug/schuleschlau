@@ -134,7 +134,7 @@ def process(job_id):
             if signature != job.payload["signature"]:
                 raise ProviderError("Die Quellen oder Aufgaben wurden geändert.")
             config = job_config(db, job, "unit")
-            external_allowed(config)
+            external_allowed(config, db=db)
             config_values = {column.name: getattr(config, column.name) for column in config.__table__.columns}
         provider_requested = True
         result = request_provider(type(config)(**config_values), "unit_visuals", payload)
@@ -150,7 +150,7 @@ def process(job_id):
             if unit is None or unit.child_id != job.child_id or context(db, unit, labs_enabled=bool(job.payload.get("labs_enabled")))[0] != job.payload["signature"]:
                 raise ProviderError("Die Runde wurde während der Grafikvorbereitung geändert.")
             current = job_config(db, job, "unit")
-            external_allowed(current)
+            external_allowed(current, db=db)
             if (current.revision, current.model) != (config_values["revision"], config_values["model"]):
                 raise ProviderError("Die KI-Einstellung wurde geändert.")
             guard_context(db, unit.child_id, payload["visual_context"])

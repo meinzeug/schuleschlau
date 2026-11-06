@@ -43,7 +43,7 @@ def enqueue(actor, db):
             raise HTTPException(422, status["status"])
     try:
         for function in ("extract", "unit", "package"):
-            external_allowed(config_for_function(config, function), function == "extract", True, operator_probe=True)
+            external_allowed(config_for_function(config, function), function == "extract", True, operator_probe=True, db=db)
     except ProviderError as error:
         raise HTTPException(422, str(error)) from None
     rate_limit(db, "operator-probe-hour", 3, 3600, commit=False)
@@ -80,7 +80,7 @@ def work_one(should_continue=lambda: True):
                 config = config_for_function(db.get(ProviderConfig, 1), function)
                 if config.revision != job.config_revision:
                     raise ProviderError("Anbieterkonfiguration wurde geändert. Prüfung bitte neu starten.")
-                external_allowed(config, function == "extract", True, operator_probe=True)
+                external_allowed(config, function == "extract", True, operator_probe=True, db=db)
                 values = {c.name: getattr(config, c.name) for c in ProviderConfig.__table__.columns}
                 period = datetime.now(timezone.utc).strftime("%Y-%m")
                 bucket = "global:" + period

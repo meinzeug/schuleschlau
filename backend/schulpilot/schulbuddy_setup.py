@@ -26,7 +26,7 @@ def probe_once():
         config = configured(db, verify_catalog=True, probe=True)
         base_revision = db.get(ProviderConfig, 1).revision
         rate_limit(db, "schulbuddy-probe-hour", 2, 3600, commit=False)
-        rate_limit(db, "synthetic-ai-global", runtime_settings().synthetic_ai_daily_limit, 86400, commit=False)
+        rate_limit(db, "synthetic-ai-global", runtime_settings(db, fresh=True).synthetic_ai_daily_limit, 86400, commit=False)
         buckets = ["global:" + datetime.now(timezone.utc).strftime("%Y-%m"), "schulbuddy-probe-20261022"]
         for name, limit in [(buckets[0], config.global_limit_micros), (buckets[1], 250000)]:
             insert_ignore(db, UsageBucket, {"id": name, "calls": 0, "encumbered_micros": 0,

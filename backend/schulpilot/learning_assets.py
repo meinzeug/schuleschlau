@@ -401,7 +401,7 @@ def process(job_id):
             config = job_config(db, job, "unit")
             if selection(config).get("tier") != "sol":
                 raise ProviderError("Die gespeicherte Sol-Route ist nicht mehr gültig.")
-            external_allowed(config)
+            external_allowed(config, db=db)
             config_values = {column.name: getattr(config, column.name) for column in config.__table__.columns}
         # No DB connection or lock spans the network boundary. Only canonical
         # PUBLIC spec reaches this existing provider adapter.
@@ -424,7 +424,7 @@ def process(job_id):
             if not build or build.status != "queued" or build.job_id != job.id or current_spec(db, build) != spec:
                 raise ProviderError("Die öffentliche Grundlage wurde geändert.")
             current = job_config(db, job, "unit")
-            external_allowed(current)
+            external_allowed(current, db=db)
             if selection(current).get("tier") != "sol" or (current.revision, current.model) != (config_values["revision"], config_values["model"]):
                 raise ProviderError("Die KI-Einstellung wurde geändert.")
             value = checked_output(db, result.data, spec)

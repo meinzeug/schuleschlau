@@ -139,7 +139,7 @@ def with_demo_visuals(data, payload):
 
 @router.post("/demo", status_code=201)
 def demo(request: Request, response: Response, db=Depends(get_db)):
-    if not runtime_settings().synthetic_demo:
+    if not runtime_settings(db, fresh=True).synthetic_demo:
         raise HTTPException(404, "Testraum deaktiviert.")
     rate_limit(db, "demo:" + digest(request.client.host), 5, 3600)
     rate_limit(db, "demo-global", 100, 3600)

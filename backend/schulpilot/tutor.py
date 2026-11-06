@@ -506,7 +506,7 @@ def process(job_id):
             )):
                 raise ProviderError("Die KI-Einstellung wurde geändert. Kein anderer Anbieter wurde aufgerufen.")
             if not local:
-                external_allowed(config)
+                external_allowed(config, db=db)
             turn.status = "running"
             from .catalog_ai import with_catalog_context
 
@@ -560,7 +560,7 @@ def process(job_id):
             )):
                 raise ProviderError("Die KI-Einstellung wurde während der Antwort geändert. Bitte frage erneut.")
             if not local:
-                external_allowed(config)
+                external_allowed(config, db=db)
             if reply["kind"] in ("answer", "foundation"):
                 record_tutor_help(db, turn, ongoing_units, revisions)
             turn.status, turn.reply, turn.error = "ready", reply, None

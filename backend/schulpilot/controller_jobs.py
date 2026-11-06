@@ -106,7 +106,7 @@ def process(job_id):
                 config.provider, config.model, config.revision
             ):
                 raise ProviderError("Die KI-Einstellung wurde seit Auftragserstellung geändert. Bitte den aktuellen Lernschritt öffnen.")
-            external_allowed(config)
+            external_allowed(config, db=db)
             values = {c.name: getattr(config, c.name) for c in config.__table__.columns}
             payload.update(review=True, practice_kind="check", focus_goal_ids=job.payload["focus_goal_ids"],
                 material={"subject": unit.subject, "topic": unit.topic,
@@ -134,7 +134,7 @@ def process(job_id):
             db.expire_all()
             child = authority(db, job)
             current = job_config(db, job, "unit")
-            external_allowed(current)
+            external_allowed(current, db=db)
             if (current.revision, current.model) != (values["revision"], values["model"]) or context(db, unit)[0] != job.payload["signature"]:
                 raise ProviderError("Der Lernplan wurde während der Vorbereitung geändert.")
             data = s.PracticeUnitOutput.model_validate(result.data).model_dump()

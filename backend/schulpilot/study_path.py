@@ -759,7 +759,7 @@ def process(job_id):
                 or current_config.model != values["model"]
             ):
                 raise ProviderError("Die KI-Einstellungen wurden während der Vorbereitung geändert.")
-            external_allowed(current_config)
+            external_allowed(current_config, db=db)
             usage_terms(db, db.get(Family, child.family_id), enforce=True)
             unit = LearningUnit(
                 child_id=child.id,

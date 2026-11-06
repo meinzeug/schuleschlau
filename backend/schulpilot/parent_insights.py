@@ -442,7 +442,7 @@ def process(job_id):
             if not review or signature != review.signature:
                 raise ValueError("source_changed")
             config = job_config(db, job, "decision")
-            external_allowed(config)
+            external_allowed(config, db=db)
             values = {c.name: getattr(config, c.name) for c in ProviderConfig.__table__.columns}
             review.status = "running"
         payload.pop("_basis", None)
@@ -459,7 +459,7 @@ def process(job_id):
             if not review or facts(db, child)[0] != review.signature:
                 raise ValueError("source_changed")
             config = job_config(db, job, "decision")
-            external_allowed(config)
+            external_allowed(config, db=db)
             usage = db.scalar(select(Usage).where(Usage.job_id == job.id))
             if not usage or (usage.provider, usage.model, usage.config_revision) != (config.provider, config.model, config.revision):
                 raise ValueError("source_changed")

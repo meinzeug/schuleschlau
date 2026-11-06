@@ -762,7 +762,7 @@ def routing_fingerprint(config):
     return hashlib.sha256(json.dumps(values, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
 
 
-def external_allowed(config, image=False, synthetic_fixture=False, *, operator_probe=False):
+def external_allowed(config, image=False, synthetic_fixture=False, *, operator_probe=False, db=None):
     from .model_routing import enabled, validate_ready
 
     if config.provider == "openrouter" and config.routing_policy and not enabled(config):
@@ -783,9 +783,13 @@ def external_allowed(config, image=False, synthetic_fixture=False, *, operator_p
             )
         if config.input_per_million_micros != 0 or config.output_per_million_micros != 0:
             raise ProviderError("Kostenloser OpenRouter-Betrieb benötigt bestätigte Preisobergrenzen von null.")
+    # The caller's transaction may already hold a pool connection. Reuse it
+    # while reading a fresh value, rather than requiring a second connection
+    # or relying on an earlier ORM identity-map snapshot of consent.
+    site = runtime_settings(db, fresh=True) if db is not None else runtime_settings()
     if synthetic_fixture:
         if not (
-            runtime_settings().synthetic_ai_enabled
+            site.synthetic_ai_enabled
             and (
                 (
                     config.provider == "openrouter"
@@ -801,8 +805,8 @@ def external_allowed(config, image=False, synthetic_fixture=False, *, operator_p
                 "Synthetischer KI-Test benötigt OpenRouter Free oder den ausdrücklich freigegebenen isolierten Codex-Worker."
             )
     elif not (
-        runtime_settings().real_data_approved
-        and runtime_settings().privacy_evidence
+        site.real_data_approved
+        and site.privacy_evidence
         and config.privacy_approved
         and config.privacy_evidence
     ):
@@ -872,11 +876,11 @@ def reserve(db, family, child_id, job_id, function, synthetic_fixture=False, *, 
         config = select_route(base_config, function, snapshot={"policy_hash": policy_hash(base_config.routing_policy),
             "tier": probe_tier, "reason": "synthetic_reference_comparison"})
     try:
-        external_allowed(config, function == "extract", synthetic_fixture)
+        external_allowed(config, function == "extract", synthetic_fixture, db=db)
     except ProviderError as e:
         raise HTTPException(503, str(e)) from None
     if synthetic_fixture:
-        rate_limit(db, "synthetic-ai-global", runtime_settings().synthetic_ai_daily_limit, 86400, commit=False)
+        rate_limit(db, "synthetic-ai-global", runtime_settings(db, fresh=True).synthetic_ai_daily_limit, 86400, commit=False)
     # Requiring documented conservative pricing makes the reservation enforceable.
     # Unknown final usage still remains unknown and retains the full reservation.
     if not config.pricing_evidence or (
