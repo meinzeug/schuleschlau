@@ -19,7 +19,7 @@ zeigt diese Grenze bewusst; es ist kein Erfolgstest für vollständige Abdeckung
 | `source_cleanup.py:main --apply-digest` | Neu: expliziter Operator-Apply erwirbt das Journal vor der DB-Transaktion und Unit → Child; Flush nach Sperrfreigabe. Ein konkurrierender Test und bestehende Bereinigungs-/Restoretests bestanden jeweils auf SQLite und PostgreSQL. Das wiederverwendbare `apply` setzt voraus, dass jeder schreibende Aufrufer die äußere Sperre bereits hält. |
 | `unit_actions.py:confirm` | Neu: Journal vor Unit → Child → Session; Outbox-Commit unter der Sperre, Flush danach. Tests prüfen sowohl die blockierte Snapshot-Konkurrenz als auch den Sitzungswiderruf während des Wartens; bestehende Unit-/Sessiontests auf SQLite und PostgreSQL erneut ausgeführt. |
 | `admin_users.py:confirm_delete` | Kandidat: Journal vor der bestehenden revisions- und sitzungsgebundenen Admin-/Unit-/Child-Prüfung, Outbox-Commit darunter, Flush/Dateibereinigung danach. Unit-, Child-, User- und Session-Konflikte führen nach Rollback zu 409, bevor eine unter Family oder Child gehaltene Sperre einen Deadlock verursacht. Unabhängige synthetische PostgreSQL-Gegenläufe decken Usage-FK, tatsächliche Familienanrufe und späte Session-Inserts ab; weitere indirekte Cascades bleiben vor Integration zu prüfen. |
-| `worker.py:maintenance` | Kandidat: Höchstens acht abgelaufene Familien pro Pass, jede in eigener Journal-/DB-Transaktion mit anschließendem Flush. Ein rotierender prozesslokaler Cursor lässt spätere Familien bei Konflikten vorankommen; Neustarts setzen ihn zurück. Token, Family, Units, Child, Users und Sessions werden geordnet per NOWAIT gesperrt; Familien-, Unit- und Tokenstand erneut geprüft. Die übrige Sammeltransaktion nimmt weiterhin das Journal vor DB; PostgreSQL begrenzt jeden einzelnen Lockwarteversuch auf 500 ms. Bei Konflikt wird nur die jeweilige DB-Transaktion verworfen; vorher separat committete Grade-Outbox wird geflusht. Exportdateien entfernt die Sammelbereinigung erst nach ihrem Commit und Flush. Synthetische PostgreSQL-Tests decken Family-Call, abgelaufene Note, Outbox, Export, Unterbrechung nach Commit und rotierende Familienauswahl ab. Weder eine große Einzelfamilie noch die restliche Sammeltransaktion oder globale Journalsperre sind zeitlich begrenzt; die Aufteilung der übrigen Tabellen und dauerhafte Starvationsfreiheit bleiben offen. |
+| `worker.py:maintenance` | Kandidat: Höchstens acht abgelaufene Familien pro Pass, jede in eigener Journal-/DB-Transaktion mit anschließendem Flush. Ein in `service_state` persistent gespeicherter Cursor wird für konkurrierende Worker transaktional serialisiert und vor dem Journalerwerb committed; gescheiterte Claims kommen beim nächsten Umlauf wieder an die Reihe. Token, Family, Units, Child, Users und Sessions werden geordnet per NOWAIT gesperrt; Familien-, Unit- und Tokenstand erneut geprüft. Die übrige Sammeltransaktion nimmt weiterhin das Journal vor DB; PostgreSQL begrenzt jeden einzelnen Lockwarteversuch auf 500 ms. Bei Konflikt wird nur die jeweilige DB-Transaktion verworfen; vorher separat committete Grade-Outbox wird geflusht. Exportdateien entfernt die Sammelbereinigung erst nach ihrem Commit und Flush. Synthetische PostgreSQL-Tests decken Family-Call, abgelaufene Note, Outbox, Export, Unterbrechung nach Commit, parallel claimende und neu gestartete Worker sowie Vorher-Backup-Replay für einzelne und geteilte Familien ab. Wird der letzte Familieninhaber tatsächlich entfernt, erhält auch das Elternkonto in derselben Transaktion einen `user`-Löschbeleg; weitere Familien verhindern diesen Beleg. Weder eine große Einzelfamilie noch die restliche Sammeltransaktion oder globale Journalsperre sind zeitlich begrenzt; die Aufteilung der übrigen Tabellen, zuverlässige Terminfristen und Fortschritt bei dauerhaft scheiternden oder permanent neu startenden Workern bleiben offen. |
 | `erasure.py:flush_journal` | Nimmt bereits Journal vor DB; eine nachträgliche Sperre ausschließlich bei `Session.commit()` kann umgekehrt DB vor Journal nehmen und Deadlocks verursachen. |
 | `erasure.py:reconcile` | Bewusst separater Restore-Testbestand; keine produktiven API-Sperren daraus ableiten. |
 
@@ -49,3 +49,23 @@ bereits gefunden sind. Insbesondere vor jeder Änderung sämtliche Aufrufe von
    Gegenbeispieltest durch einen realen End-to-End-Racetest ersetzen. Status,
    Clock-Synchronisation, fehlende Journalgenerationen und Outbox nach Abstürzen
    bleiben weiterhin gesondert zu prüfen.
+
+## Betrieb und Versionsübergang des Familien-Cursors
+
+Es ist keine Schemamigration erforderlich: Das vorhandene `service_state`
+trägt eine neue technische Sperrzeile und höchstens eine `frc:`-Markierung
+mit der zuletzt ausgewählten Familien-ID. Fehlende Markierungen werden beim
+ersten Claim automatisch angelegt. Eine Wiederherstellung eines alten oder
+stale Snapshots kann die Auswahlrotation zurücksetzen; jeder Löschvorgang
+wird trotzdem erneut unter Familien-/Journalsperren und anhand des
+Ablaufzeitpunkts geprüft. Die Cursor-ID ist keine Leistungs- oder Inhaltsangabe.
+
+Ein älterer Worker ignoriert die Zusatzzeilen und berücksichtigt das neue
+Batchprotokoll nicht. Vor einem produktiven Mischbetrieb müssen daher alle
+Wartungsworker koordiniert ersetzt werden; ein Rollback entfernt die
+Cursorzeilen nicht automatisch und stellt die alte unbegrenzte Retention
+wieder her. Bereits im Journal unterstützte `user`-Belege sind auch mit der
+bisherigen Reconcile-Implementierung lesbar. Die Änderung erzeugt keine
+rückwirkenden Belege für Owner-Konten, die vor dieser Korrektur ohne User-
+Tombstone gelöscht wurden; deren alte Sicherungen benötigen gesonderte
+nachvollziehbare Prüfung.

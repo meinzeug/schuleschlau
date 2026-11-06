@@ -52,8 +52,9 @@ from .synthetic import sample_unit
 
 log = logging.getLogger("schulpilot.worker")
 running = True
-_expired_family_cursor = ""
 _FAMILY_RETENTION_BATCH = 8
+_FAMILY_CURSOR_PREFIX = "frc:"
+_FAMILY_CURSOR_LOCK = "family-retention-cursor"
 
 
 def unit_sources(db, job):
@@ -928,27 +929,50 @@ def _lock_expiring_family(db, family_id):
     return family
 
 
-def _expire_families():
-    """Bound the number of expired families and release the journal per family.
+def _claim_expiring_family_batch():
+    """Advance a persistent cursor atomically, without holding the journal.
 
-    The cursor rotates within the worker process so a busy family does not
-    indefinitely hide later IDs. Restart resets it; it is not a durable lease.
+    An interrupted claimant only delays its unprocessed IDs until rotation.
+    Family mutations later recheck all rows under the journal/DB locks.
     """
-    global _expired_family_cursor
+    with DB.begin() as db:
+        if db.bind.dialect.name == "postgresql":
+            from sqlalchemy.dialects.postgresql import insert
+        elif db.bind.dialect.name == "sqlite":
+            from sqlalchemy.dialects.sqlite import insert
+        else:
+            raise RuntimeError("Family retention requires PostgreSQL or SQLite")
+        db.execute(insert(ServiceState).values(name=_FAMILY_CURSOR_LOCK, updated=0)
+                   .on_conflict_do_nothing(index_elements=[ServiceState.name]))
+        db.scalar(select(ServiceState).where(ServiceState.name == _FAMILY_CURSOR_LOCK).with_for_update())
+        markers = list(db.scalars(select(ServiceState).where(ServiceState.name.like(_FAMILY_CURSOR_PREFIX + "%"))))
+        if len(markers) > 1:
+            raise RuntimeError("Ambiguous family retention cursor")
+        cursor = markers[0].name.removeprefix(_FAMILY_CURSOR_PREFIX) if markers else ""
+        if cursor and not re.fullmatch(r"[a-f0-9]{32}", cursor):
+            raise RuntimeError("Invalid family retention cursor")
+        base = select(Family.id).where(Family.expires.is_not(None), Family.expires < int(now()))
+        ids = list(db.scalars(base.where(Family.id > cursor).order_by(Family.id).limit(_FAMILY_RETENTION_BATCH)))
+        remaining = _FAMILY_RETENTION_BATCH - len(ids)
+        if remaining and cursor:
+            ids.extend(db.scalars(base.where(Family.id <= cursor).order_by(Family.id).limit(remaining)))
+        if ids:
+            if any(not re.fullmatch(r"[a-f0-9]{32}", identifier) for identifier in ids):
+                raise RuntimeError("Invalid expired family ID")
+            if markers:
+                db.delete(markers[0])
+                db.flush()
+            db.add(ServiceState(name=_FAMILY_CURSOR_PREFIX + ids[-1], updated=int(now())))
+        return ids
+
+
+def _expire_families():
+    """Bound selection and release the journal after every family."""
     from .db import Membership, User
-    from .erasure import flush_journal
+    from .erasure import flush_journal, request
     from .profile_images import deletion_paths
 
-    cutoff = int(now())
-    with DB() as db:
-        base = select(Family.id).where(Family.expires.is_not(None), Family.expires < cutoff)
-        ids = list(db.scalars(base.where(Family.id > _expired_family_cursor).order_by(Family.id)
-                              .limit(_FAMILY_RETENTION_BATCH)))
-        remaining = _FAMILY_RETENTION_BATCH - len(ids)
-        if remaining and _expired_family_cursor:
-            ids.extend(db.scalars(base.where(Family.id <= _expired_family_cursor).order_by(Family.id).limit(remaining)))
-    if ids:
-        _expired_family_cursor = ids[-1]
+    ids = _claim_expiring_family_batch()
     for family_id in ids:
         paths = []
         try:
@@ -962,6 +986,7 @@ def _expire_families():
                 for user_id in owners:
                     if not db.scalar(select(Membership.id).where(Membership.user_id == user_id)):
                         paths.extend(deletion_paths(db, user_id))
+                        request(db, "user", user_id)
                         db.execute(delete(User).where(User.id == user_id))
         except _MaintenanceDeferred:
             log.warning("Expired family retention deferred due to concurrent database activity")

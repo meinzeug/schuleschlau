@@ -115,7 +115,6 @@ def test_family_retention_batches_rotate_past_busy_family_and_publish_each(house
     with DB.begin() as db:
         db.add_all([Family(id=identifier, name="Synthetic", synthetic=True, expires=int(now()) - 1)
                     for identifier in identifiers])
-    monkeypatch.setattr(worker, "_expired_family_cursor", "")
     monkeypatch.setattr(worker, "_FAMILY_RETENTION_BATCH", 3)
     original = worker._lock_expiring_family
     busy = True
@@ -146,7 +145,6 @@ def test_family_retention_commit_survives_journal_flush_failure(household, monke
     family_id = "f" * 31 + "0"
     with DB.begin() as db:
         db.add(Family(id=family_id, name="Synthetic", synthetic=True, expires=int(now()) - 1))
-    monkeypatch.setattr(worker, "_expired_family_cursor", "")
     original = erasure.flush_journal
 
     def fail_flush():
@@ -165,3 +163,121 @@ def test_family_retention_commit_survives_journal_flush_failure(household, monke
     with DB() as db:
         events = list(db.scalars(select(ErasureRequest).where(ErasureRequest.target == family_id)))
         assert len(events) == 1 and events[0].published
+
+
+def test_family_retention_replays_parent_child_and_family_from_prior_backup(household):
+    from schulpilot.db import Base, User
+    from test_grade_erasure_restore_regression import isolated_restore
+
+    parent, child = household
+    family_id, parent_id, child_id = parent["families"][0]["id"], parent["id"], child["id"]
+    with DB.begin() as db:
+        child_user_id = db.get(Child, child_id).user_id
+        db.get(Family, family_id).expires = int(now()) - 1
+    with DB() as db:
+        snapshot = {table: list(db.execute(table.select()).mappings()) for table in Base.metadata.sorted_tables}
+    worker._expire_families()
+    with DB() as db:
+        assert db.get(Family, family_id) is None
+        assert db.get(Child, child_id) is None
+        assert db.get(User, parent_id) is None
+        assert db.get(User, child_user_id) is None
+        published = list(db.scalars(select(ErasureRequest).where(ErasureRequest.target == parent_id)))
+        assert len(published) == 1 and published[0].scope == "user" and published[0].published
+    records = [erasure.verify(line, settings.master_key)
+               for line in (settings.data_dir / "erasure-ledger.jsonl").read_text().splitlines()]
+    with isolated_restore() as restored:
+        from sqlalchemy.orm import Session
+
+        Base.metadata.create_all(restored)
+        with restored.begin() as connection:
+            for table, rows in snapshot.items():
+                if rows:
+                    connection.execute(table.insert(), [dict(row) for row in rows])
+        with Session(restored) as db:
+            assert db.get(Family, family_id) is not None
+            assert db.get(Child, child_id) is not None
+            assert db.get(User, parent_id) is not None
+            erasure.reconcile(db, records)
+            db.commit()
+            assert db.get(Family, family_id) is None
+            assert db.get(Child, child_id) is None
+            assert db.get(User, parent_id) is None
+            assert db.get(User, child_user_id) is None
+
+
+def test_family_retention_claims_are_serialized_and_survive_worker_restart(household, monkeypatch):
+    import json
+    import subprocess
+    import sys
+
+    identifiers = ["f" + f"{number:031x}" for number in range(12)]
+    with DB.begin() as db:
+        db.add_all([Family(id=identifier, name="Synthetic", synthetic=True, expires=int(now()) - 1)
+                    for identifier in identifiers])
+    monkeypatch.setattr(worker, "_FAMILY_RETENTION_BATCH", 3)
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        batches = list(pool.map(lambda _: worker._claim_expiring_family_batch(), range(2)))
+    assert all(len(batch) == 3 for batch in batches)
+    assert len(set(batches[0] + batches[1])) == 6
+    assert set(batches[0] + batches[1]) == set(identifiers[:6])
+    # A fresh Python worker has no in-process cursor. It must continue from
+    # the committed database position, including after simulated worker death.
+    result = subprocess.run(
+        [sys.executable, "-c", "import json; from schulpilot import worker; "
+         "worker._FAMILY_RETENTION_BATCH = 3; print(json.dumps(worker._claim_expiring_family_batch()))"],
+        check=True, capture_output=True, text=True, timeout=20,
+    )
+    assert json.loads(result.stdout) == identifiers[6:9]
+    assert worker._claim_expiring_family_batch() == identifiers[9:12]
+
+
+def test_expired_family_replay_preserves_parent_and_other_family(household):
+    from schulpilot.db import Base, Membership, User
+    from test_grade_erasure_restore_regression import isolated_restore
+
+    parent, child = household
+    expired_id, parent_id, child_id = parent["families"][0]["id"], parent["id"], child["id"]
+    with DB.begin() as db:
+        db.get(Family, expired_id).expires = int(now()) - 1
+        other = Family(name="Other synthetic household", synthetic=True)
+        db.add(other)
+        db.flush()
+        other_id = other.id
+        db.add(Membership(family_id=other_id, user_id=parent_id, permission="owner"))
+        other_user = User(username="retention-other-child", display_name="Synthetic child",
+                          password_hash="unused", role="child", verified=True)
+        db.add(other_user)
+        db.flush()
+        other_user_id = other_user.id
+        other_child = Child(family_id=other_id, user_id=other_user_id, grade=6)
+        db.add(other_child)
+        db.flush()
+        other_child_id = other_child.id
+    with DB() as db:
+        snapshot = {table: list(db.execute(table.select()).mappings()) for table in Base.metadata.sorted_tables}
+    worker._expire_families()
+    with DB() as db:
+        assert db.get(Family, expired_id) is None and db.get(Child, child_id) is None
+        assert db.get(Family, other_id) is not None and db.get(Child, other_child_id) is not None
+        assert db.get(User, parent_id) is not None
+        assert db.scalar(select(ErasureRequest.id).where(ErasureRequest.scope == "user",
+                                                        ErasureRequest.target == parent_id)) is None
+    records = [erasure.verify(line, settings.master_key)
+               for line in (settings.data_dir / "erasure-ledger.jsonl").read_text().splitlines()]
+    with isolated_restore() as restored:
+        from sqlalchemy.orm import Session
+
+        Base.metadata.create_all(restored)
+        with restored.begin() as connection:
+            for table, rows in snapshot.items():
+                if rows:
+                    connection.execute(table.insert(), [dict(row) for row in rows])
+        with Session(restored) as db:
+            erasure.reconcile(db, records)
+            db.commit()
+            assert db.get(Family, expired_id) is None and db.get(Child, child_id) is None
+            assert db.get(Family, other_id) is not None and db.get(Child, other_child_id) is not None
+            assert db.get(User, parent_id) is not None and db.get(User, other_user_id) is not None
+            assert db.scalar(select(Membership.id).where(Membership.family_id == other_id,
+                                                          Membership.user_id == parent_id)) is not None
