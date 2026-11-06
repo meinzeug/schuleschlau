@@ -20,13 +20,21 @@ def operator():
     yield from operator_fixture.__wrapped__()
 
 
+def site_revision(operator):
+    return operator.get("/api/admin/installation").json()["site_revision"]
+
+
+def put_site(operator, values):
+    return operator.put("/api/admin/installation/site", json={**values, "expected_revision": site_revision(operator)})
+
+
 @pytest.mark.parametrize("initial", [True, False])
 def test_stale_loaded_installation_must_not_change_operator_approval(api, operator, initial):
     evidence = "Synthetic consent used only in this test"
     initial_values = {"real_data_approved": initial}
     if initial:
         initial_values["privacy_evidence"] = evidence
-    approve = operator.put("/api/admin/installation/site", json=initial_values)
+    approve = put_site(operator, initial_values)
     assert approve.status_code == 200, approve.text
     with DB() as session:
         stale_row = session.get(Installation, 1)
@@ -34,7 +42,7 @@ def test_stale_loaded_installation_must_not_change_operator_approval(api, operat
         changed_values = {"real_data_approved": not initial}
         if not initial:
             changed_values["privacy_evidence"] = evidence
-        revoke = operator.put("/api/admin/installation/site", json=changed_values)
+        revoke = put_site(operator, changed_values)
         assert revoke.status_code == 200, revoke.text
         with DB() as check:
             latest_values = json.loads(decrypt(check.get(Installation, 1).encrypted_settings))
@@ -53,7 +61,7 @@ def test_http_settings_interleaving_preserves_latest_approval(api, operator, mon
     initial_values = {"real_data_approved": initial}
     if initial:
         initial_values["privacy_evidence"] = evidence
-    response = operator.put("/api/admin/installation/site", json=initial_values)
+    response = put_site(operator, initial_values)
     assert response.status_code == 200, response.text
 
     # Model a request whose earlier dependency retains the same ORM row. This
@@ -68,36 +76,37 @@ def test_http_settings_interleaving_preserves_latest_approval(api, operator, mon
     paused, resume = Event(), Event()
     original = installation.save_site
 
-    def wait_before_save(data, actor, db):
+    def wait_before_save(data, actor, db, **kwargs):
         if data.operator_name == "Synthetic unrelated edit":
             paused.set()
             assert resume.wait(10)
-        return original(data, actor, db)
+        return original(data, actor, db, **kwargs)
 
     app.dependency_overrides[get_db] = loaded_request_db
     monkeypatch.setattr(installation, "save_site", wait_before_save)
+    old_revision = site_revision(operator)
     try:
         with ThreadPoolExecutor(max_workers=1) as pool:
             unrelated = pool.submit(operator.put, "/api/admin/installation/site",
-                                    json={"operator_name": "Synthetic unrelated edit"},
+                                    json={"operator_name": "Synthetic unrelated edit", "expected_revision": old_revision},
                                     headers={"X-Synthetic-Review": "loaded"})
             assert paused.wait(8)
             change = {"real_data_approved": not initial}
             if not initial:
                 change["privacy_evidence"] = evidence
-            changed = operator.put("/api/admin/installation/site", json=change)
+            changed = put_site(operator, change)
             assert changed.status_code == 200, changed.text
             with DB() as check:
                 latest_values = json.loads(decrypt(check.get(Installation, 1).encrypted_settings))
             resume.set()
             saved = unrelated.result(12)
-            assert saved.status_code == 200, saved.text
+            assert saved.status_code == 409, saved.text
     finally:
         resume.set()
         app.dependency_overrides.pop(get_db, None)
     with DB() as db:
         assert runtime_settings(db, fresh=True).real_data_approved is not initial
-        assert runtime_settings(db, fresh=True).operator_name == "Synthetic unrelated edit"
+        assert runtime_settings(db, fresh=True).operator_name != "Synthetic unrelated edit"
         final_values = json.loads(decrypt(db.get(Installation, 1).encrypted_settings))
         assert final_values.get("_tutor_real_data_consent_generation") == latest_values.get("_tutor_real_data_consent_generation")
 
@@ -130,7 +139,8 @@ def test_site_update_cannot_override_concurrent_material_review_cas(api, operato
         with ThreadPoolExecutor(max_workers=1) as pool:
             unrelated = pool.submit(operator.put, "/api/admin/installation/site",
                                     json={"material_review_mode": initial,
-                                          "operator_name": "Synthetic unrelated edit"})
+                                          "operator_name": "Synthetic unrelated edit",
+                                          "expected_revision": current["revision"]})
             assert paused.wait(8)
             changed = operator.put("/api/admin/installation/material-review",
                                    json={"mode": next_mode, "expected_revision": current["revision"]})

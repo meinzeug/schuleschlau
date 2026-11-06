@@ -55,6 +55,19 @@ REQUIRED_LIFECYCLE_TESTS = {
         "test_known_cost_and_fee_without_prior_balance_remain_successful",
     )
 } | {
+    ("backend.tests.test_installation_site_cas", name)
+    for name in (
+        "test_legacy_admin_write_fails_closed_without_changing_settings_or_revision",
+        "test_legacy_site_conflict_does_not_block_emergency_stop",
+        "test_stale_explicit_approval_cannot_undo_completed_revocation",
+        "test_parallel_same_revision_has_exactly_one_winner",
+        "test_settings_and_revision_come_from_same_snapshot_during_write",
+        "test_malformed_revisions_fail_without_updates[0]",
+        "test_malformed_revisions_fail_without_updates[-1]",
+        "test_malformed_revisions_fail_without_updates[True]",
+        "test_malformed_revisions_fail_without_updates[1]",
+    )
+} | {
     ("backend.tests.test_review_consent_stale_identity", name)
     for name in (
         "test_stale_loaded_installation_must_not_change_operator_approval[True]",

@@ -63,6 +63,7 @@ class Fixture {
   final requests = <http.Request>[];
   final saved = <Json>[];
   bool locked = false, initial = false;
+  int revision = 1;
   Json data = site();
   Future<http.Response> Function(http.Request)? respond;
   late final state = AppState(
@@ -79,6 +80,8 @@ class Fixture {
         if (r.method == 'PUT') {
           final body = Json.from(jsonDecode(r.body) as Map);
           saved.add(body);
+          if (!initial) expect(body['expected_revision'], revision);
+          revision++;
           data = {
             ...data,
             ...body,
@@ -91,6 +94,7 @@ class Fixture {
         }
         return reply({
           'site': data,
+          'site_revision': revision,
           'provider': {'revision': 1},
           'checks': <String, dynamic>{},
         });
@@ -306,25 +310,25 @@ void main() {
       await t.enterText(field('Betreiber'), 'Changed synthetic operator');
       await press(t, 'Einstellungen speichern');
       expect(f.saved, hasLength(1));
-      expect(f.saved.single, {'operator_name': 'Changed synthetic operator'});
+      expect(f.saved.single, {
+        'operator_name': 'Changed synthetic operator',
+        'expected_revision': 1,
+      });
       expect(f.data['smtp_from'], 'Synthetic sender <sender@example.invalid>');
       await f.close(t);
     },
   );
 
-  testWidgets(
-    'a changed malformed sender still cannot be saved',
-    (t) async {
-      final f = Fixture();
-      f.data['smtp_from'] = 'Synthetic sender <sender@example.invalid>';
-      await f.mount(t, section: 'email');
-      await t.enterText(field('Absender-E-Mail'), 'invalid');
-      await press(t, 'Einstellungen speichern');
-      expect(f.saved, isEmpty);
-      expect(find.textContaining('vollständige E-Mail-Adresse'), findsWidgets);
-      await f.close(t);
-    },
-  );
+  testWidgets('a changed malformed sender still cannot be saved', (t) async {
+    final f = Fixture();
+    f.data['smtp_from'] = 'Synthetic sender <sender@example.invalid>';
+    await f.mount(t, section: 'email');
+    await t.enterText(field('Absender-E-Mail'), 'invalid');
+    await press(t, 'Einstellungen speichern');
+    expect(f.saved, isEmpty);
+    expect(find.textContaining('vollständige E-Mail-Adresse'), findsWidgets);
+    await f.close(t);
+  });
 
   testWidgets('AK024 site draft reset needs confirmation and sends no write', (
     t,

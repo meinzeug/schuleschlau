@@ -97,6 +97,7 @@ Future<void> fillPayment(WidgetTester t) async {
 void confirmBank(WidgetTester t) =>
     t.widget<CheckboxListTile>(find.byType(CheckboxListTile)).onChanged!(true);
 Json installation() => {
+  'site_revision': 1,
   'site': {
     'smtp_mode': 'tls',
     'smtp_port': 465,

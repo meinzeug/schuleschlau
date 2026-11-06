@@ -59,6 +59,8 @@ class _InstallationScreenState extends State<InstallationScreen>
   final savedFlags = <String, bool>{};
   final dirtyFields = <String>{}, dirtyFlags = <String>{};
   bool get siteDirty => dirtyFields.isNotEmpty || dirtyFlags.isNotEmpty;
+  int? siteBaseRevision;
+  bool siteConflict = false;
   bool completionUncertain = false;
   String? secretResult;
   bool hasStoredSecret(String key) =>
@@ -83,12 +85,12 @@ class _InstallationScreenState extends State<InstallationScreen>
       destructive: true,
     );
     if (!confirmed || !own) return;
-    final saved = await widget.state.api.put('$base/site', {
-      'clear_$key': true,
-    });
+    final saved = await putSite({'clear_$key': true});
     if (!own) return;
     setState(() {
       config = saved;
+      siteBaseRevision = saved['site_revision'] as int?;
+      siteConflict = false;
       visibleSecrets.remove(key);
       secretResult =
           '$label: gespeicherten Eintrag entfernt. Andere Entwürfe wurden nicht übertragen. Eine externe Konfiguration kann weiter gelten; Verfügbarkeit separat prüfen.';
@@ -112,6 +114,8 @@ class _InstallationScreenState extends State<InstallationScreen>
   void relock() {
     unlocked = false;
     config = null;
+    siteBaseRevision = null;
+    siteConflict = false;
     step = 0;
     code.clear();
     password.clear();
@@ -166,6 +170,8 @@ class _InstallationScreenState extends State<InstallationScreen>
       flags.addAll(savedFlags);
       dirtyFields.clear();
       dirtyFlags.clear();
+      siteBaseRevision = config?['site_revision'] as int?;
+      siteConflict = false;
       fieldErrors.clear();
       error = null;
       visibleSecrets.clear();
@@ -173,8 +179,7 @@ class _InstallationScreenState extends State<InstallationScreen>
     });
   }
 
-  Future<void> reviewSiteDraft() async {
-    if (!own || busy || !siteDirty) return;
+  String siteDraftDetails() {
     final labels = {
       for (final field in groups.expand((g) => g)) field.$1: field.$2,
       'privacy_evidence': 'Datenschutzfreigabe',
@@ -194,12 +199,60 @@ class _InstallationScreenState extends State<InstallationScreen>
       for (final key in dirtyFlags)
         '${labels[key] ?? key}: ${savedFlags[key] == true ? 'an' : 'aus'} → ${flags[key] == true ? 'an' : 'aus'}',
     ];
+    return rows.join('\n\n');
+  }
+
+  Future<void> reviewSiteDraft() async {
+    if (!own || busy || !siteDirty) return;
     await confirmDialog(
       context,
       'Betriebsänderungen vor dem Speichern prüfen',
-      '${rows.join('\n\n')}\n\nDies prüft nur deinen lokalen Entwurf. Es wird nichts gespeichert und kein Anbieter-, Mail- oder Pushauftrag ausgelöst.',
+      '${siteDraftDetails()}\n\nDies prüft nur deinen lokalen Entwurf. Es wird nichts gespeichert und kein Anbieter-, Mail- oder Pushauftrag ausgelöst.',
       confirmLabel: 'Zum Entwurf zurück',
     );
+  }
+
+  Future<void> reviewSiteConflict() => runAction(() async {
+    await load();
+    if (!mounted || !own || error != null) return;
+    final latest = config?['site_revision'];
+    if (latest is! int) {
+      throw ApiError(
+        'Der aktuelle Betriebsstand kann nicht sicher geprüft werden.',
+      );
+    }
+    final accepted = await confirmDialog(
+      context,
+      'Geänderten Betriebsstand prüfen',
+      '${siteDraftDetails()}\n\nÜbernimm den aktuellen Stand nur, wenn du deinen Entwurf nach diesem Vergleich weiterhin speichern möchtest. Noch wird nichts gespeichert.',
+      confirmLabel: 'Stand für Entwurf übernehmen',
+    );
+    if (!accepted || !own) return;
+    setState(() {
+      siteBaseRevision = latest;
+      siteConflict = false;
+      error = null;
+    });
+  });
+
+  Future<Json> putSite(Json data) async {
+    if (!widget.initial) {
+      final revision = siteBaseRevision;
+      if (revision == null) {
+        throw ApiError(
+          'Der Betriebsstand ist nicht versionsgesichert. Bitte App und Server aktualisieren.',
+        );
+      }
+      data = {...data, 'expected_revision': revision};
+    }
+    try {
+      return await widget.state.api.put('$base/site', data);
+    } on ApiError catch (failure) {
+      if (!widget.initial && failure.status == 409 && own) {
+        setState(() => siteConflict = true);
+      }
+      rethrow;
+    }
   }
 
   FocusNode inputFocus(String key) =>
@@ -405,6 +458,7 @@ class _InstallationScreenState extends State<InstallationScreen>
       }
       setState(() {
         config = value;
+        if (!siteDirty) siteBaseRevision = value['site_revision'] as int?;
         unlocked = true;
         error = null;
       });
@@ -577,10 +631,12 @@ class _InstallationScreenState extends State<InstallationScreen>
       data['fcm_config_verification'] = fields['fcm_config_verification']!.text;
     }
     if (data.isEmpty) return false;
-    final saved = await widget.state.api.put('$base/site', data);
+    final saved = await putSite(data);
     if (!own) throw ApiError('Die Sitzung hat sich geändert.');
     loadGeneration++;
     config = saved;
+    siteBaseRevision = saved['site_revision'] as int?;
+    siteConflict = false;
     final savedSite = saved['site'] as Map;
     for (final entry in fields.entries) {
       if (secretInput(entry.key)) {
@@ -1462,6 +1518,13 @@ class _InstallationScreenState extends State<InstallationScreen>
         if (unlocked && siteDirty) ...[
           const Notice(
             'Ungespeicherter Betriebsentwurf. Prüfstände beziehen sich auf die zuletzt gespeicherten Einstellungen; Änderungen erst bewusst speichern.',
+          ),
+        ],
+        if (unlocked && siteConflict && !widget.initial) ...[
+          TextButton.icon(
+            onPressed: busy ? null : reviewSiteConflict,
+            icon: const Icon(Icons.compare_arrows),
+            label: const Text('Aktuellen Stand prüfen'),
           ),
         ],
         KeyedSubtree(

@@ -93,6 +93,12 @@ class SiteUpdate(s.Strict):
         return self
 
 
+class AdminSiteUpdate(SiteUpdate):
+    # Missing legacy-client revisions fail closed at the route with 409,
+    # while setup retains its separately serialized SiteUpdate contract.
+    expected_revision: int | None = Field(default=None, ge=1, strict=True)
+
+
 class Unlock(s.Strict):
     code: str = Field(min_length=32, max_length=128)
 
@@ -200,6 +206,11 @@ def configuration(db):
     from .admin import config_data
     from .notifications import public_config
 
+    # Retain one loaded ORM row so its settings and revision describe the
+    # same committed state even if another operator writes concurrently.
+    item = db.get(Installation, 1, populate_existing=True)
+    if item is None:
+        raise HTTPException(503, "Die Betriebseinstellungen sind nicht verfügbar.")
     site = runtime_settings(db)
     values = {k: getattr(site, k) for k in RUNTIME_FIELDS - SECRET_FIELDS}
     values.update(
@@ -219,11 +230,17 @@ def configuration(db):
         "worker_available": bool(worker and now() - worker.updated < 600),
         "codex_available": bool(settings.codex_approved and settings.codex_socket),
     }
-    return {"site": values, "provider": config_data(db.get(ProviderConfig, 1)), "checks": checks}
+    return {"site": values, "site_revision": item.revision,
+            "provider": config_data(db.get(ProviderConfig, 1)), "checks": checks}
 
 
-def save_site(data, actor, db):
-    db.execute(update(Installation).where(Installation.id == 1).values(revision=Installation.revision + 1))
+def save_site(data, actor, db, *, expected_revision=None):
+    target = update(Installation).where(Installation.id == 1)
+    if expected_revision is not None:
+        target = target.where(Installation.revision == expected_revision)
+    changed = db.execute(target.values(revision=Installation.revision + 1))
+    if changed.rowcount != 1:
+        raise HTTPException(409, "Die Betriebseinstellungen wurden geändert. Bitte den Entwurf erneut prüfen.")
     # The row lock above does not refresh a previously loaded ORM instance.
     # Merge partial settings only with the latest locked database values, or
     # an unrelated save could silently restore an already revoked approval.
@@ -326,8 +343,10 @@ def get_admin(p=Depends(admin), db=Depends(get_db)):
 
 
 @router.put("/admin/installation/site")
-def update_admin(data: SiteUpdate, p=Depends(admin), db=Depends(get_db)):
-    return save_site(data, p.user.id, db)
+def update_admin(data: AdminSiteUpdate, p=Depends(admin), db=Depends(get_db)):
+    if data.expected_revision is None:
+        raise HTTPException(409, "Bitte die App aktualisieren und den Betriebsentwurf erneut prüfen.")
+    return save_site(data, p.user.id, db, expected_revision=data.expected_revision)
 
 
 @router.put("/setup/provider")

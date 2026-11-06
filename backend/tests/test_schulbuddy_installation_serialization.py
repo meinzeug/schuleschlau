@@ -28,6 +28,10 @@ def operator():
     yield from operator_fixture.__wrapped__()
 
 
+def site_revision(operator):
+    return operator.get("/api/admin/installation").json()["site_revision"]
+
+
 @pytest.mark.parametrize("stage", ["enqueue", "publish"])
 def test_completed_revocation_before_installation_lock_discards_work(api, book, transport, operator, monkeypatch, stage):
     if engine.dialect.name != "postgresql":
@@ -45,7 +49,8 @@ def test_completed_revocation_before_installation_lock_discards_work(api, book, 
     with ThreadPoolExecutor(max_workers=1) as pool:
         active = pool.submit(ask, book) if stage == "enqueue" else pool.submit(finish)
         assert paused.wait(8)
-        response = operator.put("/api/admin/installation/site", json={"real_data_approved": False})
+        response = operator.put("/api/admin/installation/site", json={"real_data_approved": False,
+                                                                      "expected_revision": site_revision(operator)})
         assert response.status_code == 200, response.text
         resume.set()
         result = active.result(12)
@@ -83,7 +88,8 @@ def test_operator_revocation_waits_for_guarded_commit(api, book, transport, oper
     with ThreadPoolExecutor(max_workers=2) as pool:
         active = pool.submit(ask, book) if stage == "enqueue" else pool.submit(finish)
         assert locked.wait(8)
-        revoking = pool.submit(operator.put, "/api/admin/installation/site", json={"real_data_approved": False})
+        revoking = pool.submit(operator.put, "/api/admin/installation/site", json={"real_data_approved": False,
+                                                                                  "expected_revision": site_revision(operator)})
         blocked, deadline = False, monotonic() + 8
         while monotonic() < deadline and not blocked:
             with DB() as db:
@@ -134,7 +140,8 @@ def test_admin_can_revoke_during_provider_call_and_known_cost_survives(api, book
         running = pool.submit(finish)
         assert entered.wait(8)
         # The actual operator endpoint must not wait for the model call.
-        response = operator.put("/api/admin/installation/site", json={"real_data_approved": False})
+        response = operator.put("/api/admin/installation/site", json={"real_data_approved": False,
+                                                                      "expected_revision": site_revision(operator)})
         assert response.status_code == 200, response.text
         resume.set()
         running.result(12)
