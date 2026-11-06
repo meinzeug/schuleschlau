@@ -1704,6 +1704,12 @@ Bestandteil des bestehenden Buildvertrags.
     Die eigentliche Bruchplanung bleibt offen.
     [Prüfung und Grenzen](docs/PACKAGE_PENDING_HISTORY_2026_11_05.md).
 
+  - [x] **Geprüfte Brucherweiterungsbeweise auf Paketgruppen vorbereiten.**
+    Die bestehenden Beweishelfer können Originalquellen einer ausdrücklich
+    gewählten Fachgruppe getrennt verarbeiten; fremde Gruppen und kuratierte
+    Quellen bleiben ausgeschlossen. Der reguläre Paketpfad ist dadurch noch
+    nicht aktiviert. [Entwurf und offene Schritte](docs/PACKAGE_FRACTION_PLAN_DESIGN_2026_11_06.md).
+
   - [ ] **Bruchaufgaben für initiale Paketpartitionen vorab verbindlich planen.**
     Ein versionierter Paketadapter soll nur für ein eindeutig gewähltes
     Mathematikfach und ausdrücklich bestätigte, zur Quellenrevision passende

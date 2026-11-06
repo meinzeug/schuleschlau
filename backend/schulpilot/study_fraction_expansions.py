@@ -30,9 +30,15 @@ def eligible(payload):
             "exam_preparation", "exam_review_practice")))
 
 
-def _sources(context):
+def _sources(context, *, group_id=None):
+    """Return only original sources from one explicitly selected scope.
+
+    Existing individual-unit callers use the default (ungrouped) scope.
+    A future package planner can name its exact group; this helper itself does
+    not enable package generation or broaden the source-validation contract.
+    """
     return [row for row in context.get("sources", []) if row.get("subject") == "Mathematik"
-        and row.get("group_id") is None and not row.get("source_type")
+        and row.get("group_id") == group_id and not row.get("source_type")
         and isinstance(row.get("content"), str) and row["content"].strip()
         and re.fullmatch(r"[a-f0-9]{32}", row.get("material_id", ""))
         and type(row.get("revision")) is int and row["revision"] >= 1]
@@ -84,7 +90,7 @@ def _blocks(candidate):
         for title, pair in (("Vor dem Erweitern", proof["input"]), ("Nach dem Erweitern", proof["output"]))]
 
 
-def _candidate(context, question, phase):
+def _candidate(context, question, phase, *, group_id=None):
     parsed = _planned(question, phase)
     if parsed is None:
         return None
@@ -93,7 +99,7 @@ def _candidate(context, question, phase):
         raise ValueError(UNREPRESENTABLE)
     reference = next((r for r in context.get("references", []) if r.get("id") == RECIPE
         and r.get("version") == VERSION and r.get("subject") == "Mathematik" and r.get("digest")), None)
-    sources = _sources(context)
+    sources = _sources(context, group_id=group_id)
     quote = _procedure_quote(sources, "Brüche erweitern")
     if not reference or not quote:
         return None
@@ -108,25 +114,25 @@ def _candidate(context, question, phase):
     text = (f"Beim Erweitern von {n}/{d} mit dem Faktor {factor} multiplizieren wir Zähler und Nenner "
         f"mit {factor}: {n} · {factor} = {n * factor} und {d} · {factor} = {d * factor}. "
         f"So entsteht {n * factor}/{d * factor}. Beide Bilder zeigen denselben Anteil; rechts ist er feiner unterteilt.")
-    row = {"subject": "Mathematik", "group_id": None, "kind": "fraction", "disclosure": "solution",
+    row = {"subject": "Mathematik", "group_id": group_id, "kind": "fraction", "disclosure": "solution",
         "reference": {"id": RECIPE, "version": VERSION}, "source_refs": [source["ref"]], "text": text, "proof": proof}
     row["block"] = _blocks(row)[0]
     row["id"] = "fx_" + _digest({"revision": REVISION, "candidate": row})[:24]
     return row
 
 
-def _introductions(context, tasks, *, excluded_pairs=()):
+def _introductions(context, tasks, *, excluded_pairs=(), group_id=None):
     reference = next((r for r in context.get("references", []) if r.get("id") == "math.fraction.part_whole"
         and r.get("version") == 1 and r.get("subject") == "Mathematik" and r.get("digest")), None)
     if reference is None:
         return []
     result = []
     answers = {tuple(candidate["proof"]["output"]) for candidate in tasks} | {tuple(pair) for pair in excluded_pairs}
-    for source in _sources(context):
+    for source in _sources(context, group_id=group_id):
         for base, text in _fraction_bases(source["content"]):
             if tuple(base["numbers"]) in answers:
                 continue  # Never turn a new task's derived answer into given data.
-            row = {"subject": "Mathematik", "group_id": None, "kind": "fraction", "disclosure": "given",
+            row = {"subject": "Mathematik", "group_id": group_id, "kind": "fraction", "disclosure": "given",
                 "reference": {"id": reference["id"], "version": reference["version"]}, "source_refs": [source["ref"]],
                 "text": ("Beim Erweitern multiplizierst du Zähler und Nenner mit derselben Zahl. "
                     "Die Menge bleibt gleich; die Teile werden feiner. " + text),
