@@ -11,6 +11,7 @@ from schulpilot.config import runtime_settings
 from schulpilot.db import DB, Installation, engine, get_db
 from schulpilot.main import app
 from schulpilot.security import decrypt
+from sqlalchemy.orm import Session as OrmSession
 from test_admin_users import operator as operator_fixture
 
 
@@ -99,3 +100,44 @@ def test_http_settings_interleaving_preserves_latest_approval(api, operator, mon
         assert runtime_settings(db, fresh=True).operator_name == "Synthetic unrelated edit"
         final_values = json.loads(decrypt(db.get(Installation, 1).encrypted_settings))
         assert final_values.get("_tutor_real_data_consent_generation") == latest_values.get("_tutor_real_data_consent_generation")
+
+
+@pytest.mark.parametrize("initial", ["manual", "automatic"])
+def test_site_update_cannot_override_concurrent_material_review_cas(api, operator, monkeypatch, initial):
+    if engine.dialect.name != "postgresql":
+        pytest.skip("Requires real PostgreSQL request interleaving")
+    current = operator.get("/api/admin/installation/material-review").json()
+    if current["mode"] != initial:
+        result = operator.put("/api/admin/installation/material-review",
+                              json={"mode": initial, "expected_revision": current["revision"]})
+        assert result.status_code == 200, result.text
+        current = result.json()
+    next_mode = "automatic" if initial == "manual" else "manual"
+    paused, resume = Event(), Event()
+    original = OrmSession.execute
+
+    def pause_first_lock(db, statement, *args, **kwargs):
+        if (getattr(statement, "is_update", False)
+                and getattr(getattr(statement, "table", None), "name", None) == "installation"
+                and not paused.is_set()):
+            paused.set()
+            assert resume.wait(10)
+        return original(db, statement, *args, **kwargs)
+
+    monkeypatch.setattr(OrmSession, "execute", pause_first_lock)
+    try:
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            unrelated = pool.submit(operator.put, "/api/admin/installation/site",
+                                    json={"material_review_mode": initial,
+                                          "operator_name": "Synthetic unrelated edit"})
+            assert paused.wait(8)
+            changed = operator.put("/api/admin/installation/material-review",
+                                   json={"mode": next_mode, "expected_revision": current["revision"]})
+            assert changed.status_code == 200, changed.text
+            resume.set()
+            saved = unrelated.result(12)
+            assert saved.status_code == 409, saved.text
+    finally:
+        resume.set()
+    final = operator.get("/api/admin/installation/material-review")
+    assert final.status_code == 200 and final.json()["mode"] == next_mode

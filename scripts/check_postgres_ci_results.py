@@ -61,6 +61,8 @@ REQUIRED_LIFECYCLE_TESTS = {
         "test_stale_loaded_installation_must_not_change_operator_approval[False]",
         "test_http_settings_interleaving_preserves_latest_approval[True]",
         "test_http_settings_interleaving_preserves_latest_approval[False]",
+        "test_site_update_cannot_override_concurrent_material_review_cas[manual]",
+        "test_site_update_cannot_override_concurrent_material_review_cas[automatic]",
     )
 } | {
     ("backend.tests.test_schulbuddy_installation_serialization", name)

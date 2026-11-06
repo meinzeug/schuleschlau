@@ -223,14 +223,16 @@ def configuration(db):
 
 
 def save_site(data, actor, db):
-    if ("material_review_mode" in data.model_fields_set
-            and data.material_review_mode != runtime_settings(db).material_review_mode):
-        raise HTTPException(409, "Die Seitenprüfung bitte über ihre eigene revisionsgebundene Einstellung ändern.")
     db.execute(update(Installation).where(Installation.id == 1).values(revision=Installation.revision + 1))
     # The row lock above does not refresh a previously loaded ORM instance.
     # Merge partial settings only with the latest locked database values, or
     # an unrelated save could silently restore an already revoked approval.
     item = db.get(Installation, 1, populate_existing=True)
+    # Recheck only after locking and refreshing: a concurrent CAS update must
+    # not be overwritten by an old value in this generic settings request.
+    if ("material_review_mode" in data.model_fields_set
+            and data.material_review_mode != runtime_settings(db).material_review_mode):
+        raise HTTPException(409, "Die Seitenprüfung bitte über ihre eigene revisionsgebundene Einstellung ändern.")
     from .security import decrypt
 
     values = json.loads(decrypt(item.encrypted_settings)) if item.encrypted_settings else {}
