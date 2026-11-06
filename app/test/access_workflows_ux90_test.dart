@@ -684,21 +684,27 @@ void main() {
     skip: !kIsWeb,
   );
   testWidgets(
-    'AK062 saving one changed site field preserves unrelated concurrent server settings',
+    'AK062 a concurrent site change requires an explicit review and preserves both edits',
     (t) async {
       final f = setup.Fixture();
-      Json? sent;
+      final sent = <Json>[];
       f.respond = (r) async {
         if (r.method == 'PUT') {
-          sent = Json.from(jsonDecode(r.body) as Map);
-          f.data = {
-            ...f.data,
-            ...sent!,
-            'smtp_host': 'remote-synthetic.example.invalid',
-          };
+          final body = Json.from(jsonDecode(r.body) as Map);
+          sent.add(body);
+          if (sent.length == 1) {
+            expect(body['expected_revision'], 1);
+            f.revision++;
+            f.data['smtp_host'] = 'remote-synthetic.example.invalid';
+            return setup.reply({'detail': 'Synthetic revision conflict'}, 409);
+          }
+          expect(body['expected_revision'], f.revision);
+          f.revision++;
+          f.data = {...f.data, 'operator_name': body['operator_name']};
         }
         return setup.reply({
           'site': f.data,
+          'site_revision': f.revision,
           'provider': {'revision': 1},
           'checks': <String, dynamic>{},
         });
@@ -706,7 +712,23 @@ void main() {
       await f.mount(t);
       await t.enterText(setup.field('Betreiber'), 'Changed synthetic operator');
       await press(t, 'Einstellungen speichern');
-      expect(sent, {'operator_name': 'Changed synthetic operator'});
+      expect(sent, [
+        {'operator_name': 'Changed synthetic operator', 'expected_revision': 1},
+      ]);
+      expect(f.data['operator_name'], 'Synthetic operator');
+      expect(
+        t.widget<TextField>(setup.field('Betreiber')).controller!.text,
+        'Changed synthetic operator',
+      );
+      await press(t, 'Aktuellen Stand prüfen');
+      await press(t, 'Stand für Entwurf übernehmen');
+      expect(sent, hasLength(1));
+      await press(t, 'Einstellungen speichern');
+      expect(sent, [
+        {'operator_name': 'Changed synthetic operator', 'expected_revision': 1},
+        {'operator_name': 'Changed synthetic operator', 'expected_revision': 2},
+      ]);
+      expect(f.data['operator_name'], 'Changed synthetic operator');
       await press(t, 'E-Mail');
       expect(
         t.widget<TextField>(setup.field('SMTP-Server')).controller!.text,

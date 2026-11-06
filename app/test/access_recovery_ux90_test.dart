@@ -125,7 +125,14 @@ void main() {
       expect(f.saved, isEmpty);
       await helpers.press(t, 'Gespeicherten Eintrag entfernen: SMTP-Passwort');
       await helpers.press(t, 'Gespeicherten Eintrag entfernen');
-      expect(f.saved.single, {'clear_smtp_password': true});
+      expect(f.saved.single, {
+        'clear_smtp_password': true,
+        'expected_revision': 1,
+      });
+      final writes = f.requests.where((r) => r.method != 'GET').toList();
+      expect(writes, hasLength(1));
+      expect(writes.single.method, 'PUT');
+      expect(writes.single.url.path, '/api/admin/installation/site');
       expect(
         t.widget<TextField>(setup.field('SMTP-Passwort')).controller!.text,
         'Exact-new-synthetic-secret',
