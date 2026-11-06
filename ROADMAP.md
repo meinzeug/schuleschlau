@@ -2078,6 +2078,14 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Elternübersicht, Noten und Planung gegen echte gespeicherte Fakten prüfen**
 
+  - [x] **Verspätete Lernplanantworten nach neuer Anmeldeabsicht begrenzen.**
+    Überholte Ladeantworten und unklar abgeschlossene Auftragsänderungen
+    verlangen einen ausdrücklichen Leseabgleich; eine ungewisse Vorbereitung
+    behält ihren Idempotenzschlüssel. Ein alter Bestätigungsdialog verändert
+    keinen Auftrag. Künstliche Flutterfälle prüfen diese Abläufe und die
+    Wiederaufnahme. Weitere Wochen-, Karten- und Editoraktionen bleiben offen.
+    [Prüfung und Grenzen](docs/PARENT_PLAN_LOGIN_RACES_2026_11_06.md).
+
   - [x] **Künstlichen Mehrkind-Notenimport im lokalen Browser prüfen.**
     Ein Elternkonto wählt für zwei künstliche Kinder dieselbe künstliche PDF
     bei 390 und 1280 Pixeln jeweils zweimal im Chrome-Dateidialog. Die Vorschaupositionen,

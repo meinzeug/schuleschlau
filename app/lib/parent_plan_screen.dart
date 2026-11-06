@@ -355,6 +355,14 @@ class _ParentPlanScreenState extends State<ParentPlanScreen> {
   Future<void> load() async {
     if (!own) return;
     final stamp = ++generation, child = widget.childId;
+    final authentication = widget.state.api.currentAuthenticationRevision
+        ?.call();
+    bool current() =>
+        own &&
+        child == widget.childId &&
+        stamp == generation &&
+        widget.state.api.currentAuthenticationRevision?.call() ==
+            authentication;
     rememberView();
     setState(() {
       loading = true;
@@ -383,7 +391,7 @@ class _ParentPlanScreenState extends State<ParentPlanScreen> {
           },
         ).toString(),
       );
-      if (!own || child != widget.childId || stamp != generation) return;
+      if (!current()) return;
       if (filtered && value['filters'] is! Map) {
         throw ApiError(
           'Diese Suche ist auf diesem Server noch nicht verfügbar. Setze die Filter zurück, um alle Themen zu sehen.',
@@ -414,7 +422,7 @@ class _ParentPlanScreenState extends State<ParentPlanScreen> {
       });
       rememberView();
     } catch (e) {
-      if (own && child == widget.childId && stamp == generation) {
+      if (current()) {
         setState(() {
           error = e is ApiError
               ? e.message
@@ -422,6 +430,16 @@ class _ParentPlanScreenState extends State<ParentPlanScreen> {
           if (e is ApiError && [401, 403, 404].contains(e.status)) data = null;
           loading = false;
           loadFailed = true;
+        });
+      }
+    } finally {
+      // Release the old spinner if a login attempt was cancelled; never
+      // install the old request's result in the newer authentication intent.
+      if (own && child == widget.childId && stamp == generation && !current()) {
+        setState(() {
+          loading = false;
+          loadFailed = true;
+          error = 'Die Anmeldung hat sich geändert. Bitte lade den Lernplan erneut.';
         });
       }
     }
@@ -433,7 +451,7 @@ class _ParentPlanScreenState extends State<ParentPlanScreen> {
     Json? existing,
     Json? copyFrom,
   }) async {
-    if (!own || data == null || busy || loading) return;
+    if (!own || data == null || busy || loading || loadFailed) return;
     final child = widget.childId;
     final action = ++operation;
     setState(() => busy = true);
@@ -477,9 +495,17 @@ class _ParentPlanScreenState extends State<ParentPlanScreen> {
   }
 
   Future<void> prepare(Json topic) async {
-    if (!own || busy || loading) return;
+    if (!own || busy || loading || loadFailed) return;
     final child = widget.childId, id = topic['id'] as String;
+    final authentication = widget.state.api.currentAuthenticationRevision
+        ?.call();
     final action = ++operation;
+    bool current() =>
+        own &&
+        child == widget.childId &&
+        action == operation &&
+        widget.state.api.currentAuthenticationRevision?.call() ==
+            authentication;
     final key = preparationKeys.putIfAbsent(id, homeworkKey);
     setState(() => busy = true);
     try {
@@ -488,7 +514,7 @@ class _ParentPlanScreenState extends State<ParentPlanScreen> {
         {},
         {'Idempotency-Key': key},
       );
-      if (!own || child != widget.childId || action != operation) return;
+      if (!current()) return;
       if (!mounted) return;
       preparationKeys.remove(id);
       openRoute(
@@ -498,7 +524,7 @@ class _ParentPlanScreenState extends State<ParentPlanScreen> {
             : '/learning-preparation/$child/${value['id']}',
       );
     } catch (e) {
-      if (own && child == widget.childId && action == operation) {
+      if (current()) {
         setState(() {
           if (e is ApiError && e.status >= 400 && e.status < 500) {
             preparationKeys.remove(id);
@@ -517,6 +543,7 @@ class _ParentPlanScreenState extends State<ParentPlanScreen> {
     if (!own ||
         busy ||
         loading ||
+        loadFailed ||
         data?['can_manage'] != true ||
         ModalRoute.of(context)?.isCurrent != true) {
       return;
@@ -524,8 +551,12 @@ class _ParentPlanScreenState extends State<ParentPlanScreen> {
     if (remove && topic['revision'] is! int) return;
     final child = widget.childId, state = widget.state;
     final account = state.user;
+    final authentication = state.api.currentAuthenticationRevision?.call();
     bool current() =>
-        own && identical(state.user, account) && child == widget.childId;
+        own &&
+        identical(state.user, account) &&
+        child == widget.childId &&
+        state.api.currentAuthenticationRevision?.call() == authentication;
     ModalRoute<bool>? confirmationRoute;
     void identityChanged() {
       if (current()) return;
@@ -561,7 +592,7 @@ class _ParentPlanScreenState extends State<ParentPlanScreen> {
                 actions: [
                   TextButton(
                     onPressed: () {
-                      if (current() && confirmationRoute?.isCurrent == true) {
+                      if (confirmationRoute?.isCurrent == true) {
                         Navigator.pop(dialog, false);
                       }
                     },
@@ -569,8 +600,8 @@ class _ParentPlanScreenState extends State<ParentPlanScreen> {
                   ),
                   FilledButton(
                     onPressed: () {
-                      if (current() && confirmationRoute?.isCurrent == true) {
-                        Navigator.pop(dialog, true);
+                      if (confirmationRoute?.isCurrent == true) {
+                        Navigator.pop(dialog, current());
                       }
                     },
                     child: Text(remove ? 'Auftrag entfernen' : 'Bestätigen'),
@@ -599,9 +630,9 @@ class _ParentPlanScreenState extends State<ParentPlanScreen> {
           {if (topic['revision'] != null) 'revision': topic['revision']},
         );
       }
-      if (own && child == widget.childId && action == operation) await load();
+      if (current() && action == operation) await load();
     } catch (e) {
-      if (own && child == widget.childId && action == operation) {
+      if (current() && action == operation) {
         setState(
           () => error = e is ApiError
               ? e.message
@@ -612,7 +643,13 @@ class _ParentPlanScreenState extends State<ParentPlanScreen> {
       }
     } finally {
       if (own && child == widget.childId && action == operation) {
-        setState(() => busy = false);
+        setState(() {
+          busy = false;
+          if (!current()) {
+            loadFailed = true;
+            error = 'Der Auftrag wurde möglicherweise geändert. Bitte lade den Lernplan erneut.';
+          }
+        });
       }
     }
   }
