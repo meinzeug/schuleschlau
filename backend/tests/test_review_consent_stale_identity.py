@@ -112,6 +112,7 @@ def test_site_update_cannot_override_concurrent_material_review_cas(api, operato
                               json={"mode": initial, "expected_revision": current["revision"]})
         assert result.status_code == 200, result.text
         current = result.json()
+    original_operator_name = operator.get("/api/admin/installation").json()["site"]["operator_name"]
     next_mode = "automatic" if initial == "manual" else "manual"
     paused, resume = Event(), Event()
     original = OrmSession.execute
@@ -134,6 +135,7 @@ def test_site_update_cannot_override_concurrent_material_review_cas(api, operato
             changed = operator.put("/api/admin/installation/material-review",
                                    json={"mode": next_mode, "expected_revision": current["revision"]})
             assert changed.status_code == 200, changed.text
+            accepted_revision = changed.json()["revision"]
             resume.set()
             saved = unrelated.result(12)
             assert saved.status_code == 409, saved.text
@@ -141,3 +143,6 @@ def test_site_update_cannot_override_concurrent_material_review_cas(api, operato
         resume.set()
     final = operator.get("/api/admin/installation/material-review")
     assert final.status_code == 200 and final.json()["mode"] == next_mode
+    assert final.json()["revision"] == accepted_revision
+    site = operator.get("/api/admin/installation").json()["site"]
+    assert site["operator_name"] == original_operator_name
