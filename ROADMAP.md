@@ -2517,6 +2517,14 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Echtzeitstatus gezielt und zuverlässig bereitstellen**
 
+  - [ ] **Verspätete Login-Cookies kontenübergreifend absichern.** Ein echter
+    künstlicher Chrome-/SQLite-Test belegt, dass eine ältere erfolgreiche
+    Loginantwort den Cookie einer neueren Anmeldung überschreiben kann. Eine
+    serverseitige Lösung muss konkurrierende Anmeldungen, andere Tabs, Google,
+    Logout, Altclients und geschützte Datenabrufe einbeziehen; ein bloßes
+    Pending-Flag genügt nicht. Der reproduzierende Test beweist den Fehler,
+    nicht dessen Behebung. [Befund und Lösungsgrenzen](docs/WEB_LOGIN_COOKIE_RACE_2026_11_06.md).
+
   - [x] **Alte Eltern-Lernplanaktionen an die geladene Anmeldeabsicht binden.**
     Bereits sichtbare Themenkarten, Wochenaktionen und Auftragseditoren prüfen
     eine neue Anmeldeabsicht vor der Aktion und verlangen zunächst einen
