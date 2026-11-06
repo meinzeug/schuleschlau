@@ -1,9 +1,11 @@
 """Synthetic transactions must not publish deletion outbox rows unlocked."""
 
+import os
 import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor
 from contextvars import copy_context
+from pathlib import Path
 
 import pytest
 from schulpilot.db import DB, ErasureRequest, engine
@@ -32,7 +34,8 @@ except RuntimeError as exc:
 else:
     raise AssertionError('database import did not install erasure guard')
 """
-    subprocess.run([sys.executable, "-c", program], check=True, timeout=15)
+    env = {**os.environ, "PYTHONPATH": str(Path(__file__).resolve().parents[1])}
+    subprocess.run([sys.executable, "-c", program], check=True, timeout=15, env=env)
 
 
 def test_separate_restore_engine_can_import_existing_outbox_without_live_lock():

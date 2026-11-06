@@ -350,6 +350,7 @@ def test_provider_outage_keeps_reserved_cost_and_has_no_automatic_retry(api, boo
 
 
 def test_report_export_erasure_and_private_homework_reading(api, book, transport, monkeypatch):
+    from schulpilot.erasure import journal_write_lock
     from schulpilot.families import export_child
     from schulpilot.unit_erasure import remove
     from test_homework import analyze, detail
@@ -378,7 +379,7 @@ def test_report_export_erasure_and_private_homework_reading(api, book, transport
     assert api.get(listing + "?state=open").json()["total"] == 0
     with DB() as db:
         assert db.scalar(select(func.count()).select_from(Usage)) == 2
-    with DB.begin() as db:
+    with journal_write_lock(), DB.begin() as db:
         remove(db, db.get(Child, book["child"]["id"]), [book["unit_id"]])
     assert api.get(endpoint(book)).json()["latest"] is None
 

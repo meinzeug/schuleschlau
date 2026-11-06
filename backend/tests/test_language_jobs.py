@@ -316,6 +316,8 @@ def test_parallel_answers_import_rounds_and_no_double_ledger(api, household):
 
 
 def test_audio_needs_stimulus_speech_assisted_and_source_delete_export(api, notebook):
+    from schulpilot.erasure import journal_write_lock
+
     _, child, material_id = notebook
     import_words(api, child)
     child_login(api)
@@ -332,7 +334,7 @@ def test_audio_needs_stimulus_speech_assisted_and_source_delete_export(api, note
     result = api.post(f"/api/units/{unit['id']}/questions/{q['id']}/answer", json={**body, "input_method": "speech"})
     assert result.status_code == 200, result.text
     assert result.json()["assisted"]
-    with DB.begin() as db:
+    with journal_write_lock(), DB.begin() as db:
         child_row = db.get(Child, child["id"])
         exported = export_child(db, child_row)
         assert len(exported["vocabulary_items"]) == 3

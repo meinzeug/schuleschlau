@@ -65,10 +65,12 @@ def test_authenticated_erasure_journal_reconciles_a_separate_snapshot(api, house
 
 
 def test_deletion_ledger_retention_exceeds_backup_retention_but_is_bounded(api):
+    from schulpilot.erasure import journal_write_lock
+
     record = {"id": "a" * 32, "scope": "material", "target": "b" * 32, "created": int(now()) - 36 * 86400}
     with (settings.data_dir / "erasure-ledger.jsonl").open("a") as output:
         output.write(signed(record, settings.master_key) + "\n")
-    with DB.begin() as db:
+    with journal_write_lock(), DB.begin() as db:
         db.add(ErasureRequest(**record, published=True))
     prune_journal()
     assert all(
