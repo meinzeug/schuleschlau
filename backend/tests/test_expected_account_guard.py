@@ -68,3 +68,23 @@ def test_stale_assertion_does_not_prevent_explicit_fresh_login(household):
         assert login.status_code == 200
         assert login.json()['user']['id'] == parent['id']
         assert browser.get('/api/auth/me', headers={'X-Schulpilot-Account': parent['id']}).status_code == 200
+
+
+def test_stale_account_is_rejected_before_photo_intake(api, household):
+    from schulpilot.db import DB, Job, Material
+    from sqlalchemy import func, select
+
+    _, child = household
+    with DB() as db:
+        before_materials = db.scalar(select(func.count()).select_from(Material))
+        before_jobs = db.scalar(select(func.count()).select_from(Job))
+    response = api.post(
+        f"/api/children/{child['id']}/materials",
+        headers={'X-Schulpilot-Account': 'f' * 32, 'Idempotency-Key': 'synthetic-stale-account-photo'},
+        files={'file': ('synthetic.jpg', b'not a real photo', 'image/jpeg')},
+    )
+    assert response.status_code == 409
+    assert response.headers['X-Schulpilot-Account-Changed'] == '1'
+    with DB() as db:
+        assert db.scalar(select(func.count()).select_from(Material)) == before_materials
+        assert db.scalar(select(func.count()).select_from(Job)) == before_jobs
