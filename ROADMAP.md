@@ -570,6 +570,20 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – Abruf und Lernplanung nachvollziehbar abnehmen**
 
+  **06.11.2026, echter Planer und Worker mit Testtransport:** Ein neuer
+  synthetischer Mehrtagesfall folgt fälligen Vorschlägen aus dem Planer und
+  fordert jede Wiederholung ausdrücklich über die API an. Der reguläre Worker
+  verarbeitet einen simulierten Anbietertransport; ein echter KI-Aufruf findet
+  nicht statt. Jedes auswertbare Lernziel erreicht mindestens drei getrennte
+  selbstständige Prüftage über mindestens sieben Tage. Der Test prüft neue
+  Aufgaben, Quellrevisionen, Wiederholungen desselben Anforderungsschlüssels,
+  einen zukünftigen Elternauftrag und unveränderte Antworten nach einer
+  Quellenänderung. Wiederholte Planer-GETs erzeugen keine Aufträge. Zusammen
+  mit Mehrtages- und Controllerregression: 18 Fälle auf SQLite und 18 auf
+  isoliertem PostgreSQL bestanden. Die mobil beobachtete Mehrtagesbedienung
+  bleibt offen; diese automatisierte Probe belegt weder die fachliche Qualität
+  eines echten KI-Modells noch Pushzustellung oder Android-Geräteverhalten.
+
   - [x] **Historische Nachprüfungen und Reflexionsrunden absichern.** Alte
     und neue Clients prüfen bei mehreren Antworten nur die eindeutig durch
     Versuchsnummer bestimmte Antwort erneut; bei mehrdeutiger Reihenfolge wird
