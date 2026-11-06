@@ -38,7 +38,12 @@ async function type(locator, value) {
   await page.keyboard.type(value,{delay:3}); await page.keyboard.press('Tab'); await page.waitForTimeout(200);
 }
 async function login(username, width) {
-  context=await browser.newContext({viewport:{width,height:900}, isMobile:width===390, hasTouch:width===390});
+  context=await browser.newContext({viewport:{width,height:900}, isMobile:width===390, hasTouch:width===390, serviceWorkers:'block'});
+  await context.route('**/*', route => {
+    const url = new URL(route.request().url());
+    return url.origin === input.base || ['data:', 'blob:'].includes(url.protocol)
+      ? route.continue() : route.abort();
+  });
   page=await context.newPage(); page.on('pageerror',()=>pageErrors.push(phase));
   page.on('response',r=>{const u=new URL(r.url());if(u.origin===input.base&&u.pathname.startsWith('/api/')&&r.status()>=500)serverErrors.push(u.pathname.replace(/[a-f0-9]{32}/g,':id'));});
   await open('/login');

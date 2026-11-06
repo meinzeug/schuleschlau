@@ -46,7 +46,7 @@ async function control(path,method='POST') {
 }
 async function login() {
   if(context) await context.close();
-  context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
+  context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,serviceWorkers:'block'});
   await context.route('**/*', route => {
     const url=new URL(route.request().url());
     return url.origin===input.base || ['data:','blob:'].includes(url.protocol) ? route.continue() : route.abort();
@@ -63,7 +63,7 @@ async function login() {
 async function shot(name) {await page.screenshot({path:`${input.screens}/${name}.png`});}
 try {
   // First context exists only so the loopback controller can move the test clock.
-  context=await browser.newContext({viewport:{width:390,height:844}});
+  context=await browser.newContext({viewport:{width:390,height:844},serviceWorkers:'block'});
   let done=false, rounds=0;
   for(let day=0;day<12;day++) {
     const advance=await control('advance');

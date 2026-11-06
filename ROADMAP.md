@@ -2481,6 +2481,19 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Abnahmen systematisch und wiederholbar automatisieren**
 
+  - [x] **Künstliche Browserabläufe als CI-Gate vorbereiten.** Der bestehende
+    Flutter-Build startet den Hefter- und den 390-px-Lernablauf in isoliertem
+    Chrome gegen eine temporäre SQLite-Datenbank; fremde Browserziele und
+    Service Worker bleiben gesperrt. Die vier vorgeschriebenen Testfälle
+    müssen im JUnit-Beleg einmal und ohne Skip oder Fehler vorliegen. Die
+    Runner-Verträge prüfen auch fehlende, doppelte und übersprungene Fälle.
+    Auf Basis `075874c` bestand der kombinierte lokale Lauf mit künstlichen
+    Quellen und simulierten Anbieterantworten mit vier Fällen in 123,62 s;
+    die hier verwendete Weboberfläche ist gegenüber `3f13adc` unverändert.
+    Ein GitHub-Lauf dieser Änderung ist erst nach dem tatsächlichen Durchlauf
+    belegt. Dies ersetzt weder echte Anbieter- und Pushprüfungen noch die
+    übrigen noch fehlenden repräsentativen Browserabläufe.
+
   - [x] **Reaper-, Einstellungs- und Diagnose-Löschrennen im PostgreSQL-CI-Gate verankern.**
     Beide Abschluss-/Unterbrechungsrennen, die konkurrierende Änderung einer
     Kindereinstellung und alle acht Kombinationen aus Kind-/Familienlöschung,

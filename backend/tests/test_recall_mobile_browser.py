@@ -140,7 +140,8 @@ def test_synthetic_recall_journey_in_390px_browser(profile, monkeypatch, tmp_pat
         node = shutil.which('node')
         assert node
         result = subprocess.run([node, 'qa/recall_mobile_browser.mjs'], input=json.dumps(config), text=True,
-            capture_output=True, timeout=600, env={'PATH': str(Path(node).parent) + ':/usr/bin:/bin', 'LANG': 'C.UTF-8'})
+            capture_output=True, timeout=600, env={'PATH': str(Path(node).parent) + ':/usr/bin:/bin',
+                'LANG': 'C.UTF-8', 'TMPDIR': os.environ.get('TMPDIR', '/tmp')})
         assert result.returncode == 0, result.stderr[-6000:]
         print(result.stdout, end='')
         with DB() as db:

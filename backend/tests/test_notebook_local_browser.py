@@ -179,7 +179,8 @@ def test_notebook_local_browser(api, household, mailbox, monkeypatch, tmp_path):
             text=True,
             capture_output=True,
             timeout=240,
-            env={"PATH": str(Path(node).parent) + ":/usr/bin:/bin", "LANG": "C.UTF-8"},
+            env={"PATH": str(Path(node).parent) + ":/usr/bin:/bin", "LANG": "C.UTF-8",
+                 "TMPDIR": os.environ.get("TMPDIR", "/tmp")},
         )
         assert result.returncode == 0, result.stderr[-4000:]
         assert calls == []
