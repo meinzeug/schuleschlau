@@ -50,7 +50,13 @@ def test_late_successful_login_response_replaces_newer_browser_cookie(household,
         await fetch('/__race/release');
         const old=await older;
         const after=await(await fetch('/api/auth/me')).json();
-        await fetch('/__race/result',{method:'POST',headers,body:JSON.stringify({old,newer,before,after})});
+        const expected={...headers,'X-Schulpilot-Account':newer.body.user.id};
+        const guardedRead=await fetch('/api/auth/me',{headers:expected});
+        const guardedLogout=await fetch('/api/auth/logout',{method:'POST',headers:expected});
+        const afterDenied=await fetch('/api/auth/me');
+        await fetch('/__race/result',{method:'POST',headers,body:JSON.stringify({old,newer,before,after,
+          guardedRead:guardedRead.status,guardedLogout:guardedLogout.status,
+          afterDenied:afterDenied.status,afterDeniedUser:(await afterDenied.json()).id})});
       } catch(e) { await fetch('/__race/result',{method:'POST',headers,body:JSON.stringify({error:String(e)})}); }
     })();</script></body></html>'''
 
@@ -115,6 +121,12 @@ def test_late_successful_login_response_replaces_newer_browser_cookie(household,
         assert outcome['newer']['status'] == 200
         assert outcome['before']['id'] == new_id
         assert outcome['after']['id'] == old['id']
+        # New clients state which account they display. A stale cookie must
+        # neither return the other account nor revoke its session.
+        assert outcome['guardedRead'] == 409
+        assert outcome['guardedLogout'] == 409
+        assert outcome['afterDenied'] == 200
+        assert outcome['afterDeniedUser'] == old['id']
     finally:
         release.set()
         if chrome:

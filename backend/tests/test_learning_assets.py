@@ -250,8 +250,10 @@ def test_cross_family_follower_gets_no_other_job_usage_or_error_and_pays_nothing
     _, child, _ = prepared
     first = start(api, child["id"]).json()
     other = register(api, mailbox, "other@example.org")
-    other_child = create_child(api, other, "other-test-child")
+    # A successful account switch updates both the bearer token and the
+    # optional client assertion before issuing the next authenticated request.
     api.headers["X-Schulpilot-Account"] = other["id"]
+    other_child = create_child(api, other, "other-test-child")
     second = start(api, other_child["id"]).json()
     assert first["build"] == second["build"]
     assert api.get("/api/learning-asset-instances/" + first["id"]).status_code == 404

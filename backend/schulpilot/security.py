@@ -91,6 +91,16 @@ def authenticated(request: Request, db=Depends(get_db)):
     user = db.get(User, session.user_id)
     if not user or user.disabled or not user.verified:
         raise HTTPException(401, "Zugang ist nicht freigeschaltet.")
+    # The optional assertion only denies access if a shared browser cookie
+    # changed underneath the displayed account. It never selects an account,
+    # grants access, or replaces the independently authenticated session.
+    expected_account = request.headers.get("X-Schulpilot-Account")
+    if expected_account is not None and expected_account != user.id:
+        raise HTTPException(
+            409,
+            "Das Konto auf diesem Gerät hat sich geändert. Bitte melde dich erneut an.",
+            headers={"X-Schulpilot-Account-Changed": "1"},
+        )
     if session.seen < int(now()) - 300:
         session.seen = int(now())
         db.commit()

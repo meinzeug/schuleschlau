@@ -45,12 +45,20 @@ class Api {
                   defaultValue: 'https://schulpilot.dorfspy.de/api',
                 ));
 
-  Map<String, String> get headers => {
-    'X-Schulpilot-Request': '1',
-    'X-Schulpilot-Capabilities': 'language-v1,grade-pdf-v1,visual-v1,messages-v1,exams-v1,adaptive_controller_v2,grouped-v1,learning-entry-v1,labs-v1',
-    if (!kIsWeb) 'X-Client-Platform': 'native',
-    if (token != null) 'Authorization': 'Bearer $token',
-  };
+  Map<String, String> get headers {
+    final account = currentAccount?.call();
+    final accountId = account is Map ? account['id'] : null;
+    return {
+      'X-Schulpilot-Request': '1',
+      'X-Schulpilot-Capabilities': 'language-v1,grade-pdf-v1,visual-v1,messages-v1,exams-v1,adaptive_controller_v2,grouped-v1,learning-entry-v1,labs-v1',
+      if (!kIsWeb) 'X-Client-Platform': 'native',
+      if (token != null) 'Authorization': 'Bearer $token',
+      // An assertion about the displayed account, not an authentication token.
+      // The server still derives all rights from the actual session.
+      if (accountId is String && accountId.isNotEmpty)
+        'X-Schulpilot-Account': accountId,
+    };
+  }
 
   // Web sessions are cookies rather than bearer tokens. The authentication
   // revision distinguishes an old cookie request from a new login even when
@@ -105,7 +113,11 @@ class Api {
       final detailMessage = detail is String
           ? detail
           : 'Anfrage fehlgeschlagen.';
-      final code = data is Map && data['code'] is String
+      final code =
+          response.statusCode == 409 &&
+              response.headers['x-schulpilot-account-changed'] == '1'
+          ? 'account_changed'
+          : data is Map && data['code'] is String
           ? data['code'] as String
           : null;
       throw ApiError(
@@ -789,7 +801,12 @@ class AppState extends ChangeNotifier {
     try {
       await api.post('/auth/logout');
     } on ApiError catch (e) {
-      if (e.status != 401) rethrow;
+      // Another tab may already own the cookie. Never log out that account;
+      // an explicit logout can still discard this tab's obsolete local state.
+      if (e.status != 401 &&
+          !(e.status == 409 && e.code == 'account_changed')) {
+        rethrow;
+      }
     }
     if (!currentAccount()) return;
     await clear(

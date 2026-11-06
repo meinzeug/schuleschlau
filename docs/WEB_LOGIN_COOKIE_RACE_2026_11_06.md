@@ -107,3 +107,11 @@ Der Entwurf ist nicht implementiert; insbesondere sind atomare
 Browserbootstrap-Bindung und die kontrollierte Behandlung alter Clients
 weiter offen. Eine sofortige pauschale Änderung von `authenticated()` oder
 `beginAuthentication()` wäre daher nicht ausreichend geprüft.
+
+## Begrenzte zusätzliche Konto-Abwehr
+
+Die nachträglich ergänzte optionale Kontoprüfung für die gemeinsame
+Flutter-API wird in `ACCOUNT_ASSERTION_2026_11_06.md` beschrieben. Der echte
+Browsertest weist weiterhin den Cookie-Wechsel nach und prüft zusätzlich,
+dass ein mit dem neueren Konto markierter Lese- oder Logout-Request nach dem
+Wechsel zurückgewiesen wird. Die Cookie-Generation selbst bleibt offen.
