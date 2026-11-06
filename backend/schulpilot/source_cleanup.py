@@ -7,6 +7,7 @@ exact state again, journals removals and retains provider/accounting history.
 import argparse
 import hashlib
 import json
+from contextlib import nullcontext
 
 from sqlalchemy import select
 
@@ -111,6 +112,7 @@ def erase_assignments(db, child_id, ids, *, journal=True):
 
 
 def apply(db, child_id, expected_digest, **options):
+    """Caller holds journal_write_lock before the transaction being committed."""
     # Same global order as notebook deletion and answer/tutor mutations.
     lock_units(db, child_id, [])
     child = db.scalar(select(Child).where(Child.id == child_id).with_for_update())
@@ -144,10 +146,15 @@ def main():
     args = parser.parse_args()
     options = {"include_manual_assignments": args.include_manual_assignments,
                "include_manual_vocabulary": args.include_manual_vocabulary}
-    with DB.begin() as db:
-        result = apply(db, args.child_id, args.apply_digest, **options) if args.apply_digest else selection(db, args.child_id, **options)
-        if not args.apply_digest:
-            audit(db, "local-operator", "operator.source_orphans_inspected", args.child_id)
+    from .erasure import journal_write_lock
+
+    # Only the explicit apply can create deletion outbox entries. Acquire the
+    # journal before beginning its transaction and taking Unit/Child locks.
+    with journal_write_lock() if args.apply_digest else nullcontext():
+        with DB.begin() as db:
+            result = apply(db, args.child_id, args.apply_digest, **options) if args.apply_digest else selection(db, args.child_id, **options)
+            if not args.apply_digest:
+                audit(db, "local-operator", "operator.source_orphans_inspected", args.child_id)
     if args.apply_digest:
         from .erasure import flush_journal
         flush_journal()
