@@ -568,7 +568,22 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
   insbesondere Erst-/Folgeversuche, Unterstützung, unklare Urteile,
   Bruchdarstellung und bestehende Nachweise; Modelltransporte sind simuliert.
 
-- [ ] **P1 – Abruf und Lernplanung nachvollziehbar abnehmen**
+- [x] **P1 – Abruf und Lernplanung nachvollziehbar abnehmen**
+
+  **06.11.2026, mobile Mehrtagesabnahme:** Der tatsächliche Planer, die
+  Vorbereitungsseite und der Worker wurden in Chrome bei 390 × 844 Pixeln
+  über sechs simulierte Wiederholungstage mit einem künstlichen Konto bedient.
+  Die Antworten wurden in der Oberfläche eingegeben und jede Rückmeldung vor
+  dem Weitergehen angezeigt. Der Anbietertransport war simuliert und der
+  Browser auf den lokalen Testserver beschränkt. Für alle auswertbaren
+  Lernziele wurden mindestens drei unabhängige Prüftage über mindestens
+  sieben Tage gespeichert. Der zukünftige Elternauftrag blieb erhalten.
+  Quellenrevisionen, verschiedene Fragen, freiwillige Fortsetzung trotz Pause
+  und erfülltem Mindestziel sowie konkurrierende Gerätezeiten wurden zusätzlich
+  durch die dokumentierten isolierten SQLite- und PostgreSQL-Fälle geprüft.
+  Durchführung, Grenzen und künstliche Screenshots stehen im
+  [Abnahmebericht](docs/ROADMAP_RECALL_2026_11_06.md). Die fachliche Güte
+  echter KI-Ausgaben, Pushzustellung und Grafiken sind gesonderte Punkte.
 
   **06.11.2026, echter Planer und Worker mit Testtransport:** Ein neuer
   synthetischer Mehrtagesfall folgt fälligen Vorschlägen aus dem Planer und
@@ -580,9 +595,9 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
   einen zukünftigen Elternauftrag und unveränderte Antworten nach einer
   Quellenänderung. Wiederholte Planer-GETs erzeugen keine Aufträge. Zusammen
   mit Mehrtages- und Controllerregression: 18 Fälle auf SQLite und 18 auf
-  isoliertem PostgreSQL bestanden. Die mobil beobachtete Mehrtagesbedienung
-  bleibt offen; diese automatisierte Probe belegt weder die fachliche Qualität
-  eines echten KI-Modells noch Pushzustellung oder Android-Geräteverhalten.
+  isoliertem PostgreSQL bestanden. Diese API-Probe allein belegte weder eine
+  mobile Mehrtagesbedienung noch die fachliche Qualität eines echten
+  KI-Modells, Pushzustellung oder Android-Geräteverhalten.
 
   - [x] **Historische Nachprüfungen und Reflexionsrunden absichern.** Alte
     und neue Clients prüfen bei mehreren Antworten nur die eindeutig durch
