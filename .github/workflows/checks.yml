@@ -121,6 +121,10 @@ jobs:
           backend/tests/test_grade_pdf_imports.py::test_parallel_confirm_and_parallel_repeat_upload_do_not_duplicate
           backend/tests/test_grade_pdf_imports.py::test_parallel_preview_upload_rechecks_idempotency_after_unlocked_parsing
           backend/tests/test_recall_planning_journey.py
+          backend/tests/test_job_interruption_race_roadmap.py::test_interrupted_package_never_publishes_a_late_provider_result
+          backend/tests/test_job_interruption_race_roadmap.py::test_completed_package_wins_over_an_already_selected_reaper
+          backend/tests/test_preferences_cas_2026.py::test_parallel_preferences_same_revision_has_one_winner
+          backend/tests/test_source_evaluation.py::test_child_or_family_erased_during_diagnosis_keeps_no_private_output
           --junitxml="${{ runner.temp }}/postgres-concurrency.xml"
       - name: Reject skipped or incomplete PostgreSQL checks
         run: python scripts/check_postgres_ci_results.py "${{ runner.temp }}/postgres-concurrency.xml"

@@ -20,12 +20,14 @@ class PostgresCiResultsTest(unittest.TestCase):
             cases += [f'<testcase classname="suite" name="{name}" />' for name in sorted(check.REQUIRED_NOTICE_TESTS)]
             classname, name = check.REQUIRED_EXAM_ROLE_TEST
             cases += [f'<testcase classname="{classname}" name="{name}" />']
+            cases += [f'<testcase classname="{cls}" name="{name}" />'
+                      for cls, name in sorted(check.REQUIRED_LIFECYCLE_TESTS)]
 
             def write(rows):
                 report.write_text("<testsuites><testsuite>" + "".join(rows) + "</testsuite></testsuites>")
 
             write(cases)
-            self.assertEqual(check.verify(report), 20)
+            self.assertEqual(check.verify(report), len(cases))
             for invalid in (
                 cases[:-1],
                 cases[:-1] + [cases[0]],
@@ -38,6 +40,12 @@ class PostgresCiResultsTest(unittest.TestCase):
             ):
                 with self.subTest(invalid=invalid[-1]), self.assertRaises(ValueError):
                     write(invalid)
+                    check.verify(report)
+            for cls, name in check.REQUIRED_LIFECYCLE_TESTS:
+                with self.subTest(missing=(cls, name)), self.assertRaises(ValueError):
+                    needle = f'<testcase classname="{cls}" name="{name}" />'
+                    write([case for case in cases if case != needle] +
+                          ['<testcase classname="suite" name="unrelated-replacement" />'])
                     check.verify(report)
             report.write_text("<unrelated />")
             with self.assertRaises(ValueError):

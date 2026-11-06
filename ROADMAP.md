@@ -2481,6 +2481,17 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Abnahmen systematisch und wiederholbar automatisieren**
 
+  - [x] **Reaper-, Einstellungs- und Diagnose-Löschrennen im PostgreSQL-CI-Gate verankern.**
+    Beide Abschluss-/Unterbrechungsrennen, die konkurrierende Änderung einer
+    Kindereinstellung und alle acht Kombinationen aus Kind-/Familienlöschung,
+    Löschzeitpunkt und Aufräumzustand sind im bestehenden PostgreSQL-Auftrag
+    enthalten. Der Ergebnisprüfer verlangt die einzelnen Testidentitäten und
+    lehnt Auslassungen, Duplikate, Fehler und Skips ab. Der vollständige
+    Auftrag bestand lokal auf isoliertem PostgreSQL mit 31 Fällen ohne Skip;
+    der Prüfvertrag bestand zusätzlich 19 Untertests. Ein tatsächlicher
+    GitHub-Lauf für diesen neuen Quellstand bleibt separat nachzuweisen.
+    Die übergreifende Browser- und Fachabnahme bleibt offen.
+
   **04.11.2026, Audit-CI:** Lauf
   [41820898845](https://github.com/meinzeug/schulpilot/actions/runs/41820898845)
   scheiterte an einem zeitabhängigen Audit-Suchtest: Ein eigener Lesevorgang

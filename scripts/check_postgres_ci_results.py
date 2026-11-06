@@ -15,6 +15,23 @@ REQUIRED_NOTICE_TESTS = {
 REQUIRED_EXAM_ROLE_TEST = (
     "backend.tests.test_exam_reviews", "test_parallel_parent_role_confirmations_have_one_winner"
 )
+REQUIRED_LIFECYCLE_TESTS = {
+    ("backend.tests.test_job_interruption_race_roadmap", name)
+    for name in (
+        "test_interrupted_package_never_publishes_a_late_provider_result",
+        "test_completed_package_wins_over_an_already_selected_reaper",
+    )
+} | {
+    ("backend.tests.test_preferences_cas_2026", "test_parallel_preferences_same_revision_has_one_winner"),
+} | {
+    (
+        "backend.tests.test_source_evaluation",
+        f"test_child_or_family_erased_during_diagnosis_keeps_no_private_output[{cleanup}-{when}-{target}]",
+    )
+    for cleanup in (True, False)
+    for when in ("during_provider", "after_output")
+    for target in ("child", "family")
+}
 
 
 def verify(path, minimum=20):
@@ -31,6 +48,8 @@ def verify(path, minimum=20):
         raise ValueError("A required PostgreSQL notification regression is missing")
     if REQUIRED_EXAM_ROLE_TEST not in identities:
         raise ValueError("The PostgreSQL exam-role concurrency regression is missing")
+    if not REQUIRED_LIFECYCLE_TESTS.issubset(set(identities)):
+        raise ValueError("A required PostgreSQL lifecycle concurrency regression is missing")
     if any(next(root.iter(tag), None) is not None for tag in ("skipped", "failure", "error")):
         raise ValueError("A PostgreSQL test was skipped or failed")
     return len(cases)
