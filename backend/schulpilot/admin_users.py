@@ -13,7 +13,7 @@ from typing import Literal
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from pydantic import Field, field_validator
 from sqlalchemy import delete, func, or_, select, update
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, OperationalError
 
 from . import schemas as s
 from .admin_user_models import AdminUserOperation, AdminUserVersion
@@ -424,6 +424,23 @@ def get_user(user_id: str, p=Depends(expected_admin), db=Depends(get_db)):
     return result
 
 
+def _target_rows(db, statement, *, nowait):
+    # While holding Family or Child, waiting for a lower-level row can form
+    # a cycle with another action. Abort cleanly rather than wait. SQLite
+    # already serializes its writers.
+    if nowait and db.bind.dialect.name == "postgresql":
+        statement = statement.with_for_update(nowait=True)
+    else:
+        statement = statement.with_for_update()
+    try:
+        return list(db.scalars(statement))
+    except OperationalError as error:
+        if getattr(error.orig, "sqlstate", None) != "55P03":
+            raise
+        db.rollback()
+        raise HTTPException(409, "Eine andere Familienaktion läuft. Bitte erneut versuchen.") from None
+
+
 def lock_target(db, user_id, *, family_delete=False):
     user = target_user(db, user_id)
     families = family_ids(db, user) if family_delete and user.role == "parent" else []
@@ -456,24 +473,38 @@ def lock_target(db, user_id, *, family_delete=False):
     if family_delete and child_ids:
         # Existing learning requests lock Unit before Child. Cascades must use
         # that same order, globally sorted across every affected child.
-        unit_ids = list(
-            db.scalars(
-                select(LearningUnit.id)
-                .where(LearningUnit.child_id.in_(child_ids))
-                .order_by(LearningUnit.id)
-                .with_for_update()
-            )
+        unit_ids = _target_rows(
+            db,
+            select(LearningUnit.id).where(LearningUnit.child_id.in_(child_ids)).order_by(LearningUnit.id),
+            nowait=bool(families),
         )
     if child_ids:
         if family_delete and db.bind.dialect.name == "postgresql":
-            list(db.scalars(select(Child.id).where(Child.id.in_(child_ids)).order_by(Child.id).with_for_update()))
+            _target_rows(
+                db, select(Child.id).where(Child.id.in_(child_ids)).order_by(Child.id),
+                nowait=bool(families),
+            )
         else:
             for identifier in child_ids:
                 db.execute(update(Child).where(Child.id == identifier).values(grade=Child.grade))
-    statement = select(User).where(User.id == user_id).with_for_update()
+    # DELETE cascades to every target and child user's sessions. A live
+    # Session → Child action must never be waited on while holding Child.
+    # Full User row locks also prevent a late session FK from being inserted
+    # after the session set was examined.
+    affected_users = {user_id}
+    if family_delete and child_ids:
+        affected_users.update(db.scalars(select(Child.user_id).where(Child.id.in_(child_ids))))
     if db.bind.dialect.name == "sqlite":
         db.execute(update(User).where(User.id == user_id).values(disabled=User.disabled))
-    db.scalar(statement.execution_options(populate_existing=True))
+    _target_rows(
+        db, select(User.id).where(User.id.in_(affected_users)).order_by(User.id),
+        nowait=family_delete,
+    )
+    if family_delete:
+        _target_rows(
+            db, select(Session.id).where(Session.user_id.in_(affected_users)).order_by(Session.id),
+            nowait=True,
+        )
     user = target_user(db, user_id)
     if family_delete:
         # A unit committed while we were waiting for Child must not be deleted
