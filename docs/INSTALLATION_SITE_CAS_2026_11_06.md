@@ -32,6 +32,18 @@ GET-Snapshot, Notstopp, Setup- und vorhandene Admin-/Flutterfälle. Der
 PostgreSQL-Concurrency-Job verlangt die neuen Einzelfälle im JUnit-Checker.
 Echte Server- oder Anbieteraufrufe sind daraus nicht abgeleitet.
 
+Ein zusätzlicher, ausdrücklich gestarteter Chrome-Test nutzte einen getrennt
+erstellten älteren Flutter-Webbuild aus dem Stand vor dem Site-CAS und eine
+frische lokale SQLite-Installation mit künstlichem Admin. Nach Anmeldung wurde
+der alte `main.dart.js` tatsächlich über einen eigenen Service-Worker-Cache
+ausgeliefert. Das alte Formular sendete ohne Versionsfeld und erhielt 409;
+gespeicherter Name und Revision blieben unverändert. Die gleiche echte
+Browsersitzung konnte danach den separaten Notstopp-Endpunkt aufrufen; die
+sichtbare Notstopp-Schaltfläche prüft zusätzlich ein Widgettest. Keine
+Produktionsdaten, keine externe KI und kein physisches Gerät waren beteiligt.
+Der optionale Test akzeptiert nur eine ausdrücklich markierte Kopie des alten
+Webbuilds unter `/dev/shm` und verweigert eine externe Testdatenbank.
+
 **Verbleibende Grenze:** Die bestehende Installationsansicht und ihr
 Konfliktdialog prüfen die Identität des angemeldeten Nutzers, aber nicht
 durchgängig eine zwischenzeitlich begonnene und noch nicht abgeschlossene
