@@ -293,7 +293,8 @@ def run_case(grant_id, material_id, tier, case_key):
             operator_evaluation=case_id,
         )
         usage_id = usage.id
-    result, output, error_kind, sent = None, None, None, False
+        child_id = job.child_id
+    result, output, error_kind, sent, target = None, None, None, False, None
     try:
         with DB.begin() as db:
             row = dispatched(db, case_id)
@@ -332,14 +333,28 @@ def run_case(grant_id, material_id, tier, case_key):
             result = Result({}, input_tokens=0, output_tokens=0, cost_micros=0, cost_source="cancelled")
     finally:
         with DB.begin() as db:
+            # Source erasure takes Child before Job. Keep that order, then
+            # lock the shared diagnostic ledger before Usage/bucket updates,
+            # matching reserve_guard and preventing a budget/usage inversion.
+            db.execute(update(Child).where(Child.id == child_id).values(grade=Child.grade))
+            _locked_budget(db)
+            job = db.scalar(select(Job).where(Job.id == job_id).with_for_update().execution_options(populate_existing=True))
+            if not job or job.status != "operator_held":
+                # The source may have been erased after the private output
+                # transaction committed. Never resurrect its failed job or
+                # report an output that erasure has invalidated.
+                output = None
+                error_kind = error_kind or "source_or_job_changed"
+                if target is not None:
+                    target.unlink(missing_ok=True)
             usage = db.get(Usage, usage_id)
             settle(db, usage, result, failed=error_kind is not None)
             settled(db, case_id, usage)
-            job = db.get(Job, job_id)
-            job.status = "failed" if error_kind else "completed"
-            job.finished = int(now())
-            job.result = {"diagnostic_only": True, "case_id": case_id, "accepted": output is not None}
-            job.error = "Operator-Diagnose nicht übernommen." if error_kind else None
+            if job and job.status == "operator_held":
+                job.status = "failed" if error_kind else "completed"
+                job.finished = int(now())
+                job.result = {"diagnostic_only": True, "case_id": case_id, "accepted": output is not None}
+                job.error = "Operator-Diagnose nicht übernommen." if error_kind else None
             summary = {
                 "case_id": case_id,
                 "diagnostic_only": True,

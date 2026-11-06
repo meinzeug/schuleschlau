@@ -213,3 +213,56 @@ def test_bounded_transport_is_diagnostic_only_and_outputs_stay_server_private(ap
     assert not output.exists()
     with DB() as db:
         assert used_micros(db) == 100
+
+
+@pytest.mark.parametrize("cost", [100, None])
+def test_deleted_source_between_output_and_finalization_stays_failed(api, household, monkeypatch, cost):
+    """Simulate erasure exactly after the private output transaction commits."""
+    from contextlib import contextmanager
+    from schulpilot import db as database
+    from schulpilot.db import Child
+    from sqlalchemy import update
+
+    _, child, mid, gid, _ = authorized(household)
+    calls = []
+
+    def fake(config, function, payload, image, *, synthetic_fixture):
+        calls.append(function)
+        return Result(dict(subject="Mathematik", topic="Künstliche Diagnose", content="2+2=4",
+            source_blocks=[dict(kind="formula", text="2+2=4")], uncertainties=[], homework=[],
+            legibility="readable"), input_tokens=10, output_tokens=10, cost_micros=cost,
+            cost_source="reported" if cost is not None else "unknown",
+            request_receipt={"version": 1, "image_detail": "high", "schema_sha256": "a" * 64})
+
+    class InjectAfterOutput:
+        transactions = 0
+
+        @contextmanager
+        def begin(self):
+            self.transactions += 1
+            number = self.transactions
+            with DB.begin() as session:
+                yield session
+            if number == 4:
+                with DB.begin() as session:
+                    session.execute(update(Child).where(Child.id == child).values(grade=Child.grade))
+                    purge_diagnostic_outputs(session, [mid])
+                    session.delete(session.get(Material, mid))
+
+    monkeypatch.setattr(providers, "request_provider", fake)
+    monkeypatch.setattr(database, "DB", InjectAfterOutput())
+    summary = run_case(gid, mid, "sol", "synthetic-erasure-after-output")
+    assert calls == ["extract"] and summary["accepted"] is False
+    assert "private_output" not in summary and "2+2" not in str(summary)
+    output = settings.data_dir / "operator-diagnostics" / WORK_ID / (summary["case_id"] + ".json")
+    assert not output.exists()
+    with DB() as session:
+        row = session.get(SourceEvaluationCase, summary["case_id"])
+        assert session.get(Material, mid) is None and row.material_id is None
+        job = session.get(Job, row.job_id)
+        usage = session.scalar(select(Usage).where(Usage.job_id == job.id))
+        assert job.status == "failed" and "entfernt" in job.error
+        assert job.result is None
+        assert usage.status == ("failed_billed" if cost is not None else "failed_unknown")
+        assert usage.cost_micros == row.charged_micros == cost
+        assert used_micros(session) == (cost if cost is not None else usage.reserved_micros)
