@@ -609,6 +609,7 @@ def test_upload_is_atomically_attached_and_replay_cannot_move_photo(api, paper):
 @pytest.mark.parametrize('change', ['session', 'revision'])
 def test_exam_upload_rechecks_after_decode_without_holding_child_lock(api, paper, monkeypatch, change):
     import threading
+
     from schulpilot import materials
     from schulpilot.db import Child
     from test_school_day import allow_synthetic_test_transport
