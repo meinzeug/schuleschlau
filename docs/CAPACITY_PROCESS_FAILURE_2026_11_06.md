@@ -87,6 +87,16 @@ Systemd-Testunit zeigte beim Wechsel zwischen künstlichen Releases einen
 korrekten Decoderwechsel und dass ein laufender Decoder beim Dienstneustart
 beendet wurde; das ist keine Prüfung der Produktionsunit oder von activate.py.
 
+Auf Basis `ee36ab8` bestand derselbe große JPEG-Mischlastfall erneut: vier
+explizite Wiederholungen, acht erfolgreiche Uploads, API-Spitze 242.622.464
+Byte und Fotodienst-Spitze 227.205.120 Byte, ohne OOM. Eine kurzlebige echte
+System-Systemd-Testunit mit künstlicher DynamicUser-Identität und denselben
+wesentlichen Sandboxdirektiven zeigte die erwarteten effektiven Werte. Ein
+zugehöriger Negativtest verwehrte IPv4 und verbarg die geprüften D-Bus-,
+Resolver-, PostgreSQL-, Provider- und privaten Datenpfade. Socketrechte,
+berechtigte und falsche Peer-UID wurden ebenfalls geprüft. Sie verwendete
+System-Python und eine künstliche Gruppe, nicht die produktiven Dienstkonten.
+
 Ein weiterer Lauf mit einem stark komprimierbaren künstlichen RGBA-PNG derselben
 Pixelzahl bestand mit vier expliziten Überlast-Wiederholungen; API-Spitze
 140.439.552 Byte, Fotodienst-Spitze 174.780.416 Byte, kein OOM. Das ist kein
