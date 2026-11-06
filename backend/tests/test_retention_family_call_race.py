@@ -208,8 +208,10 @@ def test_family_retention_replays_parent_child_and_family_from_prior_backup(hous
 
 def test_family_retention_claims_are_serialized_and_survive_worker_restart(household, monkeypatch):
     import json
+    import os
     import subprocess
     import sys
+    from pathlib import Path
 
     identifiers = ["f" + f"{number:031x}" for number in range(12)]
     with DB.begin() as db:
@@ -223,10 +225,15 @@ def test_family_retention_claims_are_serialized_and_survive_worker_restart(house
     assert set(batches[0] + batches[1]) == set(identifiers[:6])
     # A fresh Python worker has no in-process cursor. It must continue from
     # the committed database position, including after simulated worker death.
+    # pytest can add backend to sys.path without exporting PYTHONPATH. Give the
+    # fresh worker the same source tree explicitly, regardless of invocation.
+    env = os.environ.copy()
+    backend_path = str(Path(__file__).resolve().parents[1])
+    env["PYTHONPATH"] = os.pathsep.join(filter(None, (backend_path, env.get("PYTHONPATH", ""))))
     result = subprocess.run(
         [sys.executable, "-c", "import json; from schulpilot import worker; "
          "worker._FAMILY_RETENTION_BATCH = 3; print(json.dumps(worker._claim_expiring_family_batch()))"],
-        check=True, capture_output=True, text=True, timeout=20,
+        check=True, capture_output=True, text=True, timeout=20, env=env,
     )
     assert json.loads(result.stdout) == identifiers[6:9]
     assert worker._claim_expiring_family_batch() == identifiers[9:12]
