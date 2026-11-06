@@ -62,3 +62,11 @@ POST aus und die fertige Runde wurde noch geöffnet. Mit der Änderung bestanden
 beide. Insgesamt bestanden 47 einschlägige Flutter-VM-Fälle und die fünf neuen
 Fälle im Chrome-Webrunner. Die fünf Chrome-Fälle simulieren API-Antworten;
 sie sind kein Test eines realen Cookie-Wechsels oder Provideraufrufs.
+
+Eine weitere gezielte Wiederaufnahmeprüfung verzögert den ersten Statusabruf,
+wechselt währenddessen in den Hintergrund und zurück und hält anschließend die
+Folgeabfrage an. Die zweite Abfrage beginnt erst nach dem `finally` der ersten
+und zeigt danach den bereitgestellten Stand. Bei geänderter Anmeldeabsicht
+startet die vorgemerkte Abfrage nicht automatisch; das Kind kann den Stand
+explizit neu laden. 41 Fälle für Wiederaufnahme, Fortsetzung und Rundenstart
+bestanden auf der VM.

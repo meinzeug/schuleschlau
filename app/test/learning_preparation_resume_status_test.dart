@@ -9,6 +9,101 @@ import 'package:schulpilot/ui.dart';
 import 'learning_continuation_test.dart' as fixture;
 
 void main() {
+  testWidgets('resume waits for the old status before the next read', (
+    tester,
+  ) async {
+    final oldRead = Completer<http.Response>();
+    final newRead = Completer<http.Response>();
+    var reads = 0;
+    final state = fixture.stateFor((request) async {
+      expect(request.method, 'GET');
+      reads++;
+      return reads == 1 ? oldRead.future : newRead.future;
+    });
+    final router = fixture.routerFor(
+      state,
+      LearningPreparationScreen(state, childId: 'child', jobId: 'job'),
+    );
+    addTearDown(() async {
+      await tester.pumpWidget(const SizedBox());
+      router.dispose();
+      state.dispose();
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    });
+    await tester.pumpWidget(
+      MaterialApp.router(theme: appTheme(), routerConfig: router),
+    );
+    await tester.pump();
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pump();
+    expect(reads, 1);
+    oldRead.complete(fixture.response({'kind': 'unit', 'status': 'running'}));
+    await tester.pump();
+    await tester.pump();
+    expect(reads, 2);
+    newRead.complete(
+      fixture.response({
+        'kind': 'unit',
+        'status': 'completed',
+        'result': {'unit_id': 'ready'},
+      }),
+    );
+    await tester.pumpAndSettle();
+    expect(reads, 2);
+    expect(find.text('Deine Runde ist bereit.'), findsOneWidget);
+    expect(find.text('Status neu laden'), findsNothing);
+  });
+
+  testWidgets(
+    'old status after login intent cannot overwrite explicit refresh',
+    (tester) async {
+      final oldRead = Completer<http.Response>();
+      var reads = 0;
+      final state = fixture.stateFor((request) async {
+        expect(request.method, 'GET');
+        reads++;
+        if (reads == 1) return oldRead.future;
+        return fixture.response({
+          'kind': 'unit',
+          'status': 'completed',
+          'result': {'unit_id': 'ready'},
+        });
+      });
+      final router = fixture.routerFor(
+        state,
+        LearningPreparationScreen(state, childId: 'child', jobId: 'job'),
+      );
+      addTearDown(() async {
+        await tester.pumpWidget(const SizedBox());
+        router.dispose();
+        state.dispose();
+        tester.binding.handleAppLifecycleStateChanged(
+          AppLifecycleState.resumed,
+        );
+      });
+      await tester.pumpWidget(
+        MaterialApp.router(theme: appTheme(), routerConfig: router),
+      );
+      await tester.pump();
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pump();
+      state.beginAuthentication();
+      expect(reads, 1);
+      oldRead.complete(fixture.response({'kind': 'unit', 'status': 'running'}));
+      await tester.pump();
+      await tester.pump();
+      expect(reads, 1);
+      expect(find.text('Status neu laden'), findsOneWidget);
+      await tester.tap(find.text('Status neu laden'));
+      await tester.pumpAndSettle();
+      expect(reads, 2);
+      expect(find.text('Deine Runde ist bereit.'), findsOneWidget);
+      expect(find.text('Status neu laden'), findsNothing);
+    },
+  );
+
   for (final responseAfterResume in [false, true]) {
     testWidgets(
       'preparation refreshes after resuming around an unavailable status $responseAfterResume',
