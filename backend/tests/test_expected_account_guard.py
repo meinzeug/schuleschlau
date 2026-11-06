@@ -88,3 +88,26 @@ def test_stale_account_is_rejected_before_photo_intake(api, household):
     with DB() as db:
         assert db.scalar(select(func.count()).select_from(Material)) == before_materials
         assert db.scalar(select(func.count()).select_from(Job)) == before_jobs
+
+
+def test_push_config_does_not_treat_account_mismatch_as_anonymous(household, monkeypatch):
+    from schulpilot import notifications
+
+    parent, _ = household
+    monkeypatch.setattr(notifications, 'public_config', lambda **_: {'available': True, 'firebase': {'test': 'public'}})
+    with TestClient(app, headers={'X-Schulpilot-Request': '1'}) as browser:
+        login = browser.post('/api/auth/login', json={
+            'username': 'test-child', 'password': 'secure-child-pass-123',
+        })
+        assert login.status_code == 200
+        child_id = login.json()['user']['id']
+        child_config = browser.get('/api/notifications/config', headers={'X-Schulpilot-Account': child_id})
+        assert child_config.status_code == 200
+        assert child_config.json()['available'] is False
+        assert child_config.json()['firebase'] == {}
+        mismatch = browser.get('/api/notifications/config', headers={'X-Schulpilot-Account': parent['id']})
+        assert mismatch.status_code == 409
+        assert mismatch.headers['X-Schulpilot-Account-Changed'] == '1'
+        assert 'firebase' not in mismatch.json()
+    with TestClient(app) as anonymous:
+        assert anonymous.get('/api/notifications/config').json()['available'] is True

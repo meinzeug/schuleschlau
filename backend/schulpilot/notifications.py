@@ -95,8 +95,11 @@ def config(request: Request, db=Depends(get_db)):
                 }
         if test_allowed(db, p.user.id):
             return {**public_config(testing=True), "test_access": True}
-    except HTTPException:
-        pass
+    except HTTPException as exc:
+        # Only an absent or expired session may use the public configuration.
+        # In particular a stale-account 409 must never bypass child consent.
+        if exc.status_code != 401:
+            raise
     return public_config()
 
 
