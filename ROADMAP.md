@@ -2118,12 +2118,17 @@ Bestandteil des bestehenden Buildvertrags.
   war nicht vollständig: Ein später generisch gespeicherter alter
   Seitenprüfmodus konnte einen revisionsgebundenen Wechsel überholen. Die
   nachträglich geprüfte Korrektur sperrt und prüft diesen Modus zusammen.
-  Weiter offen ist der generische Site-Endpunkt ohne `expected_revision`:
-  Ein ausdrücklich mitgesendeter veralteter Freigabewert kann einen neueren
-  Widerruf überschreiben. Revisionsgebundenen Abgleich samt bestehender
-  Setup-/Adminclients, Konfliktbehandlung und künstlichen SQLite-, PostgreSQL-
-  und Browserfällen umsetzen; erst danach die Gesamtannahme erneut bewerten.
   [Befund und Testgrenzen](docs/INSTALLATION_CONSENT_RACE_2026_11_06.md).
+
+  - [x] **Site-Einstellungen gegen veraltete Änderungen absichern.** Der
+    Admin-Endpunkt verlangt eine passende Revision; bei Konflikten bleibt der
+    Entwurf erhalten und ein erneuter Vergleich ist ausdrücklich nötig.
+    SQLite-, PostgreSQL- und Flutter-Tests sowie ein künstlicher Chrome-Test
+    mit alter Service-Worker-Version prüfen die Änderung. Der alte Client
+    erhält kontrolliert HTTP 409; der separate Notstopp-API-Aufruf bleibt in
+    derselben Sitzung erreichbar. Setup und lokales CLI behalten ihren eigenen
+    Vertrag. Die übrige Admin-Gesamtabnahme bleibt offen.
+    [Prüfung](docs/INSTALLATION_SITE_CAS_2026_11_06.md).
 
   **04.11.2026:** Rechte und private Originalbilder, Tages-/Monatsbudgets,
   Systemgrenzen, Kostenbelege, Entwürfe, Revisionskonflikte und Notfallstopp
