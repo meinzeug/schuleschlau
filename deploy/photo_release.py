@@ -41,14 +41,16 @@ def verify_photo_definition(previous: PreviousPhoto, release: Path | None, *,
                             unit=Path('/etc/systemd/system/schulpilot-photo.service'), run=subprocess.run):
     """Refuse foreign definitions or systemd overrides before changing the service."""
     result = run(['systemctl', 'show', 'schulpilot-photo.service', '--property=FragmentPath',
-                  '--property=DropInPaths'], check=True, capture_output=True, text=True, timeout=15)
+                  '--property=DropInPaths', '--property=NeedDaemonReload'],
+                 check=True, capture_output=True, text=True, timeout=15)
     values = {}
     for line in result.stdout.splitlines():
         key, sep, value = line.partition('=')
         if not sep or key in values:
             raise RuntimeError('Ungültige Fotodienstdefinition')
         values[key] = value
-    if set(values) != {'FragmentPath', 'DropInPaths'} or values['DropInPaths']:
+    if (set(values) != {'FragmentPath', 'DropInPaths', 'NeedDaemonReload'}
+            or values['DropInPaths'] or values['NeedDaemonReload'] != 'no'):
         raise RuntimeError('Fotodienstdefinition hat unbekannte Overrides')
     if not previous.loaded:
         if values['FragmentPath'] or unit.exists() or unit.is_symlink():

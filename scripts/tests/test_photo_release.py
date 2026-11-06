@@ -25,8 +25,8 @@ def test_photo_definition_refuses_unknown_unit_and_dropins(tmp_path):
     source.parent.mkdir(parents=True)
     source.write_text('synthetic safe unit')
     previous = photo.PreviousPhoto(False, False, False)
-    def show(fragment='', dropins=''):
-        return lambda *a, **k: SimpleNamespace(stdout=f'FragmentPath={fragment}\nDropInPaths={dropins}\n')
+    def show(fragment='', dropins='', reload='no'):
+        return lambda *a, **k: SimpleNamespace(stdout=f'FragmentPath={fragment}\nDropInPaths={dropins}\nNeedDaemonReload={reload}\n')
     photo.verify_photo_definition(previous, None, unit=unit, run=show())
     unit.write_text('foreign')
     with pytest.raises(RuntimeError):
@@ -40,6 +40,8 @@ def test_photo_definition_refuses_unknown_unit_and_dropins(tmp_path):
         photo.verify_photo_definition(previous, release, unit=unit, run=show(str(unit), '/etc/systemd/system/override.conf'))
     with pytest.raises(RuntimeError):
         photo.verify_photo_definition(previous, release, unit=unit, run=show('/foreign/unit'))
+    with pytest.raises(RuntimeError):
+        photo.verify_photo_definition(previous, release, unit=unit, run=show(str(unit), reload='yes'))
 
 
 def test_photo_identity_rejects_uid_gid_alias_and_foreign_groups(tmp_path, monkeypatch):

@@ -194,7 +194,8 @@ def test_authorized_slow_socket_expires_and_other_account_cannot_block(api, hous
 
 
 @pytest.mark.parametrize('revocation', ['session', 'membership', 'permission', 'privacy'])
-def test_access_revoked_while_decoding_never_saves_or_returns_replay(api, household, monkeypatch, revocation):
+@pytest.mark.parametrize('replay', [False, True])
+def test_access_revoked_while_decoding_never_saves_or_returns_replay(api, household, monkeypatch, revocation, replay):
     import json
 
     from schulpilot.db import Installation, Membership, Session
@@ -208,8 +209,9 @@ def test_access_revoked_while_decoding_never_saves_or_returns_replay(api, househ
     key = 'photo-revocation-synthetic-01'
     path = f"/api/children/{child['id']}/materials"
     image = fixture('JPEG')
-    first = api.post(path, files={'file': ('x.jpg', image, 'image/jpeg')}, headers={'Idempotency-Key': key})
-    assert first.status_code == 201
+    if replay:
+        first = api.post(path, files={'file': ('x.jpg', image, 'image/jpeg')}, headers={'Idempotency-Key': key})
+        assert first.status_code == 201
     started, release = threading.Event(), threading.Event()
     original = materials.normalize_photo
 
@@ -220,9 +222,9 @@ def test_access_revoked_while_decoding_never_saves_or_returns_replay(api, househ
 
     monkeypatch.setattr(materials, 'normalize_photo', blocked)
     results = []
-    def replay():
+    def send_upload():
         results.append(api.post(path, files={'file': ('x.jpg', image, 'image/jpeg')}, headers={'Idempotency-Key': key}))
-    thread = threading.Thread(target=replay)
+    thread = threading.Thread(target=send_upload)
     thread.start()
     try:
         assert started.wait(5)
@@ -246,7 +248,7 @@ def test_access_revoked_while_decoding_never_saves_or_returns_replay(api, househ
     assert not thread.is_alive() and len(results) == 1
     assert results[0].status_code in (401, 403, 404, 503)
     with DB() as db:
-        assert db.scalar(select(func.count()).select_from(Material)) == 1
+        assert db.scalar(select(func.count()).select_from(Material)) == (1 if replay else 0)
 
 
 def test_photo_auth_checks_are_bounded_without_consuming_the_database_pool(monkeypatch):
@@ -284,6 +286,59 @@ def test_photo_auth_checks_are_bounded_without_consuming_the_database_pool(monke
         for thread in threads:
             thread.join(timeout=5)
     assert not errors and all(not thread.is_alive() for thread in threads)
+
+
+def test_privacy_revocation_waits_for_photo_commit_on_postgres(api, household, monkeypatch):
+    import json
+    from pathlib import Path
+    from schulpilot.config import settings
+    from schulpilot.db import Installation, engine
+    from schulpilot.security import encrypt
+    if engine.dialect.name != 'postgresql':
+        pytest.skip('Row-lock ordering requires PostgreSQL')
+    allow_synthetic_test_transport()
+    _, child = household
+    writing, release, changing, changed = (threading.Event() for _ in range(4))
+    original = Path.write_bytes
+    def blocked(path, data):
+        if path.parent == settings.data_dir / 'uploads':
+            writing.set()
+            assert release.wait(10)
+        return original(path, data)
+    monkeypatch.setattr(Path, 'write_bytes', blocked)
+    responses, errors = [], []
+    def upload():
+        try:
+            responses.append(api.post(f"/api/children/{child['id']}/materials",
+                files={'file': ('x.jpg', fixture('JPEG'), 'image/jpeg')},
+                headers={'Idempotency-Key': 'privacy-commit-synthetic-001'}))
+        except Exception as exc:
+            errors.append(exc)
+    def revoke():
+        try:
+            with DB.begin() as db:
+                changing.set()
+                db.execute(update(Installation).where(Installation.id == 1).values(
+                    encrypted_settings=encrypt(json.dumps({'real_data_approved': False}))))
+            changed.set()
+        except Exception as exc:
+            errors.append(exc)
+    from sqlalchemy import update
+    worker = threading.Thread(target=upload)
+    admin = threading.Thread(target=revoke)
+    worker.start()
+    try:
+        assert writing.wait(5)
+        admin.start()
+        assert changing.wait(5)
+        assert not changed.wait(.3), 'Consent changed before the protected commit'
+    finally:
+        release.set()
+        worker.join(12)
+        if admin.ident is not None:
+            admin.join(12)
+    assert not errors and not worker.is_alive() and not admin.is_alive()
+    assert responses[0].status_code == 201 and changed.is_set()
 
 
 @pytest.mark.parametrize('failure', ['write', 'chmod'])

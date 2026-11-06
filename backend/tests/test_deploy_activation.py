@@ -5,6 +5,7 @@ import os
 import runpy
 import subprocess
 import sys
+from functools import partial
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -24,6 +25,8 @@ class Activation:
         self.clock_reads = 0
         self.restore_checks = 0
         self.backup_starts = 0
+        self.photo_active = False
+        self.photo_enabled = False
         self.base = root / "opt/schulpilot"
         self.old = self.base / "releases" / OLD
         self.new = self.base / "releases" / NEW
@@ -72,6 +75,27 @@ class Activation:
         command = list(map(str, command))
         self.commands.append(command)
         self.command_releases.append(self.current.resolve())
+        if command[:3] == ['systemctl', 'show', 'schulpilot-photo.service']:
+            unit = self.root / 'etc/systemd/system/schulpilot-photo.service'
+            if '--property=LoadState' in command:
+                load = 'loaded' if unit.exists() else 'not-found'
+                active = 'active' if self.photo_active else 'inactive'
+                enabled = ('enabled' if self.photo_enabled else 'disabled') if unit.exists() else ''
+                return subprocess.CompletedProcess(command, 0, stdout=f'LoadState={load}\nActiveState={active}\nUnitFileState={enabled}\n')
+            fragment = str(unit) if unit.exists() else ''
+            return subprocess.CompletedProcess(command, 0, stdout=f'FragmentPath={fragment}\nDropInPaths=\nNeedDaemonReload=no\n')
+        if command[:2] == ['systemctl', 'restart'] and command[-1] == 'schulpilot-photo.service':
+            self.photo_active = True
+        if command[:2] == ['systemctl', 'start'] and command[-1] == 'schulpilot-photo.service':
+            self.photo_active = True
+        if command[:2] == ['systemctl', 'stop'] and command[-1] == 'schulpilot-photo.service':
+            self.photo_active = False
+        if command[:2] == ['systemctl', 'enable'] and 'schulpilot-photo.service' in command:
+            self.photo_enabled = True
+        if command[:2] == ['systemctl', 'disable'] and command[-1] == 'schulpilot-photo.service':
+            self.photo_enabled = False
+        if command and command[0] == 'runuser' and command[-1].endswith('photo_health.py'):
+            return subprocess.CompletedProcess(command, 1 if self.failure == 'photo_health' else 0, stdout='')
         if command[0] == "runuser" and "-c" in command:
             self.schema_reads += 1
             schema = "0032" if self.changed_schema and self.schema_reads > 1 else "0031"
@@ -144,6 +168,7 @@ class Activation:
         return SimpleNamespace(__enter__=lambda self: self, __exit__=lambda *_: None, status=200)
 
     def execute(self, monkeypatch, rollback_compatible=False, token=None):
+        from deploy import photo_release
         real_import = builtins.__import__
 
         class Health:
@@ -159,6 +184,16 @@ class Activation:
         replacements = {
             "backup_release_check": SimpleNamespace(verify_invocation_log=self.verify_backup_log),
             "restore_release_guard": SimpleNamespace(verify=self.verify_restore),
+            "photo_release": SimpleNamespace(
+                ensure_isolated_identity=lambda release: self.run(['synthetic-sysusers', str(release)]),
+                inspect_photo=partial(photo_release.inspect_photo, run=self.run),
+                restore_previous_photo=partial(photo_release.restore_previous_photo, run=self.run),
+                start_candidate=partial(photo_release.start_candidate, run=self.run, sleep=lambda _: None),
+                stop_old_photo=partial(photo_release.stop_old_photo, run=self.run),
+                undo_candidate_enable=partial(photo_release.undo_candidate_enable, run=self.run),
+                verify_photo_definition=partial(photo_release.verify_photo_definition, run=self.run,
+                    unit=self.root / 'etc/systemd/system/schulpilot-photo.service'),
+            ),
             "pathlib": SimpleNamespace(Path=self.path),
             "subprocess": SimpleNamespace(run=self.run),
             "time": SimpleNamespace(sleep=lambda _: None, monotonic_ns=self.monotonic_ns),
@@ -194,6 +229,34 @@ def test_incompatible_restore_aborts_before_any_release_side_effect(tmp_path, mo
     assert activation.current.resolve() == activation.old
     assert activation.commands == []
     assert activation.fragment.read_text() == "old fragment"
+
+
+@pytest.mark.parametrize('fail_health', [False, True])
+def test_photo_activation_checks_revision_before_writers_and_restores_old_unit(tmp_path, monkeypatch, fail_health):
+    activation = Activation(tmp_path, 'photo_health' if fail_health else None)
+    unit = activation.root / 'etc/systemd/system/schulpilot-photo.service'
+    for release, content in ((activation.old, 'old photo unit'), (activation.new, 'new photo unit')):
+        (release / 'deploy/schulpilot-photo.service').write_text(content)
+        probe = release / 'backend/schulpilot/photo_health.py'
+        probe.parent.mkdir(parents=True, exist_ok=True)
+        probe.write_text('synthetic health')
+    unit.write_text('old photo unit')
+    activation.photo_active = activation.photo_enabled = True
+    if fail_health:
+        with pytest.raises(RuntimeError, match='Socketprüfung'):
+            activation.execute(monkeypatch)
+        assert activation.current.resolve() == activation.old
+        assert unit.read_text() == 'old photo unit'
+        assert activation.photo_active and activation.photo_enabled
+        assert activation.restarts == [(activation.old, True)]
+    else:
+        activation.execute(monkeypatch)
+        assert activation.current.resolve() == activation.new
+        assert unit.read_text() == 'new photo unit'
+        health_index = next(i for i, command in enumerate(activation.commands)
+                            if command[0] == 'runuser' and command[-1].endswith('photo_health.py'))
+        restart_index = activation.commands.index(['systemctl', 'restart', *WRITERS])
+        assert health_index < restart_index
 
 
 @pytest.mark.parametrize("rollback_compatible", [False, True])
