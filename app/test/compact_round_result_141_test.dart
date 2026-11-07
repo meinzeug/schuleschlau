@@ -125,6 +125,10 @@ void main() {
     final h = saved.Harness(data: round('repair'));
     await h.open(tester, width: 390);
     expect(find.text('Runde geschafft!'), findsOneWidget);
+    expect(
+      find.text('Übe den kniffligen Schritt noch einmal.'),
+      findsOneWidget,
+    );
     expect(find.text('Zur Startseite'), findsOneWidget);
     final home = find.byKey(const ValueKey('round-home'));
     expect(tester.getRect(home).height, greaterThanOrEqualTo(48));
@@ -134,6 +138,25 @@ void main() {
     expect(find.byType(RoundQuestionCards), findsNothing);
     await saved.click(tester, 'Zur Startseite');
     expect(find.text('Heute'), findsOneWidget);
+    expect(h.calls, isEmpty);
+    await h.close(tester);
+  });
+
+  testWidgets('supportive recommendation follows saved answer facts', (
+    tester,
+  ) async {
+    final unit = round('repair');
+    for (final question in unit['questions'] as List) {
+      question['attempts'] = [
+        {'answer': 'Übung', 'outcome': 'correct', 'assisted': true},
+      ];
+    }
+    final h = saved.Harness(data: unit);
+    await h.open(tester, width: 390);
+    expect(
+      find.text('Probiere den Schritt noch einmal ohne Tipp.'),
+      findsOneWidget,
+    );
     expect(h.calls, isEmpty);
     await h.close(tester);
   });

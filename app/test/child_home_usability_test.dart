@@ -548,7 +548,7 @@ void main() {
           brightness: brightness,
         );
         expect(find.byType(ChildTodayHero), findsOneWidget);
-        expect(find.text('Deine Lernstation'), findsOneWidget);
+        expect(find.text('Dein nächster Schritt'), findsOneWidget);
         expect(find.text('Weiterlernen'), findsOneWidget);
         expect(find.text('Heutige Seiten scannen'), findsOneWidget);
         final heroContext = tester.element(find.byType(ChildTodayHero));

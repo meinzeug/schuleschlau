@@ -203,7 +203,7 @@ void main() {
         ];
         await mount(tester, data, requests, width: width);
         final card = tester.widget<ChildTodayHero>(find.byType(ChildTodayHero));
-        expect(card.eyebrow, 'Deine Lernstation');
+        expect(card.eyebrow, 'Dein nächster Schritt');
         expect(card.title, 'Brüche fortsetzen');
         expect(
           find.textContaining('2 von 5 Aufgaben abgeschlossen'),

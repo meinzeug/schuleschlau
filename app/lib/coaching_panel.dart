@@ -580,11 +580,20 @@ class _ChildCoachingPanel extends StatelessWidget {
                   ),
                   SizedBox(height: 12),
                 ],
-                if (facts.uncertain > 0) ...[
+                if (hasPractice && !practicePending && !practiceFailed) ...[
                   Text(
-                    'Bei manchen Antworten ist noch etwas unklar. Schau unten nach.',
+                    facts.practice > 0
+                        ? 'Übe den kniffligen Schritt noch einmal.'
+                        : facts.assisted > 0
+                        ? 'Probiere den Schritt noch einmal ohne Tipp.'
+                        : facts.uncertain > 0
+                        ? 'Zeig bei einer neuen Aufgabe, was du allein weißt.'
+                        : 'Mit einer neuen Aufgabe kannst du weiterüben.',
                   ),
-                  SizedBox(height: 18),
+                  const SizedBox(height: 18),
+                ] else if (facts.uncertain > 0) ...[
+                  const Text('Bei manchen Antworten ist noch etwas unklar.'),
+                  const SizedBox(height: 18),
                 ],
                 if (decision == 'parent_help' && childId != null) ...[
                   Text('Schau mit deinen Eltern auf den schwierigen Schritt.'),
@@ -708,6 +717,7 @@ class _ChildCoachingPanel extends StatelessWidget {
                     key: const ValueKey('round-home'),
                     style: OutlinedButton.styleFrom(
                       minimumSize: const Size.fromHeight(48),
+                      shape: const StadiumBorder(),
                     ),
                     onPressed: () {
                       if (currentAction()) openRoute(context, '/app');

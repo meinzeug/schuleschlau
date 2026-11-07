@@ -1365,7 +1365,7 @@ class _ChildHomeContentState extends State<_ChildHomeContent> {
     Widget hero;
     if (canLearn) {
       hero = ChildTodayHero(
-        eyebrow: 'Deine Lernstation',
+        eyebrow: 'Dein nächster Schritt',
         title: feedbackWaiting
             ? 'Deine letzte Antwort'
             : guidance?['title'] ?? next['topic'] ?? 'Mit deinem Stoff weiter',
