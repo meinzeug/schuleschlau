@@ -2551,6 +2551,17 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Echtzeitstatus gezielt und zuverlässig bereitstellen**
 
+  - [x] **Verspätete gemeinsame API-Antworten nach Kontowechsel verwerfen.**
+    JSON-, Foto-, Avatar- und Uploadantworten bleiben an Konto, Sitzung und
+    Anmeldeabsicht gebunden; eine alte Jobabfrage wird nicht unter einem neuen
+    Konto fortgesetzt. Ein ungewisser Schreibausgang wird nicht als fachlicher
+    Versionskonflikt ausgegeben. Bestellabsicht und Leseposition bleiben bis
+    zum bewussten Abgleich erhalten; Hintergrund und automatische
+    Wiederaufnahme starten keine erneute Speicherung. Bereits serverseitig
+    angenommene Änderungen werden nicht rückgängig gemacht. Der separate
+    Cookie-Wettlauf sowie Zugriffe außerhalb dieser Transporte bleiben offen.
+    [Tests und Grenzen](docs/API_STALE_SUCCESS_2026_11_07.md).
+
   - [ ] **Verspätete Login-Cookies kontenübergreifend absichern.** Ein echter
     künstlicher Chrome-/SQLite-Test belegt, dass eine ältere erfolgreiche
     Loginantwort den Cookie einer neueren Anmeldung überschreiben kann. Eine
