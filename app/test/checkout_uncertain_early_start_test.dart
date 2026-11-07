@@ -21,24 +21,28 @@ void main() {
         addTearDown(tester.view.resetDevicePixelRatio);
         final firstReply = Completer<http.Response>();
         final submissions = <Json>[];
+        var catalogReads = 0;
+        var catalogRevision = 7;
+        var catalogPrice = 990;
         final state =
             AppState(
                 api: Api(
                   base: 'https://example.invalid/api',
                   client: MockClient((request) {
                     if (request.url.path.endsWith('/store/catalog')) {
+                      catalogReads++;
                       return Future.value(
                         http.Response(
                           jsonEncode({
                             'enabled': true,
-                            'revision': 7,
+                            'revision': catalogRevision,
                             'tax_notice': 'Endpreis',
                             'terms': 'Synthetische Vertragsfassung',
                             'plans': [
                               {
                                 'id': 'start',
                                 'name': 'Start',
-                                'price_cents': 990,
+                                'price_cents': catalogPrice,
                                 'children': 1,
                                 'calls': 300,
                               },
@@ -93,6 +97,9 @@ void main() {
           FilledButton,
           'Zahlungspflichtig bestellen',
         );
+        final capturedEarlyChange = tester
+            .widget<CheckboxListTile>(early)
+            .onChanged!;
         await tester.ensureVisible(terms);
         await tester.tap(terms);
         await tester.pump();
@@ -109,6 +116,21 @@ void main() {
         expect(toggle.value, isFalse);
         if (responseStatus == 503) {
           expect(toggle.onChanged, isNull);
+          capturedEarlyChange(true);
+          await tester.pump();
+          expect(tester.widget<CheckboxListTile>(early).value, isFalse);
+          expect(
+            tester
+                .widget<OutlinedButton>(
+                  find.widgetWithText(
+                    OutlinedButton,
+                    'Aktuelle Tarife erneut prüfen',
+                  ),
+                )
+                .onPressed,
+            isNull,
+          );
+          expect(catalogReads, 1);
           await tester.ensureVisible(buy);
           await tester.tap(buy);
           await tester.pumpAndSettle();
@@ -116,11 +138,30 @@ void main() {
           expect(submissions.last, submissions.first);
         } else {
           expect(toggle.onChanged, isNotNull);
+          final capturedReload = tester
+              .widget<OutlinedButton>(
+                find.widgetWithText(
+                  OutlinedButton,
+                  'Aktuelle Tarife erneut prüfen',
+                ),
+              )
+              .onPressed!;
           await tester.ensureVisible(early);
           await tester.tap(early);
           await tester.pumpAndSettle();
           expect(tester.widget<CheckboxListTile>(early).value, isTrue);
           expect(submissions, hasLength(1));
+          await tester.ensureVisible(buy);
+          await tester.tap(buy);
+          await tester.pumpAndSettle();
+          expect(submissions, hasLength(2));
+          expect(submissions.last['early_start'], isTrue);
+          catalogRevision = 8;
+          catalogPrice = 1490;
+          capturedReload();
+          await tester.pumpAndSettle();
+          expect(catalogReads, 1);
+          expect(find.text('Gesamtpreis: 9,90 €'), findsOneWidget);
         }
         expect(tester.takeException(), isNull);
         await tester.pumpWidget(const SizedBox());

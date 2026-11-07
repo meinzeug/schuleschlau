@@ -670,7 +670,17 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       value: early,
                       onChanged: busy || submittedIntent != null
                           ? null
-                          : (v) => setState(() => early = v!),
+                          : (v) {
+                              if (!own ||
+                                  busy ||
+                                  submittedIntent != null ||
+                                  renderedCatalog != catalogVersion ||
+                                  renderedRoute?.isCurrent == false ||
+                                  v == null) {
+                                return;
+                              }
+                              setState(() => early = v);
+                            },
                       title: const Text(
                         'Ich möchte vor Ablauf der 14-tägigen Widerrufsfrist starten.',
                       ),
@@ -698,6 +708,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       const Notice(
                         'Die Bestellung ist noch nicht bestätigt. Prüfe zuerst die gespeicherten Bestellungen. Ein erneuter Versuch hier verwendet denselben Auftragsschlüssel.',
                       ),
+                      if (submittedIntent != null)
+                        const Notice(
+                          'Bis der Auftrag geklärt ist, bleiben Tarif und gewünschter Beginn unverändert.',
+                        ),
                       OutlinedButton(
                         onPressed: busy
                             ? null
@@ -705,13 +719,22 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         child: const Text('Bestellstatus zuerst prüfen'),
                       ),
                       OutlinedButton(
-                        onPressed: busy
+                        onPressed: busy || submittedIntent != null
                             ? null
-                            : () => setState(() {
-                                terms = false;
-                                error = null;
-                                catalogVersion++;
-                              }),
+                            : () {
+                                if (!own ||
+                                    busy ||
+                                    submittedIntent != null ||
+                                    renderedCatalog != catalogVersion ||
+                                    renderedRoute?.isCurrent == false) {
+                                  return;
+                                }
+                                setState(() {
+                                  terms = false;
+                                  error = null;
+                                  catalogVersion++;
+                                });
+                              },
                         child: const Text('Aktuelle Tarife erneut prüfen'),
                       ),
                     ],

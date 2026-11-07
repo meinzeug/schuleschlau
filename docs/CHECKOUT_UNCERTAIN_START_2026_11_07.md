@@ -7,6 +7,10 @@ Frühstartauswahl bleibt dann gesperrt. Eine erneute ausdrückliche Übermittlun
 verwendet denselben Auftrag mit denselben Werten; die Anzeige darf nicht eine
 abweichende Entscheidung vortäuschen. Die Zahlungsart war bereits gesperrt.
 Die Annahme der Vertragsbedingungen kann weiterhin zurückgenommen werden.
+Solange der Auftrag unbestätigt ist, bleibt auch das erneute Laden des Tarifs
+gesperrt. So wird kein neuer Preis oder Vertragstext neben einem alten,
+unverändert zur Wiederholung vorgemerkten Auftrag angezeigt. Bereits zuvor
+erhaltene veraltete Bediencallbacks prüfen diese Sperre erneut.
 
 Bei einem tatsächlichen, vom Server beantworteten 409-Konflikt wird der
 abgelehnte Bestellentwurf wie bisher verworfen. Die Frühstartauswahl kann
