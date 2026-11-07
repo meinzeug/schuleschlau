@@ -57,14 +57,11 @@ def test_exception_path_never_restarts_writers(tmp_path, stop_attempted, new_wri
     assert not any(args[:2] == ['systemctl', 'start'] for args in commands)
     stop_calls = [args for args in commands if args[:2] == ['systemctl', 'stop']]
     assert bool(stop_calls) == (stop_attempted or new_writers)
-    if new_writers or migration:
-        assert current.resolve() == (base / 'candidate').resolve()
-    else:
-        assert current.resolve() == old.resolve()
+    assert current.resolve() == ((base / 'candidate').resolve() if stop_attempted else old.resolve())
 
 
 def test_failed_rollback_reload_never_starts_service(tmp_path):
-    """A failing daemon reload enters nested recovery, still without start."""
+    """Failure handler never rolls unit files or invokes daemon reload."""
     base = tmp_path / 'base'
     base.mkdir()
     old = base / 'old'
@@ -157,3 +154,41 @@ def test_before_writer_stop_does_not_restore_units_or_touch_current_even_if_rest
     assert current.resolve() == old
     assert not any(args[:2] in (['systemctl', 'stop'], ['systemctl', 'start'], ['systemctl', 'restart'],
                                 ['systemctl', 'daemon-reload']) for args in calls)
+
+
+@pytest.mark.parametrize(('failed_file', 'stop_raises'), [('caddy', False), ('fragment', False), ('caddy', True)])
+def test_independent_recovery_failure_preserves_original_and_never_switches_release(tmp_path, failed_file, stop_raises):
+    class ConfigFile:
+        def __init__(self, name):
+            self.name = name
+            self.writes = []
+        def write_text(self, value):
+            self.writes.append(value)
+            if self.name == failed_file:
+                raise OSError('synthetic config error')
+    base = tmp_path / 'base'
+    base.mkdir()
+    old = base / 'old'
+    old.mkdir()
+    current = base / 'current'
+    current.symlink_to(base / 'candidate')
+    inode = current.lstat().st_ino
+    caddy, fragment = ConfigFile('caddy'), ConfigFile('fragment')
+    calls = []
+    def run(args, **kwargs):
+        calls.append(args)
+        if stop_raises:
+            raise OSError('synthetic stop failure')
+        return SimpleNamespace(returncode=1)
+    context = {'new_writers_may_have_started': False, 'writer_stop_attempted': True,
+               'photo_candidate_started': False, 'photo_previous': None,
+               'caddy': caddy, 'before': 'before', 'fragment_before': 'fragment-before', 'fragment': fragment,
+               'migration_started': False, 'previous': old, 'unit_snapshots': {},
+               'restore_files': lambda saved: pytest.fail('must not restore units'),
+               'base': base, 'current': current, 'subprocess': SimpleNamespace(run=run), 'sys': sys}
+    with pytest.raises(RuntimeError, match='synthetic'):
+        exec(handler_code(), context)
+    assert caddy.writes == ['before'] and fragment.writes == ['fragment-before']
+    assert current.lstat().st_ino == inode
+    assert current.resolve() == (base / 'candidate').resolve()
+    assert calls == [['systemctl', 'stop', 'schulpilot-api', 'schulpilot-worker']]

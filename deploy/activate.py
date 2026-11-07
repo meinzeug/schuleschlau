@@ -26,6 +26,10 @@ try:
 except ImportError:
     from deploy.restore_release_guard import verify as verify_restore_configuration
 try:
+    from first_install_guard import previous_release, verify_first_install
+except ImportError:
+    from deploy.first_install_guard import previous_release, verify_first_install
+try:
     from photo_release import (
         ensure_isolated_identity,
         inspect_photo,
@@ -184,7 +188,9 @@ try:
         # rollback the legacy-prune guard is now in place before we use it.
         if not (release / "web/index.html").is_file() or not (release / "backend/requirements.lock").is_file():
             raise RuntimeError("Release disappeared before activation")
-        previous = current.resolve() if current.is_symlink() else None
+        previous = previous_release(current)
+        if previous is None:
+            verify_first_install()
         if previous:
             # A managed service file may be overridden by an operator drop-in.
             # Check the effective command before stopping any service or doing
@@ -328,56 +334,50 @@ try:
                 update_lock(base, token, stage="activated", release_id=release_id)
             print("SCHULPILOT activated: " + release_id)
         except Exception:
+            # Best effort only: neither a successful stop request nor unchanged
+            # schema proves all writers have drained. Preserve units/current for
+            # explicit recovery; never restart or switch pointers here.
             if writer_stop_attempted or new_writers_may_have_started:
-                # A failed stop may already have stopped only one unit. Never
-                # automatically start either writer on this failure path.
-                subprocess.run(["systemctl", "stop", "schulpilot-api", "schulpilot-worker"], check=False)
+                try:
+                    stopped = subprocess.run(["systemctl", "stop", "schulpilot-api", "schulpilot-worker"],
+                                             check=False, timeout=60)
+                    if stopped.returncode:
+                        print("Writer stop failed; inspect cgroups and database sessions.", file=sys.stderr)
+                except Exception as error:
+                    print("Writer stop could not be confirmed: " + type(error).__name__, file=sys.stderr)
             if photo_candidate_started:
                 try:
                     undo_candidate_enable(photo_previous)
-                except Exception:
-                    print("Could not stop candidate photo service; verify it before restarting writers.", file=sys.stderr)
-                    # Do not restart previous writers while an uncertain decoder runs.
-                    new_writers_may_have_started = True
-                    subprocess.run(["systemctl", "stop", "schulpilot-api", "schulpilot-worker"], check=False)
-            caddy.write_text(before)
-            if fragment_before is not None:
-                fragment.write_text(fragment_before)
-            elif fragment.exists():
-                fragment.unlink()
-            # An attempted migration may persist changes before its schema
-            # marker changes. Schema equality alone cannot authorize rollback.
-            compatible = not migration_started and not new_writers_may_have_started
-            if previous and compatible and writer_stop_attempted:
+                except Exception as error:
+                    print("Candidate photo stop could not be confirmed: " + type(error).__name__, file=sys.stderr)
+                    try:
+                        subprocess.run(["systemctl", "stop", "schulpilot-api", "schulpilot-worker"],
+                                       check=False, timeout=60)
+                    except Exception as stop_error:
+                        print("Writer stop could not be confirmed: " + type(stop_error).__name__, file=sys.stderr)
+            caddy_restored = fragment_restored = False
+            try:
+                caddy.write_text(before)
+                caddy_restored = True
+            except Exception as error:
+                print("Caddy configuration restore failed: " + type(error).__name__, file=sys.stderr)
+            try:
+                if fragment_before is not None:
+                    fragment.write_text(fragment_before)
+                elif fragment.exists():
+                    fragment.unlink()
+                fragment_restored = True
+            except Exception as error:
+                print("Caddy fragment restore failed: " + type(error).__name__, file=sys.stderr)
+            if caddy_restored and fragment_restored:
                 try:
-                    if unit_snapshots is not None:
-                        restore_files(unit_snapshots)
-                        subprocess.run(["systemctl", "daemon-reload"], check=True)
-                    temporary = base / ".current-restore"
-                    temporary.unlink(missing_ok=True)
-                    temporary.symlink_to(previous)
-                    temporary.replace(current)
-                    if writer_stop_attempted:
-                        print("Previous definitions restored; inspect writer, photo and timer state before explicit restart.", file=sys.stderr)
-                except Exception:
-                    if writer_stop_attempted or new_writers_may_have_started:
-                        subprocess.run(["systemctl", "stop", "schulpilot-api", "schulpilot-worker"], check=False)
-                    print("Automatic rollback incomplete; inspect service state and restore definitions before any restart.", file=sys.stderr)
-            else:
-                if new_writers_may_have_started:
-                    print(
-                        "New release writers may have persisted incompatible JSON: stop requested and current release retained. "
-                        "Use a compatible forward fix or explicitly verify data/code compatibility before any rollback; "
-                        "unchanged SQL schema and --rollback-compatible are not sufficient.",
-                        file=sys.stderr,
-                    )
-                elif migration_started and not compatible:
-                    print(
-                        "Migration was attempted; schema or data may have changed. Stop requested. Verify a recovery path before activating the previous release.",
-                        file=sys.stderr,
-                    )
-            subprocess.run(["systemctl", "reload", "caddy"], check=False)
+                    subprocess.run(["systemctl", "reload", "caddy"], check=False, timeout=60)
+                except Exception as error:
+                    print("Caddy reload failed: " + type(error).__name__, file=sys.stderr)
+            print("Activation failed. Current release and units are retained; verify writers, schema, data, timers and recovery before restarting.",
+                  file=sys.stderr)
             raise
+
 except ReleaseLockError as exc:
     print(f"Activation refused: {exc}", file=sys.stderr)
     raise SystemExit(1)

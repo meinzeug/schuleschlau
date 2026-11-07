@@ -1,42 +1,54 @@
-# Fehlgeschlagene Aktivierung: kein automatischer Wiederanlauf
+# Fehlgeschlagene Aktivierung: keine automatische Rückkehr
 
-Bei einem Fehler im Aktivierungsteil nach einem begonnenen Stopp der bisherigen
-API und des Workers versucht `activate.py`, beide Einheiten anzuhalten. Auch
-wenn der erste Stopp nur teilweise funktioniert hat, startet der Fehlerpfad
-keinen der beiden Dienste automatisch. Ein möglicher neuer Foto-Prozess wird
-über den vorhandenen Mechanismus gestoppt; der frühere Foto-Dienst wird nicht
-implizit neu gestartet. Der tatsächliche Stopp ist vom Operator zu prüfen:
-`systemctl stop` wird hier nach bestem Bemühen aufgerufen, sein Ergebnis ist
-kein Cgroup- oder Datenbank-Drainnachweis.
+Der Fehlerpfad von `deploy/activate.py` bittet systemd nach einem begonnenen
+Writer-Stopp oder einem möglichen Start neuer Writer, API und Worker
+anzuhalten. Ein fehlgeschlagener Stopp wird gemeldet; ein erfolgreiches
+`systemctl stop` belegt für sich weder den Drain aller Prozesse noch das Ende
+aller Datenbanksitzungen. Die Unitdateien und der `current`-Verweis werden im
+Fehlerpfad nicht zurückgesetzt. Insbesondere darf ein fehlgeschlagener Stopp
+nicht dazu führen, dass laufender Code unter einem anderen Releasepfad weiter
+arbeitet. Alte Dienste oder ein vorheriger Fotodienst werden nicht automatisch
+neu gestartet. Nach einem Migrationsversuch bedeutet auch eine gleiche
+Schema-Revision nicht, dass keine Daten geändert wurden.
 
-Vor dem ersten Stopp bleibt ein noch laufender Dienst beim Fehlschlag erhalten.
-Dann werden weder Unitdateien noch der Current-Verweis zurückgesetzt; es
-erfolgt kein `daemon-reload`. Dies gilt auch, wenn noch keine Unit-Sicherung
-angelegt wurde.
-Soweit nach einem Stopp keine Migration und kein Start neuer Writer versucht wurde, können die
-alten Unitdefinitionen und der alte Current-Verweis wiederhergestellt werden;
-das startet keine Dienste. Nach einem Migrationsversuch bleiben die neuen
-Definitions-/Releasezustände für eine gesonderte Prüfung stehen: ein gleicher
-Alembic-Stand kann bereits veränderte Daten nicht ausschließen. Dies gilt auch
-bei Fehlschlag vor dem ersten neuen Writer. Nach einem möglichen neuen Writer
-bleibt ebenfalls die neue Runtime erhalten. Ein Fehler vor oder nach dem
-Unitstopp muss deshalb unter Beachtung des tatsächlichen Unit-, Cgroup-,
-Prozess-, Schema-, Daten- und Timerzustands behandelt werden; erst eine
-explizite vollständige Prüfung kann den passenden Wiederanlauf oder einen
-geprüften Rückweg bestimmen. Dies verschlechtert bei einem Aktivierungsfehler
-bewusst die Verfügbarkeit gegenüber einem automatischen Neustart. Timer werden
-im Fehlerpfad weder garantiert gestoppt noch auf den früheren Aktivzustand
-zurückgesetzt; im Erfolgsabschnitt bereits gestartete Timer können aktiv
-bleiben. Ihre Zustände müssen vor einer Wiederaufnahme separat ermittelt und
-wiederhergestellt werden. Die reguläre erfolgreiche Erstinstallation und
-Aktivierung verwenden unverändert ihren normalen Startpfad.
+Caddy-Hauptdatei und Fragment werden unabhängig voneinander bestmöglich
+zurückgeschrieben. Scheitert ein Schritt, wird der andere trotzdem versucht
+und der ursprüngliche Aktivierungsfehler weitergegeben. Ein Caddy-Reload wird
+nur nach erfolgreicher Rückschreibung beider Dateien angefordert; ein
+fehlgeschlagener Reload muss getrennt untersucht werden. Vor einem begonnenen
+Writer-Stopp berührt der Fehlerpfad weder API-/Worker- noch Fotozustand. Dieses
+Vorgehen erhält nach Fehlern bewusst weniger Verfügbarkeit als ein
+automatischer Neustart. Vor einer expliziten Wiederaufnahme müssen Betreiber
+Releaseverweis, tatsächlich geladene Units, alle Prozessgruppen, laufende
+Datenbanksitzungen, Schema, Daten, Decoder sowie Timer und Backupzustand
+prüfen. Timer werden durch den Fehlerpfad nicht auf den vorherigen Zustand
+zurückgesetzt; bereits gestartete Timer können weiterlaufen.
 
-Die Regressionstests führen den tatsächlichen Exception-Handler mit lokalen
-synthetischen Dateien und gefälschten systemctl-Aufrufen aus, darunter
-fehlgeschlagener Reload, begonnenes Stoppen und Migrations-/Writerfälle. Sie
-prüfen kein echtes systemd, kein Herunterfahren/Neustarten des Hosts und keine
-DB- oder Foto-Prozessdrainage. Ein SIGKILL oder Stromverlust führt nicht durch
-den Exception-Handler. Bestehende systemd-Units, Timer oder direkte Zugriffe
-können Writer wieder starten; diese Änderung implementiert **keinen dauerhaften
-Startzaun, Zwei-Host-Koordinator oder automatischen sicheren Wiederanlauf** und
-autorisiert allein keinen produktiven Cutover.
+## Erstinstallation
+
+Fehlt `current`, wird sie nur nach separater Prüfung als leer behandelt:
+keine der bekannten Units darf vorhanden, aktiv oder in einem Job sein;
+`/var/lib/schulpilot` muss das beim regulären Bootstrap angelegte leere
+`uploads`-Verzeichnis und sonst keine Inhalte enthalten; die lokale
+`schulpilot`-Datenbank muss über eine explizite Unix-Socket-Verbindung leer
+sein und darf keine weiteren Client-Sitzungen oder vorbereiteten Transaktionen
+haben. Der Systemaufruf erbt keine libpq-Umgebung. Fehlende oder mehrdeutige
+Zustände führen zum Abbruch vor Konfigurationsänderung und Migration. Ein
+beschädigter, nicht lesbarer oder nicht-symlinkartiger Current-Verweis ist kein
+Beleg für eine neue Installation. Ein durch den regulären Bootstrap neu
+angelegtes leeres Konto/Datenverzeichnis/Datenbank bleibt initialisierbar.
+
+Die Tests prüfen den echten Fehlerhandler mit synthetischen Dateien und
+systemctl-Stellvertretern, inklusive fehlgeschlagenem Stopp, unabhängig
+fehlgeschlagenen Caddy-Wiederherstellungen und unverändertem Releaseverweis.
+Zudem prüfen Tests den Erstinstallationsvertrag sowie einen künstlichen
+leeren und danach gefüllten PostgreSQL-Cluster mit echter lesender
+systemd-Abfrage. Eine abschließende vollständige Installation auf einem neuen
+Produktivhost ist damit nicht belegt.
+
+Diese Änderung ist kein dauerhafter Startzaun. Ein SIGKILL oder Stromverlust
+führt nicht durch den Fehlerhandler; systemd-Timer, direkte Programme, andere
+Hosts, Altprozesse und zukünftige Verbindungen sind dadurch nicht vollständig
+ausgeschlossen. Die Erstinstallationsprüfung ist eine Momentaufnahme und
+keine Sperre gegen privilegierte gleichzeitige Änderungen. Kein Teil dieses
+Fixes autorisiert für sich einen produktiven Cutover.
