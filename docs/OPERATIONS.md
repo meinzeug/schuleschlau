@@ -557,6 +557,10 @@ behauptet. Der bestehende Fünf-Minuten-Monitor prüft diesen Zustand bei jedem
 Lauf. Ist der Operator-Empfänger konfiguriert, versendet er bei neuer oder
 veränderter Störung eine neutrale Mail und bei unveränderter Störung frühestens
 nach sechs Stunden erneut; SMTP-Fehler werden beim nächsten Lauf erneut versucht.
+Solange die Warnung besteht, beendet sich der Monitoring-Einmallauf mit Exit 1
+und erscheint in systemd als fehlgeschlagen. Der separate Fünf-Minuten-Timer
+bleibt davon unberührt. Der Alarm ist eine Betriebsmeldung, keine technische
+Sperre einer separat gestarteten Wiederherstellung.
 Der Alarm bleibt bis zu einem tatsächlich implementierten Vollständigkeitsnachweis
 bestehen. Die technische Wiederherstellungsprobe und ihr Alarm sind kein
 Freigabeweg für Nutzerdaten. Eine produktive Wiederherstellung benötigt zuerst
