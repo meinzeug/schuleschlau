@@ -1,7 +1,7 @@
 """Bind ordinary source units to the same reviewed visual contracts as parts.
 
 No package conversion, fixed exercise count, answer rewrite or output repair.
-Only new non-mathematical units use this request-time schema restriction.
+Also bind mathematical review units that do not have a more specific recipe.
 """
 
 from .package_part_output import _bind_references
@@ -18,6 +18,9 @@ Die Aufgabe ist bereits durch ihren Prompt verständlich. presentation=null;
 ihre Grafik steht ausschließlich im gebundenen explanation_steps-Schritt.
 Aufgabenanzahl, feste Vorwissensfragen, Antworten und alle Quellenprüfungen bleiben
 unverändert. Erstelle weiterhin kurze verständliche Erklärtexte zur gewählten Grafik.
+Für general.source_relation.phases: mindestens zwei Phasen mit je mindestens einem
+gerichteten Pfeil aus dem wörtlichen Quellenbeleg; die Phasen unterscheiden sich
+sichtbar durch Markierungen oder belegte Beziehungen. Niemals Pfeile erfinden.
 """
 
 
@@ -30,9 +33,10 @@ def bind_schema(schema, payload):
     coach_practice = (payload.get("review") is True and isinstance(tasks, list) and len(tasks) == 2
                       and all(isinstance(task, dict) and isinstance(task.get("id"), str)
                               and isinstance(task.get("learning_goal_id"), str) for task in tasks))
+    math_review = payload.get("review") is True and subject == "Mathematik"
     if (not context.get("required") or not isinstance(subject, str) or subject not in PROFILES
-            or subject == "Mathematik" or payload.get("selected_groups")
-            or (payload.get("review") and not coach_practice)
+            or (subject == "Mathematik" and not math_review) or payload.get("selected_groups")
+            or (payload.get("review") and not (coach_practice or math_review))
             or any(payload.get(key) for key in ("homework_practice",
                 "exam_preparation", "exam_review_practice"))):
         return False

@@ -86,29 +86,55 @@ def bind(schema):
     The canonical copy stays intact for introspection and final validators.
     """
     graphic = schema.get("$defs", {}).get("Graphic")
-    if not graphic or "anyOf" not in graphic:
-        return None
     original = copy.deepcopy(schema)
-    proof = {"$defs": {"Graphic": copy.deepcopy(graphic)}}
-    proof["$defs"]["Graphic"].pop("anyOf")
-    bind_coherent_graphics(proof)
-    if proof["$defs"]["Graphic"] != graphic:
-        raise ValueError(_ERROR)
-    branches = copy.deepcopy(graphic["anyOf"])
-    pairs = {}
-    for branch in branches:
-        props = branch["properties"]
-        if (branch.get("type") != "object" or branch.get("additionalProperties") is not False
-            or set(branch.get("required", [])) != set(props)):
+    if graphic and "anyOf" in graphic:
+        proof = {"$defs": {"Graphic": copy.deepcopy(graphic)}}
+        proof["$defs"]["Graphic"].pop("anyOf")
+        bind_coherent_graphics(proof)
+        if proof["$defs"]["Graphic"] != graphic:
             raise ValueError(_ERROR)
-        if "fraction" in props["kind"]["enum"]:
-            if props["kind"]["enum"] != ["fraction"]:
-                raise ValueError(_ERROR)
-            values = props["numbers"]["enum"]
-            pairs = {_pair_key(value): copy.deepcopy(value) for value in values}
-            if len(pairs) != len(values):
-                raise ValueError(_ERROR)
-            props["numbers"] = {"type": "string", "enum": list(pairs)}
     wire = copy.deepcopy(original)
-    wire["$defs"]["Graphic"] = {"anyOf": branches}
+    if graphic and "anyOf" in graphic:
+        wire["$defs"]["Graphic"] = {"anyOf": wire["$defs"]["Graphic"]["anyOf"]}
+    pairs = {}
+    fraction_fields = []
+    expected = [[n, d] for d in range(1, 25) for n in range(d + 1)]
+
+    def project(node):
+        if isinstance(node, list):
+            for child in node:
+                project(child)
+        elif isinstance(node, dict):
+            props = node.get("properties", {})
+            if props.get("kind", {}).get("enum") == ["fraction"] and "numbers" in props:
+                # Reference binding makes narrowed copies of Graphic branches,
+                # then can prune the original union. Transform only the exact
+                # existing finite fraction enumeration, not arbitrary arrays.
+                if (node.get("type") != "object" or node.get("additionalProperties") is not False
+                        or set(node.get("required", [])) != set(props)
+                        or props["numbers"].get("enum") != expected):
+                    raise ValueError(_ERROR)
+                values = props["numbers"]["enum"]
+                local = {_pair_key(value): copy.deepcopy(value) for value in values}
+                if len(local) != len(values) or (pairs and pairs != local):
+                    raise ValueError(_ERROR)
+                pairs.update(local)
+                props["numbers"] = {"type": "string", "enum": list(local)}
+                fraction_fields.append(props)
+            for child in node.values():
+                project(child)
+
+    project(wire)
+    if not pairs and not (graphic and "anyOf" in graphic):
+        return None
+    if len(fraction_fields) > 1:
+        # All narrowed branches use the same finite pair set. Share it so
+        # provider schema limits do not scale with the number of stages.
+        definitions = wire.setdefault("$defs", {})
+        name = "NativeFractionPairs"
+        while name in definitions:
+            name += "x"
+        definitions[name] = {"type": "string", "enum": list(pairs)}
+        for props in fraction_fields:
+            props["numbers"] = {"$ref": "#/$defs/" + name}
     return Binding(original, wire, pairs)

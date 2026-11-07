@@ -1909,6 +1909,8 @@ def request_provider(config, function, payload, image_bytes=None, *, synthetic_f
             from .unit_reference_graphics import bind_schema as bind_unit_references
 
             if (payload.get("study_block") or (payload.get("review") and payload.get("practice_tasks"))
+                    or (payload.get("review") and (payload.get("required_subject")
+                        or (payload.get("material") or {}).get("subject")) == "Mathematik")
                     or selection(config).get("reason") in
                     {"material_graphic_teaching", "notebook_graphic_teaching"}):
                 try:

@@ -213,8 +213,13 @@ def test_actual_final_native_request_uses_documented_shapes_and_exact_cost_input
     assert len(calls) == 1
     sent, wire_schema, instructions = _submitted("openrouter", calls[0])
     record = subset_record(wire_schema)
-    assert set(wire_schema["$defs"]["Graphic"]) == {"anyOf"}
-    assert branch(wire_schema, "fraction")["properties"]["numbers"]["type"] == "string"
+    if "Graphic" in wire_schema["$defs"]:
+        assert set(wire_schema["$defs"]["Graphic"]) == {"anyOf"}
+        assert branch(wire_schema, "fraction")["properties"]["numbers"]["type"] == "string"
+    else:
+        # Review recipes bind and prune the generic union; copied fraction
+        # branches share the same projected finite pair definition.
+        assert wire_schema["$defs"]["NativeFractionPairs"]["type"] == "string"
     assert "native-graphic-1" in instructions
     assert sent["grade"] == 6
     assert calls[0]["max_tokens"] == 4000 and calls[0]["reasoning"]["effort"] == "medium"

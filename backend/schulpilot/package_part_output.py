@@ -149,6 +149,19 @@ def _bind_references(schema, payload, *, unit_subject=None):
             for name in ("numbers", "connections", "marks"):
                 fields[name].update(minItems=0, maxItems=0)
             fields["unit"] = {"type": "string", "enum": [""]}
+        if reference.get("id") == "general.source_relation.phases" and kind == "scene":
+            # Unlike the other scene recipes, this reference represents a
+            # directed source relation. Match its existing semantic validator
+            # in the provider contract, without changing shared SceneV1 or
+            # the intentionally edge-free original-evidence recipes.
+            scene = resolved(fields["scene"])
+            scene_fields = scene["properties"]
+            scene_fields["objects"]["minItems"] = 2
+            scene_fields["steps"]["minItems"] = 2
+            scene_step = resolved(scene_fields["steps"]["items"])
+            scene_step["properties"]["edges"]["minItems"] = 1
+            scene_fields["steps"]["items"] = register(scene_step)
+            fields["scene"] = register(scene)
         if kind == "lab":
             recipe = reference.get("lab_recipe_id")
             if not recipe:
@@ -180,7 +193,7 @@ def _bind_references(schema, payload, *, unit_subject=None):
         for reference in context.get("references", []):
             if reference.get("subject") != subject:
                 continue
-            if subject != "Mathematik":
+            if subject != "Mathematik" or reference.get("id") == "general.source_relation.phases":
                 from .package_prepared_scenes import reference_supported
 
                 if not reference_supported(reference, group_sources):
