@@ -3,7 +3,11 @@
 This verifies concrete local prerequisites, not a fence against future starts,
 non-systemd writers, another host, or privileged concurrent changes.
 """
+import hashlib
 import os
+import re
+import shlex
+import stat
 import subprocess
 from pathlib import Path
 
@@ -20,6 +24,41 @@ FIELDS = {'LoadState', 'ActiveState', 'SubState', 'MainPID', 'ControlGroup', 'Jo
 class FirstInstallError(RuntimeError):
     pass
 
+
+
+def read_first_environment(path: Path = Path('/etc/schulpilot/environment')) -> tuple[dict[str, str], str]:
+    """Read one trusted bootstrap configuration and bind its exact bytes."""
+    fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC)
+    try:
+        before = os.fstat(fd)
+        if (not stat.S_ISREG(before.st_mode) or before.st_uid != os.geteuid() or before.st_nlink != 1
+                or before.st_mode & 0o022 or before.st_size > 65536):
+            raise FirstInstallError('Untrusted first-install environment')
+        raw = os.read(fd, 65537)
+        after = os.fstat(fd)
+        named = os.lstat(path)
+        if (len(raw) != before.st_size or (before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns, before.st_ctime_ns)
+                != (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns, after.st_ctime_ns)
+                or (before.st_dev, before.st_ino) != (named.st_dev, named.st_ino)):
+            raise FirstInstallError('First-install environment changed')
+    finally:
+        os.close(fd)
+    try:
+        values = {}
+        for line in raw.decode('utf-8').splitlines():
+            if not line.strip() or line.lstrip().startswith('#'):
+                continue
+            key, value = line.split('=', 1)
+            if (not re.fullmatch(r'[A-Z][A-Z0-9_]*', key) or key in values
+                    or key.startswith(('PG', 'PYTHON', 'LD_', 'DYLD_')) or key in ('PATH', 'HOME')):
+                raise FirstInstallError('Unsafe first-install environment')
+            values[key] = ' '.join(shlex.split(value)) if value else ''
+    except (UnicodeError, ValueError) as exc:
+        raise FirstInstallError('Invalid first-install environment') from exc
+    if (values.get('DATABASE_URL') != 'postgresql+psycopg://schulpilot@/schulpilot?host=/var/run/postgresql'
+            or values.get('DATA_DIR') != '/var/lib/schulpilot'):
+        raise FirstInstallError('First-install database or data directory differs from bootstrap')
+    return values, hashlib.sha256(raw).hexdigest()
 
 def previous_release(current: Path) -> Path | None:
     if current.is_symlink():
@@ -53,7 +92,8 @@ def _unit_is_absent(output: str, *, timer: bool) -> bool:
 def verify_first_install(*, data_dir: Path = Path('/var/lib/schulpilot'), run=subprocess.run) -> None:
     for unit in UNITS:
         result = run(['systemctl', 'show', unit, '--no-pager', *(item for field in sorted(FIELDS)
-                     for item in ('-p', field))], capture_output=True, text=True, check=True, timeout=10)
+                     for item in ('-p', field))], capture_output=True, text=True, check=True, timeout=10,
+                     env={'PATH': '/usr/sbin:/usr/bin:/sbin:/bin', 'LC_ALL': 'C'})
         if not _unit_is_absent(result.stdout, timer=unit.endswith('.timer')):
             raise FirstInstallError('Missing current release with existing service; manual recovery required')
     # bootstrap_host.py creates exactly this empty data directory and uploads

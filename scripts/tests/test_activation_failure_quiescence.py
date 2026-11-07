@@ -192,3 +192,26 @@ def test_independent_recovery_failure_preserves_original_and_never_switches_rele
     assert current.lstat().st_ino == inode
     assert current.resolve() == (base / 'candidate').resolve()
     assert calls == [['systemctl', 'stop', 'schulpilot-api', 'schulpilot-worker']]
+
+
+def test_reload_failure_is_reported_but_original_error_survives(tmp_path, capsys):
+    base = tmp_path / 'base'
+    base.mkdir()
+    old = base / 'old'
+    old.mkdir()
+    current = base / 'current'
+    current.symlink_to(old)
+    calls = []
+    def run(args, **kwargs):
+        calls.append(args)
+        return SimpleNamespace(returncode=1 if args[:2] == ['systemctl', 'reload'] else 0)
+    context = {'new_writers_may_have_started': False, 'writer_stop_attempted': False,
+               'photo_candidate_started': False, 'photo_previous': None,
+               'caddy': tmp_path / 'caddy', 'before': '', 'fragment_before': '',
+               'fragment': tmp_path / 'fragment', 'migration_started': False, 'previous': old,
+               'unit_snapshots': None, 'base': base, 'current': current,
+               'subprocess': SimpleNamespace(run=run), 'sys': sys}
+    with pytest.raises(RuntimeError, match='synthetic'):
+        exec(handler_code(), context)
+    assert ['systemctl', 'reload', 'caddy'] in calls
+    assert 'Caddy reload failed' in capsys.readouterr().err

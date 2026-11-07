@@ -26,9 +26,9 @@ try:
 except ImportError:
     from deploy.restore_release_guard import verify as verify_restore_configuration
 try:
-    from first_install_guard import previous_release, verify_first_install
+    from first_install_guard import previous_release, read_first_environment, verify_first_install
 except ImportError:
-    from deploy.first_install_guard import previous_release, verify_first_install
+    from deploy.first_install_guard import previous_release, read_first_environment, verify_first_install
 try:
     from photo_release import (
         ensure_isolated_identity,
@@ -189,7 +189,11 @@ try:
         if not (release / "web/index.html").is_file() or not (release / "backend/requirements.lock").is_file():
             raise RuntimeError("Release disappeared before activation")
         previous = previous_release(current)
+        first_environment = first_environment_hash = None
         if previous is None:
+            if rollback_compatible:
+                raise RuntimeError("Rollback compatibility is invalid for first installation")
+            first_environment, first_environment_hash = read_first_environment()
             verify_first_install()
         if previous:
             # A managed service file may be overridden by an operator drop-in.
@@ -279,10 +283,16 @@ try:
             environment = {"PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"}
             import shlex
 
-            for line in Path("/etc/schulpilot/environment").read_text().splitlines():
-                if line.strip() and not line.lstrip().startswith("#"):
-                    key, value = line.split("=", 1)
-                    environment[key] = " ".join(shlex.split(value)) if value else ""
+            if previous is None:
+                checked_environment, checked_hash = read_first_environment()
+                if checked_hash != first_environment_hash or checked_environment != first_environment:
+                    raise RuntimeError("First-install environment changed during activation")
+                environment.update(checked_environment)
+            else:
+                for line in Path("/etc/schulpilot/environment").read_text().splitlines():
+                    if line.strip() and not line.lstrip().startswith("#"):
+                        key, value = line.split("=", 1)
+                        environment[key] = " ".join(shlex.split(value)) if value else ""
             if previous:
                 verify_restore_configuration(release, rollback=rollback_compatible, active=previous, check_interpreter=True)
             if not rollback_compatible:
@@ -371,7 +381,9 @@ try:
                 print("Caddy fragment restore failed: " + type(error).__name__, file=sys.stderr)
             if caddy_restored and fragment_restored:
                 try:
-                    subprocess.run(["systemctl", "reload", "caddy"], check=False, timeout=60)
+                    reloaded = subprocess.run(["systemctl", "reload", "caddy"], check=False, timeout=60)
+                    if reloaded.returncode:
+                        print("Caddy reload failed; loaded configuration may differ from files.", file=sys.stderr)
                 except Exception as error:
                     print("Caddy reload failed: " + type(error).__name__, file=sys.stderr)
             print("Activation failed. Current release and units are retained; verify writers, schema, data, timers and recovery before restarting.",

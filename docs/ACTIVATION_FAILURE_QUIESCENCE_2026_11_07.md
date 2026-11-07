@@ -13,7 +13,8 @@ Schema-Revision nicht, dass keine Daten geändert wurden.
 
 Caddy-Hauptdatei und Fragment werden unabhängig voneinander bestmöglich
 zurückgeschrieben. Scheitert ein Schritt, wird der andere trotzdem versucht
-und der ursprüngliche Aktivierungsfehler weitergegeben. Ein Caddy-Reload wird
+und der ursprüngliche Aktivierungsfehler weitergegeben. Ein fehlgeschlagener
+Reload-Rückgabecode wird gemeldet. Ein Caddy-Reload wird
 nur nach erfolgreicher Rückschreibung beider Dateien angefordert; ein
 fehlgeschlagener Reload muss getrennt untersucht werden. Vor einem begonnenen
 Writer-Stopp berührt der Fehlerpfad weder API-/Worker- noch Fotozustand. Dieses
@@ -32,7 +33,11 @@ keine der bekannten Units darf vorhanden, aktiv oder in einem Job sein;
 `uploads`-Verzeichnis und sonst keine Inhalte enthalten; die lokale
 `schulpilot`-Datenbank muss über eine explizite Unix-Socket-Verbindung leer
 sein und darf keine weiteren Client-Sitzungen oder vorbereiteten Transaktionen
-haben. Der Systemaufruf erbt keine libpq-Umgebung. Fehlende oder mehrdeutige
+haben. Die root-kontrollierte Environment-Datei muss exakt die zuvor geprüfte
+Bootstrap-Datenbank und das geprüfte Datenverzeichnis benennen; PG-, Python-
+und Loader-Umleitungen werden abgewiesen. Ihre unveränderten Bytes und Werte
+werden unmittelbar vor der Migration erneut geprüft und genau diese Werte für
+den Migrationsprozess verwendet. Der Systemaufruf erbt keine libpq-Umgebung. Fehlende oder mehrdeutige
 Zustände führen zum Abbruch vor Konfigurationsänderung und Migration. Ein
 beschädigter, nicht lesbarer oder nicht-symlinkartiger Current-Verweis ist kein
 Beleg für eine neue Installation. Ein durch den regulären Bootstrap neu

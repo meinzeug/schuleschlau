@@ -113,3 +113,44 @@ def test_fresh_database_and_systemd_states_on_disposable_cluster(tmp_path, monke
                 guard.verify_first_install(data_dir=tmp_path, run=run)
         finally:
             admin.execute('DROP DATABASE schulpilot')
+
+
+@pytest.mark.parametrize('suffix', [
+    'DATABASE_URL=postgresql+psycopg://other@/other?host=/var/run/postgresql\n',
+    'DATA_DIR=/tmp/existing-data\n',
+    'PGHOSTADDR=192.0.2.1\n',
+    'PGOPTIONS=-c search_path=private\n',
+    'PYTHONPATH=/tmp/foreign-code\n',
+    'LD_PRELOAD=/tmp/foreign-code.so\n',
+    'PATH=/tmp/foreign-bin\n',
+    'HOME=/tmp/foreign-home\n',
+])
+def test_first_install_rejects_configured_other_target_or_ambient_override(tmp_path, suffix):
+    path = tmp_path / 'environment'
+    lines = {'DATABASE_URL': 'postgresql+psycopg://schulpilot@/schulpilot?host=/var/run/postgresql',
+             'DATA_DIR': '/var/lib/schulpilot'}
+    key = suffix.split('=', 1)[0]
+    if key in lines:
+        del lines[key]
+    path.write_text(''.join(f'{key}={value}\n' for key, value in lines.items()) + suffix)
+    path.chmod(0o600)
+    with pytest.raises(guard.FirstInstallError):
+        guard.read_first_environment(path)
+
+
+def test_first_install_config_is_bound_and_duplicate_or_symlink_rejected(tmp_path):
+    path = tmp_path / 'environment'
+    path.write_text('DATABASE_URL=postgresql+psycopg://schulpilot@/schulpilot?host=/var/run/postgresql\n'
+                    'DATA_DIR=/var/lib/schulpilot\nENVIRONMENT=production\n')
+    path.chmod(0o600)
+    values, original_hash = guard.read_first_environment(path)
+    assert values['DATA_DIR'] == '/var/lib/schulpilot'
+    path.write_text(path.read_text() + 'SYNTHETIC_DEMO=true\n')
+    assert guard.read_first_environment(path)[1] != original_hash
+    path.write_text(path.read_text() + 'DATA_DIR=/var/lib/schulpilot\n')
+    with pytest.raises(guard.FirstInstallError, match='Unsafe'):
+        guard.read_first_environment(path)
+    link = tmp_path / 'link'
+    link.symlink_to(path)
+    with pytest.raises(OSError):
+        guard.read_first_environment(link)
