@@ -60,7 +60,7 @@ def test_real_restore_cli_requires_verified_journal_and_explicit_time(tmp_path, 
     uploads.mkdir()
     env = {**os.environ, 'ENVIRONMENT': 'test'}
     command = [
-        sys.executable, str(ROOT / 'scripts/reconcile_restore.py'),
+        sys.executable, str(ROOT / 'scripts/reconcile_restore.py'), '--diagnostic-only',
         '--database-url', 'sqlite:///' + str(target), '--ledger', str(ledger),
         '--master-key-file', str(key), '--uploads', str(uploads),
     ]

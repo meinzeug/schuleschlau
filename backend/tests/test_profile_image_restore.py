@@ -88,6 +88,7 @@ def test_real_offline_reconcile_keeps_retained_avatars_and_deletes_only_signed_u
             [
                 sys.executable,
                 str(ROOT / "scripts/reconcile_restore.py"),
+                "--diagnostic-only",
                 "--database-url",
                 url,
                 "--ledger",

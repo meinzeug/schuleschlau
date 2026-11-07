@@ -84,7 +84,7 @@ def test_both_real_restore_paths_clear_only_after_verified_journal(tmp_path, hou
         key.write_text('synthetic-key')
         ledger.write_text(ledger_data)
         uploads.mkdir()
-        cmd = [sys.executable, str(ROOT / 'scripts/reconcile_restore.py'), '--database-url', 'sqlite:///' + str(target),
+        cmd = [sys.executable, str(ROOT / 'scripts/reconcile_restore.py'), '--diagnostic-only', '--database-url', 'sqlite:///' + str(target),
                '--ledger', str(ledger), '--master-key-file', str(key), '--uploads', str(uploads),
                '--retention-as-of', current]
         result = subprocess.run(cmd, env=env, capture_output=True, text=True, timeout=30)
@@ -162,9 +162,18 @@ def test_restore_paths_on_separate_isolated_postgresql(tmp_path, household, rout
             ledger.write_text(ledger_data)
             uploads.mkdir()
             clean_url = url.set(database=name, query={})
-            cmd = [sys.executable, str(ROOT / 'scripts/reconcile_restore.py'), '--database-url', str(clean_url),
+            cmd = [sys.executable, str(ROOT / 'scripts/reconcile_restore.py'), '--diagnostic-only', '--database-url', str(clean_url),
                    '--ledger', str(ledger), '--master-key-file', str(key), '--uploads', str(uploads),
                    '--retention-as-of', str(int(now()))]
+            # A real isolated PostgreSQL copy must not change without an explicit
+            # diagnostic action, even if the supplied ledger happens to be signed.
+            blocked = subprocess.run([item for item in cmd if item != '--diagnostic-only'],
+                                     env=env, capture_output=True, text=True, timeout=30)
+            assert blocked.returncode != 0
+            assert 'only --diagnostic-only' in blocked.stderr
+            with Session(target) as before:
+                assert before.get(Child, child_id).preferences['push_consent'] is True
+                assert len(list(before.scalars(select(PushDevice)))) == 1
             result = subprocess.run(cmd, env=env, capture_output=True, text=True, timeout=30)
         else:
             tree = ast.parse((ROOT / 'deploy/restore_check.py').read_text())
@@ -250,7 +259,7 @@ def test_postgresql_backup_0046_real_migration_and_restore(tmp_path, household):
         env = {**os.environ, 'ENVIRONMENT': 'test', 'PYTHONPATH': str(ROOT / 'backend'),
                'PGHOST': socket, 'PGPORT': '55440'}
         clean_url = url.set(database=names[1], query={})
-        cmd = [sys.executable, str(ROOT / 'scripts/reconcile_restore.py'), '--database-url', str(clean_url),
+        cmd = [sys.executable, str(ROOT / 'scripts/reconcile_restore.py'), '--diagnostic-only', '--database-url', str(clean_url),
                '--ledger', str(ledger), '--master-key-file', str(key), '--uploads', str(uploads),
                '--retention-as-of', str(int(now()))]
         offline = subprocess.run(cmd, env=env, capture_output=True, text=True, timeout=30)

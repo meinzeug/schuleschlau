@@ -90,6 +90,8 @@ def verify_connected_database(db, kind: str, expected: str):
 
 def main():
     parser = argparse.ArgumentParser()
+    parser.add_argument("--diagnostic-only", action="store_true",
+                        help="Run an isolated diagnostic only; output is never eligible for activation")
     parser.add_argument("--database-url", required=True)
     parser.add_argument("--ledger", type=Path, required=True)
     parser.add_argument("--master-key-file", type=Path, required=True)
@@ -97,6 +99,9 @@ def main():
     parser.add_argument("--retention-as-of", type=int, required=True,
                         help="Verified UTC Unix time from a trusted clock, not an unchecked offline host")
     args = parser.parse_args()
+    if not args.diagnostic_only:
+        parser.error("No verified journal-completeness and writer-fence proof is supported; "
+                     "only --diagnostic-only on an isolated copy is permitted")
     local_now = int(time.time())
     # This bound catches obviously stale or future operator input. It does not
     # certify the local clock or replace the required independent verification.

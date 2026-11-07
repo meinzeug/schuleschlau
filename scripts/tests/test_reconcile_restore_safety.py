@@ -76,7 +76,7 @@ def test_cli_rejects_live_child_before_database_or_file_changes(monkeypatch, upl
     photo.write_bytes(b"not a real image")
     monkeypatch.setenv("DATABASE_URL", "untouched")
     monkeypatch.setattr(sys, "argv", [
-        "reconcile_restore.py", "--database-url", "sqlite:///unsafe_restore_test",
+        "reconcile_restore.py", "--diagnostic-only", "--database-url", "sqlite:///unsafe_restore_test",
         "--ledger", "missing-ledger", "--master-key-file", "missing-key", "--uploads", str(child),
         "--retention-as-of", str(int(time.time())),
     ])
@@ -116,7 +116,7 @@ def test_cli_rejects_overridden_target_before_environment_or_files_change(monkey
     photo.write_bytes(b"synthetic")
     monkeypatch.setenv("DATABASE_URL", "untouched")
     monkeypatch.setattr(sys, "argv", [
-        "reconcile_restore.py", "--database-url",
+        "reconcile_restore.py", "--diagnostic-only", "--database-url",
         "postgresql+psycopg://localhost/safe_restore_test?dbname=production",
         "--ledger", "missing-ledger", "--master-key-file", "missing-key", "--uploads", str(separate),
         "--retention-as-of", str(int(time.time())),
@@ -190,3 +190,43 @@ def test_connected_sqlite_path_is_checked_against_copy(tmp_path):
         with pytest.raises(ValueError, match="does not match"):
             reconcile_restore.verify_connected_database(session, "sqlite", str(tmp_path / "other_restore_test"))
     engine.dispose()
+
+
+@pytest.mark.parametrize("journal_kind", ["missing", "empty", "older-authenticated"])
+def test_default_cli_refuses_unproven_journal_before_touching_isolated_copy(tmp_path, journal_kind):
+    """Even authentic individual records cannot establish a complete journal."""
+    import hashlib
+    import hmac
+    import json
+    import sqlite3
+    import subprocess
+
+    database = tmp_path / "sample_restore_test"
+    with sqlite3.connect(database) as db:
+        db.execute("CREATE TABLE synthetic_objects (name text)")
+        db.execute("INSERT INTO synthetic_objects VALUES ('synthetic-row')")
+    uploads = tmp_path / "isolated_uploads"
+    uploads.mkdir()
+    photo = uploads / ("a" * 32 + ".jpg")
+    photo.write_bytes(b"synthetic image")
+    key = tmp_path / "key"
+    key.write_text("synthetic-secret")
+    ledger = tmp_path / "ledger"
+    if journal_kind != "missing":
+        ledger.write_text("")
+    if journal_kind == "older-authenticated":
+        record = {"id": "b" * 32, "scope": "family", "target": "c" * 32}
+        payload = json.dumps(record, sort_keys=True, separators=(",", ":"))
+        signature = hmac.new(b"synthetic-secret", payload.encode(), hashlib.sha256).hexdigest()
+        ledger.write_text(json.dumps({"record": record, "signature": signature}) + "\n")
+    original = database.read_bytes()
+    command = [sys.executable, str(ROOT / "scripts/reconcile_restore.py"),
+               "--database-url", "sqlite:///" + str(database), "--ledger", str(ledger),
+               "--master-key-file", str(key), "--uploads", str(uploads),
+               "--retention-as-of", str(int(time.time()))]
+    result = subprocess.run(command, capture_output=True, text=True, timeout=30)
+    assert result.returncode != 0
+    assert "only --diagnostic-only" in result.stderr
+    assert "synthetic-secret" not in result.stdout + result.stderr
+    assert database.read_bytes() == original
+    assert photo.read_bytes() == b"synthetic image"

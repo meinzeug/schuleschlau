@@ -576,3 +576,15 @@ Speicheranstieg durch einen permanenten Rotationsstopp vermieden. Die Rotation
 ist kein Beleg für eine sichere Aktivierung. Diese Änderung ist lokal geprüft;
 der produktive Wächter und echte Warnzustellung sind erst nach Auslieferung und
 eigener Überprüfung belegt.
+
+Der manuelle Abgleich mit `scripts/reconcile_restore.py` lehnt Aufrufe ohne
+`--diagnostic-only` grundsätzlich ab, bevor Datenbank oder Uploadkopie geöffnet
+oder verändert werden. Es existiert bisher kein akzeptierter Beleg für eine
+vollständige Journalkette unter durchgehendem Writer-Fence. Der ausdrückliche
+Diagnosemodus ist ausschließlich für eine isolierte Kopie bestimmt und
+bescheinigt keinerlei Vollständigkeit oder Freigabe; er dient dazu, Tests und
+Schadensanalyse auszuführen, während der eigentliche Freigabeweg gesperrt ist.
+Diese CLI-Änderung verhindert weder die manuelle oder anderweitige Aktivierung
+einer solchen Datenbank noch die Verwendung alter Toolversionen. Ein technischer
+Produktions-Cutover benötigt zusätzlich einen unabhängig durchgesetzten Fence
+und eine revisionsgebundene Prüfung; ein Schalter ist kein Ersatz dafür.

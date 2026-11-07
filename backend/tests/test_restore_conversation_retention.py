@@ -131,7 +131,7 @@ def test_restore_reapplies_conversation_retention_only_after_verified_journal(tm
     key.write_text('synthetic-key')
     ledger.write_text(synthetic_journal('synthetic-key', condition == 'tampered'))
     uploads.mkdir()
-    result = subprocess.run([sys.executable, str(ROOT / 'scripts/reconcile_restore.py'),
+    result = subprocess.run([sys.executable, str(ROOT / 'scripts/reconcile_restore.py'), '--diagnostic-only',
         '--database-url', 'sqlite:///' + str(target), '--ledger', str(ledger), '--master-key-file', str(key),
         '--uploads', str(uploads), '--retention-as-of', str(current)],
         env={**os.environ, 'ENVIRONMENT': 'test'}, capture_output=True, text=True, timeout=30)
