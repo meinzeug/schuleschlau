@@ -86,8 +86,6 @@ class _SavedVisualExplanationState extends State<SavedVisualExplanation>
       ready = false,
       writing = false,
       conflict = false,
-      requestUncertain = false,
-      pendingRequiresAction = false,
       touched = false,
       resync = false;
   ModalRoute<dynamic>? route;
@@ -116,17 +114,13 @@ class _SavedVisualExplanationState extends State<SavedVisualExplanation>
   }
 
   void identityChanged() {
-    final identityLost =
-        !identical(widget.state.user, owner) ||
-        widget.state.api.token != token ||
-        widget.state.familyId != family;
     if (!current) {
       epoch++;
-      if (identityLost || (!requestUncertain && !pendingRequiresAction)) {
-        pending = null;
-      }
+      pending = null;
     }
-    if (identityLost) {
+    if (!identical(widget.state.user, owner) ||
+        widget.state.api.token != token ||
+        widget.state.familyId != family) {
       final units = _visualWrites[widget.state];
       if (identical(units?[widget.unitId], gate)) units?.remove(widget.unitId);
     }
@@ -148,7 +142,7 @@ class _SavedVisualExplanationState extends State<SavedVisualExplanation>
     foreground = value == AppLifecycleState.resumed;
     if (!foreground) {
       epoch++;
-      if (!requestUncertain && !pendingRequiresAction) pending = null;
+      pending = null;
       resync = resync || ready || writing;
       ready = false;
     } else if (!ready) {
@@ -166,8 +160,7 @@ class _SavedVisualExplanationState extends State<SavedVisualExplanation>
       restored = pending = null;
       signature = null;
       revision = 0;
-      ready = touched = conflict = resync = requestUncertain =
-          pendingRequiresAction = false;
+      ready = touched = conflict = resync = false;
       final oldGate = gate;
       gate = _writeGate(widget.state, widget.unitId, owner, token, family);
       if (!identical(oldGate, gate)) {
@@ -179,18 +172,13 @@ class _SavedVisualExplanationState extends State<SavedVisualExplanation>
     }
   }
 
-  Future<void> restore({bool explicit = false}) async {
-    if (widget.steps.isEmpty || (requestUncertain && !explicit)) return;
+  Future<void> restore() async {
+    if (widget.steps.isEmpty) return;
     final request = epoch;
     try {
       final currentGate = gate;
       await currentGate.tail;
-      if (!current ||
-          request != epoch ||
-          !identical(currentGate, gate) ||
-          (requestUncertain && !explicit)) {
-        return;
-      }
+      if (!current || request != epoch || !identical(currentGate, gate)) return;
       final readGeneration = currentGate.generation;
       final previousSignature = signature;
       final previousRevision =
@@ -203,14 +191,12 @@ class _SavedVisualExplanationState extends State<SavedVisualExplanation>
         null,
         {'X-Schulpilot-Account': owner?['id']?.toString() ?? ''},
       );
-      if (!current || request != epoch || (requestUncertain && !explicit)) {
-        return;
-      }
+      if (!current || request != epoch) return;
       // Another local widget may have written while this GET was in flight.
       // Read again after its queued writes instead of treating our own update
       // as a different device or restoring an outdated position.
       if (currentGate.writes != 0 || currentGate.generation != readGeneration) {
-        await restore(explicit: explicit);
+        await restore();
         return;
       }
       final incomingSignature = value['source_signature'] as String?;
@@ -231,9 +217,8 @@ class _SavedVisualExplanationState extends State<SavedVisualExplanation>
         resync = false;
         if (changedElsewhere) {
           conflict = true;
-          if (!requestUncertain && !pendingRequiresAction) pending = null;
+          pending = null;
         }
-        requestUncertain = false;
         ready = signature != null;
         if (!touched &&
             position is Map &&
@@ -249,11 +234,10 @@ class _SavedVisualExplanationState extends State<SavedVisualExplanation>
     }
   }
 
-  void change(Json value, {bool automatic = false}) {
+  void change(Json value) {
     if (!current) return;
     touched = true;
     pending = Json.from(jsonDecode(jsonEncode(value)));
-    if (!automatic && !requestUncertain) pendingRequiresAction = false;
     flush();
   }
 
@@ -263,7 +247,6 @@ class _SavedVisualExplanationState extends State<SavedVisualExplanation>
         !ready ||
         writing ||
         conflict ||
-        pendingRequiresAction ||
         pending == null) {
       return;
     }
@@ -272,8 +255,6 @@ class _SavedVisualExplanationState extends State<SavedVisualExplanation>
     final requestSignature = signature;
     final requestUnit = widget.unitId;
     final requestState = widget.state;
-    final requestSource = widget.sourceKey;
-    final requestQuestion = widget.questionId;
     final previous = currentGate.tail;
     final finished = Completer<void>();
     currentGate.tail = finished.future;
@@ -309,25 +290,7 @@ class _SavedVisualExplanationState extends State<SavedVisualExplanation>
       if (!current || request != epoch) return;
       revision = nextRevision;
     } catch (error) {
-      final sameContext =
-          mounted &&
-          identical(widget.state, requestState) &&
-          widget.unitId == requestUnit &&
-          widget.sourceKey == requestSource &&
-          widget.questionId == requestQuestion &&
-          identical(currentGate, gate) &&
-          identical(widget.state.user, owner) &&
-          widget.state.api.token == token &&
-          widget.state.familyId == family;
-      if (sameContext && error is ApiError && error.code == 'stale_request') {
-        pending ??= value;
-        setState(() {
-          requestUncertain = true;
-          pendingRequiresAction = true;
-          resync = true;
-          ready = false;
-        });
-      } else if (current &&
+      if (current &&
           request == epoch &&
           error is ApiError &&
           error.status == 409) {
@@ -370,19 +333,11 @@ class _SavedVisualExplanationState extends State<SavedVisualExplanation>
         onStepChanged: widget.onStepChanged,
         initialPosition: restored,
         onPositionChanged: change,
-        onAutomaticPositionChanged: (value) => change(value, automatic: true),
       ),
       if (conflict)
         const Text(
           'Deine Leseposition hat sich inzwischen geändert. Deine Antworten bleiben erhalten.',
         ),
-      if (requestUncertain && !ready)
-        TextButton(
-          onPressed: () => restore(explicit: true),
-          child: const Text('Leseposition erneut prüfen'),
-        ),
-      if (pendingRequiresAction && ready && !conflict)
-        const Text('Deine nächste Änderung speichert die Leseposition.'),
     ],
   );
 }

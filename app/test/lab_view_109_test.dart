@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -96,62 +95,6 @@ class PositionFixture {
 }
 
 void main() {
-  testWidgets(
-    'lab resume cannot resend an uncertain position after a read-only check',
-    (tester) async {
-      final first = Completer<http.Response>();
-      final writes = <Json>[];
-      final state = saved.app((request) {
-        if (request.method == 'PUT') {
-          writes.add(Json.from(jsonDecode(request.body)));
-          return writes.length == 1
-              ? first.future
-              : saved.reply({'revision': 8});
-        }
-        return saved.reply({
-          'source_signature': 'a' * 64,
-          'revision': 7,
-          'position': null,
-        });
-      });
-      addTearDown(state.dispose);
-      await saved.mount(
-        tester,
-        SavedVisualExplanation(
-          state: state,
-          unitId: 'unit',
-          text: 'Erklärung',
-          steps: [step(force.forceBlock())],
-          sourceKey: 'lab',
-        ),
-      );
-      tester.widget<Slider>(force.key('force-lab-mass')).onChanged!(4);
-      await tester.pump();
-      expect(writes, hasLength(1));
-      await force.tap(tester, force.key('force-lab-play'));
-      await tester.pump(const Duration(milliseconds: 250));
-      final revision = state.beginAuthentication();
-      state.cancelAuthentication(revision);
-      first.completeError(StateError('synthetic transport error'));
-      await tester.pump();
-      expect(writes, hasLength(1));
-      await tester.ensureVisible(find.text('Leseposition erneut prüfen'));
-      await tester.tap(find.text('Leseposition erneut prüfen'));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
-      expect(writes, hasLength(1));
-      await force.background(tester, false);
-      state.refreshState();
-      await tester.pump();
-      await force.background(tester, true);
-      await tester.pump();
-      expect(writes, hasLength(1));
-      expect(
-        find.text('Deine nächste Änderung speichert die Leseposition.'),
-        findsOneWidget,
-      );
-    },
-  );
   test('109 finite force view preserves exact source values or explicit slider ticks', () {
     const original = ForceLabModel(massKg: 2.3, acceleration: 1.1);
     final source = LabView.forceState(2.3, 1.1, 50);

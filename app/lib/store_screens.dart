@@ -668,7 +668,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     CheckboxListTile(
                       contentPadding: EdgeInsets.zero,
                       value: early,
-                      onChanged: busy || submittedIntent != null
+                      onChanged: busy
                           ? null
                           : (v) => setState(() => early = v!),
                       title: const Text(
