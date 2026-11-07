@@ -27,9 +27,11 @@ def supported(payload):
     if len(indexed) != len(goals) or not set(focus) <= indexed.keys():
         return False
     labels = [indexed[key].get('label', '') for key in focus]
-    return (all(isinstance(label, str) for label in labels)
-        and sum(bool(multiples._TOPIC.search(label)) for label in labels) == 1
-        and sum(bool(re.search(r'\b(?:teilbarkeit|teiler)\b', label, re.I)) for label in labels) == 1)
+    if not all(isinstance(label, str) for label in labels):
+        return False
+    kgv = [i for i, label in enumerate(labels) if multiples._TOPIC.search(label)]
+    divisibility = [i for i, label in enumerate(labels) if product.supports_label(label)]
+    return len(kgv) == len(divisibility) == 1 and kgv[0] != divisibility[0]
 
 
 def add_references(db, payload):
@@ -75,9 +77,10 @@ def _plan(payload):
         raise ValueError(INVALID)
     tasks = practice_tasks(payload)
     ktask = next((t for t in tasks if multiples._TOPIC.search(t['label'])), None)
-    dtask = next((t for t in tasks if re.search(r'\b(?:teilbarkeit|teiler)\b', t['label'], re.I)), None)
+    dtask = next((t for t in tasks if product.supports_label(t['label'])), None)
     rule = multiples._rule(context)
-    if not ktask or not dtask or not rule:
+    if (not ktask or not dtask or not rule or ktask['id'] == dtask['id']
+            or ktask['learning_goal_id'] == dtask['learning_goal_id']):
         raise ValueError(INVALID)
     # The saved learning goal quote must itself cite the source of this rule.
     rule_source = next((s for s in context['sources'] if s.get('ref') == rule['source_ref']), None)

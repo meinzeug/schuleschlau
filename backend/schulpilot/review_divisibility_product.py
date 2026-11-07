@@ -33,16 +33,23 @@ def _reference(context):
         and r.get('kind') == 'scene' and r.get('digest') == digest), None)
 
 
+def supports_label(value):
+    if not isinstance(value, str):
+        return False
+    label = ' '.join(value.split()).rstrip('.!?')
+    return re.fullmatch(r'(?:Teilbarkeit|Teiler|Einen Teiler (?:einer Zahl )?bestimmen)', label, re.I) is not None
+
+
 def _core(task, a, b, result):
     return {'id': task['id'], 'learning_goal_id': task['learning_goal_id'], 'type': 'short',
-        'prompt': f'Ergänze den fehlenden Faktor: {a} · ? = {result}.',
+        'prompt': f'{a} · ? = {result}. Welcher Teiler von {result} fehlt?',
         'answer': str(b), 'options': [], 'accepted': []}
 
 
 def _evidence(context, task):
     if (not isinstance(task, dict) or not re.fullmatch(r'q[1-9][0-9]*', task.get('id', ''))
             or not re.fullmatch(r'g[1-9][0-9]*', task.get('learning_goal_id', ''))
-            or not re.search(r'\b(?:teilbarkeit|teiler)\b', task.get('label', ''), re.I)):
+            or not supports_label(task.get('label'))):
         return None
     quote = task.get('source_excerpt')
     if not isinstance(quote, str) or not quote.strip() or len(quote) > 500 or WARNING.search(quote):

@@ -142,3 +142,33 @@ def test_worker_review_adapter_and_stale_source(monkeypatch):
     state['goals'][1]['source_excerpt'] = 'Teilbarkeit'
     with pytest.raises(ValueError):
         adapter.prepare(db, job, child, page, [page], cfg, cfg._selected_route, payload)
+
+
+@pytest.mark.parametrize('reverse', [False, True])
+def test_mixed_label_must_not_occupy_both_goal_slots(reverse):
+    payload = original(reverse)
+    payload['learning_goals'][0]['label'] = 'kgV und Teilbarkeit'
+    payload['learning_goals'][1]['label'] = 'Zahlen verstehen'
+    assert not plan.supported(payload)
+    with pytest.raises(ValueError):
+        plan.add_references(RecipeLookup(), payload)
+
+
+def test_planner_independently_rejects_duplicate_prescribed_task(monkeypatch):
+    payload = prepared()
+    tasks = providers.practice_tasks(payload)
+    tasks[1]['id'] = tasks[0]['id']
+    monkeypatch.setattr(providers, 'practice_tasks', lambda _: tasks)
+    with pytest.raises(ValueError):
+        plan.prepare(payload)
+
+
+@pytest.mark.parametrize('label', ['Gemeinsame Teiler bestimmen', 'Teilbarkeitsregeln anwenden',
+    'Alle Teiler bestimmen', 'Teilbarkeit durch 3 prüfen', 'Teiler in Primfaktoren zerlegen'])
+def test_rejects_more_specific_divisibility_goals(label):
+    payload = original()
+    payload['learning_goals'][1]['label'] = label
+    assert not plan.supported(payload)
+    task = {'id': 'q2', 'learning_goal_id': 'g2', 'label': label, 'source_excerpt': '3 · 4 = 12'}
+    ctx = plan.add_references(RecipeLookup(), original())['visual_context']
+    assert product.compile_candidate(ctx, task) is None
