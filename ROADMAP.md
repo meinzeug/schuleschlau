@@ -733,6 +733,17 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – OCR anhand vollständig referenzierter künstlicher Seiten prüfen**
 
+  - [x] **Wiederholte Abschriften mit Korrektur konservativ behandeln.**
+    Enthalten die beiden Lesungen denselben Text mehrfach und ist mindestens
+    ein Vorkommen als Schülerarbeit, Korrektur oder rechnerisch falsch
+    gekennzeichnet, lässt sich die Markierung nicht allein anhand des Texts
+    zuordnen. Alle möglichen Vorkommen bleiben bis zur ausdrücklichen Prüfung
+    unsicher; fehlende Vorkommen aus der ersten Lesung bleiben erhalten. Sechs
+    künstliche Gegenfälle scheiterten vor dem Fix und bestehen danach; isolierte
+    Quelltests prüfen, dass ein anderer sicherer Abschnitt nutzbar bleibt.
+    Dies belegt keine vollständige Erkennung wiederholter oder verdeckter
+    Markierungen. [Umfang](docs/OCR_REPEATED_MARKS_2026_11_07.md).
+
   - [x] **Unsichere Korrekturbereiche durch den Gegencheck erhalten.**
     Beim Abgleich zweier verschiedener Markierungspositionen fehlte der
     vorgeschriebene Seitenhinweis; die anschließende Validierung ließ den Job

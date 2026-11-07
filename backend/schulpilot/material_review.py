@@ -420,15 +420,42 @@ def _protected_readings(data, snapshot):
         else:
             block["reading_uncertainties"] = list(dict.fromkeys([*current, message]))
 
+    def protected(block):
+        return (block.get("literal_role") in ("student_work", "annotation")
+            or any(mark.get("kind") != "ink" for mark in block.get("annotations", []))
+            or false_equality(block["text"]))
+
+    # Identical text does not identify an occurrence on a photographed page.
+    # In particular a correction on one of two identical answers cannot safely
+    # be paired with the first matching block from the other reading. Keep all
+    # possible matches out of the learning source until explicitly reviewed.
+    def text_key(block):
+        return " ".join(block["text"].split())
+
+    counts = {}
+    for reading in (originals, blocks):
+        local = {}
+        for block in reading:
+            key = text_key(block)
+            local[key] = local.get(key, 0) + 1
+        for key, count in local.items():
+            counts[key] = max(counts.get(key, 0), count)
+    ambiguous = {text_key(item) for item in [*originals, *blocks] if protected(item)
+                 and counts.get(text_key(item), 0) > 1}
+    duplicate_notice = "Gleicher Text erscheint mehrfach; die Korrektur lässt sich nicht sicher zuordnen. Bitte im Foto prüfen."
+    for block in blocks:
+        if text_key(block) in ambiguous:
+            warning(block, duplicate_notice)
+            result["legibility"] = "partial"
+
     for index, old in enumerate(originals):
-        if not (
-            old.get("literal_role") in ("student_work", "annotation")
-            or any(mark.get("kind") != "ink" for mark in old.get("annotations", []))
-            or false_equality(old["text"])
-        ):
+        if not protected(old):
             continue
         exact = next((block for block in blocks if same(block["text"], old["text"])), None)
         preserved = copy.deepcopy(old)
+        if text_key(old) in ambiguous:
+            warning(preserved, duplicate_notice)
+            result["legibility"] = "partial"
         if exact is not None:
             # Retain the first literal spelling; merge only marks anchored in it.
             if _mark_regions_disagree(old.get("annotations", []), exact.get("annotations", [])):
@@ -463,6 +490,25 @@ def _protected_readings(data, snapshot):
             result["legibility"] = "partial"
             result["uncertainties"] = list(dict.fromkeys([*result["uncertainties"], "Abweichender Schüler-/Korrekturbereich bleibt ungeklärt."]))[:30]
         retained.append((index, preserved))
+
+    # If the second reading omitted an identical occurrence, retain the missing
+    # first-reading occurrence too; otherwise a marking conflict could silently
+    # delete literal material. Both raw passes remain separately available.
+    retained_indices = {index for index, _ in retained}
+    for key in ambiguous:
+        expected = sum(text_key(old) == key for old in originals)
+        available = sum(text_key(block) == key for block in blocks)
+        available += sum(text_key(block) == key for _, block in retained)
+        missing = max(0, expected - available)
+        for index, old in enumerate(originals):
+            if missing == 0:
+                break
+            if index not in retained_indices and text_key(old) == key:
+                preserved = copy.deepcopy(old)
+                warning(preserved, duplicate_notice)
+                retained.append((index, preserved))
+                missing -= 1
+    retained.sort(key=lambda item: item[0])
 
     # Insert protected representatives only AFTER all comparisons. No later
     # overlap can delete a previously retained first reading or an exact match.

@@ -181,3 +181,31 @@ def test_full_page_and_block_limits_keep_a_page_wide_overflow_even_if_conflict_t
                                legibility=result['legibility'], uncertainties=result['uncertainties'],
                                content=result['content'], source_blocks=result['source_blocks'])
     assert learning_source(None, material)['content'] == ''
+
+
+@pytest.mark.parametrize('repeat_in', ['first', 'second', 'both'])
+@pytest.mark.parametrize('mark_in', ['first', 'second'])
+def test_duplicate_text_cannot_transfer_correction_to_a_different_occurrence(repeat_in, mark_in):
+    from schulpilot.extraction import validate_material
+    from schulpilot.source_lineage import learning_source
+
+    safe = block('Ein Bruch beschreibt Teile eines Ganzen.', 'unknown')
+    marked = block('Ergebnis 11/15', 'unknown', annotations=[_correction(
+        {'left': 100, 'top': 100, 'right': 140, 'bottom': 140})])
+    unmarked = block('Ergebnis 11/15', 'unknown', region={
+        'left': 300, 'top': 300, 'right': 400, 'bottom': 400})
+    first_one = marked if mark_in == 'first' else unmarked
+    second_one = marked if mark_in == 'second' else unmarked
+    first = [safe, first_one] + ([unmarked] if repeat_in in ('first', 'both') else [])
+    second = [safe, second_one] + ([unmarked] if repeat_in in ('second', 'both') else [])
+    result = validate_material(_protected_readings(
+        {'subject': 'Mathematik', 'topic': 'Brüche', 'homework': [],
+         'source_blocks': second, 'content': '', 'legibility': 'readable', 'uncertainties': []},
+        SimpleNamespace(snapshot={'source_blocks': first})))
+    repeated = [item for item in result['source_blocks'] if item['text'] == 'Ergebnis 11/15']
+    assert len(repeated) == 2
+    assert all(item['reading_uncertainties'] for item in repeated)
+    material = SimpleNamespace(id='a' * 32, revision=1, purpose='notebook', confirmed=True,
+                               legibility=result['legibility'], uncertainties=result['uncertainties'],
+                               content=result['content'], source_blocks=result['source_blocks'])
+    assert learning_source(None, material)['content'] == safe['text']

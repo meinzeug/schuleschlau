@@ -929,3 +929,37 @@ def test_malformed_check_marker_fails_closed_without_becoming_first_ocr(pipeline
         assert db.get(Job, identifier).status == "failed"
         assert not db.get(Material, page["id"]).confirmed
     assert len(pipeline["calls"]) == 1
+
+
+@pytest.mark.parametrize('first_has_duplicate', [True, False])
+def test_automatic_review_preserves_ambiguous_repeated_marked_text(pipeline, first_has_duplicate):
+    mark = dict(kind='correction', quote='11/15', color='red',
+                image_region=dict(left=100, top=100, right=140, bottom=140))
+    safe = dict(kind='paragraph', text='Ein Bruch beschreibt Teile eines Ganzen.')
+    marked = dict(kind='paragraph', text='Ergebnis 11/15', annotations=[mark])
+    unmarked = dict(kind='paragraph', text='Ergebnis 11/15')
+
+    def version(blocks):
+        return TranscriptionOutput.model_validate(transcription(blocks=blocks)).as_material()
+
+    first_blocks = [safe, marked, unmarked] if first_has_duplicate else [safe, unmarked]
+    second_blocks = [safe, unmarked] if first_has_duplicate else [safe, marked, unmarked]
+    pipeline['outputs'][:] = [version(first_blocks), version(second_blocks)]
+    page = upload(pipeline)
+    first(pipeline, page)
+    identifier = check(pipeline)
+    with DB() as db:
+        job = db.get(Job, identifier)
+        assert job.status == 'completed', job.error
+        material = db.get(Material, page['id'])
+        assert material.confirmed and material.legibility == 'partial'
+        assert sum(block['text'] == 'Ergebnis 11/15' for block in material.source_blocks) == 2
+        source = learning_source(db, material)
+        assert source['content'] == safe['text']
+        assert [item['reason'] for item in source['exclusions']] == ['reading_uncertain'] * 2
+        assert review.public_status(db, material)['status'] == 'checked_with_gaps'
+        versions = list(db.scalars(select(SourceRevision).where(SourceRevision.material_id == material.id)
+                                   .order_by(SourceRevision.sequence)))
+        assert [v.cause for v in versions] == ['extraction', 'auto_check_reading', 'auto_check']
+        assert len(versions[0].snapshot['source_blocks']) == len(first_blocks)
+        assert len(versions[1].snapshot['source_blocks']) == len(second_blocks)
