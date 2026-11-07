@@ -323,7 +323,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   String paymentMethod = 'bank_transfer';
   Json? submittedIntent;
   String? error;
-  int catalogVersion = 0, intentVersion = 0;
+  int catalogVersion = 0, intentVersion = 0, termsVersion = 0;
   bool checkingPending = false;
   List<Json>? pendingOrders;
   String? pendingCheckNote;
@@ -387,6 +387,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   void accountChanged() {
     if (mounted && !own) {
       setState(() {
+        termsVersion++;
         terms = early = false;
         paymentMethod = 'bank_transfer';
         submittedIntent = null;
@@ -410,6 +411,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     if (oldWidget.planId != widget.planId) {
       intentVersion++;
       catalogVersion++;
+      termsVersion++;
       terms = early = busy = false;
       paymentMethod = 'bank_transfer';
       submittedIntent = null;
@@ -495,6 +497,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     methodAvailable(paymentMethod) &&
                     (paymentMethod == 'bank_transfer' || kIsWeb);
                 final renderedCatalog = catalogVersion;
+                final renderedTerms = termsVersion;
                 final renderedRoute = ModalRoute.of(context);
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -562,6 +565,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                               methodAvailable(value)) {
                             setState(() {
                               paymentMethod = value;
+                              termsVersion++;
                               terms = false;
                             });
                           }
@@ -660,7 +664,20 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       value: terms,
                       onChanged: busy
                           ? null
-                          : (v) => setState(() => terms = v!),
+                          : (v) {
+                              if (!own ||
+                                  busy ||
+                                  v == null ||
+                                  renderedCatalog != catalogVersion ||
+                                  renderedTerms != termsVersion ||
+                                  renderedRoute?.isCurrent == false) {
+                                return;
+                              }
+                              setState(() {
+                                terms = v;
+                                termsVersion++;
+                              });
+                            },
                       title: const Text(
                         'Ich akzeptiere die Vertragsbedingungen und habe die Widerrufsbelehrung gelesen.',
                       ),
@@ -730,6 +747,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                   return;
                                 }
                                 setState(() {
+                                  termsVersion++;
                                   terms = false;
                                   error = null;
                                   catalogVersion++;

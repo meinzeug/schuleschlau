@@ -11,6 +11,9 @@ Solange der Auftrag unbestätigt ist, bleibt auch das erneute Laden des Tarifs
 gesperrt. So wird kein neuer Preis oder Vertragstext neben einem alten,
 unverändert zur Wiederholung vorgemerkten Auftrag angezeigt. Bereits zuvor
 erhaltene veraltete Bediencallbacks prüfen diese Sperre erneut.
+Auch bei der Zustimmung zu den Bedingungen wird eine laufende Bestellung
+oder eine zwischenzeitlich zurückgenommene Zustimmung durch frühere
+Checkbox-Callbacks nicht nachträglich geändert.
 
 Bei einem tatsächlichen, vom Server beantworteten 409-Konflikt wird der
 abgelehnte Bestellentwurf wie bisher verworfen. Die Frühstartauswahl kann

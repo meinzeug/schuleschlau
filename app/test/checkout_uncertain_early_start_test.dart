@@ -100,20 +100,45 @@ void main() {
         final capturedEarlyChange = tester
             .widget<CheckboxListTile>(early)
             .onChanged!;
+        final oldConsent = tester.widget<CheckboxListTile>(terms).onChanged!;
         await tester.ensureVisible(terms);
         await tester.tap(terms);
         await tester.pump();
+        await tester.tap(terms);
+        await tester.pump();
+        oldConsent(true);
+        await tester.pump();
+        expect(tester.widget<CheckboxListTile>(terms).value, isFalse);
+        await tester.tap(terms);
+        await tester.pump();
+        final beforeSubmitConsent = tester
+            .widget<CheckboxListTile>(terms)
+            .onChanged!;
         await tester.ensureVisible(buy);
         await tester.tap(buy);
         await tester.pump();
         expect(submissions, hasLength(1));
         expect(submissions.first['early_start'], false);
+        beforeSubmitConsent(false);
+        await tester.pump();
+        expect(tester.widget<CheckboxListTile>(terms).value, isTrue);
         firstReply.complete(
           http.Response('{"detail":"synthetic response"}', responseStatus),
         );
         await tester.pumpAndSettle();
         final toggle = tester.widget<CheckboxListTile>(early);
         expect(toggle.value, isFalse);
+        final consentBeforeRevocation = tester
+            .widget<CheckboxListTile>(terms)
+            .onChanged!;
+        await tester.ensureVisible(terms);
+        await tester.tap(terms);
+        await tester.pump();
+        consentBeforeRevocation(true);
+        await tester.pump();
+        expect(tester.widget<CheckboxListTile>(terms).value, isFalse);
+        await tester.tap(terms);
+        await tester.pump();
         if (responseStatus == 503) {
           expect(toggle.onChanged, isNull);
           capturedEarlyChange(true);
