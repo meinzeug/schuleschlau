@@ -103,7 +103,8 @@ def _plan(payload):
     kcore = {**multiples._core(ktask['id'], pair), 'learning_goal_id': ktask['learning_goal_id']}
     return {'version': 1, 'revision': REVISION, 'context_digest': _digest(context),
         'history_digest': _digest(h), 'rule': rule, 'intro': [2, 4],
-        'tasks': [{'kind': 'kgv', 'task': ktask, 'core': kcore, 'pair': list(pair)},
+        'tasks': [{'kind': 'kgv', 'task': ktask, 'core': kcore, 'pair': list(pair),
+                'hints': [f'Schreibe die Vielfachen von {pair[0]} und {pair[1]} auf und vergleiche sie.']},
             {'kind': 'divisor', 'task': dtask, 'core': dcore, 'candidate_id': dcandidate['id'],
                 'hints': [product.safe_hint(context, dtask)]}]}
 
@@ -131,8 +132,7 @@ def _candidates(payload):
                 raise ValueError(INVALID)
             row = generated[1]
         row['question_core'] = copy.deepcopy(item['core'])
-        if item['kind'] == 'divisor':
-            row['question_hints'] = copy.deepcopy(item['hints'])
+        row['question_hints'] = copy.deepcopy(item['hints'])
         rows.append(row)
     return rows
 
@@ -210,11 +210,11 @@ def validate_output(payload, data):
         item = tasks[q['id']]
         if any(q.get(k) != v for k, v in item['core'].items()) or len(q.get('explanation_steps') or []) != 1:
             raise ValueError(INVALID)
+        if q.get('hints') != item['hints']:
+            raise ValueError(INVALID)
         if item['kind'] == 'kgv':
             multiples.validate_step(q['explanation_steps'][0], payload['visual_context'], q)
         else:
-            if q.get('hints') != item['hints']:
-                raise ValueError(INVALID)
             product.validate_step(q['explanation_steps'][0], payload['visual_context'], q, item['task'])
 
 

@@ -87,7 +87,7 @@ def test_real_provider_transport_bound_to_goals_source_and_graphics(monkeypatch,
     assert all(q['explanation_steps'][0]['disclosure'] == 'solution' for q in result.data['questions'])
 
 
-@pytest.mark.parametrize('fault', ['missing', 'wrong', 'revision', 'goal', 'history', 'changed_answer', 'changed_scene', 'hidden_scene_hint'])
+@pytest.mark.parametrize('fault', ['missing', 'wrong', 'revision', 'goal', 'history', 'changed_answer', 'changed_scene', 'hidden_scene_hint', 'hidden_kgv_hint'])
 def test_rejects_unproven_or_tampered_data(fault):
     payload = original()
     if fault == 'missing': payload['learning_goals'][1]['source_excerpt'] = 'Teilbarkeit'
@@ -105,6 +105,7 @@ def test_rejects_unproven_or_tampered_data(fault):
         with pytest.raises(ValueError): plan.validate_history(body, data, ['Was sind die Teiler von 12?'])
         return
     if fault == 'changed_answer': data['questions'][1]['answer'] = '9'
+    if fault == 'hidden_kgv_hint': data['questions'][0]['hints'] = ['Schau dir die Reihen in der Grafik an.']
     if fault == 'hidden_scene_hint': data['questions'][1]['hints'] = ['Schau dir die Gruppen in der Grafik an.']
     if fault == 'changed_scene': data['questions'][1]['explanation_steps'][0]['presentation']['blocks'][0]['scene']['objects'][0]['label'] = '●'
     with pytest.raises(ValueError): plan.validate_output(body, data)
@@ -184,3 +185,14 @@ def test_divisor_hint_is_available_without_solution_graphic():
     assert question['explanation_steps'][0]['disclosure'] == 'solution'
     data = binding.hydrate(output)
     plan.validate_output(payload, data)
+
+
+def test_kgv_hint_is_available_without_solution_graphic():
+    payload = prepared()
+    binding, output = wire(payload)
+    item = next(item for item in payload[plan.KEY]['tasks'] if item['kind'] == 'kgv')
+    question = next(q for q in output['questions'] if q['id'] == item['core']['id'])
+    a, b = item['pair']
+    assert question['hints'] == [f'Schreibe die Vielfachen von {a} und {b} auf und vergleiche sie.']
+    assert question['explanation_steps'][0]['disclosure'] == 'solution'
+    plan.validate_output(payload, binding.hydrate(output))
