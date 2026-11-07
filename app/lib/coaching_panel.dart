@@ -580,7 +580,7 @@ class _ChildCoachingPanel extends StatelessWidget {
                 ],
                 if (facts.uncertain > 0) ...[
                   Text(
-                    'Die Prüfung einzelner Antworten ist noch offen. Das ist kein falsches Ergebnis.',
+                    'Bei manchen Antworten ist noch etwas unklar. Schau unten nach.',
                   ),
                   SizedBox(height: 18),
                 ],
@@ -1135,10 +1135,10 @@ Widget _roundResultScope(AppState state, Json unit, Widget child) =>
     'Die Antwort ist gespeichert. Ihre Bewertung ist noch offen.',
   ),
   'independence_uncertain' => (
-    'Richtig · selbstständig noch offen',
+    'Richtig · allein gelöst?',
     Icons.help_outline_rounded,
     PanelTone.info,
-    'Die Antwort ist richtig. Eine frühere Erklärung könnte sie vorweggenommen haben.',
+    'Richtig! Vielleicht hast du die Lösung vorher schon gesehen.',
   ),
   'none' => (
     'Noch nicht beantwortet',
@@ -1475,7 +1475,7 @@ class _SavedQuestionResult extends StatelessWidget {
       'contribution' => 'Eigener Beitrag · ohne Richtig/Falsch-Wertung',
       'uncertain' =>
         last['evaluation']?['independence_uncertain'] == true
-            ? 'Richtig · selbstständig noch offen'
+            ? 'Richtig · allein gelöst?'
             : 'Prüfung offen',
       'practice' => 'Weiter üben',
       'independent' => 'Selbstständig gelöst',

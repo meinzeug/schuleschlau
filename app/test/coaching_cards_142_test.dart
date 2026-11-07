@@ -109,10 +109,10 @@ void main() {
         ),
       );
       expect(
-        find.textContaining('Richtig · selbstständig noch offen'),
+        find.textContaining('Richtig · allein gelöst?'),
         findsOneWidget,
       );
-      expect(find.textContaining('Die Antwort ist richtig.'), findsOneWidget);
+      expect(find.textContaining('Vielleicht hast du die Lösung vorher schon gesehen.'), findsOneWidget);
     },
   );
   for (final role in ['child', 'parent']) {
