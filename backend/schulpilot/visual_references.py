@@ -451,8 +451,6 @@ def validate_steps(db, steps, subject, context, *, question=None, group_id=None,
                 raise ValueError("Ungültige vorabgeprüfte Teilermenge.")
             if len(step.presentation.blocks) != 1:
                 raise ValueError("Ungültige vorabgeprüfte Teilermenge.")
-            import re
-
             match = re.fullmatch(r"Nenne alle positiven Teiler von ([1-9][0-9]{0,2})\. Trenne sie durch Kommas\.", question.get("prompt", ""))
             if match is None:
                 raise ValueError("Ungültige vorabgeprüfte Teilermenge.")
