@@ -963,3 +963,28 @@ def test_automatic_review_preserves_ambiguous_repeated_marked_text(pipeline, fir
         assert [v.cause for v in versions] == ['extraction', 'auto_check_reading', 'auto_check']
         assert len(versions[0].snapshot['source_blocks']) == len(first_blocks)
         assert len(versions[1].snapshot['source_blocks']) == len(second_blocks)
+
+
+def test_automatic_review_keeps_other_numbered_reading_beside_repeated_text(pipeline):
+    def version(blocks):
+        return TranscriptionOutput.model_validate(transcription(blocks=blocks)).as_material()
+
+    repeated = dict(kind='paragraph', text='1. Dieselbe Aufgabe', literal_role='student_work')
+    other = dict(kind='paragraph', text='1. Ein anderer neuer Inhalt')
+    pipeline['outputs'][:] = [version([repeated, repeated]), version([repeated, other])]
+    page = upload(pipeline)
+    first(pipeline, page)
+    identifier = check(pipeline)
+    with DB() as db:
+        job = db.get(Job, identifier)
+        assert job.status == 'completed', job.error
+        material = db.get(Material, page['id'])
+        assert material.confirmed and material.legibility == 'partial'
+        assert [item['text'] for item in material.source_blocks].count(repeated['text']) == 2
+        candidate = next(item for item in material.source_blocks if item['text'] == other['text'])
+        assert candidate['reading_uncertainties']
+        assert learning_source(db, material)['content'] == ''
+        versions = list(db.scalars(select(SourceRevision).where(SourceRevision.material_id == material.id)
+                                   .order_by(SourceRevision.sequence)))
+        assert [v.cause for v in versions] == ['extraction', 'auto_check_reading', 'auto_check']
+        assert versions[1].snapshot['source_blocks'][1]['text'] == other['text']

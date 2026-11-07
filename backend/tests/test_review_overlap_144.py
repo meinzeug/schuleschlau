@@ -209,3 +209,25 @@ def test_duplicate_text_cannot_transfer_correction_to_a_different_occurrence(rep
                                legibility=result['legibility'], uncertainties=result['uncertainties'],
                                content=result['content'], source_blocks=result['source_blocks'])
     assert learning_source(None, material)['content'] == safe['text']
+
+
+def test_numbered_duplicate_does_not_delete_different_second_reading():
+    from schulpilot.extraction import validate_material
+    from schulpilot.source_lineage import learning_source
+
+    old = [block('1. Dieselbe Aufgabe'), block('1. Dieselbe Aufgabe')]
+    other = block('1. Ein anderer neuer Inhalt', 'unknown', region={
+        'left': 10, 'top': 10, 'right': 20, 'bottom': 20})
+    new = [block('1. Dieselbe Aufgabe', 'unknown'), other]
+    result = validate_material(_protected_readings(
+        {'subject': 'Deutsch', 'topic': 'Aufgaben', 'homework': [],
+         'source_blocks': new, 'content': '', 'legibility': 'readable', 'uncertainties': []},
+        SimpleNamespace(snapshot={'source_blocks': old})))
+    assert [item['text'] for item in result['source_blocks']].count('1. Dieselbe Aufgabe') == 2
+    candidate = next(item for item in result['source_blocks'] if item['text'] == other['text'])
+    assert candidate['reading_uncertainties']
+    assert result['legibility'] == 'partial'
+    material = SimpleNamespace(id='a' * 32, revision=1, purpose='notebook', confirmed=True,
+                               legibility=result['legibility'], uncertainties=result['uncertainties'],
+                               content=result['content'], source_blocks=result['source_blocks'])
+    assert learning_source(None, material)['content'] == ''

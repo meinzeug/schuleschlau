@@ -24,6 +24,15 @@ Ein nicht erkannter Hinweis, andere Formulierungen, grafisch identische statt
 textgleiche Stellen und echte Lehrkraftkorrekturen benötigen weiterhin die
 übergreifende Bild- und Fachabnahme. Temporäre Dateien sind künstlich.
 
+Ein weiterer künstlicher Gegenfall enthält zwei gleiche geschützte Absätze
+mit derselben Aufgabennummer in der Erstlesung sowie einen anderslautenden
+Absatz mit derselben Nummer in der Zweitlesung. Bei mehrdeutigen Vorkommen ist
+auch eine einzelne solche Nummer kein Nachweis für dieselbe Bildstelle: Die
+abweichende Zweitlesung bleibt erhalten und wird als unsicher gekennzeichnet.
+Der betreffende Inhalt wird bis zur ausdrücklichen Prüfung nicht als
+Lernquelle verwendet. Bei eindeutigen Fällen bleibt das bestehende Verhalten
+unverändert.
+
 Die breite lokale SQLite-Regression für Gegenprüfung, Bildbefunde und
 Erkennung bestand mit 117 Fällen und zwei PostgreSQL-spezifischen Skips; zwei
 zusätzliche Worker-Fälle bestanden auf SQLite und isoliertem PostgreSQL.

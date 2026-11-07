@@ -475,13 +475,16 @@ def _protected_readings(data, snapshot):
             label = re.match(r"^\s*(\d{1,3}[.)])(?:\s|$)", old["text"])
             matches = [block for block in blocks if label and
                        re.match(r"^\s*" + re.escape(label[1]) + r"(?:\s|$)", block["text"])]
-            if len(matches) == 1:
+            # A numbered label cannot identify an occurrence if the old text
+            # itself occurs more than once. The one remaining candidate might
+            # be a different photographed line with the same label.
+            if len(matches) == 1 and text_key(old) not in ambiguous:
                 blocks.remove(matches[0])  # Both raw passes remain in provenance.
             else:
                 region = old.get("image_region")
                 for block in blocks:
                     other = block.get("image_region")
-                    if not region or not other or (
+                    if (block in matches and text_key(old) in ambiguous) or not region or not other or (
                         max(region["left"], other["left"]) < min(region["right"], other["right"])
                         and max(region["top"], other["top"]) < min(region["bottom"], other["bottom"])
                     ):
