@@ -3637,6 +3637,9 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
                               .contains('recent_solution')
                       ? 'Gerade mit Vorlage gelernt. Später probierst du es ohne.'
                       : (feedbackEvaluation?['support_reasons'] as List? ?? [])
+                            .contains('hint')
+                      ? 'Mit Tipp gelöst. Gut gemacht!'
+                      : (feedbackEvaluation?['support_reasons'] as List? ?? [])
                                     .length ==
                                 1 &&
                             (feedbackEvaluation?['support_reasons'] as List)
@@ -3879,6 +3882,13 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
             ),
           if (hint != null)
             LearningContent(hint!, style: TextStyle(fontSize: 17, height: 1.5)),
+          if (hint != null) ...[
+            SizedBox(height: 8),
+            Text(
+              'Deine Antwort zählt mit Tipp.',
+              style: TextStyle(fontSize: 14, color: context.palette.muted),
+            ),
+          ],
           SubjectPresentation(
             key: ValueKey((
               'hint1-hint2-hint3',
