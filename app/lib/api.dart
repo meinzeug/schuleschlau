@@ -71,6 +71,18 @@ class Api {
       (currentAuthenticationRevision == null ||
           identity.$3 == currentAuthenticationRevision!());
 
+  // A successful request may already have changed server state. Do not retry
+  // it automatically, and never publish its result into another account.
+  void _requireRequestOwner((Object?, String?, int?) identity) {
+    if (!ownsRequest(identity)) {
+      throw ApiError(
+        'Das Konto hat sich geändert. Die Anfrage kann bereits ausgeführt worden sein. Bitte prüfe den gespeicherten Stand.',
+        409,
+        'stale_request',
+      );
+    }
+  }
+
   // These endpoints use credential checks or the independent setup/web cookie;
   // their 401 does not establish that the current app session was revoked.
   bool _usesSession401(String method, String rawPath) {
@@ -144,10 +156,12 @@ class Api {
         ...?extra,
       });
       if (body != null) request.body = jsonEncode(body);
+      final response = await http.Response.fromStream(
+        await client.send(request).timeout(const Duration(seconds: 35)),
+      ).timeout(const Duration(seconds: 35));
+      _requireRequestOwner(identity);
       return decode(
-        await http.Response.fromStream(
-          await client.send(request).timeout(const Duration(seconds: 35)),
-        ).timeout(const Duration(seconds: 35)),
+        response,
         // Logout handles an already revoked session itself, with the captured
         // account guard. A late 401 must not clear a newer login.
         notifyUnauthorized:
@@ -196,13 +210,12 @@ class Api {
       http.MultipartFile.fromBytes('file', bytes, filename: 'material.jpg'),
     );
     try {
+      final response = await http.Response.fromStream(
+        await client.send(request).timeout(const Duration(seconds: 45)),
+      ).timeout(const Duration(seconds: 45));
+      _requireRequestOwner(identity);
       return Map<String, dynamic>.from(
-        decode(
-          await http.Response.fromStream(
-            await client.send(request).timeout(const Duration(seconds: 45)),
-          ).timeout(const Duration(seconds: 45)),
-          notifyUnauthorized: ownsRequest(identity),
-        ),
+        decode(response, notifyUnauthorized: ownsRequest(identity)),
       );
     } on ApiError {
       rethrow;
@@ -228,13 +241,12 @@ class Api {
       http.MultipartFile.fromBytes('file', bytes, filename: 'grades.pdf'),
     );
     try {
+      final response = await http.Response.fromStream(
+        await client.send(request).timeout(const Duration(seconds: 45)),
+      ).timeout(const Duration(seconds: 45));
+      _requireRequestOwner(identity);
       return Json.from(
-        decode(
-          await http.Response.fromStream(
-            await client.send(request).timeout(const Duration(seconds: 45)),
-          ).timeout(const Duration(seconds: 45)),
-          notifyUnauthorized: ownsRequest(identity),
-        ),
+        decode(response, notifyUnauthorized: ownsRequest(identity)),
       );
     } on ApiError {
       rethrow;
@@ -251,6 +263,7 @@ class Api {
       Uri.parse('$base$path'),
       headers: headers,
     );
+    _requireRequestOwner(identity);
     if (response.statusCode != 200) {
       decode(
         response,
@@ -315,13 +328,12 @@ class Api {
   Future<Json> _profileAvatarRequest(http.BaseRequest request) async {
     final identity = requestIdentity();
     try {
+      final response = await http.Response.fromStream(
+        await client.send(request).timeout(const Duration(seconds: 35)),
+      ).timeout(const Duration(seconds: 35));
+      _requireRequestOwner(identity);
       return Json.from(
-        decode(
-          await http.Response.fromStream(
-            await client.send(request).timeout(const Duration(seconds: 35)),
-          ).timeout(const Duration(seconds: 35)),
-          notifyUnauthorized: ownsRequest(identity),
-        ),
+        decode(response, notifyUnauthorized: ownsRequest(identity)),
       );
     } on ApiError {
       rethrow;
@@ -361,6 +373,7 @@ class Api {
         bytes.add(chunk);
       }
       final image = bytes.takeBytes();
+      _requireRequestOwner(identity);
       if (response.statusCode != 200) {
         decode(
           http.Response.bytes(
@@ -389,11 +402,13 @@ class Api {
   }
 
   Future<Json> job(String path, [Json? body]) async {
+    final identity = requestIdentity();
     final key =
         '${DateTime.now().microsecondsSinceEpoch}-${identityHashCode(Object())}';
     final queued = await post(path, body, {'Idempotency-Key': key});
     for (var i = 0; i < 100; i++) {
       await Future<void>.delayed(const Duration(seconds: 2));
+      _requireRequestOwner(identity);
       final result = await get('/jobs/${queued['id']}');
       if (result['status'] == 'completed') {
         return Map<String, dynamic>.from(result['result']);
@@ -801,6 +816,7 @@ class AppState extends ChangeNotifier {
     try {
       await api.post('/auth/logout');
     } on ApiError catch (e) {
+      if (!currentAccount()) return;
       // Another tab may already own the cookie. Never log out that account;
       // an explicit logout can still discard this tab's obsolete local state.
       if (e.status != 401 &&
