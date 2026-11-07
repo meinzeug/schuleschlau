@@ -151,4 +151,63 @@ void main() {
     expect(state.user, isNull);
     expect(t.takeException(), isNull);
   });
+  testWidgets(
+    'a newer authentication intent prevents the old login navigation',
+    (t) async {
+      final state = AppState(
+        api: Api(
+          base: 'https://example.invalid/api',
+          client: MockClient((r) async {
+            if (r.url.path == '/api/auth/login') {
+              return reply({
+                'user': {
+                  'id': 'synthetic-child',
+                  'role': 'child',
+                  'child_id': 'c',
+                },
+              });
+            }
+            return reply({'available': false});
+          }),
+        ),
+      );
+      int? newer;
+      state.addListener(() {
+        if (state.user != null && newer == null) {
+          newer = state.beginAuthentication();
+        }
+      });
+      final router = GoRouter(
+        initialLocation: '/login',
+        routes: [
+          GoRoute(
+            path: '/login',
+            builder: (_, s) => AuthScreen(state, mode: 'login', linkUri: s.uri),
+          ),
+          GoRoute(
+            path: '/app',
+            builder: (_, _) => const Scaffold(body: Text('Startseite')),
+          ),
+        ],
+      );
+      addTearDown(() async {
+        await t.pumpWidget(const SizedBox());
+        router.dispose();
+        state.dispose();
+      });
+      await t.pumpWidget(
+        MaterialApp.router(theme: appTheme(), routerConfig: router),
+      );
+      await t.pumpAndSettle();
+      await t.enterText(field('E-Mail oder Benutzername'), 'test-child');
+      await t.enterText(field('Passwort'), 'secure-child-pass-123');
+      await t.tap(find.widgetWithText(FilledButton, 'Anmelden'));
+      await t.pumpAndSettle();
+      expect(newer, isNotNull);
+      expect(state.api.requestIdentity().$3, newer);
+      expect(router.state.uri.path, '/login');
+      expect(find.text('Startseite'), findsNothing);
+      expect(t.takeException(), isNull);
+    },
+  );
 }

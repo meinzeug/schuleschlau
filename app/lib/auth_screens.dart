@@ -787,7 +787,11 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
           password.text,
           authenticationRevision: authenticationRevision,
         );
-        if (!mounted || revision != formRevision) return;
+        if (!mounted ||
+            revision != formRevision ||
+            authenticationRevision != widget.state.api.requestIdentity().$3) {
+          return;
+        }
         // This form no longer owns the completed authentication intent. Its
         // disposal must not invalidate reads started by the accepted account.
         authenticationRevision = null;

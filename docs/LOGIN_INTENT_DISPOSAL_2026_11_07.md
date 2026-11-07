@@ -1,0 +1,7 @@
+# Anmeldeabsicht nach Passwortanmeldung
+
+Am 7. November 2026 wurde auf dem künstlichen Browserprüfstand bei 390 px der CI-Fehler auf Quellstand `718024d` zweimal reproduziert: Nach Anmeldung zeigte die Startseite nur den Ladefehler, bevor der Recall-Ablauf beginnen konnte. Ein gezielter Widgettest zeigt unabhängig vom später zurückgenommenen allgemeinen API-Schutz den Grund: Ein bei der Kontoübernahme gestarteter Abruf wird durch das Schließen des Passwortformulars nachträglich als veraltet markiert.
+
+Nach erfolgreicher Passwortanmeldung gibt das Formular die Verantwortung für die angenommene Revision ab. Eine zwischen Kontoübernahme und Navigation begonnene neuere Anmeldung verhindert die alte Navigation. Ein beim Verlassen noch laufender Login wird weiterhin ungültig. Die künstlichen Tests prüfen diese drei Fälle; sie belegen weder die Cookiesicherheit zwischen Tabs noch das Ergebnis eines echten Provideraufrufs.
+
+**Offen:** Die gesonderten Demo- und Google-Abschlusswege können ihre akzeptierte Anmeldeabsicht ebenfalls beim Dispose invalidieren. Der Google-Ablauf muss dabei den ausdrücklich bestätigten Zugangshinweis an die richtige Anmeldeabsicht gebunden halten. Diese Wege und der vorhandene tabübergreifende Cookie-Wettlauf werden hier nicht als behoben ausgegeben. Die Rücknahme des allgemeinen API-Schutzes hat eigene offene Prüfungen und wird durch diese Änderung nicht ersetzt.
