@@ -12,7 +12,7 @@ from test_presentation_capability_paths import _config, _submitted
 
 @pytest.mark.parametrize("reason", ["material_graphic_teaching", "notebook_graphic_teaching"])
 @pytest.mark.parametrize("subject,entry,padding,allowed", [("Deutsch", False, 0, True),
-    ("Deutsch", True, 39000, True), ("Deutsch", True, 39500, False), ("Mathematik", True, 30000, True),
+    ("Deutsch", True, 35000, True), ("Deutsch", True, 39500, False), ("Mathematik", True, 30000, True),
     ("Mathematik", True, 40000, False), ("Deutsch", True, 200000, False)])
 def test_unit_transport_preserves_schema_and_existing_cost_boundary(monkeypatch, household, subject, entry, padding, allowed, reason):
     content = ("Der Vogel singt - Die Vögel singen. Artikel und Nomen gehören zusammen."
@@ -84,3 +84,80 @@ def test_unit_transport_preserves_schema_and_existing_cost_boundary(monkeypatch,
     subset_record(schema)
     assert requested == original
     assert (config.max_output_tokens, config.reserve_micros, config.input_per_million_micros, config.output_per_million_micros) == before
+
+
+@pytest.mark.parametrize("reason", ["material_graphic_teaching", "notebook_graphic_teaching"])
+def test_actual_unit_wire_stops_at_exact_existing_cost_limit(monkeypatch, household, reason):
+    """Find the boundary by observing the full request, not a guessed schema size."""
+    content = "Der Vogel singt - Die Vögel singen. Artikel und Nomen gehören zusammen."
+    requested = {"grade": 6, "material": {"subject": "Deutsch", "topic": "Künstlicher Vergleich", "content": content}}
+    with DB.begin() as db:
+        child = db.get(Child, household[1]["id"])
+        material = Material(child_id=child.id, title="PUBLIC SYNTHETIC", subject="Deutsch",
+            topic="Künstlicher Vergleich", content=content, confirmed=True, status="confirmed")
+        db.add(material)
+        db.flush()
+        requested = visual_references.with_visual_context(db, child, requested, [material])
+        requested = learning_entry.with_learning_entry(db, child, requested, [material], enabled=True)
+    config = _config("openrouter")
+    config.max_output_tokens, config.reserve_micros = 8000, 250000
+    config.input_per_million_micros, config.output_per_million_micros = 2000000, 10000000
+    approved = policy()
+    config._selected_route = {"reason": reason, "tier": "sol", "budget": approved["budget"],
+        "route": {**approved["routes"]["sol"], "upstreams": ["fixture-upstream"],
+            "max_output_tokens": 8000, "reserve_micros": 250000,
+            "input_per_million_micros": 2000000, "output_per_million_micros": 10000000}}
+    captures, projections = [], []
+    project = provider_cost_preflight.projection
+
+    class Captured(BaseException):
+        pass
+
+    def observed(*args, **kwargs):
+        result = project(*args, **kwargs)
+        projections.append(result)
+        return result
+
+    def handler(request):
+        captures.append(json.loads(request.content))
+        raise Captured
+
+    client = httpx.Client
+    monkeypatch.setattr(provider_cost_preflight, "projection", observed)
+    monkeypatch.setattr(providers.httpx, "Client", lambda **kw: client(transport=httpx.MockTransport(handler)))
+
+    def probe(padding):
+        payload = {**requested, "synthetic_transport_sizing": "x" * padding}
+        original = copy.deepcopy(payload)
+        calls_before, projections_before = len(captures), len(projections)
+        try:
+            providers.request_provider(config, "unit", payload)
+            pytest.fail("A real provider must never be called by this test")
+        except Captured:
+            allowed = True
+            assert len(captures) == calls_before + 1
+        except providers.ProviderError as error:
+            allowed = False
+            assert error.code == "cost_preflight" and len(captures) == calls_before
+            assert error.billing_result.cost_micros == 0 and error.billing_result.cost_source == "cancelled"
+        assert payload == original
+        assert len(projections) == projections_before + 1
+        cost = projections[-1]
+        assert cost["reserved_micros"] == 250000
+        assert (cost["projected_micros"] <= 250000) is allowed
+        return allowed
+
+    # Search with the real transport and unchanged route/prices; neither a
+    # tokenizer assumption nor the production projection formula is copied.
+    lower, upper = 0, 200000
+    assert probe(lower) and not probe(upper)
+    while upper - lower > 1:
+        middle = (lower + upper) // 2
+        if probe(middle):
+            lower = middle
+        else:
+            upper = middle
+    assert probe(lower) and not probe(upper)
+    assert upper == lower + 1
+    assert (config.max_output_tokens, config.reserve_micros,
+            config.input_per_million_micros, config.output_per_million_micros) == (8000, 250000, 2000000, 10000000)
