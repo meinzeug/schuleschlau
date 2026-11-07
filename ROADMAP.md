@@ -1012,6 +1012,14 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – Barrierearme mobile Führung nachweisen**
 
+  - [x] **Ziffernwahl über den Nummernblock ermöglichen.** Bei sichtbarer
+    Auswahl akzeptiert die Tastaturhilfe auch die Zifferntasten des
+    Nummernblocks. Eine Wahl prüft oder übermittelt keine Antwort; Textfelder,
+    Steuerungstasten, ungültige Nummern und eine nicht mehr aktuelle Aufgabe
+    behalten ihre bisherige Behandlung. Künstliche Widgettests prüfen den
+    Lernraum und die Tastaturgrenzen. Dies ist keine vollständige
+    Barrierefreiheits- oder physische Tastaturabnahme.
+
   Tastatur, Screenreader-Semantik, Fokus, große Schrift, Kontrast anhand tatsächlich gerenderter Farben und Trefferflächen prüfen; zusätzlich den echten Web-Runner für Zeitformatierung und reale Android-Geräte für Interaktionen verwenden.
 
   **Abnahme:** Die nächste Hauptaktion bleibt sichtbar und erreichbar, Feedback bleibt bis zur bewussten Fortsetzung stehen, Tastatur und Navigation verdecken keine Aktion; normale Texte erreichen mindestens 4,5:1 und notwendige Kontrollmerkmale 3:1. Geräte, Schriftgröße, Messungen und offene Befunde dokumentieren; Farbtests allein sind keine vollständige WCAG-Abnahme.

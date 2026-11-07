@@ -51,7 +51,21 @@ class AnswerNumberKeys extends StatelessWidget {
         LogicalKeyboardKey.digit8,
         LogicalKeyboardKey.digit9,
       ];
-      final index = keys.indexOf(event.logicalKey);
+      const keypad = [
+        LogicalKeyboardKey.numpad1,
+        LogicalKeyboardKey.numpad2,
+        LogicalKeyboardKey.numpad3,
+        LogicalKeyboardKey.numpad4,
+        LogicalKeyboardKey.numpad5,
+        LogicalKeyboardKey.numpad6,
+        LogicalKeyboardKey.numpad7,
+        LogicalKeyboardKey.numpad8,
+        LogicalKeyboardKey.numpad9,
+      ];
+      final mainIndex = keys.indexOf(event.logicalKey);
+      final index = mainIndex >= 0
+          ? mainIndex
+          : keypad.indexOf(event.logicalKey);
       if (index < 0 || index >= optionCount) return KeyEventResult.ignored;
       onSelect(index);
       return KeyEventResult.handled;
