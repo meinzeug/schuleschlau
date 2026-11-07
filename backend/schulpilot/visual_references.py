@@ -69,7 +69,7 @@ def candidates(db, subject, text="", *, package_prepared=False, decimal_prepared
 
             if not (package_prepared or decimal_prepared) or evidence(text) is None:
                 continue
-        if row.id in ("math.fraction.wholes_remainder", "math.fraction.expansion", "math.multiples.common"):
+        if row.id in ("math.fraction.wholes_remainder", "math.fraction.expansion", "math.multiples.common", "math.divisibility.verified_product"):
             continue  # Only the dedicated Unit proof binder may offer this recipe.
         # AI exploration templates are NEVER a vetted source-bound recipe.
         if recipe.get("scope") == "exploration_only":

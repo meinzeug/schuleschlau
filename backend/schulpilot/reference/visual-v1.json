@@ -510,6 +510,16 @@
       ],
       "interaction": "scene_steps",
       "variant": null
+    },
+    {
+      "id": "math.divisibility.verified_product",
+      "version": 1,
+      "subjects": ["Mathematik"],
+      "kind": "scene",
+      "purpose": "Ein einzelnes, bestätigtes und rechnerisch geprüftes Faktorenprodukt als gleich große Gruppen darstellen.",
+      "terms": ["teilbarkeit", "teiler"],
+      "interaction": "Belegte Gruppen schrittweise hervorheben.",
+      "variant": null
     }
   ]
 }
