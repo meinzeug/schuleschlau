@@ -2568,6 +2568,14 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Echtzeitstatus gezielt und zuverlässig bereitstellen**
 
+  - [x] **Passwort-Anmeldung und anschließende Lesezugriffe verbinden.**
+    Nach erfolgreicher Übernahme widerruft das geschlossene Loginformular die
+    angenommene Anmeldeabsicht nicht mehr. Ein Abbruch bleibt wirksam; eine
+    zwischenzeitlich gestartete neue Anmeldung verhindert die alte Navigation.
+    Künstliche Widgettests prüfen Erfolg, Abbruch und konkurrierende Absichten.
+    Demo, Google und der separate Cookie-Wettlauf bleiben offen.
+    [Prüfung](docs/LOGIN_INTENT_DISPOSAL_2026_11_07.md).
+
   - [ ] **Verspätete gemeinsame API-Antworten nach Kontowechsel absichern.**
     Ein zentraler Abbruch über alle Transporte wurde nach fehlgeschlagener
     vollständiger CI zurückgenommen: Mehrere bestehende Aufrufer behandeln
