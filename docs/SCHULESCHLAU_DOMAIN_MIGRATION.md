@@ -14,6 +14,8 @@ Stand: 07.11.2026. Das Repository wurde auf `meinzeug/schuleschlau` umbenannt. D
 
 Die fachlich begrenzten Backendtests prüfen explizit erlaubte und fremde Origins sowie die Downloadauswahl für neue, alte und gefälschte Hosts. Fluttertests prüfen erlaubte Rücksprünge und Downloadadressen. Die Proxykonfiguration wurde auf dem Zielserver syntaktisch validiert und mit einem vollständig isolierten künstlichen HTTP-Upstream getestet: alte Webadresse leitet um, alte API und alter APK-Pfad bleiben erreichbar, und der neue APK-Pfad liefert dasselbe Testartefakt. Dies ist noch kein TLS- oder echter Android-Installationstest.
 
+Zusätzlich bestanden 36 Backendtests für Noten, Elternplanung und die Downloadadressen des Domainübergangs. Die Tests verwenden keine echten Familien- oder Kinderdaten.
+
 ## Vor produktivem Wechsel
 
 1. Im bestehenden Google-Projekt den vorhandenen OAuth-Webclient um `https://schuleschlau.dorfspy.de` und `https://schuleschlau.dorfspy.de/api/auth/google/callback` erweitern; alte Angaben für den Übergang erhalten. Den tatsächlich aktiven verschlüsselten oder dateibasierten Client entsprechend aktualisieren, ohne Geheimnisse auszugeben. Die vorhandene lokale Clientkopie enthielt bei der Prüfung nur den bisherigen Ursprung; allein eine lokale Änderung ist kein Nachweis einer Google-Freigabe.
