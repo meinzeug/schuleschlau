@@ -108,11 +108,13 @@ void main() {
           ),
         ),
       );
+      expect(find.textContaining('Richtig · allein gelöst?'), findsOneWidget);
       expect(
-        find.textContaining('Richtig · allein gelöst?'),
+        find.textContaining(
+          'Vielleicht hast du die Lösung vorher schon gesehen.',
+        ),
         findsOneWidget,
       );
-      expect(find.textContaining('Vielleicht hast du die Lösung vorher schon gesehen.'), findsOneWidget);
     },
   );
   for (final role in ['child', 'parent']) {
@@ -138,6 +140,10 @@ void main() {
             expect(find.text(count), findsOneWidget);
           }
           expect(find.byType(RoundResultCounts), findsOneWidget);
+          if (role == 'child') {
+            expect(find.byType(RoundQuestionCards), findsNothing);
+            await saved.click(tester, 'Deine Aufgaben');
+          }
           expect(find.byType(RoundQuestionCards), findsOneWidget);
           expect(passage(longReport), findsNothing);
           for (final raw in value['questions'] as List) {
@@ -214,6 +220,7 @@ void main() {
       final h = saved.Harness(data: value);
       await h.open(tester);
       expect(find.text('1 selbstständig'), findsNothing);
+      await saved.click(tester, 'Deine Aufgaben');
       await tester.ensureVisible(detail('legacy'));
       await tester.tap(detail('legacy'));
       await tester.pumpAndSettle();
@@ -229,6 +236,7 @@ void main() {
     final value = unit(), before = jsonEncode(unit());
     final h = saved.Harness(data: value);
     await h.open(tester);
+    await saved.click(tester, 'Deine Aufgaben');
     await tester.ensureVisible(detail('missing'));
     await tester.tap(detail('missing'));
     await tester.pumpAndSettle();
@@ -244,6 +252,7 @@ void main() {
       final value = unit();
       final h = saved.Harness(data: value);
       await h.open(tester);
+      await saved.click(tester, 'Deine Aufgaben');
       await tester.ensureVisible(detail('independent'));
       await tester.tap(detail('independent'));
       await tester.pumpAndSettle();

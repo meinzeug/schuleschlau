@@ -232,6 +232,23 @@ def test_intro_is_redacted_on_child_projection_but_parent_preview_is_not_evidenc
         assert not db.new and not db.dirty
 
 
+def test_completed_round_does_not_reopen_skipped_explanation(source):
+    _, child, mid = source
+    with DB.begin() as db:
+        value = payload(db, child["id"], mid)
+        unit = saved(db, child["id"], mid, value, status="completed")
+        for question in unit.questions:
+            db.add(Attempt(unit_id=unit.id, question_id=question["id"],
+                answer=question["answer"], outcome="correct", assisted=False))
+        db.flush()
+        path = learning_entry.public_path(db, unit)
+        steps = {step["kind"]: step for step in path["steps"]}
+        assert path["current_step_id"] is None
+        assert steps["explanation"]["status"] == "skipped"
+        assert steps["practice"]["status"] == "completed"
+        assert steps["review"]["status"] == "completed"
+
+
 def test_attempts_complete_probe_then_saved_explanation_precedes_application(source):
     _, child, mid = source
     with DB.begin() as db:

@@ -1221,7 +1221,10 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
                     data: u['learning_session']?['learning_path'] is Map
                         ? Json.from(u['learning_session']['learning_path'])
                         : null,
-                    currentQuestionId: currentQuestion?['id']?.toString(),
+                    currentQuestionId: phase == 1
+                        ? (currentQuestion?['id']?.toString())
+                        : null,
+                    phase: phase,
                   ),
             scrollController: roomScroll,
             clock: u == null ? null : learningClock(u),

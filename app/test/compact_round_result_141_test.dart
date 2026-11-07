@@ -1,8 +1,10 @@
 import 'dart:convert';
 
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:schulpilot/api.dart';
+import 'package:schulpilot/coaching_panel.dart';
 import 'package:schulpilot/math_content.dart';
 import 'package:schulpilot/ui.dart';
 
@@ -116,6 +118,25 @@ void main() {
       );
     }
   }
+
+  testWidgets('completed round offers home without creating a new exercise', (
+    tester,
+  ) async {
+    final h = saved.Harness(data: round('repair'));
+    await h.open(tester, width: 390);
+    expect(find.text('Runde geschafft!'), findsOneWidget);
+    expect(find.text('Zur Startseite'), findsOneWidget);
+    final home = find.byKey(const ValueKey('round-home'));
+    expect(tester.getRect(home).height, greaterThanOrEqualTo(48));
+    expect(tester.getBottomLeft(home).dy, lessThan(844));
+    expect(home.hitTestable(), findsOneWidget);
+    expect(find.text('Pause machen'), findsNothing);
+    expect(find.byType(RoundQuestionCards), findsNothing);
+    await saved.click(tester, 'Zur Startseite');
+    expect(find.text('Heute'), findsOneWidget);
+    expect(h.calls, isEmpty);
+    await h.close(tester);
+  });
 
   testWidgets('independent results do not suggest that help was needed', (
     tester,

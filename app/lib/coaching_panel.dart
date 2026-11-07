@@ -446,7 +446,9 @@ class _ChildCoachingPanel extends StatelessWidget {
         ready && decision != 'parent_help' && !hasPractice ||
         coach != null && !ready && !pending && coach?['can_retry'] != true;
     final localOnly = coach?['local_only'] == true;
-    final headingText = localOnly
+    final headingText = unit['status'] == 'completed' && ready
+        ? 'Runde geschafft!'
+        : localOnly
         ? 'Deine Gedanken sind festgehalten.'
         : practiceFailed && unit['status'] == 'completed'
         ? 'Deine Runde ist abgeschlossen.'
@@ -700,6 +702,20 @@ class _ChildCoachingPanel extends StatelessWidget {
                         },
                       ),
                   ],
+                if (unit['status'] == 'completed') ...[
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    key: const ValueKey('round-home'),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size.fromHeight(48),
+                    ),
+                    onPressed: () {
+                      if (currentAction()) openRoute(context, '/app');
+                    },
+                    icon: const Icon(Icons.home_outlined),
+                    label: const Text('Zur Startseite'),
+                  ),
+                ],
                 if (coach?['next_review'] != null) ...[
                   SizedBox(height: 14),
                   MathText(
@@ -716,26 +732,37 @@ class _ChildCoachingPanel extends StatelessWidget {
         ),
         if (ready && questions.isNotEmpty) ...[
           const SizedBox(height: 12),
-          _roundResultScope(
-            state,
-            unit,
-            RoundQuestionCards(
-              questions: questions,
-              onQuestionExplanation:
-                  unit['status'] == 'completed' &&
-                      unit['supports_question_explanation'] == true
-                  ? onQuestionExplanation
-                  : null,
-            ),
+          ExpansionTile(
+            title: const Text('Deine Aufgaben'),
+            children: [
+              _roundResultScope(
+                state,
+                unit,
+                RoundQuestionCards(
+                  questions: questions,
+                  onQuestionExplanation:
+                      unit['status'] == 'completed' &&
+                          unit['supports_question_explanation'] == true
+                      ? onQuestionExplanation
+                      : null,
+                ),
+              ),
+            ],
           ),
         ],
-        if (!pending && !practicePending)
+        if (!pending &&
+            !practicePending &&
+            !(unit['status'] == 'completed' && ready))
           Padding(
             padding: EdgeInsets.symmetric(vertical: 8),
             child: OutlinedButton.icon(
               onPressed: () => openRoute(context, '/app'),
               icon: Icon(Icons.pause_rounded),
-              label: Text('Pause machen'),
+              label: Text(
+                unit['status'] == 'completed'
+                    ? 'Zur Startseite'
+                    : 'Pause machen',
+              ),
             ),
           ),
         if (fallback && childId is String) ...[

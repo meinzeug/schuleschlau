@@ -193,7 +193,7 @@ void main() {
       final h = Harness();
       final before = jsonEncode(h.unit);
       await h.open(t);
-      expect(find.text('Deine Runde ist abgeschlossen.'), findsOneWidget);
+      expect(find.text('Runde geschafft!'), findsOneWidget);
       expect(find.text('2 von 2 Aufgaben bearbeitet'), findsOneWidget);
       expect(find.text('1 unterstützt / erneut'), findsOneWidget);
       expect(find.text('1 weiter üben'), findsOneWidget);
@@ -326,7 +326,7 @@ void main() {
       await t.pump(const Duration(seconds: 30));
       await t.pumpAndSettle();
       expect(h.calls, hasLength(1));
-      expect(find.text('Deine Runde ist abgeschlossen.'), findsOneWidget);
+      expect(find.text('Runde geschafft!'), findsOneWidget);
       expect(find.text(rounds), findsOneWidget);
       expect(jsonEncode(h.unit), before);
       await h.close(t);

@@ -794,11 +794,93 @@ void main() {
       await tester.tap(find.text('Dein Lernweg'));
       await tester.pumpAndSettle();
       expect(find.text('Voraussetzung prüfen'), findsOneWidget);
-      expect(find.text('Noch nicht geprüft'), findsOneWidget);
+      expect(find.text('Hier bist du'), findsOneWidget);
+      expect(
+        find.textContaining('erst durch gespeicherte eigene Antworten'),
+        findsNothing,
+      );
+      await tester.tap(find.text('Mehr zum Lernstand'));
+      await tester.pumpAndSettle();
       expect(
         find.textContaining('erst durch gespeicherte eigene Antworten'),
         findsOneWidget,
       );
     },
   );
+  testWidgets('finished path never highlights a stale question', (
+    tester,
+  ) async {
+    await mount(
+      tester,
+      const LearningPathView(
+        phase: 2,
+        currentQuestionId: 'q1',
+        data: {
+          'version': 1,
+          'current_step_id': 'explanation',
+          'steps': [
+            {
+              'id': 'explanation',
+              'kind': 'explanation',
+              'title': 'Verstehen',
+              'status': 'skipped',
+            },
+            {
+              'id': 'practice',
+              'kind': 'practice',
+              'title': 'Üben',
+              'status': 'completed',
+              'question_ids': ['q1'],
+            },
+            {
+              'id': 'review',
+              'kind': 'review',
+              'title': 'Rückblick',
+              'status': 'completed',
+            },
+          ],
+        },
+      ),
+      width: 1200,
+    );
+    expect(find.text('Hier bist du'), findsNothing);
+    expect(find.text('Nicht angesehen'), findsOneWidget);
+    expect(find.text('Erledigt'), findsNWidgets(2));
+    expect(find.byIcon(Icons.check_circle_outline_rounded), findsNWidgets(2));
+    expect(find.text('Noch kein sicherer Lernnachweis'), findsNothing);
+  });
+
+  testWidgets('active question takes precedence over older plan cursor', (
+    tester,
+  ) async {
+    await mount(
+      tester,
+      const LearningPathView(
+        phase: 1,
+        currentQuestionId: 'q1',
+        data: {
+          'version': 1,
+          'current_step_id': 'explanation',
+          'steps': [
+            {
+              'id': 'explanation',
+              'kind': 'explanation',
+              'title': 'Verstehen',
+              'status': 'current',
+            },
+            {
+              'id': 'practice',
+              'kind': 'practice',
+              'title': 'Üben',
+              'status': 'available',
+              'question_ids': ['q1'],
+            },
+          ],
+        },
+      ),
+      width: 1200,
+    );
+    expect(find.text('Hier bist du'), findsOneWidget);
+    expect(find.byIcon(Icons.arrow_circle_right_outlined), findsOneWidget);
+  });
 }

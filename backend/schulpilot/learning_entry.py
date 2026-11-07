@@ -387,11 +387,14 @@ def public_path(db, unit, facts=None):
             continue
         competence_id = next((item["competence_id"] for item in plan["questions"] if item["id"] in questions and item.get("competence_id")), None)
         evidence = by_id.get(competence_id, {})
+        # A finished round need not force an optional explanation retroactively.
+        # Keep the distinction between viewed and skipped without reopening it.
+        status = "completed" if complete else "skipped" if unit.status == "completed" and kind == "explanation" else "available"
         steps.append({"id": identifier, "title": title, "kind": kind, "question_ids": questions,
-            "competence_id": competence_id, "status": "completed" if complete else "available",
+            "competence_id": competence_id, "status": status,
             "evidence": {"attempt_refs": evidence.get("evidence_refs", []), "status": evidence.get("status", "unknown"),
                 "confidence": evidence.get("confidence", "unverified")}})
-    current = next((item for item in steps if item["status"] != "completed"), None)
+    current = next((item for item in steps if item["status"] == "available"), None) if unit.status != "completed" else None
     if current:
         current["status"] = "current"
     return {"version": 1, "catalog_version": plan["catalog_version"], "source_signature": plan["source_signature"],

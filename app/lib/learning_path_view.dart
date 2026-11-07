@@ -8,6 +8,7 @@ import 'ui.dart';
 class LearningPathView extends StatelessWidget {
   final Json? data;
   final String? currentQuestionId;
+  final int? phase;
   final AppState? state;
   final Object? sourceKey;
   final bool Function()? isCurrent;
@@ -15,6 +16,7 @@ class LearningPathView extends StatelessWidget {
     super.key,
     this.data,
     this.currentQuestionId,
+    this.phase,
     this.state,
     this.sourceKey,
     this.isCurrent,
@@ -49,6 +51,18 @@ class LearningPathView extends StatelessWidget {
       );
     }
 
+    bool isCurrentStep(Map value) {
+      if (phase == 2) return false;
+      final status = value['status'];
+      if (status == 'completed' || status == 'skipped') return false;
+      if (phase == 0) return value['kind'] == 'explanation';
+      if (phase == 1 && currentQuestionId != null) {
+        return value['question_ids'] is List &&
+            (value['question_ids'] as List).contains(currentQuestionId);
+      }
+      return value['id'] == data?['current_step_id'];
+    }
+
     Widget content() => Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
@@ -56,11 +70,6 @@ class LearningPathView extends StatelessWidget {
         const Text(
           'Dein Lernweg',
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-        ),
-        const SizedBox(height: 8),
-        const Text(
-          'Bearbeitung zeigt, wo du bist. Lernnachweise entstehen erst durch gespeicherte eigene Antworten.',
-          style: TextStyle(fontSize: 13, height: 1.4),
         ),
         const SizedBox(height: 12),
         for (final value in values.take(80))
@@ -70,13 +79,10 @@ class LearningPathView extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Icon(
-                  value['id'] == data?['current_step_id'] ||
-                          (value['question_ids'] is List &&
-                              currentQuestionId != null &&
-                              (value['question_ids'] as List).contains(
-                                currentQuestionId,
-                              ))
+                  isCurrentStep(value)
                       ? Icons.arrow_circle_right_outlined
+                      : value['status'] == 'completed'
+                      ? Icons.check_circle_outline_rounded
                       : Icons.circle_outlined,
                   size: 22,
                   color: context.palette.teal,
@@ -87,35 +93,54 @@ class LearningPathView extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        value['title']?.toString() ??
-                            'Gespeicherter Lernschritt',
+                        value['title']?.toString() ?? 'Lernschritt',
                         style: const TextStyle(fontWeight: FontWeight.w700),
                       ),
                       Text(
-                        value['status_label']?.toString() ??
-                            switch (value['status']) {
-                              'completed' => 'Ablaufschritt bearbeitet',
-                              'current' => 'Hier bist du',
-                              _ => 'Noch offen',
-                            },
+                        isCurrentStep(value)
+                            ? 'Hier bist du'
+                            : value['status_label']?.toString() ??
+                                  switch (value['status']) {
+                                    'completed' => 'Erledigt',
+                                    'skipped' => 'Nicht angesehen',
+                                    _ => 'Noch offen',
+                                  },
                         style: const TextStyle(fontSize: 13),
                       ),
-                      evidence(value),
-                      if (value['evidence'] is Map &&
-                          value['evidence']['summary'] is String)
-                        Text(
-                          value['evidence']['summary'],
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: context.palette.muted,
-                          ),
-                        ),
                     ],
                   ),
                 ),
               ],
             ),
           ),
+        ExpansionTile(
+          title: const Text('Mehr zum Lernstand'),
+          children: [
+            const Text(
+              'Bearbeitung zeigt, wo du bist. Lernnachweise entstehen erst durch gespeicherte eigene Antworten.',
+              style: TextStyle(fontSize: 13, height: 1.4),
+            ),
+            for (final value in values.take(80))
+              ListTile(
+                title: Text(value['title']?.toString() ?? 'Lernschritt'),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    evidence(value),
+                    if (value['evidence'] is Map &&
+                        value['evidence']['summary'] is String)
+                      Text(
+                        value['evidence']['summary'],
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: context.palette.muted,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+          ],
+        ),
       ],
     );
     if (MediaQuery.sizeOf(context).width >= 1100 &&
