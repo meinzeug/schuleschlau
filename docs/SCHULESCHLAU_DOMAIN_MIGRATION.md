@@ -1,6 +1,6 @@
 # Vorbereitung: SchuleSchlau-Adresse
 
-Stand: 07.11.2026. Das Repository wurde auf `meinzeug/schuleschlau` umbenannt. Die öffentliche Anwendung läuft zum Prüfzeitpunkt weiterhin unter der bisherigen Adresse; die neue Adresse ist noch nicht für den regulären Betrieb freigegeben. Die ursprüngliche DNS-Antwort für die neue Adresse zeigte bei der Prüfung auf denselben Server. Ein erfolgreicher HTTPS-Aufruf auf der neuen Adresse war vor der Umstellung noch nicht möglich.
+Stand: 07.11.2026. Das Repository wurde auf `meinzeug/schuleschlau` umbenannt. Release `20261107T211835Z-6325f66` läuft unter `https://schuleschlau.dorfspy.de`; die bisherige Webadresse leitet weiter. Die alte API, Push-Pfade und APK-Adresse bleiben für bestehende Installationen erreichbar.
 
 ## Vorbereitete Änderungen
 
@@ -16,11 +16,15 @@ Die fachlich begrenzten Backendtests prüfen explizit erlaubte und fremde Origin
 
 Zusätzlich bestanden 36 Backendtests für Noten, Elternplanung und die Downloadadressen des Domainübergangs. Die Tests verwenden keine echten Familien- oder Kinderdaten.
 
-## Vor produktivem Wechsel
+Nach dem Wechsel antworteten neuer HTTPS-Healthcheck und Google-Status erfolgreich. Im Browser öffnete sich die SchuleSchlau-Anmeldung; der Google-Knopf führte zur Kontoauswahl mit der neuen Rücksprungadresse. Ein vollständiger Google-Login wurde dabei nicht abgeschlossen. Die neue und die alte APK-Adresse lieferten jeweils HTTP 200 mit demselben ETag; die beiden öffentlichen Manifeste verwiesen auf die jeweils passende Adresse und Version. Beide erlaubten Web-Origins erreichten die Eingabevalidierung; ein fremder Origin wurde mit 403 abgewiesen. Eine echte Android-Updateinstallation und eine sichtbare Push-Zustellung auf dem neuen Ursprung sind damit nicht nachgewiesen.
+
+Die Google-Konsole enthält den neuen Namen und die neuen Branding-Links. Die bei der Prüfung tatsächlich angezeigte Google-Kontoauswahl nannte noch den bisherigen Namen; das Google-Überprüfungscenter meldete, dass das konfigurierte Branding Nutzern noch nicht angezeigt wird. Die tatsächliche Veröffentlichung des neuen Google-Brandings bleibt deshalb offen.
+
+## Betriebliche Schritte und offene Nachprüfungen
 
 1. Der vorhandene OAuth-Webclient wurde im bestehenden Google-Projekt um `https://schuleschlau.dorfspy.de` und `https://schuleschlau.dorfspy.de/api/auth/google/callback` erweitert und nach dem Speichern erneut geöffnet. Die alte Adresse bleibt erhalten. Die aktive Serverkonfiguration verwendet die private Clientdatei; diese wurde mit Sicherung ebenfalls um die beiden Adressen ergänzt. Die Ausbreitung bei Google und der echte Anmeldeablauf sind noch zu prüfen.
 2. Der bestehende Firebase-Browserschlüssel hat laut Google-Konsole derzeit keine Anwendungseinschränkung; die API-Auswahl besteht bereits. Es wurde keine zusätzliche Beschränkung entfernt. Firebase-Webkonfiguration und tatsächliche Zustellung auf dem neuen Ursprung weiter prüfen; Opt-in und bestehende Rechte erhalten. Die fehlende Website-Einschränkung ist gesondert zu prüfen, bevor sie ohne Kenntnis aller Verbraucher verändert wird.
-3. Neue und alte TLS-Adressen sowie echte DNS-Auflösung prüfen. Vor dem Wechsel eine Sicherung der Betriebskonfiguration erstellen und den bestehenden Backup-/Restore-Guard mit den Zielquellen koordinieren.
-4. Betreiberkonfiguration abgestimmt setzen: `PUBLIC_URL=https://schuleschlau.dorfspy.de`, `PUBLIC_URL_ALIASES=https://schulpilot.dorfspy.de`, `ANDROID_DOWNLOAD_FILENAME=schuleschlau-android.apk`. Wechsel und Rückweg müssen bei Fehlern mit der Releaseaktivierung zusammenpassen. Die bestehende Anmelde- und Updatefunktion darf nicht stillschweigend ausfallen.
-5. Release sauber bauen, signieren und regulär deployen. In getrenntem künstlichem Konto neue Webanmeldung, Google-Flow, getrennte alte und neue Downloadmanifeste, neue Installation und Update einer alten signierten APK, Push-Registrierung/Anzeige sowie Weiterleitung fragmentgebundener Anmeldelinks tatsächlich prüfen. Zertifikate, Login und Push nicht anhand einzelner Unit-Tests als produktiv funktionsfähig ausgeben.
-6. Erst nach den bestandenen Prüfungen die neue Adresse als aktiven Betriebsstand dokumentieren. Alte technische Kompatibilität nur nach eigenständiger Migrations- und Rückbauprüfung entfernen.
+3. DNS und TLS beider Adressen wurden geprüft. Vor Aktivierung wurden die Betriebskonfiguration gesichert, die Restore-Runtimes auf Server und Offsite-Rechner aus demselben Commit vorbereitet und künstlich geprüft sowie eine echte Serversicherung, ein Offsite-Pull und eine getrennte Wiederherstellungsprobe erfolgreich ausgeführt. Auch nach Aktivierung waren Serversicherung und getrennte Wiederherstellungsprobe erfolgreich.
+4. Die Betreiberkonfiguration verwendet `PUBLIC_URL=https://schuleschlau.dorfspy.de`, `PUBLIC_URL_ALIASES=https://schulpilot.dorfspy.de` und `ANDROID_DOWNLOAD_FILENAME=schuleschlau-android.apk`. Eine Sicherung der vorigen Konfiguration liegt auf dem Server. Die alte Adresse ist für API, Downloads, Push-Worker und App-Links weiterhin vorgesehen.
+5. Release `1.38.107+262` wurde gebaut, signiert und aktiviert. Weiter offen: In getrenntem künstlichem Konto den vollständigen Google-Flow und die Webanmeldung, neue Installation und Update einer alten signierten APK, Push-Registrierung/Anzeige sowie Weiterleitung fragmentgebundener Anmeldelinks tatsächlich prüfen.
+6. Alte technische Kompatibilität nur nach eigenständiger Migrations- und Rückbauprüfung entfernen. Das neue Google-Branding und die Einschränkung des Firebase-Browserschlüssels benötigen getrennte Nachprüfung.

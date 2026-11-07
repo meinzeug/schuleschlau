@@ -1,8 +1,8 @@
 # SchuleSchlau
 
-SchuleSchlau, bisher Schulpilot, verbindet eigene Schulmaterialien mit verständlichen Erklärungen, anschaulichen Aufgaben und einem gespeicherten Lernweg – vor und nach der Schule. Kinder lernen in ihrem eigenen Zugang; Eltern begleiten Planung und Fortschritt. Flutter rendert dieselbe Oberfläche im Browser und nativ auf Android. Dahinter stehen eine eigene FastAPI-API, PostgreSQL und eine persistente Auftragsverarbeitung. Die bisherige Webadresse und bestehende technische Kennungen bleiben während der Umbenennung erhalten.
+SchuleSchlau verbindet eigene Schulmaterialien mit verständlichen Erklärungen, anschaulichen Aufgaben und einem gespeicherten Lernweg – vor und nach der Schule. Kinder lernen in ihrem eigenen Zugang; Eltern begleiten Planung und Fortschritt. Flutter rendert dieselbe Oberfläche im Browser und nativ auf Android. Dahinter stehen eine eigene FastAPI-API, PostgreSQL und eine persistente Auftragsverarbeitung. Bisherige technische Kennungen und alte App-Update-Adressen bleiben aus Kompatibilitätsgründen erhalten.
 
-**[Web-App öffnen](https://schulpilot.dorfspy.de)** · [Tatsächlicher Release- und Prüfstand](docs/STATUS.md) · [Betrieb](docs/PRODUCTION.md) · [Pädagogisches Modell](docs/LEARNING_MODEL.md)
+**[Web-App öffnen](https://schuleschlau.dorfspy.de)** · [Tatsächlicher Release- und Prüfstand](docs/STATUS.md) · [Betrieb](docs/PRODUCTION.md) · [Pädagogisches Modell](docs/LEARNING_MODEL.md)
 
 Die reguläre signierte Direct-APK ist auf der Website vor und nach der Anmeldung erhältlich. Die App ist keine Website in einer Android-WebView. Privates Schulmaterial liegt ausschließlich im eigenen Familienbereich.
 
