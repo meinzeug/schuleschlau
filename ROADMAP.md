@@ -1726,6 +1726,13 @@ Bestandteil des bestehenden Buildvertrags.
   **Abnahme:** Testprofil, Parallelität, Laufzeit, Fehler, p95-Latenz, Warteschlangentiefe, Ressourcen und Engpass samt Messzeitpunkt dokumentiert sind, realistische Betriebsgrenzen und Alarmwerte daraus abgeleitet und relevante Sperren/Idempotenz unter Konkurrenz bestätigt sind. Ohne Messung keine Nutzerzahl oder Skalierungszusage behaupten.
 - [ ] **P2 – Verkauf nur mit echten vollständigen Angaben freischalten**
 
+  - [x] Den sichtbaren Checkout bei einer unbestätigten Bestellung an den
+    ursprünglich abgesendeten Tarif und die Frühstartentscheidung binden;
+    veraltete Zustimmungs- und Bestellaktionen abweisen. Synthetische
+    Widgettests prüfen Wiederholung, Ablehnung und veraltete Aktionen;
+    reale Zahlung und vollständige Verkaufsabnahme bleiben offen.
+    [Nachweis](docs/CHECKOUT_UNCERTAIN_START_2026_11_07.md).
+
   Betreiberanschrift, Support, Kontoinhaber, IBAN, Steuerbehandlung, Vertrags-/Widerrufsfassung und E-Mail-Zustellung vom Betreiber klären und konfigurieren; Sperre bis dahin erhalten. Mit künstlichen Bestellungen wiederholte und parallele Anfragen, unveränderliche Preis-/Bank-/Vertrags-Snapshots, manuelle Bankprüfung, Laufzeit, Verlängerung und Erstattung prüfen.
 
   **Abnahme:** nur tatsächlich dokumentierter Zahlungseingang genau einmal freischaltet und Kinder-, Demo- und Play-Zugänge keine Käufe bewerben. `docs/STORE.md` und `docs/PAYMENTS.md` sind maßgeblich.
