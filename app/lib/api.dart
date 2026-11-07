@@ -42,7 +42,7 @@ class Api {
               ? '${Uri.base.origin}/api'
               : const String.fromEnvironment(
                   'API_URL',
-                  defaultValue: 'https://schulpilot.dorfspy.de/api',
+                  defaultValue: 'https://schuleschlau.dorfspy.de/api',
                 ));
 
   Map<String, String> get headers {

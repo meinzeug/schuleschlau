@@ -1,9 +1,15 @@
-schulpilot.dorfspy.de {
+schulpilot.dorfspy.de, schuleschlau.dorfspy.de {
   tls {
     issuer acme {
       dir https://acme-v02.api.letsencrypt.org/directory
     }
   }
+  # Keep the old API and signed downloads available for installed clients.
+  @legacy_web {
+    host schulpilot.dorfspy.de
+    not path /api /api/* /downloads/* /push/* /firebase-messaging-sw.js /.well-known/*
+  }
+  redir @legacy_web https://schuleschlau.dorfspy.de{uri} 308
   encode zstd gzip
   request_body {
     max_size 12MB
@@ -48,6 +54,13 @@ schulpilot.dorfspy.de {
     reverse_proxy 127.0.0.1:3240 {
       header_up X-Forwarded-For {remote_host}
     }
+  }
+  handle /downloads/schuleschlau-android.apk {
+    root * /opt/schulpilot/current/downloads
+    rewrite * /schulpilot-android.apk
+    header Content-Disposition "attachment"
+    header Cache-Control "public, max-age=3600"
+    file_server
   }
   handle_path /downloads/* {
     root * /opt/schulpilot/current/downloads

@@ -28,7 +28,10 @@ class AndroidDownload extends StatelessWidget {
               uri.port != origin.port ||
               uri.userInfo.isNotEmpty ||
               uri.fragment.isNotEmpty ||
-              uri.path != '/downloads/schulpilot-android.apk') {
+              !const [
+                '/downloads/schuleschlau-android.apk',
+                '/downloads/schulpilot-android.apk',
+              ].contains(uri.path)) {
             throw ApiError(
               'Die Downloadadresse ist nicht gültig. Bitte lade den aktuellen Stand neu.',
             );

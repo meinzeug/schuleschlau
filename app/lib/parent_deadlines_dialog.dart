@@ -132,7 +132,7 @@ class _DeadlinesState extends State<_Deadlines> {
       );
       if (!current) return;
       final result = await FileSaver.instance.saveAs(
-        name: 'schulpilot-termine',
+        name: 'schuleschlau-termine',
         bytes: bytes,
         fileExtension: 'ics',
         mimeType: MimeType.custom,

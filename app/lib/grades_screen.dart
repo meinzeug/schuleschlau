@@ -326,7 +326,7 @@ class _GradesScreenState extends State<GradesScreen> {
       final bytes = await widget.state.api.bytes(path);
       if (!current || child != widget.childId) return;
       final result = await FileSaver.instance.saveAs(
-        name: 'schulpilot-noten',
+        name: 'schuleschlau-noten',
         bytes: bytes,
         fileExtension: 'csv',
         mimeType: MimeType.csv,

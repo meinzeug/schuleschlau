@@ -293,7 +293,7 @@ def export_grades(child_id: str, subject: str | None = Query(None, max_length=80
         writer.writerow([csv_cell(row.subject), csv_cell(row.topic), row.kind, row.scale, str(row.value),
             row.weight, row.assessed_on or "", row.school_year_start or "", row.semester or "", csv_cell(row.note)])
     return Response(content="\ufeff" + output.getvalue(), media_type="text/csv; charset=utf-8",
-        headers={"Content-Disposition": 'attachment; filename="schulpilot-noten.csv"', "Cache-Control": "private, no-store"})
+        headers={"Content-Disposition": 'attachment; filename="schuleschlau-noten.csv"', "Cache-Control": "private, no-store"})
 
 
 @router.post("/children/{child_id}/grades", status_code=201)

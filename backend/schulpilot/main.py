@@ -234,7 +234,7 @@ async def security_headers(request: Request, call_next):
     if request.method in ("POST", "PUT", "PATCH", "DELETE"):
         origin = request.headers.get("origin")
         provider_webhook = request.url.path == "/api/payments/paypal/webhook"
-        if not provider_webhook and origin and origin != settings.public_url:
+        if not provider_webhook and origin and not settings.accepts_web_origin(origin):
             return JSONResponse({"detail": "Fremder Ursprung ist nicht erlaubt."}, status_code=403)
         if not provider_webhook and request.headers.get("x-schulpilot-request") != "1":
             return JSONResponse({"detail": "Sicherheitsheader fehlt."}, status_code=403)

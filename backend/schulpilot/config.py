@@ -9,6 +9,8 @@ class Settings:
     database_url: str = os.getenv("DATABASE_URL", "sqlite:///./data/schulpilot.sqlite")
     data_dir: Path = Path(os.getenv("DATA_DIR", "./data"))
     public_url: str = os.getenv("PUBLIC_URL", "http://localhost:8080").rstrip("/")
+    public_url_aliases: str = os.getenv("PUBLIC_URL_ALIASES", "")
+    android_download_filename: str = os.getenv("ANDROID_DOWNLOAD_FILENAME", "schulpilot-android.apk")
     environment: str = os.getenv("ENVIRONMENT", "development")
     web_dir: str = os.getenv("WEB_DIR", "")
     smtp_host: str = os.getenv("SMTP_HOST", "")
@@ -56,6 +58,11 @@ class Settings:
     default_child_limit: int = 4
     default_call_limit: int = 100
     default_budget_micros: int = 2_000_000
+
+    def accepts_web_origin(self, origin: str) -> bool:
+        # Exact, operator-configured origins only; never infer trust from Host.
+        aliases = {value.strip().rstrip("/") for value in self.public_url_aliases.split(",") if value.strip()}
+        return origin == self.public_url or origin in aliases
 
     @property
     def mail_ready(self):

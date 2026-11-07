@@ -222,7 +222,7 @@ class _AdminAuditExplorerState extends State<AdminAuditExplorer> {
           ].map(csv).join(';'),
       ];
       final result = await FileSaver.instance.saveAs(
-        name: 'schulpilot-betriebsprotokoll',
+        name: 'schuleschlau-betriebsprotokoll',
         bytes: Uint8List.fromList(
           utf8.encode('\ufeff${lines.join('\r\n')}\r\n'),
         ),

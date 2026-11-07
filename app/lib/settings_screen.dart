@@ -941,7 +941,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       );
                       if (!scope.current) return;
                       final path = await FileSaver.instance.saveAs(
-                        name: 'schulpilot-export',
+                        name: 'schuleschlau-export',
                         bytes: bytes,
                         fileExtension: 'zip',
                         mimeType: MimeType.zip,

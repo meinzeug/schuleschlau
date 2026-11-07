@@ -21,14 +21,14 @@ cd app
 app_version="$(python3 -c 'import re; print(re.search(r"^version:\s*(\S+)", open("pubspec.yaml").read(), re.M)[1])')"
 "$flutter_bin" pub get --enforce-lockfile
 "$flutter_bin" build web --release --no-pub --no-web-resources-cdn --csp --dart-define=APP_VERSION="$app_version"
-"$flutter_bin" build appbundle --flavor play --release --dart-define=API_URL=https://schulpilot.dorfspy.de/api --dart-define=APP_VERSION="$app_version" --no-pub
+"$flutter_bin" build appbundle --flavor play --release --dart-define=API_URL=https://schuleschlau.dorfspy.de/api --dart-define=APP_VERSION="$app_version" --no-pub
 cp build/app/outputs/bundle/playRelease/app-play-release.aab ../artifacts/schulpilot-play.aab
 cd ..
 python3 scripts/prepare_repair_source.py --commit "$build_commit" --output artifacts/repair-source.tar.gz
 python3 scripts/prepare_repair_source.py --commit "$build_commit" --output artifacts/repair-source.tar.gz --verify
 python3 scripts/release_attestation.py prepare "$build_commit"
 cd app
-SCHULPILOT_RELEASE_ATTESTATION_DIR="$PWD/build/release-attestation" "$flutter_bin" build apk --flavor direct --release --dart-define=API_URL=https://schulpilot.dorfspy.de/api --dart-define=APP_VERSION="$app_version" --no-pub
+SCHULPILOT_RELEASE_ATTESTATION_DIR="$PWD/build/release-attestation" "$flutter_bin" build apk --flavor direct --release --dart-define=API_URL=https://schuleschlau.dorfspy.de/api --dart-define=APP_VERSION="$app_version" --no-pub
 cp build/app/outputs/flutter-apk/app-direct-release.apk ../artifacts/schulpilot-android.apk
 chmod 600 ../artifacts/schulpilot-android.apk ../artifacts/schulpilot-play.aab
 cd ..

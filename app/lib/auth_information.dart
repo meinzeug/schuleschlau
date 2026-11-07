@@ -132,7 +132,7 @@ class _PrivacyReadingPanelState extends State<PrivacyReadingPanel> {
         await save(bytes);
       } else {
         await FileSaver.instance.saveFile(
-          name: 'schulpilot-datenschutz',
+          name: 'schuleschlau-datenschutz',
           bytes: bytes,
           fileExtension: 'txt',
           mimeType: MimeType.text,

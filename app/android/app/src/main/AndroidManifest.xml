@@ -63,6 +63,7 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="https" android:host="schulpilot.dorfspy.de" android:pathPrefix="/auth/google/complete" />
+                <data android:scheme="https" android:host="schuleschlau.dorfspy.de" android:pathPrefix="/auth/google/complete" />
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />

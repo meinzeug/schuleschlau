@@ -69,7 +69,7 @@ class _ExportState extends State<_Export> {
       );
       if (!mounted || !widget.current()) return;
       final result = await FileSaver.instance.saveAs(
-        name: 'schulpilot-kinderexport',
+        name: 'schuleschlau-kinderexport',
         bytes: bytes,
         fileExtension: 'zip',
         mimeType: MimeType.zip,

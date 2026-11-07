@@ -41,7 +41,7 @@ class AppUpdater(private val activity: Activity) {
         cancelled.set(false)
         executor.execute {
             try {
-                val connection = connect("https://schulpilot.dorfspy.de/api/app-release?check=${System.currentTimeMillis()}")
+                val connection = connect("https://schuleschlau.dorfspy.de/api/app-release?check=${System.currentTimeMillis()}")
                 val manifest = try {
                     connection.inputStream.use { input ->
                         val bytes = ByteArray(16385)
@@ -65,8 +65,8 @@ class AppUpdater(private val activity: Activity) {
                 )
                 require(release.size in 1..150L * 1024 * 1024 && release.sha.matches(Regex("[a-f0-9]{64}")))
                 val uri = Uri.parse(release.url)
-                require(uri.scheme == "https" && uri.host == "schulpilot.dorfspy.de" && uri.port == -1 &&
-                    uri.userInfo == null && uri.path == "/downloads/schulpilot-android.apk" && uri.fragment == null)
+                require(uri.scheme == "https" && uri.host == "schuleschlau.dorfspy.de" && uri.port == -1 &&
+                    uri.userInfo == null && uri.path == "/downloads/schuleschlau-android.apk" && uri.fragment == null)
                 if (release.code <= versionCode(installed)) {
                     directory.listFiles()?.forEach { it.delete() }
                     Log.i("SchulpilotUpdate", "Installed version is current")

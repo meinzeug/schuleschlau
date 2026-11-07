@@ -167,6 +167,22 @@ def test_csrf_and_secret_validation(api):
     assert value not in result.text and "x" * 200 not in result.text
 
 
+def test_only_explicit_origin_aliases_are_allowed(api):
+    from schulpilot.config import settings
+
+    original = settings.public_url_aliases
+    try:
+        object.__setattr__(settings, "public_url_aliases", "https://new.example, https://other.example/")
+        for origin in (settings.public_url, "https://new.example", "https://other.example"):
+            response = api.post("/api/auth/login", headers={"Origin": origin}, json={})
+            assert response.status_code == 422
+        for origin in ("https://new.example.attacker.invalid", "http://new.example", "null"):
+            response = api.post("/api/auth/login", headers={"Origin": origin}, json={})
+            assert response.status_code == 403
+    finally:
+        object.__setattr__(settings, "public_url_aliases", original)
+
+
 def test_account_deletion_cascades_and_revokes(api, household):
     user, child = household
     assert api.request("DELETE", "/api/account", json={"password": "wrong"}).status_code == 403

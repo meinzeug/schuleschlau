@@ -274,7 +274,7 @@ class _StoreOrderExportButtonState extends State<StoreOrderExportButton> {
                     await save(bytes);
                   } else {
                     await FileSaver.instance.saveFile(
-                      name: 'schulpilot-bestellausschnitt',
+                      name: 'schuleschlau-bestellausschnitt',
                       bytes: bytes,
                       fileExtension: 'json',
                       mimeType: MimeType.json,

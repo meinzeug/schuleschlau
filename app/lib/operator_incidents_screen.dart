@@ -244,7 +244,7 @@ class _OperatorIncidentsScreenState extends State<OperatorIncidentsScreen> {
         return;
       }
       final saved = await FileSaver.instance.saveAs(
-        name: 'schulpilot-reparatur-${repair['id']}',
+        name: 'schuleschlau-reparatur-${repair['id']}',
         bytes: bytes,
         fileExtension: 'patch',
         mimeType: MimeType.text,

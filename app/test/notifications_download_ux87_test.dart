@@ -216,6 +216,9 @@ void main() {
   for (final entry in <String, bool>{
     'https://example.invalid/downloads/schulpilot-android.apk?v=synthetic':
         true,
+    'https://example.invalid/downloads/schuleschlau-android.apk?v=synthetic':
+        true,
+    'https://other.invalid/downloads/schuleschlau-android.apk': false,
     'https://other.invalid/downloads/schulpilot-android.apk': false,
     'http://example.invalid/downloads/schulpilot-android.apk': false,
     'https://example.invalid/elsewhere.apk': false,

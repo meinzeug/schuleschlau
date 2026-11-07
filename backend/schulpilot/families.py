@@ -741,7 +741,7 @@ def export_one_child(child_id: str, include_photos: bool = True, p=Depends(paren
                 describe_missing_photos(archive, add_material_photos(archive, materials), missing_avatars)
         audit(db, p.user.id, "child.export" if include_photos else "child.export_without_photos", child.id)
         db.commit()
-        return FileResponse(output, media_type="application/zip", filename="schulpilot-kinderexport.zip",
+        return FileResponse(output, media_type="application/zip", filename="schuleschlau-kinderexport.zip",
             background=BackgroundTask(output.unlink, missing_ok=True))
     except BaseException:
         output.unlink(missing_ok=True)
@@ -816,7 +816,7 @@ def export_family(family_id: str, p=Depends(parent), db=Depends(get_db)):
         return FileResponse(
             output,
             media_type="application/zip",
-            filename="schulpilot-export.zip",
+            filename="schuleschlau-export.zip",
             background=BackgroundTask(output.unlink, missing_ok=True),
         )
     except BaseException:

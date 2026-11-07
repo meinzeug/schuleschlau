@@ -408,7 +408,7 @@ def export_deadlines(child_id: str, start: date | None = None, end: date | None 
     if len(rows) > 1000:
         raise HTTPException(422, "Bitte den Kalenderzeitraum eingrenzen. Eine Datei enthält höchstens 1.000 Termine.")
     stamp = datetime.fromtimestamp(now(), timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Schulpilot//Private Elterntermine//DE", "CALSCALE:GREGORIAN"]
+    lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//SchuleSchlau//Private Elterntermine//DE", "CALSCALE:GREGORIAN"]
     for row in rows:
         due = date.fromisoformat(row.due)
         label = "Verbindlicher Elternauftrag" if row.mandatory else "Freiwilliges Thema"
@@ -422,4 +422,4 @@ def export_deadlines(child_id: str, start: date | None = None, end: date | None 
             "TRANSP:TRANSPARENT", "END:VEVENT"])
     lines.append("END:VCALENDAR")
     return Response(fold_calendar(lines), media_type="text/calendar; charset=utf-8",
-        headers={"Content-Disposition": 'attachment; filename="schulpilot-termine.ics"', "Cache-Control": "private, no-store"})
+        headers={"Content-Disposition": 'attachment; filename="schuleschlau-termine.ics"', "Cache-Control": "private, no-store"})

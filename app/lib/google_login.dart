@@ -43,7 +43,11 @@ String nativeInitialLocation(String incoming) {
   }
   if (uri != null &&
       (uri.scheme.isEmpty ||
-          (uri.scheme == 'https' && uri.host == 'schulpilot.dorfspy.de')) &&
+          (uri.scheme == 'https' &&
+              const [
+                'schuleschlau.dorfspy.de',
+                'schulpilot.dorfspy.de',
+              ].contains(uri.host))) &&
       uri.path == '/auth/google/complete') {
     return Uri(path: uri.path, fragment: uri.fragment).toString();
   }

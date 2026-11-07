@@ -11,12 +11,20 @@ void main() {
       '/auth/google/complete#flow=$flow',
     );
     expect(
+      nativeInitialLocation(
+        'https://schuleschlau.dorfspy.de/auth/google/complete#flow=$flow',
+      ),
+      '/auth/google/complete#flow=$flow',
+    );
+    expect(
       nativeInitialLocation('/auth/google/complete#flow=$flow'),
       '/auth/google/complete#flow=$flow',
     );
     for (final path in [
       'https://evil.example.org/auth/google/complete#flow=$flow',
       'http://schulpilot.dorfspy.de/auth/google/complete#flow=$flow',
+      'http://schuleschlau.dorfspy.de/auth/google/complete#flow=$flow',
+      'https://schuleschlau.dorfspy.de.evil.example/auth/google/complete#flow=$flow',
       '/admin',
       '/settings',
       '/auth/google/start#request=untrusted',
