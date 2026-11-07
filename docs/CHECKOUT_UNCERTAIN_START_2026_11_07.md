@@ -19,6 +19,13 @@ Frühstartwahl, Tarif- und Aktionsrevision sowie die aktuelle Route beim
 Ausführen. Ein alter Button kann nach Änderung oder bereits erfolgtem
 Absenden keinen weiteren Bestell-POST auslösen.
 
+Zustimmung und Frühstart sind unabhängige Checkboxen. Ihre eigenen
+Revisionsprüfungen lassen beide expliziten Änderungen aus demselben gerenderten
+Frame in beliebiger Reihenfolge zu. Ein älterer Callback derselben Checkbox
+bleibt nach einer zwischenzeitlichen Änderung gesperrt; die Bestellaktion prüft
+weiter beide aktuellen Revisionen. Die Tests prüfen zudem, dass Callbackaufrufe
+während der darüber geöffneten Tarifübersicht den Checkout nicht verändern.
+
 Bei einem tatsächlichen, vom Server beantworteten 409-Konflikt wird der
 abgelehnte Bestellentwurf wie bisher verworfen. Die Frühstartauswahl kann
 dann wieder geändert werden; ein neuer Auftrag wird dadurch nicht automatisch

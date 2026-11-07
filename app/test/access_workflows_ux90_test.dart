@@ -305,8 +305,17 @@ void main() {
         item.onChanged!(true);
       }
       await t.pump();
+      final hiddenTerms = t
+          .widget<CheckboxListTile>(find.byType(CheckboxListTile).first)
+          .onChanged!;
+      final hiddenEarly = t
+          .widget<CheckboxListTile>(find.byType(CheckboxListTile).last)
+          .onChanged!;
       await press(t, 'Tarife vergleichen');
       expect(find.byType(OffersScreen), findsOneWidget);
+      hiddenTerms(false);
+      hiddenEarly(false);
+      await t.pump();
       await t.tap(find.byTooltip('Zurück'));
       await t.pumpAndSettle();
       expect(

@@ -683,7 +683,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                   v == null ||
                                   renderedCatalog != catalogVersion ||
                                   renderedTerms != termsVersion ||
-                                  renderedEarly != earlyVersion ||
                                   renderedIntent != intentVersion ||
                                   renderedAction != actionVersion ||
                                   renderedRoute?.isCurrent == false) {
@@ -708,7 +707,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                   busy ||
                                   submittedIntent != null ||
                                   renderedCatalog != catalogVersion ||
-                                  renderedTerms != termsVersion ||
                                   renderedEarly != earlyVersion ||
                                   renderedIntent != intentVersion ||
                                   renderedAction != actionVersion ||

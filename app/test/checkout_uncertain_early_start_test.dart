@@ -97,6 +97,32 @@ void main() {
           FilledButton,
           'Zahlungspflichtig bestellen',
         );
+        final originalTerms = tester.widget<CheckboxListTile>(terms).onChanged!;
+        final originalEarly = tester.widget<CheckboxListTile>(early).onChanged!;
+        if (responseStatus == 503) {
+          originalTerms(true);
+          originalEarly(true);
+        } else {
+          originalEarly(true);
+          originalTerms(true);
+        }
+        await tester.pump();
+        expect(tester.widget<CheckboxListTile>(terms).value, isTrue);
+        expect(tester.widget<CheckboxListTile>(early).value, isTrue);
+        // Each field invalidates its own old callback, even though an
+        // independent choice from the same rendered frame remains valid.
+        originalTerms(false);
+        originalEarly(false);
+        await tester.pump();
+        expect(tester.widget<CheckboxListTile>(terms).value, isTrue);
+        expect(tester.widget<CheckboxListTile>(early).value, isTrue);
+        final currentTerms = tester.widget<CheckboxListTile>(terms).onChanged!;
+        final currentEarly = tester.widget<CheckboxListTile>(early).onChanged!;
+        currentEarly(false);
+        currentTerms(false);
+        await tester.pump();
+        expect(tester.widget<CheckboxListTile>(terms).value, isFalse);
+        expect(tester.widget<CheckboxListTile>(early).value, isFalse);
         final capturedEarlyChange = tester
             .widget<CheckboxListTile>(early)
             .onChanged!;
