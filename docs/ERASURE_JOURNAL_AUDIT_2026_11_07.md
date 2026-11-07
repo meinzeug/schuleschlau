@@ -23,6 +23,17 @@ den Prozess und gibt gehaltene Dateideskriptoren frei. Bei ununterbrechbarem
 Kernel-I/O garantiert ein Signal keinen punktgenauen Abbruch; ein Betreiber
 muss diesen Zustand gesondert untersuchen. Der Vergleich und die
 Signaturprüfung laufen außerhalb der Sperre.
+
+Die 8-KiB-Grenze ist eine konservative **Betriebsgrenze dieses Werkzeugs**,
+keine fachliche Gültigkeitsgrenze: Reguläre Löschdetails für umfangreiche
+Notenimporte können größer sein. Dann bricht das Audit mit Exitcode 1 ab und
+liefert keinen vollständigen Vergleich. Das beweist weder einen beschädigten
+Datensatz noch einen Journalfehler; die Ursache muss mit einem gesondert
+geprüften Verfahren untersucht werden. Auch die 10.000-Zeilen- und
+64-MiB-Grenzen können einen ansonsten gültigen Bestand zurückweisen. Aus den
+Begrenzungen folgt keine feste RSS-Obergrenze: Datenbanktreiber, Python-Objekte,
+Dekodierung und Signaturprüfung können zusätzlichen Speicher benötigen.
+
 Die JSON-Ausgabe enthält nur
 Summen und keine Kennungen, Inhalte oder Schlüssel. Signatur-, Datenbank- und
 Lesefehler führen ohne Ausgabe des Fehlerinhalts zum Exitcode 1. Ausstehende,
