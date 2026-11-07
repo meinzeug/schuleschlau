@@ -4,6 +4,7 @@ import importlib.util
 import os
 import subprocess
 import sys
+import uuid
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -232,12 +233,24 @@ def test_real_postgres_read_only_comparison(tmp_path, monkeypatch):
         pytest.skip("Requires the isolated PostgreSQL test runner")
     url = make_url(url_string)
     socket = Path(url.query.get("host", ""))
-    if (url.database != "schulpilot_isolated_test" or not socket.is_relative_to("/dev/shm")
+    if (url.database != "schulpilot_isolated_test" or url.host or url.password
+            or set(url.query) != {"host", "port"} or url.query["port"] != "55440"
+            or not socket.is_relative_to("/dev/shm") or socket.name != "socket"
             or not socket.parent.name.startswith("schulpilot-isolated-pg-")):
         pytest.fail("Refusing a non-isolated PostgreSQL endpoint")
-    engine = create_engine(url)
-    ErasureRequest.__table__.create(engine)
+    for name in tuple(os.environ):
+        if name.startswith("PG"):
+            monkeypatch.delenv(name)
+    schema = "audit_" + uuid.uuid4().hex
+    control = create_engine(url)
+    with control.begin() as con:
+        identity = con.exec_driver_sql("SELECT current_database(), inet_server_addr(), current_setting('data_directory')").one()
+        if identity != ("schulpilot_isolated_test", None, str(socket.parent / "database")):
+            pytest.fail("Refusing a non-isolated PostgreSQL identity")
+        con.exec_driver_sql(f'CREATE SCHEMA "{schema}"')
+    engine = create_engine(url.update_query_dict({"options": f"-csearch_path={schema}"}))
     try:
+        ErasureRequest.__table__.create(engine)
         item = row()
         with engine.begin() as con:
             con.execute(ErasureRequest.__table__.insert().values(id=item.id, scope=item.scope, target=item.target,
@@ -280,5 +293,7 @@ def test_real_postgres_read_only_comparison(tmp_path, monkeypatch):
         with pytest.raises(ValueError, match="bounded audit size"):
             run_audit(ledger, "synthetic-key", engine)
     finally:
-        ErasureRequest.__table__.drop(engine)
         engine.dispose()
+        with control.begin() as con:
+            con.exec_driver_sql(f'DROP SCHEMA "{schema}" CASCADE')
+        control.dispose()
