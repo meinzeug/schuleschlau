@@ -58,7 +58,7 @@ def wire(payload):
     questions = []
     for task in providers.practice_tasks(payload):
         row = next(row for row in binding.candidates if row.get('question_core', {}).get('id') == task['id'])
-        questions.append({**copy.deepcopy(row['question_core']), 'hints': ['Schau dir die Gruppen an.'],
+        questions.append({**copy.deepcopy(row['question_core']), 'hints': row.get('question_hints', ['Bilde die Vielfachen.']),
             'explanation': row['text'], 'presentation': None, 'explanation_steps': [step(row)]})
     return binding, {'subject': 'Mathematik', 'topic': 'kgV und Teiler', 'explanation': intro['text'],
         'explanation_steps': [step(intro)], 'questions': questions}
@@ -87,7 +87,7 @@ def test_real_provider_transport_bound_to_goals_source_and_graphics(monkeypatch,
     assert all(q['explanation_steps'][0]['disclosure'] == 'solution' for q in result.data['questions'])
 
 
-@pytest.mark.parametrize('fault', ['missing', 'wrong', 'revision', 'goal', 'history', 'changed_answer', 'changed_scene'])
+@pytest.mark.parametrize('fault', ['missing', 'wrong', 'revision', 'goal', 'history', 'changed_answer', 'changed_scene', 'hidden_scene_hint'])
 def test_rejects_unproven_or_tampered_data(fault):
     payload = original()
     if fault == 'missing': payload['learning_goals'][1]['source_excerpt'] = 'Teilbarkeit'
@@ -105,6 +105,7 @@ def test_rejects_unproven_or_tampered_data(fault):
         with pytest.raises(ValueError): plan.validate_history(body, data, ['Was sind die Teiler von 12?'])
         return
     if fault == 'changed_answer': data['questions'][1]['answer'] = '9'
+    if fault == 'hidden_scene_hint': data['questions'][1]['hints'] = ['Schau dir die Gruppen in der Grafik an.']
     if fault == 'changed_scene': data['questions'][1]['explanation_steps'][0]['presentation']['blocks'][0]['scene']['objects'][0]['label'] = '●'
     with pytest.raises(ValueError): plan.validate_output(body, data)
 
@@ -172,3 +173,14 @@ def test_rejects_more_specific_divisibility_goals(label):
     task = {'id': 'q2', 'learning_goal_id': 'g2', 'label': label, 'source_excerpt': '3 · 4 = 12'}
     ctx = plan.add_references(RecipeLookup(), original())['visual_context']
     assert product.compile_candidate(ctx, task) is None
+
+
+def test_divisor_hint_is_available_without_solution_graphic():
+    payload = prepared()
+    binding, output = wire(payload)
+    item = next(item for item in payload[plan.KEY]['tasks'] if item['kind'] == 'divisor')
+    question = next(q for q in output['questions'] if q['id'] == item['core']['id'])
+    assert question['hints'] == ['Zähle in 3er-Schritten bis 12. Wie viele Schritte sind es?']
+    assert question['explanation_steps'][0]['disclosure'] == 'solution'
+    data = binding.hydrate(output)
+    plan.validate_output(payload, data)

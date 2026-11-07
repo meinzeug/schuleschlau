@@ -104,7 +104,8 @@ def _plan(payload):
     return {'version': 1, 'revision': REVISION, 'context_digest': _digest(context),
         'history_digest': _digest(h), 'rule': rule, 'intro': [2, 4],
         'tasks': [{'kind': 'kgv', 'task': ktask, 'core': kcore, 'pair': list(pair)},
-            {'kind': 'divisor', 'task': dtask, 'core': dcore, 'candidate_id': dcandidate['id']}]}
+            {'kind': 'divisor', 'task': dtask, 'core': dcore, 'candidate_id': dcandidate['id'],
+                'hints': [product.safe_hint(context, dtask)]}]}
 
 
 def prepare(payload):
@@ -130,6 +131,8 @@ def _candidates(payload):
                 raise ValueError(INVALID)
             row = generated[1]
         row['question_core'] = copy.deepcopy(item['core'])
+        if item['kind'] == 'divisor':
+            row['question_hints'] = copy.deepcopy(item['hints'])
         rows.append(row)
     return rows
 
@@ -174,6 +177,8 @@ def bind_schema(schema, payload):
         props['options'].update(minItems=0, maxItems=0)
         props['accepted'].update(minItems=0, maxItems=0)
         props['presentation'] = {'type': 'null'}
+        if 'question_hints' in candidate:
+            props['hints'].update(minItems=1, maxItems=1, items={'type': 'string', 'enum': candidate['question_hints']})
         return node
     bind_candidates(wrapper, binding, question_kinds=('scene',), question_binding=bind_question)
     choices = {row['id']: row for row in rows}
@@ -208,6 +213,8 @@ def validate_output(payload, data):
         if item['kind'] == 'kgv':
             multiples.validate_step(q['explanation_steps'][0], payload['visual_context'], q)
         else:
+            if q.get('hints') != item['hints']:
+                raise ValueError(INVALID)
             product.validate_step(q['explanation_steps'][0], payload['visual_context'], q, item['task'])
 
 

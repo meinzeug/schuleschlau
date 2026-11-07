@@ -77,6 +77,14 @@ def _evidence(context, task):
     return sources[0], quote, a, b, result
 
 
+def safe_hint(context, task):
+    evidence = _evidence(context, task)
+    if evidence is None:
+        raise ValueError(ERROR)
+    _, _, a, _, result = evidence
+    return f'Zähle in {a}er-Schritten bis {result}. Wie viele Schritte sind es?'
+
+
 def _graphic(quote, a, b, result):
     ids = [f'group{i}' for i in range(1, a + 1)]
     labels = [' '.join(['●'] * b) for _ in ids]
