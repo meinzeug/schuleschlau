@@ -83,7 +83,8 @@ def test_fraction_review_without_arrow_uses_existing_grounded_fraction_recipe(mo
     from test_graphic_native_transport import subset_record
     from test_model_routing import policy
     from test_presentation_capability_paths import _config, _submitted, _transport
-    from test_visual_references import SOURCE as FRACTION_SOURCE, question, step
+    from test_visual_references import SOURCE as FRACTION_SOURCE
+    from test_visual_references import question, step
 
     with DB() as db:
         refs = candidates(db, "Mathematik", FRACTION_SOURCE)
