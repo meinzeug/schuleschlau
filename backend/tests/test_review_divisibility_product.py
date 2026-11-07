@@ -108,3 +108,28 @@ def test_rejects_hidden_correction_and_blocked_source():
     ctx = context()
     ctx["sources"][0]["factual_status"] = "blocked"
     assert product.compile_candidate(ctx, task()) is None
+
+
+@pytest.mark.parametrize(
+    "full_source",
+    [
+        "3 · 4 = 12 + 1",
+        "3 · 4 = 12 × 2",
+        "3 · 4 = 12 = 13",
+        "3 · 4 = 12 \\cdot 2",
+        "2 + 3 · 4 = 12",
+        "−3 · 4 = 12",
+        "3 · 4 = 120",
+        "3 · 4 = 12; 3 · 4 = 12",
+    ],
+)
+def test_short_quote_cannot_hide_a_longer_source_expression(full_source):
+    ctx = context()
+    ctx["sources"][0]["content"] = full_source
+    assert product.compile_candidate(ctx, task()) is None
+
+
+def test_short_quote_still_accepts_standalone_source_example():
+    ctx = context()
+    ctx["sources"][0]["content"] = "Teilerbeispiel: 3 · 4 = 12"
+    assert product.compile_candidate(ctx, task()) is not None

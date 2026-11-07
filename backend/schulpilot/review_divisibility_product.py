@@ -17,7 +17,7 @@ RECIPE = 'math.divisibility.verified_product'
 VERSION = 1
 REVISION = 'review-divisibility-product-1'
 ERROR = 'Die Teilbarkeitsaufgabe ist nicht eindeutig an das bestätigte Beispiel gebunden.'
-PRODUCT = re.compile(r'(?<![\w.,/\-])([2-5])\s*(?:·|⋅|×|\*|\\cdot)\s*([2-6])\s*=\s*([0-9]{1,2})(?![\w.,/])(?!(?:\s*[+\-−×⋅·*/=:]))')
+PRODUCT = re.compile(r'(?<![\w.,/\-])([2-5])\s*(?:·|⋅|×|\*|\\cdot)\s*([2-6])\s*=\s*([0-9]{1,2})(?![\w.,/])(?!(?:\s*(?:[+\-−×⋅·*/=:∪∩]|\\(?:cdot|times|div|cup|cap))))')
 WARNING = re.compile(r'\b(?:nicht|kein\w*|falsch\w*|durchgestrichen\w*|unsicher\w*|unleserlich\w*)\b', re.I)
 
 
@@ -70,9 +70,22 @@ def _evidence(context, task):
         and isinstance(s.get('content'), str) and quote in s['content']]
     if len(sources) != 1:
         return None
-    # A fragment may omit a correction or strikeout in the same source line.
-    lines = [line for line in sources[0]['content'].splitlines() if quote in line]
-    if len(lines) != 1 or WARNING.search(lines[0]) or any(mark in lines[0] for mark in ('~~', '<s>', '</s>', '̶')):
+    # Re-run the literal match at its original position in the full source.
+    # A shorter goal quote must not hide an operator before or after it.
+    content = sources[0]['content']
+    if content.count(quote) != 1:
+        return None
+    quote_start = content.index(quote)
+    source_start = quote_start + matches[0].start()
+    source_match = PRODUCT.match(content, source_start)
+    if source_match is None or source_match.end() != quote_start + matches[0].end():
+        return None
+    line_start = content.rfind('\n', 0, source_start) + 1
+    line_end = content.find('\n', source_match.end())
+    line = content[line_start:line_end if line_end >= 0 else len(content)]
+    prefix = content[line_start:source_start]
+    if (WARNING.search(line) or any(mark in line for mark in ('~~', '<s>', '</s>', '̶'))
+            or re.search(r'(?:[+\-−×⋅·*/=]|\\(?:cdot|times|div))\s*$', prefix)):
         return None
     return sources[0], quote, a, b, result
 
