@@ -29,7 +29,6 @@ try:
     from photo_release import (
         ensure_isolated_identity,
         inspect_photo,
-        restore_previous_photo,
         start_candidate,
         stop_old_photo,
         undo_candidate_enable,
@@ -39,7 +38,6 @@ except ImportError:
     from deploy.photo_release import (
         ensure_isolated_identity,
         inspect_photo,
-        restore_previous_photo,
         start_candidate,
         stop_old_photo,
         undo_candidate_enable,
@@ -66,7 +64,7 @@ caddy = Path("/etc/caddy/Caddyfile")
 fragment = Path("/etc/caddy/schulpilot.caddy")
 migration_started = False
 new_writers_may_have_started = False
-schema_before = None
+writer_stop_attempted = False
 environment = None
 unit_snapshots = None
 photo_previous = None
@@ -178,25 +176,6 @@ def checked_backup():
     raise RuntimeError("Pre-deployment database backup failed")
 
 
-def database_revision():
-    """Read only the schema marker, never database credentials or private data."""
-    script = (
-        "from sqlalchemy import create_engine, inspect, text; import os; "
-        "e=create_engine(os.environ['DATABASE_URL']); "
-        "c=e.connect(); "
-        "print(','.join(sorted(c.execute(text('SELECT version_num FROM alembic_version')).scalars())) "
-        "if inspect(e).has_table('alembic_version') else '<empty>')"
-    )
-    result = subprocess.run(
-        ["runuser", "-u", "schulpilot", "--", str(release / "venv/bin/python"), "-c", script],
-        cwd=release / "backend",
-        env=environment,
-        capture_output=True,
-        text=True,
-        check=True,
-    )
-    return result.stdout.strip()
-
 
 operation = "activate" if token else "rollback"
 try:
@@ -252,6 +231,7 @@ try:
             if previous:
                 # Stop first: a crash/restart must not resolve the new current pointer
                 # against the old database, including on an explicit code rollback.
+                writer_stop_attempted = True
                 subprocess.run(["systemctl", "stop", "schulpilot-api", "schulpilot-worker"], check=True)
             stop_old_photo(photo_previous)
             if previous:
@@ -300,7 +280,6 @@ try:
             if previous:
                 verify_restore_configuration(release, rollback=rollback_compatible, active=previous, check_interpreter=True)
             if not rollback_compatible:
-                schema_before = database_revision()
                 migration_started = True
                 subprocess.run(
                     ["runuser", "-u", "schulpilot", "--", str(release / "venv/bin/python"), "-m", "schulpilot.migrate"],
@@ -349,9 +328,9 @@ try:
                 update_lock(base, token, stage="activated", release_id=release_id)
             print("SCHULPILOT activated: " + release_id)
         except Exception:
-            if new_writers_may_have_started:
-                # Stop possible writers before any recovery checks; retain this release
-                # as the reader for JSON it may already have stored.
+            if writer_stop_attempted or new_writers_may_have_started:
+                # A failed stop may already have stopped only one unit. Never
+                # automatically start either writer on this failure path.
                 subprocess.run(["systemctl", "stop", "schulpilot-api", "schulpilot-worker"], check=False)
             if photo_candidate_started:
                 try:
@@ -360,17 +339,15 @@ try:
                     print("Could not stop candidate photo service; verify it before restarting writers.", file=sys.stderr)
                     # Do not restart previous writers while an uncertain decoder runs.
                     new_writers_may_have_started = True
+                    subprocess.run(["systemctl", "stop", "schulpilot-api", "schulpilot-worker"], check=False)
             caddy.write_text(before)
             if fragment_before is not None:
                 fragment.write_text(fragment_before)
             elif fragment.exists():
                 fragment.unlink()
+            # An attempted migration may persist changes before its schema
+            # marker changes. Schema equality alone cannot authorize rollback.
             compatible = not migration_started and not new_writers_may_have_started
-            if migration_started and not new_writers_may_have_started:
-                try:
-                    compatible = database_revision() == schema_before
-                except Exception:
-                    compatible = False
             if previous and compatible:
                 try:
                     if unit_snapshots is not None:
@@ -380,25 +357,22 @@ try:
                     temporary.unlink(missing_ok=True)
                     temporary.symlink_to(previous)
                     temporary.replace(current)
-                    if photo_previous:
-                        restore_previous_photo(photo_previous)
-                    subprocess.run(["systemctl", "restart", "schulpilot-api", "schulpilot-worker"], check=True)
+                    if writer_stop_attempted:
+                        print("Previous definitions restored; inspect writer, photo and timer state before explicit restart.", file=sys.stderr)
                 except Exception:
                     subprocess.run(["systemctl", "stop", "schulpilot-api", "schulpilot-worker"], check=False)
-                    print("Automatic rollback incomplete; services stopped. Restore service definitions and verify the active release before restart.", file=sys.stderr)
+                    print("Automatic rollback incomplete; inspect service state and restore definitions before any restart.", file=sys.stderr)
             else:
-                if not new_writers_may_have_started:
-                    subprocess.run(["systemctl", "stop", "schulpilot-api", "schulpilot-worker"], check=False)
                 if new_writers_may_have_started:
                     print(
-                        "New release writers may have persisted incompatible JSON: services stopped and current release retained. "
+                        "New release writers may have persisted incompatible JSON: stop requested and current release retained. "
                         "Use a compatible forward fix or explicitly verify data/code compatibility before any rollback; "
                         "unchanged SQL schema and --rollback-compatible are not sufficient.",
                         file=sys.stderr,
                     )
                 elif migration_started and not compatible:
                     print(
-                        "Schema changed: services stopped. Restore the verified pre-deployment database backup before activating the previous release.",
+                        "Migration was attempted; schema or data may have changed. Stop requested. Verify a recovery path before activating the previous release.",
                         file=sys.stderr,
                     )
             subprocess.run(["systemctl", "reload", "caddy"], check=False)
