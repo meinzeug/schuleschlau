@@ -986,6 +986,15 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – Alle Kinderansichten sprachlich und in ihrer Bedienung entrümpeln**
 
+  - [x] **Prüfhinweise bei vorhandenen Nacharbeitsaufgaben bündeln.** In der
+    Kinderansicht weist ein sichtbarer, aufklappbarer Hinweis auf unklare
+    Stellen hin und erhält die einzelnen Angaben samt Quellenbezug. Zusätzliche
+    Analyseaufträge liegen in einem aufklappbaren Bereich; vorhandene Aufgaben sind
+    früher erreichbar. Bei fehlenden Aufgaben bleiben die Schritte unmittelbar
+    sichtbar. Eltern erhalten die Einzelhinweise weiterhin direkt. Tests prüfen
+    beide Rollen und dass beim Öffnen keine KI-Verarbeitung startet. Die
+    vollständige kindgerechte Überarbeitung der Klassenarbeiten bleibt offen.
+
   - [x] **Wortkarten und Wortschatzrunde klarer darstellen.** Die kompakte
     Wortliste kündigt das Öffnen der Wortansicht zutreffend an; aufdecken
     bleibt darin eine gesonderte bewusste Aktion. In Wortschatzrunden wird

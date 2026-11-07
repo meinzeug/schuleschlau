@@ -957,10 +957,37 @@ class _ExamReviewPanelState extends State<ExamReviewPanel> {
     ],
   );
 
+  Widget analysisActions() => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      if (data!['can_analyze'] == true)
+        ActionButton(
+          label: 'Einzelne Aufgaben besprechen lassen',
+          enabled: !busy,
+          icon: Icons.auto_awesome_outlined,
+          onPressed: analyze,
+        ),
+      if (data!['can_analyze_more'] == true)
+        OutlinedButton.icon(
+          onPressed: busy ? null : () => analyze(append: true),
+          icon: const Icon(Icons.add_to_photos_outlined),
+          label: const Text('Weiteren kleinen KI-Auszug wählen'),
+        ),
+    ],
+  );
+
   @override
   Widget build(BuildContext context) {
     scope.bind(context);
     if (!scope.owner) return const SizedBox.shrink();
+    final compactReview =
+        state.isChild && data?['status'] == 'ready' && tasks.isNotEmpty;
+    final uncertainties = <String>[
+      for (final value in (data?['uncertainties'] as List? ?? [])) '$value',
+      for (final page in examObjects(data?['pages']))
+        for (final value in (page['uncertainties'] as List? ?? []))
+          '${page['title'] ?? 'Arbeitsseite'} · noch prüfen: $value',
+    ];
     return SchulbuddyPageContext(
       contextValue: SchulbuddyContext(
         'exams',
@@ -996,8 +1023,25 @@ class _ExamReviewPanelState extends State<ExamReviewPanel> {
                 ),
             ] else if ((data!['summary'] ?? '').toString().isNotEmpty)
               LearningContent('${data!['summary']}'),
-            for (final uncertainty in (data!['uncertainties'] as List? ?? []))
-              Notice('$uncertainty'),
+            if (compactReview && uncertainties.isNotEmpty)
+              ExpansionTile(
+                key: ValueKey((
+                  'exam-review-uncertainties',
+                  data!['context_revision'],
+                )),
+                leading: const Icon(Icons.info_outline_rounded),
+                title: const Text('Einige Stellen sind unklar'),
+                subtitle: const Text(
+                  'Tippe hier und vergleiche sie mit dem Foto.',
+                ),
+                children: [
+                  for (final uncertainty in uncertainties)
+                    Notice(uncertainty, warning: true),
+                ],
+              )
+            else
+              for (final uncertainty in (data!['uncertainties'] as List? ?? []))
+                Notice('$uncertainty'),
             if (data!['error'] is String) Notice(data!['error']),
             if (editable)
               if (state.isChild && tasks.isNotEmpty && photos.isEmpty)
@@ -1084,24 +1128,26 @@ class _ExamReviewPanelState extends State<ExamReviewPanel> {
                   ),
                 ),
               ),
-            for (final page in examObjects(data!['pages']))
-              for (final uncertainty in (page['uncertainties'] as List? ?? []))
-                Notice(
-                  '${page['title'] ?? 'Arbeitsseite'} · noch prüfen: $uncertainty',
-                ),
-            if (data!['can_analyze'] == true)
-              ActionButton(
-                label: 'Einzelne Aufgaben besprechen lassen',
-                enabled: !busy,
-                icon: Icons.auto_awesome_outlined,
-                onPressed: analyze,
-              ),
-            if (data!['can_analyze_more'] == true)
-              OutlinedButton.icon(
-                onPressed: busy ? null : () => analyze(append: true),
-                icon: const Icon(Icons.add_to_photos_outlined),
-                label: const Text('Weiteren kleinen KI-Auszug wählen'),
-              ),
+            if (!compactReview)
+              for (final page in examObjects(data!['pages']))
+                for (final uncertainty
+                    in (page['uncertainties'] as List? ?? []))
+                  Notice(
+                    '${page['title'] ?? 'Arbeitsseite'} · noch prüfen: $uncertainty',
+                  ),
+            if (data!['can_analyze'] == true ||
+                data!['can_analyze_more'] == true)
+              if (compactReview)
+                ExpansionTile(
+                  key: ValueKey((
+                    'exam-review-analysis-actions',
+                    data!['context_revision'],
+                  )),
+                  title: const Text('Weitere Aufgaben vorbereiten'),
+                  children: [analysisActions()],
+                )
+              else
+                analysisActions(),
             if ([
               'queued',
               'running',

@@ -375,6 +375,89 @@ void main() {
       'Nunito',
     )..addFont(rootBundle.load('assets/fonts/Nunito.ttf'))).load();
   });
+  testWidgets(
+    'child sees one clear uncertainty notice and can inspect every detail',
+    (tester) async {
+      final fixture = Fixture();
+      fixture.report = {
+        ...fixture.report,
+        'uncertainties': ['Eine Zuordnung ist unklar.'],
+        'pages': [
+          {
+            'id': sourceId,
+            'title': 'Seite eins',
+            'confirmed': true,
+            'uncertainties': [
+              'Zeile eins unleserlich.',
+              'Zeile zwei unleserlich.',
+            ],
+          },
+        ],
+        'can_analyze_more': true,
+      };
+      await fixture.mount(tester, selected: 'exam', tab: 'review');
+      expect(find.text('Einige Stellen sind unklar'), findsOneWidget);
+      expect(
+        find.text('Tippe hier und vergleiche sie mit dem Foto.'),
+        findsOneWidget,
+      );
+      expect(find.text('Eine Zuordnung ist unklar.'), findsNothing);
+      expect(
+        find.text('Wie heißt ein Teil von zwei gleichen Teilen?'),
+        findsOneWidget,
+      );
+      expect(find.text('Weiteren kleinen KI-Auszug wählen'), findsNothing);
+      await tap(tester, find.text('Einige Stellen sind unklar'));
+      expect(find.text('Eine Zuordnung ist unklar.'), findsOneWidget);
+      expect(find.textContaining('Zeile eins unleserlich.'), findsOneWidget);
+      expect(find.textContaining('Zeile zwei unleserlich.'), findsOneWidget);
+      await tap(tester, find.text('Weitere Aufgaben vorbereiten'));
+      expect(find.text('Weiteren kleinen KI-Auszug wählen'), findsOneWidget);
+      expect(fixture.writes, isEmpty);
+    },
+  );
+  testWidgets('parent retains direct individual uncertainty details', (
+    tester,
+  ) async {
+    final fixture = Fixture(role: 'parent');
+    fixture.report = {
+      ...fixture.report,
+      'uncertainties': ['Eine Zuordnung ist unklar.'],
+      'pages': [
+        {
+          'id': sourceId,
+          'title': 'Seite eins',
+          'confirmed': true,
+          'uncertainties': ['Zeile eins unleserlich.'],
+        },
+      ],
+    };
+    await fixture.mount(tester, selected: 'exam', tab: 'review');
+    expect(find.text('Eine Zuordnung ist unklar.'), findsOneWidget);
+    expect(find.textContaining('Zeile eins unleserlich.'), findsOneWidget);
+    expect(find.text('Einige Stellen sind unklar'), findsNothing);
+    expect(fixture.writes, isEmpty);
+  });
+  testWidgets('uncertainties remain readable at 320 pixels and double text', (
+    tester,
+  ) async {
+    final fixture = Fixture();
+    fixture.report = {
+      ...fixture.report,
+      'uncertainties': ['Die Zuordnung zur Antwort ist unklar.'],
+    };
+    await fixture.mount(
+      tester,
+      selected: 'exam',
+      tab: 'review',
+      size: const Size(320, 568),
+      scale: 2,
+    );
+    await tap(tester, find.text('Einige Stellen sind unklar'));
+    expect(find.text('Die Zuordnung zur Antwort ist unklar.'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    expect(fixture.writes, isEmpty);
+  });
   testWidgets('two separate tabs read saved plans without preparing work', (
     tester,
   ) async {

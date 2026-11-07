@@ -59,6 +59,7 @@ void main() {
     'review shows the actual work title and subject before its photo controls',
     (tester) async {
       final value = fixture.Fixture();
+      value.report = {...value.report, 'tasks': []};
       await value.mount(tester, selected: 'exam', tab: 'review');
       expect(find.text('Bruchtest vorbereiten'), findsOneWidget);
       expect(find.text('Mathematik · Klassenarbeit (KA)'), findsOneWidget);

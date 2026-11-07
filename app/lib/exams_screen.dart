@@ -775,6 +775,12 @@ class _ExamsBodyState extends State<_ExamsBody> {
                     icon: const Icon(Icons.arrow_back),
                     label: const Text('Alle Arbeiten'),
                   ),
+                  if (state.isChild)
+                    IconButton(
+                      tooltip: 'Arbeiten aktualisieren',
+                      onPressed: loading ? null : load,
+                      icon: const Icon(Icons.refresh),
+                    ),
                   if (state.isChild) const PageToolsButton(),
                 ],
               ),
