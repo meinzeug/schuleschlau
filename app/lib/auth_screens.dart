@@ -788,6 +788,10 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
           authenticationRevision: authenticationRevision,
         );
         if (!mounted || revision != formRevision) return;
+        // This form no longer owns the completed authentication intent. Its
+        // disposal must not invalidate reads started by the accepted account.
+        authenticationRevision = null;
+        authenticationState = null;
         TextInput.finishAutofillContext(shouldSave: true);
         final next = uri.queryParameters['next'] ?? '';
         context.go(
