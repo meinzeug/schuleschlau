@@ -188,8 +188,9 @@ class _SavedVisualExplanationState extends State<SavedVisualExplanation>
       if (!current ||
           request != epoch ||
           !identical(currentGate, gate) ||
-          (requestUncertain && !explicit))
+          (requestUncertain && !explicit)) {
         return;
+      }
       final readGeneration = currentGate.generation;
       final previousSignature = signature;
       final previousRevision =
