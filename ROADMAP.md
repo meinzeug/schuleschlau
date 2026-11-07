@@ -1216,6 +1216,15 @@ Die folgenden Punkte beschreiben ausstehende, wiederholbare Betriebs- und Freiga
   nach damaligem Kenntnisstand als erfüllt angesehen; der spätere oben
   beschriebene Gegenbeweis hat diese Gesamtbewertung aufgehoben.
 
+  - [x] **Unbelegten manuellen Restore-Abgleich ausdrücklich begrenzen.**
+    Das Abgleichwerkzeug beendet sich ohne `--diagnostic-only` vor Änderungen
+    an Datenbank und Dateikopie. Der ausdrücklich isolierte Diagnoseweg bleibt
+    für Prüfungen verfügbar und warnt vor Aktivierung. Künstliche Tests prüfen
+    fehlende und veraltete Journale sowie unveränderte Zielkopien. Alte
+    Werkzeugversionen und manuell aktivierte Datenbanken werden dadurch nicht
+    technisch gesperrt; der Zwei-Host-Fence und der Vollständigkeitsnachweis
+    bleiben Teil des offenen Hauptpunkts.
+
   **Nachweis 01.11.2026:** Am 01.11.2026 um 15:51:58 UTC lief die isolierte
   Wiederherstellungsprobe (`schulpilot-restore-check.service`) auf dem Zielserver
   `schulpilot.dorfspy.de` mit dem aktiven Release `1.38.58+213` auf dem neuesten
