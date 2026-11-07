@@ -46,7 +46,7 @@ def test_binds_math_goal_and_solution_only():
 
 
 @pytest.mark.parametrize('quote', ['3 · 4 = 13', '3 · 4 = 12 falsch', '3 · 4 = 12 und 2 · 6 = 12',
-    'Teilbarkeit', '3 : 4 = 12', '23 · 4 = 12', '-3 · 4 = 12', '3 · 4 = 12,5'])
+    'Teilbarkeit', '3 : 4 = 12', '23 · 4 = 12', '-3 · 4 = 12', '3 · 4 = 12,5', '3 · 4 = 12 + 2'])
 def test_invalid_or_unsupported_examples_are_not_generated(quote):
     ctx, t = context(), task()
     ctx['sources'][0]['content'] = quote

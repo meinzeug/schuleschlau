@@ -17,7 +17,7 @@ RECIPE = 'math.divisibility.verified_product'
 VERSION = 1
 REVISION = 'review-divisibility-product-1'
 ERROR = 'Die Teilbarkeitsaufgabe ist nicht eindeutig an das bestätigte Beispiel gebunden.'
-PRODUCT = re.compile(r'(?<![\w.,/\-])([2-5])\s*(?:·|⋅|×|\*|\\cdot)\s*([2-6])\s*=\s*([0-9]{1,2})(?![\w.,/])')
+PRODUCT = re.compile(r'(?<![\w.,/\-])([2-5])\s*(?:·|⋅|×|\*|\\cdot)\s*([2-6])\s*=\s*([0-9]{1,2})(?![\w.,/])(?!(?:\s*[+\-−×⋅·*/=:]))')
 WARNING = re.compile(r'\b(?:nicht|kein\w*|falsch\w*|durchgestrichen\w*|unsicher\w*|unleserlich\w*)\b', re.I)
 
 
@@ -99,7 +99,7 @@ def compile_candidate(context, task, history=()):
         'text': f'{a} Gruppen mit je {b} Punkten ergeben {result}. {a} · {b} = {result}. {a} und {b} sind Teiler von {result}.',
         'block': _graphic(quote, a, b, result),
         'proof': {'version': 1, 'revision': REVISION, 'source_digest': _digest(source),
-            'task': copy.deepcopy(task), 'question': copy.deepcopy(question), 'reference_digest': _reference(context)['digest']}}
+            'task': {key: copy.deepcopy(task[key]) for key in ('id', 'learning_goal_id', 'source_excerpt')}, 'question': copy.deepcopy(question), 'reference_digest': _reference(context)['digest']}}
     row['id'] = 'dv_' + _digest([REVISION, _digest(context), row])[:24]
     return question, row
 

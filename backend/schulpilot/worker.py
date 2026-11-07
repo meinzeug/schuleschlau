@@ -463,8 +463,9 @@ def _process(job_id):
                 except ValueError as error:
                     from .fraction_practice_plan import ERROR as REVIEW_POOL_ERROR
                     from .fraction_practice_plan import INVALID as REVIEW_PLAN_ERROR
+                    from .review_divisibility_plan import SOURCE_ERROR as REVIEW_DIVISIBILITY_SOURCE_ERROR
 
-                    if error.args not in ((REVIEW_POOL_ERROR,), (REVIEW_PLAN_ERROR,)):
+                    if error.args not in ((REVIEW_POOL_ERROR,), (REVIEW_PLAN_ERROR,), (REVIEW_DIVISIBILITY_SOURCE_ERROR,)):
                         raise
                     raise ProviderError(error.args[0], code="invalid_output") from None
                 if job.kind == "unit" and config.provider == "openrouter" and route_snapshot.get("reason") == "material_graphic_teaching":

@@ -1818,7 +1818,11 @@ def request_provider(config, function, payload, image_bytes=None, *, synthetic_f
             from .notebook_fraction_expansions import bind_schema as bind_notebook_expansion
             from .review_fraction_plan import bind_schema as bind_review_fraction_plan
 
-            unit_composition = bind_review_fraction_plan(schema, payload)
+            from .review_divisibility_plan import bind_schema as bind_review_divisibility_plan
+
+            unit_composition = bind_review_divisibility_plan(schema, payload)
+            if unit_composition is None:
+                unit_composition = bind_review_fraction_plan(schema, payload)
             if unit_composition is None:
                 unit_composition = bind_notebook_expansion(schema, payload)
             if unit_composition is None:
@@ -2043,11 +2047,12 @@ def request_provider(config, function, payload, image_bytes=None, *, synthetic_f
         from .notebook_fraction_compositions import HISTORY_KEY as NOTEBOOK_COMPOSITION_HISTORY
         from .notebook_fraction_expansions import HISTORY_KEY as NOTEBOOK_EXPANSION_HISTORY
         from .package_decimal_addition import HISTORY as DECIMAL_HISTORY
+        from .review_divisibility_plan import HISTORY as REVIEW_DIVISIBILITY_HISTORY
         from .review_fraction_plan import HISTORY as REVIEW_FRACTION_HISTORY
         from .unit_multiples_common import HISTORY_KEY as MULTIPLES_HISTORY
 
         outgoing_payload = {key: value for key, value in outgoing_payload.items()
-            if key not in (REVIEW_FRACTION_HISTORY, COACH_EXPANSION_HISTORY, MATERIAL_EXPANSION_HISTORY, NOTEBOOK_COMPOSITION_HISTORY,
+            if key not in (REVIEW_DIVISIBILITY_HISTORY, REVIEW_FRACTION_HISTORY, COACH_EXPANSION_HISTORY, MATERIAL_EXPANSION_HISTORY, NOTEBOOK_COMPOSITION_HISTORY,
                 NOTEBOOK_EXPANSION_HISTORY, MULTIPLES_HISTORY, DECIMAL_HISTORY)}
     from .explanation_guidance import rules as explanation_rules
 
@@ -2559,6 +2564,9 @@ def request_provider(config, function, payload, image_bytes=None, *, synthetic_f
             from .review_fraction_plan import validate_output as validate_review_fraction_plan
 
             validate_review_fraction_plan(payload, data)
+            from .review_divisibility_plan import validate_output as validate_review_divisibility_plan
+
+            validate_review_divisibility_plan(payload, data)
         if payload.get("learning_entry"):
             from .learning_entry import validate_entry_output
 

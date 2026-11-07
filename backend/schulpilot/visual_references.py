@@ -444,6 +444,18 @@ def validate_steps(db, steps, subject, context, *, question=None, group_id=None,
             validate_step(step, compile_candidates(context), introduction=introduction, question=question)
             checked.append(step.model_dump())
             continue
+        if stored.id == "math.divisibility.verified_product":
+            from .review_divisibility_product import validate_step as validate_product
+
+            if subject != "Mathematik" or group_id is not None or introduction or question is None:
+                raise ValueError("Ungültiger vorabgeprüfter Teilerbeweis.")
+            if len(step.presentation.blocks) != 1:
+                raise ValueError("Ungültiger vorabgeprüfter Teilerbeweis.")
+            task = {"id": question.get("id"), "learning_goal_id": question.get("learning_goal_id"),
+                "label": "Teilbarkeit", "source_excerpt": step.presentation.blocks[0].source_excerpt}
+            validate_product(step, context, question, task)
+            checked.append(step.model_dump())
+            continue
         if stored.id == "math.multiples.common":
             from .unit_multiples_common import validate_step as validate_multiples_step
 

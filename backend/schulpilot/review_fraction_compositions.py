@@ -102,16 +102,20 @@ def prepare(db, job, child, material, pages, config, route, payload):
     """Before dispatch: prove scope and compute exactly two existing-goal cores."""
     previous = _scope(db, job, child, material, pages, config, route, payload)
     candidate = {**payload, "practice_kind": "check"}
-    from . import review_fraction_plan
+    from . import review_fraction_plan, review_divisibility_plan
 
+    divisibility = review_divisibility_plan.supported(candidate)
     mixed = review_fraction_plan.supported(candidate)
-    if previous is None or not (composition._focused_practice(candidate) or mixed):
+    if previous is None or not (composition._focused_practice(candidate) or mixed or divisibility):
         return payload, None
     if not _goals(db, previous, candidate):
         raise ValueError(INVALID)
     from .providers import practice_tasks
 
-    if mixed:
+    if divisibility:
+        candidate = review_divisibility_plan.add_references(db, candidate)
+        candidate = review_divisibility_plan.prepare(review_divisibility_plan.with_history(candidate, _history(db, previous)))
+    elif mixed:
         candidate = review_fraction_plan.add_references(db, candidate)
         candidate = review_fraction_plan.prepare(review_fraction_plan.with_history(
             candidate, _history(db, previous), _digest([job.id, job.payload])))
@@ -130,11 +134,11 @@ def validate(db, job, child, material, pages, config, route, payload, data, rece
     """After the Child lock: reject changed sources/goals or newly used values."""
     if receipt is None:
         return
-    from . import review_fraction_plan
+    from . import review_fraction_plan, review_divisibility_plan
 
     previous = _scope(db, job, child, material, pages, config, route, payload)
     if (previous is None or previous.id != receipt["previous"] or _digest(job.payload) != receipt["job"]
-            or not (composition._focused_practice(payload) or review_fraction_plan.supported(payload)) or not _goals(db, previous, payload)
+            or not (composition._focused_practice(payload) or review_fraction_plan.supported(payload) or review_divisibility_plan.supported(payload)) or not _goals(db, previous, payload)
             or payload.get("learning_goals") != receipt["goals"] or payload.get("focus_goal_ids") != receipt["focus"]
             or payload["visual_context"]["sources"] != receipt["sources"]):
         raise ValueError(CURRENT_ERROR)
@@ -146,15 +150,23 @@ def validate(db, job, child, material, pages, config, route, payload, data, rece
         if (original["subject"] != page.subject or original["topic"] != page.topic
                 or any(original.get(key) != current.get(key) for key in ("content", "source_refs", "factual_status"))):
             raise ValueError(CURRENT_ERROR)
-    try:
-        _reference(db, payload)
-    except ValueError:
-        raise ValueError(CURRENT_ERROR) from None
+    if review_divisibility_plan.KEY not in payload:
+        try:
+            _reference(db, payload)
+        except ValueError:
+            raise ValueError(CURRENT_ERROR) from None
     try:
         prompts = _history(db, previous)
     except ValueError:
         raise ValueError(CURRENT_ERROR) from None
-    if review_fraction_plan.KEY in payload:
+    if review_divisibility_plan.KEY in payload:
+        try:
+            if review_divisibility_plan.add_references(db, payload) != payload:
+                raise ValueError(CURRENT_ERROR)
+        except ValueError:
+            raise ValueError(CURRENT_ERROR) from None
+        review_divisibility_plan.validate_history(payload, data, prompts)
+    elif review_fraction_plan.KEY in payload:
         try:
             if review_fraction_plan.add_references(db, payload) != payload:
                 raise ValueError(CURRENT_ERROR)
