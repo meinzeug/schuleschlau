@@ -32,7 +32,15 @@ def test_clean_environment_uses_unix_socket():
            'PGSERVICEFILE': '/synthetic-invalid', 'PGOPTIONS': '-c default_transaction_read_only=on',
            'PGSSLMODE': 'disable', 'LD_LIBRARY_PATH': '/synthetic-invalid',
            'PYTHONSTARTUP': '/synthetic-invalid', 'PYTEST_ADDOPTS': '--invalid-synthetic-flag'}
-    result = subprocess.run([sys.executable, str(ROOT / 'scripts/test_postgres.py'), str(probe)],
+    # Set loader/Python variables only after the runner interpreter has
+    # started: this tests what it passes to children without loading an
+    # untrusted library into the parent test process itself.
+    bootstrap = ("import os,runpy,sys; "
+                 "os.environ['LD_PRELOAD']='/synthetic-invalid'; "
+                 "os.environ['PYTHONHOME']='/synthetic-invalid'; "
+                 "os.environ['PYTHONPATH']='/synthetic-invalid'; "
+                 "sys.argv=sys.argv[1:]; runpy.run_path(sys.argv[0],run_name='__main__')")
+    result = subprocess.run([sys.executable, '-c', bootstrap, str(ROOT / 'scripts/test_postgres.py'), str(probe)],
                             cwd=ROOT, env=env, capture_output=True, text=True, timeout=60)
     assert result.returncode == 0, result.stderr + result.stdout
     assert '1 passed' in result.stdout
