@@ -4,10 +4,12 @@ import re
 from dataclasses import dataclass
 
 from . import review_divisibility_product as product
+from . import review_divisor_set as divisor_set
 from . import unit_multiples_common as multiples
 from .fraction_practice_plan import CURRENT_ERROR, INVALID
 from .package_prepared_graphics import Binding as BaseBinding
 from .package_prepared_graphics import _digest, bind_candidates
+from .review_number_words import written_numbers as _written_numbers
 
 KEY = 'review_divisibility_plan'
 HISTORY = 'review_divisibility_history'
@@ -32,7 +34,7 @@ def supported(payload):
     if not all(isinstance(label, str) for label in labels):
         return False
     kgv = [i for i, label in enumerate(labels) if multiples._TOPIC.search(label)]
-    divisibility = [i for i, label in enumerate(labels) if product.supports_label(label)]
+    divisibility = [i for i, label in enumerate(labels) if product.supports_label(label) or divisor_set.supports_label(label)]
     return len(kgv) == len(divisibility) == 1 and kgv[0] != divisibility[0]
 
 
@@ -41,7 +43,9 @@ def add_references(db, payload):
     if not supported(payload):
         raise ValueError(INVALID)
     context = copy.deepcopy(payload['visual_context'])
-    for module in (multiples, product):
+    labels = [g.get('label', '') for g in payload['learning_goals'] if g.get('id') in payload['focus_goal_ids']]
+    divisor = divisor_set if any(divisor_set.supports_label(label) for label in labels) else product
+    for module in (multiples, divisor):
         actual = module.public_recipe()
         row = db.get(VisualReference, (module.RECIPE, module.VERSION))
         if row is None or row.recipe != actual or row.digest != _digest(actual):
@@ -63,7 +67,7 @@ def with_history(payload, prompts):
         'context_digest': _digest(payload['visual_context']), 'prompts_digest': _digest(sorted(set(prompts))),
         'pairs': [list(pair) for pair in multiples._pool() if pair in multiples._pairs(prompts)
             or any(all(re.search(rf'(?<!\d){number}(?!\d)', text) for number in pair) for text in prompts)],
-        'numbers': sorted({int(number) for prompt in prompts for number in re.findall(r'(?<!\d)\d{1,3}(?!\d)', prompt)})}}
+        'numbers': sorted({int(number) for prompt in prompts for number in re.findall(r'(?<!\d)\d{1,3}(?!\d)', prompt)} | _written_numbers(prompts))}}
 
 
 def _plan(payload):
@@ -79,7 +83,7 @@ def _plan(payload):
         raise ValueError(INVALID)
     tasks = practice_tasks(payload)
     ktask = next((t for t in tasks if multiples._TOPIC.search(t['label'])), None)
-    dtask = next((t for t in tasks if product.supports_label(t['label'])), None)
+    dtask = next((t for t in tasks if product.supports_label(t['label']) or divisor_set.supports_label(t['label'])), None)
     rule = multiples._rule(context)
     if (not ktask or not dtask or not rule or ktask['id'] == dtask['id']
             or ktask['learning_goal_id'] == dtask['learning_goal_id']):
@@ -88,17 +92,24 @@ def _plan(payload):
     rule_source = next((s for s in context['sources'] if s.get('ref') == rule['source_ref']), None)
     if not rule_source or not ktask['source_excerpt'] or ktask['source_excerpt'] not in rule_source['content']:
         raise ValueError(INVALID)
-    compiled = product.compile_candidate(context, dtask)
+    module = divisor_set if divisor_set.supports_label(dtask['label']) else product
+    compiled = module.compile_candidate(context, dtask)
     if compiled is None:
         raise ValueError(SOURCE_ERROR)
     dcore, dcandidate = compiled
-    result = product._evidence(context, dtask)[-1]
+    evidence = module._evidence(context, dtask)
+    result = evidence[2] if module is divisor_set else evidence[-1]
     if result in h['numbers']:
         raise ValueError(INVALID)
     originals = {tuple(sorted(map(int, match.groups()))) for source in multiples._sources(context)
         for match in multiples._ANCHOR_PAIR.finditer(source['content'])}
+    protected_results = {2, 4, result}
+    if module is product:
+        protected_results.add(int(dcore['answer']))
+    else:
+        protected_results.update(evidence[3])
     pool = [p for p in multiples._pool() if p not in {tuple(x) for x in h['pairs']} | originals and p != (2, 4)
-        and multiples._arithmetic(p)[0] not in (2, 4, result, int(dcore['answer']))]
+        and multiples._arithmetic(p)[0] not in protected_results]
     if not pool:
         raise ValueError(INVALID)
     pair = sorted(pool, key=lambda p: _digest([REVISION, rule, h, p]))[0]
@@ -107,8 +118,8 @@ def _plan(payload):
         'history_digest': _digest(h), 'rule': rule, 'intro': [2, 4],
         'tasks': [{'kind': 'kgv', 'task': ktask, 'core': kcore, 'pair': list(pair),
                 'hints': [f'Schreibe die Vielfachen von {pair[0]} und {pair[1]} auf und vergleiche sie.']},
-            {'kind': 'divisor', 'task': dtask, 'core': dcore, 'candidate_id': dcandidate['id'],
-                'hints': [product.safe_hint(context, dtask)]}]}
+            {'kind': 'divisor_set' if module is divisor_set else 'divisor', 'task': dtask, 'core': dcore, 'candidate_id': dcandidate['id'],
+                'hints': ['Teile die Zahl durch mögliche Teiler. Wo bleibt kein Rest?'] if module is divisor_set else [product.safe_hint(context, dtask)]}]}
 
 
 def prepare(payload):
@@ -129,7 +140,8 @@ def _candidates(payload):
             core = {k: v for k, v in item['core'].items() if k != 'learning_goal_id'}
             row = multiples._candidate(context, plan['rule'], tuple(item['pair']), question=core)
         else:
-            generated = product.compile_candidate(context, item['task'])
+            module = divisor_set if item['kind'] == 'divisor_set' else product
+            generated = module.compile_candidate(context, item['task'])
             if generated is None or generated[0] != item['core'] or generated[1]['id'] != item['candidate_id']:
                 raise ValueError(INVALID)
             row = generated[1]
@@ -216,6 +228,8 @@ def validate_output(payload, data):
             raise ValueError(INVALID)
         if item['kind'] == 'kgv':
             multiples.validate_step(q['explanation_steps'][0], payload['visual_context'], q)
+        elif item['kind'] == 'divisor_set':
+            divisor_set.validate_step(q['explanation_steps'][0], payload['visual_context'], q, item['task'])
         else:
             product.validate_step(q['explanation_steps'][0], payload['visual_context'], q, item['task'])
 

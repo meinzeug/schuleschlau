@@ -486,6 +486,37 @@ def closed_concept(question, answer):
     return None
 
 
+def verified_divisor_set(question, answer):
+    """Only the exact v1 graphic-backed divisor exercise, never generic sets."""
+    if question.get("type") != "short" or question.get("language"):
+        return None
+    match = re.fullmatch(r"Nenne alle positiven Teiler von ([1-9][0-9]{0,2})\. Trenne sie durch Kommas\.",
+                         question.get("prompt", ""))
+    steps = question.get("explanation_steps") or []
+    if not match or not any(isinstance(step, dict) and step.get("reference") == {
+            "id": "math.divisibility.verified_set", "version": 1} and step.get("disclosure") == "solution"
+            for step in steps):
+        return None
+    number = int(match[1])
+    if not 2 <= number <= 120:
+        return result("uncertain", "Die Aufgabe muss noch geprüft werden.", method="divisor_set_v1")
+    expected = [n for n in range(1, number + 1) if number % n == 0]
+    if question.get("answer") != ", ".join(map(str, expected)) or not 2 <= len(expected) <= 12:
+        return result("uncertain", "Die gespeicherte Lösung muss noch geprüft werden.", method="divisor_set_v1")
+    if not isinstance(answer, str):
+        return result("uncertain", "Schreibe die Teiler als Zahlen mit Kommas.", method="divisor_set_v1")
+    value = answer.strip()
+    if value.startswith("{") and value.endswith("}"):
+        value = value[1:-1].strip()
+    if not re.fullmatch(r"[0-9]{1,3}(?:\s*[,;]\s*[0-9]{1,3}){0,11}", value):
+        return result("uncertain", "Schreibe die Teiler als Zahlen mit Kommas.", method="divisor_set_v1")
+    supplied = [int(x) for x in re.split(r"\s*[,;]\s*", value)]
+    correct = len(supplied) == len(expected) and len(set(supplied)) == len(supplied) and sorted(supplied) == expected
+    return result("correct" if correct else "incorrect",
+                  "Du hast alle Teiler gefunden." if correct else "Prüfe, welche Zahlen ohne Rest teilen und ob alle Teiler dabei sind.",
+                  method="divisor_set_v1")
+
+
 def evaluate(question, answer):
     if (question.get("presentation") or {}).get("evidence_kind") in ("reflection", "creative", "self_report", "movement"):
         return result("uncertain", "Deine Idee ist gespeichert. Gefühle, kreative Ideen oder körperliche Ausführung werden hier nicht als richtig oder falsch gemessen.", method="open_learning_v1")
@@ -508,6 +539,8 @@ def evaluate(question, answer):
     if checked := circuit_interruption(question, answer):
         return checked
     if checked := heart_pump_direction(question, answer):
+        return checked
+    if checked := verified_divisor_set(question, answer):
         return checked
     if checked := lcm_short_answer(question, answer):
         return checked

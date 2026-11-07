@@ -520,6 +520,16 @@
       "terms": ["teilbarkeit", "teiler"],
       "interaction": "Belegte Gruppen schrittweise hervorheben.",
       "variant": null
+    },
+    {
+      "id": "math.divisibility.verified_set",
+      "version": 1,
+      "subjects": ["Mathematik"],
+      "kind": "scene",
+      "purpose": "Eine bestätigte, rechnerisch vollständige Teilermenge schrittweise darstellen.",
+      "terms": ["teilbarkeit", "teiler"],
+      "interaction": "Geprüfte Teiler schrittweise hervorheben.",
+      "variant": null
     }
   ]
 }

@@ -69,7 +69,7 @@ def candidates(db, subject, text="", *, package_prepared=False, decimal_prepared
 
             if not (package_prepared or decimal_prepared) or evidence(text) is None:
                 continue
-        if row.id in ("math.fraction.wholes_remainder", "math.fraction.expansion", "math.multiples.common", "math.divisibility.verified_product"):
+        if row.id in ("math.fraction.wholes_remainder", "math.fraction.expansion", "math.multiples.common", "math.divisibility.verified_product", "math.divisibility.verified_set"):
             continue  # Only the dedicated Unit proof binder may offer this recipe.
         # AI exploration templates are NEVER a vetted source-bound recipe.
         if recipe.get("scope") == "exploration_only":
@@ -442,6 +442,24 @@ def validate_steps(db, steps, subject, context, *, question=None, group_id=None,
                     and r.get("digest") == stored.digest == digest(stored.recipe) for r in context.get("references", [])):
                 raise ValueError("Ungültige vorabgeprüfte Ganzes-Rest-Komposition.")
             validate_step(step, compile_candidates(context), introduction=introduction, question=question)
+            checked.append(step.model_dump())
+            continue
+        if stored.id == "math.divisibility.verified_set":
+            from .review_divisor_set import validate_step as validate_set
+
+            if subject != "Mathematik" or group_id is not None or introduction or question is None:
+                raise ValueError("Ungültige vorabgeprüfte Teilermenge.")
+            if len(step.presentation.blocks) != 1:
+                raise ValueError("Ungültige vorabgeprüfte Teilermenge.")
+            import re
+
+            match = re.fullmatch(r"Nenne alle positiven Teiler von ([1-9][0-9]{0,2})\. Trenne sie durch Kommas\.", question.get("prompt", ""))
+            if match is None:
+                raise ValueError("Ungültige vorabgeprüfte Teilermenge.")
+            task = {"id": question.get("id"), "learning_goal_id": question.get("learning_goal_id"),
+                "label": f"Die Teiler von {match[1]} vollständig angeben",
+                "source_excerpt": step.presentation.blocks[0].source_excerpt}
+            validate_set(step, context, question, task)
             checked.append(step.model_dump())
             continue
         if stored.id == "math.divisibility.verified_product":
