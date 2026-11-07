@@ -539,3 +539,31 @@ referenzieren. Einzelne aggregierte Abfragen im laufenden Betrieb sind nur
 datierte Beobachtungen, keine gemeinsame schreibgesperrte Momentaufnahme.
 Vorhandene neue Antworten erhalten, keine alte Gesamtdatenbank darüberlegen.
 Details und tatsächliche Veröffentlichung: [Release99](RELEASE_99_2026_10_23.md).
+
+#### Einordnung des Wiederherstellungsberichts und Warnung bei unbekannter Journalvollständigkeit
+
+Ein erfolgreich entschlüsseltes und in eine isolierte Datenbank eingespieltes
+Backup belegt ausschließlich die technische Wiederherstellungsprobe und die
+Signaturen der tatsächlich verwendeten Journalzeilen. Auch die Prüfung auf eine
+aktuell leere Outbox beweist nicht, dass ältere Löschbelege im Journal vorhanden
+sind. Ein künstlicher Gegenversuch hat gezeigt, dass ein authentisches, aber
+veraltetes Journal eine nach der Sicherung gelöschte Familie nicht entfernt.
+
+Der aktuelle Prüfdienst schreibt daher `erasure_journal_completeness_verified:
+false` und `activation_authorized: false`. Der Monitor meldet für einen ansonsten
+gültigen, frischen Bericht `restore_journal_completeness_unverified` — auch für
+ältere Berichte und auch dann, wenn ein Bericht allein einen anderen Wahrheitswert
+behauptet. Die technische Wiederherstellungsprobe und ihr Alarm sind kein
+Freigabeweg für Nutzerdaten. Eine produktive Wiederherstellung benötigt zuerst
+einen unabhängig belegten vollständigen aktuellen Journalstand und den
+koordinierten Writer- und Zwei-Host-Fence. Ohne diese Nachweise darf die getrennte
+Datenbank nicht freigegeben werden. `scripts/reconcile_restore.py` gibt diese
+Einschränkung ebenfalls ausdrücklich aus.
+
+Die normale Aufbewahrungsprüfung verwendet weiterhin die technische Prüfung des
+Berichts; dieser neue Warnhinweis stoppt die Rotation nicht automatisch. Damit
+wird ein stilles Überschreiten der 14-Tage-Grenze oder ein unkontrollierter
+Speicheranstieg durch einen permanenten Rotationsstopp vermieden. Die Rotation
+ist kein Beleg für eine sichere Aktivierung. Diese Änderung ist lokal geprüft;
+der produktive Wächter und echte Warnzustellung sind erst nach Auslieferung und
+eigener Überprüfung belegt.

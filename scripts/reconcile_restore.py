@@ -142,7 +142,8 @@ def main():
     for photo in args.uploads.glob("*.jpg"):
         if photo.name not in retained:
             photo.unlink()
-    print("Authenticated deletion reconciliation completed; all restored sessions revoked.")
+    print("Isolated deletion reconciliation completed; all restored sessions revoked. "
+          "Journal completeness and freshness were not verified; do not activate this database.")
 
 
 if __name__ == "__main__":

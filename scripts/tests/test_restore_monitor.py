@@ -127,11 +127,22 @@ class RestoreMonitorTest(unittest.TestCase):
 
     def test_fresh_report_and_staleness_boundary(self):
         report = valid_report()
-        for age, expected in ((0, None), (monitor.RESTORE_MAX_AGE, None),
+        for age, expected in ((0, "restore_journal_completeness_unverified"),
+                              (monitor.RESTORE_MAX_AGE, "restore_journal_completeness_unverified"),
                               (monitor.RESTORE_MAX_AGE + 1, "restore_rehearsal_stale")):
             report["checked_at"] = NOW - age
             self.report.write_text(json.dumps(report))
             self.assertEqual(self.status(), (expected, False))
+
+
+    def test_valid_old_and_claimed_complete_reports_cannot_hide_missing_evidence(self):
+        for completeness in (None, False, True):
+            report = valid_report()
+            if completeness is not None:
+                report["erasure_journal_completeness_verified"] = completeness
+            self.report.write_text(json.dumps(report))
+            with self.subTest(completeness=completeness):
+                self.assertEqual(self.status(), ("restore_journal_completeness_unverified", False))
 
     def test_missing_only_gets_grace_with_valid_recent_setup_marker(self):
         self.assertEqual(self.status(), ("restore_rehearsal_missing", False))
@@ -212,6 +223,47 @@ class RestoreMonitorTest(unittest.TestCase):
         self.assertIn("restore_rehearsal_failed,restore_rehearsal_invalid", message.get_content())
         self.assertNotIn("private sentinel", message.as_string())
         self.assertEqual(json.loads((monitor_dir / "state.json").read_text())["failures"], result["failures"])
+
+    def test_valid_rehearsal_reports_missing_completeness_in_operator_alarm(self):
+        monitor_dir = self.root / "var/backups/schulpilot-monitor"
+        monitor_dir.mkdir(parents=True)
+        (monitor_dir / "restore-check.json").write_text(json.dumps(valid_report()))
+        backup_dir = self.root / "var/backups/schulpilot"
+        backup_dir.mkdir(parents=True)
+        backup = backup_dir / "20270101T030000Z.tar.enc"
+        backup.write_bytes(b"SPB1" + b"x" * 32)
+        os.utime(backup, (NOW, NOW))
+        backup.with_name(backup.name + ".journal.json").write_text(
+            json.dumps({"backup": backup.name, "journal": "present"}))
+        response = unittest.mock.MagicMock()
+        response.__enter__.return_value.status = 200
+        smtp = unittest.mock.MagicMock()
+        smtp.__enter__.return_value = smtp
+        config = {"OPERATIONS_ALERT_EMAIL": "operator@example.test", "SMTP_FROM": "system@example.test",
+                  "SMTP_HOST": "mail.example.test", "SMTP_MODE": "tls"}
+
+        def fake_run(args, **kwargs):
+            if args[0] == "runuser":
+                return SimpleNamespace(stdout=json.dumps({"worker_age_seconds": 0, "stalled_queued": 0,
+                    "stalled_running": 0, "pending_erasure_journal": 0}), returncode=0)
+            return SimpleNamespace(returncode=1 if args[1] == "is-failed" else 0)
+
+        output = io.StringIO()
+        with patch.object(monitor, "Path", side_effect=lambda p: self.root / str(p).lstrip("/")), \
+             patch.object(monitor, "environment", return_value=config), \
+             patch.object(monitor.subprocess, "run", side_effect=fake_run), \
+             patch.object(monitor.urllib.request, "urlopen", return_value=response), \
+             patch.object(monitor.shutil, "disk_usage", return_value=SimpleNamespace(
+                 free=150 * 1024**3, used=50 * 1024**3, total=200 * 1024**3)), \
+             patch.object(monitor.smtplib, "SMTP_SSL", return_value=smtp), \
+             patch.object(monitor.time, "time", return_value=NOW), \
+             patch("sys.argv", ["monitor.py"]), contextlib.redirect_stdout(output):
+            self.assertTrue(monitor.main())
+        result = json.loads(output.getvalue())
+        self.assertIn("restore_journal_completeness_unverified", result["failures"])
+        message = smtp.send_message.call_args.args[0]
+        self.assertIn("restore_journal_completeness_unverified", message.get_content())
+        self.assertNotIn("private sentinel", message.as_string())
 
     def test_backup_without_valid_journal_status_is_not_reported_healthy(self):
         backup = self.root / "20261031T120000Z.tar.enc"

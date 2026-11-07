@@ -92,7 +92,12 @@ def restore_status(report_path, setup_path, now):
     except (OSError, UnicodeError, ValueError):
         return "restore_rehearsal_invalid", False
 
-    return validate_restore_report(report, now), False
+    error = validate_restore_report(report, now)
+    if error:
+        return error, False
+    # This rehearsal cannot prove that the journal contains all deletions.
+    # No value asserted by the report can manufacture that missing evidence.
+    return "restore_journal_completeness_unverified", False
 
 
 def validate_restore_report(report, now):

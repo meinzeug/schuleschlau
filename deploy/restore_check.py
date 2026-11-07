@@ -204,6 +204,9 @@ print(json.dumps({'schema':version,'before':before,'after':after,'paths':paths,'
             report.update(data)
             report["authenticated_restore"] = True
             report["erasure_journal_present"] = True
+            # Signed entries prove authenticity, not that newer deletions are present.
+            report["erasure_journal_completeness_verified"] = False
+            report["activation_authorized"] = False
             report["sessions_revoked"] = True
             report["ai_emergency_stop"] = True
     finally:
