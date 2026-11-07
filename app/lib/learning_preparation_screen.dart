@@ -199,6 +199,7 @@ class _LearningPreparationScreenState extends State<_LearningPreparationBody>
   @override
   Widget build(BuildContext context) {
     if (!sameOwner) return SizedBox.shrink();
+    final checking = job == null && error == null;
     final ready =
         job?['status'] == 'completed' && job?['result']?['unit_id'] is String;
     final failed = job != null && !waiting && !ready;
@@ -259,6 +260,8 @@ class _LearningPreparationScreenState extends State<_LearningPreparationBody>
                             : missingJob
                             ? 'Vorbereitung nicht gefunden.'
                             : 'Wir können gerade nicht nachsehen.'
+                      : checking
+                      ? 'Status wird geladen …'
                       : job?['status'] == 'queued'
                       ? widget.state.isChild
                             ? 'Deine Runde wartet.'
@@ -272,17 +275,21 @@ class _LearningPreparationScreenState extends State<_LearningPreparationBody>
                 if (waiting && error == null) ...[
                   Semantics(
                     liveRegion: true,
-                    label: job?['status'] == 'queued'
+                    label: checking
+                        ? 'Status wird geladen'
+                        : job?['status'] == 'queued'
                         ? 'Vorbereitung wartet'
                         : 'Vorbereitung läuft',
                     child: LinearProgressIndicator(),
                   ),
-                  SizedBox(height: 16),
-                  Text(
-                    widget.state.isChild
-                        ? 'Die Vorbereitung geht auch ohne offene App weiter.'
-                        : 'Du kannst die App schließen. Wir arbeiten weiter.',
-                  ),
+                  if (!checking) ...[
+                    SizedBox(height: 16),
+                    Text(
+                      widget.state.isChild
+                          ? 'Die Vorbereitung geht auch ohne offene App weiter.'
+                          : 'Du kannst die App schließen. Wir arbeiten weiter.',
+                    ),
+                  ],
                 ],
                 if (failed || error != null) ...[
                   Text(
