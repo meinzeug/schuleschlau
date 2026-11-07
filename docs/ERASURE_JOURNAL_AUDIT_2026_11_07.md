@@ -15,9 +15,14 @@ ausschließlich PostgreSQL; SQLite ist nur mit explizit übergebener
 In-Memory-Testengine zulässig. Es startet keinen Worker, führt keinen Flush
 aus und schreibt keine Daten. Der dedizierte DB-Zugang wird vor der zeitlich
 begrenzten Journalsperre geöffnet; die PostgreSQL-Transaktion ist explizit
-schreibgeschützt und besitzt Statement-/Sperrtimeouts. Der CLI-Prozess bricht
-nach zwölf Sekunden hart ab, damit blockierte Dateideskriptoren freigegeben
-werden. Der Vergleich und die Signaturprüfung laufen außerhalb der Sperre.
+schreibgeschützt und besitzt Statement-/Sperrtimeouts. Das Journal ist auf
+64 MiB, die Abfrage auf 10.000 Einträge und ihre Einzel-Details auf 8 KiB
+begrenzt; PostgreSQL überträgt Zeilen über einen Servercursor. Bei
+unterbrechbaren Operationen beendet eine harte CLI-Frist nach zwölf Sekunden
+den Prozess und gibt gehaltene Dateideskriptoren frei. Bei ununterbrechbarem
+Kernel-I/O garantiert ein Signal keinen punktgenauen Abbruch; ein Betreiber
+muss diesen Zustand gesondert untersuchen. Der Vergleich und die
+Signaturprüfung laufen außerhalb der Sperre.
 Die JSON-Ausgabe enthält nur
 Summen und keine Kennungen, Inhalte oder Schlüssel. Signatur-, Datenbank- und
 Lesefehler führen ohne Ausgabe des Fehlerinhalts zum Exitcode 1. Ausstehende,

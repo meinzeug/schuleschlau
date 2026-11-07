@@ -116,6 +116,28 @@ def test_missing_sqlite_database_is_never_created(tmp_path):
     assert not path.exists()
 
 
+@pytest.mark.parametrize("limit_kind", ["rows", "details"])
+def test_outbox_limits_fail_without_leaving_the_journal_locked(tmp_path, monkeypatch, limit_kind):
+    engine = create_engine("sqlite://")
+    ErasureRequest.__table__.create(engine)
+    item = row()
+    with engine.begin() as con:
+        con.execute(ErasureRequest.__table__.insert().values(id=item.id, scope=item.scope, target=item.target,
+                                                            details={"value": "ä" * 30}, created=item.created,
+                                                            published=True))
+    monkeypatch.setattr(audit_module.time, "time", lambda: 101)
+    monkeypatch.setattr(audit_module, "MAX_OUTBOX_ROWS" if limit_kind == "rows" else "MAX_OUTBOX_DETAIL_BYTES",
+                        0 if limit_kind == "rows" else 20)
+    lock = tmp_path / ".erasure-ledger.lock"
+    lock.touch()
+    ledger = tmp_path / "ledger"
+    ledger.write_text(signed(record(item), "synthetic-key") + "\n")
+    with pytest.raises(ValueError, match="bounded audit size"):
+        run_audit(ledger, "synthetic-key", engine, sqlite=True)
+    with lock.open("rb") as probe:
+        fcntl.flock(probe, fcntl.LOCK_EX | fcntl.LOCK_NB)
+
+
 def test_lock_timeout_does_not_leave_a_lock_held(tmp_path, monkeypatch):
     engine = create_engine("sqlite://")
     lock_path = tmp_path / ".erasure-ledger.lock"
@@ -228,8 +250,9 @@ def test_real_postgres_read_only_comparison(tmp_path, monkeypatch):
 
         def capture_read_only(_conn, cursor, statement, _params, _context, _many):
             if "FROM erasure_requests" in statement:
-                cursor.execute("SHOW transaction_read_only")
-                observed.append(cursor.fetchone()[0])
+                with _conn.connection.driver_connection.cursor() as probe:
+                    probe.execute("SHOW transaction_read_only")
+                    observed.append(probe.fetchone()[0])
 
         event.listen(Engine, "before_cursor_execute", capture_read_only)
         try:
@@ -246,6 +269,16 @@ def test_real_postgres_read_only_comparison(tmp_path, monkeypatch):
                 run_audit(ledger, "synthetic-key", engine)
             with (tmp_path / ".erasure-ledger.lock").open("rb") as check:
                 fcntl.flock(check, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        monkeypatch.setattr(audit_module, "STATEMENT_TIMEOUT_MS", 3000)
+        monkeypatch.setattr(audit_module, "MAX_OUTBOX_ROWS", 0)
+        with pytest.raises(ValueError, match="bounded audit size"):
+            run_audit(ledger, "synthetic-key", engine)
+        monkeypatch.setattr(audit_module, "MAX_OUTBOX_ROWS", 10000)
+        with engine.begin() as con:
+            con.execute(ErasureRequest.__table__.update().values(details={"value": "ä" * 30}))
+        monkeypatch.setattr(audit_module, "MAX_OUTBOX_DETAIL_BYTES", 20)
+        with pytest.raises(ValueError, match="bounded audit size"):
+            run_audit(ledger, "synthetic-key", engine)
     finally:
         ErasureRequest.__table__.drop(engine)
         engine.dispose()

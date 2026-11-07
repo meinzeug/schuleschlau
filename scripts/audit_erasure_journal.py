@@ -18,6 +18,8 @@ sys.path.insert(0, str(ROOT / "backend"))
 
 RETENTION_SECONDS = 35 * 86400
 MAX_JOURNAL_BYTES = 64 * 1024 * 1024
+MAX_OUTBOX_ROWS = 10000
+MAX_OUTBOX_DETAIL_BYTES = 8192
 LOCK_TIMEOUT_SECONDS = 2
 STATEMENT_TIMEOUT_MS = 3000
 CLI_TIMEOUT_SECONDS = 12
@@ -94,7 +96,7 @@ def bounded_journal(path):
 def audit(path, key, *, engine, model, verify_record, extended_scopes, allow_test_sqlite=False):
     if not key:
         raise RuntimeError("A configured master key is required")
-    from sqlalchemy import create_engine, or_, select
+    from sqlalchemy import LargeBinary, Text, case, cast, create_engine, func, or_, select
     from sqlalchemy.pool import NullPool
 
     if engine.dialect.name == "postgresql":
@@ -120,8 +122,23 @@ def audit(path, key, *, engine, model, verify_record, extended_scopes, allow_tes
                         connection.exec_driver_sql("SET TRANSACTION READ ONLY")
                         connection.exec_driver_sql(f"SET LOCAL statement_timeout = {STATEMENT_TIMEOUT_MS}")
                         connection.exec_driver_sql("SET LOCAL lock_timeout = 1000")
-                    statement = select(model.id, model.scope, model.target, model.details, model.created, model.published)
-                    rows = connection.execute(statement.where(or_(model.published.is_(False), model.created >= cutoff))).all()
+                    details_text = cast(model.details, Text)
+                    size = (func.octet_length(details_text) if connection.dialect.name == "postgresql"
+                            else func.length(cast(details_text, LargeBinary)))
+                    size = func.coalesce(size, 0)
+                    safe_details = case((size <= MAX_OUTBOX_DETAIL_BYTES, model.details), else_=None).label("details")
+                    statement = select(model.id, model.scope, model.target, safe_details, model.created,
+                                       model.published, size.label("details_size"))
+                    statement = statement.where(or_(model.published.is_(False), model.created >= cutoff))
+                    statement = statement.limit(MAX_OUTBOX_ROWS + 1)
+                    rows = []
+                    # PostgreSQL uses a server-side cursor, so a large outbox
+                    # cannot be buffered completely by the database driver.
+                    with connection.execution_options(stream_results=True).execute(statement) as result:
+                        for row in result.yield_per(256):
+                            if len(rows) >= MAX_OUTBOX_ROWS or row.details_size > MAX_OUTBOX_DETAIL_BYTES:
+                                raise ValueError("Outbox exceeds bounded audit size")
+                            rows.append(row)
         # Crypto and comparison do not hold the journal lock or DB session.
         records = [verify_record(line, key) for line in journal.decode("utf-8").splitlines() if line]
         return compare(records, rows, cutoff, extended_scopes)
