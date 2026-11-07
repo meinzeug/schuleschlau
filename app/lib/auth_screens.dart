@@ -789,6 +789,7 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
         );
         if (!mounted ||
             revision != formRevision ||
+            !identical(authenticationState, widget.state) ||
             authenticationRevision != widget.state.api.requestIdentity().$3) {
           return;
         }
