@@ -118,6 +118,13 @@ def test_real_today_api_unknown_count_reserves_sol_once_and_preserves_saved_evid
 @pytest.mark.parametrize("review,entry,kind,uncertain_other", [(False, True, "free", False), (True, True, "free", False), (False, False, "composition", False), (False, True, "free", True)])
 def test_actual_worker_native_schema_uses_full_output_contract_and_reserved_sol(routed, monkeypatch, review, entry, kind, uncertain_other):
     value = selection(routed, review=review, kind=kind)
+    if review and kind == "free":
+        # A mathematical review must have an actually renderable source-bound
+        # reference. A list of multiples alone is not an arrow/fraction graphic.
+        with DB.begin() as db:
+            page = db.get(Material, routed.refs[0]["id"])
+            page.content = "Ein Bruch 1/2 beschreibt 1 von 2 gleich großen Teilen."
+            page.topic = "Bruch als Teil eines Ganzen"
     if uncertain_other:
         with DB.begin() as db:
             anchor = db.get(Material, routed.refs[0]["id"])
@@ -184,6 +191,7 @@ def test_actual_worker_native_schema_uses_full_output_contract_and_reserved_sol(
         assert questions["minItems"] == questions["maxItems"] == 2
     if review:
         assert payload["review"] is True and payload["learning_entry"]["units"][0]["entry_mode"] == "existing_contract"
+        assert "math.fraction.part_whole" in json.dumps(schema)
     if kind == "composition":
         assert payload["prepared_graphics"]["revision"] == "unit-fraction-composition-1"
     with DB() as db:
@@ -302,3 +310,30 @@ def test_mixed_homework_sources_are_outside_this_normal_notebook_hook(routed):
         before = counts(db)
         assert extended_output(db, routed.child["id"], db.get(Job, job_id)) is False
         assert counts(db) == before and not db.new and not db.dirty
+
+
+def test_review_without_graphic_evidence_stops_before_provider_and_releases_reservation(routed, monkeypatch):
+    """The free multiples fixture has no checked visual for a math review."""
+    value = selection(routed, review=True, kind="free")
+    routed.client.headers["X-Schulpilot-Capabilities"] = "learning-entry-v1"
+    response = post(routed, value, key="unillustrated-review-output")
+    assert response.status_code == 202, response.text
+    job_id = response.json()["id"]
+    transport = []
+
+    def no_http(**_kwargs):
+        transport.append(True)
+        raise AssertionError("The provider must not receive an unillustrated review")
+
+    monkeypatch.setattr(providers.httpx, "Client", no_http)
+    with DB() as db:
+        before = list(db.execute(select(Attempt.id, Attempt.answer, Attempt.outcome, Attempt.assisted)))
+        assert worker.claim(db) == job_id
+    worker.process(job_id)
+    with DB() as db:
+        job = db.get(Job, job_id)
+        usage = db.scalar(select(Usage).where(Usage.job_id == job_id))
+        assert job.status == "failed" and job.error_code == "visual_unavailable"
+        assert usage.status == "failed_not_sent" and usage.cost_micros == 0
+        assert list(db.execute(select(Attempt.id, Attempt.answer, Attempt.outcome, Attempt.assisted))) == before
+    assert transport == []
