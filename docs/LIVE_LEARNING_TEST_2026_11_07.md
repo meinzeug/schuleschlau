@@ -21,3 +21,9 @@ Stand: 07.11.2026. Ausgangsversion 1.38.103; kgV-Korrektur in 1.38.104, Quellsta
 ## Grenzen der Prüfung
 
 Die Live-Durchläufe betrafen wenige Aufgaben und Themen in einem Konto. Sie belegen keine allgemeine Fehlerfreiheit, keine vollständige mobile oder Android-Geräteabnahme und keine tatsächliche Lernwirksamkeit. Nachweise aus abgeschlossenen Einheiten wurden nicht überschrieben; lokale Screenshots mit Inhalten des Kontos liegen außerhalb des Repositories und gehören nicht in Git. Fehlgeschlagene und erfolgreiche Aufträge bleiben nachvollziehbar erhalten. Testantworten dürfen nicht als echte Leistungen des Kindes interpretiert werden.
+
+## Nachbearbeitung
+
+- Die Zusammenfassung im Rückblick behauptet bei offenen Einordnungen keine laufende Prüfung mehr. Bei möglicher früherer Lösungsansicht wird die richtige Antwort ausdrücklich als richtig bezeichnet und die offene Selbstständigkeit kindgerecht erklärt. Gespeicherte Ergebnisse werden nicht verändert.
+- In Grafiken bleiben die wichtigsten Schritte und die Wiedergabe direkt sichtbar. Vergleich, Zurücksetzen und Elementliste sind unter „Mehr zur Grafik“ erreichbar. Die Änderung hat Widgetprüfungen für schmale und breite Fenster, große Schrift und reduzierte Bewegung; eine tatsächliche Browserprüfung ist gesondert nötig.
+- Ein Folgeergebnis kann bereits als Zwischenwert in einer früheren Grafik erscheinen. Eine sicherere Auswahl und ein revisionsgebundener Nachweis tatsächlich angezeigter Zustände sind künftige Arbeiten; die konservative Bewertung wurde nicht umgangen.
