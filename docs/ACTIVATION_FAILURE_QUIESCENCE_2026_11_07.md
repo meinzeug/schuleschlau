@@ -10,7 +10,10 @@ implizit neu gestartet. Der tatsächliche Stopp ist vom Operator zu prüfen:
 kein Cgroup- oder Datenbank-Drainnachweis.
 
 Vor dem ersten Stopp bleibt ein noch laufender Dienst beim Fehlschlag erhalten.
-Soweit keine Migration und kein Start neuer Writer versucht wurde, können die
+Dann werden weder Unitdateien noch der Current-Verweis zurückgesetzt; es
+erfolgt kein `daemon-reload`. Dies gilt auch, wenn noch keine Unit-Sicherung
+angelegt wurde.
+Soweit nach einem Stopp keine Migration und kein Start neuer Writer versucht wurde, können die
 alten Unitdefinitionen und der alte Current-Verweis wiederhergestellt werden;
 das startet keine Dienste. Nach einem Migrationsversuch bleiben die neuen
 Definitions-/Releasezustände für eine gesonderte Prüfung stehen: ein gleicher

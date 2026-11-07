@@ -348,7 +348,7 @@ try:
             # An attempted migration may persist changes before its schema
             # marker changes. Schema equality alone cannot authorize rollback.
             compatible = not migration_started and not new_writers_may_have_started
-            if previous and compatible:
+            if previous and compatible and writer_stop_attempted:
                 try:
                     if unit_snapshots is not None:
                         restore_files(unit_snapshots)
@@ -360,7 +360,8 @@ try:
                     if writer_stop_attempted:
                         print("Previous definitions restored; inspect writer, photo and timer state before explicit restart.", file=sys.stderr)
                 except Exception:
-                    subprocess.run(["systemctl", "stop", "schulpilot-api", "schulpilot-worker"], check=False)
+                    if writer_stop_attempted or new_writers_may_have_started:
+                        subprocess.run(["systemctl", "stop", "schulpilot-api", "schulpilot-worker"], check=False)
                     print("Automatic rollback incomplete; inspect service state and restore definitions before any restart.", file=sys.stderr)
             else:
                 if new_writers_may_have_started:

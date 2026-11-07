@@ -13,7 +13,7 @@ def handler_code():
     source = (ROOT / 'deploy/activate.py').read_text()
     module = ast.parse(source)
     handlers = [node for node in ast.walk(module) if isinstance(node, ast.ExceptHandler)
-                and node.body and isinstance(node.body[0], ast.If)
+                and len(node.body) > 4 and isinstance(node.body[0], ast.If)
                 and any(isinstance(item, ast.Name) and item.id == 'writer_stop_attempted'
                         for item in ast.walk(node.body[0].test))]
     assert len(handlers) == 1
@@ -36,7 +36,7 @@ def test_exception_path_never_restarts_writers(tmp_path, stop_attempted, new_wri
     old = base / 'old'
     old.mkdir()
     current = base / 'current'
-    current.symlink_to(base / 'candidate')
+    current.symlink_to(old if not stop_attempted else base / 'candidate')
     caddy = tmp_path / 'Caddyfile'
     fragment = tmp_path / 'fragment'
     calls = []
@@ -123,3 +123,37 @@ def test_first_install_and_photo_failure_leave_writers_stopped(tmp_path, previou
     assert bool(stop_calls) == (previous_exists or candidate_stop_fails)
     assert not any(args[:2] in (['systemctl', 'start'], ['systemctl', 'stop'])
                    and any(str(name).endswith('.timer') for name in args[2:]) for args in calls)
+
+
+@pytest.mark.parametrize('snapshot', [None, {}])
+def test_before_writer_stop_does_not_restore_units_or_touch_current_even_if_restore_would_fail(tmp_path, snapshot):
+    """Before a stop no release/unit restoration is needed or permitted."""
+    base = tmp_path / 'base'
+    base.mkdir()
+    old = base / 'old'
+    old.mkdir()
+    current = base / 'current'
+    current.symlink_to(old)
+    original_inode = current.lstat().st_ino
+    calls = []
+
+    def restore_files(saved):
+        raise AssertionError('unit restoration must not be called before writer stop')
+
+    def systemctl(args, **kwargs):
+        calls.append(args)
+        if args[:2] == ['systemctl', 'daemon-reload']:
+            raise AssertionError('daemon-reload must not be called before writer stop')
+
+    context = {'new_writers_may_have_started': False, 'writer_stop_attempted': False,
+               'photo_candidate_started': False, 'photo_previous': None,
+               'caddy': tmp_path / 'caddy', 'before': '', 'fragment_before': None,
+               'fragment': tmp_path / 'fragment', 'migration_started': False, 'previous': old,
+               'unit_snapshots': snapshot, 'restore_files': restore_files,
+               'base': base, 'current': current, 'subprocess': SimpleNamespace(run=systemctl), 'sys': sys}
+    with pytest.raises(RuntimeError, match='synthetic'):
+        exec(handler_code(), context)
+    assert current.lstat().st_ino == original_inode
+    assert current.resolve() == old
+    assert not any(args[:2] in (['systemctl', 'stop'], ['systemctl', 'start'], ['systemctl', 'restart'],
+                                ['systemctl', 'daemon-reload']) for args in calls)
