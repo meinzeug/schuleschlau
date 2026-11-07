@@ -52,6 +52,10 @@ def next_hint(question, previous_answer, shown):
     if re.search(r"\bkleinst(?:e|es|en) gemeinsam(?:e|es|en) vielfache\b",
                  question.get("prompt", ""), re.I):
         candidates.append("Schreibe die Vielfachen beider Zahlen auf. Welche Zahl taucht in beiden Reihen zuerst auf?")
+    if (question.get("type") == "short" and re.fullmatch(
+            r"Nenne alle positiven Teiler von [1-9][0-9]{0,2}\. Trenne sie durch Kommas\.",
+            question.get("prompt", ""))):
+        candidates.append("Beginne bei 1 und prüfe die Zahlen der Reihe nach. Nur wenn die Division ohne Rest aufgeht, gehört die Zahl dazu.")
     # An explanation may contain the complete answer.  It is available via
     # the explicit explanation action, but must not be copied into an ordinary
     # hint just because the model supplied fewer than three hints.  Previously

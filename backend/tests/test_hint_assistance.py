@@ -3,8 +3,23 @@
 import copy
 
 from schulpilot.db import DB, Activity, Attempt, LearningUnit
+from schulpilot.learning_hints import next_hint
 from sqlalchemy import select
 from test_learning import child_client, prepared
+
+
+def test_divisor_set_second_hint_explains_method_without_complete_solution():
+    question = {"type": "short", "prompt": "Nenne alle positiven Teiler von 6. Trenne sie durch Kommas.",
+        "answer": "1, 2, 3, 6", "hints": ["Teile die Zahl durch mögliche Teiler. Wo bleibt kein Rest?"],
+        "explanation": "Die Teiler von 6 sind 1, 2, 3 und 6."}
+    first = next_hint(question, None, [])
+    second = next_hint(question, None, [first])
+    assert first == question["hints"][0]
+    assert "der Reihe nach" in second and "ohne Rest" in second
+    assert question["answer"] not in second
+    assert "2, 3" not in second
+    unrelated = {**question, "prompt": "Was ist das Ergebnis?"}
+    assert "Beginne bei 1" not in next_hint(unrelated, None, [first])
 
 
 def _prepare_lcm(api):
