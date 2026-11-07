@@ -14,7 +14,10 @@ ein ausdrücklicher lesender Abgleich prüft den Serverstand. Stimmt die
 Revision nicht mehr, erfolgt kein automatisches Überschreiben. Auch bei
 unveränderter Revision sendet der Leseabgleich nichts erneut; erst eine neue
 Bedienaktion kann eine Position speichern. Automatische Laborzustände beim
-Wiederöffnen der App zählen nicht als neue Bedienung.
+Wiederöffnen der App zählen nicht als neue Bedienung. Eine Antwort, die erst
+nach einem Hintergrundwechsel eintrifft, behält die Ungewissheit für dieselbe
+Konto- und Quellenidentität; eine bereits wartende Wiederaufnahme prüft den
+Zustand nach dem Sperrwarten und nach dem Lesen erneut.
 
 Ein Request kann auf dem Server bereits abgeschlossen sein; die lokale
 Fehlermeldung weist darauf hin und fordert die Prüfung des gespeicherten
@@ -25,9 +28,11 @@ darf bei einem neueren Konto den neuen lokalen Zustand nicht entfernen.
 Die Tests verwenden künstliche Konten und simulierte HTTP-Antworten. Sie halten
 sechs Transportarten an und ändern Konto, Token oder Anmeldeabsicht vor einer
 erfolgreichen Antwort. Der Jobtest prüft, dass kein GET im neuen Konto startet.
-Der Bestelltest prüft die unveränderte Idempotenzkennung einer bereits
-abgesendeten Bestellung; der Lesepositionstest prüft den angehaltenen
-Folgeversand und die echte Revisionskonfliktbehandlung.
+Der Bestelltest prüft die unveränderte Idempotenzkennung und die eingefrorene
+Frühstartauswahl einer bereits abgesendeten Bestellung. Lesepositions- und
+Labortests prüfen angehaltenen Folgeversand, Lebenszykluswechsel und
+Revisionskonfliktbehandlung. 47 gezielte VM-Tests einschließlich der beiden
+verzögerten Antworten vor und nach Resume bestanden auf dem letzten Stand.
 Am 07.11.2026 bestanden 79 VM-Prüfungen einschließlich bestehender
 Anmelde-, Abmelde- und Elternplan-Konkurrenzfälle; 68 Prüfungen derselben
 Transport-/Anmeldeauswahl bestanden zusätzlich im Flutter-Chrome-Runner.

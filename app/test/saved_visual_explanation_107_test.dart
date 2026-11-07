@@ -440,6 +440,63 @@ void main() {
       expect(writes, hasLength(2));
     },
   );
+  for (final replyAfterResume in [false, true]) {
+    testWidgets(
+      'uncertain write survives pause; reply after resume=$replyAfterResume',
+      (tester) async {
+        final delayed = Completer<http.Response>();
+        final writes = <Json>[];
+        var reads = 0;
+        final state = app((r) {
+          if (r.method == 'PUT') {
+            writes.add(Json.from(jsonDecode(r.body)));
+            return delayed.future;
+          }
+          reads++;
+          return reply({
+            'source_signature': 'a' * 64,
+            'revision': 1,
+            'position': null,
+          });
+        });
+        addTearDown(state.dispose);
+        await mount(tester, view(state));
+        tester
+            .widget<LearningExplanation>(find.byType(LearningExplanation))
+            .onPositionChanged!({
+          'explanation_kind': 'intro',
+          'question_id': null,
+          'explanation_step_id': 'e1',
+          'graphic_index': 0,
+          'graphic_phase': 'fraction-bar-whole',
+        });
+        await tester.pump();
+        expect(writes, hasLength(1));
+        tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+        await tester.pump();
+        final revision = state.beginAuthentication();
+        state.cancelAuthentication(revision);
+        if (replyAfterResume) {
+          tester.binding.handleAppLifecycleStateChanged(
+            AppLifecycleState.resumed,
+          );
+          await tester.pump();
+        }
+        delayed.complete(reply({'revision': 2}));
+        await tester.pump();
+        if (!replyAfterResume) {
+          state.refreshState();
+          tester.binding.handleAppLifecycleStateChanged(
+            AppLifecycleState.resumed,
+          );
+        }
+        await tester.pumpAndSettle();
+        expect(reads, 1);
+        expect(writes, hasLength(1));
+        expect(find.text('Leseposition erneut prüfen'), findsOneWidget);
+      },
+    );
+  }
   testWidgets(
     'local widgets serialize writes without hiding genuine conflicts',
     (tester) async {

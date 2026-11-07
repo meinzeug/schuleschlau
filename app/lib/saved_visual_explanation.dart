@@ -185,7 +185,11 @@ class _SavedVisualExplanationState extends State<SavedVisualExplanation>
     try {
       final currentGate = gate;
       await currentGate.tail;
-      if (!current || request != epoch || !identical(currentGate, gate)) return;
+      if (!current ||
+          request != epoch ||
+          !identical(currentGate, gate) ||
+          (requestUncertain && !explicit))
+        return;
       final readGeneration = currentGate.generation;
       final previousSignature = signature;
       final previousRevision =
@@ -198,7 +202,9 @@ class _SavedVisualExplanationState extends State<SavedVisualExplanation>
         null,
         {'X-Schulpilot-Account': owner?['id']?.toString() ?? ''},
       );
-      if (!current || request != epoch) return;
+      if (!current || request != epoch || (requestUncertain && !explicit)) {
+        return;
+      }
       // Another local widget may have written while this GET was in flight.
       // Read again after its queued writes instead of treating our own update
       // as a different device or restoring an outdated position.
@@ -265,6 +271,8 @@ class _SavedVisualExplanationState extends State<SavedVisualExplanation>
     final requestSignature = signature;
     final requestUnit = widget.unitId;
     final requestState = widget.state;
+    final requestSource = widget.sourceKey;
+    final requestQuestion = widget.questionId;
     final previous = currentGate.tail;
     final finished = Completer<void>();
     currentGate.tail = finished.future;
@@ -300,10 +308,17 @@ class _SavedVisualExplanationState extends State<SavedVisualExplanation>
       if (!current || request != epoch) return;
       revision = nextRevision;
     } catch (error) {
-      if (current &&
-          request == epoch &&
-          error is ApiError &&
-          error.code == 'stale_request') {
+      final sameContext =
+          mounted &&
+          identical(widget.state, requestState) &&
+          widget.unitId == requestUnit &&
+          widget.sourceKey == requestSource &&
+          widget.questionId == requestQuestion &&
+          identical(currentGate, gate) &&
+          identical(widget.state.user, owner) &&
+          widget.state.api.token == token &&
+          widget.state.familyId == family;
+      if (sameContext && error is ApiError && error.code == 'stale_request') {
         pending ??= value;
         setState(() {
           requestUncertain = true;
