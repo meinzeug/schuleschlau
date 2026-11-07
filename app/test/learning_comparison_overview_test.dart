@@ -22,6 +22,11 @@ void main() {
           scale: viewport.$2,
         ),
       );
+      expect(find.text('Zustände vergleichen'), findsNothing);
+      await fixture.tapVisible(
+        tester,
+        find.byKey(const ValueKey('scene-more')),
+      );
       await fixture.tapVisible(
         tester,
         find.byKey(const ValueKey('scene-compare')),
@@ -83,6 +88,7 @@ void main() {
     await tester.pumpWidget(
       fixture.host(LearningScenePlayer(fixture.publicBlock(), state: state)),
     );
+    await fixture.tapVisible(tester, find.byKey(const ValueKey('scene-more')));
     await fixture.tapVisible(
       tester,
       find.byKey(const ValueKey('scene-compare')),

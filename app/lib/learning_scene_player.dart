@@ -662,52 +662,60 @@ class _LearningScenePlayerState extends State<LearningScenePlayer>
                     ),
                   ],
                 )
-              else if (model.steps.length > 1) ...[
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    OutlinedButton.icon(
-                      key: const ValueKey('scene-compare'),
-                      onPressed: active ? compare : null,
-                      icon: Icon(
-                        comparing
-                            ? Icons.view_agenda_outlined
-                            : Icons.compare_arrows_rounded,
-                      ),
-                      label: Text(
-                        comparing ? 'Einzelansicht' : 'Zustände vergleichen',
-                      ),
-                    ),
-                    TextButton.icon(
-                      key: const ValueKey('scene-reset-view'),
-                      onPressed: active ? resetView : null,
-                      icon: const Icon(Icons.restart_alt_rounded),
-                      label: const Text('Ansicht zurücksetzen'),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-              ],
-              const SizedBox(height: 14),
-              if (!simpleFocus)
+              else
                 ExpansionTile(
-                  key: const ValueKey('scene-object-legend'),
-                  title: const Text('Elemente der Grafik'),
+                  key: const ValueKey('scene-more'),
+                  title: const Text('Mehr zur Grafik'),
                   children: [
-                    for (final entry in model.objects.indexed)
-                      ListTile(
-                        leading: CircleAvatar(child: Text('${entry.$1 + 1}')),
-                        title: Text(entry.$2.label),
-                        subtitle: Text(switch (entry.$2.shape) {
-                          'circle' => 'Kreis',
-                          'triangle' => 'Dreieck',
-                          'diamond' => 'Raute',
-                          _ => 'Rechteck',
-                        }),
+                    if (model.steps.length > 1)
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          OutlinedButton.icon(
+                            key: const ValueKey('scene-compare'),
+                            onPressed: active ? compare : null,
+                            icon: Icon(
+                              comparing
+                                  ? Icons.view_agenda_outlined
+                                  : Icons.compare_arrows_rounded,
+                            ),
+                            label: Text(
+                              comparing
+                                  ? 'Einzelansicht'
+                                  : 'Zustände vergleichen',
+                            ),
+                          ),
+                          TextButton.icon(
+                            key: const ValueKey('scene-reset-view'),
+                            onPressed: active ? resetView : null,
+                            icon: const Icon(Icons.restart_alt_rounded),
+                            label: const Text('Ansicht zurücksetzen'),
+                          ),
+                        ],
                       ),
+                    ExpansionTile(
+                      key: const ValueKey('scene-object-legend'),
+                      title: const Text('Elemente der Grafik'),
+                      children: [
+                        for (final entry in model.objects.indexed)
+                          ListTile(
+                            leading: CircleAvatar(
+                              child: Text('${entry.$1 + 1}'),
+                            ),
+                            title: Text(entry.$2.label),
+                            subtitle: Text(switch (entry.$2.shape) {
+                              'circle' => 'Kreis',
+                              'triangle' => 'Dreieck',
+                              'diamond' => 'Raute',
+                              _ => 'Rechteck',
+                            }),
+                          ),
+                      ],
+                    ),
                   ],
                 ),
+              const SizedBox(height: 14),
               if (!readingCards)
                 ExcludeSemantics(
                   child: Text(

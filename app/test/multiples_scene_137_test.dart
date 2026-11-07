@@ -150,6 +150,8 @@ void main() {
       expect(scene.sliderValue(tester), 1);
       expect(find.text('Schritt 2 von 2'), findsOneWidget);
       await capture(tester, 'multiples-$width-step2');
+      expect(find.text('Zustände vergleichen'), findsNothing);
+      await scene.tapVisible(tester, find.byKey(const ValueKey('scene-more')));
       await scene.tapVisible(
         tester,
         find.byKey(const ValueKey('scene-reset-view')),
@@ -184,6 +186,7 @@ void main() {
     final stopped = scene.sliderValue(tester);
     await tester.pump(const Duration(seconds: 1));
     expect(scene.sliderValue(tester), stopped);
+    await scene.tapVisible(tester, find.byKey(const ValueKey('scene-more')));
     await scene.tapVisible(
       tester,
       find.byKey(const ValueKey('scene-reset-view')),
