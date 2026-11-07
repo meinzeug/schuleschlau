@@ -10,6 +10,32 @@ import tempfile
 from pathlib import Path
 from urllib.parse import quote
 
+BROWSER_ONLY_OPTIONS = (
+    "PARENT_MULTICHILD_BROWSER", "PARENT_MULTICHILD_PDF_BROWSER", "PARENT_PREFS_CAS_BROWSER",
+    "RECALL_MOBILE_BROWSER", "NOTEBOOK_LOCAL_BROWSER", "LOGOUT_COOKIE_RACE_BROWSER", "SITE_CAS_LEGACY_BROWSER",
+)
+
+
+def cleanup_cluster(root: Path, data: Path, bins: Path, env: dict[str, str], *,
+                    start_attempted: bool, started: bool) -> None:
+    """Never remove a cluster unless its attempted server stop is confirmed."""
+    if start_attempted and not started:
+        raise RuntimeError(f"PostgreSQL startup is uncertain; inspect and preserve {root}")
+    if started:
+        try:
+            stop = subprocess.run([str(bins / "pg_ctl"), "-D", str(data), "-m", "fast", "-w", "stop"],
+                                  capture_output=True, env=env, timeout=60)
+            if stop.returncode != 0:
+                raise RuntimeError("PostgreSQL stop failed")
+            status = subprocess.run([str(bins / "pg_ctl"), "-D", str(data), "status"],
+                                    capture_output=True, env=env, timeout=10)
+            # pg_ctl status returns 3 when no server is running.
+            if status.returncode != 3:
+                raise RuntimeError("PostgreSQL stop could not be confirmed")
+        except (OSError, subprocess.SubprocessError, RuntimeError) as exc:
+            raise RuntimeError(f"PostgreSQL stop is uncertain; inspect and preserve {root}") from exc
+    shutil.rmtree(root)
+
 
 def child_environment(root: Path, socket: Path, *, database: str) -> dict[str, str]:
     """Construct a fresh environment; never inherit libpq or loader options."""
@@ -44,6 +70,10 @@ def child_environment(root: Path, socket: Path, *, database: str) -> dict[str, s
 
 
 def main():
+    incompatible = [name for name in BROWSER_ONLY_OPTIONS if os.environ.get(name) == "1"]
+    if incompatible:
+        raise SystemExit("Browser checks require isolated SQLite; do not run them via the PostgreSQL runner: "
+                         + ", ".join(incompatible))
     bins = Path("/usr/lib/postgresql/16/bin")
     if not (bins / "initdb").is_file():
         raise SystemExit("PostgreSQL 16 binaries are required locally.")
@@ -59,7 +89,7 @@ def main():
         f"postgresql+psycopg://{quote(username, safe='')}@/schulpilot_isolated_test"
         f"?host={quote(str(sock), safe='')}&port=55440"
     )
-    started = False
+    start_attempted = started = False
     try:
         subprocess.run(
             [
@@ -74,7 +104,9 @@ def main():
             check=True,
             capture_output=True,
             env=control_env,
+            timeout=60,
         )
+        start_attempted = True
         subprocess.run(
             [
                 str(bins / "pg_ctl"),
@@ -90,6 +122,7 @@ def main():
             check=True,
             capture_output=True,
             env=control_env,
+            timeout=60,
         )
         started = True
         subprocess.run([str(bins / "createdb"), "-h", str(sock), "-p", "55440", "schulpilot_isolated_test"],
@@ -105,10 +138,7 @@ def main():
             [sys.executable, "-m", "pytest", "-q", *(sys.argv[1:] or ["backend/tests"])], env=test_env
         ).returncode
     finally:
-        if started:
-            subprocess.run([str(bins / "pg_ctl"), "-D", str(data), "-m", "fast", "-w", "stop"],
-                           capture_output=True, env=control_env)
-        shutil.rmtree(root)
+        cleanup_cluster(root, data, bins, control_env, start_attempted=start_attempted, started=started)
 
 
 if __name__ == "__main__":
