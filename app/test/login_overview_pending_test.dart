@@ -210,4 +210,68 @@ void main() {
       expect(t.takeException(), isNull);
     },
   );
+  testWidgets(
+    'a changed app state cannot receive an earlier login navigation',
+    (t) async {
+      final pending = Completer<http.Response>();
+      AppState account() => AppState(
+        api: Api(
+          base: 'https://example.invalid/api',
+          client: MockClient((r) async {
+            if (r.url.path == '/api/auth/login') return pending.future;
+            return reply({'available': false});
+          }),
+        ),
+      );
+      final first = account(), second = account();
+      var current = first;
+      late StateSetter setPage;
+      final router = GoRouter(
+        initialLocation: '/login',
+        routes: [
+          GoRoute(
+            path: '/login',
+            builder: (_, s) => StatefulBuilder(
+              builder: (_, update) {
+                setPage = update;
+                return AuthScreen(current, mode: 'login', linkUri: s.uri);
+              },
+            ),
+          ),
+          GoRoute(
+            path: '/app',
+            builder: (_, _) => const Scaffold(body: Text('Startseite')),
+          ),
+        ],
+      );
+      addTearDown(() async {
+        await t.pumpWidget(const SizedBox());
+        router.dispose();
+        first.dispose();
+        second.dispose();
+      });
+      await t.pumpWidget(
+        MaterialApp.router(theme: appTheme(), routerConfig: router),
+      );
+      await t.pumpAndSettle();
+      await t.enterText(field('E-Mail oder Benutzername'), 'test-child');
+      await t.enterText(field('Passwort'), 'secure-child-pass-123');
+      await t.tap(find.widgetWithText(FilledButton, 'Anmelden'));
+      await t.pump();
+      // A different AppState can have the same numeric revision.
+      second.beginAuthentication();
+      setPage(() => current = second);
+      await t.pump();
+      pending.complete(
+        reply({
+          'user': {'id': 'synthetic-child', 'role': 'child', 'child_id': 'c'},
+        }),
+      );
+      await t.pumpAndSettle();
+      expect(second.user, isNull);
+      expect(router.state.uri.path, '/login');
+      expect(find.text('Startseite'), findsNothing);
+      expect(t.takeException(), isNull);
+    },
+  );
 }
