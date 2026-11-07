@@ -2752,6 +2752,15 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Abnahmen systematisch und wiederholbar automatisieren**
 
+  - [x] **PostgreSQL-Testläufe an den isolierten Cluster binden.**
+    Der Testläufer startet Kindprozesse mit einer begrenzten Umgebung und
+    prüft Datenbank, Unix-Socket und Datenverzeichnis vor pytest. Browser-Opt-ins
+    für SQLite werden ausdrücklich abgelehnt; bei unklarem Start oder Stopp
+    bleibt das Testverzeichnis erhalten. Künstliche Gegenfälle prüfen unter
+    anderem fremde PG- und Loader-Variablen sowie unsichere Stopps. Die
+    Ausführung setzt weiterhin eine vertrauenswürdige Startumgebung voraus.
+    [Nachweis und Grenzen](docs/TEST_POSTGRES_ISOLATION_2026_11_07.md).
+
   - [x] **Zwei-Eltern-Konfliktprüfung im Browser-Gate verankern.** Zwei
     künstliche Eltern bearbeiten dieselben Lernvorgaben in getrennten
     Smartphone-Browserkontexten. Eine veraltete Änderung wird mit 409
