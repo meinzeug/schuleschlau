@@ -1177,6 +1177,16 @@ Die folgenden Punkte beschreiben ausstehende, wiederholbare Betriebs- und Freiga
   ungeprüften externen Aufbewahrungsfristen nicht.
 - [ ] **P0 – Wiederherstellung praktisch üben**
 
+  - [x] **Journal und Outbox begrenzt und ohne Schreibzugriff vergleichen.**
+    Ein Diagnosewerkzeug prüft Signaturen und gleicht aktuelle Belege beider
+    Bestände mit begrenzten Datenbank-, Sperr- und Mengengrenzen ab. Es gibt
+    ausschließlich Summen aus und erteilt keine Freigabe. Im lesenden
+    Produktionsabgleich vom 07.11.2026 stimmten 501 veröffentlichte Belege
+    mit dem Journal überein; ausstehende oder abweichende Belege wurden nicht
+    gefunden. Historisch in beiden Beständen fehlende Löschungen, fremde
+    Writer und vollständige Anlagenbindung bleiben damit ungeprüft.
+    [Grenzen und Tests](docs/ERASURE_JOURNAL_AUDIT_2026_11_07.md).
+
   **07.11.2026, erneut geöffnet:** Ein nachfolgender isolierter Gegenversuch
   zeigte, dass ein authentisches, aber nicht nachweislich vollständiges altes
   Löschjournal beim Restore gelöschte Daten zurücklassen kann. Ein vor dem
