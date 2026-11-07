@@ -14,6 +14,10 @@ erhaltene veraltete Bediencallbacks prüfen diese Sperre erneut.
 Auch bei der Zustimmung zu den Bedingungen wird eine laufende Bestellung
 oder eine zwischenzeitlich zurückgenommene Zustimmung durch frühere
 Checkbox-Callbacks nicht nachträglich geändert.
+Der Bestellbutton prüft die tatsächlich angezeigte Zustimmung,
+Frühstartwahl, Tarif- und Aktionsrevision sowie die aktuelle Route beim
+Ausführen. Ein alter Button kann nach Änderung oder bereits erfolgtem
+Absenden keinen weiteren Bestell-POST auslösen.
 
 Bei einem tatsächlichen, vom Server beantworteten 409-Konflikt wird der
 abgelehnte Bestellentwurf wie bisher verworfen. Die Frühstartauswahl kann

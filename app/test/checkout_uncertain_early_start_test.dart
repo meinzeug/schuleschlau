@@ -111,9 +111,27 @@ void main() {
         expect(tester.widget<CheckboxListTile>(terms).value, isFalse);
         await tester.tap(terms);
         await tester.pump();
+        final staleConsentBuy = tester.widget<FilledButton>(buy).onPressed!;
+        await tester.tap(terms);
+        await tester.pump();
+        await tester.tap(terms);
+        await tester.pump();
+        staleConsentBuy();
+        await tester.pump();
+        expect(submissions, isEmpty);
+        final staleStartBuy = tester.widget<FilledButton>(buy).onPressed!;
+        await tester.ensureVisible(early);
+        await tester.tap(early);
+        await tester.pump();
+        await tester.tap(early);
+        await tester.pump();
+        staleStartBuy();
+        await tester.pump();
+        expect(submissions, isEmpty);
         final beforeSubmitConsent = tester
             .widget<CheckboxListTile>(terms)
             .onChanged!;
+        final alreadyUsedBuy = tester.widget<FilledButton>(buy).onPressed!;
         await tester.ensureVisible(buy);
         await tester.tap(buy);
         await tester.pump();
@@ -126,6 +144,9 @@ void main() {
           http.Response('{"detail":"synthetic response"}', responseStatus),
         );
         await tester.pumpAndSettle();
+        alreadyUsedBuy();
+        await tester.pump();
+        expect(submissions, hasLength(1));
         final toggle = tester.widget<CheckboxListTile>(early);
         expect(toggle.value, isFalse);
         final consentBeforeRevocation = tester

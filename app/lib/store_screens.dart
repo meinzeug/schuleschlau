@@ -323,7 +323,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   String paymentMethod = 'bank_transfer';
   Json? submittedIntent;
   String? error;
-  int catalogVersion = 0, intentVersion = 0, termsVersion = 0;
+  int catalogVersion = 0,
+      intentVersion = 0,
+      termsVersion = 0,
+      earlyVersion = 0,
+      actionVersion = 0;
   bool checkingPending = false;
   List<Json>? pendingOrders;
   String? pendingCheckNote;
@@ -388,6 +392,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     if (mounted && !own) {
       setState(() {
         termsVersion++;
+        earlyVersion++;
         terms = early = false;
         paymentMethod = 'bank_transfer';
         submittedIntent = null;
@@ -412,6 +417,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       intentVersion++;
       catalogVersion++;
       termsVersion++;
+      earlyVersion++;
       terms = early = busy = false;
       paymentMethod = 'bank_transfer';
       submittedIntent = null;
@@ -498,6 +504,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     (paymentMethod == 'bank_transfer' || kIsWeb);
                 final renderedCatalog = catalogVersion;
                 final renderedTerms = termsVersion;
+                final renderedEarly = earlyVersion;
+                final renderedIntent = intentVersion;
+                final renderedAction = actionVersion;
                 final renderedRoute = ModalRoute.of(context);
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -560,6 +569,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                               !busy &&
                               submittedIntent == null &&
                               renderedCatalog == catalogVersion &&
+                              renderedTerms == termsVersion &&
+                              renderedEarly == earlyVersion &&
+                              renderedIntent == intentVersion &&
+                              renderedAction == actionVersion &&
                               (renderedRoute?.isCurrent ?? true) &&
                               value != null &&
                               methodAvailable(value)) {
@@ -670,6 +683,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                   v == null ||
                                   renderedCatalog != catalogVersion ||
                                   renderedTerms != termsVersion ||
+                                  renderedEarly != earlyVersion ||
+                                  renderedIntent != intentVersion ||
+                                  renderedAction != actionVersion ||
                                   renderedRoute?.isCurrent == false) {
                                 return;
                               }
@@ -692,11 +708,18 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                   busy ||
                                   submittedIntent != null ||
                                   renderedCatalog != catalogVersion ||
+                                  renderedTerms != termsVersion ||
+                                  renderedEarly != earlyVersion ||
+                                  renderedIntent != intentVersion ||
+                                  renderedAction != actionVersion ||
                                   renderedRoute?.isCurrent == false ||
                                   v == null) {
                                 return;
                               }
-                              setState(() => early = v);
+                              setState(() {
+                                early = v;
+                                earlyVersion++;
+                              });
                             },
                       title: const Text(
                         'Ich möchte vor Ablauf der 14-tägigen Widerrufsfrist starten.',
@@ -743,6 +766,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                     busy ||
                                     submittedIntent != null ||
                                     renderedCatalog != catalogVersion ||
+                                    renderedAction != actionVersion ||
                                     renderedRoute?.isCurrent == false) {
                                   return;
                                 }
@@ -787,6 +811,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                   checkingPending ||
                                   pendingOrders?.isNotEmpty == true ||
                                   !terms ||
+                                  renderedTerms != termsVersion ||
+                                  renderedEarly != earlyVersion ||
+                                  renderedIntent != intentVersion ||
+                                  renderedAction != actionVersion ||
+                                  renderedCatalog != catalogVersion ||
+                                  renderedRoute?.isCurrent == false ||
                                   !methodAllowed ||
                                   widget.state.isDemo) {
                                 return;
@@ -795,6 +825,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                               final currentRoute = ModalRoute.of(context);
                               final submittedPlan = widget.planId;
                               setState(() {
+                                actionVersion++;
                                 busy = true;
                                 error = null;
                               });
