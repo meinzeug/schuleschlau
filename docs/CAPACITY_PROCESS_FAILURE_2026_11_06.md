@@ -112,6 +112,17 @@ Datensicherung und Prüfungen auf dem Zielsystem voraus. Insbesondere dürfen
 Rollback und Pruning nicht mit alten Werkzeugen erfolgen, die den neuen Dienst
 nicht kennen.
 
+## Ergänzung: Stillstand beim Hochladen
+
+Der lokale Stand begrenzt die Wartezeit auf das nächste Datenpaket zusätzlich
+auf 15 Sekunden. Kommen Daten weiter an, beginnt die Inaktivitätsfrist erneut;
+die absolute 60-Sekunden-Frist und die bisherigen Größen- und Bildgrenzen
+bleiben bestehen. Die Tests prüfen fortlaufende Daten, Stillstand, die weiterhin
+wirksame Gesamtfrist, die Freigabe des belegten Slots und einen tatsächlichen
+langsamen lokalen HTTP-Socket. Ein bewusst tröpfelnder Transfer kann bis zur
+Gesamtfrist weiter einen Slot belegen. Netzwerkqualität und produktive
+Kapazität sind damit nicht umfassend abgenommen.
+
 ## Noch erforderlich
 
 Die produktiven Dienstdefinitionen und die vollständige Aktivierungs- und

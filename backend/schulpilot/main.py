@@ -140,6 +140,9 @@ _PHOTO_REQUEST_SLOT = threading.BoundedSemaphore(1)
 _PHOTO_AUTH_SLOT = threading.BoundedSemaphore(4)
 _PHOTO_REQUEST_PATH = re.compile(r"^/api/(?:children/[^/]+/materials|exams/[^/]+/pages)$")
 _PHOTO_BODY_TIMEOUT = 60
+# A stalled connection must not monopolize the single multipart intake slot.
+# This is an inactivity limit, not a minimum speed or a smaller total limit.
+_PHOTO_BODY_IDLE_TIMEOUT = 15
 _PHOTO_WAIT_TIMEOUT = 2
 
 
@@ -188,19 +191,23 @@ class PhotoIntakeLimit:
                 return await response(scope, receive, send)
             await asyncio.sleep(.05)
         body_deadline = loop.time() + _PHOTO_BODY_TIMEOUT
+        idle_deadline = loop.time() + _PHOTO_BODY_IDLE_TIMEOUT
         body_complete = False
 
         async def timed_receive():
-            nonlocal body_complete
+            nonlocal body_complete, idle_deadline
             if body_complete:
                 return await receive()
-            remaining = body_deadline - loop.time()
+            remaining = min(body_deadline, idle_deadline) - loop.time()
             if remaining <= 0:
                 raise HTTPException(408, 'Das Foto wurde zu langsam übertragen. Bitte versuche es erneut.')
             try:
                 message = await asyncio.wait_for(receive(), timeout=remaining)
-                if message.get('type') == 'http.request' and not message.get('more_body', False):
-                    body_complete = True
+                if message.get('type') == 'http.request':
+                    if message.get('body'):
+                        idle_deadline = loop.time() + _PHOTO_BODY_IDLE_TIMEOUT
+                    if not message.get('more_body', False):
+                        body_complete = True
                 return message
             except TimeoutError:
                 raise HTTPException(408, 'Das Foto wurde zu langsam übertragen. Bitte versuche es erneut.') from None

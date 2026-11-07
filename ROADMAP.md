@@ -1156,7 +1156,19 @@ Die folgenden Punkte beschreiben ausstehende, wiederholbare Betriebs- und Freiga
   bleiben erhalten. Je 14 künstliche Lebenszyklusfälle bestanden auf SQLite
   und isoliertem PostgreSQL. Dies ergänzt die Datenmatrix, schließt aber die
   ungeprüften externen Aufbewahrungsfristen nicht.
-- [x] **P0 – Wiederherstellung praktisch üben**
+- [ ] **P0 – Wiederherstellung praktisch üben**
+
+  **07.11.2026, erneut geöffnet:** Ein nachfolgender isolierter Gegenversuch
+  zeigte, dass ein authentisches, aber nicht nachweislich vollständiges altes
+  Löschjournal beim Restore gelöschte Daten zurücklassen kann. Ein vor dem
+  vollständigen Stillstand alter Schreiber gestartetes Datenbankabbild kann
+  spätere Löschungen ebenfalls verpassen. Die früheren Proben belegen die
+  jeweils durchgeführten Schritte, aber nicht die Vollständigkeit des Journals
+  und die sichere Wiederherstellung nach allen Löschungen. Vor erneuter
+  Abnahme müssen aktueller Journalstand und Schreibsperren über beide Hosts
+  hinweg nachweisbar zusammengeführt und ein echter isolierter Restore mit
+  diesem Stand geprüft werden. Der alte Restore-Dienst ist produktiv noch an
+  eine ältere Runtime gebunden.
 
   **04.11.2026, Schutz des Wiederherstellungsziels:** Überschreibende und
   doppelte Datenbank-Verbindungsparameter werden zurückgewiesen und das
@@ -1190,7 +1202,8 @@ Die folgenden Punkte beschreiben ausstehende, wiederholbare Betriebs- und Freiga
   `dropdb` bestätigt, `production_overwritten: false`). Die Entscheidung zur
   maximalen Journallücke ist in `docs/OPERATIONS.md` und
   `docs/STORAGE_AND_ALERTS.md` dokumentiert. Alle Abnahmekriterien sind
-  vollständig erfüllt.
+  nach damaligem Kenntnisstand als erfüllt angesehen; der spätere oben
+  beschriebene Gegenbeweis hat diese Gesamtbewertung aufgehoben.
 
   **Nachweis 01.11.2026:** Am 01.11.2026 um 15:51:58 UTC lief die isolierte
   Wiederherstellungsprobe (`schulpilot-restore-check.service`) auf dem Zielserver
@@ -1627,6 +1640,16 @@ Bestandteil des bestehenden Buildvertrags.
 ## Kapazität und öffentlicher Start
 
 - [ ] **P1 – Kapazitätsannahmen vor wachsendem Betrieb messen**
+
+  - [x] **Stehende Fotouploads früher freigeben.** Eine Verbindung ohne
+    weitere Daten gibt den einzelnen Foto-Eingangsplatz nach 15 Sekunden
+    Inaktivität frei. Weiter eintreffende Daten setzen diese Frist zurück;
+    die bestehende Gesamtfrist von 60 Sekunden und die Bildgrößen bleiben
+    erhalten. Künstliche Prüfungen decken fortlaufende und stehende Transfers,
+    die Gesamtfrist, einen echten langsamen lokalen Socket sowie Wiederholung
+    ab. Eine absichtlich sehr langsam, aber ohne 15-Sekunden-Pausen sendende
+    Verbindung kann den Platz weiterhin bis zur Gesamtfrist belegen; dies
+    ist kein Nachweis allgemeiner Fairness oder produktiver Kapazität.
 
   - [ ] **API-Speicherschutz beim gleichzeitigen Fotoimport beheben.**
     Die getrennte Prozessprüfung auf PostgreSQL und Loopback reproduzierte bei

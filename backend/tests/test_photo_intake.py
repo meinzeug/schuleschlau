@@ -59,6 +59,113 @@ def test_intake_requires_auth_before_slot_and_expires_slow_body(api, monkeypatch
     asyncio.run(scenario())
 
 
+def test_photo_body_idle_limit_preserves_active_stream_and_releases_stalled_slot(monkeypatch):
+    monkeypatch.setattr(main, 'authorize_photo_before_intake', lambda scope: None)
+    monkeypatch.setattr(main, '_PHOTO_BODY_TIMEOUT', 1.5)
+    monkeypatch.setattr(main, '_PHOTO_BODY_IDLE_TIMEOUT', .2)
+    monkeypatch.setattr(main, '_PHOTO_WAIT_TIMEOUT', .04)
+
+    async def scenario():
+        received = []
+        async def inner(scope, receive, send):
+            try:
+                while True:
+                    message = await receive()
+                    received.append(message.get('body', b''))
+                    if not message.get('more_body'):
+                        break
+                await JSONResponse({'ok': True})(scope, receive, send)
+            except HTTPException as exc:
+                await JSONResponse({'detail': exc.detail}, status_code=exc.status_code)(scope, receive, send)
+
+        gate = main.PhotoIntakeLimit(inner)
+        scope = {'type': 'http', 'method': 'POST', 'path': '/api/children/synthetic/materials', 'headers': []}
+        async def run(receive):
+            results = []
+            async def send(message):
+                results.append(message)
+            await gate(scope, receive, send)
+            return next(m['status'] for m in results if m['type'] == 'http.response.start')
+
+        count = 0
+        async def active_receive():
+            nonlocal count
+            await asyncio.sleep(.08)
+            count += 1
+            return {'type': 'http.request', 'body': bytes([count]), 'more_body': count < 4}
+        assert await run(active_receive) == 200
+        assert received == [b'\x01', b'\x02', b'\x03', b'\x04']
+
+        entered = asyncio.Event()
+        async def stalled_receive():
+            entered.set()
+            await asyncio.sleep(2)
+            return {'type': 'http.request', 'body': b'', 'more_body': False}
+        async def ready_receive():
+            return {'type': 'http.request', 'body': b'', 'more_body': False}
+        stalled = asyncio.create_task(run(stalled_receive))
+        await entered.wait()
+        assert await run(ready_receive) == 503
+        assert await stalled == 408
+        assert await run(ready_receive) == 200
+
+    asyncio.run(scenario())
+
+
+def test_photo_body_absolute_deadline_still_applies_while_bytes_arrive(monkeypatch):
+    monkeypatch.setattr(main, 'authorize_photo_before_intake', lambda scope: None)
+    monkeypatch.setattr(main, '_PHOTO_BODY_TIMEOUT', .3)
+    monkeypatch.setattr(main, '_PHOTO_BODY_IDLE_TIMEOUT', .2)
+
+    async def scenario():
+        async def inner(scope, receive, send):
+            try:
+                while True:
+                    await receive()
+            except HTTPException as exc:
+                await JSONResponse({'detail': exc.detail}, status_code=exc.status_code)(scope, receive, send)
+        async def trickle():
+            await asyncio.sleep(.08)
+            return {'type': 'http.request', 'body': b'x', 'more_body': True}
+        results = []
+        async def send(message):
+            results.append(message)
+        scope = {'type': 'http', 'method': 'POST', 'path': '/api/exams/synthetic/pages', 'headers': []}
+        await main.PhotoIntakeLimit(inner)(scope, trickle, send)
+        assert next(m['status'] for m in results if m['type'] == 'http.response.start') == 408
+
+    asyncio.run(scenario())
+
+
+def test_empty_body_fragments_do_not_reset_photo_idle_deadline(monkeypatch):
+    monkeypatch.setattr(main, 'authorize_photo_before_intake', lambda scope: None)
+    monkeypatch.setattr(main, '_PHOTO_BODY_TIMEOUT', 1.5)
+    monkeypatch.setattr(main, '_PHOTO_BODY_IDLE_TIMEOUT', .2)
+
+    async def scenario():
+        fragments = 0
+        async def inner(scope, receive, send):
+            try:
+                while True:
+                    await receive()
+            except HTTPException as exc:
+                await JSONResponse({'detail': exc.detail}, status_code=exc.status_code)(scope, receive, send)
+        async def empty_fragment():
+            nonlocal fragments
+            await asyncio.sleep(.04)
+            fragments += 1
+            return {'type': 'http.request', 'body': b'', 'more_body': True}
+        messages = []
+        async def send(message):
+            messages.append(message)
+        scope = {'type': 'http', 'method': 'POST', 'path': '/api/children/synthetic/materials', 'headers': []}
+        await main.PhotoIntakeLimit(inner)(scope, empty_fragment, send)
+        assert next(m['status'] for m in messages if m['type'] == 'http.response.start') == 408
+        assert fragments < 10
+
+    asyncio.run(scenario())
+
+
 def test_real_anonymous_upload_does_not_wait_for_busy_intake(api, monkeypatch):
     assert main._PHOTO_REQUEST_SLOT.acquire(blocking=False)
     api.headers.pop('Authorization', None)
@@ -135,7 +242,8 @@ def test_real_client_disconnect_keeps_sync_guard_until_worker_finishes(api, hous
 def test_authorized_slow_socket_expires_and_other_account_cannot_block(api, household, monkeypatch):
     allow_synthetic_test_transport()
     _, child = household
-    monkeypatch.setattr(main, '_PHOTO_BODY_TIMEOUT', .8)
+    monkeypatch.setattr(main, '_PHOTO_BODY_TIMEOUT', 4)
+    monkeypatch.setattr(main, '_PHOTO_BODY_IDLE_TIMEOUT', .8)
     listener = socket.socket()
     listener.bind(('127.0.0.1', 0))
     listener.listen(128)
