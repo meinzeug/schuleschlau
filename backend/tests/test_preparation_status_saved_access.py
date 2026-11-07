@@ -51,6 +51,7 @@ def test_graphic_preflight_links_only_current_confirmed_own_sources(api, househo
             'stale': ('visual_unavailable', {'sources': [{'id': own_id, 'revision': 999}]}),
             'generic': ('invalid_output', {'material_id': own_id}),
             'primary': ('visual_unavailable', {'material_id': own_id}),
+            'unversioned_source': ('visual_unavailable', {'sources': [{'id': own_id}]}),
         }
         jobs = {}
         for name, (code, payload) in samples.items():
@@ -66,7 +67,12 @@ def test_graphic_preflight_links_only_current_confirmed_own_sources(api, househo
         for name, job_id in jobs.items():
             response = client.get('/api/jobs/' + job_id)
             assert response.status_code == 200
-            assert response.json()['review_material_id'] == (own_id if name in ('own', 'primary') else None)
+            assert response.json()['review_material_id'] == (own_id if name == 'own' else None)
+        # An originally valid source must stop linking after the page changes.
+        with DB.begin() as db:
+            db.get(Material, own_id).revision += 1
+        assert client.get('/api/jobs/' + jobs['own']).json()['review_material_id'] is None
+        assert client.get('/api/jobs/' + jobs['primary']).json()['review_material_id'] is None
     with TestClient(app, headers=HEADERS) as client:
         login = client.post('/api/auth/login', json={'username': sibling['username'], 'password': 'secure-child-pass-123'})
         client.headers['Authorization'] = 'Bearer ' + login.json()['token']

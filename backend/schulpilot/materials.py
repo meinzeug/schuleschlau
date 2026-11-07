@@ -897,7 +897,8 @@ def job_view(job_id: str, p=Depends(authenticated), db=Depends(get_db)):
             Job.payload["repairs_failed_job_id"].as_string() == job.id)
             .order_by(Job.created.desc(), Job.id).limit(1))
     # A source link is just a navigation aid, not a claim that this page is
-    # wrong. Never disclose an ID from stale or foreign job metadata.
+    # wrong. Never disclose an ID from stale, unversioned or foreign job
+    # metadata: material_id alone does not bind the page to this attempt.
     review_material_id = None
     if job.kind == "unit" and job.status == "failed" and job.error_code == "visual_unavailable":
         payload = job.payload if isinstance(job.payload, dict) else {}
@@ -911,10 +912,6 @@ def job_view(job_id: str, p=Depends(authenticated), db=Depends(get_db)):
                         and material.purpose == "notebook" and material.revision == source.get("revision")):
                     review_material_id = material.id
                     break
-        if not sources and isinstance(payload.get("material_id"), str):
-            material = db.get(Material, payload["material_id"])
-            if material and material.child_id == job.child_id and material.confirmed and material.purpose == "notebook":
-                review_material_id = material.id
     return {
         "id": job.id,
         "kind": job.kind,
