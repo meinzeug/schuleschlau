@@ -102,7 +102,7 @@ def prepare(db, job, child, material, pages, config, route, payload):
     """Before dispatch: prove scope and compute exactly two existing-goal cores."""
     previous = _scope(db, job, child, material, pages, config, route, payload)
     candidate = {**payload, "practice_kind": "check"}
-    from . import review_fraction_plan, review_divisibility_plan
+    from . import review_divisibility_plan, review_fraction_plan
 
     divisibility = review_divisibility_plan.supported(candidate)
     mixed = review_fraction_plan.supported(candidate)
@@ -134,7 +134,7 @@ def validate(db, job, child, material, pages, config, route, payload, data, rece
     """After the Child lock: reject changed sources/goals or newly used values."""
     if receipt is None:
         return
-    from . import review_fraction_plan, review_divisibility_plan
+    from . import review_divisibility_plan, review_fraction_plan
 
     previous = _scope(db, job, child, material, pages, config, route, payload)
     if (previous is None or previous.id != receipt["previous"] or _digest(job.payload) != receipt["job"]

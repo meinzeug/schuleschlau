@@ -2,10 +2,12 @@
 import copy
 import re
 from dataclasses import dataclass
-from . import unit_multiples_common as multiples
+
 from . import review_divisibility_product as product
-from .fraction_practice_plan import INVALID, CURRENT_ERROR
-from .package_prepared_graphics import Binding as BaseBinding, _digest, bind_candidates
+from . import unit_multiples_common as multiples
+from .fraction_practice_plan import CURRENT_ERROR, INVALID
+from .package_prepared_graphics import Binding as BaseBinding
+from .package_prepared_graphics import _digest, bind_candidates
 
 KEY = 'review_divisibility_plan'
 HISTORY = 'review_divisibility_history'

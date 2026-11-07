@@ -1816,9 +1816,8 @@ def request_provider(config, function, payload, image_bytes=None, *, synthetic_f
 
         try:
             from .notebook_fraction_expansions import bind_schema as bind_notebook_expansion
-            from .review_fraction_plan import bind_schema as bind_review_fraction_plan
-
             from .review_divisibility_plan import bind_schema as bind_review_divisibility_plan
+            from .review_fraction_plan import bind_schema as bind_review_fraction_plan
 
             unit_composition = bind_review_divisibility_plan(schema, payload)
             if unit_composition is None:
