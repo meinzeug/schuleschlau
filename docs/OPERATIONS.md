@@ -553,7 +553,12 @@ Der aktuelle Prüfdienst schreibt daher `erasure_journal_completeness_verified:
 false` und `activation_authorized: false`. Der Monitor meldet für einen ansonsten
 gültigen, frischen Bericht `restore_journal_completeness_unverified` — auch für
 ältere Berichte und auch dann, wenn ein Bericht allein einen anderen Wahrheitswert
-behauptet. Die technische Wiederherstellungsprobe und ihr Alarm sind kein
+behauptet. Der bestehende Fünf-Minuten-Monitor prüft diesen Zustand bei jedem
+Lauf. Ist der Operator-Empfänger konfiguriert, versendet er bei neuer oder
+veränderter Störung eine neutrale Mail und bei unveränderter Störung frühestens
+nach sechs Stunden erneut; SMTP-Fehler werden beim nächsten Lauf erneut versucht.
+Der Alarm bleibt bis zu einem tatsächlich implementierten Vollständigkeitsnachweis
+bestehen. Die technische Wiederherstellungsprobe und ihr Alarm sind kein
 Freigabeweg für Nutzerdaten. Eine produktive Wiederherstellung benötigt zuerst
 einen unabhängig belegten vollständigen aktuellen Journalstand und den
 koordinierten Writer- und Zwei-Host-Fence. Ohne diese Nachweise darf die getrennte

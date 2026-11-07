@@ -265,6 +265,20 @@ class RestoreMonitorTest(unittest.TestCase):
         self.assertIn("restore_journal_completeness_unverified", message.get_content())
         self.assertNotIn("private sentinel", message.as_string())
 
+    def test_completeness_alarm_repeats_after_existing_six_hour_interval(self):
+        smtp = unittest.mock.MagicMock()
+        smtp.__enter__.return_value = smtp
+        config = {"OPERATIONS_ALERT_EMAIL": "operator@example.test", "SMTP_FROM": "system@example.test",
+                  "SMTP_HOST": "mail.example.test", "SMTP_MODE": "tls"}
+        failure = "restore_journal_completeness_unverified"
+        previous = {"fingerprint": failure, "sent": NOW}
+        with patch.object(monitor.smtplib, "SMTP_SSL", return_value=smtp):
+            for elapsed, send in ((0, False), (21600, False), (21601, True)):
+                with self.subTest(elapsed=elapsed), patch.object(monitor.time, "time", return_value=NOW + elapsed):
+                    smtp.reset_mock()
+                    monitor.notify(config, [failure], previous, self.root / "state.json")
+                    self.assertEqual(smtp.send_message.called, send)
+
     def test_backup_without_valid_journal_status_is_not_reported_healthy(self):
         backup = self.root / "20261031T120000Z.tar.enc"
         backup.touch()
