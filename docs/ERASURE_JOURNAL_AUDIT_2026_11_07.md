@@ -10,9 +10,15 @@ Gültige doppelte Datensätze können nach einem unterbrochenen Flush entstehen;
 verschiedene Datensätze mit gleicher ID sind dagegen ein Fehler.
 
 Das Werkzeug benötigt die reguläre geschützte Anwendungsumgebung und
-Leserechte auf Journal, Sperrdatei und Datenbank. Es startet keinen Worker,
-führt keinen Flush aus und schreibt keine Daten. Auf PostgreSQL verwendet es
-eine explizit schreibgeschützte Transaktion. Seine JSON-Ausgabe enthält nur
+Leserechte auf Journal, Sperrdatei und Datenbank. Der CLI-Pfad akzeptiert
+ausschließlich PostgreSQL; SQLite ist nur mit explizit übergebener
+In-Memory-Testengine zulässig. Es startet keinen Worker, führt keinen Flush
+aus und schreibt keine Daten. Der dedizierte DB-Zugang wird vor der zeitlich
+begrenzten Journalsperre geöffnet; die PostgreSQL-Transaktion ist explizit
+schreibgeschützt und besitzt Statement-/Sperrtimeouts. Der CLI-Prozess bricht
+nach zwölf Sekunden hart ab, damit blockierte Dateideskriptoren freigegeben
+werden. Der Vergleich und die Signaturprüfung laufen außerhalb der Sperre.
+Die JSON-Ausgabe enthält nur
 Summen und keine Kennungen, Inhalte oder Schlüssel. Signatur-, Datenbank- und
 Lesefehler führen ohne Ausgabe des Fehlerinhalts zum Exitcode 1. Ausstehende,
 fehlende, abweichende oder widersprüchlich doppelte Einträge ergeben ebenfalls
@@ -27,7 +33,11 @@ Outbox-Einträge, keine ausstehenden Einträge, fehlenden IDs oder Feldkonflikte
 Dieser Befund dokumentiert den damaligen Augenblick, nicht spätere Zustände.
 Synthetische Tests umfassen beschädigte Signaturen, fehlende und abweichende
 Datensätze, Notendetails, alte Einträge, Duplikate sowie SQLite und eine
-separate echte PostgreSQL-Datenbank.
+separate echte PostgreSQL-Datenbank. Dort wurden tatsächliches `read_only`,
+der Abbruch einer durch andere Transaktion blockierten Tabellenabfrage und die
+anschließende Freigabe der Journalsperre geprüft. Ein eigener Kindprozess
+belegt, dass der harte Timeout eine gehaltene Dateisperre freigibt. Ein
+falscher SQLite-Pfad wird nicht angelegt.
 
 Ein passender Vergleich kann nicht erkennen, ob früher ein Löschvorgang ohne
 Outbox-Eintrag stattfand oder eine Löschung in **beiden** Beständen verloren
