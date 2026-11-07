@@ -315,6 +315,131 @@ void main() {
     await tester.pumpAndSettle();
     expect(puts, 1);
   });
+
+  testWidgets(
+    'a stale position reply never resends a queued edit automatically',
+    (tester) async {
+      final delayed = Completer<http.Response>();
+      final writes = <Json>[];
+      var serverRevision = 1;
+      var reads = 0;
+      final state = app((r) {
+        if (r.method == 'PUT') {
+          writes.add(Json.from(jsonDecode(r.body)));
+          if (writes.length == 1) return delayed.future;
+          return reply({'revision': ++serverRevision});
+        }
+        reads++;
+        return reply({
+          'source_signature': 'a' * 64,
+          'revision': serverRevision,
+          'position': null,
+        });
+      });
+      addTearDown(state.dispose);
+      await mount(tester, view(state));
+      final explanation = tester.widget<LearningExplanation>(
+        find.byType(LearningExplanation),
+      );
+      final position = <String, dynamic>{
+        'explanation_kind': 'intro',
+        'question_id': null,
+        'explanation_step_id': 'e1',
+        'graphic_index': 0,
+        'graphic_phase': 'fraction-bar-whole',
+      };
+      explanation.onPositionChanged!(position);
+      await tester.pump();
+      explanation.onPositionChanged!({
+        ...position,
+        'graphic_phase': 'fraction-circle-whole',
+      });
+      await tester.pump();
+      final revision = state.beginAuthentication();
+      state.cancelAuthentication(revision);
+      serverRevision =
+          2; // The first save committed although its reply arrived late.
+      delayed.complete(reply({'revision': serverRevision}));
+      await tester.pumpAndSettle();
+      expect(writes, hasLength(1));
+      expect(find.text('Leseposition erneut prüfen'), findsOneWidget);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      await tester.pump();
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pumpAndSettle();
+      expect(reads, 1);
+      expect(writes, hasLength(1));
+      await tester.ensureVisible(find.text('Leseposition erneut prüfen'));
+      await tester.tap(find.text('Leseposition erneut prüfen'));
+      await tester.pumpAndSettle();
+      expect(writes, hasLength(1));
+      expect(
+        find.textContaining('Leseposition hat sich inzwischen geändert'),
+        findsOneWidget,
+      );
+    },
+  );
+  testWidgets(
+    'reading an unchanged position never resends the uncertain save',
+    (tester) async {
+      final delayed = Completer<http.Response>();
+      final writes = <Json>[];
+      final state = app((r) {
+        if (r.method == 'PUT') {
+          writes.add(Json.from(jsonDecode(r.body)));
+          return writes.length == 1 ? delayed.future : reply({'revision': 2});
+        }
+        return reply({
+          'source_signature': 'a' * 64,
+          'revision': 1,
+          'position': null,
+        });
+      });
+      addTearDown(state.dispose);
+      await mount(tester, view(state));
+      final explanation = tester.widget<LearningExplanation>(
+        find.byType(LearningExplanation),
+      );
+      final position = <String, dynamic>{
+        'explanation_kind': 'intro',
+        'question_id': null,
+        'explanation_step_id': 'e1',
+        'graphic_index': 0,
+        'graphic_phase': 'fraction-bar-whole',
+      };
+      explanation.onPositionChanged!(position);
+      await tester.pump();
+      explanation.onPositionChanged!({
+        ...position,
+        'graphic_phase': 'fraction-circle-whole',
+      });
+      await tester.pump();
+      final revision = state.beginAuthentication();
+      state.cancelAuthentication(revision);
+      delayed.completeError(StateError('synthetic connection failure'));
+      await tester.pumpAndSettle();
+      expect(writes, hasLength(1));
+      await tester.ensureVisible(find.text('Leseposition erneut prüfen'));
+      await tester.tap(find.text('Leseposition erneut prüfen'));
+      await tester.pumpAndSettle();
+      expect(writes, hasLength(1));
+      expect(
+        find.text('Deine nächste Änderung speichert die Leseposition.'),
+        findsOneWidget,
+      );
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      await tester.pump();
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pumpAndSettle();
+      expect(writes, hasLength(1));
+      explanation.onPositionChanged!({
+        ...position,
+        'graphic_phase': 'fraction-bar-numerator',
+      });
+      await tester.pumpAndSettle();
+      expect(writes, hasLength(2));
+    },
+  );
   testWidgets(
     'local widgets serialize writes without hiding genuine conflicts',
     (tester) async {

@@ -119,6 +119,18 @@ void main() {
         .setMockMethodCallHandler(PushTransport.channel, null),
   );
 
+  testWidgets('a linked Google account keeps the existing parent session', (
+    tester,
+  ) async {
+    final f = Fixture({'status': 'linked'});
+    f.state.user = {'id': 'synthetic-parent', 'role': 'parent', 'families': []};
+    await f.mount(tester);
+    expect(f.path, '/settings');
+    expect(f.state.user?['id'], 'synthetic-parent');
+    expect(f.requests.single.url.path, '/api/auth/google/result');
+    await f.close(tester);
+  });
+
   testWidgets(
     'new authenticated Google account keeps the access notice until explicit continuation',
     (tester) async {

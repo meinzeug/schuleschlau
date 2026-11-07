@@ -76,8 +76,8 @@ class Api {
   void _requireRequestOwner((Object?, String?, int?) identity) {
     if (!ownsRequest(identity)) {
       throw ApiError(
-        'Das Konto hat sich geändert. Die Anfrage kann bereits ausgeführt worden sein. Bitte prüfe den gespeicherten Stand.',
-        409,
+        'Der Anmeldestatus hat sich geändert. Die Anfrage kann bereits ausgeführt worden sein. Bitte prüfe den gespeicherten Stand.',
+        0,
         'stale_request',
       );
     }
@@ -170,6 +170,7 @@ class Api {
     } on ApiError {
       rethrow;
     } catch (_) {
+      _requireRequestOwner(identity);
       throw ApiError(
         'Keine Verbindung zu SchuleSchlau. Bitte prüfe deine Internetverbindung und versuche es erneut.',
       );
@@ -220,6 +221,7 @@ class Api {
     } on ApiError {
       rethrow;
     } catch (_) {
+      _requireRequestOwner(identity);
       throw ApiError(
         'Bild konnte nicht hochgeladen werden. Bitte erneut versuchen.',
       );
@@ -251,6 +253,7 @@ class Api {
     } on ApiError {
       rethrow;
     } catch (_) {
+      _requireRequestOwner(identity);
       throw ApiError(
         'PDF konnte nicht hochgeladen werden. Bitte erneut versuchen.',
       );
@@ -259,10 +262,13 @@ class Api {
 
   Future<Uint8List> bytes(String path) async {
     final identity = requestIdentity();
-    final response = await client.get(
-      Uri.parse('$base$path'),
-      headers: headers,
-    );
+    final http.Response response;
+    try {
+      response = await client.get(Uri.parse('$base$path'), headers: headers);
+    } catch (_) {
+      _requireRequestOwner(identity);
+      rethrow;
+    }
     _requireRequestOwner(identity);
     if (response.statusCode != 200) {
       decode(
@@ -338,6 +344,7 @@ class Api {
     } on ApiError {
       rethrow;
     } catch (_) {
+      _requireRequestOwner(identity);
       throw ApiError(
         'Dein Profilfoto konnte nicht gespeichert werden. Versuche es bewusst erneut.',
       );
@@ -397,6 +404,7 @@ class Api {
     } on ApiError {
       rethrow;
     } catch (_) {
+      _requireRequestOwner(identity);
       throw ApiError('Das Profilfoto konnte gerade nicht geladen werden.');
     }
   }

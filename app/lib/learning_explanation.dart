@@ -150,6 +150,7 @@ class LearningExplanation extends StatefulWidget {
   final String? unitId, questionId;
   final Json? initialPosition;
   final ValueChanged<Json>? onPositionChanged;
+  final ValueChanged<Json>? onAutomaticPositionChanged;
   final String? prompt;
   final AppState? state;
   final Object? sourceKey;
@@ -164,6 +165,7 @@ class LearningExplanation extends StatefulWidget {
     this.questionId,
     this.initialPosition,
     this.onPositionChanged,
+    this.onAutomaticPositionChanged,
     this.prompt,
     this.state,
     this.sourceKey,
@@ -233,7 +235,7 @@ class _LearningExplanationState extends State<LearningExplanation>
           widget.isCurrent?.call() != false &&
           ModalRoute.of(context)?.isCurrent != false) {
         labNeedsSave = false;
-        publishPosition();
+        publishPosition(automatic: true);
       }
     });
   }
@@ -244,10 +246,13 @@ class _LearningExplanationState extends State<LearningExplanation>
     super.dispose();
   }
 
-  void publishPosition() {
+  void publishPosition({bool automatic = false}) {
     final values = savedSteps;
     if (values.isEmpty || widget.isCurrent?.call() == false) return;
-    widget.onPositionChanged?.call({
+    final callback = automatic
+        ? widget.onAutomaticPositionChanged ?? widget.onPositionChanged
+        : widget.onPositionChanged;
+    callback?.call({
       'explanation_kind': widget.questionId == null ? 'intro' : 'question',
       'question_id': widget.questionId,
       'explanation_step_id': values[step.clamp(0, values.length - 1)]['id'],
