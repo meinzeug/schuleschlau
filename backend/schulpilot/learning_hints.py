@@ -1,5 +1,7 @@
 """Progressive help for the saved error. No extra model call or fuzzy success."""
 
+import re
+
 from .answer_evaluation import normalized
 
 
@@ -47,6 +49,16 @@ def next_hint(question, previous_answer, shown):
         candidates.extend(fraction_addition_hint(question, previous_answer))
     if wrong is None:
         candidates.extend(question["hints"])
-    candidates.extend(["Gemeinsamer Schritt: " + question["explanation"][:600],
-                       "Lies den erklärten Schritt und probiere die Aufgabe noch einmal. Deine bisherigen Antworten bleiben gespeichert."])
+    if re.search(r"\bkleinst(?:e|es|en) gemeinsam(?:e|es|en) vielfache\b",
+                 question.get("prompt", ""), re.I):
+        candidates.append("Schreibe die Vielfachen beider Zahlen auf. Welche Zahl taucht in beiden Reihen zuerst auf?")
+    # An explanation may contain the complete answer.  It is available via
+    # the explicit explanation action, but must not be copied into an ordinary
+    # hint just because the model supplied fewer than three hints.  Previously
+    # saved hint events are intentionally left intact for replay and history.
+    candidates.extend([
+        "Schau dir die Angaben noch einmal an. Welchen Schritt kannst du zuerst machen?",
+        "Was weißt du schon über dieses Thema? Nutze es für den nächsten Schritt.",
+        "Wenn du nicht weiterkommst, öffne die Erklärung und schau dir den Weg an.",
+    ])
     return next((value for value in candidates if value not in shown), None)
