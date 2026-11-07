@@ -67,7 +67,14 @@ Future<GoRouter> show(
       ])
         GoRoute(
           path: path,
-          builder: (_, route) => Scaffold(body: Text('Ziel ${route.uri.path}')),
+          builder: (_, route) => Scaffold(
+            body: Column(
+              children: [
+                Text('Ziel ${route.uri.path}'),
+                if (route.uri.hasQuery) Text('Query ${route.uri.query}'),
+              ],
+            ),
+          ),
         ),
     ],
   );
@@ -209,6 +216,9 @@ void main() {
         'title': 'Tierwörter',
         'status': 'failed',
         'error': 'Das Foto war nicht lesbar.',
+        'source_revisions': [
+          {'id': 'a' * 32, 'revision': 1},
+        ],
       };
       final state = account((r) async {
         requests.add(r);
@@ -232,6 +242,44 @@ void main() {
         hasLength(1),
       );
       expect(requests.every((r) => r.method == 'GET'), isTrue);
+      await tap(tester, find.text('Heftseite öffnen'));
+      expect(find.text('Ziel /material/${'a' * 32}'), findsOneWidget);
+      expect(find.text('Query from=words'), findsOneWidget);
+      expect(requests.every((r) => r.method == 'GET'), isTrue);
+    },
+  );
+  testWidgets(
+    'failed word import offers a direct manual path without starting work',
+    (tester) async {
+      final requests = <http.Request>[];
+      final row = {
+        'id': 'import',
+        'title': 'Tierwörter',
+        'status': 'failed',
+        'error': 'Kontext oder Wortart sind nicht im bestätigten Text belegt. Bitte manuell bestätigen.',
+        'source_revisions': <Json>[],
+      };
+      final state = account((request) async {
+        requests.add(request);
+        if (request.url.path.endsWith('/imports')) {
+          return reply({
+            'imports': [row],
+          });
+        }
+        if (request.url.path.endsWith('/imports/import')) return reply(row);
+        return reply(vocabulary.listing());
+      });
+      await show(tester, VocabularyScreen(state, childId: 'child'));
+      await tap(tester, find.text('Prüfen'));
+      await tap(tester, find.text('Tierwörter'));
+      expect(
+        find.textContaining('Einige Angaben waren unklar'),
+        findsOneWidget,
+      );
+      expect(find.text('Heftseite öffnen'), findsNothing);
+      await tap(tester, find.text('Wörter selbst eintragen'));
+      expect(find.text('Wörter hinzufügen'), findsOneWidget);
+      expect(requests.every((request) => request.method == 'GET'), isTrue);
     },
   );
   testWidgets(

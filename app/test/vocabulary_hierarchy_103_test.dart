@@ -197,7 +197,8 @@ void main() {
     (tester) async {
       final calls = <http.Request>[];
       await fixture.open(tester, calls, openTools: false, cards: false);
-      await fixture.tap(tester, find.byTooltip('Wort einzeln ansehen'));
+      expect(find.text('Antippen zum Ansehen'), findsOneWidget);
+      await fixture.tap(tester, find.text('Antippen zum Ansehen'));
       expect(find.text('Wort 1 von 1'), findsOneWidget);
       expect(find.text('apple'), findsNothing);
       expect(find.text('Gespeicherte Modusstände'), findsNothing);

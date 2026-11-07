@@ -348,7 +348,7 @@ void main() {
     await n.tap(tester, _icon('Mit KI neu lesen'));
     expect(find.text('Seite neu einlesen?'), findsOneWidget);
     expect(
-      find.textContaining('Das verbraucht einen KI-Aufruf.'),
+      find.textContaining('Dabei können KI-Kosten entstehen.'),
       findsOneWidget,
     );
     await n.tap(tester, find.text('Abbrechen'));

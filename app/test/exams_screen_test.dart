@@ -567,6 +567,13 @@ void main() {
     (tester) async {
       final fixture = Fixture();
       await fixture.mount(tester, selected: 'exam', tab: 'review');
+      expect(find.text('Eine Aufgabe zum Üben.'), findsOneWidget);
+      expect(
+        find.text('Die KI hat nur einen Teil der Arbeit angesehen.'),
+        findsOneWidget,
+      );
+      expect(find.text('KI-Vorschlag · bitte prüfen'), findsNothing);
+      await tap(tester, find.text('Vorschlag ansehen'));
       for (final label in [
         'Erkannte Antwort · Zuordnung prüfen',
         'Erkannter Hinweis · Zuordnung prüfen',

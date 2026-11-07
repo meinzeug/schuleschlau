@@ -599,8 +599,16 @@ def process(job_id):
             # missing meaning stays empty, never dictionary/web-completed.
             if not literal_present(payload["confirmed_text"], pair.word) or (pair.meaning and not literal_present(payload["confirmed_text"], pair.meaning)):
                 raise ProviderError("Der Wortvorschlag enthält Wörter oder Bedeutungen, die nicht im bestätigten Text stehen.")
-            if any(value and not literal_present(payload["confirmed_text"], value) for value in (pair.context, pair.part_of_speech)):
-                raise ProviderError("Kontext oder Wortart sind nicht im bestätigten Text belegt. Bitte manuell bestätigen.")
+            missing = []
+            for field, label in (("context", "Kontext"), ("part_of_speech", "Wortart")):
+                value = getattr(pair, field)
+                if value and not literal_present(payload["confirmed_text"], value):
+                    setattr(pair, field, "")
+                    missing.append(label)
+            if missing:
+                warning = " und ".join(missing) + " nicht im Heft belegt und entfernt. Bitte prüfen."
+                previous = pair.uncertainty.strip()
+                pair.uncertainty = (previous[:max(0, 500 - len(warning) - 1)] + " " + warning).strip()
             if pair.variants or pair.meaning_variants:
                 raise ProviderError("Zusätzliche Wortformen müssen ausdrücklich bestätigt werden; der Import ergänzt keine Formen.")
             if pair.meaning and not any(normalized(pair.word) in normalized(line) and normalized(pair.meaning) in normalized(line)

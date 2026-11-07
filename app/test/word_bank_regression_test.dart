@@ -25,6 +25,8 @@ void main() {
         'topic': 'Schulwörter',
         'status': 'active',
         'round_kind': 'vocabulary',
+        'explanation_visual_status': 'legacy_text',
+        'can_prepare_visual': true,
         'introduction_seen': true,
         'explanation': 'Gespeicherte Erklärung.',
         'questions': [
@@ -89,6 +91,12 @@ void main() {
         MaterialApp.router(theme: appTheme(), routerConfig: router),
       );
       await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('visual-readiness')), findsNothing);
+      expect(find.text('Grafische Erklärung vorbereiten'), findsNothing);
+      expect(
+        requests.any((r) => r.url.path.endsWith('/visual-explanation')),
+        isFalse,
+      );
       await tester.enterText(find.byType(TextField), 'swiming pool');
       final help = find.text('Mit Bausteinen üben · Hilfe');
       await tester.ensureVisible(help);

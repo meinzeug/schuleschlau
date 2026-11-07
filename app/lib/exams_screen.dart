@@ -718,57 +718,65 @@ class _ExamsBodyState extends State<_ExamsBody> {
               ),
               const SizedBox(height: 12),
             ],
-            ChildSectionHero(
-              eyebrow: 'Klassenarbeiten',
-              title: 'Klassenarbeiten',
-              description: 'Bereite eine Klassenarbeit oder Leistungskontrolle vor und arbeite eine geschriebene Arbeit in Ruhe nach.',
-              icon: Icons.assignment_outlined,
-              compactAction: IconButton(
-                tooltip: 'Arbeiten aktualisieren',
-                onPressed: loading ? null : load,
-                icon: const Icon(Icons.refresh),
+            if (!state.isChild || widget.examId == null)
+              ChildSectionHero(
+                eyebrow: 'Klassenarbeiten',
+                title: 'Klassenarbeiten',
+                description: state.isChild
+                    ? 'Übe für eine Arbeit oder schau dir eine geschriebene Arbeit an.'
+                    : 'Bereite eine Klassenarbeit oder Leistungskontrolle vor und arbeite eine geschriebene Arbeit in Ruhe nach.',
+                icon: Icons.assignment_outlined,
+                compactAction: IconButton(
+                  tooltip: 'Arbeiten aktualisieren',
+                  onPressed: loading ? null : load,
+                  icon: const Icon(Icons.refresh),
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-            ChildSectionTabs(
-              tabs: const [
-                (
-                  id: 'prepare',
-                  label: 'Vorbereiten',
-                  icon: Icons.event_note_outlined,
-                ),
-                (
-                  id: 'review',
-                  label: 'Nacharbeiten',
-                  icon: Icons.fact_check_outlined,
-                ),
-              ],
-              selected: tab,
-              onSelected: (value) {
-                if (!scope.current || value == tab) return;
-                if (widget.examId != null) {
-                  openRoute(context, '/exams/${widget.childId}?tab=$value');
-                } else {
-                  setState(() {
-                    tab = value;
-                    search.clear();
-                  });
-                }
-              },
-            ),
+            if (!state.isChild || widget.examId == null) ...[
+              const SizedBox(height: 8),
+              ChildSectionTabs(
+                tabs: const [
+                  (
+                    id: 'prepare',
+                    label: 'Vorbereiten',
+                    icon: Icons.event_note_outlined,
+                  ),
+                  (
+                    id: 'review',
+                    label: 'Nacharbeiten',
+                    icon: Icons.fact_check_outlined,
+                  ),
+                ],
+                selected: tab,
+                onSelected: (value) {
+                  if (!scope.current || value == tab) return;
+                  if (widget.examId != null) {
+                    openRoute(context, '/exams/${widget.childId}?tab=$value');
+                  } else {
+                    setState(() {
+                      tab = value;
+                      search.clear();
+                    });
+                  }
+                },
+              ),
+            ],
             const SizedBox(height: 12),
             if (widget.examId != null)
-              Align(
-                alignment: Alignment.centerLeft,
-                child: TextButton.icon(
-                  onPressed: () {
-                    if (scope.current) {
-                      openRoute(context, '/exams/${widget.childId}?tab=$tab');
-                    }
-                  },
-                  icon: const Icon(Icons.arrow_back),
-                  label: const Text('Alle Arbeiten'),
-                ),
+              Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                children: [
+                  TextButton.icon(
+                    onPressed: () {
+                      if (scope.current) {
+                        openRoute(context, '/exams/${widget.childId}?tab=$tab');
+                      }
+                    },
+                    icon: const Icon(Icons.arrow_back),
+                    label: const Text('Alle Arbeiten'),
+                  ),
+                  if (state.isChild) const PageToolsButton(),
+                ],
               ),
             if (error != null) ...[
               Notice(error!),

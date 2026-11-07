@@ -939,6 +939,24 @@ class _ExamReviewPanelState extends State<ExamReviewPanel> {
       ],
     ),
   );
+
+  Widget photoActions() => Wrap(
+    spacing: 8,
+    runSpacing: 8,
+    children: [
+      FilledButton.icon(
+        onPressed: choosing ? null : () => choosePhotos(ImageSource.camera),
+        icon: const Icon(Icons.photo_camera_outlined),
+        label: const Text('Arbeit fotografieren'),
+      ),
+      OutlinedButton.icon(
+        onPressed: choosing ? null : () => choosePhotos(ImageSource.gallery),
+        icon: const Icon(Icons.photo_library_outlined),
+        label: const Text('Bilder auswählen'),
+      ),
+    ],
+  );
+
   @override
   Widget build(BuildContext context) {
     scope.bind(context);
@@ -959,32 +977,39 @@ class _ExamReviewPanelState extends State<ExamReviewPanel> {
         children: [
           if (data == null && reading) const LinearProgressIndicator(),
           if (data != null) ...[
-            if ((data!['summary'] ?? '').toString().isNotEmpty)
+            if (state.isChild && data!['status'] == 'ready') ...[
+              Text(
+                tasks.isEmpty
+                    ? 'Noch keine Aufgaben zum Üben.'
+                    : tasks.length == 1
+                    ? 'Eine Aufgabe zum Üben.'
+                    : '${tasks.length} Aufgaben zum Üben.',
+              ),
+              const Text('Die KI hat nur einen Teil der Arbeit angesehen.'),
+              if ((data!['summary'] ?? '').toString().isNotEmpty)
+                PageToolsGroup(
+                  id: 'exam-review-summary',
+                  title: 'Mehr zur Auswertung',
+                  scope: (widget.examId, data!['context_revision']),
+                  isCurrent: () => scope.active,
+                  child: LearningContent('${data!['summary']}'),
+                ),
+            ] else if ((data!['summary'] ?? '').toString().isNotEmpty)
               LearningContent('${data!['summary']}'),
             for (final uncertainty in (data!['uncertainties'] as List? ?? []))
               Notice('$uncertainty'),
             if (data!['error'] is String) Notice(data!['error']),
             if (editable)
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  FilledButton.icon(
-                    onPressed: choosing
-                        ? null
-                        : () => choosePhotos(ImageSource.camera),
-                    icon: const Icon(Icons.photo_camera_outlined),
-                    label: const Text('Arbeit fotografieren'),
-                  ),
-                  OutlinedButton.icon(
-                    onPressed: choosing
-                        ? null
-                        : () => choosePhotos(ImageSource.gallery),
-                    icon: const Icon(Icons.photo_library_outlined),
-                    label: const Text('Bilder auswählen'),
-                  ),
-                ],
-              ),
+              if (state.isChild && tasks.isNotEmpty && photos.isEmpty)
+                PageToolsGroup(
+                  id: 'exam-review-photo-actions',
+                  title: 'Weitere Fotos hinzufügen',
+                  scope: (widget.examId, data!['context_revision']),
+                  isCurrent: () => scope.active,
+                  child: photoActions(),
+                )
+              else
+                photoActions(),
             if (photos.isNotEmpty) ...[
               const SizedBox(height: 12),
               Text('${photos.length} Fotos ausgewählt · noch nicht abgegeben'),
@@ -1191,12 +1216,24 @@ class _ExamReviewPanelState extends State<ExamReviewPanel> {
               ),
               const SizedBox(height: 12),
               if ((task!['ai_proposal'] ?? '').toString().isNotEmpty)
-                Panel(
-                  child: written(
-                    'KI-Vorschlag · bitte prüfen',
-                    task!['ai_proposal'],
+                if (state.isChild)
+                  ExpansionTile(
+                    key: ValueKey(('exam-review-proposal', selectedId)),
+                    title: const Text('Vorschlag ansehen'),
+                    children: [
+                      written(
+                        'KI-Vorschlag · bitte prüfen',
+                        task!['ai_proposal'],
+                      ),
+                    ],
+                  )
+                else
+                  Panel(
+                    child: written(
+                      'KI-Vorschlag · bitte prüfen',
+                      task!['ai_proposal'],
+                    ),
                   ),
-                ),
               PageToolsGroup(
                 id: 'exam-review-evidence',
                 title: 'Original & Quellenbelege',

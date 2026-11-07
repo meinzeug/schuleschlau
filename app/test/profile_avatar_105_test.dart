@@ -419,6 +419,56 @@ void main() {
     },
   );
 
+  for (final operation in ['metadata', 'upload', 'delete', 'image']) {
+    for (final change in ['account', 'token', 'authentication']) {
+      test(
+        'late avatar $operation response is discarded after $change',
+        () async {
+          final delayed = Completer<http.Response>();
+          final state = _state((_) => delayed.future);
+          var unauthorized = 0;
+          state.api.onUnauthorized = () => unauthorized++;
+          final Future<dynamic> request = switch (operation) {
+            'metadata' => state.api.profileAvatarMetadata(),
+            'upload' => state.api.uploadProfileAvatar(
+              _png,
+              revision: 'none',
+              requestKey: 'synthetic-upload',
+            ),
+            'delete' => state.api.deleteProfileAvatar(
+              revision: _revision,
+              requestKey: 'synthetic-delete',
+            ),
+            _ => state.api.profileAvatarBytes(_revision),
+          };
+          switch (change) {
+            case 'account':
+              state.user = {'id': 'other', 'role': 'parent'};
+            case 'token':
+              state.api.token = 'new-token';
+            case 'authentication':
+              state.beginAuthentication();
+          }
+          delayed.complete(
+            operation == 'image' ? _image() : _json(_metadata()),
+          );
+          await expectLater(
+            request,
+            throwsA(
+              isA<ApiError>().having(
+                (error) => error.code,
+                'code',
+                'account_changed',
+              ),
+            ),
+          );
+          expect(unauthorized, 0);
+          state.dispose();
+        },
+      );
+    }
+  }
+
   for (final invalid in [
     'oversize-upload',
     'invalid-revision',

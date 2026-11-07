@@ -236,8 +236,8 @@ Future<bool> reprocessNotebookPage(
     owner,
     family,
     'Seite neu einlesen?',
-    'Die KI liest dieses Foto noch einmal. Danach prüfst du den Text und kannst neue Aufgaben vorbereiten. '
-        'Deine bisherige Seite und deine Antworten bleiben erhalten. Das verbraucht einen KI-Aufruf.',
+    'Die KI liest dein Foto erneut. Danach prüfst du den Text. '
+        'Deine Seite und Antworten bleiben erhalten. Dabei können KI-Kosten entstehen.',
     confirmLabel: 'Mit KI neu einlesen',
   )) {
     return false;

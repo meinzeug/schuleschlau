@@ -834,7 +834,7 @@ class _VocabularyScreenState extends State<_VocabularyBody>
                 VisibleSearchText('${item['meaning']}', query: search.text)
               else
                 Text(
-                  'Antippen zum Aufdecken',
+                  'Antippen zum Ansehen',
                   style: TextStyle(color: context.palette.muted),
                 ),
               if (item['source_changed'] == true)
@@ -862,7 +862,7 @@ class _VocabularyScreenState extends State<_VocabularyBody>
                 default:
                   if (action.startsWith('source:') &&
                       sources.contains(action.substring(7))) {
-                    openRoute(context, '/material/${action.substring(7)}');
+                    openRoute(context, wordSourcePath(action.substring(7)));
                   }
               }
             }),
@@ -2161,7 +2161,14 @@ class _VocabularyScreenState extends State<_VocabularyBody>
       await reviewDialog(details);
       return;
     }
-    await scopedDialog<void>(
+    final sources = <String>[
+      for (final source in details['source_revisions'] as List? ?? [])
+        if (source is Map &&
+            source['id'] is String &&
+            RegExp(r'^[a-f0-9]{32}$').hasMatch(source['id']))
+          source['id'] as String,
+    ];
+    final selectedSource = await scopedDialog<String>(
       builder: (ctx) => AlertDialog(
         scrollable: true,
         title: Text(details['title'] ?? 'Deine Wörter'),
@@ -2193,11 +2200,44 @@ class _VocabularyScreenState extends State<_VocabularyBody>
             if (details['status'] == 'failed' &&
                 details['error'] is String) ...[
               SizedBox(height: 12),
-              Notice(details['error'], warning: true),
+              Notice(
+                widget.state.isChild && details['error'] == 'Kontext oder Wortart sind nicht im bestätigten Text belegt. Bitte manuell bestätigen.'
+                    ? 'Einige Angaben waren unklar. Schau auf die Heftseite oder trage die Wörter selbst ein.'
+                    : details['error'],
+                warning: true,
+              ),
             ],
           ],
         ),
         actions: [
+          if (details['status'] == 'failed' &&
+              (widget.state.isChild || widget.state.canManage))
+            TextButton(
+              onPressed: () {
+                if (current &&
+                    ctx.mounted &&
+                    ModalRoute.of(ctx)?.isCurrent == true) {
+                  popCurrentRoute(ctx, 'manual');
+                }
+              },
+              child: const Text('Wörter selbst eintragen'),
+            ),
+          if (details['status'] == 'failed')
+            for (var index = 0; index < sources.length; index++)
+              TextButton(
+                onPressed: () {
+                  if (current &&
+                      ctx.mounted &&
+                      ModalRoute.of(ctx)?.isCurrent == true) {
+                    popCurrentRoute(ctx, sources[index]);
+                  }
+                },
+                child: Text(
+                  sources.length == 1
+                      ? 'Heftseite öffnen'
+                      : 'Heftseite ${index + 1} öffnen',
+                ),
+              ),
           TextButton(
             onPressed: () {
               if (current &&
@@ -2211,7 +2251,22 @@ class _VocabularyScreenState extends State<_VocabularyBody>
         ],
       ),
     );
+    if (mounted &&
+        selectedSource != null &&
+        current &&
+        (origin?.isCurrent ?? false)) {
+      if (selectedSource == 'manual') {
+        await importDialog();
+      } else if (sources.contains(selectedSource)) {
+        openRoute(context, wordSourcePath(selectedSource));
+      }
+    }
   }
+
+  String wordSourcePath(String id) => Uri(
+    path: '/material/$id',
+    queryParameters: widget.state.isChild ? {'from': 'words'} : null,
+  ).toString();
 
   Future<void> reviewDialog(Json row) async {
     if (!current || !routeVisible || busy) return;
@@ -4021,7 +4076,7 @@ class _VocabularyScreenState extends State<_VocabularyBody>
                                               if (current) {
                                                 openRoute(
                                                   context,
-                                                  '/material/${source['id']}',
+                                                  wordSourcePath(source['id']),
                                                 );
                                               }
                                             },

@@ -290,6 +290,27 @@ void main() {
       expect(router.routeInformationProvider.value.uri.path, '/library/child');
     }, initial: '/material/material');
   });
+  testWidgets('a word source returns to the child’s words, not notebooks', (
+    tester,
+  ) async {
+    await workspace(tester, (state, router) async {
+      final back = find.byTooltip('Zu Wörter');
+      expect(back.hitTestable(), findsOneWidget);
+      await tester.tap(back);
+      await tester.pumpAndSettle();
+      expect(
+        router.routeInformationProvider.value.uri.path,
+        '/vocabulary/child',
+      );
+    }, initial: '/material/material?from=words');
+  });
+  testWidgets('an unknown source marker keeps the normal notebook return', (
+    tester,
+  ) async {
+    await workspace(tester, (state, router) async {
+      expect(find.byTooltip('Zu Hefte').hitTestable(), findsOneWidget);
+    }, initial: '/material/material?from=other');
+  });
   testWidgets(
     '091 top action appears after real scrolling and restores the beginning',
     (tester) async {

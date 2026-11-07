@@ -315,19 +315,26 @@ class Api {
   Future<Json> _profileAvatarRequest(http.BaseRequest request) async {
     final identity = requestIdentity();
     try {
-      return Json.from(
-        decode(
-          await http.Response.fromStream(
-            await client.send(request).timeout(const Duration(seconds: 35)),
-          ).timeout(const Duration(seconds: 35)),
-          notifyUnauthorized: ownsRequest(identity),
-        ),
-      );
+      final response = await http.Response.fromStream(
+        await client.send(request).timeout(const Duration(seconds: 35)),
+      ).timeout(const Duration(seconds: 35));
+      _ensureAvatarRequestCurrent(identity);
+      return Json.from(decode(response, notifyUnauthorized: true));
     } on ApiError {
       rethrow;
     } catch (_) {
       throw ApiError(
         'Dein Profilfoto konnte nicht gespeichert werden. Versuche es bewusst erneut.',
+      );
+    }
+  }
+
+  void _ensureAvatarRequestCurrent((Object?, String?, int?) identity) {
+    if (!ownsRequest(identity)) {
+      throw ApiError(
+        'Dein Konto hat sich geändert. Bitte lade die Seite neu.',
+        409,
+        'account_changed',
       );
     }
   }
@@ -361,6 +368,7 @@ class Api {
         bytes.add(chunk);
       }
       final image = bytes.takeBytes();
+      _ensureAvatarRequestCurrent(identity);
       if (response.statusCode != 200) {
         decode(
           http.Response.bytes(
@@ -368,7 +376,7 @@ class Api {
             response.statusCode,
             headers: response.headers,
           ),
-          notifyUnauthorized: ownsRequest(identity),
+          notifyUnauthorized: true,
         );
       }
       if (image.isEmpty ||

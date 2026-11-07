@@ -725,6 +725,17 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – Sprachlernen mit Fachprüfung und echten Geräten abnehmen**
 
+  - [x] **Wortimport bei nicht belegten Zusatzangaben fortsetzbar machen.**
+    Nicht in der bestätigten Quelle enthaltene Kontext- oder Wortartangaben
+    werden verworfen und im Vorschlag als Prüfbedarf gekennzeichnet; die
+    eigentlichen Wörter und Bedeutungen müssen weiterhin wörtlich belegt sein.
+    Vorschläge werden nicht automatisch übernommen. Künstliche Worker-Tests
+    prüfen belegte und unbelegte Zusätze sowie die bestehende Ablehnung
+    unbelegter Wortpaare. Bei bereits fehlgeschlagenen Importen führen
+    passende Aktionen zur eigenen Heftseite oder zur manuellen Eingabe, ohne
+    automatisch eine neue KI-Anfrage auszulösen. Die tatsächliche Korrektur
+    vorhandener Quellen und die vollständige Sprachabnahme bleiben offen.
+
   Versionierten Sprachpfad mit ausdrücklich bestätigter Locale, Wortpaaren und Varianten prüfen; künstliche Fälle für NFC, Akzent, Artikel, unbekannte freie Sätze, Hör-/Sprechaufgaben und unterstützte Versuche aufnehmen. Auf geeigneten Geräten Berechtigungsentzug, fehlende Stimme, Abbruch und Hintergrundwechsel bedienen.
 
   **Abnahme:** Jede Antwort folgt der dokumentierten Modusregel, unbekannte Eingaben bleiben unklar; STT wird nicht als Aussprachebewertung oder selbstständiger Schreibbeleg gewertet und Sprache startet nur nach ausdrücklicher Aktion. Gerät, Plattform, Ergebnisse und offene Abweichungen dokumentieren.
@@ -974,6 +985,21 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 ## Kindgerechte Bedienung und Alltagstest
 
 - [ ] **P1 – Alle Kinderansichten sprachlich und in ihrer Bedienung entrümpeln**
+
+  - [x] **Wortkarten und Wortschatzrunde klarer darstellen.** Die kompakte
+    Wortliste kündigt das Öffnen der Wortansicht zutreffend an; aufdecken
+    bleibt darin eine gesonderte bewusste Aktion. In Wortschatzrunden wird
+    der fachfremde Hinweis auf fehlende Erklärgrafiken nicht vor die Aufgabe
+    gesetzt. In einer vorhandenen Kinderansicht wurden beide Probleme bei
+    390 × 844 Pixeln beobachtet; gezielte künstliche Widgettests prüfen den
+    Einstieg und dass keine Grafikvorbereitung automatisch ausgelöst wird.
+    Die umfassende Abnahme des Wortschatzes bleibt offen.
+
+  - [x] **Dialog zum erneuten Lesen einer Heftseite kürzen.** Die
+    Bestätigung erklärt knapp, dass die KI erneut liest, der Text geprüft
+    wird, vorhandene Seite und Antworten bleiben und Kosten möglich sind.
+    Abbrechen löst weiterhin keinen Auftrag aus; die KI-Verarbeitung bleibt
+    ausdrücklich und bewusst. Die übrigen Kinderansichten bleiben offen.
 
   **04.11.2026, Hausaufgabeneinstieg:** Leere Fachangaben erzeugen kein
   führendes Trennzeichen. Die leere Zählerbeschriftung wurde durch eine klare
@@ -2592,6 +2618,15 @@ Bestandteil des bestehenden Buildvertrags.
   **Abnahme:** Dokumentation, Bewertung, gegebenenfalls Folgenabschätzung, vereinbarte Maßnahmen und Zuständigkeiten liegen für den vorgesehenen Freigabeumfang vor; offene Risiken sind vor der jeweiligen Freigabe entschieden.
 
 - [ ] **P1 – Echtzeitstatus gezielt und zuverlässig bereitstellen**
+
+  - [x] **Verspätete Profilfoto-Antworten nach Kontowechsel verwerfen.**
+    Bild, Metadaten und Ergebnisse von Fotoänderungen werden nicht an die
+    Oberfläche zurückgegeben, wenn zwischen Anfrage und Antwort das Konto,
+    der Sitzungstoken oder die Anmeldeabsicht gewechselt hat. Eine bereits
+    serverseitig ausgeführte Änderung wird dabei nicht wiederholt oder als
+    rückgängig dargestellt. Künstliche Tests verzögern Antworten für alle
+    vier Profilfotoaktionen und prüfen die drei Wechselarten. Das löst weder
+    den Cookie-Wettlauf noch die übrigen gemeinsamen API-Transporte.
 
   - [x] **Passwort-Anmeldung und anschließende Lesezugriffe verbinden.**
     Nach erfolgreicher Übernahme widerruft das geschlossene Loginformular die

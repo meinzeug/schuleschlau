@@ -1634,7 +1634,8 @@ class _WorkspaceShellState extends State<WorkspaceShell>
     final focusedMobile = widget.focusContent && !desktop;
     // A compact notebook still belongs to the app's normal navigation shell.
     final hideNavigation = focusedMobile && !widget.retainNavigation;
-    final path = GoRouterState.of(context).uri.path;
+    final routeUri = GoRouterState.of(context).uri;
+    final path = routeUri.path;
     final entries = _entries(sidebar: sidebar);
     final selected = _selected(entries, path);
     final compactChild = !desktop && state.isChild;
@@ -1675,8 +1676,14 @@ class _WorkspaceShellState extends State<WorkspaceShell>
       }
     }
 
+    final wordSource =
+        state.isChild &&
+        path.startsWith('/material/') &&
+        routeUri.queryParameters['from'] == 'words';
     final returnEntry = state.isChild && path != entries[selected].$3
-        ? entries[selected]
+        ? wordSource
+              ? entries.firstWhere((entry) => entry.$2 == 'Wörter')
+              : entries[selected]
         : null;
     return CallbackShortcuts(
       bindings: {

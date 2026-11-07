@@ -132,6 +132,47 @@ def test_import_worker_checks_and_single_reservation(api, notebook, monkeypatch,
     assert calls == ["vocabulary_import"]
 
 
+@pytest.mark.parametrize(
+    ("context", "part_of_speech", "expected_context", "expected_part", "warning"),
+    [
+        ("He goes to school.", "Simple Present", "He goes to school.", "Simple Present", ""),
+        ("Invented example", "Simple Present", "", "Simple Present", "Kontext"),
+        ("He goes to school.", "noun", "He goes to school.", "", "Wortart"),
+        ("Invented example", "noun", "", "", "Kontext und Wortart"),
+    ],
+)
+def test_import_keeps_verified_words_without_invented_optional_metadata(
+    api, notebook, monkeypatch, context, part_of_speech, expected_context, expected_part, warning
+):
+    _, child, material_id = notebook
+    monkeypatch.setattr(
+        vocabulary,
+        "request_provider",
+        lambda *_: Result({"pairs": [{"word": "apple", "meaning": "Apfel", "context": context,
+                                     "part_of_speech": part_of_speech}]}, 10, 10, 1),
+    )
+    queued = api.post(
+        f"/api/children/{child['id']}/vocabulary/imports",
+        json={"target_locale": "en-GB", "title": "Meine Wörter", "language_confirmed": True,
+              "material_id": material_id},
+        headers={"Idempotency-Key": "source-import-metadata-001"},
+    )
+    assert queued.status_code == 201, queued.text
+    row = queued.json()
+    run_job(row["job_id"])
+    response = api.get(f"/api/children/{child['id']}/vocabulary/imports/{row['id']}")
+    assert response.status_code == 200
+    preview = response.json()
+    assert preview["status"] == "review"
+    pair = preview["pairs"][0]
+    assert (pair["word"], pair["meaning"]) == ("apple", "Apfel")
+    assert (pair["context"], pair["part_of_speech"]) == (expected_context, expected_part)
+    assert (warning in pair["uncertainty"]) if warning else not pair["uncertainty"]
+    with DB() as db:
+        assert db.scalar(select(func.count()).select_from(VocabularyItem)) == 0
+        assert db.scalar(select(func.count()).select_from(Usage)) == 1
+
+
 def proposal(item_id, *, kind="context_gap", answer="apple", source="apple = Apfel"):
     return {
         "title": "Wörter anwenden",

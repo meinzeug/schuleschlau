@@ -188,9 +188,7 @@ void main() {
       await tap(tester, 'Aktion öffnen');
       expect(find.text('Seite neu einlesen?'), findsOneWidget);
       expect(
-        find.textContaining(
-          'Deine bisherige Seite und deine Antworten bleiben erhalten',
-        ),
+        find.textContaining('Deine Seite und Antworten bleiben erhalten'),
         findsOneWidget,
       );
       await tap(tester, 'Abbrechen');

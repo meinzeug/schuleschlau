@@ -1103,7 +1103,8 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                if (u['content_issue'] == null)
+                if (u['content_issue'] == null &&
+                    u['round_kind'] != 'vocabulary')
                   VisualPreparationCard(
                     state: state,
                     unit: u,
