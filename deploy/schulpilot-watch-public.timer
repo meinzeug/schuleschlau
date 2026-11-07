@@ -3,6 +3,8 @@ Description=Check public SCHULPILOT and offsite backup every 5 minutes
 
 [Timer]
 OnBootSec=5min
+# Arm an initial check even when the user manager starts after boot.
+OnActiveSec=5min
 OnUnitActiveSec=5min
 Persistent=true
 

@@ -3,6 +3,8 @@ Description=Refresh SCHULPILOT offsite copies and erasure journal every 15 minut
 
 [Timer]
 OnBootSec=3min
+# Arm an initial run even when the user manager starts after boot.
+OnActiveSec=3min
 OnUnitActiveSec=15min
 Persistent=true
 
