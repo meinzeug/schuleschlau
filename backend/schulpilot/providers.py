@@ -1927,7 +1927,7 @@ def request_provider(config, function, payload, image_bytes=None, *, synthetic_f
                     raise ProviderError(
                         "Für diese Heftseiten fehlt noch eine passende geprüfte Erklärgrafik. "
                         "Deine Fotos und gespeicherten Runden bleiben erhalten.",
-                        code="invalid_output", billing_result=Result({}, 0, 0, 0, cost_source="cancelled"),
+                        code="visual_unavailable", billing_result=Result({}, 0, 0, 0, cost_source="cancelled"),
                     ) from None
     if exam_analysis:
         from .exam_review_transport import rules as exam_transport_rules

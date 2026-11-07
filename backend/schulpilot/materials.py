@@ -896,10 +896,30 @@ def job_view(job_id: str, p=Depends(authenticated), db=Depends(get_db)):
         recovery = db.scalar(select(Job.id).where(Job.child_id == job.child_id, Job.kind == job.kind,
             Job.payload["repairs_failed_job_id"].as_string() == job.id)
             .order_by(Job.created.desc(), Job.id).limit(1))
+    # A source link is just a navigation aid, not a claim that this page is
+    # wrong. Never disclose an ID from stale or foreign job metadata.
+    review_material_id = None
+    if job.kind == "unit" and job.status == "failed" and job.error_code == "visual_unavailable":
+        payload = job.payload if isinstance(job.payload, dict) else {}
+        sources = payload.get("sources")
+        if isinstance(sources, list):
+            for source in sources:
+                if not isinstance(source, dict) or not isinstance(source.get("id"), str):
+                    continue
+                material = db.get(Material, source["id"])
+                if (material and material.child_id == job.child_id and material.confirmed
+                        and material.purpose == "notebook" and material.revision == source.get("revision")):
+                    review_material_id = material.id
+                    break
+        if not sources and isinstance(payload.get("material_id"), str):
+            material = db.get(Material, payload["material_id"])
+            if material and material.child_id == job.child_id and material.confirmed and material.purpose == "notebook":
+                review_material_id = material.id
     return {
         "id": job.id,
         "kind": job.kind,
         "material_id": job.payload.get("material_id") if job.kind == "extract" else None,
+        "review_material_id": review_material_id,
         "status": job.status,
         "result": job.result,
         "error": job.error,

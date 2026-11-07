@@ -32,6 +32,7 @@ http.Response reply(Object value, [int status = 200]) => http.Response(
 
 class PreparationFixture {
   final String message, code;
+  final Object? reviewMaterial;
   final int status;
   final String role;
   final calls = <http.Request>[];
@@ -56,6 +57,7 @@ class PreparationFixture {
                 'result': null,
                 'error': message,
                 'error_code': code,
+                'review_material_id': reviewMaterial,
                 'attempts': 1,
               });
             }),
@@ -73,6 +75,7 @@ class PreparationFixture {
     this.code = 'unknown',
     this.status = 200,
     this.role = 'child',
+    this.reviewMaterial,
   });
 
   List<http.Request> get reads =>
@@ -92,6 +95,16 @@ class PreparationFixture {
           path: '/learn/child',
           builder: (_, _) =>
               const Scaffold(body: Text('Gespeicherte künstliche Runden')),
+        ),
+        GoRoute(
+          path: '/material/:id',
+          builder: (_, route) =>
+              Scaffold(body: Text('Heftseite ${route.pathParameters['id']}')),
+        ),
+        GoRoute(
+          path: '/library/child',
+          builder: (_, _) =>
+              const Scaffold(body: Text('Meine künstlichen Hefte')),
         ),
       ],
     );
@@ -125,6 +138,64 @@ class PreparationFixture {
 }
 
 void main() {
+  testWidgets(
+    'missing checked graphic opens only the authorized source without retry',
+    (tester) async {
+      const id = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+      final fixture = PreparationFixture(
+        'SYNTHETIC_PROVIDER_DETAIL',
+        code: 'visual_unavailable',
+        reviewMaterial: id,
+      );
+      await fixture.mount(tester);
+      expect(
+        find.text(
+          'Für diese Runde fehlt noch eine passende Darstellung. Deine Heftseiten bleiben gespeichert.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('SYNTHETIC_PROVIDER_DETAIL'), findsNothing);
+      await tester.ensureVisible(find.text('Heftseite ansehen'));
+      await tester.tap(find.text('Heftseite ansehen'));
+      await tester.pumpAndSettle();
+      expect(fixture.router.state.uri.path, '/material/$id');
+      expect(fixture.calls.every((r) => r.method == 'GET'), isTrue);
+      expect(fixture.reads, hasLength(1));
+    },
+  );
+
+  testWidgets(
+    'missing or malformed source uses notebooks rather than untrusted route',
+    (tester) async {
+      final fixture = PreparationFixture(
+        'ignored',
+        code: 'visual_unavailable',
+        reviewMaterial: '../other',
+      );
+      await fixture.mount(tester);
+      expect(find.text('Heftseite ansehen'), findsNothing);
+      await tester.ensureVisible(find.text('Zu meinen Heften'));
+      await tester.tap(find.text('Zu meinen Heften'));
+      await tester.pumpAndSettle();
+      expect(fixture.router.state.uri.path, '/library/child');
+      expect(fixture.calls.every((r) => r.method == 'GET'), isTrue);
+    },
+  );
+
+  testWidgets('generic output failure never claims missing checked graphic', (
+    tester,
+  ) async {
+    final fixture = PreparationFixture(
+      'Für diese Heftseiten fehlt noch eine passende geprüfte Erklärgrafik.',
+      code: 'invalid_output',
+      reviewMaterial: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+    );
+    await fixture.mount(tester);
+    expect(find.text('Heftseite ansehen'), findsNothing);
+    expect(find.text('Zu meinen Heften'), findsNothing);
+    await fixture.assertSavedExitWithoutRetry(tester);
+  });
+
   for (final sample in [
     ('HTTP400', providerHttp, 'unknown'),
     ('output_length', outputLength, 'unknown'),

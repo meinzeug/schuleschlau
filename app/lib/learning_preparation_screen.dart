@@ -202,6 +202,15 @@ class _LearningPreparationScreenState extends State<_LearningPreparationBody>
     final ready =
         job?['status'] == 'completed' && job?['result']?['unit_id'] is String;
     final failed = job != null && !waiting && !ready;
+    final missingVisual =
+        failed &&
+        error == null &&
+        widget.state.isChild &&
+        job?['error_code'] == 'visual_unavailable';
+    final reviewMaterial = job?['review_material_id'];
+    final validMaterial =
+        reviewMaterial is String &&
+        RegExp(r'^[0-9a-f]{32}$').hasMatch(reviewMaterial);
     final planning = job?['kind'] == 'decision';
     final failure = error ?? job?['error'];
     final missingJob =
@@ -277,7 +286,9 @@ class _LearningPreparationScreenState extends State<_LearningPreparationBody>
                 ],
                 if (failed || error != null) ...[
                   Text(
-                    technicalFailure
+                    missingVisual
+                        ? 'Für diese Runde fehlt noch eine passende Darstellung. Deine Heftseiten bleiben gespeichert.'
+                        : technicalFailure
                         ? failed
                               ? 'Deine Hefte und gespeicherten Runden bleiben erhalten.'
                               : 'Wir können den Stand gerade nicht laden. Deine Heftseiten und gespeicherten Runden bleiben erhalten.'
@@ -349,6 +360,22 @@ class _LearningPreparationScreenState extends State<_LearningPreparationBody>
                           widget.jobId == requestJob) {
                         openRoute(context, '/unit/$id');
                       }
+                    },
+                  )
+                else if (missingVisual)
+                  ActionButton(
+                    label: validMaterial
+                        ? 'Heftseite ansehen'
+                        : 'Zu meinen Heften',
+                    icon: Icons.menu_book_outlined,
+                    onPressed: () async {
+                      if (!sameOwner) return;
+                      openRoute(
+                        context,
+                        validMaterial
+                            ? '/material/$reviewMaterial'
+                            : '/library/${widget.childId}',
+                      );
                     },
                   )
                 else if (missingJob)

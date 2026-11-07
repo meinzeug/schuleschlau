@@ -10,6 +10,7 @@ CODES = {
     "provider_timeout",
     "provider_unavailable",
     "invalid_output",
+    "visual_unavailable",
     "unreadable_photo",
     "source_changed",
     "access_changed",

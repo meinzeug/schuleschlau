@@ -58,6 +58,23 @@ def test_review_does_not_offer_relation_without_a_source_arrow():
         unit_reference_graphics.bind_schema(schema, payload)
 
 
+def test_missing_review_graphic_is_classified_before_provider_dispatch(monkeypatch):
+    from test_model_routing import policy
+    from test_presentation_capability_paths import _config, _transport
+
+    _, payload = make_schema('Ausgang und Ergebnis.')
+    config = _config('openrouter')
+    approved = policy()
+    config._selected_route = {'reason': 'material_or_new_teaching', 'tier': 'sol', 'region': 'standard',
+        'route': {**approved['routes']['sol'], 'upstreams': ['fixture-upstream']}, 'budget': approved['budget']}
+    calls = _transport(monkeypatch, 'openrouter', {})
+    with pytest.raises(providers.ProviderError) as caught:
+        providers.request_provider(config, 'unit', payload)
+    assert caught.value.code == 'visual_unavailable'
+    assert caught.value.billing_result.cost_source == 'cancelled'
+    assert calls == []
+
+
 def test_relation_checks_still_reject_missing_or_fabricated_arrows():
     value = next(_scene_bases(SOURCE))[0]
     value["disclosure"] = "hint1"
