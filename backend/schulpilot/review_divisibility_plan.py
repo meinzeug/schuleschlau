@@ -23,7 +23,7 @@ def supported(payload):
             or (payload.get('visual_context') or {}).get('required') is not True):
         return False
     focus, goals = payload.get('focus_goal_ids'), payload.get('learning_goals')
-    if (not isinstance(focus, list) or len(focus) != 2 or len(set(focus)) != 2
+    if (not isinstance(focus, list) or len(focus) not in (1, 2) or len(set(focus)) != len(focus)
             or any(not isinstance(item, str) for item in focus)
             or not isinstance(goals, list) or any(not isinstance(g, dict) for g in goals)):
         return False
@@ -35,7 +35,8 @@ def supported(payload):
         return False
     kgv = [i for i, label in enumerate(labels) if multiples._TOPIC.search(label)]
     divisibility = [i for i, label in enumerate(labels) if product.supports_label(label) or divisor_set.supports_label(label)]
-    return len(kgv) == len(divisibility) == 1 and kgv[0] != divisibility[0]
+    return (len(focus) == 1 and len(kgv) == 1 and not divisibility) or (
+        len(focus) == 2 and len(kgv) == len(divisibility) == 1 and kgv[0] != divisibility[0])
 
 
 def add_references(db, payload):
@@ -45,7 +46,8 @@ def add_references(db, payload):
     context = copy.deepcopy(payload['visual_context'])
     labels = [g.get('label', '') for g in payload['learning_goals'] if g.get('id') in payload['focus_goal_ids']]
     divisor = divisor_set if any(divisor_set.supports_label(label) for label in labels) else product
-    for module in (multiples, divisor):
+    modules = (multiples,) if len(payload['focus_goal_ids']) == 1 else (multiples, divisor)
+    for module in modules:
         actual = module.public_recipe()
         row = db.get(VisualReference, (module.RECIPE, module.VERSION))
         if row is None or row.recipe != actual or row.digest != _digest(actual):
@@ -82,6 +84,8 @@ def _plan(payload):
             or not isinstance(h['numbers'], list) or any(type(n) is not int or not 0 <= n <= 999 for n in h['numbers'])):
         raise ValueError(INVALID)
     tasks = practice_tasks(payload)
+    if len(payload['focus_goal_ids']) == 1:
+        return _single_kgv_plan(payload, tasks, context, h)
     ktask = next((t for t in tasks if multiples._TOPIC.search(t['label'])), None)
     dtask = next((t for t in tasks if product.supports_label(t['label']) or divisor_set.supports_label(t['label'])), None)
     rule = multiples._rule(context)
@@ -120,6 +124,37 @@ def _plan(payload):
                 'hints': [f'Schreibe die Vielfachen von {pair[0]} und {pair[1]} auf und vergleiche sie.']},
             {'kind': 'divisor_set' if module is divisor_set else 'divisor', 'task': dtask, 'core': dcore, 'candidate_id': dcandidate['id'],
                 'hints': ['Teile die Zahl durch mögliche Teiler. Wo bleibt kein Rest?'] if module is divisor_set else [product.safe_hint(context, dtask)]}]}
+
+
+def _single_kgv_plan(payload, tasks, context, history):
+    """Two new calculations for the same already confirmed review goal."""
+    rule = multiples._rule(context)
+    if (rule is None or len(tasks) != 2 or tasks[0]['id'] == tasks[1]['id']
+            or tasks[0]['learning_goal_id'] != tasks[1]['learning_goal_id']):
+        raise ValueError(INVALID)
+    source = next((s for s in context['sources'] if s.get('ref') == rule['source_ref']), None)
+    if not source or any(not task['source_excerpt'] or task['source_excerpt'] not in source['content'] for task in tasks):
+        raise ValueError(INVALID)
+    originals = {tuple(sorted(map(int, match.groups()))) for source in multiples._sources(context)
+        for match in multiples._ANCHOR_PAIR.finditer(source['content'])}
+    used = {tuple(pair) for pair in history['pairs']} | originals | {(2, 4)}
+    pool = [pair for pair in multiples._pool() if pair not in used and multiples._arithmetic(pair)[0] not in (2, 4)]
+    pool.sort(key=lambda pair: _digest([REVISION, rule, history, pair]))
+    chosen = []
+    for pair in pool:
+        if all(multiples._arithmetic(pair)[0] != multiples._arithmetic(old)[0] for old in chosen):
+            chosen.append(pair)
+        if len(chosen) == 2:
+            break
+    if len(chosen) != 2:
+        raise ValueError(INVALID)
+    planned = []
+    for task, pair in zip(tasks, chosen, strict=True):
+        core = {**multiples._core(task['id'], pair), 'learning_goal_id': task['learning_goal_id']}
+        planned.append({'kind': 'kgv', 'task': task, 'core': core, 'pair': list(pair),
+            'hints': [f'Schreibe die Vielfachen von {pair[0]} und {pair[1]} auf und vergleiche sie.']})
+    return {'version': 1, 'revision': REVISION, 'context_digest': _digest(context),
+        'history_digest': _digest(history), 'rule': rule, 'intro': [2, 4], 'tasks': planned}
 
 
 def prepare(payload):

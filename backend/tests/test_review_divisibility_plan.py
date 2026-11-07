@@ -136,6 +136,43 @@ def test_real_provider_transport_bound_to_goals_source_and_graphics(monkeypatch,
     assert all(q["explanation_steps"][0]["disclosure"] == "solution" for q in result.data["questions"])
 
 
+def test_single_kgv_goal_review_has_two_new_distinct_checked_scenes(monkeypatch):
+    payload = original()
+    payload['focus_goal_ids'] = ['g1']
+    payload['learning_goals'] = payload['learning_goals'][:1]
+    assert plan.supported(payload)
+    payload = plan.prepare(plan.with_history(plan.add_references(RecipeLookup(), payload), [
+        'Was ist das kleinste gemeinsame Vielfache von 3 und 4?',
+    ]))
+    binding, response = wire(payload)
+    result = binding.hydrate(response)
+    plan.validate_output(payload, result)
+    visual_references.validate_output(RecipeLookup(), result, payload)
+    assert [q['learning_goal_id'] for q in result['questions']] == ['g1', 'g1']
+    assert len({q['answer'] for q in result['questions']}) == 2
+    assert all('von 3 und 4?' not in q['prompt'] for q in result['questions'])
+    calls, real = [], httpx.Client
+    def handler(request):
+        calls.append(request)
+        return httpx.Response(200, json={'choices': [{'finish_reason': 'stop',
+            'message': {'content': json.dumps(response)}}],
+            'usage': {'prompt_tokens': 100, 'completion_tokens': 500, 'cost': .001}})
+    monkeypatch.setattr(providers.httpx, 'Client', lambda **kw: real(transport=httpx.MockTransport(handler)))
+    actual = providers.request_provider(config(), 'unit', payload)
+    assert len(calls) == 1
+    plan.validate_output(payload, actual.data)
+
+
+def test_single_kgv_goal_review_rejects_unproven_goal_and_history():
+    payload = original()
+    payload['focus_goal_ids'] = ['g1']
+    payload['learning_goals'] = payload['learning_goals'][:1]
+    payload = plan.add_references(RecipeLookup(), payload)
+    payload['learning_goals'][0]['source_excerpt'] = 'Nicht belegter Stoff'
+    with pytest.raises(ValueError):
+        plan.prepare(plan.with_history(payload, []))
+
+
 @pytest.mark.parametrize(
     "fault",
     [
@@ -184,7 +221,8 @@ def test_rejects_unproven_or_tampered_data(fault):
         plan.validate_output(body, data)
 
 
-def test_worker_review_adapter_and_stale_source(monkeypatch):
+@pytest.mark.parametrize('single_goal', [False, True])
+def test_worker_review_adapter_and_stale_source(monkeypatch, single_goal):
     from schulpilot import coaching, source_lineage
     from schulpilot import review_fraction_compositions as adapter
     from test_review_divisibility_plan import original
@@ -237,6 +275,11 @@ def test_worker_review_adapter_and_stale_source(monkeypatch):
     monkeypatch.setattr(source_lineage, "learning_source", lambda *_args, **_kw: copy.deepcopy(state["source"]))
     db, cfg = ContextLookup(previous), config()
     payload = original()
+    if single_goal:
+        payload['focus_goal_ids'] = ['g1']
+        payload['learning_goals'] = payload['learning_goals'][:1]
+        state['goals'] = copy.deepcopy(payload['learning_goals'])
+        state['focus'] = ['g1']
     payload.pop("practice_kind")
     body, receipt = adapter.prepare(db, job, child, page, [page], cfg, cfg._selected_route, payload)
     assert receipt and plan.KEY in body
@@ -247,8 +290,9 @@ def test_worker_review_adapter_and_stale_source(monkeypatch):
     with pytest.raises(ValueError):
         adapter.validate(db, job, child, page, [page], cfg, cfg._selected_route, body, data, receipt)
     state["source"] = copy.deepcopy(source)
-    payload["learning_goals"][1]["source_excerpt"] = "Teilbarkeit"
-    state["goals"][1]["source_excerpt"] = "Teilbarkeit"
+    index = 0 if single_goal else 1
+    payload["learning_goals"][index]["source_excerpt"] = "Teilbarkeit"
+    state["goals"][index]["source_excerpt"] = "Teilbarkeit"
     with pytest.raises(ValueError):
         adapter.prepare(db, job, child, page, [page], cfg, cfg._selected_route, payload)
 
