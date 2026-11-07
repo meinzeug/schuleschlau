@@ -232,7 +232,7 @@ def test_incompatible_restore_aborts_before_any_release_side_effect(tmp_path, mo
 
 
 @pytest.mark.parametrize('fail_health', [False, True])
-def test_photo_activation_checks_revision_before_writers_and_restores_old_unit(tmp_path, monkeypatch, fail_health):
+def test_photo_activation_checks_revision_before_writers_and_preserves_failed_candidate(tmp_path, monkeypatch, fail_health):
     activation = Activation(tmp_path, 'photo_health' if fail_health else None)
     unit = activation.root / 'etc/systemd/system/schulpilot-photo.service'
     for release, content in ((activation.old, 'old photo unit'), (activation.new, 'new photo unit')):
@@ -245,10 +245,12 @@ def test_photo_activation_checks_revision_before_writers_and_restores_old_unit(t
     if fail_health:
         with pytest.raises(RuntimeError, match='Socketprüfung'):
             activation.execute(monkeypatch)
-        assert activation.current.resolve() == activation.old
-        assert unit.read_text() == 'old photo unit'
-        assert activation.photo_active and activation.photo_enabled
-        assert activation.restarts == [(activation.old, True)]
+        assert activation.current.resolve() == activation.new
+        assert unit.read_text() == 'new photo unit'
+        assert not activation.photo_active and activation.photo_enabled
+        assert activation.restarts == []
+        assert any('schulpilot.migrate' in command for command in activation.commands)
+        assert ['systemctl', 'stop', *WRITERS] in activation.commands
     else:
         activation.execute(monkeypatch)
         assert activation.current.resolve() == activation.new
@@ -264,42 +266,44 @@ def test_restore_rechecked_after_reload_before_migration(tmp_path, monkeypatch, 
     activation = Activation(tmp_path, "restore_guard_2")
     with pytest.raises(RuntimeError, match="incompatible restore runtime"):
         activation.execute(monkeypatch, rollback_compatible)
-    assert activation.current.resolve() == activation.old
+    assert activation.current.resolve() == activation.new
+    assert activation.restarts == []
+    assert ["systemctl", "stop", *WRITERS] in activation.commands
     assert activation.restore_checks == 2
     assert not any("schulpilot.migrate" in command for command in activation.commands)
 
 
 @pytest.mark.parametrize("rollback_compatible", [False, True])
 @pytest.mark.parametrize("failure", ["validate", "drain"])
-def test_failure_before_new_writers_keeps_schema_safe_old_release(tmp_path, monkeypatch, capsys, rollback_compatible, failure):
+def test_failure_before_new_writers_retains_existing_release_without_restart(tmp_path, monkeypatch, capsys, rollback_compatible, failure):
     activation = Activation(tmp_path, failure)
     with pytest.raises(subprocess.CalledProcessError):
         activation.execute(monkeypatch, rollback_compatible)
     assert activation.current.resolve() == activation.old
-    assert activation.restarts == [(activation.old, True)]
+    assert activation.restarts == []
+    stop = ["systemctl", "stop", *WRITERS]
+    assert activation.commands.count(stop) == (0 if failure == "validate" else 2)
+    assert not any("schulpilot.migrate" in command for command in activation.commands)
     assert activation.fragment.read_text() == "old fragment"
     assert (activation.root / "etc/systemd/system/schulpilot-api.service").read_text() == "operator service"
-    assert "incompatible JSON" not in capsys.readouterr().err
+    assert "Current release and units are retained" in capsys.readouterr().err
 
 
 @pytest.mark.parametrize("changed_schema", [False, True])
-def test_migration_failure_before_new_writers_only_rolls_back_unchanged_schema(tmp_path, monkeypatch, capsys, changed_schema):
+def test_migration_failure_retains_candidate_without_schema_guess_or_restart(tmp_path, monkeypatch, capsys, changed_schema):
     activation = Activation(tmp_path, "migration", changed_schema=changed_schema)
     with pytest.raises(subprocess.CalledProcessError):
         activation.execute(monkeypatch)
-    assert activation.schema_reads == 2
-    if changed_schema:
-        assert activation.current.resolve() == activation.new
-        assert activation.restarts == []
-        assert ["systemctl", "stop", *WRITERS] in activation.commands
-        assert "Schema changed" in capsys.readouterr().err
-    else:
-        assert activation.current.resolve() == activation.old
-        assert activation.restarts == [(activation.old, True)]
-        assert (activation.root / "etc/systemd/system/schulpilot-api.service").read_text() == "operator service"
-        assert (activation.root / "etc/systemd/system/schulpilot-monitor.timer").read_text() == "operator timer"
-        assert (activation.root / "etc/schulpilot-turn/refresh_certificate.py").read_text() == "operator certificate helper"
-        assert ["systemctl", "stop", "schulpilot-monitor.timer"] not in activation.commands
+    # Equal revision markers do not prove no data migration was committed.
+    assert activation.schema_reads == 0
+    assert activation.current.resolve() == activation.new
+    assert activation.restarts == []
+    assert ["systemctl", "stop", *WRITERS] in activation.commands
+    assert (activation.root / "etc/systemd/system/schulpilot-api.service").read_text() == "new service"
+    assert (activation.root / "etc/systemd/system/schulpilot-monitor.timer").read_text() == "operator timer"
+    assert (activation.root / "etc/schulpilot-turn/refresh_certificate.py").read_text() == "new certificate helper"
+    assert ["systemctl", "stop", "schulpilot-monitor.timer"] not in activation.commands
+    assert "verify writers, schema, data, timers and recovery" in capsys.readouterr().err
 
 
 @pytest.mark.parametrize("rollback_compatible", [False, True])
@@ -311,7 +315,7 @@ def test_possible_new_writer_always_stops_and_retains_new_reader(tmp_path, monke
         activation.execute(monkeypatch, rollback_compatible)
     assert activation.current.resolve() == activation.new
     assert activation.restarts == [(activation.new, True)]  # Partial restart may already have written.
-    assert activation.schema_reads == (0 if rollback_compatible else 1)  # Never read revision after possible writes.
+    assert activation.schema_reads == 0  # Schema equality cannot establish JSON or data compatibility.
     stop = ["systemctl", "stop", *WRITERS]
     failure_index = (max(i for i, cmd in enumerate(activation.commands) if cmd == ["health"])
                      if failure == "health" else next(i for i, cmd in enumerate(activation.commands)
@@ -323,8 +327,8 @@ def test_possible_new_writer_always_stops_and_retains_new_reader(tmp_path, monke
     assert activation.fragment.read_text() == "old fragment"
     assert activation.prior.readlink() == activation.base / "releases" / OLDER
     message = capsys.readouterr().err
-    assert "current release retained" in message and "compatible forward fix" in message
-    assert "--rollback-compatible are not sufficient" in message
+    assert "Current release and units are retained" in message
+    assert "verify writers, schema, data, timers and recovery" in message
 
 
 @pytest.mark.parametrize("rollback_compatible", [False, True])
@@ -334,7 +338,8 @@ def test_success_activates_new_release_and_preserves_previous_pointer(tmp_path, 
     assert activation.current.resolve() == activation.new and activation.prior.resolve() == activation.old
     assert activation.restarts == [(activation.new, True)]
     assert activation.fragment.read_text() == "new fragment"
-    assert activation.schema_reads == (0 if rollback_compatible else 1)
+    assert activation.schema_reads == 0
+    assert any("schulpilot.migrate" in command for command in activation.commands) is (not rollback_compatible)
     assert activation.commands[-1] == ["systemctl", "reload", "caddy"]
     assert f"SCHULPILOT activated: {NEW}" in capsys.readouterr().out
 
@@ -399,13 +404,13 @@ def test_symlinked_service_refuses_activation_without_modifying_target(tmp_path,
     assert unit.is_symlink() and activation.current.resolve() == activation.old
 
 
-def test_restore_failure_keeps_writers_stopped(tmp_path, monkeypatch, capsys):
+def test_migration_failure_does_not_attempt_unit_restore_or_restart(tmp_path, monkeypatch, capsys):
     activation = Activation(tmp_path, "migration")
     original_replace = os.replace
 
     def replace(source, destination, *args, **kwargs):
         if Path(source).name.startswith(".schulpilot-restore-"):
-            raise OSError("synthetic restore failure")
+            raise AssertionError("automatic unit restoration must not occur")
         return original_replace(source, destination, *args, **kwargs)
 
     monkeypatch.setattr(os, "replace", replace)
@@ -413,8 +418,8 @@ def test_restore_failure_keeps_writers_stopped(tmp_path, monkeypatch, capsys):
         activation.execute(monkeypatch)
     assert activation.current.resolve() == activation.new
     assert not activation.restarts
-    assert activation.commands[-2] == ["systemctl", "stop", *WRITERS]
-    assert "Automatic rollback incomplete; services stopped" in capsys.readouterr().err
+    assert ["systemctl", "stop", *WRITERS] in activation.commands
+    assert "Current release and units are retained" in capsys.readouterr().err
 
 
 @pytest.mark.parametrize("rollback_compatible", [False, True])
@@ -424,7 +429,8 @@ def test_failed_drained_backup_prevents_pointer_switch_or_migration(tmp_path, mo
         activation.execute(monkeypatch, rollback_compatible)
     assert activation.backup_checks == 2
     assert activation.current.resolve() == activation.old
-    assert activation.restarts == [(activation.old, True)]
+    assert activation.restarts == []
+    assert activation.commands.count(["systemctl", "stop", *WRITERS]) == 2
     assert not any("schulpilot.migrate" in cmd for cmd in activation.commands)
     assert all(release == activation.old for release in activation.command_releases)
 
@@ -447,7 +453,8 @@ def test_uncertain_or_repeated_stale_drained_backup_never_switches(tmp_path, mon
     starts = [cmd for cmd in activation.commands if cmd == ["systemctl", "start", "schulpilot-backup.service"]]
     assert len(starts) == (3 if failure == "stale_drained_exhausted" else 2)
     assert activation.current.resolve() == activation.old
-    assert activation.restarts == [(activation.old, True)]
+    assert activation.restarts == []
+    assert activation.commands.count(["systemctl", "stop", *WRITERS]) == 2
     assert not any("schulpilot.migrate" in command for command in activation.commands)
 
 
@@ -456,7 +463,8 @@ def test_unavailable_invocation_journal_stops_before_migration(tmp_path, monkeyp
     with pytest.raises(subprocess.CalledProcessError):
         activation.execute(monkeypatch)
     assert activation.current.resolve() == activation.old
-    assert activation.restarts == [(activation.old, True)]
+    assert activation.restarts == []
+    assert activation.commands.count(["systemctl", "stop", *WRITERS]) == 2
     assert not any("schulpilot.migrate" in command for command in activation.commands)
 
 
