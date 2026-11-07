@@ -38,8 +38,30 @@ class MatchingAnswerBoard extends StatefulWidget {
   State<MatchingAnswerBoard> createState() => _MatchingAnswerBoardState();
 }
 
-class _MatchingAnswerBoardState extends State<MatchingAnswerBoard> {
+class _MatchingAnswerBoardState extends State<MatchingAnswerBoard>
+    with WidgetsBindingObserver {
   Object _epoch = Object();
+  late bool _resumed;
+
+  @override
+  void initState() {
+    super.initState();
+    _resumed =
+        WidgetsBinding.instance.lifecycleState == null ||
+        WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final resumed = state == AppLifecycleState.resumed;
+    if (!resumed) {
+      stopEdgeScroll();
+      _epoch = Object();
+    }
+    if (_resumed != resumed && mounted) setState(() => _resumed = resumed);
+  }
+
   Object? _dragEpoch;
   Offset? _dragPosition;
   EdgeDraggingAutoScroller? _edgeScroller;
@@ -53,7 +75,11 @@ class _MatchingAnswerBoardState extends State<MatchingAnswerBoard> {
 
   void startEdgeScroll() {
     stopEdgeScroll();
-    if (widget.disabled || ModalRoute.of(context)?.isCurrent == false) return;
+    if (widget.disabled ||
+        !_resumed ||
+        ModalRoute.of(context)?.isCurrent == false) {
+      return;
+    }
     final scrollable = Scrollable.maybeOf(context);
     if (scrollable == null) return;
     _dragEpoch = _epoch;
@@ -72,6 +98,7 @@ class _MatchingAnswerBoardState extends State<MatchingAnswerBoard> {
   void continueEdgeScroll() {
     if (!mounted ||
         widget.disabled ||
+        !_resumed ||
         !identical(_dragEpoch, _epoch) ||
         ModalRoute.of(context)?.isCurrent == false) {
       stopEdgeScroll();
@@ -97,6 +124,7 @@ class _MatchingAnswerBoardState extends State<MatchingAnswerBoard> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     stopEdgeScroll();
     super.dispose();
   }
@@ -117,6 +145,7 @@ class _MatchingAnswerBoardState extends State<MatchingAnswerBoard> {
   bool accepts(_MatchDragPayload? payload) =>
       mounted &&
       !widget.disabled &&
+      _resumed &&
       ModalRoute.of(context)?.isCurrent != false &&
       payload != null &&
       identical(payload.epoch, _epoch) &&
@@ -174,7 +203,7 @@ class _MatchingAnswerBoardState extends State<MatchingAnswerBoard> {
             Align(
               alignment: Alignment.centerLeft,
               child: TextButton.icon(
-                onPressed: widget.disabled ? null : widget.onUndo,
+                onPressed: widget.disabled || !_resumed ? null : widget.onUndo,
                 icon: const Icon(Icons.undo_rounded),
                 label: const Text('Letzte Zuordnung zurücknehmen'),
               ),
@@ -196,7 +225,9 @@ class _MatchingAnswerBoardState extends State<MatchingAnswerBoard> {
                       key: ValueKey('match-choice-${widget.questionId}-$i'),
                       data: _MatchDragPayload(_epoch, widget.choices[i]),
                       delay: const Duration(milliseconds: 240),
-                      maxSimultaneousDrags: widget.disabled ? 0 : 1,
+                      maxSimultaneousDrags: widget.disabled || !_resumed
+                          ? 0
+                          : 1,
                       dragAnchorStrategy: pointerDragAnchorStrategy,
                       onDragStarted: startEdgeScroll,
                       onDragUpdate: updateEdgeScroll,
@@ -246,7 +277,7 @@ class _MatchingAnswerBoardState extends State<MatchingAnswerBoard> {
                   final assigned = widget.matches[option];
                   return OutlinedButton(
                     key: ValueKey('match-${widget.questionId}-$option'),
-                    onPressed: widget.disabled
+                    onPressed: widget.disabled || !_resumed
                         ? null
                         : () => widget.onChoose(option),
                     style: ButtonStyle(

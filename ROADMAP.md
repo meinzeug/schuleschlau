@@ -1966,6 +1966,14 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Kinderwege, Navigation und Wiederaufnahme vollständig abnehmen**
 
+  - [x] **Begonnene Zuordnung beim Hintergrundwechsel verwerfen.** Eine
+    Ziehgeste aus der vorherigen Vordergrundphase kann nach Rückkehr keine
+    Antwort mehr zuordnen. Automatisches Randscrollen endet, und neue Zieh- sowie
+    Tippaktionen bleiben möglich; bereits gespeicherte Antworten werden nicht
+    verändert. Künstliche Fluttertests zeigen den Fehler vor der Änderung und
+    prüfen Rückkehr, mobile Breite und vergrößerte Schrift. Dies belegt keine
+    vollständige Geräte- oder Kinderwegeabnahme.
+
   - [x] **Lernaktionen an die lokale Anmeldeabsicht binden.** Beginnt während
     einer laufenden Abfrage oder eines Rundenstarts eine neue Anmeldung im
     selben Appzustand, werden alte Ergebnisse und Fehler nicht mehr für eine

@@ -267,4 +267,58 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+  testWidgets('backgrounding cancels a drag even after resuming', (
+    tester,
+  ) async {
+    final key = await _open(tester);
+    final gesture = await startDrag(tester, 0);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    await tester.pump();
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pump();
+    await dropOn(tester, gesture, 'Nomen');
+    expect(key.currentState!.drops, isEmpty);
+    expect(key.currentState!.matches, isEmpty);
+    // A fresh touch remains usable after returning to the app.
+    await dropOn(tester, await startDrag(tester, 1), 'Nomen');
+    expect(key.currentState!.matches, {'Nomen': 'weich'});
+    expect(tester.takeException(), isNull);
+  });
+  testWidgets(
+    'backgrounding stops edge scrolling and keeps tap fallback usable',
+    (tester) async {
+      final key = await _open(
+        tester,
+        size: const Size(320, 568),
+        choices: List.generate(10, (i) => 'Antwortmöglichkeit Nummer $i'),
+        scale: 1.5,
+      );
+      final scrollable = tester.state<ScrollableState>(
+        find.byType(Scrollable).first,
+      );
+      final gesture = await startDrag(tester, 0);
+      await gesture.moveTo(const Offset(160, 560));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(scrollable.position.pixels, greaterThan(0));
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      // A previously started scroll animation may finish, but no new edge
+      // scroll is scheduled while the app is in the background.
+      await tester.pump(const Duration(milliseconds: 200));
+      await tester.pump(const Duration(milliseconds: 200));
+      final stopped = scrollable.position.pixels;
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(scrollable.position.pixels, stopped);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pump();
+      await gesture.up();
+      await tester.pumpAndSettle();
+      expect(key.currentState!.drops, isEmpty);
+      await tester.ensureVisible(target('Nomen'));
+      await tester.pumpAndSettle();
+      await tester.tap(target('Nomen'));
+      expect(key.currentState!.chosen, ['Nomen']);
+      expect(tester.takeException(), isNull);
+    },
+  );
 }
