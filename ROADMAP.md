@@ -1658,6 +1658,13 @@ Bestandteil des bestehenden Buildvertrags.
     sichtbarer Tastatur nicht zu sehen; ein tatsächliches Absenden und weitere
     Tastaturzustände bleiben offen. [Gerätebericht](docs/ANDROID_PHYSICAL_2026_11_08.md).
 
+    **Nacharbeit:** Bei sichtbarer Tastatur stehen Eingabe und Senden nun bei
+    genügend Platz zusammen über der Tastatur; sehr kleine oder stark
+    vergrößerte Ansichten bleiben vollständig scrollbar. Widgettests prüfen
+    die sichtbare Aktion, den Fokuserhalt beim Wechsel der Tastaturhöhe und
+    eine kleine Ansicht mit großer Schrift. Die geänderte APK und ein echtes
+    Absenden auf dem physischen Gerät sind noch nicht abgenommen.
+
   - [x] **Kamera und Fotoauswahl auf einem physischen Android-Gerät öffnen und abbrechen.**
     Beide Wege öffneten die native Android-Oberfläche und führten nach Abbruch
     zurück zur App. Aufnahme, Auswahl, Zuschnitt und Upload wurden dabei nicht

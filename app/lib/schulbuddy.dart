@@ -1854,7 +1854,13 @@ class _SchulbuddyChatState extends State<_SchulbuddyChat>
             final compact =
                 constraints.maxHeight < 560 ||
                 MediaQuery.textScalerOf(context).scale(1) > 1.4;
-            if (compact) {
+            // Keep the composer above the IME when enough room remains.
+            // Extremely small or large-text layouts stay fully scrollable.
+            final pinComposer =
+                keyboard > 0 &&
+                constraints.maxHeight >= 380 &&
+                MediaQuery.textScalerOf(context).scale(1) <= 1.4;
+            if (compact && !pinComposer) {
               return SingleChildScrollView(
                 controller: scroll,
                 child: Column(

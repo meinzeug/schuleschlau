@@ -4,6 +4,40 @@ import 'package:flutter_test/flutter_test.dart';
 import 'schulbuddy_test.dart' as buddy;
 
 void main() {
+  testWidgets('send action stays visible above the Android keyboard', (
+    t,
+  ) async {
+    addTearDown(t.view.resetViewInsets);
+    await buddy.open(t, width: 360, height: 820);
+    await buddy.tap(t, find.text('Buddy öffnen'));
+    await t.tap(buddy.field());
+    await t.enterText(buddy.field(), 'Eine kurze Frage');
+    t.view.viewInsets = const FakeViewPadding(bottom: 300);
+    await t.pumpAndSettle();
+    final send = find.widgetWithText(FilledButton, 'Frage senden');
+    expect(send.hitTestable(), findsOneWidget);
+    expect(t.getBottomRight(send).dy, lessThanOrEqualTo(520));
+    expect(t.takeException(), isNull);
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
+
+  testWidgets('small screen and large text keep the action scrollable', (
+    t,
+  ) async {
+    addTearDown(t.view.resetViewInsets);
+    await buddy.open(t, width: 320, height: 568, scale: 1.4);
+    await buddy.tap(t, find.text('Buddy öffnen'));
+    await t.ensureVisible(buddy.field());
+    await t.tap(buddy.field());
+    await t.enterText(buddy.field(), 'Eine kurze Frage');
+    t.view.viewInsets = const FakeViewPadding(bottom: 270);
+    await t.pumpAndSettle();
+    final send = find.widgetWithText(FilledButton, 'Frage senden');
+    await t.ensureVisible(send);
+    await t.pumpAndSettle();
+    expect(send.hitTestable(), findsOneWidget);
+    expect(t.takeException(), isNull);
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
+
   testWidgets('Android keyboard resize keeps the active buddy editor and IME', (
     t,
   ) async {
