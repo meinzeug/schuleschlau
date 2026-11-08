@@ -2597,7 +2597,28 @@ def request_provider(config, function, payload, image_bytes=None, *, synthetic_f
 
                         checked_output(visual_db, data, payload)
                     else:
-                        validate_visual_output(visual_db, data, payload)
+                        try:
+                            validate_visual_output(visual_db, data, payload)
+                        except ValueError as error:
+                            # A malformed generated scene must never be shown. For a
+                            # standalone round only, retain the independently checked
+                            # questions and ordinary explanation without any visual
+                            # steps. Other validation failures remain hard failures.
+                            if function != "unit" or error.args != (
+                                "Die Lernszene braucht belegte Beziehungen und mindestens zwei Phasen.",
+                            ):
+                                raise
+                            from .source_lineage import false_equality
+                            if false_equality(data.get("explanation", "")):
+                                raise ValueError("Der Erklärtext enthält eine falsche rationale Gleichung.") from None
+                            data.pop("explanation_steps", None)
+                            for question in data.get("questions", []):
+                                question.pop("explanation_steps", None)
+                            # A question cannot rely on text that was just discarded.
+                            subject_content.validate_output(data, payload, bounded_matching=compact_openrouter)
+                            if billing_result:
+                                from .provider_validation import annotate
+                                annotate(billing_result, error, phase="visual")
         validation_phase = "billing"
         cost = None
         reported = usage.get("cost") if config.provider == "openrouter" else None

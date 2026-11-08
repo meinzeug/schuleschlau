@@ -109,7 +109,7 @@ class _VisualPreparationCardState extends State<VisualPreparationCard> {
                 ? 'Grafische Erklärung wird vorbereitet …'
                 : status == 'legacy_text'
                 ? 'Gespeicherte Texterklärung · Grafikschritte fehlen noch.'
-                : 'Die grafische Erklärung ist noch nicht vollständig quellengebunden verfügbar.',
+                : 'Die Grafik fehlt noch. Du kannst trotzdem lernen.',
             key: const ValueKey('visual-readiness'),
             style: TextStyle(color: context.palette.muted, fontSize: 14),
           ),

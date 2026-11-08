@@ -99,6 +99,23 @@ def test_inbox_is_created_once_after_real_saved_completion_without_push_opt_in(a
         assert "Sitzung" not in message.body
 
 
+def test_round_with_missing_graphic_notifies_but_changed_source_does_not(api, case, monkeypatch):
+    from schulpilot import visual_references
+    from schulpilot.visual_reference_models import UnitVisualSnapshot
+
+    with DB.begin() as db:
+        db.add(UnitVisualSnapshot(unit_id=case["unit"], source_signature="test", status="incomplete",
+            reason="missing_steps", steps=[], question_steps={}, source_bindings=[], receipts=[], notice=""))
+    monkeypatch.setattr(visual_references, "projection", lambda db, unit: {
+        "explanation_visual_status": "incomplete", "explanation_visual_reason": "missing_steps"})
+    with DB() as db:
+        assert ready.valid_unit(db, db.get(LearningUnit, case["unit"]), db.get(Child, case["child"]))
+    monkeypatch.setattr(visual_references, "projection", lambda db, unit: {
+        "explanation_visual_status": "incomplete", "explanation_visual_reason": "source_changed"})
+    with DB() as db:
+        assert not ready.valid_unit(db, db.get(LearningUnit, case["unit"]), db.get(Child, case["child"]))
+
+
 def test_displaced_round_receipt_rechecks_source_and_session(api, case):
     with DB.begin() as db:
         db.get(Job, case["job"]).finished = int(now()) - 60

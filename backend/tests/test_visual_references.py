@@ -416,6 +416,47 @@ def test_actual_provider_transport_sends_step_reference_contract_and_safe_receip
     assert SOURCE not in json.dumps(result.request_receipt)
 
 
+def test_scene_failure_keeps_unit_without_any_generated_graphics(monkeypatch, generated_visual_unit):
+    from schulpilot import providers, visual_references
+    from schulpilot.db import Child, Material
+    from test_learning_scenes import _config, _transport
+
+    _, mid, cid = generated_visual_unit
+    with DB() as db:
+        payload = visual_references.with_visual_context(db, db.get(Child, cid),
+            {"material": {"subject": "Mathematik", "topic": "Brüche", "content": SOURCE}}, [db.get(Material, mid)])
+    output = {"subject": "Mathematik", "topic": "Brüche", "explanation": SOURCE,
+              "explanation_steps": [step()], "questions": [question(), {**question(), "id": "q2"}]}
+    _transport(monkeypatch, "openrouter", output, [])
+    def bad_scene(*args, **kwargs):
+        raise ValueError("Die Lernszene braucht belegte Beziehungen und mindestens zwei Phasen.")
+    monkeypatch.setattr(visual_references, "validate_output", bad_scene)
+    result = providers.request_provider(_config("openrouter"), "unit", payload)
+    assert result.data["explanation"] == SOURCE
+    assert "explanation_steps" not in result.data
+    assert all("explanation_steps" not in q for q in result.data["questions"])
+    assert result.telemetry["validation"]["errors"][0]["reason"] == "visual_scene_relations"
+
+
+def test_other_visual_validation_failures_remain_blocking(monkeypatch, generated_visual_unit):
+    from schulpilot import providers, visual_references
+    from schulpilot.db import Child, Material
+    from test_learning_scenes import _config, _transport
+
+    _, mid, cid = generated_visual_unit
+    with DB() as db:
+        payload = visual_references.with_visual_context(db, db.get(Child, cid),
+            {"material": {"subject": "Mathematik", "topic": "Brüche", "content": SOURCE}}, [db.get(Material, mid)])
+    output = {"subject": "Mathematik", "topic": "Brüche", "explanation": SOURCE,
+              "explanation_steps": [step()], "questions": [question(), {**question(), "id": "q2"}]}
+    _transport(monkeypatch, "openrouter", output, [])
+    def wrong_source(*args, **kwargs):
+        raise ValueError("Erklärung verweist auf fremde oder veraltete Quellen.")
+    monkeypatch.setattr(visual_references, "validate_output", wrong_source)
+    with pytest.raises(providers.ProviderError):
+        providers.request_provider(_config("openrouter"), "unit", payload)
+
+
 def test_no_usable_source_blocks_cannot_fall_through_to_model_knowledge(generated_visual_unit, monkeypatch):
     from schulpilot import source_lineage
     from schulpilot.db import Child, Material

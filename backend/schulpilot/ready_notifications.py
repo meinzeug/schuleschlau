@@ -51,8 +51,10 @@ def valid_unit(db, unit, child):
     from .visual_reference_models import UnitVisualSnapshot
     from .visual_references import projection
 
-    if db.get(UnitVisualSnapshot, unit.id) is not None and projection(db, unit)["explanation_visual_status"] != "ready":
-        return False
+    if db.get(UnitVisualSnapshot, unit.id) is not None:
+        visual = projection(db, unit)
+        if visual["explanation_visual_status"] != "ready" and visual.get("explanation_visual_reason") not in ("missing_steps", "invalid_graphic"):
+            return False
     refs = list(db.scalars(select(UnitSource).where(UnitSource.unit_id == unit.id)))
     if family.synthetic and (
         len(refs) != 1 or refs[0].material_id != unit.material_id
