@@ -2265,6 +2265,15 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Benachrichtigung und direkte Zielnavigation vollständig prüfen**
 
+  - [x] **Benachrichtigungen auf einem echten Gerät durch den Betreiber prüfen.**
+    Am 08.11.2026 bestätigte der Betreiber, dass die Benachrichtigungen auf
+    einem echten Gerät funktionieren. Dieser Nachweis beruht auf seiner
+    Rückmeldung; die Coding-AI hat die Zustellung nicht selbst beobachtet.
+    Gerätetyp, Betriebssystem, Meldungsart, App-Zustand und Verhalten beim
+    Antippen wurden nicht näher angegeben. Daraus folgt noch keine vollständige
+    Abnahme aller Zustände, der Firebase-Transportkette oder der direkten
+    Zielnavigation; der übergeordnete Punkt bleibt offen.
+
   - [x] **Verzögerte Benachrichtigungsnavigation bei neuer Anmeldung stoppen.**
     06.11.2026: Eine neue Anmeldeabsicht kann beginnen, bevor Konto und Cookie
     wechseln. Glockenmenü und Gesamtansicht zeigen dann keine verspätete
