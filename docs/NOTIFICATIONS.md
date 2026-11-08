@@ -41,8 +41,11 @@ Laden und eine tatsächlich leere Liste sind sichtbare unterschiedliche Zuständ
 
 ## Gerätefreigabe
 
-1. Eltern erlauben beim Kind unter Lernvorgaben → Erinnerungen & Ruhezeiten
-   „Push am Kindergerät erlauben“ und speichern die Vorgaben.
+1. Für neue Kinder werden seit 08.11.2026 eine tägliche Mindestlernzeit von
+   30 Minuten, die Lernerinnerung und die elterliche Push-Freigabe voreingestellt.
+   Der Erstellungsdialog weist darauf hin. Eltern können die Werte unmittelbar
+   unter Kinderüberblick → Einstellungen ändern; bereits bestehende Profile
+   bleiben unverändert. Die Freigabe allein registriert kein Gerät.
 2. Am jeweiligen Kindergerät die Glocke und „Alle anzeigen“ öffnen, dann
    „Gerät einstellen“ und „Auf diesem Gerät einschalten“ wählen. Das Kind
    bestätigt die Android-/Browsererlaubnis selbst auf diesem Gerät. Wird die

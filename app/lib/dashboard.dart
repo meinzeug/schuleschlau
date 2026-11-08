@@ -465,62 +465,85 @@ Future<void> showChildDialog(BuildContext context, AppState state) async {
       password = TextEditingController(),
       grade = TextEditingController(text: '6'),
       subjects = TextEditingController(text: 'Mathematik, Deutsch, Englisch');
-  await showDialog(
+  var reminders = true, pushConsent = true;
+  final navigator = Navigator.of(context, rootNavigator: true);
+  final route = DialogRoute<void>(
     context: context,
-    builder: (ctx) => AlertDialog(
-      title: Text('Eigenen Kinderzugang einrichten'),
-      content: SizedBox(
-        width: 460,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Notice('Dein Kind meldet sich mit Benutzername und Passwort an.'),
-              for (final item in [
-                (name, 'Anzeigename'),
-                (username, 'Eindeutiger Benutzername (mind. 5 Zeichen)'),
-                (password, 'Sicheres Passwort (mind. 12 Zeichen)'),
-                (grade, 'Klassenstufe'),
-                (subjects, 'Fächer, durch Komma getrennt'),
-              ])
-                Padding(
-                  padding: EdgeInsets.only(bottom: 14),
-                  child: TextField(
-                    controller: item.$1,
-                    obscureText: item.$1 == password,
-                    decoration: InputDecoration(labelText: item.$2),
-                  ),
+    builder: (ctx) => StatefulBuilder(
+      builder: (ctx, update) => AlertDialog(
+        title: Text('Eigenen Kinderzugang einrichten'),
+        content: SizedBox(
+          width: 460,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Notice(
+                  'Dein Kind meldet sich mit Benutzername und Passwort an.',
                 ),
-            ],
+                const Notice(
+                  'Das tägliche Mindestziel beträgt zunächst 30 Minuten. Benachrichtigungen müssen auf dem Kindergerät zusätzlich eingeschaltet werden.',
+                ),
+                SwitchListTile(
+                  title: const Text('Lernerinnerung in der App'),
+                  value: reminders,
+                  onChanged: (value) => update(() => reminders = value),
+                ),
+                SwitchListTile(
+                  title: const Text('Push auf dem Kindergerät erlauben'),
+                  value: pushConsent,
+                  onChanged: (value) => update(() => pushConsent = value),
+                ),
+                for (final item in [
+                  (name, 'Anzeigename'),
+                  (username, 'Eindeutiger Benutzername (mind. 5 Zeichen)'),
+                  (password, 'Sicheres Passwort (mind. 12 Zeichen)'),
+                  (grade, 'Klassenstufe'),
+                  (subjects, 'Fächer, durch Komma getrennt'),
+                ])
+                  Padding(
+                    padding: EdgeInsets.only(bottom: 14),
+                    child: TextField(
+                      controller: item.$1,
+                      obscureText: item.$1 == password,
+                      decoration: InputDecoration(labelText: item.$2),
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Abbrechen'),
+          ),
+          ActionButton(
+            label: 'Kinderzugang erstellen',
+            onPressed: () async {
+              await state.api.post('/families/${state.familyId}/children', {
+                'display_name': name.text,
+                'username': username.text,
+                'password': password.text,
+                'grade': int.tryParse(grade.text) ?? 0,
+                'reminders': reminders,
+                'push_consent': pushConsent,
+                'subjects': subjects.text
+                    .split(',')
+                    .map((s) => s.trim())
+                    .where((s) => s.isNotEmpty)
+                    .toList(),
+              });
+              if (ctx.mounted) Navigator.pop(ctx);
+              state.refreshState();
+            },
+          ),
+        ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(ctx),
-          child: Text('Abbrechen'),
-        ),
-        ActionButton(
-          label: 'Kinderzugang erstellen',
-          onPressed: () async {
-            await state.api.post('/families/${state.familyId}/children', {
-              'display_name': name.text,
-              'username': username.text,
-              'password': password.text,
-              'grade': int.tryParse(grade.text) ?? 0,
-              'subjects': subjects.text
-                  .split(',')
-                  .map((s) => s.trim())
-                  .where((s) => s.isNotEmpty)
-                  .toList(),
-            });
-            if (ctx.mounted) Navigator.pop(ctx);
-            state.refreshState();
-          },
-        ),
-      ],
     ),
   );
+  await navigator.push(route);
+  await route.completed;
   for (final c in [name, username, password, grade, subjects]) {
     c.dispose();
   }
@@ -670,6 +693,7 @@ class _ChildDetailBodyState extends State<_ChildDetailBody>
   int get tab => switch (widget.section) {
     'plan' => 1,
     'verlauf' => 3,
+    'einstellungen' => 4,
     _ => 0,
   };
   int version = 0;
@@ -951,15 +975,42 @@ class _ChildDetailBodyState extends State<_ChildDetailBody>
                           ? 'plan'
                           : tab == 3
                           ? 'history'
+                          : tab == 4
+                          ? 'settings'
                           : 'overview',
                       childName: child['display_name'],
                       subtitle: 'Klasse ${child['grade']}',
                     ),
                     if (tab == 0)
+                      TextButton.icon(
+                        onPressed: () {
+                          if (sameAccount && visible) {
+                            openRoute(
+                              context,
+                              '/child/${child['id']}?bereich=einstellungen',
+                            );
+                          }
+                        },
+                        icon: const Icon(Icons.settings_outlined),
+                        label: Text(
+                          'Einstellungen für ${child['display_name']}',
+                        ),
+                      ),
+                    if (tab == 0)
                       ParentOverview(
                         data: data,
                         state: state,
                         revision: version,
+                      ),
+                    if (tab == 4)
+                      ChildPreferencesPage(
+                        key: ValueKey((
+                          child['id'],
+                          child['preferences_revision'],
+                        )),
+                        state: state,
+                        child: child,
+                        onSaved: refresh,
                       ),
                     if (tab == 1) ...[
                       ParentWorkspaceHero(
@@ -3724,6 +3775,180 @@ Future<void> assignmentDialog(
   isCurrent: isCurrent,
   onRoute: onRoute,
 );
+
+class ChildPreferencesPage extends StatefulWidget {
+  final AppState state;
+  final Json child;
+  final VoidCallback onSaved;
+  const ChildPreferencesPage({
+    super.key,
+    required this.state,
+    required this.child,
+    required this.onSaved,
+  });
+
+  @override
+  State<ChildPreferencesPage> createState() => _ChildPreferencesPageState();
+}
+
+class _ChildPreferencesPageState extends State<ChildPreferencesPage> {
+  late final Json owner = widget.state.user!;
+  late final String? family = widget.state.familyId;
+  late final String? token = widget.state.api.token;
+  late final int revision = widget.child['preferences_revision'];
+  late final Json prefs = Json.from(widget.child['preferences']);
+  late final daily = TextEditingController(text: '${prefs['daily_minutes']}');
+  bool busy = false;
+  String? message;
+
+  bool get current =>
+      mounted &&
+      identical(widget.state.user, owner) &&
+      widget.state.familyId == family &&
+      widget.state.api.token == token &&
+      widget.state.isParent &&
+      (ModalRoute.of(context)?.isCurrent ?? false);
+
+  @override
+  void dispose() {
+    daily.dispose();
+    super.dispose();
+  }
+
+  Future<void> save() async {
+    if (!current || !widget.state.canManage || busy) return;
+    final minutes = int.tryParse(daily.text.trim());
+    if (minutes == null || minutes < 5 || minutes > 120) {
+      setState(
+        () =>
+            message = 'Bitte gib eine Lernzeit zwischen 5 und 120 Minuten ein.',
+      );
+      return;
+    }
+    setState(() {
+      busy = true;
+      message = null;
+    });
+    try {
+      await widget.state.api.call(
+        'PUT',
+        '/children/${widget.child['id']}/preferences',
+        {...prefs, 'daily_minutes': minutes},
+        {'If-Match': '$revision'},
+      );
+      if (current) widget.onSaved();
+    } on ApiError catch (error) {
+      if (current) {
+        setState(
+          () => message = error.status == 409 || error.status == 428
+              ? 'Die Einstellungen wurden zwischenzeitlich geändert. Bitte lade die Seite neu.'
+              : error.message,
+        );
+      }
+    } finally {
+      if (current) setState(() => busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final canEdit = widget.state.canManage && !busy;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: 16),
+        Text(
+          'Einstellungen für ${widget.child['display_name']}',
+          style: Theme.of(context).textTheme.headlineSmall,
+        ),
+        const SizedBox(height: 16),
+        Panel(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text(
+                'Lernen',
+                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
+              ),
+              TextField(
+                controller: daily,
+                enabled: canEdit,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Tägliches Mindestziel',
+                  suffixText: 'Minuten',
+                ),
+              ),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Lernerinnerung in der App'),
+                value: prefs['reminders'] == true,
+                onChanged: canEdit
+                    ? (v) => setState(() => prefs['reminders'] = v)
+                    : null,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        Panel(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text(
+                'Benachrichtigungen auf dem Kindergerät',
+                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
+              ),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Push für dieses Kind erlauben'),
+                subtitle: const Text(
+                  'Das Kind schaltet Benachrichtigungen zusätzlich auf seinem eigenen Gerät ein.',
+                ),
+                value: prefs['push_consent'] == true,
+                onChanged: canEdit
+                    ? (v) => setState(() => prefs['push_consent'] = v)
+                    : null,
+              ),
+              const Text(
+                'Die Ruhezeiten und weitere Lernvorgaben kannst du unten anpassen.',
+              ),
+            ],
+          ),
+        ),
+        if (message != null) Notice(message!, warning: true),
+        if (widget.state.canManage) ...[
+          const SizedBox(height: 12),
+          ActionButton(
+            label: 'Einstellungen speichern',
+            enabled: !busy,
+            onPressed: save,
+          ),
+          TextButton(
+            onPressed: busy
+                ? null
+                : () async {
+                    await preferencesDialog(
+                      context,
+                      widget.state,
+                      widget.child,
+                    );
+                    if (current) widget.onSaved();
+                  },
+            child: const Text('Weitere Lernvorgaben und Ruhezeiten'),
+          ),
+        ],
+        TextButton.icon(
+          onPressed: () {
+            if (current) openRoute(context, '/notifications');
+          },
+          icon: const Icon(Icons.notifications_outlined),
+          label: const Text('Benachrichtigungen auf diesem Gerät'),
+        ),
+      ],
+    );
+  }
+}
 
 Future<void> preferencesDialog(
   BuildContext context,

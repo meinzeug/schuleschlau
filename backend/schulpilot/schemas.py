@@ -63,6 +63,8 @@ class ChildCreate(Strict):
     subjects: list[str] = Field(default_factory=list, max_length=20)
     school_type: str = Field(default="", max_length=80)
     region: str = Field(default="", max_length=80)
+    reminders: bool = True
+    push_consent: bool = True
 
 
 class ChildUpdate(Strict):

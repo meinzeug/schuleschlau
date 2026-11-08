@@ -141,6 +141,15 @@ Future<void> tick(WidgetTester tester, [int seconds = 15]) async {
 }
 
 void main() {
+  testWidgets('child settings are reachable as a separate parent section', (
+    tester,
+  ) async {
+    final home = await mountParentRefresh(tester, section: 'einstellungen');
+    expect(find.text('Push für dieses Kind erlauben'), findsOneWidget);
+    expect(find.text('Lernerinnerung in der App'), findsOneWidget);
+    expect(find.text('Tägliches Mindestziel'), findsOneWidget);
+    expect(home.requests.every((request) => request.method == 'GET'), isTrue);
+  });
   setUp(() => FlutterSecureStorage.setMockInitialValues({}));
 
   testWidgets(

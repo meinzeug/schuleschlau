@@ -141,6 +141,7 @@ def create_child(family_id: str, data: s.ChildCreate, p=Depends(parent), db=Depe
         subjects=data.subjects,
         school_type=data.school_type,
         region=data.region,
+        preferences=s.Preferences(daily_minutes=30, reminders=data.reminders, push_consent=data.push_consent).model_dump(mode="json"),
     )
     db.add(child)
     db.flush()

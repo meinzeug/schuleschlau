@@ -10,6 +10,33 @@ from schulpilot.main import app
 from sqlalchemy import func, select
 
 
+def test_new_child_gets_requested_defaults_without_registering_a_device(api, household):
+    _, child = household
+    prefs = child['preferences']
+    assert prefs['daily_minutes'] == 30
+    assert prefs['reminders'] is True
+    assert prefs['push_consent'] is True
+    with DB() as db:
+        stored = db.get(Child, child['id'])
+        assert stored.preferences['daily_minutes'] == 30
+        assert stored.preferences['push_consent'] is True
+        assert db.scalar(select(func.count()).select_from(PushDevice).where(PushDevice.user_id == stored.user_id)) == 0
+
+
+def test_new_child_can_explicitly_disable_reminders_and_push(api, mailbox):
+    from conftest import register
+
+    user = register(api, mailbox)
+    response = api.post(f"/api/families/{user['families'][0]['id']}/children", json={
+        'display_name': 'Testkind', 'username': 'test-optout', 'password': 'secure-child-pass-123',
+        'grade': 6, 'subjects': [], 'push_consent': False, 'reminders': False,
+    })
+    assert response.status_code == 201
+    prefs = response.json()['preferences']
+    assert prefs['daily_minutes'] == 30
+    assert prefs['push_consent'] is False and prefs['reminders'] is False
+
+
 def snapshot(child_id):
     with DB() as db:
         child = db.get(Child, child_id)

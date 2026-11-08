@@ -63,6 +63,9 @@ def test_own_session_only_validation_has_distinct_result_and_revocation(api, hou
 def test_child_requires_parent_consent_and_later_withdrawal_stops_send(api, household, tmp_path):
     enable(tmp_path)
     user, child = household
+    with DB.begin() as db:
+        stored = db.get(Child, child['id'])
+        stored.preferences = {**stored.preferences, 'push_consent': False}
     with TestClient(app, headers=HEADERS) as kid:
         login = kid.post("/api/auth/login", json={"username": "test-child", "password": "secure-child-pass-123"}).json()
         kid.headers["Authorization"] = "Bearer " + login["token"]
@@ -112,6 +115,6 @@ def test_account_switch_revokes_old_session_and_push_without_transferring_optin(
         assert previous.get("/api/auth/me").status_code == 401
     api.headers["Authorization"] = "Bearer " + login.json()["token"]
     assert api.get("/api/notifications/devices").json() == []
-    assert not api.get("/api/notifications/config").json()["available"]
+    assert api.get("/api/notifications/config").json()["available"]
     with DB() as db:
         assert db.get(PushDevice, registration["id"]) is None

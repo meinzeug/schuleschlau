@@ -34,6 +34,7 @@ class ParentChildNavigation extends StatefulWidget {
     ('grades', 'Noten', Icons.school_outlined),
     ('history', 'Verlauf', Icons.history_rounded),
     ('messages', 'Nachrichten', Icons.chat_bubble_outline_rounded),
+    ('settings', 'Einstellungen', Icons.settings_outlined),
   ];
 
   static String location(String childId, String section) => switch (section) {
@@ -46,6 +47,7 @@ class ParentChildNavigation extends StatefulWidget {
     'words' => '/vocabulary/$childId',
     'grades' => '/grades/$childId',
     'messages' => '/messages/$childId',
+    'settings' => '/child/$childId?bereich=einstellungen',
     _ => '/child/$childId',
   };
 
