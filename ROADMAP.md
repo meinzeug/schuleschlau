@@ -1641,7 +1641,30 @@ Bestandteil des bestehenden Buildvertrags.
   Der Abgleich umfasst eine Textseite ohne Foto und den Android-Zugänglichkeitsbaum, keinen Pixelvergleich oder alle Datentypen. Es fand keine Play-Auslieferung statt. Einzelheiten, Quellen und maschinenlesbare Belege: [Android-Updateprüfung](docs/ANDROID_UPDATE_VERIFICATION_2026_11_05.md).
 - [ ] **P1 – Physische Android-Abnahme nachholen**
 
-  Auf Nutzerwunsch für diesen Auftrag optional und derzeit zurückgestellt; sie
+  - [x] **Installierte Stable-APK und Hintergrundwechsel auf einem physischen Android-Gerät prüfen.**
+    Am 08.11.2026 wurden auf einem Redmi 14C mit Android 14 die native
+    SchuleSchlau-App und ihre Kinder-Startseite sichtbar geöffnet. Die
+    installierte APK `1.38.110+265` stimmt per SHA-256 mit dem öffentlichen
+    Stable-Manifest überein. Beim Wechsel auf den Android-Startbildschirm und
+    zurück blieb der App-Prozess erhalten; die aktiven Android-Oberflächen
+    wurden beobachtet. Das ist ein begrenzter Teilnachweis ohne Aussage zu
+    erhaltenen Eingaben oder Lernposition. [Gerätebericht](docs/ANDROID_PHYSICAL_2026_11_08.md).
+
+  - [x] **Schulbuddy-Tastatur und ungesendeten Entwurf auf einem physischen Android-Gerät prüfen.**
+    Auf dem Redmi 14C mit Android 14 blieb die Gboard-Tastatur nach dem Öffnen
+    und während der Eingabe sichtbar. Ein kurzer Testtext blieb bei einem
+    Hintergrundwechsel im geöffneten Chat erhalten und wurde anschließend
+    gelöscht. Keine Frage wurde abgesendet. Die Sendeschaltfläche war bei
+    sichtbarer Tastatur nicht zu sehen; ein tatsächliches Absenden und weitere
+    Tastaturzustände bleiben offen. [Gerätebericht](docs/ANDROID_PHYSICAL_2026_11_08.md).
+
+  - [x] **Kamera und Fotoauswahl auf einem physischen Android-Gerät öffnen und abbrechen.**
+    Beide Wege öffneten die native Android-Oberfläche und führten nach Abbruch
+    zurück zur App. Aufnahme, Auswahl, Zuschnitt und Upload wurden dabei nicht
+    ausgeführt und bleiben Teil der offenen Gesamtprüfung.
+    [Gerätebericht](docs/ANDROID_PHYSICAL_2026_11_08.md).
+
+  Auf Nutzerwunsch für diesen Auftrag optional; die weitergehende Abnahme
   blockiert den Abschluss anderer Roadmap-Punkte nicht. Ohne echte
   Gerätebeobachtung bleiben gerätespezifische Aussagen offen; Emulator, Build
   oder API-Antwort ersetzen sie nicht. Bei späterer Durchführung mit eigenem
