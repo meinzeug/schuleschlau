@@ -4,6 +4,8 @@ No package conversion, fixed exercise count, answer rewrite or output repair.
 Also bind mathematical review units that do not have a more specific recipe.
 """
 
+import copy
+
 from .package_part_output import _bind_references
 from .subject_content import PROFILES
 
@@ -27,6 +29,36 @@ def bind_text_only(schema):
             for child in node.get(key, []):
                 walk(child)
     walk(schema)
+
+
+def unique_text_question_ids(value):
+    """Resolve duplicate transient IDs, without changing question content.
+
+    Only the ordinary, non-entry, text-only unit caller may use this. The
+    resulting question array still undergoes the complete canonical schema,
+    answer, source and novelty validation before anything is persisted.
+    """
+    if not isinstance(value, dict) or not isinstance(value.get("questions"), list):
+        return value, 0
+    questions = value["questions"]
+    if any(not isinstance(row, dict) or not isinstance(row.get("id"), str) for row in questions):
+        return value, 0
+    ids = [row["id"] for row in questions]
+    if len(ids) == len(set(ids)):
+        return value, 0
+    result = copy.deepcopy(value)
+    used, seen, changed = set(ids), set(), 0
+    for index, row in enumerate(result["questions"], 1):
+        if row["id"] in seen:
+            candidate = f"auto_q{index}"
+            while candidate in used:
+                candidate += "x"
+            row["id"] = candidate
+            used.add(candidate)
+            changed += 1
+        else:
+            seen.add(row["id"])
+    return result, changed
 
 RULES = """
 unit-reference-graphics-1: reference.id/version und Grafiktyp bilden im Schema

@@ -104,6 +104,7 @@ _VALUE_REASONS = {
 
 # These are fixed local validator messages, never model-supplied text.
 _QUESTION_REASONS = {
+    "Doppelte Aufgaben-ID.": "question_duplicate_id",
     "Auswahlaufgabe ohne gültige Antwort.": "question_choice_answer",
     "Doppelte Auswahlmöglichkeiten.": "question_duplicate_options",
     "Mehrdeutiger Antwortbuchstabe.": "question_choice_ambiguous",

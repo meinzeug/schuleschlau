@@ -19,7 +19,9 @@ den Status; sie starten keine KI. Rechte und Quellenstand werden beim Abruf
 geprüft. Ein fehlgeschlagener Build wird nicht automatisch wiederholt.
 
 Der Generator verwendet ab `public-assets-2` den kompakten, reversiblen
-Ausgabetransport. Gültige laufende oder fertige `public-assets-1`-Bausteine
+Ausgabetransport. Ab `public-assets-3` sind bei Szenen Pfeile je Phase bereits
+im Ausgabeschema vorgeschrieben; der Bienenschwerpunkt bindet drei Körperteile.
+Gültige laufende oder fertige `public-assets-1`- und `public-assets-2`-Bausteine
 bleiben verwendbar und werden vor einem neuen Auftrag bevorzugt. Technische
 Validierung ersetzt keine unabhängige fachliche Prüfung.
 

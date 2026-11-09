@@ -1274,6 +1274,7 @@ def request_provider(config, function, payload, image_bytes=None, *, synthetic_f
 
     review_only = function == "coach" and bool(payload.get("defer_practice"))
     visual_functions = function in ("unit", "package", "unit_visuals", "learning_asset") or (function == "coach" and not review_only)
+    text_only_plain_unit = False
     if visual_functions:
         subjects = subject_content.generation_subjects(payload)
     excerpt_candidates = None
@@ -1933,6 +1934,8 @@ def request_provider(config, function, payload, image_bytes=None, *, synthetic_f
                         from .unit_reference_graphics import bind_text_only
                         schema = before_reference_binding
                         bind_text_only(schema)
+                        text_only_plain_unit = not any(payload.get(key) for key in (
+                            "learning_entry", "notebook_practice", "exam_preparation", "exam_review_practice", "homework_practice"))
                         payload = {**payload, "visual_context": {**payload["visual_context"], "required": False}}
                         instructions = instructions.replace(VISUAL_RULES, "")
                         instructions += ("\nFür diese Runde stehen keine geprüften Grafiken bereit. "
@@ -2375,7 +2378,7 @@ def request_provider(config, function, payload, image_bytes=None, *, synthetic_f
             text = json.dumps(raw["data"])
             input_tokens, output_tokens = usage.get("input_tokens"), usage.get("output_tokens")
         indexed_excerpts = config.provider == "openrouter" and excerpt_candidates is not None
-        if graphic_table is not None or package_output is not None or unit_graphics is not None or unit_composition is not None or indexed_choices or omit_review_unit or indexed_excerpts or homework_quotes is not None:
+        if graphic_table is not None or package_output is not None or unit_graphics is not None or unit_composition is not None or indexed_choices or omit_review_unit or indexed_excerpts or homework_quotes is not None or text_only_plain_unit:
             validation_phase = "json"
             decoded = json.loads(text)
             if package_output is not None:
@@ -2422,6 +2425,12 @@ def request_provider(config, function, payload, image_bytes=None, *, synthetic_f
             if indexed_choices:
                 validation_phase = "choice"
                 decoded = decode_choice_indices(decoded)
+            if text_only_plain_unit:
+                from .unit_reference_graphics import unique_text_question_ids
+
+                decoded, changed_ids = unique_text_question_ids(decoded)
+                if changed_ids and billing_result:
+                    billing_result.telemetry = {**(billing_result.telemetry or {}), "normalized_question_ids": changed_ids}
             validation_phase = "schema"
             data = response_type.model_validate(decoded).model_dump()
         else:

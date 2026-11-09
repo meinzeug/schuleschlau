@@ -46,3 +46,18 @@ def test_unrelated_binding_failure_is_not_swallowed(monkeypatch):
     with pytest.raises(ValueError, match="unexpected binding error"):
         providers.request_provider(config, "unit", payload())
     assert calls == []
+
+
+def test_duplicate_transient_ids_are_unique_without_changing_answers(monkeypatch):
+    config = _config("openrouter")
+    approved = policy()
+    config._selected_route = {"reason": "material_graphic_teaching", "tier": "sol", "region": "standard",
+        "route": {**approved["routes"]["sol"], "upstreams": ["fixture-upstream"]}, "budget": approved["budget"]}
+    data = unit()
+    data["questions"].append({**data["questions"][0], "prompt": "Wie viele Fühler besitzt die Biene?",
+        "answer": "zwei", "explanation": "Es sind zwei."})
+    _transport(monkeypatch, "openrouter", data)
+    result = providers.request_provider(config, "unit", payload())
+    assert [q["id"] for q in result.data["questions"]] == ["q1", "auto_q2"]
+    assert [q["answer"] for q in result.data["questions"]] == ["sechs", "zwei"]
+    assert result.telemetry["normalized_question_ids"] == 1

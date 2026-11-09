@@ -19,8 +19,8 @@ from .visual_reference_models import VisualReference
 from .visual_references import _meaningful, digest
 
 router = APIRouter(tags=["Geteilte Lernbausteine"])
-BUILDER_VERSION = "public-assets-2"
-SUPPORTED_BUILDERS = frozenset(("public-assets-1", BUILDER_VERSION))
+BUILDER_VERSION = "public-assets-3"
+SUPPORTED_BUILDERS = frozenset(("public-assets-1", "public-assets-2", BUILDER_VERSION))
 RENDERER_VERSION = "presentation-1"
 OUTPUT_SCHEMA_VERSION = "learning-asset-1"
 PUBLIC_FOCI = {
@@ -207,18 +207,19 @@ def current_spec(db, build):
 
 
 def reusable_spec(db, spec):
-    """Prefer any still-current successful public v1 build to a paid rebuild."""
+    """Prefer a still-current successful or active older public build."""
     current = db.get(LearningAssetBuild, digest(spec))
     if current is not None:
         return spec
-    legacy = public_spec(db, spec["selector"], builder_version="public-assets-1")
-    build = db.get(LearningAssetBuild, digest(legacy))
-    if build is not None and build.status in ("ready", "queued", "claimed"):
-        try:
-            if current_spec(db, build) == legacy and build_data(db, build)["status"] in ("ready", "queued", "claimed"):
-                return legacy
-        except (HTTPException, ValueError):
-            pass
+    for version in ("public-assets-2", "public-assets-1"):
+        legacy = public_spec(db, spec["selector"], builder_version=version)
+        build = db.get(LearningAssetBuild, digest(legacy))
+        if build is not None and build.status in ("ready", "queued", "claimed"):
+            try:
+                if current_spec(db, build) == legacy and build_data(db, build)["status"] in ("ready", "queued", "claimed"):
+                    return legacy
+            except (HTTPException, ValueError):
+                pass
     return spec
 
 
@@ -279,7 +280,11 @@ def bind_schema(schema, payload):
         step = schema["$defs"]["SceneStep"]["properties"]
         step["caption"]["maxLength"] = 160
         step["placements"]["maxItems"] = step["highlight"]["maxItems"] = 4
-        step["edges"]["maxItems"] = 4
+        step["edges"].update(minItems=1, maxItems=4)
+        if (public.get("public_focus") or {}).get("id") == "biology.honey_bee.anatomy.v1":
+            scene["objects"].update(minItems=3, maxItems=3)
+            scene_object = schema["$defs"]["SceneObject"]["properties"]
+            scene_object["label"] = {"type": "string", "enum": ["Kopf", "Brust", "Hinterleib"]}
 
 
 def checked_output(db, data, specification):

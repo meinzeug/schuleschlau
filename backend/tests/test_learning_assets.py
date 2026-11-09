@@ -147,11 +147,12 @@ def test_missing_unit_auto_prepares_one_public_build_and_unit_can_read_it(api, p
     assert api.get('/api/units/' + case['unit'] + '/public-visual').status_code in (403, 404)
 
 
-def test_new_generator_reuses_valid_existing_public_build(api, prepared):
+@pytest.mark.parametrize("legacy_version", ["public-assets-1", "public-assets-2"])
+def test_new_generator_reuses_valid_existing_public_build(api, prepared, legacy_version):
     from schulpilot import learning_assets
     _, child, calls = prepared
     with DB() as db:
-        old = learning_assets.public_spec(db, spec(), builder_version="public-assets-1")
+        old = learning_assets.public_spec(db, spec(), builder_version=legacy_version)
     with DB.begin() as db:
         recipe = {"asset": output()}
         db.add(VisualReference(id="generated.synthetic-old", version=1, digest=digest(recipe), recipe=recipe))
@@ -188,6 +189,13 @@ def test_bee_material_maps_only_to_the_public_insect_catalogue(api, prepared):
         assert public["public_focus"]["title"] == "Körperbau der Honigbiene"
         broad = learning_assets.public_spec(db, {**spec("Biologie"), "catalog_topic_id": chosen.id})
         assert digest(public) != digest(broad)
+        from schulpilot.learning_asset_schemas import LearningAssetOutput
+        schema = providers.strict_schema(LearningAssetOutput, preserve_limits=True)
+        learning_assets.bind_schema(schema, {"public_spec": public})
+        assert schema["$defs"]["SceneStep"]["properties"]["edges"]["minItems"] == 1
+        objects = schema["$defs"]["SceneV1"]["properties"]["objects"]
+        assert objects["minItems"] == objects["maxItems"] == 3
+        assert set(schema["$defs"]["SceneObject"]["properties"]["label"]["enum"]) == {"Kopf", "Brust", "Hinterleib"}
         with pytest.raises(ValueError, match="drei bestätigten Körperabschnitte"):
             checked_output(db, output("Biologie"), public)
 
