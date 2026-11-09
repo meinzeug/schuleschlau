@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
 
 import 'api.dart';
+import 'subject_graphic.dart';
 import 'ui.dart';
 
 /// A deliberate normal reserved job. Viewing this card only reads saved state.
@@ -22,10 +24,14 @@ class VisualPreparationCard extends StatefulWidget {
   State<VisualPreparationCard> createState() => _VisualPreparationCardState();
 }
 
-class _VisualPreparationCardState extends State<VisualPreparationCard> {
+class _VisualPreparationCardState extends State<VisualPreparationCard>
+    with WidgetsBindingObserver {
   bool busy = false, dispatched = false;
   Object? error;
   String? requestKey;
+  Json? publicVisual;
+  Timer? publicTimer;
+  int publicEpoch = 0, missingChecks = 0;
   late final Json? owner = widget.state.user;
   late final String? ownerToken = widget.state.api.token,
       ownerFamily = widget.state.familyId;
@@ -37,9 +43,66 @@ class _VisualPreparationCardState extends State<VisualPreparationCard> {
       widget.state.familyId == ownerFamily &&
       (WidgetsBinding.instance.lifecycleState == null ||
           WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed);
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) unawaited(loadPublicVisual());
+    });
+  }
+
+  @override
+  void dispose() {
+    publicEpoch++;
+    publicTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    publicTimer?.cancel();
+    if (state == AppLifecycleState.resumed && current) {
+      unawaited(loadPublicVisual());
+    }
+  }
+
+  Future<void> loadPublicVisual() async {
+    publicTimer?.cancel();
+    if (!current || ModalRoute.of(context)?.isCurrent == false) return;
+    final id = widget.unit['id'];
+    if (id is! String || widget.unit['explanation_visual_status'] == 'ready') {
+      return;
+    }
+    final epoch = ++publicEpoch;
+    try {
+      final value = await widget.state.api.get('/units/$id/public-visual');
+      if (!current || epoch != publicEpoch || widget.unit['id'] != id) return;
+      setState(() => publicVisual = value);
+      final status = value['status'];
+      if (status == 'missing') missingChecks++;
+      if (status == 'queued' ||
+          status == 'claimed' ||
+          (status == 'missing' && missingChecks < 4)) {
+        publicTimer = Timer(const Duration(seconds: 5), loadPublicVisual);
+      }
+    } catch (_) {
+      // The optional public example never blocks the saved unit.
+    }
+  }
+
   @override
   void didUpdateWidget(covariant VisualPreparationCard oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (widget.unit['id'] != oldWidget.unit['id']) {
+      publicEpoch++;
+      publicTimer?.cancel();
+      publicVisual = null;
+      missingChecks = 0;
+      unawaited(loadPublicVisual());
+    }
     if (widget.unit['visual_preparation'] is Map &&
         ![
           'queued',
@@ -134,6 +197,27 @@ class _VisualPreparationCardState extends State<VisualPreparationCard> {
           if (pending)
             const Text(
               'Deine gespeicherten Aufgaben und Antworten bleiben erhalten.',
+            ),
+          if (publicVisual?['status'] == 'queued' ||
+              publicVisual?['status'] == 'claimed')
+            const Text('Ein allgemeines KI-Beispiel entsteht …'),
+          if (publicVisual?['status'] == 'ready' &&
+              publicVisual?['asset'] is Map)
+            ExpansionTile(
+              title: const Text('Allgemeines KI-Beispiel ansehen'),
+              subtitle: const Text('Noch nicht fachlich geprüft'),
+              children: [
+                Text(publicVisual!['asset']['title'].toString()),
+                const SizedBox(height: 8),
+                SubjectPresentation(
+                  Json.from(publicVisual!['asset']['presentation']),
+                  state: widget.state,
+                ),
+                Text(publicVisual!['asset']['text'].toString()),
+                const Text(
+                  'Allgemeines Beispiel, nicht deine Heftseite. KI kann Fehler machen.',
+                ),
+              ],
             ),
           if (error != null) Notice(error.toString(), warning: true),
         ],

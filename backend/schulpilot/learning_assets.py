@@ -19,7 +19,8 @@ from .visual_reference_models import VisualReference
 from .visual_references import _meaningful, digest
 
 router = APIRouter(tags=["Geteilte Lernbausteine"])
-BUILDER_VERSION = "public-assets-1"
+BUILDER_VERSION = "public-assets-2"
+SUPPORTED_BUILDERS = frozenset(("public-assets-1", BUILDER_VERSION))
 RENDERER_VERSION = "presentation-1"
 OUTPUT_SCHEMA_VERSION = "learning-asset-1"
 NOTICE = ("KI-Beispiel zum unbewerteten Erkunden; fachlich nicht unabhängig geprüft. "
@@ -62,11 +63,82 @@ def profile_subjects(db):
             if row.title == title or (title == "Lerntechniken" and row.key == "lern-und-arbeitstechniken")}
 
 
-def public_spec(db, raw):
+def public_topic_for_unit(db, subject, topic):
+    """Match locally; never put a private title or source into a shared spec."""
+    from .catalog_models import CatalogTopic
+    import unicodedata
+
+    if not isinstance(topic, str) or not isinstance(subject, str):
+        return None
+    owner = profile_subjects(db).get(subject)
+    if owner is None:
+        return None
+    normalized = unicodedata.normalize("NFKC", topic).strip().casefold()
+    rows = list(db.scalars(select(CatalogTopic).where(CatalogTopic.subject_id == owner.id)
+                           .order_by(CatalogTopic.id)))
+    exact = [row for row in rows if unicodedata.normalize("NFKC", row.title).strip().casefold() == normalized]
+    if exact:
+        return exact[0]
+    # This is explicitly a broad public insect example, not a claim that the
+    # generated graphic represents the child's particular notebook page.
+    if subject == "Biologie" and re.search(r"\bbien(?:e|en)\b", normalized):
+        return next((row for row in rows if row.id == "sofatutor:topic:5690" and row.title == "Insekten"), None)
+    return None
+
+
+def prepare_missing_unit_visual(job_id):
+    """One separate reserved public build, after an explicitly requested unit.
+
+    Existing assets deduplicate by their public specification. Failures here
+    never roll back the finished unit or trigger provider retries.
+    """
+    from .db import LearningUnit, Material
+    from .study_authority import validate
+    from .visual_references import projection
+
+    with DB() as db:
+        job = db.get(Job, job_id)
+        if not job or job.kind != "unit" or job.status != "completed" or not isinstance(job.result, dict):
+            return None
+        unit = db.get(LearningUnit, job.result.get("unit_id"))
+        child = db.get(Child, job.child_id)
+        if not unit or not child or unit.child_id != child.id or unit.synthetic:
+            return None
+        visual = projection(db, unit)
+        if visual.get("explanation_visual_status") != "incomplete" or visual.get("explanation_visual_reason") not in ("missing_steps", "invalid_graphic"):
+            return None
+        origin = job.payload.get("completion_origin")
+        validate(db, child, origin)
+        source = db.get(Material, unit.material_id) if unit.material_id else None
+        topic = public_topic_for_unit(db, unit.subject, unit.topic)
+        if topic is None and source and source.child_id == child.id:
+            topic = public_topic_for_unit(db, source.subject, source.topic)
+        if topic is None:
+            return None
+        grade = child.grade
+        if type(grade) is not int or not 1 <= grade <= 13:
+            return None
+        spec = LearningAssetSpec(subject=unit.subject, recipe_id="general.source_relation.phases", recipe_version=1,
+            foundation_ids=[], catalog_topic_id=topic.id,
+            level_band="primary" if grade <= 4 else "lower_secondary" if grade <= 10 else "upper_secondary")
+        principal = Principal(db.get(User, origin["user_id"]), db.get(Session, origin["session_id"]))
+        result = prepare(child.id, spec, key="unit-public-" + job.id, account=principal.user.id,
+                         capabilities="visual-v1", p=principal, db=db)
+        # The build is public, while this association stays in the child's job.
+        job = db.get(Job, job_id, populate_existing=True)
+        if job and job.status == "completed" and job.child_id == child.id and job.result.get("unit_id") == unit.id:
+            job.result = {**job.result, "public_visual_build": result["build"]["build_key"]}
+            db.commit()
+        return result["build"]["status"]
+
+
+def public_spec(db, raw, *, builder_version=BUILDER_VERSION):
     """Resolve IDs before hashing. No client title, alias, text or source claims."""
     from .catalog_models import CatalogTopic
     from .competences import VERSION, resolve_reference
 
+    if builder_version not in SUPPORTED_BUILDERS:
+        raise HTTPException(409, "Diese Bausteinversion wird nicht unterstützt.")
     spec = raw if isinstance(raw, LearningAssetSpec) else LearningAssetSpec.model_validate(raw)
     # Public aliases identify one shared catalogue/cache entry. This does not
     # rewrite historical private material or learning-unit subject snapshots.
@@ -91,7 +163,7 @@ def public_spec(db, raw):
     if spec.catalog_topic_id and (not topic or topic.subject_id != subject.id):
         raise HTTPException(422, "Das öffentliche Katalogthema gehört nicht zu diesem Fach.")
     # Only fields genuinely in this public contract enter the model/cache key.
-    return {"builder_version": BUILDER_VERSION, "renderer_version": RENDERER_VERSION,
+    return {"builder_version": builder_version, "renderer_version": RENDERER_VERSION,
             "output_schema_version": OUTPUT_SCHEMA_VERSION,
             "selector": {**spec.model_dump(), "foundation_ids": sorted(spec.foundation_ids)},
             "subject": spec.subject, "subject_id": subject.id,
@@ -104,10 +176,26 @@ def public_spec(db, raw):
 
 
 def current_spec(db, build):
-    value = public_spec(db, build.specification["selector"])
+    value = public_spec(db, build.specification["selector"], builder_version=build.specification.get("builder_version"))
     if value != build.specification or digest(value) != build.build_key:
         raise HTTPException(409, "Die öffentliche Grundlage oder Darstellung wurde geändert.")
     return value
+
+
+def reusable_spec(db, spec):
+    """Prefer any still-current successful public v1 build to a paid rebuild."""
+    current = db.get(LearningAssetBuild, digest(spec))
+    if current is not None:
+        return spec
+    legacy = public_spec(db, spec["selector"], builder_version="public-assets-1")
+    build = db.get(LearningAssetBuild, digest(legacy))
+    if build is not None and build.status in ("ready", "queued", "claimed"):
+        try:
+            if current_spec(db, build) == legacy and build_data(db, build)["status"] in ("ready", "queued", "claimed"):
+                return legacy
+        except (HTTPException, ValueError):
+            pass
+    return spec
 
 
 def build_data(db, build):
@@ -252,6 +340,7 @@ def lookup(subject: str, recipe_id: str, recipe_version: int, level_band: str,
             "level_band": level_band, "foundation_ids": foundation_ids, "catalog_topic_id": catalog_topic_id})
     except ValidationError as error:
         raise HTTPException(422, "Ungültige öffentliche Bausteinauswahl.") from error
+    spec = reusable_spec(db, spec)
     return build_data(db, db.get(LearningAssetBuild, digest(spec)))
 
 
@@ -280,7 +369,7 @@ def prepare(child_id: str, body: LearningAssetSpec, key: str = Header(default=""
     child = child_access(db, p, child_id, write=user.role == "parent")
     if db.bind.dialect.name == "postgresql":
         db.execute(sql_text("SELECT pg_advisory_xact_lock(:key)"), {"key": int(digest([user.id, key])[:15], 16)})
-    spec = public_spec(db, body)
+    spec = reusable_spec(db, public_spec(db, body))
     build_key, requested = digest(spec), digest([child.id, digest(spec)])
     previous = db.scalar(select(LearningAssetInstance).where(LearningAssetInstance.user_id == p.user.id,
                                                            LearningAssetInstance.request_key == key))
@@ -347,6 +436,27 @@ def read_instance(instance_id: str, account: str = Header(default="", alias="X-S
         raise HTTPException(404, "Baustein nicht gefunden.")
     child_access(db, p, row.child_id)
     return instance_data(db, row)
+
+
+@router.get("/units/{unit_id}/public-visual")
+def unit_public_visual(unit_id: str, p=Depends(authenticated), db=Depends(get_db)):
+    """Read only a public exploration linked to this authorized, current unit."""
+    from .learning import get_unit
+    from .visual_references import projection
+
+    unit = get_unit(db, p, unit_id)
+    visual = projection(db, unit)
+    if visual.get("explanation_visual_reason") not in ("missing_steps", "invalid_graphic"):
+        return {"status": "unavailable"}
+    jobs = db.scalars(select(Job).where(Job.child_id == unit.child_id, Job.kind == "unit", Job.status == "completed",
+        Job.result["unit_id"].as_string() == unit.id).order_by(Job.finished.desc(), Job.id.desc()).limit(5))
+    for job in jobs:
+        key = job.result.get("public_visual_build") if isinstance(job.result, dict) else None
+        if isinstance(key, str) and re.fullmatch(r"[a-f0-9]{64}", key):
+            build = db.get(LearningAssetBuild, key)
+            if build and build.specification.get("subject") == unit.subject:
+                return build_data(db, build)
+    return {"status": "missing"}
 
 
 def authority(db, job):

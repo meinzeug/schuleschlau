@@ -43,6 +43,7 @@ from schulpilot.visual_reference_models import VisualReference
 from schulpilot.visual_references import candidates, digest
 from sqlalchemy import select
 from test_model_routing import setup_policy
+from test_round_ready_notifications import case
 
 REAL_ADAPTER = providers.request_provider
 
@@ -113,6 +114,74 @@ def read(api, instance):
     response = api.get("/api/learning-asset-instances/" + instance["id"])
     assert response.status_code == 200, response.text
     return response.json()
+
+
+def test_missing_unit_auto_prepares_one_public_build_and_unit_can_read_it(api, prepared, case, monkeypatch, mailbox):
+    from schulpilot import learning_assets, visual_references
+    _, child, calls = prepared
+    monkeypatch.setattr(visual_references, "projection", lambda db, unit: {
+        "explanation_visual_status": "incomplete", "explanation_visual_reason": "missing_steps"})
+    with DB.begin() as db:
+        unit = db.get(LearningUnit, case["unit"])
+        unit.topic = "Künstliches öffentliches Thema Mathematik"
+    assert learning_assets.prepare_missing_unit_visual(case["job"]) == "queued"
+    # Replaying the post-commit path returns the existing private receipt.
+    assert learning_assets.prepare_missing_unit_visual(case["job"]) == "queued"
+    with DB() as db:
+        unit_job = db.get(Job, case["job"])
+        key = unit_job.result["public_visual_build"]
+        assert db.query(LearningAssetBuild).count() == 1
+        assert db.query(LearningAssetInstance).count() == 1
+        assert db.query(Job).filter(Job.kind == "learning_asset").count() == 1
+    assert api.get('/api/units/' + case['unit'] + '/public-visual').json()['status'] == 'queued'
+    run({"build": {"build_key": key}})
+    visible = api.get('/api/units/' + case['unit'] + '/public-visual').json()
+    assert visible['status'] == 'ready' and visible['factual_status'] == 'unassessed'
+    assert child['id'] not in json.dumps(calls) and case['material'] not in json.dumps(calls)
+    assert calls[0]['public_spec']['catalog_topic']['title'] == 'Künstliches öffentliches Thema Mathematik'
+    monkeypatch.setattr(visual_references, "projection", lambda db, unit: {
+        "explanation_visual_status": "incomplete", "explanation_visual_reason": "source_changed"})
+    assert api.get('/api/units/' + case['unit'] + '/public-visual').json()['status'] == 'unavailable'
+    other = register(api, mailbox, "unrelated-parent@example.org")
+    api.headers["X-Schulpilot-Account"] = other["id"]
+    assert api.get('/api/units/' + case['unit'] + '/public-visual').status_code in (403, 404)
+
+
+def test_new_generator_reuses_valid_existing_public_build(api, prepared):
+    from schulpilot import learning_assets
+    _, child, calls = prepared
+    with DB() as db:
+        old = learning_assets.public_spec(db, spec(), builder_version="public-assets-1")
+    with DB.begin() as db:
+        recipe = {"asset": output()}
+        db.add(VisualReference(id="generated.synthetic-old", version=1, digest=digest(recipe), recipe=recipe))
+        db.add(LearningAssetBuild(build_key=digest(old), specification=old, status="ready",
+            reference_id="generated.synthetic-old", reference_version=1, reference_digest=digest(recipe),
+            technical_status="validated", factual_status="unassessed"))
+    with DB() as db:
+        assert learning_assets.current_spec(db, db.get(LearningAssetBuild, digest(old))) == old
+        assert learning_assets.reusable_spec(db, learning_assets.public_spec(db, spec())) == old
+    result = start(api, child["id"]).json()
+    assert result["build"]["build_key"] == digest(old)
+    assert result["build"]["status"] == "ready"
+    with DB() as db:
+        assert db.query(Job).count() == 0
+    assert not calls
+
+
+def test_bee_material_maps_only_to_the_public_insect_catalogue(api, prepared):
+    from schulpilot import learning_assets
+    with DB.begin() as db:
+        biology = profile_subjects(db)["Biologie"]
+        db.add(CatalogTopic(id="sofatutor:topic:5690", subject_id=biology.id, title="Insekten",
+            entry_url="https://example.org/insects", search_text="insekten", empty_curated=True,
+            data={}, snapshot_id="public-artificial-v1"))
+    with DB() as db:
+        chosen = learning_assets.public_topic_for_unit(db, "Biologie", "Körperbau der Biene – private Notiz")
+        assert chosen.id == "sofatutor:topic:5690" and chosen.title == "Insekten"
+        assert learning_assets.public_topic_for_unit(db, "Mathematik", "Biene") is None
+        public = learning_assets.public_spec(db, {**spec("Biologie"), "catalog_topic_id": chosen.id})
+        assert "private Notiz" not in json.dumps(public)
 
 
 def test_complete_vertical_path_and_cache_hit_never_create_learning_evidence(api, prepared):
@@ -389,6 +458,7 @@ def test_missing_or_erased_worker_job_projects_terminal_failure_without_retry(ap
 
 @pytest.mark.parametrize("finish", ["stop", "length"])
 def test_real_adapter_contract_is_compact_private_free_and_truncation_cannot_publish(api, prepared, monkeypatch, finish):
+    from package_output_helpers import PackageOutputCapture
     _, child, _ = prepared
     created = start(api, child["id"]).json()
     with DB() as db:
@@ -397,6 +467,7 @@ def test_real_adapter_contract_is_compact_private_free_and_truncation_cannot_pub
         config = job_config(db, job, "unit")
         public = copy.deepcopy(build.specification)
     bodies = []
+    capture = PackageOutputCapture(monkeypatch)
     class Client:
         def __init__(self, **kwargs):
             pass
@@ -406,7 +477,9 @@ def test_real_adapter_contract_is_compact_private_free_and_truncation_cannot_pub
             pass
         def post(self, url, headers, json):
             bodies.append(json)
-            return httpx.Response(200, json={"choices": [{"finish_reason": finish, "message": {"content": __import__("json").dumps(output())}}],
+            from schulpilot.learning_asset_schemas import LearningAssetOutput
+            canonical = LearningAssetOutput.model_validate(output()).model_dump(mode="json")
+            return httpx.Response(200, json={"choices": [{"finish_reason": finish, "message": {"content": __import__("json").dumps(capture.binding.encode(canonical))}}],
                 "usage": {"prompt_tokens": 20, "completion_tokens": 30}})
     monkeypatch.setattr(providers.httpx, "Client", Client)
     # Restore the actual adapter; the HTTP boundary above is synthetic.
@@ -421,7 +494,7 @@ def test_real_adapter_contract_is_compact_private_free_and_truncation_cannot_pub
     assert len(bodies) == 1 and bodies[0]["max_tokens"] == config.max_output_tokens <= 4000
     assert bodies[0]["provider"]["allow_fallbacks"] is False
     text = json.dumps(bodies, ensure_ascii=False)
-    assert child["id"] not in text and "questions" not in bodies[0]["response_format"]["json_schema"]["schema"]["properties"]
+    assert child["id"] not in text and "questions" not in capture.binding.canonical_schema["properties"]
     assert len(text.encode()) < 24000
 
 

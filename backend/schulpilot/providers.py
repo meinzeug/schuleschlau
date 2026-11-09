@@ -1916,6 +1916,7 @@ def request_provider(config, function, payload, image_bytes=None, *, synthetic_f
                         or (payload.get("material") or {}).get("subject")) == "Mathematik")
                     or selection(config).get("reason") in
                     {"material_graphic_teaching", "notebook_graphic_teaching"}):
+                before_reference_binding = copy.deepcopy(schema)
                 try:
                     if bind_unit_references(schema, payload):
                         instructions += UNIT_REFERENCE_RULES
@@ -1923,11 +1924,27 @@ def request_provider(config, function, payload, image_bytes=None, *, synthetic_f
                 except ValueError as error:
                     if error.args != ("Der Teilauftrag hat keine passende Referenz/Grafik für seine Aufdeckstufe.",):
                         raise
-                    raise ProviderError(
-                        "Für diese Heftseiten fehlt noch eine passende geprüfte Erklärgrafik. "
-                        "Deine Fotos und gespeicherten Runden bleiben erhalten.",
-                        code="visual_unavailable", billing_result=Result({}, 0, 0, 0, cost_source="cancelled"),
-                    ) from None
+                    # A normal non-maths source unit can still teach from its
+                    # confirmed material. Never fabricate a visual or relax the
+                    # separate task, source, answer and review contracts.
+                    subject = payload.get("required_subject") or (payload.get("material") or {}).get("subject")
+                    if (not payload.get("review") and not payload.get("study_block")
+                            and subject in subject_content.PROFILES and subject != "Mathematik"):
+                        from .unit_reference_graphics import bind_text_only
+                        schema = before_reference_binding
+                        bind_text_only(schema)
+                        payload = {**payload, "visual_context": {**payload["visual_context"], "required": False}}
+                        instructions = instructions.replace(VISUAL_RULES, "")
+                        instructions += ("\nFür diese Runde stehen keine geprüften Grafiken bereit. "
+                            "Alle explanation_steps und alle Aufgaben-presentation sind null. "
+                            "Erkläre den bestätigten Stoff im normalen Text; keine Bildverweise erfinden.")
+                        prune_schema(schema)
+                    else:
+                        raise ProviderError(
+                            "Für diese Heftseiten fehlt noch eine passende geprüfte Erklärgrafik. "
+                            "Deine Fotos und gespeicherten Runden bleiben erhalten.",
+                            code="visual_unavailable", billing_result=Result({}, 0, 0, 0, cost_source="cancelled"),
+                        ) from None
     if exam_analysis:
         from .exam_review_transport import rules as exam_transport_rules
 
@@ -1992,9 +2009,13 @@ def request_provider(config, function, payload, image_bytes=None, *, synthetic_f
         from .package_transport import schema_projection
 
         wire_schema = schema_projection(schema)
+        from .package_output_transport import bind as bind_compact_output
+
+        package_output = bind_compact_output(wire_schema)
+        wire_schema = package_output.wire_schema
         # This deliberately separate exploration contract never asks for a
         # private Unit, answer keys or invented confirmed-photo evidence.
-        instructions = ASSET_RULES + subject_content.rules_for(subjects)
+        instructions = ASSET_RULES + subject_content.rules_for(subjects) + package_output.rules
         outgoing_payload = {"public_spec": payload["public_spec"]}
     unit_graphics = None
     if function == "unit":

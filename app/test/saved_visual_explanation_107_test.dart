@@ -734,6 +734,7 @@ void main() {
       var reloads = 0;
       final state = app((r) {
         calls.add(r);
+        if (r.method == 'GET') return reply({'status': 'missing'});
         return reply({'id': 'job', 'status': 'queued'}, 202);
       });
       addTearDown(state.dispose);
@@ -752,12 +753,12 @@ void main() {
           },
         ),
       );
-      expect(calls, isEmpty);
+      expect(calls.every((call) => call.method == 'GET'), isTrue);
       await tester.tap(find.text('Grafische Erklärung vorbereiten'));
       await tester.pumpAndSettle();
-      expect(calls.single.method, 'POST');
-      expect(calls.single.url.path, '/api/units/unit/visual-explanation');
-      expect(calls.single.headers['Idempotency-Key'], isNotEmpty);
+      final sent = calls.where((call) => call.method == 'POST').single;
+      expect(sent.url.path, '/api/units/unit/visual-explanation');
+      expect(sent.headers['Idempotency-Key'], isNotEmpty);
       expect(reloads, 1);
     },
   );
@@ -766,6 +767,39 @@ void main() {
   ) async {
     await mount(tester, const LearningPathView());
     expect(find.text('Dein Lernweg'), findsNothing);
+  });
+  testWidgets('public example stays labelled and only reads saved state', (
+    tester,
+  ) async {
+    final calls = <http.Request>[];
+    final state = app((r) {
+      calls.add(r);
+      return reply({
+        'status': 'ready',
+        'asset': {
+          'title': 'Allgemeines Beispiel',
+          'text': 'Ein Beispiel.',
+          'presentation': steps[0]['presentation'],
+        },
+      });
+    });
+    addTearDown(state.dispose);
+    await mount(
+      tester,
+      VisualPreparationCard(
+        state: state,
+        unit: {'id': 'unit', 'explanation_visual_status': 'incomplete'},
+        isCurrent: () => true,
+        refresh: () async {},
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Allgemeines KI-Beispiel ansehen'), findsOneWidget);
+    expect(find.text('Noch nicht fachlich geprüft'), findsOneWidget);
+    await tester.tap(find.text('Allgemeines KI-Beispiel ansehen'));
+    await tester.pumpAndSettle();
+    expect(find.text('Allgemeines Beispiel'), findsOneWidget);
+    expect(calls.every((call) => call.method == 'GET'), isTrue);
   });
   testWidgets(
     '107 mobile learning path separates position and independent evidence',

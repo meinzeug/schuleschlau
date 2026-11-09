@@ -844,6 +844,15 @@ def _process(job_id):
                         billed = Result({}, 0, 0, 0, cost_source="cancelled")
                     settle(db, usage, billed, failed=True)
         log.warning("job_failed id=%s type=%s", job_id, type(exc).__name__)
+    else:
+        # A public illustration is a separate, bounded job. Its failure must
+        # never change or retry the completed learning round.
+        if kind == "unit":
+            try:
+                from .learning_assets import prepare_missing_unit_visual
+                prepare_missing_unit_visual(job_id)
+            except Exception as exc:
+                log.warning("public_visual_not_prepared job=%s type=%s", job_id, type(exc).__name__)
 
 
 def reap_interrupted(cutoff=None):

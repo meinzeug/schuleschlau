@@ -7,6 +7,27 @@ Also bind mathematical review units that do not have a more specific recipe.
 from .package_part_output import _bind_references
 from .subject_content import PROFILES
 
+
+def bind_text_only(schema):
+    """Close all graphic slots while preserving the task and answer schemas."""
+    def walk(node):
+        if not isinstance(node, dict):
+            return
+        props = node.get("properties", {})
+        if "explanation_steps" in props:
+            props["explanation_steps"] = {"type": "null"}
+        if "prompt" in props and "hints" in props and "presentation" in props:
+            props["presentation"] = {"type": "null"}
+        for key in ("properties", "$defs"):
+            for child in node.get(key, {}).values():
+                walk(child)
+        for key in ("items", "additionalProperties"):
+            walk(node.get(key))
+        for key in ("anyOf", "oneOf", "allOf"):
+            for child in node.get(key, []):
+                walk(child)
+    walk(schema)
+
 RULES = """
 unit-reference-graphics-1: reference.id/version und Grafiktyp bilden im Schema
 einen gemeinsamen Zweig. Wähle ausschließlich einen vollständig passenden Zweig
