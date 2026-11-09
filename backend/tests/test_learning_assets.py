@@ -137,6 +137,9 @@ def test_missing_unit_auto_prepares_one_public_build_and_unit_can_read_it(api, p
     run({"build": {"build_key": key}})
     visible = api.get('/api/units/' + case['unit'] + '/public-visual').json()
     assert visible['status'] == 'ready' and visible['factual_status'] == 'unassessed'
+    with monkeypatch.context() as isolated:
+        isolated.setattr(learning_assets, 'public_focus_for_unit', lambda *args: 'different.focus')
+        assert api.get('/api/units/' + case['unit'] + '/public-visual').json()['status'] == 'missing'
     assert child['id'] not in json.dumps(calls) and case['material'] not in json.dumps(calls)
     assert calls[0]['public_spec']['catalog_topic']['title'] == 'Künstliches öffentliches Thema Mathematik'
     monkeypatch.setattr(visual_references, "projection", lambda db, unit: {
@@ -183,6 +186,35 @@ def test_bee_material_maps_only_to_the_public_insect_catalogue(api, prepared):
         assert learning_assets.public_topic_for_unit(db, "Mathematik", "Biene") is None
         focus = learning_assets.public_focus_for_unit("Biologie", "Körperbau der Biene – private Notiz")
         assert focus == "biology.honey_bee.anatomy.v2"
+        assert learning_assets.public_focus_for_unit("Biologie", "Herz und Blutkreislauf der Biene", "Körperbau der Biene") == "biology.honey_bee.circulation.v1"
+        assert learning_assets.public_focus_for_unit("Biologie", "Tanz der Biene", "Körperbau der Biene") is None
+        circulation = learning_assets.public_spec(db, {**spec("Biologie"), "catalog_topic_id": chosen.id,
+            "public_focus_id": "biology.honey_bee.circulation.v1"})
+        from schulpilot.learning_asset_schemas import LearningAssetOutput
+        circulation_schema = providers.strict_schema(LearningAssetOutput, preserve_limits=True)
+        learning_assets.bind_schema(circulation_schema, {"public_spec": circulation})
+        assert set(circulation_schema["$defs"]["SceneObject"]["properties"]["label"]["enum"]) == {"Röhrenherz", "Kopf", "Körperraum"}
+        assert set(circulation_schema["$defs"]["SceneStep"]["properties"]["caption"]["enum"]) == {"Röhrenherz → Kopf", "Kopf → Körperraum"}
+        circulation_excerpt = circulation["public_focus"]["content"]
+        circulation_labels = ["Röhrenherz", "Kopf", "Körperraum"]
+        circulation_ids = ["heart", "head", "body"]
+        circulation_steps = [{"caption": caption, "source_excerpt": circulation_excerpt,
+            "placements": [{"object_id": key, "slot": i} for i, key in enumerate(circulation_ids)],
+            "highlight": [start, end], "edges": [{"start": start, "end": end, "label": ""}]}
+            for caption, start, end in (("Röhrenherz → Kopf", "heart", "head"), ("Kopf → Körperraum", "head", "body"))]
+        circulation_block = {"kind": "scene", "title": "Blutkreislauf der Honigbiene", "disclosure": "given",
+            "source_excerpt": circulation_excerpt, "labels": circulation_labels, "numbers": [], "connections": [], "marks": [],
+            "unit": "", "variant": "", "scene": {"version": 1, "layout": "row", "transition_ms": 300,
+                "objects": [{"id": key, "label": label, "shape": "box", "tone": "neutral"}
+                            for key, label in zip(circulation_ids, circulation_labels, strict=True)], "steps": circulation_steps}}
+        candidate = {"subject": "Biologie", "title": "Blutkreislauf der Honigbiene", "text": circulation_excerpt,
+            "presentation": {"version": 1, "evidence_kind": "creative", "blocks": [circulation_block]},
+            "explorations": [{"prompt": "Wohin fließt die Hämolymphe?"}]}
+        assert checked_output(db, candidate, circulation)["subject"] == "Biologie"
+        circulation_steps[0]["edges"][0]["start"] = "head"
+        circulation_steps[0]["edges"][0]["end"] = "body"
+        with pytest.raises(ValueError, match="Pfeil passt nicht"):
+            checked_output(db, candidate, circulation)
         public = learning_assets.public_spec(db, {**spec("Biologie"), "catalog_topic_id": chosen.id,
             "public_focus_id": focus})
         assert "private Notiz" not in json.dumps(public)

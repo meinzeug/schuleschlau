@@ -6,8 +6,8 @@ Wenn eine ausdrücklich gestartete reguläre Lernrunde ohne geprüfte Grafik
 gespeichert wurde, darf der Worker anschließend **einen separaten** öffentlichen
 Baustein reservieren. Die fertige Runde bleibt unabhängig vom Ergebnis dieses
 Auftrags nutzbar. Übereinstimmung mit einem öffentlichen Katalogthema wird
-lokal über Fach und Titel bestimmt; für den Körperbau der Honigbiene gibt es
-zusätzlich einen festen öffentlichen Schwerpunkt mit kurzer Sachgrundlage.
+lokal über Fach und Titel bestimmt; für Körperbau und Blutkreislauf der Honigbiene gibt es
+zusätzlich feste öffentliche Schwerpunkte mit kurzer Sachgrundlage.
 Andere nicht eindeutig zugeordnete
 Themen starten keinen zusätzlichen Auftrag. Es gelangen keine Hefttexte oder
 privaten Titel in den Bausteinauftrag oder in seinen gemeinsamen Cache.
@@ -28,6 +28,14 @@ Validierung ersetzt keine unabhängige fachliche Prüfung.
 `public-assets-4` bindet beim Bienenschwerpunkt die zwei Pfeilphasen zusätzlich
 an eine feste öffentliche Belegfolge. Frühere gültige Versionen bleiben
 verfügbar; eine abgelehnte Version wird nicht automatisch erneut angefragt.
+
+`public-assets-5` wählt den Schwerpunkt anhand des tatsächlichen Rundenthemas,
+nicht anhand eines allgemeineren Seitentitels. Die Auslieferung verwirft auch
+bereits gespeicherte Zuordnungen, wenn der Schwerpunkt nicht zur Runde passt.
+Für den offenen Blutkreislauf der Honigbiene beschreibt ein eigener öffentlicher
+Schwerpunkt zwei belegte, schematische Flussabschnitte. Bei anderen spezifischen
+Bienenthemen ohne solchen Schwerpunkt wird keine generische Grafik automatisch
+als passend ausgegeben. Vorhandene öffentliche Builds bleiben separat erhalten.
 
 Der textbasierte Ausweichpfad für einen gebundenen Einstieg überträgt jede
 vorgegebene Einstiegs- und Übungsfrage in einem eigenen festen Schemafeld.
