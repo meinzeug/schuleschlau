@@ -2030,7 +2030,10 @@ def request_provider(config, function, payload, image_bytes=None, *, synthetic_f
         entry_slots = bind_text_entry_slots(schema, payload)
         if entry_slots is not None:
             instructions += ("\nquestions ist ein Objekt mit den festen Plätzen v0, v1, ... in der vorgegebenen Reihenfolge. "
-                "Jeder Platz verwendet genau die im jeweiligen Schema festgelegte Aufgaben-ID; keine IDs austauschen oder wiederholen.")
+                "Jeder Platz verwendet genau die im jeweiligen Schema festgelegte Aufgaben-ID; keine IDs austauschen oder wiederholen. "
+                "Jeder Platz braucht eine eigene, inhaltlich andere Frage zum bestätigten Stoff: "
+                "Wiederhole weder den Wortlaut einer anderen Frage noch eine Frage aus previous_prompts. "
+                "Prüfe vor der Ausgabe alle Plätze auf unterschiedliche Fragetexte.")
     unit_graphics = None
     if function == "unit":
         from .graphic_transport import bind as bind_graphic_transport

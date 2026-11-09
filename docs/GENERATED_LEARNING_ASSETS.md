@@ -21,9 +21,13 @@ geprüft. Ein fehlgeschlagener Build wird nicht automatisch wiederholt.
 Der Generator verwendet ab `public-assets-2` den kompakten, reversiblen
 Ausgabetransport. Ab `public-assets-3` sind bei Szenen Pfeile je Phase bereits
 im Ausgabeschema vorgeschrieben; der Bienenschwerpunkt bindet drei Körperteile.
-Gültige laufende oder fertige `public-assets-1`- und `public-assets-2`-Bausteine
+Gültige laufende oder fertige `public-assets-1`-, `public-assets-2`- und `public-assets-3`-Bausteine
 bleiben verwendbar und werden vor einem neuen Auftrag bevorzugt. Technische
 Validierung ersetzt keine unabhängige fachliche Prüfung.
+
+`public-assets-4` bindet beim Bienenschwerpunkt die zwei Pfeilphasen zusätzlich
+an eine feste öffentliche Belegfolge. Frühere gültige Versionen bleiben
+verfügbar; eine abgelehnte Version wird nicht automatisch erneut angefragt.
 
 Der textbasierte Ausweichpfad für einen gebundenen Einstieg überträgt jede
 vorgegebene Einstiegs- und Übungsfrage in einem eigenen festen Schemafeld.

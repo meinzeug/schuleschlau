@@ -147,7 +147,7 @@ def test_missing_unit_auto_prepares_one_public_build_and_unit_can_read_it(api, p
     assert api.get('/api/units/' + case['unit'] + '/public-visual').status_code in (403, 404)
 
 
-@pytest.mark.parametrize("legacy_version", ["public-assets-1", "public-assets-2"])
+@pytest.mark.parametrize("legacy_version", ["public-assets-1", "public-assets-2", "public-assets-3"])
 def test_new_generator_reuses_valid_existing_public_build(api, prepared, legacy_version):
     from schulpilot import learning_assets
     _, child, calls = prepared
@@ -182,7 +182,7 @@ def test_bee_material_maps_only_to_the_public_insect_catalogue(api, prepared):
         assert chosen.id == "sofatutor:topic:5690" and chosen.title == "Insekten"
         assert learning_assets.public_topic_for_unit(db, "Mathematik", "Biene") is None
         focus = learning_assets.public_focus_for_unit("Biologie", "Körperbau der Biene – private Notiz")
-        assert focus == "biology.honey_bee.anatomy.v1"
+        assert focus == "biology.honey_bee.anatomy.v2"
         public = learning_assets.public_spec(db, {**spec("Biologie"), "catalog_topic_id": chosen.id,
             "public_focus_id": focus})
         assert "private Notiz" not in json.dumps(public)
@@ -196,8 +196,30 @@ def test_bee_material_maps_only_to_the_public_insect_catalogue(api, prepared):
         objects = schema["$defs"]["SceneV1"]["properties"]["objects"]
         assert objects["minItems"] == objects["maxItems"] == 3
         assert set(schema["$defs"]["SceneObject"]["properties"]["label"]["enum"]) == {"Kopf", "Brust", "Hinterleib"}
+        assert schema["$defs"]["SceneStep"]["properties"]["source_excerpt"]["enum"] == [public["public_focus"]["content"]]
+        assert set(schema["$defs"]["SceneStep"]["properties"]["caption"]["enum"]) == {"Kopf → Brust", "Brust → Hinterleib"}
         with pytest.raises(ValueError, match="drei bestätigten Körperabschnitte"):
             checked_output(db, output("Biologie"), public)
+        excerpt = public["public_focus"]["content"]
+        ids = ["head", "thorax", "abdomen"]
+        labels = ["Kopf", "Brust", "Hinterleib"]
+        placements = [{"object_id": key, "slot": i} for i, key in enumerate(ids)]
+        phases = [{"caption": caption, "source_excerpt": excerpt, "placements": placements,
+                   "highlight": [start], "edges": [{"start": start, "end": end, "label": ""}]}
+                  for caption, start, end in (("Kopf → Brust", "head", "thorax"),
+                                               ("Brust → Hinterleib", "thorax", "abdomen"))]
+        graphic = {"kind": "scene", "title": "Körperbau der Honigbiene", "disclosure": "given",
+            "source_excerpt": excerpt, "labels": labels, "numbers": [], "connections": [], "marks": [],
+            "unit": "", "variant": "", "scene": {"version": 1, "layout": "row", "transition_ms": 300,
+                "objects": [{"id": key, "label": label, "shape": "box", "tone": "neutral"}
+                            for key, label in zip(ids, labels, strict=True)], "steps": phases}}
+        candidate = {"subject": "Biologie", "title": "Körperbau der Honigbiene", "text": excerpt,
+            "presentation": {"version": 1, "evidence_kind": "creative", "blocks": [graphic]},
+            "explorations": [{"prompt": "Welche Körperteile folgen aufeinander?"}]}
+        assert checked_output(db, candidate, public)["subject"] == "Biologie"
+        graphic["scene"]["steps"][0]["edges"][0]["end"] = "abdomen"
+        with pytest.raises(ValueError, match="keine belegte Richtung"):
+            checked_output(db, candidate, public)
 
 
 def test_complete_vertical_path_and_cache_hit_never_create_learning_evidence(api, prepared):
