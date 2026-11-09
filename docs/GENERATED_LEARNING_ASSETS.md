@@ -25,6 +25,12 @@ Gültige laufende oder fertige `public-assets-1`- und `public-assets-2`-Baustein
 bleiben verwendbar und werden vor einem neuen Auftrag bevorzugt. Technische
 Validierung ersetzt keine unabhängige fachliche Prüfung.
 
+Der textbasierte Ausweichpfad für einen gebundenen Einstieg überträgt jede
+vorgegebene Einstiegs- und Übungsfrage in einem eigenen festen Schemafeld.
+Die Decodierung verlangt dieselbe ID am richtigen Platz; Rollen, Antworten
+und Quellen werden nicht umgedeutet. Anschließend greifen alle bestehenden
+Lernstart-, Aufgaben- und Quellenprüfungen.
+
 Die öffentliche Bienengrundlage beruht auf [University of Arizona: Honeybee Basic Biology](https://extension.arizona.edu/publication/honeybee-series-honeybee-basic-biology)
 und [Arizona State University: Honey Bee Anatomy](https://askabiologist.asu.edu/honey-bee-anatomy).
 

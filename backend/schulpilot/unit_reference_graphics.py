@@ -5,6 +5,7 @@ Also bind mathematical review units that do not have a more specific recipe.
 """
 
 import copy
+from dataclasses import dataclass
 
 from .package_part_output import _bind_references
 from .subject_content import PROFILES
@@ -59,6 +60,54 @@ def unique_text_question_ids(value):
         else:
             seen.add(row["id"])
     return result, changed
+
+
+@dataclass(frozen=True)
+class EntrySlots:
+    ids: tuple[str, ...]
+
+    def decode(self, value):
+        if not isinstance(value, dict) or not isinstance(value.get("questions"), dict):
+            raise ValueError("Ungültige Aufgabenplätze im Lernstart.")
+        slots = value["questions"]
+        keys = [f"v{index}" for index in range(len(self.ids))]
+        if set(slots) != set(keys):
+            raise ValueError("Ungültige Aufgabenplätze im Lernstart.")
+        questions = [slots[key] for key in keys]
+        if any(not isinstance(row, dict) or row.get("id") != expected
+               for row, expected in zip(questions, self.ids, strict=True)):
+            raise ValueError("Ein Aufgabenplatz gehört nicht zum vorgegebenen Lernstart.")
+        return {**value, "questions": questions}
+
+
+def bind_text_entry_slots(schema, payload):
+    """Bind each existing entry ID to its own output slot, without rewriting it."""
+    from .learning_entry import _specs
+
+    entry = payload.get("learning_entry")
+    if not isinstance(entry, dict) or len(entry.get("units", [])) != 1:
+        return None
+    plan = entry["units"][0]
+    if plan.get("group_id") is not None or plan.get("entry_mode") == "existing_contract":
+        return None
+    questions = schema.get("properties", {}).get("questions", {})
+    count = questions.get("minItems")
+    branches = questions.get("items", {}).get("anyOf")
+    if type(count) is not int or count != questions.get("maxItems") or not 2 <= count <= 5 or not isinstance(branches, list):
+        raise ValueError("Der Lernstart hat keine eindeutig gebundenen Aufgabenplätze.")
+    ids = tuple(spec["id"] for spec in _specs(plan, count))
+    if len(set(ids)) != count:
+        raise ValueError("Der Lernstart hat keine eindeutig gebundenen Aufgabenplätze.")
+    slots = {}
+    for index, identifier in enumerate(ids):
+        selected = [copy.deepcopy(branch) for branch in branches
+                    if branch.get("properties", {}).get("id", {}).get("enum") == [identifier]]
+        if not selected:
+            raise ValueError("Der Lernstart hat keine eindeutig gebundenen Aufgabenplätze.")
+        slots[f"v{index}"] = selected[0] if len(selected) == 1 else {"anyOf": selected}
+    schema["properties"]["questions"] = {"type": "object", "properties": slots,
+        "required": list(slots), "additionalProperties": False}
+    return EntrySlots(ids)
 
 RULES = """
 unit-reference-graphics-1: reference.id/version und Grafiktyp bilden im Schema

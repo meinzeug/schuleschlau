@@ -1275,6 +1275,7 @@ def request_provider(config, function, payload, image_bytes=None, *, synthetic_f
     review_only = function == "coach" and bool(payload.get("defer_practice"))
     visual_functions = function in ("unit", "package", "unit_visuals", "learning_asset") or (function == "coach" and not review_only)
     text_only_plain_unit = False
+    text_only_entry = False
     if visual_functions:
         subjects = subject_content.generation_subjects(payload)
     excerpt_candidates = None
@@ -1936,6 +1937,8 @@ def request_provider(config, function, payload, image_bytes=None, *, synthetic_f
                         bind_text_only(schema)
                         text_only_plain_unit = not any(payload.get(key) for key in (
                             "learning_entry", "notebook_practice", "exam_preparation", "exam_review_practice", "homework_practice"))
+                        text_only_entry = bool(payload.get("learning_entry")) and not any(payload.get(key) for key in (
+                            "notebook_practice", "exam_preparation", "exam_review_practice", "homework_practice"))
                         payload = {**payload, "visual_context": {**payload["visual_context"], "required": False}}
                         instructions = instructions.replace(VISUAL_RULES, "")
                         instructions += ("\nFür diese Runde stehen keine geprüften Grafiken bereit. "
@@ -2020,6 +2023,14 @@ def request_provider(config, function, payload, image_bytes=None, *, synthetic_f
         # private Unit, answer keys or invented confirmed-photo evidence.
         instructions = ASSET_RULES + subject_content.rules_for(subjects) + package_output.rules
         outgoing_payload = {"public_spec": payload["public_spec"]}
+    entry_slots = None
+    if text_only_entry:
+        from .unit_reference_graphics import bind_text_entry_slots
+
+        entry_slots = bind_text_entry_slots(schema, payload)
+        if entry_slots is not None:
+            instructions += ("\nquestions ist ein Objekt mit den festen Plätzen v0, v1, ... in der vorgegebenen Reihenfolge. "
+                "Jeder Platz verwendet genau die im jeweiligen Schema festgelegte Aufgaben-ID; keine IDs austauschen oder wiederholen.")
     unit_graphics = None
     if function == "unit":
         from .graphic_transport import bind as bind_graphic_transport
@@ -2378,7 +2389,7 @@ def request_provider(config, function, payload, image_bytes=None, *, synthetic_f
             text = json.dumps(raw["data"])
             input_tokens, output_tokens = usage.get("input_tokens"), usage.get("output_tokens")
         indexed_excerpts = config.provider == "openrouter" and excerpt_candidates is not None
-        if graphic_table is not None or package_output is not None or unit_graphics is not None or unit_composition is not None or indexed_choices or omit_review_unit or indexed_excerpts or homework_quotes is not None or text_only_plain_unit:
+        if graphic_table is not None or package_output is not None or unit_graphics is not None or unit_composition is not None or indexed_choices or omit_review_unit or indexed_excerpts or homework_quotes is not None or text_only_plain_unit or entry_slots is not None:
             validation_phase = "json"
             decoded = json.loads(text)
             if package_output is not None:
@@ -2404,6 +2415,9 @@ def request_provider(config, function, payload, image_bytes=None, *, synthetic_f
             if unit_composition is not None:
                 validation_phase = "prepared_graphics"
                 decoded = unit_composition.hydrate(decoded)
+            if entry_slots is not None:
+                validation_phase = "transport"
+                decoded = entry_slots.decode(decoded)
             if homework_quotes is not None:
                 from .homework import decode_sources
 
