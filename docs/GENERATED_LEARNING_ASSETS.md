@@ -6,8 +6,9 @@ Wenn eine ausdrücklich gestartete reguläre Lernrunde ohne geprüfte Grafik
 gespeichert wurde, darf der Worker anschließend **einen separaten** öffentlichen
 Baustein reservieren. Die fertige Runde bleibt unabhängig vom Ergebnis dieses
 Auftrags nutzbar. Übereinstimmung mit einem öffentlichen Katalogthema wird
-lokal über Fach und Titel bestimmt; für Bienen gibt es eine ausdrücklich grobe
-Zuordnung zum öffentlichen Thema „Insekten“. Andere nicht eindeutig zugeordnete
+lokal über Fach und Titel bestimmt; für den Körperbau der Honigbiene gibt es
+zusätzlich einen festen öffentlichen Schwerpunkt mit kurzer Sachgrundlage.
+Andere nicht eindeutig zugeordnete
 Themen starten keinen zusätzlichen Auftrag. Es gelangen keine Hefttexte oder
 privaten Titel in den Bausteinauftrag oder in seinen gemeinsamen Cache.
 
@@ -21,6 +22,9 @@ Der Generator verwendet ab `public-assets-2` den kompakten, reversiblen
 Ausgabetransport. Gültige laufende oder fertige `public-assets-1`-Bausteine
 bleiben verwendbar und werden vor einem neuen Auftrag bevorzugt. Technische
 Validierung ersetzt keine unabhängige fachliche Prüfung.
+
+Die öffentliche Bienengrundlage beruht auf [University of Arizona: Honeybee Basic Biology](https://extension.arizona.edu/publication/honeybee-series-honeybee-basic-biology)
+und [Arizona State University: Honey Bee Anatomy](https://askabiologist.asu.edu/honey-bee-anatomy).
 
 Dieser erste vertikale Pfad erzeugt **unbewertete KI-Erklärungen und Erkundungsimpulse**, keine geprüften Antwortschlüssel und keine Schulnoten. Die vorhandenen kuratierten VisualReference-Rezepte bleiben getrennt. Technisch validierte KI-Beispiele gelten weiterhin als `factual_status: unassessed`.
 

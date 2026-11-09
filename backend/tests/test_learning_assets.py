@@ -180,8 +180,16 @@ def test_bee_material_maps_only_to_the_public_insect_catalogue(api, prepared):
         chosen = learning_assets.public_topic_for_unit(db, "Biologie", "Körperbau der Biene – private Notiz")
         assert chosen.id == "sofatutor:topic:5690" and chosen.title == "Insekten"
         assert learning_assets.public_topic_for_unit(db, "Mathematik", "Biene") is None
-        public = learning_assets.public_spec(db, {**spec("Biologie"), "catalog_topic_id": chosen.id})
+        focus = learning_assets.public_focus_for_unit("Biologie", "Körperbau der Biene – private Notiz")
+        assert focus == "biology.honey_bee.anatomy.v1"
+        public = learning_assets.public_spec(db, {**spec("Biologie"), "catalog_topic_id": chosen.id,
+            "public_focus_id": focus})
         assert "private Notiz" not in json.dumps(public)
+        assert public["public_focus"]["title"] == "Körperbau der Honigbiene"
+        broad = learning_assets.public_spec(db, {**spec("Biologie"), "catalog_topic_id": chosen.id})
+        assert digest(public) != digest(broad)
+        with pytest.raises(ValueError, match="drei bestätigten Körperabschnitte"):
+            checked_output(db, output("Biologie"), public)
 
 
 def test_complete_vertical_path_and_cache_hit_never_create_learning_evidence(api, prepared):

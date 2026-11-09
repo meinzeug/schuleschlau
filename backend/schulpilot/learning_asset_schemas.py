@@ -18,6 +18,7 @@ class LearningAssetSpec(Strict):
     recipe_version: int = Field(ge=1, le=1000, strict=True)
     foundation_ids: list[Identifier] = Field(default_factory=list, max_length=4)
     catalog_topic_id: Identifier | None = None
+    public_focus_id: Identifier | None = None
     locale: Literal["de-DE"] = "de-DE"
     level_band: Literal["primary", "lower_secondary", "upper_secondary"]
 
