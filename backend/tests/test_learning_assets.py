@@ -284,7 +284,13 @@ def test_complete_vertical_path_and_cache_hit_never_create_learning_evidence(api
         legacy = [row.id for row in db.scalars(select(VisualReference))
                   if "Mathematik" in row.recipe["subjects"] or "*" in row.recipe["subjects"]]
         assert reference.id not in legacy
-        assert reference.recipe["asset"] == ready["build"]["asset"]
+        from schulpilot.subject_content import public_presentation
+        persisted = reference.recipe["asset"]
+        public = ready["build"]["asset"]
+        assert public["presentation"] == public_presentation(persisted["presentation"])
+        assert "source_excerpt" in persisted["presentation"]["blocks"][0]["scene"]["steps"][0]
+        assert "source_excerpt" not in public["presentation"]["blocks"][0]["scene"]["steps"][0]
+        assert all(public[field] == persisted[field] for field in ("subject", "title", "text", "explorations"))
     assert calls[0].keys() == {"public_spec", "required_subject"}
     assert child["id"] not in json.dumps(calls) and parent["id"] not in json.dumps(calls)
 

@@ -14,7 +14,7 @@ from .db import DB, Child, Family, Job, Session, Subject, Usage, User, get_db, n
 from .learning_asset_models import LearningAssetBuild, LearningAssetInstance
 from .learning_asset_schemas import LearningAssetOutput, LearningAssetSpec
 from .security import Principal, authenticated, child_access, rate_limit
-from .subject_content import PROFILES, canonical_profile, validate_question
+from .subject_content import PROFILES, canonical_profile, public_presentation, validate_question
 from .visual_reference_models import VisualReference
 from .visual_references import _meaningful, digest
 
@@ -266,6 +266,9 @@ def build_data(db, build):
             return {**result, "status": "unavailable"}
         result["reference"] = {"id": reference.id, "version": reference.version, "digest": reference.digest}
         result["asset"] = copy.deepcopy(reference.recipe["asset"])
+        # Evidence remains in the immutable reference; project the same
+        # strict client contract used by normal saved lesson graphics.
+        result["asset"]["presentation"] = public_presentation(result["asset"]["presentation"])
     return result
 
 

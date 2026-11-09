@@ -801,6 +801,96 @@ void main() {
     expect(find.text('Allgemeines Beispiel'), findsOneWidget);
     expect(calls.every((call) => call.method == 'GET'), isTrue);
   });
+  testWidgets('a projected public scene is actually playable in a unit', (
+    tester,
+  ) async {
+    final state = app(
+      (r) => reply({
+        'status': 'ready',
+        'asset': {
+          'title': 'Blutkreislauf der Honigbiene',
+          'text': 'Ein schematisches Beispiel.',
+          'presentation': {
+            'version': 1,
+            'evidence_kind': 'creative',
+            'blocks': [
+              {
+                'kind': 'scene',
+                'title': 'Blutkreislauf der Honigbiene',
+                'disclosure': 'given',
+                'labels': ['Röhrenherz', 'Kopf', 'Körperraum'],
+                'numbers': [],
+                'connections': [],
+                'marks': [],
+                'unit': '',
+                'variant': '',
+                'scene': {
+                  'version': 1,
+                  'layout': 'row',
+                  'transition_ms': 400,
+                  'objects': [
+                    {
+                      'id': 'heart',
+                      'label': 'Röhrenherz',
+                      'shape': 'circle',
+                      'tone': 'neutral',
+                    },
+                    {
+                      'id': 'head',
+                      'label': 'Kopf',
+                      'shape': 'circle',
+                      'tone': 'neutral',
+                    },
+                    {
+                      'id': 'body',
+                      'label': 'Körperraum',
+                      'shape': 'circle',
+                      'tone': 'neutral',
+                    },
+                  ],
+                  'steps': [
+                    for (final edge in [
+                      ['heart', 'head', 'Röhrenherz → Kopf'],
+                      ['head', 'body', 'Kopf → Körperraum'],
+                    ])
+                      {
+                        'caption': edge[2],
+                        'placements': [
+                          {'object_id': 'heart', 'slot': 0},
+                          {'object_id': 'head', 'slot': 1},
+                          {'object_id': 'body', 'slot': 2},
+                        ],
+                        'highlight': [edge[0], edge[1]],
+                        'edges': [
+                          {'start': edge[0], 'end': edge[1], 'label': ''},
+                        ],
+                      },
+                  ],
+                },
+              },
+            ],
+          },
+        },
+      }),
+    );
+    addTearDown(state.dispose);
+    await mount(
+      tester,
+      VisualPreparationCard(
+        state: state,
+        unit: {'id': 'unit', 'explanation_visual_status': 'incomplete'},
+        isCurrent: () => true,
+        refresh: () async {},
+      ),
+    );
+    await tester.tap(find.text('Allgemeines KI-Beispiel ansehen'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('scene-node-heart')), findsOneWidget);
+    expect(
+      find.textContaining('kann hier nicht abgespielt werden'),
+      findsNothing,
+    );
+  });
   testWidgets(
     '107 mobile learning path separates position and independent evidence',
     (tester) async {
