@@ -2042,9 +2042,16 @@ Bestandteil des bestehenden Buildvertrags.
     Prüfer bindet die zwei tatsächlichen Lösungsbilder einschließlich Text,
     Quelle und Referenz an die Aufgabe; Manipulationstests laufen auf SQLite
     und PostgreSQL. Die Historie lädt konkurrierende Pläne nach einer anderen
-    Transaktion erneut. Weiterhin fehlen im aktiven Paketweg:
-    persistente parallele Historie, Grafik- und Schemabindung, Rechteprüfung,
-    Veröffentlichung, PostgreSQL-Konkurrenz und echte Anbieterprobe fehlen.
+    Transaktion erneut. Eine noch nicht aktivierte Schemabindung bewahrt feste
+    und offene Vorwissenszweige und bindet geplante Aufgaben an eine eigene
+    Grafik-ID. Tests verwenden das tatsächliche Paketschema und den Codec;
+    manipulierte Aufgabenteile und vertauschte Bild-IDs werden zurückgewiesen.
+    Der kompakte Paketprüfer akzeptiert zwei Bilder ausschließlich für eine
+    exakt dem privaten Plan entsprechende Lösungsdarstellung; ohne diesen
+    Plan und für Einführungen bleibt die Ein-Bild-Grenze bestehen.
+    Weiterhin fehlen im aktiven Paketweg persistente parallele Historie,
+    Einbindung in Worker und Grafikvalidierung, Rechteprüfung, Veröffentlichung,
+    PostgreSQL-Konkurrenz und echte Anbieterprobe.
     Der Punkt bleibt offen; der neue Helfer startet keine KI oder Lernrunde.
 
     Ein versionierter Paketadapter soll nur für ein eindeutig gewähltes

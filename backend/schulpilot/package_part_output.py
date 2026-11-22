@@ -276,8 +276,20 @@ def _bind_references(schema, payload, *, unit_subject=None):
     units["items"] = bind_units(units["items"])
 
 
-def validate(data):
-    """Reject oversized generated prose/steps, with all semantic guards intact."""
+def validate(data, *, fraction_plan=None):
+    """Reject oversized generated prose/steps, with all semantic guards intact.
+
+    The optional private plan is only a structural exception; the caller must
+    independently authenticate its source, reference, history and ownership.
+    Ordinary callers keep the original one-graphic limit.
+    """
+    if fraction_plan is not None:
+        from .package_fraction_plan import REVISION, _digest
+
+        if (not isinstance(fraction_plan, dict) or fraction_plan.get('revision') != REVISION
+                or fraction_plan.get('digest') != _digest({k: v for k, v in fraction_plan.items() if k != 'digest'})
+                or not isinstance(fraction_plan.get('slots'), list)):
+            raise ValueError("Der Grafikplan ist ungültig.")
     units = data.get("units", [])
     if len(units) != 1:
         raise ValueError("Ein Lernpaketteil benötigt genau ein Fach.")
@@ -309,7 +321,19 @@ def validate(data):
                 raise ValueError("Ein Erklärabschnitt benötigt genau einen vollständigen Grafikschritt.")
             for step in steps:
                 blocks = step["presentation"]["blocks"]
-                if len(step["text"]) > 350 or len(blocks) != 1:
+                two_planned_blocks = False
+                if fraction_plan is not None and item is not unit and len(blocks) == 2:
+                    from .package_fraction_plan import solution_step
+
+                    matches = [row for row in fraction_plan['slots'] if isinstance(row, dict)
+                               and isinstance(row.get('task'), dict) and row['task'].get('id') == item.get('id')]
+                    if (unit.get('subject') == 'Mathematik' and unit.get('group_id') == fraction_plan.get('group_id')
+                            and len(matches) == 1):
+                        row = matches[0]
+                        two_planned_blocks = (all(item.get(k) == v for k, v in row['task'].items())
+                            and item.get('explanation') == step.get('text')
+                            and step == solution_step(fraction_plan, row))
+                if len(step["text"]) > 350 or (len(blocks) != 1 and not two_planned_blocks):
                     raise ValueError("Der Grafikschritt überschreitet den begrenzten Umfang.")
                 for block in blocks:
                     scene = block.get("scene")
