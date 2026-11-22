@@ -337,6 +337,22 @@ def test_prepared_graphic_guard_metadata_is_closed_and_does_not_change_billing(m
     assert "PRIVATE" not in json.dumps(value.telemetry)
 
 
+@pytest.mark.parametrize('message,reason', [
+    ('Ungültiger vorabgeprüfter Erweiterungsbeweis.', 'fraction_special_reference_scope'),
+    ('Ungültiger geplanter Kürzungsbeweis.', 'fraction_special_reference_scope'),
+    ('Ungültiger geplanter Bruchbeweis.', 'fraction_plan_scope'),
+    ('Der Bruchplan oder seine Quellen sind nicht mehr gültig.', 'fraction_plan_binding'),
+    ('Die ausgewählte Grafikreferenz wurde geändert oder ist beschädigt.', 'visual_reference_revision'),
+])
+def test_fraction_visual_failure_diagnostics_never_copy_content(message, reason):
+    value = result()
+    annotate(value, ValueError(message), phase='visual')
+    assert value.telemetry['validation']['errors'][0]['reason'] == reason
+    annotate(value, ValueError(message + ' PRIVATE_SOURCE_SUFFIX'), phase='visual')
+    assert value.telemetry['validation']['errors'][0]['reason'] == 'schema_validation'
+    assert 'PRIVATE' not in json.dumps(value.telemetry)
+
+
 @pytest.mark.parametrize('question,reason', [
     ({'type': 'choice', 'options': ['A', 'B'], 'answer': 'C'}, 'question_choice_answer'),
     ({'type': 'short', 'options': ['A', 'A'], 'answer': 'A'}, 'question_duplicate_options'),

@@ -2067,8 +2067,14 @@ Bestandteil des bestehenden Buildvertrags.
     wurde aber mit `invalid_schema` abgewiesen; der dabei übertragene Vertrag
     hatte zwölf verschachtelte Container. Einführungen und nicht geplante
     Vorwissensfragen verwenden nun ebenfalls kompakte, unabhängig geprüfte
-    Grafik-IDs. Der Punkt bleibt bis zur erneuten echten Anbieterprobe und
-    vollständigen Abnahme offen; die abgewiesenen Kosten sind nicht bekannt.
+    Grafik-IDs. Ein weiterer echter Aufruf akzeptierte das Schema, scheiterte
+    aber in der Grafikprüfung; der Anbieter meldete 0,003316 USD. Die konkrete
+    interne Fehlerursache ließ sich aus dem gespeicherten allgemeinen Code nicht
+    rückwirkend belegen. Eine nachweislich unzulässige Auswahl des speziellen
+    Erweiterungs-/Kürzungsrezepts für gewöhnliche Grafiken ist nun gesperrt;
+    feste inhaltsfreie Fehlercodes erleichtern zukünftige Diagnosen. Der Punkt
+    bleibt bis zur erfolgreichen echten Anbieterprobe und vollständigen Abnahme
+    offen; die Kosten des abgewiesenen Schemaaufrufs sind nicht bekannt.
 
     Ein versionierter Paketadapter soll nur für ein eindeutig gewähltes
     Mathematikfach und ausdrücklich bestätigte, zur Quellenrevision passende

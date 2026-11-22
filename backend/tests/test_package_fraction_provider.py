@@ -54,7 +54,7 @@ def model_output(bound):
 
 
 @pytest.mark.parametrize('content', [EXPAND, REDUCE])
-@pytest.mark.parametrize('fault', [None, 'answer', 'graphic_id', 'source', 'prior_graphic'])
+@pytest.mark.parametrize('fault', [None, 'answer', 'graphic_id', 'source', 'prior_graphic', 'special_intro'])
 def test_provider_bound_schema_codec_validation_and_private_plan_stripping(api, household, monkeypatch, content, fault):
     _, job_id, request = running_job(api, household, content)
     with DB.begin() as db:
@@ -71,6 +71,13 @@ def test_provider_bound_schema_codec_validation_and_private_plan_stripping(api, 
         if fault == 'prior_graphic':
             prior = next(q for q in data['units'][0]['questions'] if q is not question)
             prior['explanation_steps'][0]['presentation']['blocks'] = question['explanation_steps'][0]['presentation']['blocks']
+        if fault == 'special_intro':
+            special = next(row for row in package_prepared_graphics.compile_candidates(bound)
+                           if row['reference']['id'] in ('math.fraction.expansion', 'math.fraction.reduction')
+                           and row['disclosure'] == 'given')
+            step = data['units'][0]['explanation_steps'][0]
+            step.update(text=special['text'], reference=special['reference'], source_refs=special['source_refs'])
+            step['presentation']['blocks'] = [special['id']]
     capture, real_client, calls = PackageOutputCapture(monkeypatch), httpx.Client, []
     def handler(request):
         body = json.loads(request.content)
@@ -81,6 +88,8 @@ def test_provider_bound_schema_codec_validation_and_private_plan_stripping(api, 
         assert 'package_fraction_plan' not in value['visual_context']
         assert 'excluded_values' not in json.dumps(value, ensure_ascii=False)
         assert value['prepared_graphics']['revision'] == 'package-fraction-wire-1'
+        assert all(row['reference']['id'] not in ('math.fraction.expansion', 'math.fraction.reduction')
+                   for row in value['prepared_graphics']['candidates'] if row['id'].startswith('pg_'))
         calls.append(body)
         wire = capture.wire(data)
         return httpx.Response(200, json={'choices': [{'finish_reason': 'stop', 'message': {

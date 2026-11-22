@@ -18,8 +18,13 @@ Plan, wurde aber wegen eines ungültigen Schemas abgewiesen. Der gesendete
 Vertrag war zwölf Container tief. Für Einführungs- und Vorwissensgrafiken wird
 nun ebenfalls der vorhandene kompakte, fachlich geprüfte ID-Transport genutzt;
 ein eigener Vorabcheck begrenzt die Tiefe vor einem kostenpflichtigen Aufruf.
-Die erneute echte Anbieterprobe und die Prüfung ihrer konkreten Ausgabe bleiben
-offen; der Roadmap-Punkt ist deshalb noch nicht abgehakt.
+Ein erneuter echter Aufruf akzeptierte das Schema, wurde aber später von der
+Grafikprüfung mit einem allgemeinen Code abgewiesen; die genaue Fehlerursache
+ist rückwirkend nicht belegt. Die spezielle Erweiterungs-/Kürzungsreferenz war
+nachweislich auch für normale Einzelgrafiken angeboten worden, obwohl die
+Prüfung sie dort nicht zulässt; dieser Widerspruch ist jetzt geschlossen und
+mit einem Manipulationstest abgesichert. Die erfolgreiche echte Anbieterprobe
+und die Prüfung ihrer konkreten Ausgabe bleiben offen.
 
 ## Ursprünglicher Entwurf vom 6. November 2026
 

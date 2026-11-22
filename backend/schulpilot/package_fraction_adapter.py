@@ -59,7 +59,15 @@ def bind(schema, payload):
     from .package_prepared_graphics import bind_schema as bind_prepared_graphics
 
     ids = {row['slot']['id'] for row in plan['slots'] if row.get('task') is not None}
-    standard = bind_prepared_graphics(schema, payload, skip_question_ids=ids)
+    # These specialised recipes require the complete two-graphic proof. They
+    # are never valid as a generic introduction or single-image prior probe.
+    references = visual.get('references')
+    if not isinstance(references, list) or any(not isinstance(row, dict) for row in references):
+        raise ValueError(fractions.INVALID)
+    standard_payload = {**payload, 'visual_context': {**visual, 'references': [
+        reference for reference in references
+        if reference.get('id') not in ('math.fraction.expansion', 'math.fraction.reduction')]}}
+    standard = bind_prepared_graphics(schema, standard_payload, skip_question_ids=ids)
     if standard is None:
         raise ValueError('Der Teilauftrag hat keine passende Referenz/Grafik für seine Aufdeckstufe.')
     return Binding(copy.deepcopy(payload), copy.deepcopy(plan), copy.deepcopy(slots), standard)

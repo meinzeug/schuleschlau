@@ -15,11 +15,12 @@ from test_package_transport import config
 
 
 @pytest.mark.parametrize('content', [EXPAND, REDUCE])
-@pytest.mark.parametrize(('mode', 'fault'), [('default', None), ('default', 'wrong_answer'),
-    ('default', 'revoked_session'), ('default', 'changed_source'), ('default', 'concurrent_question'),
-    ('source_probe', None), ('reuse_evidence', None), ('source_only', None)])
-def test_worker_reserves_before_provider_and_checks_before_publication(api, household, monkeypatch, content, mode, fault):
-    day_id, job_id, _ = running_job(api, household, content)
+@pytest.mark.parametrize(('mode', 'fault', 'page_count'), [('default', None, 1), ('default', None, 2),
+    ('default', 'wrong_answer', 1), ('default', 'revoked_session', 1), ('default', 'changed_source', 1),
+    ('default', 'concurrent_question', 1), ('source_probe', None, 1), ('reuse_evidence', None, 1),
+    ('source_only', None, 1)])
+def test_worker_reserves_before_provider_and_checks_before_publication(api, household, monkeypatch, content, mode, fault, page_count):
+    day_id, job_id, _ = running_job(api, household, content, count=page_count)
     if mode != 'default':
         import copy
         from schulpilot import learning_entry
