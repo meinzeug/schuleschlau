@@ -27,6 +27,15 @@ def context(db, unit, *, labs_enabled=False):
         raise HTTPException(409, str(error)) from error
     if not payload["visual_context"]["required"]:
         raise HTTPException(409, "Für diese Quelle fehlt noch eine passende belegte Darstellung. Es wurde kein KI-Auftrag gestartet.")
+    # A source-relation scene requires an explicit arrow in its own source.
+    # Do not charge for a model call when this is the only offered recipe and
+    # none of the sources can possibly pass that existing validation.
+    visual = payload["visual_context"]
+    has_arrow = any("→" in source["content"] or "->" in source["content"] for source in visual["sources"])
+    if not has_arrow:
+        visual["references"] = [row for row in visual["references"] if row["id"] != "general.source_relation.phases"]
+    if not visual["references"]:
+        raise HTTPException(409, "Für diese Seite gibt es noch keine passende geprüfte Grafiken-Vorlage. Du kannst trotzdem weiterlernen.")
     if sum(len(row["content"]) for row in payload["visual_context"]["sources"]) > 18000:
         raise HTTPException(409, "Wähle für die Grafikerklärung einen kleineren Quellenumfang.")
     # All of these texts are already saved, not instructions or new source facts.
@@ -109,8 +118,9 @@ def prepare(unit_id: str, key: str = Header(default="", alias="Idempotency-Key")
     job = Job(child_id=child.id, kind="unit_visuals", payload=values, idempotency=p.user.id + ":" + key)
     db.add(job)
     db.flush()
-    # Reuse the ordinary selected unit route, budgets and reservation exactly.
-    reserve(db, db.get(Family, child.family_id), child.id, job.id, "unit")
+    # The sidecar is a source-bound teaching task. Reserve its explicit route
+    # before dispatch; limits, privacy checks and the saved snapshot still apply.
+    reserve(db, db.get(Family, child.family_id), child.id, job.id, "unit_visuals")
     db.commit()
     return {"id": job.id, "status": job.status}
 
@@ -133,7 +143,7 @@ def process(job_id):
             signature, payload = context(db, unit, labs_enabled=bool(job.payload.get("labs_enabled")))
             if signature != job.payload["signature"]:
                 raise ProviderError("Die Quellen oder Aufgaben wurden geändert.")
-            config = job_config(db, job, "unit")
+            config = job_config(db, job, "unit_visuals")
             external_allowed(config, db=db)
             config_values = {column.name: getattr(config, column.name) for column in config.__table__.columns}
         provider_requested = True
@@ -153,7 +163,7 @@ def process(job_id):
             authority(db, job)
             if unit is None or unit.child_id != job.child_id or context(db, unit, labs_enabled=bool(job.payload.get("labs_enabled")))[0] != job.payload["signature"]:
                 raise ProviderError("Die Runde wurde während der Grafikvorbereitung geändert.")
-            current = job_config(db, job, "unit")
+            current = job_config(db, job, "unit_visuals")
             external_allowed(current, db=db)
             if (current.revision, current.model) != (config_values["revision"], config_values["model"]):
                 raise ProviderError("Die KI-Einstellung wurde geändert.")

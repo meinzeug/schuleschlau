@@ -366,6 +366,11 @@ def features_for(db, child_id, job_id):
 
 def choose_tier(function, features, *, economy=False):
     # Start difficult material on the suitable route, without a trial cascade.
+    # A visual sidecar has to bind every saved question to source-backed
+    # graphic steps. Use the explicitly configured teaching route from the
+    # outset; this is not a retry or a fallback after another model fails.
+    if function == "unit_visuals":
+        return "sol", "source_bound_visual_explanation"
     if function == "extract" and features.get("extraction_failed"):
         return "sol", "recorded_transcription_failure"
     if function == "extract" and features.get("transcription_review"):

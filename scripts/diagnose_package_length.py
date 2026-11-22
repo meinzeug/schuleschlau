@@ -9,7 +9,6 @@ import json
 import os
 import sys
 import time
-from decimal import Decimal
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -40,6 +39,8 @@ def main():
     parser.add_argument('--case', choices=tuple(CASES), default='biology')
     parser.add_argument('--study', action='store_true', help='Run the fixed artificial history study-stage probe')
     parser.add_argument('--schema-probe', action='store_true', help='Test one fixed artificial schema-boundary request')
+    parser.add_argument('--tier', choices=('sol', 'luna'), default='sol', help='Model tier for this one synthetic call')
+    parser.add_argument('--region', choices=('standard', 'eu'), default='standard', help='Explicit route region; no fallback')
     parser.add_argument('--key-file', type=Path, default=Path.home() / 'or.txt')
     args = parser.parse_args()
     if args.study and args.case not in ('history', 'history_list'):
@@ -58,6 +59,7 @@ def main():
     from schulpilot import fixtures, visual_references
     from schulpilot.db import DB, Child, Family, Installation, Job, ProviderConfig, Usage, User, init_db, now, uid
     from schulpilot.model_routing import RoutingPolicy, select_route
+    from schulpilot.market_data import parse_prices
     from schulpilot.providers import ProviderError, Result, request_provider, reserve, settle
     from schulpilot.security import password_hash
     from sqlalchemy import select
@@ -69,25 +71,26 @@ def main():
             headers={'Authorization': 'Bearer ' + os.environ['OPENROUTER_API_KEY']})
         eligible.raise_for_status()
         zdr = {(e['model_id'], e['tag']) for e in eligible.json()['data']}
-        for tier, model, upstream in [('luna', 'openai/gpt-6-luna', 'azure'),
-                                      ('sol', 'openai/gpt-6.1-sol', 'azure/eu')]:
-            response = client.get('https://openrouter.ai/api/v1/models/' + model + '/endpoints')
+        upstream = 'azure/eu' if args.region == 'eu' else 'azure'
+        host = 'https://eu.openrouter.ai' if args.region == 'eu' else 'https://openrouter.ai'
+        for tier, model in [('luna', 'openai/gpt-6-luna'), ('sol', 'openai/gpt-6.1-sol')]:
+            response = client.get(host + '/api/v1/models/' + model + '/endpoints')
             response.raise_for_status()
             data = response.json()['data']
             endpoint = next(e for e in data['endpoints'] if e['tag'] == upstream and e['status'] == 0
                             and (model, upstream) in zdr)
             if not {'reasoning', 'response_format', 'structured_outputs'} <= set(endpoint['supported_parameters']):
                 raise RuntimeError('The fixed upstream lacks a required parameter')
-            rates = [int((Decimal(endpoint['pricing'][k]) * 10**12).to_integral_value())
-                     for k in ('prompt', 'completion')]
+            rates = parse_prices(response.json(), model, [upstream])
             routes[tier] = {'model': model, 'upstreams': [upstream],
-                'input_per_million_micros': rates[0], 'output_per_million_micros': rates[1],
+                'input_per_million_micros': rates['prompt'], 'output_per_million_micros': rates['completion'],
                 'max_output_tokens': 8000 if tier == 'sol' else 4000, 'reserve_micros': 1000000,
                 'image_capable': 'image' in data['architecture']['input_modalities'],
                 'capability_evidence': 'Verified endpoint metadata for isolated artificial package probe',
                 'pricing_evidence': 'https://openrouter.ai/api/v1/models/' + model + '/endpoints',
                 'verified_at': int(now()), 'evaluated': False, 'under13_approved': False}
     policy = RoutingPolicy(version=1, enabled=True, revision='fixed-biology-package-diagnostic-1', routes=routes,
+        region=args.region, regional_access_evidence='Explicit operator-selected region for synthetic probe' if args.region != 'standard' else '',
         budget={'eur_per_usd': '1.00', 'fx_evidence': 'Synthetic test bound; not a real exchange rate',
                 'fx_checked_at': int(now()), 'fee_reserve_bps': 800}).model_dump()
     with DB.begin() as db:
@@ -131,7 +134,7 @@ def main():
                   idempotency='fixed-artificial-package-' + args.case)
         db.add(job)
         db.flush()
-        usage = reserve(db, family, child.id, job.id, function, synthetic_fixture=True, probe_tier='sol')
+        usage = reserve(db, family, child.id, job.id, function, synthetic_fixture=True, probe_tier=args.tier)
         routed = select_route(config, function, snapshot=usage.route_snapshot)
         job_id = job.id
     # This process replaces only the trusted server fixture with the fixed
@@ -195,7 +198,8 @@ def main():
     with DB.begin() as db:
         usage = db.scalar(select(Usage).where(Usage.job_id == job_id))
         settle(db, usage, result, failed=bool(error))
-        report = {'synthetic_only': True, 'case': args.case, 'status': 'failed' if error else 'completed', 'error': error,
+        report = {'synthetic_only': True, 'case': args.case, 'tier': args.tier, 'region': args.region,
+            'status': 'failed' if error else 'completed', 'error': error,
             'elapsed_seconds': round(time.monotonic() - started, 2), 'cost_micros_usd': usage.cost_micros,
             'input_tokens': usage.input_tokens, 'output_tokens': usage.output_tokens, 'telemetry': usage.telemetry,
             **({'schema_probe': result.data} if args.schema_probe and result and result.data else {})}

@@ -13,6 +13,14 @@ from test_visual_references import SOURCE, step
 from test_visual_references import generated_visual_unit as original_generated_visual_unit
 
 
+@pytest.mark.parametrize("economy", [True, False])
+def test_graphical_sidecar_has_explicit_teaching_route(economy):
+    from schulpilot.model_routing import choose_tier
+
+    assert choose_tier("unit_visuals", {}, economy=economy) == (
+        "sol", "source_bound_visual_explanation")
+
+
 @pytest.fixture
 def generated_visual_unit(household):
     return original_generated_visual_unit.__wrapped__(household)
@@ -55,7 +63,7 @@ def test_parent_prepares_legacy_graphics_without_child_activity_or_modifying_sav
     response = start(api, uid, key)
     assert response.status_code == 202, response.text
     jid = response.json()["id"]
-    assert calls["reserve"][0][2] == "unit"
+    assert calls["reserve"][0][2] == "unit_visuals"
     assert start(api, uid, key).json() == response.json()
     assert len(calls["reserve"]) == 1
     with DB.begin() as db:
@@ -147,6 +155,26 @@ def test_missing_idempotency_key_never_reserves(api, legacy):
     uid, _, _, calls = legacy
     assert api.post(f"/api/units/{uid}/visual-explanation").status_code == 422
     assert calls["reserve"] == []
+
+
+def test_scene_without_source_arrow_is_rejected_before_reservation(api, legacy, monkeypatch):
+    from schulpilot import visual_jobs
+
+    uid, _, _, calls = legacy
+    original = visual_jobs.with_visual_context
+
+    def no_scene_evidence(*args, **kwargs):
+        value = original(*args, **kwargs)
+        value["visual_context"]["references"] = [{"id": "general.source_relation.phases", "kind": "scene"}]
+        assert all("→" not in row["content"] and "->" not in row["content"]
+                   for row in value["visual_context"]["sources"])
+        return value
+
+    monkeypatch.setattr(visual_jobs, "with_visual_context", no_scene_evidence)
+    response = start(api, uid)
+    assert response.status_code == 409
+    assert calls["reserve"] == []
+    assert calls["provider"] == []
 
 
 def test_sidecar_context_is_derived_from_existing_source_revision_and_saved_question(api, legacy):

@@ -2002,6 +2002,34 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Erklärgrafiken und Animationen fachlich und technisch abnehmen**
 
+  - [ ] **Echte KI-Bilddateien sicher über OpenRouter anbinden.**
+    Ein künstlicher Live-Test am 22.11.2026 hat mit `microsoft/mai-image-2.7-flash`
+    auf dem fest gewählten Azure-Endpunkt ein PNG erzeugt; ZDR und
+    Datensammlungssperre waren angefordert. Abgerechnet wurden laut Anbieter
+    0,01030825 USD. Dies ist ein isolierter Techniktest, keine Anbindung an
+    Kinderkonten und kein Nachweis fachlicher Bildrichtigkeit. Ein zuvor
+    geprüfter OpenAI-Bildendpunkt lehnte dieselbe ZDR-Vorgabe mit 404 ab;
+    die Vorgabe wurde nicht gelockert.
+
+    Für den regulären Weg fehlen insbesondere ein explizit konfigurierter und
+    geprüfter Bildanbieter mit Preisobergrenze und normaler atomarer
+    Reservierung/Abrechnung, ein datensparsamer öffentlicher Themenprompt ohne
+    private Heftinhalte, begrenzte Bildvalidierung und sichere Speicherung,
+    versionierte Wiederverwendung, Rechte-/Löschprüfung und eine verständliche
+    Anzeige als ungeprüftes KI-Bild. Bilder dürfen keine geprüften
+    mathematischen/inhaltlichen Zusammenhänge vortäuschen. Erst nach Tests des
+    echten reservierten Wegs und der tatsächlichen App-Anzeige abhaken.
+
+  - [ ] **Vorbereitung fehlender Erklärgrafiken zuverlässig machen.**
+    Die konkrete Bienenrunde hatte nur das allgemeine Szenenrezept zur Auswahl,
+    aber keinen dafür erforderlichen Pfeil in der Quelle. Zusätzlich war die
+    zuvor ausgewählte Luna-Route abgelaufen. Der neue Code wählt für explizite
+    Grafikerklärungen die feste Sol-Route und lehnt eine nachweislich
+    unbrauchbare alleinige Szenenvorlage vor Reservierung ab. Ein künstlicher
+    Sol-Aufruf ohne Quellenpfeil lieferte keine gültige Szene und wurde korrekt
+    abgewiesen. Eine passende geprüfte alternative Darstellung und ein
+    erfolgreicher Ende-zu-Ende-Lauf für die Bienenrunde fehlen noch.
+
   - [x] **Öffentliche Unterthemen eindeutig und datensparsam zuordnen.**
     Die automatische Auswahl erkennt zusätzlich vollständige Titel bestätigter,
     kuratierter Kataloginhalte im aktiven Snapshot; Fach und Themenzuordnung
