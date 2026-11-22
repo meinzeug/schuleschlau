@@ -5,7 +5,7 @@ import json
 
 import pytest
 from schulpilot import providers, study_path
-from schulpilot.db import DB, Attempt, Child, LearningUnit, Material, SchoolDay, UnitSource
+from schulpilot.db import DB, Attempt, Child, LearningMemory, LearningUnit, Material, SchoolDay, UnitSource
 from schulpilot.learning import plan
 from schulpilot.learning_origins import next_item, open_rounds, round_days
 from schulpilot.source_lineage import learning_source
@@ -72,10 +72,50 @@ def test_related_rounds_use_own_single_day_sources_without_changing_anything(stu
         assert round_days(db, study['child']['id'])[identifier] == study['day_id']
         related = open_rounds(db, study['child']['id'], study['day_id'])
         assert related == [{'id': identifier, 'topic': 'Gezielt festigen', 'subject': 'Sachunterricht',
-            'status': 'not_started', 'round_kind': 'repair'}]
+            'status': 'not_started', 'round_kind': 'repair', 'round_deferred': False}]
         assert study_path.path_data(db, db.get(SchoolDay, study['day_id']), db.get(Child, study['child']['id']))['related_rounds'] == related
         assert not db.dirty and not db.new
         assert db.scalar(select(func.count()).select_from(Attempt)) == 0
+
+
+def test_related_round_deferral_tracks_plan_and_source_without_writes(study):
+    from schulpilot.learning_controller import source_state
+    from schulpilot.synthetic import sample_unit
+
+    create(study)
+    with DB.begin() as db:
+        page = db.get(Material, study['materials'][0])
+        sample = sample_unit()
+        unit = LearningUnit(child_id=page.child_id, subject=page.subject, topic=page.topic,
+            explanation=sample['explanation'], questions=sample['questions'][:2], provider='fixture', status='paused')
+        db.add(unit)
+        db.flush()
+        db.add(UnitSource(unit_id=unit.id, material_id=page.id, revision=page.revision))
+        db.flush()
+        signature, valid, _ = source_state(db, unit)
+        assert valid
+        db.add(LearningMemory(unit_id=unit.id, child_id=unit.child_id, source_signature=signature,
+            plan_revision=1, working={'round_deferral': {'version': 1, 'reason': 'already_done',
+                'source_signature': signature, 'plan_revision': 1}}, decision={}))
+        identifier, page_id = unit.id, page.id
+    with DB() as db:
+        related = open_rounds(db, study['child']['id'], study['day_id'])
+        assert next(item for item in related if item['id'] == identifier)['round_deferred'] is True
+        assert not db.dirty and not db.new
+        assert not db.scalar(select(Attempt.id).where(Attempt.unit_id == identifier))
+    with DB.begin() as db:
+        db.get(LearningMemory, identifier).plan_revision += 1
+    with DB() as db:
+        assert next(item for item in open_rounds(db, study['child']['id'], study['day_id'])
+                    if item['id'] == identifier)['round_deferred'] is False
+        assert not db.dirty and not db.new
+    with DB.begin() as db:
+        db.get(LearningMemory, identifier).plan_revision = 1
+        db.get(Material, page_id).revision += 1
+    with DB() as db:
+        assert next(item for item in open_rounds(db, study['child']['id'], study['day_id'])
+                    if item['id'] == identifier)['round_deferred'] is False
+        assert not db.dirty and not db.new
 
 
 def test_ready_round_precedes_new_review_but_not_active_or_mandatory_work():

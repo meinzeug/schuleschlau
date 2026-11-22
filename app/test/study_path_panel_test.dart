@@ -184,6 +184,43 @@ void _pause(WidgetTester tester) {
 }
 
 void main() {
+  for (final deferred in [true, false]) {
+    testWidgets('related round labels deferral=$deferred without starting it', (
+      tester,
+    ) async {
+      _viewport(tester);
+      final requests = <String>[];
+      final round = <String, dynamic>{
+        'id': 'u',
+        'topic': 'Mein Thema',
+        'round_kind': 'repair',
+        if (deferred) 'round_deferred': true,
+      };
+      final data = _path()..['related_rounds'] = [round];
+      final state = _state(
+        MockClient((request) async {
+          requests.add(request.method);
+          return _json(data);
+        }),
+      );
+      final router = await _open(tester, state);
+      expect(
+        find.text(
+          deferred
+              ? 'Zur Seite gelegt'
+              : 'Gehört zu diesen Heftseiten. Bereits vorbereitet.',
+        ),
+        findsOneWidget,
+      );
+      expect(requests, ['GET']);
+      await _tap(tester, 'Gespeicherte Runde öffnen');
+      expect(find.text('Einheit u'), findsOneWidget);
+      expect(requests, ['GET']);
+      await _dispose(tester, router);
+      state.dispose();
+    });
+  }
+
   testWidgets('a deferred round is not offered as next or reported complete', (
     tester,
   ) async {

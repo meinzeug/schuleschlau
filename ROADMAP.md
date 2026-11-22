@@ -986,6 +986,14 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – Alle Kinderansichten sprachlich und in ihrer Bedienung entrümpeln**
 
+  - [x] **Hausaufgaben und Klassenarbeit-Nacharbeit gezielt vereinfachen.**
+    Bei Hausaufgaben bleibt die Antwortprüfung die Hauptaktion; seltene
+    Schreibwerkzeuge sind zusammengefasst. In der Nacharbeit stehen der
+    eigene Versuch und ein kurzer Hinweis im Vordergrund, weitere Hilfen und
+    Arbeitsfotos lassen sich öffnen. Getrennte Widgettests decken schmale
+    Displays, große Schrift, Entwürfe und Quellenkontrollen ab. Die umfassende
+    Bedienungsabnahme aller Ansichten bleibt weiterhin offen.
+
   **22.11.2026, weitere Teilverbesserung:** Die produktive Kinderansicht wurde
   bei 390 × 844 Pixeln aufgerufen. „Mehr zur Runde“ erhält eine kompakte
   Schaltfläche; seltene Heftseitenaktionen stehen mobil in einem beschrifteten

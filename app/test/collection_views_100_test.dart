@@ -327,6 +327,7 @@ void main() {
       await tester.ensureVisible(input('Mein eigener Versuch'));
       await tester.enterText(input('Mein eigener Versuch'), 'Mein erster Weg');
       await tester.pump();
+      await tap(tester, find.text('Schreibwerkzeuge'));
       await tap(tester, find.text('Größere Schreibansicht'));
       await tester.enterText(
         input('Mein eigener Versuch · große Schreibansicht'),
@@ -537,6 +538,7 @@ void main() {
               find.widgetWithText(TextButton, 'Aktualisieren'),
             )
             .onPressed;
+        await tap(tester, find.text('Schreibwerkzeuge'));
         await tap(tester, find.text('Größere Schreibansicht'));
         switch (change) {
           case 'family':
@@ -586,6 +588,7 @@ void main() {
         'Nur für die erste Aufgabe',
       );
       await tester.pump();
+      await tap(tester, find.text('Schreibwerkzeuge'));
       await tap(tester, find.text('Texteingabe zurücknehmen'));
       expect(
         tester
@@ -621,6 +624,7 @@ void main() {
         }),
       );
       await h.open(tester, state);
+      await tap(tester, find.text('Schreibwerkzeuge'));
       await tap(tester, find.text('Größere Schreibansicht'));
       final oldClose = tester
           .widget<IconButton>(

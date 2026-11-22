@@ -940,6 +940,33 @@ class _ExamReviewPanelState extends State<ExamReviewPanel> {
     ),
   );
 
+  List<Widget> pageButtons() => [
+    for (final page in examObjects(data?['pages']))
+      Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: OutlinedButton.icon(
+          onPressed: () {
+            if (scope.current) {
+              needsRead = true;
+              openRoute(context, '/material/${page['id']}');
+            }
+          },
+          icon: Icon(
+            page['confirmed'] == true
+                ? Icons.check_circle_outline
+                : Icons.fact_check_outlined,
+          ),
+          label: Text(
+            '${page['title'] ?? 'Seite ${examObjects(data?['pages']).indexOf(page) + 1}'} · ${page['confirmed'] == true
+                ? 'Bestätigt · ansehen'
+                : page['status'] == 'uploaded'
+                ? 'Gespeichertes Foto ansehen'
+                : 'Text prüfen & bestätigen'}',
+          ),
+        ),
+      ),
+  ];
+
   Widget photoActions() => Wrap(
     spacing: 8,
     runSpacing: 8,
@@ -1104,30 +1131,14 @@ class _ExamReviewPanelState extends State<ExamReviewPanel> {
                 onPressed: submitScan,
                 icon: Icons.document_scanner_outlined,
               ),
-            for (final page in examObjects(data!['pages']))
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: OutlinedButton.icon(
-                  onPressed: () {
-                    if (scope.current) {
-                      needsRead = true;
-                      openRoute(context, '/material/${page['id']}');
-                    }
-                  },
-                  icon: Icon(
-                    page['confirmed'] == true
-                        ? Icons.check_circle_outline
-                        : Icons.fact_check_outlined,
-                  ),
-                  label: Text(
-                    '${page['title'] ?? 'Seite ${examObjects(data!['pages']).indexOf(page) + 1}'} · ${page['confirmed'] == true
-                        ? 'Bestätigt · ansehen'
-                        : page['status'] == 'uploaded'
-                        ? 'Gespeichertes Foto ansehen'
-                        : 'Text prüfen & bestätigen'}',
-                  ),
-                ),
-              ),
+            if (compactReview && examObjects(data!['pages']).isNotEmpty)
+              ExpansionTile(
+                key: ValueKey(('exam-review-pages', data!['context_revision'])),
+                title: const Text('Fotos der Arbeit'),
+                children: pageButtons(),
+              )
+            else
+              ...pageButtons(),
             if (!compactReview)
               for (final page in examObjects(data!['pages']))
                 for (final uncertainty
@@ -1344,10 +1355,23 @@ class _ExamReviewPanelState extends State<ExamReviewPanel> {
                   ),
                 ),
                 const SizedBox(height: 8),
+                FilledButton.icon(
+                  onPressed: busy || draft.text.trim().isEmpty
+                      ? null
+                      : () => ask('check'),
+                  icon: const Icon(Icons.check_rounded),
+                  label: const Text('Meinen Versuch ansehen lassen'),
+                ),
+                const SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
                   children: [
+                    OutlinedButton.icon(
+                      onPressed: busy ? null : () => ask('hint'),
+                      icon: const Icon(Icons.lightbulb_outline_rounded),
+                      label: const Text('Kleiner Hinweis'),
+                    ),
                     OutlinedButton.icon(
                       onPressed: busy || !dirty ? null : saveDraft,
                       icon: const Icon(Icons.save_outlined),
@@ -1359,30 +1383,26 @@ class _ExamReviewPanelState extends State<ExamReviewPanel> {
                             : 'Entwurf gespeichert',
                       ),
                     ),
-                    OutlinedButton(
-                      onPressed: busy ? null : () => ask('hint'),
-                      child: const Text('Kleiner Hinweis'),
-                    ),
-                    OutlinedButton(
-                      onPressed: busy ? null : () => ask('explain'),
-                      child: const Text('Erklärung'),
-                    ),
-                    FilledButton(
-                      onPressed: busy || draft.text.trim().isEmpty
-                          ? null
-                          : () => ask('check'),
-                      child: const Text('Meinen Versuch ansehen lassen'),
-                    ),
                   ],
                 ),
                 const Text(
                   'KI-Rückmeldung ist eine Hilfe, keine neue Note und kein sicherer Lernnachweis.',
                 ),
-                const SizedBox(height: 12),
-                OutlinedButton.icon(
-                  onPressed: busy ? null : practice,
-                  icon: const Icon(Icons.play_lesson_outlined),
-                  label: const Text('Mit passendem Heftstoff üben'),
+                ExpansionTile(
+                  key: ValueKey(('exam-review-more-help', selectedId)),
+                  leading: const Icon(Icons.help_outline_rounded),
+                  title: const Text('Mehr Hilfe'),
+                  children: [
+                    OutlinedButton(
+                      onPressed: busy ? null : () => ask('explain'),
+                      child: const Text('Erklärung'),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: busy ? null : practice,
+                      icon: const Icon(Icons.play_lesson_outlined),
+                      label: const Text('Mit passendem Heftstoff üben'),
+                    ),
+                  ],
                 ),
               ],
               if (state.isChild)

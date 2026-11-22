@@ -20,9 +20,13 @@ def round_days(db, child_id):
 
 
 def open_rounds(db, child_id, day_id):
+    from .round_deferrals import candidates, is_deferred
+
     days = round_days(db, child_id)
+    deferrals = candidates(db, child_id)
     return [{"id": unit.id, "topic": unit.topic, "subject": unit.subject,
-             "status": unit.status, "round_kind": unit.round_kind}
+             "status": unit.status, "round_kind": unit.round_kind,
+             "round_deferred": unit.id in deferrals and is_deferred(db, unit, deferrals[unit.id])}
             for unit in db.scalars(select(LearningUnit).where(LearningUnit.child_id == child_id,
                 LearningUnit.status != "completed").order_by(LearningUnit.created, LearningUnit.id))
             if days.get(unit.id) == day_id and not unit.school_day_id]

@@ -181,6 +181,7 @@ void main() {
         ),
       );
       await mount(tester, state);
+      await fixtures.tap(tester, 'Schreibwerkzeuge');
       final saved = tester.widget<TextButton>(
         find
             .ancestor(

@@ -208,6 +208,7 @@ void main() {
       ),
     );
     await c.mount(tester, state);
+    await h.tap(tester, 'Schreibwerkzeuge');
     await h.tap(tester, 'Eigenen Versuch leeren');
     await h.tap(tester, 'Versuch leeren');
     expect(

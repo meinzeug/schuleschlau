@@ -50,6 +50,30 @@ Future<AppState> open(
 }
 
 void main() {
+  for (final size in [(320.0, 2.0), (390.0, 1.0)]) {
+    testWidgets(
+      'Schreibwerkzeuge bleiben bei ${size.$1}px und Schrift ${size.$2} zugänglich',
+      (tester) async {
+        final requests = <http.Request>[];
+        final state = h.account(
+          MockClient((request) async {
+            requests.add(request);
+            return h.reply(data());
+          }),
+        );
+        await h.open(tester, state, width: size.$1, scale: size.$2);
+        expect(find.text('Mein eigener Versuch'), findsOneWidget);
+        expect(find.text('Meinen Weg prüfen'), findsOneWidget);
+        expect(find.text('Schreibwerkzeuge'), findsOneWidget);
+        expect(find.text('Meinen Versuch kopieren'), findsNothing);
+        await h.tap(tester, 'Schreibwerkzeuge');
+        expect(find.text('Meinen Versuch kopieren'), findsOneWidget);
+        expect(find.text('Größere Schreibansicht'), findsOneWidget);
+        expect(requests.where((request) => request.method == 'POST'), isEmpty);
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
   testWidgets(
     'child sees one direct hint and can choose further help without sending it',
     (tester) async {
@@ -229,6 +253,7 @@ void main() {
       );
       await tester.pump();
       expect(copied, isEmpty);
+      await h.tap(tester, 'Schreibwerkzeuge');
       await h.tap(tester, 'Meinen Versuch kopieren');
       expect(copied, ['Mein eigener Rechenweg']);
     },

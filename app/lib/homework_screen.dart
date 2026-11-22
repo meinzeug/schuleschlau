@@ -3051,16 +3051,12 @@ class _HomeworkDetailScreenState extends State<_HomeworkDetailBody>
                       LearningContent(selected!['source_quote']),
                       if (canWrite) ...[
                         SizedBox(height: 12),
-                        FilledButton.icon(
+                        OutlinedButton.icon(
                           onPressed: active ? () => ask('explain') : null,
                           icon: Icon(Icons.lightbulb_outline),
                           label: Text('Erkläre es mir'),
                         ),
                         SizedBox(height: 10),
-                        Text(
-                          'Du bekommst eine Erklärung und einen Denkimpuls. Die eigene Lösung bleibt deine Aufgabe.',
-                          style: TextStyle(color: context.palette.muted),
-                        ),
                         if (relevant.isNotEmpty) ...[
                           SizedBox(height: 16),
                           KeyedSubtree(
@@ -3069,16 +3065,6 @@ class _HomeworkDetailScreenState extends State<_HomeworkDetailBody>
                           ),
                         ],
                         SizedBox(height: 18),
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: OutlinedButton.icon(
-                            onPressed: saving || busy || conflict
-                                ? null
-                                : enlargeDraft,
-                            icon: const Icon(Icons.open_in_full),
-                            label: const Text('Größere Schreibansicht'),
-                          ),
-                        ),
                         TextField(
                           controller: draft,
                           focusNode: draftFocus,
@@ -3091,56 +3077,133 @@ class _HomeworkDetailScreenState extends State<_HomeworkDetailBody>
                                 'Was weißt du schon? Wie würdest du anfangen?',
                           ),
                         ),
-                        TextHistoryButtons(
-                          draftHistory,
-                          enabled: !saving && !busy && !conflict,
-                        ),
                         Wrap(
                           spacing: 8,
                           runSpacing: 8,
                           children: [
-                            OutlinedButton.icon(
+                            FilledButton.icon(
                               onPressed: active && draft.text.trim().isNotEmpty
                                   ? () => ask('check')
                                   : null,
                               icon: Icon(Icons.fact_check_outlined),
                               label: Text('Meinen Weg prüfen'),
                             ),
-                            TextButton.icon(
-                              onPressed: draft.text.trim().isEmpty
-                                  ? null
-                                  : copyDraft,
-                              icon: Icon(Icons.copy_outlined),
-                              label: Text('Meinen Versuch kopieren'),
-                            ),
-                            TextButton.icon(
-                              onPressed:
-                                  !busy &&
-                                      !saving &&
-                                      !conflict &&
-                                      draft.text.isNotEmpty
-                                  ? clearDraft
-                                  : null,
-                              icon: Icon(Icons.backspace_outlined),
-                              label: Text('Eigenen Versuch leeren'),
-                            ),
-                            TextButton(
-                              onPressed: saving || !unsaved || conflict
-                                  ? null
-                                  : persist,
-                              child: Semantics(
-                                liveRegion: true,
-                                child: Text(
-                                  saving
-                                      ? 'Speichert …'
-                                      : unsaved
-                                      ? 'Entwurf speichern'
-                                      : 'Entwurf gespeichert',
-                                ),
-                              ),
-                            ),
                           ],
                         ),
+                        if (widget.state.isChild)
+                          ExpansionTile(
+                            title: const Text('Schreibwerkzeuge'),
+                            children: [
+                              Align(
+                                alignment: Alignment.centerLeft,
+                                child: OutlinedButton.icon(
+                                  onPressed: saving || busy || conflict
+                                      ? null
+                                      : enlargeDraft,
+                                  icon: const Icon(Icons.open_in_full),
+                                  label: const Text('Größere Schreibansicht'),
+                                ),
+                              ),
+                              TextHistoryButtons(
+                                draftHistory,
+                                enabled: !saving && !busy && !conflict,
+                              ),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: [
+                                  TextButton.icon(
+                                    onPressed: draft.text.trim().isEmpty
+                                        ? null
+                                        : copyDraft,
+                                    icon: Icon(Icons.copy_outlined),
+                                    label: Text('Meinen Versuch kopieren'),
+                                  ),
+                                  TextButton.icon(
+                                    onPressed:
+                                        !busy &&
+                                            !saving &&
+                                            !conflict &&
+                                            draft.text.isNotEmpty
+                                        ? clearDraft
+                                        : null,
+                                    icon: Icon(Icons.backspace_outlined),
+                                    label: Text('Eigenen Versuch leeren'),
+                                  ),
+                                  TextButton(
+                                    onPressed: saving || !unsaved || conflict
+                                        ? null
+                                        : persist,
+                                    child: Semantics(
+                                      liveRegion: true,
+                                      child: Text(
+                                        saving
+                                            ? 'Speichert …'
+                                            : unsaved
+                                            ? 'Entwurf speichern'
+                                            : 'Entwurf gespeichert',
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          )
+                        else ...[
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: OutlinedButton.icon(
+                              onPressed: saving || busy || conflict
+                                  ? null
+                                  : enlargeDraft,
+                              icon: const Icon(Icons.open_in_full),
+                              label: const Text('Größere Schreibansicht'),
+                            ),
+                          ),
+                          TextHistoryButtons(
+                            draftHistory,
+                            enabled: !saving && !busy && !conflict,
+                          ),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              TextButton.icon(
+                                onPressed: draft.text.trim().isEmpty
+                                    ? null
+                                    : copyDraft,
+                                icon: Icon(Icons.copy_outlined),
+                                label: Text('Meinen Versuch kopieren'),
+                              ),
+                              TextButton.icon(
+                                onPressed:
+                                    !busy &&
+                                        !saving &&
+                                        !conflict &&
+                                        draft.text.isNotEmpty
+                                    ? clearDraft
+                                    : null,
+                                icon: Icon(Icons.backspace_outlined),
+                                label: Text('Eigenen Versuch leeren'),
+                              ),
+                              TextButton(
+                                onPressed: saving || !unsaved || conflict
+                                    ? null
+                                    : persist,
+                                child: Semantics(
+                                  liveRegion: true,
+                                  child: Text(
+                                    saving
+                                        ? 'Speichert …'
+                                        : unsaved
+                                        ? 'Entwurf speichern'
+                                        : 'Entwurf gespeichert',
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                         if (saveError != null) ...[
                           Notice(
                             'Dein Entwurf ist noch nicht sicher gespeichert. $saveError',

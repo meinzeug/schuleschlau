@@ -169,31 +169,33 @@ class _VisualPreparationCardState extends State<VisualPreparationCard>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            pending
-                ? 'Grafische Erklärung wird vorbereitet …'
-                : status == 'legacy_text'
-                ? 'Gespeicherte Texterklärung · Grafikschritte fehlen noch.'
-                : 'Die Erklärgrafik fehlt noch.',
-            key: const ValueKey('visual-readiness'),
-            style: TextStyle(color: context.palette.muted, fontSize: 14),
-          ),
+          if (pending || status == 'legacy_text')
+            Text(
+              pending
+                  ? 'Grafische Erklärung wird vorbereitet …'
+                  : 'Zu deiner Erklärung fehlt noch eine Grafik.',
+              key: const ValueKey('visual-readiness'),
+              style: TextStyle(color: context.palette.muted, fontSize: 14),
+            ),
           if (!pending &&
               widget.unit['synthetic'] != true &&
               widget.unit['can_prepare_visual'] != false)
-            TextButton.icon(
-              onPressed: busy || !current
-                  ? null
-                  : () {
-                      if (identical(widget.unit, renderedUnit)) prepare();
-                    },
-              icon: const Icon(Icons.auto_awesome_outlined),
-              label: Text(
-                busy
-                    ? 'Wird angefragt …'
-                    : failed
-                    ? 'Grafische Erklärung erneut anfragen'
-                    : 'Grafische Erklärung vorbereiten',
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: busy || !current
+                    ? null
+                    : () {
+                        if (identical(widget.unit, renderedUnit)) prepare();
+                      },
+                icon: const Icon(Icons.auto_awesome_outlined),
+                label: Text(
+                  busy
+                      ? 'Wird angefragt …'
+                      : failed
+                      ? 'Grafische Erklärung erneut anfragen'
+                      : 'Grafische Erklärung vorbereiten',
+                ),
               ),
             ),
           if (pending)

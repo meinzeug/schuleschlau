@@ -735,8 +735,8 @@ class _StudyPathPanelState extends State<StudyPathPanel>
                       const SizedBox(height: 6),
                       Text(round['topic'] as String),
                       const SizedBox(height: 6),
-                      const Text(
-                        'Gehört zu diesen Heftseiten. Bereits vorbereitet.',
+                      Text(
+                        round['round_deferred'] == true ? 'Zur Seite gelegt' : 'Gehört zu diesen Heftseiten. Bereits vorbereitet.',
                       ),
                     ],
                   ),

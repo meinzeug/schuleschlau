@@ -55,4 +55,44 @@ void main() {
     expect(find.text('Lernrunde starten'), findsNothing);
     expect(fixture.writes, isEmpty);
   });
+
+  testWidgets(
+    'Nacharbeit führt mobil zum eigenen Versuch und hält Hilfe bereit',
+    (tester) async {
+      final fixture = fixtures.Fixture();
+      fixture.report['pages'] = [
+        {'id': 'page', 'title': 'Beispielfoto', 'confirmed': true},
+      ];
+      await fixture.mount(
+        tester,
+        selected: 'exam',
+        tab: 'review',
+        size: const Size(320, 600),
+        scale: 2,
+      );
+      final field = find.widgetWithText(TextField, 'Dein Verbesserungsversuch');
+      await tester.ensureVisible(field);
+      await tester.enterText(field, 'Mein eigener Versuch');
+      await tester.pump();
+      expect(find.text('Meinen Versuch ansehen lassen'), findsOneWidget);
+      expect(find.text('Kleiner Hinweis'), findsOneWidget);
+      expect(find.text('Mit passendem Heftstoff üben'), findsNothing);
+      expect(find.text('Beispielfoto · Bestätigt · ansehen'), findsNothing);
+      expect(fixture.writes, isEmpty);
+
+      await fixtures.tap(tester, find.text('Fotos der Arbeit'));
+      expect(find.text('Beispielfoto · Bestätigt · ansehen'), findsOneWidget);
+      expect(fixture.writes, isEmpty);
+
+      await fixtures.tap(tester, find.text('Mehr Hilfe'));
+      expect(find.text('Erklärung'), findsOneWidget);
+      expect(find.text('Mit passendem Heftstoff üben'), findsOneWidget);
+      expect(
+        tester.widget<TextField>(field).controller!.text,
+        'Mein eigener Versuch',
+      );
+      expect(fixture.writes, isEmpty);
+      expect(tester.takeException(), isNull);
+    },
+  );
 }

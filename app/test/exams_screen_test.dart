@@ -818,6 +818,7 @@ void main() {
     (tester) async {
       final fixture = Fixture();
       await fixture.mount(tester, selected: 'exam', tab: 'review');
+      await tap(tester, find.text('Mehr Hilfe'));
       await tap(tester, find.text('Mit passendem Heftstoff üben'));
       expect(fixture.writes, isEmpty);
       await tap(tester, find.text('Abbrechen'));

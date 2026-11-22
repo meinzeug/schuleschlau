@@ -762,6 +762,32 @@ void main() {
       expect(reloads, 1);
     },
   );
+  testWidgets('missing graphic offers one compact action without a warning', (
+    tester,
+  ) async {
+    final calls = <http.Request>[];
+    final state = app((request) {
+      calls.add(request);
+      return reply({'status': 'missing'});
+    });
+    addTearDown(state.dispose);
+    await mount(
+      tester,
+      VisualPreparationCard(
+        state: state,
+        unit: {
+          'id': 'unit',
+          'explanation_visual_status': 'missing',
+          'synthetic': false,
+        },
+        isCurrent: () => true,
+        refresh: () async {},
+      ),
+    );
+    expect(find.text('Die Erklärgrafik fehlt noch.'), findsNothing);
+    expect(find.text('Grafische Erklärung vorbereiten'), findsOneWidget);
+    expect(calls.every((call) => call.method == 'GET'), isTrue);
+  });
   testWidgets('107 no invented learning path is displayed without saved plan', (
     tester,
   ) async {
