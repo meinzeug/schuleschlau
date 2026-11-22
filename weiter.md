@@ -1,5 +1,32 @@
 # Übergabe an die nächste Coding-KI
 
+## Aktueller Auftrag vom 22. November 2026
+
+Der Betreiber wünscht echte OpenRouter-Bilder zu Lerninhalten, einen gemeinsam
+wachsenden Katalog für alle Beta-Familien sowie eine Beta-Bewerbung auf der
+Startseite mit ausdrücklicher Adminfreigabe. Für freigegebene Beta-Konten
+sollen keine persönlichen KI-Mengen- oder Kostenlimits gelten; tatsächliche
+Kosten, unbekannte Beträge und Nutzung bleiben für die spätere Preiskalkulation
+vollständig und datensparsam zu erfassen. Andere Familien und die technischen
+Schutz-/Datenschutzprüfungen nicht unbeabsichtigt ändern.
+
+Der Bildanbieter wurde mit einem allgemeinen künstlichen Motiv über OpenRouter
+und Azure bei `zdr=true` und `data_collection=deny` einmal erfolgreich erprobt
+([Beleg](docs/OPENROUTER_IMAGE_PROBE_2026_11_22.md)). Der neue Bildadapter,
+öffentliche unveränderliche Katalogspeicher und Migration 0048 bilden nur einen
+Teil der Umsetzung: Kein regulärer Bildauftrag reserviert oder verbucht Kosten,
+kein Worker verwendet den Adapter, und keine Appseite zeigt diese Bilder.
+Auch Beta-Bewerbung, Adminfreigabe, ausdrückliche Unlimited-Kontingente und
+Auswertung sind noch nicht implementiert. Nicht als fertig oder live ausgeben.
+Alle Themen können noch nicht zuverlässig auf öffentliche Inhaltskennungen
+abgebildet werden. Private Heftseiten und Antworten niemals als globale
+Katalogeinträge oder Bildprompts veröffentlichen. Bei Änderungen die Quell- und
+Rechteprüfung vor und nach dem Aufruf sowie Idempotenz und Abrechnung erhalten.
+
+Vor weiteren Schritten Git-Status, Serverstand und Konfiguration erneut prüfen.
+Neue Migrationen nicht allein wegen dieser Teilimplementierung deployen. Die
+früheren Angaben in dieser Übergabe sind historisch.
+
 Stand: 4. November 2026. Diese Datei ist eine Arbeitsübergabe, kein Ersatz für die aktuellen Nutzeraufträge oder `AGENTS.md`. Prüfe alle Zustände erneut; insbesondere Server, Git, laufende Jobs und Roadmap können sich inzwischen geändert haben. Keine Zugangsdaten, Tokens, privaten Schülerdaten oder Bildinhalte in diese Datei, Logs oder Git schreiben.
 
 **Auftragswechsel 04.11.2026:** Der Nutzer hat die frühere Anweisung

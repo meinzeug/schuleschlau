@@ -1751,6 +1751,24 @@ Bestandteil des bestehenden Buildvertrags.
 
 ## Kapazität und öffentlicher Start
 
+- [ ] **Beta-Anmeldung für weitere Familien auf der Startseite bereitstellen.**
+  Der vorhandene Link erstellt ein Elternkonto; bei abgeschalteter Testphase
+  bekommt es aber keinen KI-Lernzugang. Der Link darf daher noch nicht als
+  funktionierende Beta-Anmeldung ausgegeben werden. Eltern bewerben sich auf
+  der Startseite; erst nach ausdrücklicher Prüfung und Freigabe im Adminbereich
+  erhalten sie einen Beta-Zugang. Ablehnung und Widerruf müssen möglich sein;
+  frühere Nutzungs- und Kostenbelege bleiben erhalten. E-Mail-Bestätigung,
+  Familienisolation und Kinderdaten-/Anbieterfreigaben gelten weiterhin.
+  Für freigegebene Beta-Familien werden auf ausdrücklichen Betreiberauftrag
+  keine persönlichen KI-Mengen- oder Kostengrenzen angewandt. Tatsächliche
+  Providerkosten, unbekannte Kosten, Reservierungen und Nutzung werden dennoch
+  eindeutig und datensparsam für die spätere Preiskalkulation erfasst. Die
+  verschiedenen Grenzschichten und bestehende Freigaben müssen explizit und
+  nur für genehmigte Beta-Familien umgesetzt und getestet werden; keine
+  pauschale Änderung aller Familien. Kein Zahlungsmodell voraussetzen.
+  Anschließend den tatsächlichen Registrierungs- und Lernweg mit künstlichen
+  Konten prüfen und den Zustand auf der öffentlichen Startseite korrekt anzeigen.
+
 - [ ] **P1 – Kapazitätsannahmen vor wachsendem Betrieb messen**
 
   - [x] **Stehende Fotouploads früher freigeben.** Eine Verbindung ohne
@@ -2003,6 +2021,16 @@ Bestandteil des bestehenden Buildvertrags.
 - [ ] **P1 – Erklärgrafiken und Animationen fachlich und technisch abnehmen**
 
   - [ ] **Echte KI-Bilddateien sicher über OpenRouter anbinden.**
+    **Teilfortschritt:** Der noch nicht in Aufträge oder Oberflächen integrierte
+    Bildadapter löst ausschließlich geprüfte öffentliche Kataloginhalte auf,
+    bindet Region und Anbieter explizit und sendet keine privaten Hefttexte.
+    Er begrenzt Antworten, dekodiert genau ein statisches Bild, entfernt
+    Metadaten und erhält auch bei fehlerhafter Bilddatei einen gemeldeten
+    Kostenbeleg. Mock-Transporttests prüfen Datenschutzparameter, Weiterleitungs-
+    sperre und Fehlerbehandlung. Ein neuer noch nicht angebundener Speicher
+    hält unterschiedliche Bildfassungen unveränderlich mit öffentlicher
+    Quellenfassung und Prüfsumme; der Abruf prüft den aktuellen Katalogstand.
+    Migration 0048 ist additiv. Dies ist keine produktive Bildfunktion.
     Ein künstlicher Live-Test am 22.11.2026 hat mit `microsoft/mai-image-2.7-flash`
     auf dem fest gewählten Azure-Endpunkt ein PNG erzeugt; ZDR und
     Datensammlungssperre waren angefordert. Abgerechnet wurden laut Anbieter

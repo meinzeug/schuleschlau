@@ -50,6 +50,108 @@ REAL_ADAPTER = providers.request_provider
 TEXT = "KI-Beispiel: Start → Ziel. Ziel → Abschluss."
 
 
+def test_image_prompt_resolves_only_current_curated_public_content(prepared):
+    from pydantic import ValidationError
+    from fastapi import HTTPException
+    from schulpilot.public_image_contract import public_prompt
+
+    with DB.begin() as db:
+        db.add(CatalogState(provider="test", snapshot_id="public-artificial-v1"))
+        db.add(CatalogContent(id="artificial:image:1", title="Öffentliche Tierkunde",
+            url="https://example.org/public", content_type="article", title_verified=True,
+            data={}, snapshot_id="public-artificial-v1"))
+        db.add(CatalogMembership(topic_id="artificial-mathematik", content_id="artificial:image:1",
+            url="https://example.org/public", curated=True, data={}, snapshot_id="public-artificial-v1"))
+    selector = {**spec(), "catalog_content_id": "artificial:image:1"}
+    with DB() as db:
+        resolved, prompt = public_prompt(db, selector)
+        assert resolved["catalog_content"]["id"] == "artificial:image:1"
+        assert "Öffentliche Tierkunde" in prompt and "artificial:image:1" not in prompt
+        with pytest.raises(ValidationError):
+            public_prompt(db, {**selector, "private_note": "private Heftseite"})
+    with DB.begin() as db:
+        db.get(CatalogContent, "artificial:image:1").title_verified = False
+    with DB() as db, pytest.raises(HTTPException):
+        public_prompt(db, selector)
+
+
+def test_public_images_are_immutable_reusable_and_require_current_catalogue(prepared):
+    import base64
+    import io
+    from PIL import Image
+    from fastapi import HTTPException
+    from schulpilot.public_image_contract import parse_response, public_prompt
+    from schulpilot.public_image_catalog import find_current, publish
+    from schulpilot.public_image_models import PublicImage
+
+    with DB.begin() as db:
+        db.add(CatalogState(provider="test", snapshot_id="public-artificial-v1"))
+        db.add(CatalogContent(id="artificial:image:2", title="Öffentliche Tierkunde",
+            url="https://example.org/public", content_type="article", title_verified=True,
+            data={}, snapshot_id="public-artificial-v1"))
+        db.add(CatalogMembership(topic_id="artificial-mathematik", content_id="artificial:image:2",
+            url="https://example.org/public", curated=True, data={}, snapshot_id="public-artificial-v1"))
+    selector = {**spec(), "catalog_content_id": "artificial:image:2"}
+
+    def picture(color):
+        out = io.BytesIO()
+        Image.new("RGB", (80, 80), color).save(out, "PNG")
+        return parse_response(json.dumps({"data": [{"b64_json": base64.b64encode(out.getvalue()).decode()}]}).encode())
+
+    with DB.begin() as db:
+        public, _ = public_prompt(db, selector)
+        one = publish(db, selector, public, picture("red"), model="test/image", upstream="azure", region="standard")
+        key = one.cache_key
+        assert publish(db, selector, public, picture("red"), model="test/image", upstream="azure", region="standard").cache_key == key
+        two = publish(db, selector, public, picture("blue"), model="test/image", upstream="azure", region="standard")
+        assert two.cache_key != key
+        assert db.query(PublicImage).count() == 2
+    with DB() as db:
+        found = find_current(db, selector)
+        assert found and found.factual_status == "unassessed"
+        assert "child_id" not in PublicImage.__table__.columns
+        assert "private" not in json.dumps(found.specification).lower()
+    with DB.begin() as db:
+        db.get(CatalogContent, "artificial:image:2").title_verified = False
+    with DB() as db, pytest.raises(HTTPException):
+        find_current(db, selector)
+
+
+def test_concurrent_identical_public_images_are_idempotent_postgres(prepared):
+    import base64
+    import io
+    from PIL import Image
+    from schulpilot.db import engine
+    from schulpilot.public_image_contract import parse_response, public_prompt
+    from schulpilot.public_image_catalog import publish
+    from schulpilot.public_image_models import PublicImage
+
+    if engine.dialect.name != "postgresql":
+        pytest.skip("Real PostgreSQL concurrency test")
+    with DB.begin() as db:
+        db.add(CatalogState(provider="test", snapshot_id="public-artificial-v1"))
+        db.add(CatalogContent(id="artificial:image:race", title="Öffentliche Tierkunde",
+            url="https://example.org/public", content_type="article", title_verified=True,
+            data={}, snapshot_id="public-artificial-v1"))
+        db.add(CatalogMembership(topic_id="artificial-mathematik", content_id="artificial:image:race",
+            url="https://example.org/public", curated=True, data={}, snapshot_id="public-artificial-v1"))
+    selector = {**spec(), "catalog_content_id": "artificial:image:race"}
+    out = io.BytesIO()
+    Image.new("RGB", (80, 80), "blue").save(out, "PNG")
+    receipt = parse_response(json.dumps({"data": [{"b64_json": base64.b64encode(out.getvalue()).decode()}]}).encode())
+
+    def write():
+        with DB.begin() as db:
+            public, _ = public_prompt(db, selector)
+            return publish(db, selector, public, receipt, model="test/image", upstream="azure", region="standard").cache_key
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        keys = list(pool.map(lambda _: write(), range(2)))
+    assert keys[0] == keys[1]
+    with DB() as db:
+        assert db.query(PublicImage).count() == 1
+
+
 def output(subject="Mathematik"):
     steps = []
     for caption, first, last in (("Start → Ziel", "a", "b"), ("Ziel → Abschluss", "b", "c")):
