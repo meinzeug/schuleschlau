@@ -2024,7 +2024,7 @@ Bestandteil des bestehenden Buildvertrags.
     Quellen bleiben ausgeschlossen. Der reguläre Paketpfad ist dadurch noch
     nicht aktiviert. [Entwurf und offene Schritte](docs/PACKAGE_FRACTION_PLAN_DESIGN_2026_11_06.md).
 
-  - [ ] **Bruchaufgaben für initiale Paketpartitionen vorab verbindlich planen.**
+  - [x] **Bruchaufgaben für initiale Paketpartitionen vorab verbindlich planen.**
     **Vorbereitender Teilstand:** `package_fraction_plan.py` berechnet für
     ausdrücklich belegtes Erweitern oder Kürzen eine begrenzte Auswahl mit
     festem Faktor beziehungsweise Teiler. Bestehende diagnostische und offene
@@ -2088,8 +2088,11 @@ Bestandteil des bestehenden Buildvertrags.
     erkannt; der allgemeine Folgeauftrag brach wegen Ausgabelänge ab und
     kostete laut Anbieter 0,005553 USD. Zusammenhängende umgebrochene
     Kürzungsregeln werden jetzt wörtlich und mit Negations-/Absatzprüfung
-    erkannt. Die erneute echte Kürzungsprobe und die vollständige Abnahme
-    bleiben offen.
+    erkannt. Die anschließende echte Wiederholung erstellte eine Kürzungsrunde
+    mit zwei geprüften gespeicherten Lösungsbildern (0,034634 USD laut
+    Anbieter). Beide künstlichen Mehrseitenfälle, frühere Fehler, Kosten und
+    Prüfgrenzen sind im [Testbericht](docs/PACKAGE_FRACTION_LIVE_2026_11_23.md)
+    dokumentiert.
 
     Ein versionierter Paketadapter soll nur für ein eindeutig gewähltes
     Mathematikfach und ausdrücklich bestätigte, zur Quellenrevision passende

@@ -33,8 +33,9 @@ Runde für 0,003139 USD. Beim künstlichen Kürzungsfall stand die erkannte Rege
 über zwei Zeilen; der Planer erkannte sie nicht und der allgemeine Auftrag
 scheiterte an der Ausgabelänge (0,005553 USD laut Anbieter). Die Kürzungsregel
 wird jetzt auch über zusammengehörige Zeilen hinweg wörtlich erkannt; Absätze,
-Verneinungen und Einschränkungen bleiben geschützt. Der erneute echte
-Kürzungsfall und die Prüfung seiner konkreten Ausgabe bleiben offen.
+Verneinungen und Einschränkungen bleiben geschützt. Die echte Wiederholung
+erstellte eine Kürzungsrunde mit zwei gespeicherten Lösungsbildern. Ergebnisse,
+Kosten und Grenzen stehen im [Testbericht](PACKAGE_FRACTION_LIVE_2026_11_23.md).
 
 ## Ursprünglicher Entwurf vom 6. November 2026
 
