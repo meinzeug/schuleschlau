@@ -23,6 +23,27 @@ def slots(*roles):
     return [{'id': f'q{i+1}', 'role': role} for i, role in enumerate(roles)]
 
 
+@pytest.mark.parametrize('content', [
+    'Brüche kürzen\n\nBeim Kürzen teilt man Zähler und Nenner\ndurch dieselbe Zahl. Beispiel: 2/4 = 1/2.',
+    'Beim Kürzen werden Zähler und Nenner\ndurch die gleiche Zahl geteilt.',
+])
+def test_wrapped_literal_reduction_rule_is_planned_without_changing_its_source(content):
+    value = planner.prepare(payload(content), slots('practice'), [])
+    assert value['operation'] == 'reduce'
+    assert '\n' in value['source_excerpt'] and value['source_excerpt'] in content
+
+
+@pytest.mark.parametrize('content', [
+    'Beim Kürzen teilt man Zähler und Nenner\n\ndurch dieselbe Zahl.',
+    'Beim Kürzen teilt man Zähler und Nenner\nnicht durch dieselbe Zahl.',
+    'Falsches Beispiel beim Kürzen: Man teilt Zähler und Nenner\ndurch dieselbe Zahl.',
+    'Beim Kürzen teilt man Zähler und Nenner\ndurch dieselbe Zahl. Heute nur durch 2.',
+    'Beim Kürzen teilt man Zähler und Nenner\nbeim Vergleich durch dieselbe Zahl.',
+])
+def test_wrapped_reduction_never_joins_unrelated_or_restricted_claims(content):
+    assert planner.prepare(payload(content), slots('practice'), []) is None
+
+
 @pytest.mark.parametrize(('content', 'method'), [(EXPAND, 'expand'), (REDUCE, 'reduce')])
 @pytest.mark.parametrize('count', [0, 1, 2])
 def test_exact_calculation_and_no_duplicate_values(content, method, count):

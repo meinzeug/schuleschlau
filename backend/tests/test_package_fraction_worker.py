@@ -14,7 +14,8 @@ from test_package_fraction_reservation import running_job
 from test_package_transport import config
 
 
-@pytest.mark.parametrize('content', [EXPAND, REDUCE])
+@pytest.mark.parametrize('content', [EXPAND, REDUCE,
+    'Brüche kürzen\n\nBeim Kürzen teilt man Zähler und Nenner\ndurch dieselbe Zahl. Beispiel: 2/4 = 1/2.'])
 @pytest.mark.parametrize(('mode', 'fault', 'page_count'), [('default', None, 1), ('default', None, 2),
     ('default', 'wrong_answer', 1), ('default', 'revoked_session', 1), ('default', 'changed_source', 1),
     ('default', 'concurrent_question', 1), ('source_probe', None, 1), ('reuse_evidence', None, 1),

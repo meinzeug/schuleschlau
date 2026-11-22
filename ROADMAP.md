@@ -2081,7 +2081,15 @@ Bestandteil des bestehenden Buildvertrags.
     Der Transport bindet jeden vorgesehenen Aufgabenplatz einzeln an seine ID;
     Modellantworten werden weiterhin unverändert streng nachgeprüft. Die
     genaue Ursache des vergangenen Modelloutputs ist nicht gespeichert und
-    daher rückwirkend nicht belegt; die echte Abnahme bleibt offen.
+    daher rückwirkend nicht belegt. Ein anschließender echter Mehrseitenlauf
+    zum Erweitern erstellte eine Runde mit einer geplanten Aufgabe; der
+    Anbieter meldete 0,003139 USD. Beim künstlichen Kürzungsfall war die
+    korrekte Regel über zwei Zeilen verteilt und wurde nicht für den Plan
+    erkannt; der allgemeine Folgeauftrag brach wegen Ausgabelänge ab und
+    kostete laut Anbieter 0,005553 USD. Zusammenhängende umgebrochene
+    Kürzungsregeln werden jetzt wörtlich und mit Negations-/Absatzprüfung
+    erkannt. Die erneute echte Kürzungsprobe und die vollständige Abnahme
+    bleiben offen.
 
     Ein versionierter Paketadapter soll nur für ein eindeutig gewähltes
     Mathematikfach und ausdrücklich bestätigte, zur Quellenrevision passende

@@ -28,8 +28,13 @@ scheiterte bei der Planbindung; sein Inhalt wurde nicht gespeichert. Damit die
 KI ihre beiden Aufgabeplätze nicht versehentlich doppelt belegt, bindet der
 Transport nun jeden Platz an die vom Lernstart vorgegebene Aufgaben-ID. Die
 Validierung unterscheidet künftig inhaltsfrei Slot-, Grafik- und Kernfehler.
-Die erfolgreiche echte Anbieterprobe und die Prüfung ihrer konkreten Ausgabe
-bleiben offen.
+Ein echter künstlicher Zweiquellenlauf zum Erweitern erstellte anschließend eine
+Runde für 0,003139 USD. Beim künstlichen Kürzungsfall stand die erkannte Regel
+über zwei Zeilen; der Planer erkannte sie nicht und der allgemeine Auftrag
+scheiterte an der Ausgabelänge (0,005553 USD laut Anbieter). Die Kürzungsregel
+wird jetzt auch über zusammengehörige Zeilen hinweg wörtlich erkannt; Absätze,
+Verneinungen und Einschränkungen bleiben geschützt. Der erneute echte
+Kürzungsfall und die Prüfung seiner konkreten Ausgabe bleiben offen.
 
 ## Ursprünglicher Entwurf vom 6. November 2026
 

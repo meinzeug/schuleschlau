@@ -53,6 +53,20 @@ def _connected_expansion_clause(quote):
     ))
 
 
+def _connected_reduction_clause(quote):
+    """A wrapped literal rule must connect both parts to the same divisor."""
+    names = r"\bzähler\s+und\s+(?:(?:den|der)\s+)?nenner(?:\s+(?:eines|des)\s+bruch(?:e)?s)?"
+    verb = r"(?:teilen|teilt|teile|teilst|geteilt|dividieren|dividiert|dividiere|dividierst)"
+    common = (r"durch\s+(?:(?:dieselbe|die\s+gleiche|eine\s+gemeinsame)\s+(?:ganze\s+)?zahl"
+              r"|(?:denselben|den\s+gleichen)\s+teiler)\b")
+    subject, phase = r"(?:(?:du|man|wir)\s+)?", r"(?:beim\s+kürzen\s+)?"
+    return any(re.search(pattern, quote, re.I) for pattern in (
+        verb + r"\s+" + subject + phase + names + r"\s+" + common,
+        names + r"\s+" + verb + r"\s+" + subject + phase + common,
+        names + r"\s+(?:(?:werden|wird)\s+)?" + common + r"\s+" + verb + r"\b",
+    ))
+
+
 def _procedure_quote(sources, label):
     """Require a general rule in one clause, not nearby vocabulary/examples."""
     operation = {
@@ -94,10 +108,11 @@ def _procedure_quote(sources, label):
                 if not re.search(r"\b(?:nicht|niemals|keinesfalls|falsch\w*|gegenbeispiel|fehlerhaft\w*|morgen|später)\b", prefix, re.I):
                     return match[0]
     for material in sources:
-        # A wrapped expansion rule remains one literal clause. Never join
+        # A wrapped fraction rule remains one literal clause. Never join
         # separate paragraphs or infer the rule from a heading and examples.
-        parts = re.split(r"\r?\n[^\S\r\n]*\r?\n", material["content"]) if label == "Brüche erweitern" else [material["content"]]
-        pattern = r"[^.!?;]+(?:[.!?;]+|$)" if label == "Brüche erweitern" else r"[^.!?;\r\n]+(?:[.!?;\r\n]+|$)"
+        wrapped_rule = label in ("Brüche erweitern", "Brüche kürzen")
+        parts = re.split(r"\r?\n[^\S\r\n]*\r?\n", material["content"]) if wrapped_rule else [material["content"]]
+        pattern = r"[^.!?;]+(?:[.!?;]+|$)" if wrapped_rule else r"[^.!?;\r\n]+(?:[.!?;\r\n]+|$)"
         for match in (match for part in parts for match in re.finditer(pattern, part)):
             quote = match.group().strip()
             lower = quote.casefold()
@@ -111,6 +126,10 @@ def _procedure_quote(sources, label):
             if (label == "Brüche erweitern" and ("\n" in quote or "\r" in quote or re.search(r"\bder\s+selben\b", lower))
                     and not _connected_expansion_clause(quote)):
                 continue
+            if label == "Brüche kürzen" and ("\n" in quote or "\r" in quote):
+                if (re.search(r"\b(?:falsch\w*|gegenbeispiel|fehlerhaft\w*)\b", lower)
+                        or not _connected_reduction_clause(quote)):
+                    continue
             if label == "Brüche addieren":
                 same = re.search(r"\bgleich(?:em|en|e|er)?\s+nenner(?:n)?\b", lower)
                 numerator_addition = re.search(
@@ -141,13 +160,15 @@ def _procedure_quote(sources, label):
                     lower,
                 )
             if verb and general:
-                if label == "Brüche erweitern":
+                if wrapped_rule:
                     # Validate the full clause and all source restrictions
                     # first. A complete unpunctuated rule need not quote an
                     # unrelated following note; actual rule wraps stay literal.
                     for line_end in re.finditer(r"\r?\n", quote):
                         prefix = quote[:line_end.start()].strip()
-                        if re.search(operation, prefix, re.I) and _connected_expansion_clause(prefix):
+                        connected = (_connected_expansion_clause(prefix) if label == "Brüche erweitern"
+                                     else _connected_reduction_clause(prefix))
+                        if re.search(operation, prefix, re.I) and connected:
                             return prefix
                 return quote
     return None
