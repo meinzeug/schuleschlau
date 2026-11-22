@@ -2049,9 +2049,13 @@ Bestandteil des bestehenden Buildvertrags.
     Der kompakte Paketprüfer akzeptiert zwei Bilder ausschließlich für eine
     exakt dem privaten Plan entsprechende Lösungsdarstellung; ohne diesen
     Plan und für Einführungen bleibt die Ein-Bild-Grenze bestehen.
-    Weiterhin fehlen im aktiven Paketweg persistente parallele Historie,
-    Einbindung in Worker und Grafikvalidierung, Rechteprüfung, Veröffentlichung,
-    PostgreSQL-Konkurrenz und echte Anbieterprobe.
+    Eine noch nicht vom Worker aufgerufene Reservierung speichert den Plan
+    unter Kindersperre im bestehenden Teilauftrag und prüft vor und nach dem
+    geplanten Aufruf Berechtigung, Originalquellen, Historie und Ausgabe.
+    Tests nutzen echte lokale Sitzungs-/Quellenprüfungen mit künstlichen Daten
+    und prüfen parallele Zugriffe auf isoliertem PostgreSQL. Weiterhin fehlen
+    im aktiven Paketweg die Einbindung in Worker und Grafikvalidierung, die
+    erneute Prüfung bei Veröffentlichung sowie die echte Anbieterprobe.
     Der Punkt bleibt offen; der neue Helfer startet keine KI oder Lernrunde.
 
     Ein versionierter Paketadapter soll nur für ein eindeutig gewähltes
