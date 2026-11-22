@@ -1330,6 +1330,15 @@ Die folgenden Punkte beschreiben ausstehende, wiederholbare Betriebs- und Freiga
   **Abnahme:** ein isolierter, ausdrücklich autorisierter Test die Erkennung und Zuordnung einer Störung belegt, Meldungen keine privaten Inhalte enthalten und Runbook, Eskalation und Wiederanlauf aktuell sind.
 - [x] **P1 – Anbieter- und Kostenkontrollen revisionsgebunden nachweisen**
 
+  - [x] **EZB- und OpenRouter-Kostenmetadaten regelmäßig prüfen.** Der
+    bestehende Worker übernimmt nur gültige, aktuelle EZB-Referenzkurse und
+    die konservativ höchste veröffentlichte Preisstufe der bereits gewählten
+    Upstreams. Laufende und gleichzeitig reservierte Aufträge behalten ihre
+    Revision; fehlende Quellen ersetzen keine Werte und begrenzen weiterhin
+    die Freigabe. Modellfähigkeiten werden durch Metadaten nicht als neu
+    praktisch geprüft ausgegeben. Künstliche Tests decken ungültige Daten,
+    Quellenausfall und gleichzeitige Aufträge ab.
+
   Tatsächlich aktive Konfiguration und spätere dokumentierte Betreiberentscheidungen prüfen (`docs/APPROVALS.md`, `docs/STATUS.md`); historische Standards nicht als aktuelle Einstellung behandeln. Mit ausschließlich freigegebenen künstlichen Vorlagen den regulären Ablauf und atomare Reservierung bei Erfolg, Fehler, Parallelität und Widerruf testen.
 
   **01.11.2026:** Der Zielserver verwendet OpenRouter, Konfigurationsrevision
@@ -1992,6 +2001,17 @@ Bestandteil des bestehenden Buildvertrags.
   Der spätere fachübergreifende technische Nachweis ist oben verlinkt.
 
 - [ ] **P1 – Erklärgrafiken und Animationen fachlich und technisch abnehmen**
+
+  - [x] **Öffentliche Unterthemen eindeutig und datensparsam zuordnen.**
+    Die automatische Auswahl erkennt zusätzlich vollständige Titel bestätigter,
+    kuratierter Kataloginhalte im aktiven Snapshot; Fach und Themenzuordnung
+    müssen passen. Doppelte oder zurückgezogene Treffer erzeugen keinen Auftrag
+    beziehungsweise keine Anzeige. Der öffentliche Inhaltsstand wird versioniert
+    in den gemeinsamen Schlüssel aufgenommen, private Titel und Hefttexte
+    werden nicht an den Grafikprovider weitergegeben. Künstliche Tests prüfen
+    mehrere Fächer, Mehrdeutigkeit, Widerruf, Wiederverwendung und den
+    Providervertrag. Die Auswahl ersetzt weder fachliche Abnahme noch einen
+    Nachweis für beliebige Synonyme oder sämtliche angebotenen Themen.
 
   **Teilprüfung 02.11.2026:** 50 synthetische SQLite-Fälle zu Szenen und
   Positionen bestanden; Umfang und Grenzen:

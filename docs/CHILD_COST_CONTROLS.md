@@ -39,6 +39,29 @@ wirksamen Altgrenzen, nicht eine erfundene Freigabe.
   ungenutzte Reservierung als `cancelled` auf. Nach Funktionsaufruf ohne Beleg
   bleibt sie konservativ erhalten.
 
+## Automatischer Abgleich
+
+Der bestehende Worker prüft höchstens alle sechs Stunden den aktuellen
+EZB-Referenzkurs und die Preismetadaten der ausdrücklich eingestellten
+OpenRouter-Modelle und Upstreams. Der EUR/USD-Kurs wird aus der EZB-Angabe
+invertiert und auf sechs Nachkommastellen aufgerundet; veraltete oder ungültige
+Dokumente werden verworfen. Für Tokenpreise zählt die höchste veröffentlichte
+Preisstaffel. Zusätzliche, nicht unterstützte Aufruf- oder Bildgebühren sowie
+fehlende oder mehrdeutige Endpunkte verhindern die Übernahme dieses Preises.
+Die Quellen werden unabhängig geprüft; ein Ausfall überschreibt keinen alten
+gültigen Wert. Bei längerem Ausfall bleiben bestehende Frischeprüfungen aktiv.
+
+Ein Update wartet auf das Ende laufender und vorgemerkter KI-Aufträge und wird
+mit neuen Reservierungen über die Providerzeile serialisiert. Es ändert weder
+Provider, Modell, Region, Ausgabelimit, Reservierung, Kontolimits noch die
+fachliche oder Datenschutzfreigabe. Ein Metadatenabruf verlängert ausdrücklich
+nicht die Gültigkeit einer praktischen Modellprüfung. Die Providerrevision und
+ein inhaltsfreier Auditbeleg dokumentieren jede Übernahme; alte Aufträge und
+Kostenbelege behalten ihren ursprünglichen Kurssnapshot. Die Admin-Routing-API
+und die Adminoberfläche zeigen den letzten Versuch sowie die letzte erfolgreiche
+Übernahme getrennt für EZB und Modellstufen; ein teilweiser Erfolg ist kein
+Beweis, dass jede Quelle aktuell war.
+
 ## Server und Daten
 
 `child_cost_controls.py`, `child_cost_models.py`, `providers.reserve`,
@@ -71,3 +94,10 @@ https://openrouter.ai/docs/api/api-reference/generations/get-generation .
 Reasoning- und Providerparameter:
 https://openrouter.ai/docs/guides/best-practices/reasoning-tokens und
 https://openrouter.ai/docs/guides/routing/provider-selection .
+
+EZB-Referenzdaten: https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml .
+Am 22.11.2026 war der letzte veröffentlichte Referenzstand der 20.11.2026:
+1 EUR = 1,0990 USD; konservativ gerundet 1 USD = 0,909919 EUR. Ein
+OpenRouter-EU-Metadatenabruf ist kein Nachweis, dass der Schlüssel zur
+EU-Inferenz berechtigt ist. OpenRouter beschreibt regionale Zugriffe und
+deren gesonderte Guardrails unter https://openrouter.ai/business/eu .

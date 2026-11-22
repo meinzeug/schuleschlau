@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import 'api.dart';
 import 'admin_workspace_ui.dart';
@@ -611,6 +612,16 @@ class _AiRoutingPanelState extends State<AiRoutingPanel> {
             .convert(data!['policy']);
       }
       final routes = Json.from(data!['policy']?['routes'] ?? {});
+      final metadata = data!['metadata_refresh'];
+      String checkedAt(
+        dynamic value, {
+        String missing = 'noch nicht erfolgreich',
+      }) => value is num && value > 0
+          ? DateFormat('dd.MM.yyyy · HH:mm').format(
+              DateTime.fromMillisecondsSinceEpoch((value * 1000).round())
+                  .toLocal(),
+            )
+          : missing;
       return AdminWorkSurface(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -657,6 +668,20 @@ class _AiRoutingPanelState extends State<AiRoutingPanel> {
                   ? 'Routing eingeschaltet · Freigaben werden vor jedem Aufruf geprüft.'
                   : 'Routing noch nicht aktiviert.',
             ),
+            if (metadata is Map) ...[
+              const SizedBox(height: 10),
+              Text(
+                'Automatischer Kostenabgleich',
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+              Text('EZB-Kurs: ${checkedAt(metadata['ecb_updated'])}'),
+              if (metadata['prices_updated'] is Map)
+                for (final entry in (metadata['prices_updated'] as Map).entries)
+                  Text('Preis ${entry.key}: ${checkedAt(entry.value)}'),
+              Text(
+                'Letzter Versuch: ${checkedAt(metadata['last_attempt'], missing: 'noch keiner')}',
+              ),
+            ],
             for (final entry in routes.entries)
               Padding(
                 padding: const EdgeInsets.only(bottom: 10),

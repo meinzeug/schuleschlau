@@ -193,6 +193,31 @@ void main() {
   );
 
   testWidgets(
+    'automatic market data status is visible without starting a job',
+    (t) async {
+      final calls = <http.Request>[];
+      final s = ops.admin((r) async {
+        calls.add(r);
+        return ops.reply({
+          ...policy(1),
+          'metadata_refresh': {
+            'last_attempt': 1795334400,
+            'last_update': 1795334400,
+            'ecb_updated': 1795334400,
+            'prices_updated': {'sol': 1795334400, 'luna': null},
+          },
+        });
+      });
+      await ops.mount(t, AiRoutingPanel(s));
+      expect(find.text('Automatischer Kostenabgleich'), findsOneWidget);
+      expect(find.textContaining('EZB-Kurs:'), findsOneWidget);
+      expect(find.text('Preis luna: noch nicht erfolgreich'), findsOneWidget);
+      expect(calls.every((r) => r.method == 'GET'), isTrue);
+      await t.pumpWidget(const SizedBox());
+    },
+  );
+
+  testWidgets(
     'AA019 routing card names its exact route and focuses the existing draft without saving',
     (t) async {
       final calls = <http.Request>[];

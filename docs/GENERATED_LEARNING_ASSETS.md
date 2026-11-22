@@ -37,6 +37,17 @@ Schwerpunkt zwei belegte, schematische Flussabschnitte. Bei anderen spezifischen
 Bienenthemen ohne solchen Schwerpunkt wird keine generische Grafik automatisch
 als passend ausgegeben. Vorhandene öffentliche Builds bleiben separat erhalten.
 
+`public-assets-6` erweitert die lokale Auswahl um bestätigte öffentliche
+Kataloginhalte. Deren vollständiger Titel muss nach Unicode-, Groß-/Kleinschreibungs-
+und Leerzeichennormalisierung genau dem Rundenthema entsprechen. Fach, bestätigter
+Titel, kuratierte Themenzuordnung und aktiver Katalogsnapshot werden geprüft;
+mehrere mögliche Zuordnungen führen zu keinem automatischen Auftrag. Der
+Kataloginhalt samt ID, öffentlichem Titel und Snapshot ist Teil des Build-Keys;
+private Rundentitel und Hefttexte gelangen nicht in den öffentlichen Build.
+Beim Abruf wird die Zuordnung erneut überprüft. Ein Katalogtitel bleibt
+Metadatum und ist kein fachlicher Beleg; freie Synonymsuche und unscharfe
+Zuordnung sind weiterhin nicht freigeschaltet.
+
 Der textbasierte Ausweichpfad für einen gebundenen Einstieg überträgt jede
 vorgegebene Einstiegs- und Übungsfrage in einem eigenen festen Schemafeld.
 Die Decodierung verlangt dieselbe ID am richtigen Platz; Rollen, Antworten
@@ -50,7 +61,7 @@ Dieser erste vertikale Pfad erzeugt **unbewertete KI-Erklärungen und Erkundungs
 
 ## Öffentliche Grundlage und unveränderliche Version
 
-`LearningAssetSpec` akzeptiert ausschließlich Fach aus den vorhandenen 24 Rendererprofilen, vorhandene Rezept-ID/-Version, echte öffentliche Grundlagen-IDs und/oder öffentliche Katalogthemen-ID, `de-DE` und ein explizites Niveauband. Es gibt **kein** Feld für freie Themen, Heft-/Unittexte, Antworten, Namen oder private Quellen. Das vorhandene kurze Rendererlabel „Lerntechniken“ wird serverseitig an die tatsächliche Fach-ID „Lern- und Arbeitstechniken“ gebunden; weitere Client-Aliase sind nicht erlaubt.
+`LearningAssetSpec` akzeptiert ausschließlich Fach aus den vorhandenen 24 Rendererprofilen, vorhandene Rezept-ID/-Version, echte öffentliche Grundlagen-IDs und/oder öffentliche Katalogthemen-ID sowie optional die eindeutig kuratierte öffentliche Inhalts-ID, `de-DE` und ein explizites Niveauband. Es gibt **kein** Feld für freie Themen, Heft-/Unittexte, Antworten, Namen oder private Quellen. Das vorhandene kurze Rendererlabel „Lerntechniken“ wird serverseitig an die tatsächliche Fach-ID „Lern- und Arbeitstechniken“ gebunden; weitere Client-Aliase sind nicht erlaubt.
 
 Der Server löst alle IDs selbst auf. Der Build-Key ist SHA-256 über den vollständigen kanonischen öffentlichen Stand einschließlich Regelinhalt/-version/-digest, Katalogthema/-snapshot/-titel, Rezeptversion/-digest sowie Builder-, Ausgabe- und Renderervertrag. Private Konten, Familien, Kinder, Sitzungen und Aufgaben beeinflussen diesen Schlüssel nicht. Katalogtitel sind Navigation, **kein Fachbeleg**. Tatsächliche kuratierte Regeln bleiben als Herkunft gespeichert; selbst erzeugte Beispielzahlen/-beziehungen sind ausdrücklich unbewertete KI-Beispiele und keine fingierten Quellenzitate.
 

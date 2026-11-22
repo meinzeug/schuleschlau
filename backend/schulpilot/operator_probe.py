@@ -24,7 +24,8 @@ def enqueue(actor, db):
     active = db.scalar(select(OperatorJob).where(OperatorJob.status.in_(["queued", "running"])))
     if active:
         return {"id": active.id, "status": active.status}
-    config = db.get(ProviderConfig, 1)
+    config = db.scalar(select(ProviderConfig).where(ProviderConfig.id == 1)
+                       .with_for_update().execution_options(populate_existing=True))
     if not enabled(config) and config.provider != "codex" and (
         config.provider != "openrouter"
         or not config.openrouter_free_only

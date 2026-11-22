@@ -5,7 +5,7 @@ from sqlalchemy import select
 
 from . import schemas as s
 from .ai_accounting import report
-from .db import CreditPurchase, ProviderConfig, get_db, now
+from .db import CreditPurchase, ProviderConfig, ServiceState, get_db, now
 from .model_routing import ROUTING_REASONING_EFFORT, RoutingPolicy
 from .security import admin, audit
 
@@ -20,8 +20,19 @@ class PolicyUpdate(s.Strict):
 @router.get("/admin/ai-routing")
 def routing(p=Depends(admin), db=Depends(get_db)):
     config = db.get(ProviderConfig, 1)
+    from .market_data import ATTEMPT, ECB_SUCCESS, SUCCESS
+
+    attempt, success, ecb = db.get(ServiceState, ATTEMPT), db.get(ServiceState, SUCCESS), db.get(ServiceState, ECB_SUCCESS)
+    policy = config.routing_policy if isinstance(config.routing_policy, dict) else {}
+    routes = policy.get("routes") if isinstance(policy.get("routes"), dict) else {}
+    prices = {tier: (state.updated if state else None) for tier in routes
+              if tier in ("luna", "sol", "astra")
+              for state in (db.get(ServiceState, "market-data-route-" + tier),)}
     return {"revision": config.revision, "policy": config.routing_policy, "provider": config.provider,
         "emergency_stop": config.emergency_stop,
+        "metadata_refresh": {"last_attempt": attempt.updated if attempt else None,
+                             "last_update": success.updated if success else None,
+                             "ecb_updated": ecb.updated if ecb else None, "prices_updated": prices},
         "effective_reasoning_effort": ROUTING_REASONING_EFFORT,
         "existing_global_limit_micros_usd": config.global_limit_micros,
         "existing_reservation_micros_usd": config.reserve_micros}

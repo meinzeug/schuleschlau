@@ -856,7 +856,10 @@ def reserve(db, family, child_id, job_id, function, synthetic_fixture=False, *, 
         return previous
 
     family_bucket, family_calls, family_budget = usage_terms(db, family, enforce=True)
-    base_config = db.get(ProviderConfig, 1)
+    # Metadata refresh and every new reservation serialize on the provider
+    # row. A quote update cannot invalidate a job being committed in parallel.
+    base_config = db.scalar(select(ProviderConfig).where(ProviderConfig.id == 1)
+                            .with_for_update().execution_options(populate_existing=True))
     if function == "schulbuddy":
         from .schulbuddy_provider import configured
 
@@ -1100,7 +1103,8 @@ def request_provider(config, function, payload, image_bytes=None, *, synthetic_f
 
         # Internal callers cannot accidentally globalize a private payload.
         with DB() as asset_db:
-            actual = canonical_asset_spec(asset_db, payload["public_spec"]["selector"])
+            actual = canonical_asset_spec(asset_db, payload["public_spec"]["selector"],
+                                          builder_version=payload["public_spec"].get("builder_version"))
         if payload != {"public_spec": actual, "required_subject": actual["subject"]}:
             raise ProviderError("Der öffentliche Bausteinauftrag enthält nicht freigegebene Daten.")
         model_type = LearningAssetOutput
@@ -2009,6 +2013,7 @@ def request_provider(config, function, payload, image_bytes=None, *, synthetic_f
     if function == "learning_asset":
         from .learning_assets import RULES as ASSET_RULES
         from .learning_assets import bind_schema as bind_asset_schema
+        from .learning_assets import CONTENT_RULE
 
         bind_asset_schema(schema, payload)
         prune_schema(schema)
@@ -2021,7 +2026,8 @@ def request_provider(config, function, payload, image_bytes=None, *, synthetic_f
         wire_schema = package_output.wire_schema
         # This deliberately separate exploration contract never asks for a
         # private Unit, answer keys or invented confirmed-photo evidence.
-        instructions = ASSET_RULES + subject_content.rules_for(subjects) + package_output.rules
+        instructions = (ASSET_RULES + ("\n" + CONTENT_RULE if payload["public_spec"].get("catalog_content") else "")
+                        + subject_content.rules_for(subjects) + package_output.rules)
         outgoing_payload = {"public_spec": payload["public_spec"]}
     entry_slots = None
     if text_only_entry:

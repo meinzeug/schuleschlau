@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 from types import SimpleNamespace
 
 from fastapi import HTTPException
-from sqlalchemy import update
+from sqlalchemy import select, update
 
 from .config import runtime_settings
 from .db import DB, OperatorJob, ProviderConfig, UsageBucket, now
@@ -23,6 +23,7 @@ from .security import audit, insert_ignore, rate_limit
 
 def probe_once():
     with DB.begin() as db:
+        db.scalar(select(ProviderConfig).where(ProviderConfig.id == 1).with_for_update())
         config = configured(db, verify_catalog=True, probe=True)
         base_revision = db.get(ProviderConfig, 1).revision
         rate_limit(db, "schulbuddy-probe-hour", 2, 3600, commit=False)

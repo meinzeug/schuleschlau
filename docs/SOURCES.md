@@ -4115,3 +4115,9 @@ in `docs/EVERYDAY_QA_2026_10_30.md`. Keine Produktionsuhr und keine echten
 Kinderantworten für diesen Nachtest geändert; kein Android-Zustellnachweis.
 
 Der lokale Release-Quellnachweis und seine Grenzen sind in [RELEASE_ATTESTATION.md](RELEASE_ATTESTATION.md) beschrieben. Er nutzt die bestehende [Android-APK-Signaturprüfung](https://developer.android.com/tools/apksigner); ein tatsächlicher neuer signierter Build oder ein Deployment ist damit nicht belegt.
+
+## Automatischer Kostenabgleich, 22.11.2026
+
+- [EZB-Referenzkurse](https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.en.html): Stand 20.11.2026, 1 EUR = 1,0990 USD; invers aufgerundet 0,909919 EUR/USD. Referenzkurs, keine tatsächliche Bankabrechnung.
+- [OpenRouter EU-Routing](https://openrouter.ai/business/eu): EU-Requests benötigen den regionalen Endpunkt und die dafür freigegebene Kontokonfiguration. Metadatenzugriff allein belegt keinen erfolgreichen Modellaufruf.
+- [OpenRouter-Modellendpunkte](https://openrouter.ai/openai/gpt-6.1-sol): Preise und Verfügbarkeit können sich ändern; die Anwendung liest vorgegebene Endpoint-Metadaten regelmäßig neu und behandelt sie nicht als fachliche oder praktische Modellprüfung.

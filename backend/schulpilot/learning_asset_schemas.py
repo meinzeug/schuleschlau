@@ -18,6 +18,7 @@ class LearningAssetSpec(Strict):
     recipe_version: int = Field(ge=1, le=1000, strict=True)
     foundation_ids: list[Identifier] = Field(default_factory=list, max_length=4)
     catalog_topic_id: Identifier | None = None
+    catalog_content_id: Identifier | None = None
     public_focus_id: Identifier | None = None
     locale: Literal["de-DE"] = "de-DE"
     level_band: Literal["primary", "lower_secondary", "upper_secondary"]
@@ -28,6 +29,8 @@ class LearningAssetSpec(Strict):
             raise ValueError("Doppelte Grundlagen-ID.")
         if not self.foundation_ids and self.catalog_topic_id is None:
             raise ValueError("Eine öffentliche Grundlage oder Katalog-ID ist erforderlich.")
+        if self.catalog_content_id is not None and (self.catalog_topic_id is None or self.public_focus_id is not None):
+            raise ValueError("Ein öffentlicher Inhalt benötigt ein Katalogthema und darf nicht mit einem Schwerpunkt vermischt werden.")
         return self
 
 

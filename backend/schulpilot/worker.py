@@ -1287,6 +1287,7 @@ def main():
     signal.signal(signal.SIGINT, stop)
     last_maintenance = 0
     last_heartbeat = 0
+    last_market_check = 0
     while running:
         try:
             if now() - last_heartbeat > 10:
@@ -1297,6 +1298,13 @@ def main():
                     else:
                         db.add(ServiceState(name="worker", updated=int(now())))
                 last_heartbeat = now()
+            # Refresh before schedulers: a stale quote can make a scheduler
+            # fail, so refreshing only after it would never heal the loop.
+            if now() - last_market_check > 60:
+                from .market_data import refresh_if_due as refresh_market_data
+
+                refresh_market_data()
+                last_market_check = now()
             from .operator_probe import work_one
 
             if work_one(lambda: running):

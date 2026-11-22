@@ -9,7 +9,7 @@ import pytest
 from conftest import HEADERS, create_child, register
 from fastapi.testclient import TestClient
 from schulpilot import providers
-from schulpilot.catalog_models import CatalogSnapshot, CatalogTopic
+from schulpilot.catalog_models import CatalogContent, CatalogMembership, CatalogSnapshot, CatalogState, CatalogTopic
 from schulpilot.db import (
     DB,
     Activity,
@@ -150,7 +150,7 @@ def test_missing_unit_auto_prepares_one_public_build_and_unit_can_read_it(api, p
     assert api.get('/api/units/' + case['unit'] + '/public-visual').status_code in (403, 404)
 
 
-@pytest.mark.parametrize("legacy_version", ["public-assets-1", "public-assets-2", "public-assets-3"])
+@pytest.mark.parametrize("legacy_version", ["public-assets-1", "public-assets-2", "public-assets-3", "public-assets-4", "public-assets-5"])
 def test_new_generator_reuses_valid_existing_public_build(api, prepared, legacy_version):
     from schulpilot import learning_assets
     _, child, calls = prepared
@@ -171,6 +171,93 @@ def test_new_generator_reuses_valid_existing_public_build(api, prepared, legacy_
     with DB() as db:
         assert db.query(Job).count() == 0
     assert not calls
+
+
+def test_verified_public_content_extends_automatic_coverage_without_private_payload(api, prepared, case, monkeypatch):
+    from schulpilot import learning_assets, visual_references
+    _, child, calls = prepared
+    monkeypatch.setattr(visual_references, "projection", lambda db, unit: {
+        "explanation_visual_status": "incomplete", "explanation_visual_reason": "missing_steps"})
+    with DB.begin() as db:
+        db.add(CatalogState(provider="test", snapshot_id="public-artificial-v1"))
+        db.add(CatalogContent(id="artificial:content:1", title="Sichere Sachfrage",
+            url="https://example.org/public-video", content_type="video", title_verified=True,
+            data={}, snapshot_id="public-artificial-v1"))
+        db.add(CatalogMembership(topic_id="artificial-mathematik", content_id="artificial:content:1",
+            url="https://example.org/public-video", curated=True, data={}, snapshot_id="public-artificial-v1"))
+        db.get(LearningUnit, case["unit"]).topic = "  SICHERE   SACHFRAGE  "
+    with DB() as db:
+        topic, content = learning_assets.public_selection_for_unit(db, "Mathematik", "  SICHERE   SACHFRAGE  ")
+        assert (topic.id, content.id) == ("artificial-mathematik", "artificial:content:1")
+        assert learning_assets.public_selection_for_unit(db, "Deutsch", "Sichere Sachfrage") == (None, None)
+        assert learning_assets.public_selection_for_unit(db, "Mathematik", "Sichere Sachfrage plus privater Zusatz") == (None, None)
+    assert learning_assets.prepare_missing_unit_visual(case["job"]) == "queued"
+    with DB() as db:
+        job = db.get(Job, case["job"])
+        key = job.result["public_visual_build"]
+        build = db.get(LearningAssetBuild, key)
+        assert build.specification["catalog_content"]["id"] == "artificial:content:1"
+        assert build.specification["catalog_content"]["title"] == "Sichere Sachfrage"
+    run({"build": {"build_key": key}})
+    assert api.get('/api/units/' + case['unit'] + '/public-visual').json()['status'] == 'ready'
+    assert "  SICHERE   SACHFRAGE  " not in json.dumps(calls)
+    assert child["id"] not in json.dumps(calls) and case["material"] not in json.dumps(calls)
+    hit = start(api, child["id"], body={**spec(), "catalog_content_id": "artificial:content:1"}).json()
+    assert hit["build"]["build_key"] == key
+    with DB() as db:
+        assert db.query(Job).filter(Job.kind == "learning_asset").count() == 1
+    with DB.begin() as db:
+        db.get(CatalogContent, "artificial:content:1").title_verified = False
+    assert api.get('/api/units/' + case['unit'] + '/public-visual').json()['status'] == 'missing'
+    with DB() as db:
+        assert learning_assets.build_data(db, db.get(LearningAssetBuild, key))["status"] == "stale"
+
+
+def test_content_selection_rejects_ambiguous_or_unverified_memberships(api, prepared):
+    from schulpilot import learning_assets
+    with DB.begin() as db:
+        db.add(CatalogState(provider="test", snapshot_id="public-artificial-v1"))
+        for index in (1, 2):
+            identifier = f"artificial:duplicate:{index}"
+            db.add(CatalogContent(id=identifier, title="Gleicher Titel", url="https://example.org/video",
+                content_type="video", title_verified=True, data={}, snapshot_id="public-artificial-v1"))
+            db.add(CatalogMembership(topic_id="artificial-mathematik", content_id=identifier,
+                url="https://example.org/video", curated=True, data={}, snapshot_id="public-artificial-v1"))
+    with DB() as db:
+        assert learning_assets.public_selection_for_unit(db, "Mathematik", "Gleicher Titel") == (None, None)
+    with DB.begin() as db:
+        db.get(CatalogMembership, ("artificial-mathematik", "artificial:duplicate:2")).curated = False
+    with DB() as db:
+        topic, content = learning_assets.public_selection_for_unit(db, "Mathematik", "Gleicher Titel")
+        assert (topic.id, content.id) == ("artificial-mathematik", "artificial:duplicate:1")
+    with DB.begin() as db:
+        db.get(CatalogContent, "artificial:duplicate:1").title_verified = False
+    with DB() as db:
+        assert learning_assets.public_selection_for_unit(db, "Mathematik", "Gleicher Titel") == (None, None)
+
+
+def test_public_content_selection_across_subjects_and_unsafe_titles(api, prepared):
+    from schulpilot import learning_assets
+    examples = {"Biologie": "Aufbau einer künstlichen Zelle", "Deutsch": "Satzglieder erkennen", "Englisch": "Simple past bilden",
+                "Geschichte": "Quellen der Antike", "Physik": "Kraft und Bewegung"}
+    with DB.begin() as db:
+        db.add(CatalogState(provider="test", snapshot_id="public-artificial-v1"))
+        for index, (subject, title) in enumerate(examples.items()):
+            identifier = f"artificial:subject:{index}"
+            subject_key = profile_subjects(db)[subject].key
+            db.add(CatalogContent(id=identifier, title=title, url="https://example.org/video",
+                content_type="video", title_verified=True, data={}, snapshot_id="public-artificial-v1"))
+            db.add(CatalogMembership(topic_id="artificial-" + subject_key, content_id=identifier,
+                url="https://example.org/video", curated=True, data={}, snapshot_id="public-artificial-v1"))
+    with DB() as db:
+        for index, (subject, title) in enumerate(examples.items()):
+            topic, content = learning_assets.public_selection_for_unit(db, subject, title.upper())
+            assert topic is not None and content.id == f"artificial:subject:{index}"
+            assert learning_assets.public_selection_for_unit(db, "Mathematik", title) == (None, None)
+            if subject == "Englisch":
+                assert learning_assets.public_selection_for_unit(db, "Engl.", title)[1].id == content.id
+    assert not learning_assets.allowed_public_content_title("https://example.org/geheime-seite")
+    assert not learning_assets.allowed_public_content_title("A" * 161)
 
 
 def test_bee_material_maps_only_to_the_public_insect_catalogue(api, prepared):
@@ -533,10 +620,21 @@ def test_missing_or_erased_worker_job_projects_terminal_failure_without_retry(ap
 
 
 @pytest.mark.parametrize("finish", ["stop", "length"])
-def test_real_adapter_contract_is_compact_private_free_and_truncation_cannot_publish(api, prepared, monkeypatch, finish):
+@pytest.mark.parametrize("content_contract", [False, True])
+def test_real_adapter_contract_is_compact_private_free_and_truncation_cannot_publish(api, prepared, monkeypatch, finish, content_contract):
     from package_output_helpers import PackageOutputCapture
     _, child, _ = prepared
-    created = start(api, child["id"]).json()
+    body = spec()
+    if content_contract:
+        with DB.begin() as db:
+            db.add(CatalogState(provider="test", snapshot_id="public-artificial-v1"))
+            db.add(CatalogContent(id="artificial:adapter:1", title="Öffentliches Unterthema",
+                url="https://example.org/video", content_type="video", title_verified=True,
+                data={}, snapshot_id="public-artificial-v1"))
+            db.add(CatalogMembership(topic_id=body["catalog_topic_id"], content_id="artificial:adapter:1",
+                url="https://example.org/video", curated=True, data={}, snapshot_id="public-artificial-v1"))
+        body["catalog_content_id"] = "artificial:adapter:1"
+    created = start(api, child["id"], body=body).json()
     with DB() as db:
         build = db.get(LearningAssetBuild, created["build"]["build_key"])
         job = db.get(Job, build.job_id)
@@ -571,6 +669,8 @@ def test_real_adapter_contract_is_compact_private_free_and_truncation_cannot_pub
     assert bodies[0]["provider"]["allow_fallbacks"] is False
     text = json.dumps(bodies, ensure_ascii=False)
     assert child["id"] not in text and "questions" not in capture.binding.canonical_schema["properties"]
+    if content_contract:
+        assert "Öffentliches Unterthema" in text and "catalog_content" in text
     assert len(text.encode()) < 24000
 
 
