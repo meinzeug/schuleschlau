@@ -875,7 +875,7 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
   deutschen Schulprofil kann ein Klassenwechsel vorgeschlagen und bewusst
   gespeichert werden; ein automatischer Übergang ist nicht implementiert.
   Als erste fachlich belegte Erweiterung wurden Mathematik, Deutsch, Englisch,
-  Geschichte und Biologie der Sekundarschule Sachsen-Anhalt für die genannten
+  Geschichte, Biologie und Physik der Sekundarschule Sachsen-Anhalt für die genannten
   Jahrgangsbänder bzw. Abschlussphasen ergänzt. Andere Fächer, Österreich,
   die Schweiz und Hochschulen bleiben offen; keine Vollständigkeit behaupten.
 
@@ -886,6 +886,15 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
   Clients getestet.
 
 - [ ] **P1 – Lehrplanabdeckung fachlich kuratieren und offen ausweisen**
+
+  - [x] **Physik der Sekundarschule Sachsen-Anhalt quellengebunden ergänzen.**
+    Der amtliche Fachlehrplan von 2019 ist mit Dokumentfassung, Lizenz,
+    Prüfsumme und 17 Kompetenzschwerpunkten übernommen. Klasse 6 und das Band
+    7/8 sind belegt; unterschiedliche Abschlusswege und zwei experimentelle
+    Wahlalternativen bleiben als Phasen erkennbar und werden ohne belegten
+    Abschlussweg nicht in eine Klassenstufe hineininterpretiert. Import und
+    Migration sind idempotent und erhalten bestehende Lernnachweise. Dies ist
+    keine vollständige fachliche Freigabe aller Lehrpläne oder Unterrichtsfolgen.
 
   Den Stand von `docs/CURRICULUM.md` und den versionierten Quelldateien gegen aktuelle amtliche Dokumente prüfen, fehlende Schulformen/Klassenbänder und ungeprüfte Fassungen priorisieren, Fachzuordnung und Fundstelle jeweils fachlich freigeben.
 

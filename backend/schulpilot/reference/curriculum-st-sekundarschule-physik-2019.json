@@ -1,0 +1,303 @@
+{
+  "version": 1,
+  "retrieved": "2026-11-22",
+  "documents": [
+    {
+      "id": "st-sek-physics-2019",
+      "state_code": "DE-ST",
+      "title": "Fachlehrplan Sekundarschule Physik",
+      "official_url": "https://www.bildung-lsa.de/files/164f3f97e3adf65ff6f44685dd9e1ced/lp_sks_physik_01_08_2019.pdf",
+      "edition": "01.08.2019",
+      "effective_from": null,
+      "school_form_label": "Sekundarschule",
+      "school_form_id": "de-st.sekundarschule",
+      "school_form_scope": "specific",
+      "applies_to_school_forms": [],
+      "source_status": "current_verified",
+      "retrieved": "2026-11-22",
+      "applicability_note": "Am 22.11.2026 vom amtlichen Lehrplanindex der Sekundarschule verlinkt. Jahrgang 6 und Band 7/8 sind gemeinsam; die nach Abschlussweg unterschiedlichen Phasen bleiben ohne zugeordnete Einzeljahrgänge. Die zwei experimentellen Realschul-Schwerpunkte sind Alternativen: einer ist verbindlich. Die schulische Auswahl und Reihenfolge sind nicht bekannt.",
+      "document_kind": "curriculum",
+      "source_notes": "Ministerium für Bildung Sachsen-Anhalt, Quelle: Landesportal Sachsen-Anhalt (lisa.sachsen-anhalt.de), CC BY-SA 3.0; eigene Kurzlabels. Index: https://www.bildung-lsa.de/informationsportal/unterricht/sekundarschule/schulformbezogene_informationen/lehrplan.html ; Seitenzählung des Dokuments. PDF-SHA256 f5f801f566956e9049142361831306184c18e2bc1ddad3eb339b6578e3b9cbdb."
+    }
+  ],
+  "topics": [
+    {
+      "id": "st-sek-physics-2019.6-light",
+      "document_id": "st-sek-physics-2019",
+      "subject_key": "physik",
+      "title": "Licht, Schatten und Bilder",
+      "grade_kind": "exact",
+      "grades": [
+        6
+      ],
+      "phase_label": null,
+      "section": "3.2",
+      "page": 12,
+      "quote": "Schatten",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-physics-2019.6-motion",
+      "document_id": "st-sek-physics-2019",
+      "subject_key": "physik",
+      "title": "Bewegungen beschreiben und messen",
+      "grade_kind": "exact",
+      "grades": [
+        6
+      ],
+      "phase_label": null,
+      "section": "3.2",
+      "page": 13,
+      "quote": "Bewegungen",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-physics-2019.6-heat",
+      "document_id": "st-sek-physics-2019",
+      "subject_key": "physik",
+      "title": "Wärmeübergänge untersuchen",
+      "grade_kind": "exact",
+      "grades": [
+        6
+      ],
+      "phase_label": null,
+      "section": "3.2",
+      "page": 14,
+      "quote": "Wärmeübergänge",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-physics-2019.78-forces",
+      "document_id": "st-sek-physics-2019",
+      "subject_key": "physik",
+      "title": "Kräfte und ihre Wirkungen",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.3",
+      "page": 15,
+      "quote": "Kräfte",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-physics-2019.78-energy",
+      "document_id": "st-sek-physics-2019",
+      "subject_key": "physik",
+      "title": "Energie und Arbeit",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.3",
+      "page": 16,
+      "quote": "Energien",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-physics-2019.78-heat",
+      "document_id": "st-sek-physics-2019",
+      "subject_key": "physik",
+      "title": "Wärmewirkung und Wärmeaustausch",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.3",
+      "page": 17,
+      "quote": "Wärmewirkungen",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-physics-2019.78-electric",
+      "document_id": "st-sek-physics-2019",
+      "subject_key": "physik",
+      "title": "Elektrische Ströme und ihre Wirkungen",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.3",
+      "page": 18,
+      "quote": "Ströme",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-physics-2019.r-motion",
+      "document_id": "st-sek-physics-2019",
+      "subject_key": "physik",
+      "title": "Bewegungen untersuchen",
+      "grade_kind": "phase",
+      "grades": null,
+      "phase_label": "Realschulabschlussbezogener Unterricht (9/10)",
+      "section": "3.4",
+      "page": 19,
+      "quote": "Bewegungen",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-physics-2019.r-electric",
+      "document_id": "st-sek-physics-2019",
+      "subject_key": "physik",
+      "title": "Elektrische Energie bereitstellen und übertragen",
+      "grade_kind": "phase",
+      "grades": null,
+      "phase_label": "Realschulabschlussbezogener Unterricht (9/10)",
+      "section": "3.4",
+      "page": 20,
+      "quote": "Bereitstellung",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-physics-2019.r-radiation",
+      "document_id": "st-sek-physics-2019",
+      "subject_key": "physik",
+      "title": "Wirkungen von Strahlung",
+      "grade_kind": "phase",
+      "grades": null,
+      "phase_label": "Realschulabschlussbezogener Unterricht (9/10)",
+      "section": "3.4",
+      "page": 21,
+      "quote": "Strahlung",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-physics-2019.r-sound",
+      "document_id": "st-sek-physics-2019",
+      "subject_key": "physik",
+      "title": "Schallausbreitung",
+      "grade_kind": "phase",
+      "grades": null,
+      "phase_label": "Realschulabschlussbezogener Unterricht (9/10)",
+      "section": "3.4",
+      "page": 22,
+      "quote": "Schallausbreitung",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-physics-2019.r-optics",
+      "document_id": "st-sek-physics-2019",
+      "subject_key": "physik",
+      "title": "Optische Phänomene und Modelle",
+      "grade_kind": "phase",
+      "grades": null,
+      "phase_label": "Realschulabschlussbezogener Unterricht (9/10)",
+      "section": "3.4",
+      "page": 23,
+      "quote": "Phänomene",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-physics-2019.r-experiments",
+      "document_id": "st-sek-physics-2019",
+      "subject_key": "physik",
+      "title": "Experimente planen und auswerten (Wahlalternative)",
+      "grade_kind": "phase",
+      "grades": null,
+      "phase_label": "Realschulabschlussbezogener Unterricht (9/10)",
+      "section": "3.1 und 3.4",
+      "page": 24,
+      "quote": "Experimente",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-physics-2019.r-digital-experiments",
+      "document_id": "st-sek-physics-2019",
+      "subject_key": "physik",
+      "title": "Experimente mit digitalen Werkzeugen (Wahlalternative)",
+      "grade_kind": "phase",
+      "grades": null,
+      "phase_label": "Realschulabschlussbezogener Unterricht (9/10)",
+      "section": "3.1 und 3.4",
+      "page": 25,
+      "quote": "Werkzeugen",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-physics-2019.h-motion",
+      "document_id": "st-sek-physics-2019",
+      "subject_key": "physik",
+      "title": "Bewegungen untersuchen",
+      "grade_kind": "phase",
+      "grades": null,
+      "phase_label": "Hauptschulabschlussbezogener Unterricht (9)",
+      "section": "3.5",
+      "page": 26,
+      "quote": "Bewegungen",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-physics-2019.h-electric",
+      "document_id": "st-sek-physics-2019",
+      "subject_key": "physik",
+      "title": "Elektrische Energie bereitstellen und übertragen",
+      "grade_kind": "phase",
+      "grades": null,
+      "phase_label": "Hauptschulabschlussbezogener Unterricht (9)",
+      "section": "3.5",
+      "page": 27,
+      "quote": "Bereitstellung",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-physics-2019.h-radiation",
+      "document_id": "st-sek-physics-2019",
+      "subject_key": "physik",
+      "title": "Wirkungen von Strahlung",
+      "grade_kind": "phase",
+      "grades": null,
+      "phase_label": "Hauptschulabschlussbezogener Unterricht (9)",
+      "section": "3.5",
+      "page": 28,
+      "quote": "Strahlung",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    }
+  ],
+  "coverage": {
+    "complete": false,
+    "note": "Nur Fachlehrplan Physik Sekundarschule Sachsen-Anhalt. Schulinterne Auswahl und Reihenfolge sind nicht bekannt; die experimentellen Alternativen dürfen nicht beide als Pflicht erscheinen."
+  },
+  "coverage_gaps": []
+}
