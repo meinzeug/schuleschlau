@@ -168,6 +168,139 @@ Future<void> tap(WidgetTester t, Finder finder) async {
 }
 
 void main() {
+  testWidgets('A stale subject error does not expose its old account details', (
+    t,
+  ) async {
+    final calls = <http.Request>[];
+    final pending = Completer<http.Response>();
+    var defer = false;
+    final (state, _) = await open(
+      t,
+      calls,
+      respond: (q) async {
+        if (q.url.path.endsWith('/learning/subjects')) {
+          return defer ? pending.future : response(catalog());
+        }
+        return response(listing());
+      },
+    );
+    defer = true;
+    state.refreshState();
+    await t.pump();
+    state.beginAuthentication();
+    pending.complete(
+      http.Response(jsonEncode({'detail': 'Veraltetes privates Detail'}), 403),
+    );
+    await t.pumpAndSettle();
+    expect(find.text('Veraltetes privates Detail'), findsNothing);
+    expect(
+      find.text('Dein Zugang hat sich geändert. Bitte lade die Fächer erneut.'),
+      findsOneWidget,
+    );
+    expect(t.takeException(), isNull);
+  });
+
+  testWidgets(
+    'A late subject shelf is discarded on a new authentication intent',
+    (t) async {
+      final calls = <http.Request>[];
+      final pending = Completer<http.Response>();
+      var defer = false;
+      final (state, _) = await open(
+        t,
+        calls,
+        respond: (q) async {
+          if (q.url.path.endsWith('/learning/subjects')) {
+            if (defer) return pending.future;
+            return response(catalog());
+          }
+          return response(listing());
+        },
+      );
+      expect(find.text('Mathematik'), findsOneWidget);
+      defer = true;
+      state.refreshState();
+      await t.pump();
+      final intent = state.beginAuthentication();
+      pending.complete(
+        response({
+          'child_id': 'child',
+          'items': [
+            {
+              'id': math,
+              'title': 'Veraltetes Fach',
+              'cover_key': 'mathematik',
+              'topic_count': 1,
+            },
+          ],
+        }),
+      );
+      await t.pumpAndSettle();
+      expect(find.text('Veraltetes Fach'), findsNothing);
+      expect(
+        find.text(
+          'Dein Zugang hat sich geändert. Bitte lade die Fächer erneut.',
+        ),
+        findsOneWidget,
+      );
+      state.cancelAuthentication(intent);
+      defer = false;
+      await tap(t, find.text('Erneut laden'));
+      expect(find.text('Mathematik'), findsOneWidget);
+      expect(calls.where((q) => q.method == 'POST'), isEmpty);
+      expect(t.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'A late topic list cannot re-enable random practice after an authentication intent',
+    (t) async {
+      final calls = <http.Request>[];
+      final pending = Completer<http.Response>();
+      var defer = false;
+      final (state, _) = await open(
+        t,
+        calls,
+        initial: '/learn/child/subject/$math',
+        respond: (q) async {
+          if (q.url.path.endsWith('/learning/subjects')) {
+            return response(catalog());
+          }
+          if (q.url.path.endsWith('/learning')) {
+            if (defer) return pending.future;
+            return response(listing());
+          }
+          return response({'items': []});
+        },
+      );
+      defer = true;
+      await t.tap(find.text('Später'));
+      await t.pump();
+      final intent = state.beginAuthentication();
+      final late = listing();
+      (late['items'] as List).first['topic'] = 'Veraltetes Thema';
+      pending.complete(response(late));
+      await t.pumpAndSettle();
+      expect(find.text('Veraltetes Thema'), findsNothing);
+      expect(
+        find.text(
+          'Dein Zugang hat sich geändert. Bitte lade die Liste erneut.',
+        ),
+        findsOneWidget,
+      );
+      final button = t.widget<OutlinedButton>(
+        find.byKey(const ValueKey('random-subject-round')),
+      );
+      expect(button.onPressed, isNull);
+      state.cancelAuthentication(intent);
+      defer = false;
+      await tap(t, find.text('Erneut laden'));
+      expect(find.text('Brüche'), findsOneWidget);
+      expect(calls.where((q) => q.method == 'POST'), isEmpty);
+      expect(t.takeException(), isNull);
+    },
+  );
+
   testWidgets('Authentication intent discards a delayed random choice', (
     t,
   ) async {

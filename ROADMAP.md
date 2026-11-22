@@ -2853,6 +2853,18 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Echtzeitstatus gezielt und zuverlässig bereitstellen**
 
+  - [x] **Verspätete Fach- und Sammlungslisten beim Anmeldewechsel verwerfen.**
+    Fachübersicht und paginierte Lern- beziehungsweise Materialliste binden
+    jeden Leseauftrag zusätzlich an die beim Start aktuelle Anmeldeabsicht.
+    Ein verspätetes Ergebnis oder ein Fehler nach Beginn einer anderen
+    Anmeldung wird nicht angezeigt; vom alten Ergebnis abhängige Aktionen
+    werden zurückgesetzt. Ein erneutes bewusstes Laden ist möglich. Künstliche
+    Widgetfälle prüfen die Fachübersicht und die Themenliste einschließlich
+    Zufallsstart und Wiederaufnahme; die Listen- und Sammlungsregressionen
+    bleiben grün. Andere API-Transporte und der separate Cookie-Wettlauf
+    bleiben offen. Ein Leseauftrag, der erst nach Beginn einer noch laufenden
+    Anmeldung startet, ist dadurch nicht generell gegen alte Cookies geschützt.
+
   - [x] **Verspätete Profilfoto-Antworten nach Kontowechsel verwerfen.**
     Bild, Metadaten und Ergebnisse von Fotoänderungen werden nicht an die
     Oberfläche zurückgegeben, wenn zwischen Anfrage und Antwort das Konto,

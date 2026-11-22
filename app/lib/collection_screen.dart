@@ -337,6 +337,17 @@ class _PagedCollectionState extends State<_PagedCollectionBody> {
   Future<void> load({bool scroll = false}) async {
     final request = ++generation;
     if (!active) return;
+    final identity = widget.state.api.requestIdentity();
+    void changedAccess() {
+      setState(() {
+        data = null;
+        loading = false;
+        error = 'Dein Zugang hat sich geändert. Bitte lade die Liste erneut.';
+      });
+      // Clear subject-level controls derived from an earlier list as well.
+      widget.onLoaded?.call({});
+    }
+
     debounce?.cancel();
     setState(() {
       loading = true;
@@ -367,6 +378,10 @@ class _PagedCollectionState extends State<_PagedCollectionBody> {
     try {
       final result = await widget.state.api.get(path.toString());
       if (!active || request != generation) return;
+      if (!widget.state.api.ownsRequest(identity)) {
+        changedAccess();
+        return;
+      }
       setState(() {
         data = result;
         page = result['page'];
@@ -394,6 +409,10 @@ class _PagedCollectionState extends State<_PagedCollectionBody> {
       }
     } catch (e) {
       if (active && request == generation) {
+        if (!widget.state.api.ownsRequest(identity)) {
+          changedAccess();
+          return;
+        }
         setState(() {
           error = e is ApiError
               ? e.message

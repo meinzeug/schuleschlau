@@ -105,14 +105,33 @@ class _LearningSubjectsState extends State<LearningSubjectsScreen> {
   Future<void> load() async {
     if (!current) return;
     final request = ++generation;
+    final identity = state.api.requestIdentity();
+    void changedAccess() => setState(() {
+      catalog = listing = null;
+      error = ApiError(
+        'Dein Zugang hat sich geändert. Bitte lade die Fächer erneut.',
+      );
+    });
     setState(() => error = null);
     try {
       final value = await state.api.get(
         '/children/${widget.childId}/learning/subjects',
       );
-      if (current && generation == request) setState(() => catalog = value);
+      if (current && generation == request) {
+        if (!state.api.ownsRequest(identity)) {
+          changedAccess();
+        } else {
+          setState(() => catalog = value);
+        }
+      }
     } catch (e) {
-      if (current && generation == request) setState(() => error = e);
+      if (current && generation == request) {
+        if (!state.api.ownsRequest(identity)) {
+          changedAccess();
+        } else {
+          setState(() => error = e);
+        }
+      }
     }
   }
 
