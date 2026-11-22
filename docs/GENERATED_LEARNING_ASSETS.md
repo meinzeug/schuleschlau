@@ -56,6 +56,46 @@ Reproduzierbar mit `RUN_PUBLIC_IMAGE_PAID_PROBE=1` und dem in
 der Aufruf ist kostenpflichtig. Die Migration 0049 ergänzt nur die öffentliche
 Auftragszuordnung und muss zusammen mit 0048 eingespielt werden.
 
+## Unabhängige KI-Einschätzung eines öffentlichen Bildes
+
+Nach einem erfolgreich gespeicherten Bildauftrag kann der Worker einmal einen
+separaten `public_image_review`-Auftrag auf der fest konfigurierten,
+bildfähigen Luna-Route reservieren. Das Bewertungsmodell muss sich vom
+Bildgenerator unterscheiden. Es erhält ausschließlich das bereits bereinigte
+öffentliche Bild, den lokal aufgelösten öffentlichen Fach-/Thementitel und,
+falls vorhanden, einen kuratierten öffentlichen Sachtext. Der Katalogtitel
+allein ist keine Sachquelle. Die Anfrage bindet einen Upstream, verlangt ZDR
+und `data_collection=deny`, folgt keinen Weiterleitungen und verwendet keinen
+Anbieterfallback. Ein eigener Nutzungsbeleg hält Reservierung und tatsächlich
+gemeldete Kosten fest; unbekannte Kosten werden nicht als kostenlos gebucht.
+
+`public_image_reviews` (Migration 0051) bindet die Einschätzung an Bildhash,
+öffentlichen Spezifikationsdigest, Prüfvertragsversion, Modell und Upstream.
+`approved` bedeutet ausschließlich, dass die prüfende KI keinen sichtbaren
+Widerspruch gefunden hat; es ist weder ein menschlicher Fachcheck noch eine
+Garantie. Die API weist deshalb zusätzlich aus, ob überhaupt ein kuratierter
+Sachtext vorlag. `pending`, `uncertain` und `unavailable` sind keine Freigabe.
+Ein `rejected`-Bild wird nicht mehr ausgeliefert oder von anderen Familien
+wiederverwendet. Wenn die Begrenzung noch einen Versuch zulässt, kann ein Kind
+ausdrücklich ein neues Bild anfordern; es gibt keinen endlosen Automatismus.
+
+Ein begrenzter Worker-Backfill markiert und versucht höchstens ein älteres
+Bild pro Wartungsintervall. Er verwendet ausschließlich die ursprüngliche noch
+gültige Sitzung, Familienzuordnung und Quellenrevision sowie eine normale
+separate Reservierung. Ohne gültige Autorität oder bei einem Fehler bleibt der
+Status ehrlich `unavailable`; der Worker wiederholt diesen Fall nicht
+automatisch. Berechtigte können ein vorhandenes Bild mit einem stabilen
+Idempotenzschlüssel ausdrücklich prüfen lassen. Höchstens zwei Prüfversuche
+pro Bild sind zulässig. GETs lesen nur und starten keine KI. Späte oder durch
+Sitzungs-/Quellenänderungen überholte Antworten werden nicht veröffentlicht;
+eine vorhandene Generationkennung bleibt für die Kostenklärung erhalten.
+
+Ein echter künstlicher Test am 22.11.2026 überprüfte ein einfarbiges
+Testbild gegen ein künstliches öffentliches Thema mit dem unabhängigen
+`openai/gpt-6-luna`-/Azure-Endpunkt und normaler Reservierung. Ergebnis war
+`uncertain`, der Anbieter meldete 0,000089 USD. Das ist ein technischer Test,
+kein Nachweis der fachlichen Zuverlässigkeit für andere Bilder oder Themen.
+
 ## Ergänzung: fehlende Grafik in einer angeforderten Lernrunde
 
 Wenn eine ausdrücklich gestartete reguläre Lernrunde ohne geprüfte Grafik

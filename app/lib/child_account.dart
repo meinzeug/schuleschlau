@@ -620,16 +620,19 @@ class _ChildAccountState extends State<ChildAccount> {
                                                   ],
                                                 ),
                                               ),
+                                              const SizedBox(width: 8),
+                                              Tooltip(
+                                                message: 'Geräteinfos ansehen',
+                                                child: Icon(
+                                                  Icons.info_outline_rounded,
+                                                  color: context.palette.muted,
+                                                  size: 20,
+                                                ),
+                                              ),
                                             ],
                                           ),
                                         ),
                                       ),
-                                    ),
-                                    TextButton.icon(
-                                      onPressed: () =>
-                                          deviceDetails(Json.from(session)),
-                                      icon: Icon(Icons.info_outline_rounded),
-                                      label: Text('Geräteinfos ansehen'),
                                     ),
                                     if (session['current'] == true) ...[
                                       const SizedBox(height: 12),

@@ -885,7 +885,8 @@ def reserve(db, family, child_id, job_id, function, synthetic_fixture=False, *, 
         config = select_route(base_config, function, snapshot={"policy_hash": policy_hash(base_config.routing_policy),
             "tier": probe_tier, "reason": "synthetic_reference_comparison"})
     try:
-        external_allowed(config, function == "extract", synthetic_fixture, db=db, image_output=(function == "public_image"))
+        external_allowed(config, function in ("extract", "public_image_review"), synthetic_fixture,
+                         db=db, image_output=(function == "public_image"))
     except ProviderError as e:
         raise HTTPException(503, str(e)) from None
     if synthetic_fixture:

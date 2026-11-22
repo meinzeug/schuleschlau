@@ -315,6 +315,24 @@ void main() {
     await f.close(tester);
   });
 
+  for (final width in [320.0, 390.0]) {
+    testWidgets(
+      'Device information stays reachable in the compact card at $width px',
+      (tester) async {
+        final f = _Fixture();
+        await f.open(tester, account: true, width: width, scale: 2);
+        final info = find.byTooltip('Geräteinfos ansehen');
+        expect(info, findsNWidgets(2));
+        expect(find.text('Geräteinfos ansehen'), findsNothing);
+        await _tap(tester, info.first);
+        expect(find.text('Auf diesem Gerät lernst du gerade.'), findsOneWidget);
+        expect(f.requests.every((request) => request.method == 'GET'), isTrue);
+        expect(tester.takeException(), isNull);
+        await f.close(tester);
+      },
+    );
+  }
+
   for (final current in [false, true]) {
     testWidgets(
       'A late device logout cannot affect a new session for the same child ($current)',

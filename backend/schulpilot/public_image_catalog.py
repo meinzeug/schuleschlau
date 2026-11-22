@@ -50,7 +50,7 @@ def publish(db, selector, requested_spec, receipt, *, model, upstream, region):
     return db.get(PublicImage, key)
 
 
-def find_current(db, selector):
+def find_current(db, selector, *, include_rejected=False):
     """Read only current public versions; never generate, reserve or touch time."""
     spec, _ = public_prompt(db, selector)
     rows = db.scalars(select(PublicImage).where(PublicImage.lookup_key == lookup_key(spec))
@@ -59,5 +59,9 @@ def find_current(db, selector):
         if (row.specification == spec and row.format_version == FORMAT_VERSION
                 and row.factual_status == "unassessed" and isinstance(row.png, bytes)
                 and len(row.png) <= MAX_IMAGE_BYTES and hashlib.sha256(row.png).hexdigest() == row.png_sha256):
+            from .public_image_review import review_view
+
+            if not include_rejected and review_view(db, row)['review_status'] == 'rejected':
+                continue
             return row
     return None

@@ -56,6 +56,112 @@ void main() {
     expect(fixture.writes, isEmpty);
   });
 
+  testWidgets('Lerntagsdetails sind kompakt und berührungsfreundlich', (
+    tester,
+  ) async {
+    final fixture = fixtures.Fixture();
+    await fixture.mount(tester, selected: 'exam');
+    final action = find.widgetWithText(TextButton, 'Mehr zum Lerntag');
+    expect(tester.getSize(action).width, lessThan(250));
+    expect(tester.getSize(action).height, greaterThanOrEqualTo(48));
+    expect(fixture.writes, isEmpty);
+  });
+
+  for (final size in [const Size(320, 600), const Size(390, 844)]) {
+    testWidgets('Weitere Lerntage bleiben bei ${size.width} erreichbar', (
+      tester,
+    ) async {
+      final fixture = fixtures.Fixture();
+      (fixture.details['sessions'] as List).add({
+        'id': 'session2',
+        'date': '2027-01-21',
+        'minutes': 15,
+        'topics': [
+          {'id': 'topic2', 'label': 'Wasser', 'question_count': 3},
+        ],
+        'status': 'stale',
+        'requested_questions': 3,
+        'planned_rounds': 1,
+        'completed_rounds': 0,
+        'rounds': [],
+      });
+      await fixture.mount(tester, selected: 'exam', size: size, scale: 2);
+      expect(find.text('Wasser'), findsNothing);
+      expect(
+        find.text('Ein weiterer Lerntag braucht deine Aufmerksamkeit.'),
+        findsOneWidget,
+      );
+      expect(find.text('Lernrunde starten'), findsOneWidget);
+      expect(fixture.writes, isEmpty);
+      await fixtures.tap(tester, find.text('Weitere Lerntage (1)'));
+      expect(find.text('Wasser'), findsOneWidget);
+      expect(
+        find.text('Quelle geändert · Vorbereitung prüfen'),
+        findsOneWidget,
+      );
+      expect(fixture.writes, isEmpty);
+      expect(tester.takeException(), isNull);
+    });
+  }
+
+  testWidgets('Unbekannter Lerntag täuscht keinen Abschluss vor', (
+    tester,
+  ) async {
+    final fixture = fixtures.Fixture();
+    await fixture.mount(tester, selected: 'exam', sessionId: 'missing');
+    expect(
+      find.text('Dieser Lerntag ist nicht verfügbar. Wähle einen anderen.'),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining('Alle geplanten Sitzungen sind bearbeitet'),
+      findsNothing,
+    );
+    expect(find.text('Weitere Lerntage (1)'), findsOneWidget);
+    expect(fixture.writes, isEmpty);
+  });
+
+  testWidgets('Leerer Fehlertext erfindet keine Warnung', (tester) async {
+    final fixture = fixtures.Fixture();
+    (fixture.details['sessions'] as List).add({
+      'id': 'session2',
+      'date': '2027-01-21',
+      'minutes': 15,
+      'topics': [],
+      'status': 'planned',
+      'requested_questions': 3,
+      'rounds': [
+        {'id': 'round2', 'error': '  '},
+      ],
+    });
+    await fixture.mount(tester, selected: 'exam');
+    expect(
+      find.text('Ein weiterer Lerntag braucht deine Aufmerksamkeit.'),
+      findsNothing,
+    );
+    expect(find.text('Weitere Lerntage (1)'), findsOneWidget);
+    expect(fixture.writes, isEmpty);
+  });
+
+  testWidgets('Eltern sehen weitere Lerntage weiterhin direkt', (tester) async {
+    final fixture = fixtures.Fixture(role: 'parent');
+    (fixture.details['sessions'] as List).add({
+      'id': 'session2',
+      'date': '2027-01-21',
+      'minutes': 15,
+      'topics': [
+        {'id': 'topic2', 'label': 'Wasser', 'question_count': 3},
+      ],
+      'status': 'planned',
+      'requested_questions': 3,
+      'rounds': [],
+    });
+    await fixture.mount(tester, selected: 'exam');
+    expect(find.text('Wasser · 3 Aufgaben'), findsOneWidget);
+    expect(find.text('Weitere Lerntage (1)'), findsNothing);
+    expect(fixture.writes, isEmpty);
+  });
+
   testWidgets(
     'Nacharbeit führt mobil zum eigenen Versuch und hält Hilfe bereit',
     (tester) async {

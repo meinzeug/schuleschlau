@@ -1,0 +1,177 @@
+{
+  "version": 1,
+  "retrieved": "2026-11-22",
+  "documents": [
+    {
+      "id": "st-sek-biology-2019",
+      "state_code": "DE-ST",
+      "title": "Fachlehrplan Sekundarschule Biologie",
+      "official_url": "https://www.bildung-lsa.de/files/164f3f97e3adf65ff6f44685dd9e1ced/lp_sks_biologie_01_08_2019.pdf",
+      "edition": "01.08.2019",
+      "effective_from": null,
+      "school_form_label": "Sekundarschule",
+      "school_form_id": "de-st.sekundarschule",
+      "school_form_scope": "specific",
+      "applies_to_school_forms": [],
+      "source_status": "current_verified",
+      "retrieved": "2026-11-22",
+      "applicability_note": "Seit 2012 in Kraft, 2019 angepasst; am 22.11.2026 vom aktuellen Lehrplanindex der Sekundarschule verlinkt. Schulinterne Reihenfolgen und individuelle Lernauswahl sind daraus nicht ablesbar. Die beiden auf S. 10 markierten Schwerpunkte sind verbindlicher Gegenstand in Jahrgang 9.",
+      "document_kind": "curriculum",
+      "source_notes": "Ministerium für Bildung Sachsen-Anhalt; Quelle: Landesportal Sachsen-Anhalt (lisa.sachsen-anhalt.de), CC BY-SA 3.0; selbst formulierte Kurzlabels. Index: https://www.bildung-lsa.de/informationsportal/unterricht/sekundarschule/schulformbezogene_informationen/lehrplan.html . Gedruckte Seitenangaben. PDF-SHA256: 7cab061d2e72d48c463691bfbe7ae101ed4412b4e292724f3f5cc42fa39c5022."
+    }
+  ],
+  "topics": [
+    {
+      "id": "st-sek-biology-2019.living-things",
+      "document_id": "st-sek-biology-2019",
+      "subject_key": "biologie",
+      "title": "Lebewesen und ihre Entwicklung",
+      "grade_kind": "band",
+      "grades": [
+        5,
+        6
+      ],
+      "phase_label": null,
+      "section": "3.2",
+      "page": 11,
+      "quote": "Lebewesen",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-biology-2019.habitats",
+      "document_id": "st-sek-biology-2019",
+      "subject_key": "biologie",
+      "title": "Lebensräume und ihre Veränderungen",
+      "grade_kind": "band",
+      "grades": [
+        5,
+        6
+      ],
+      "phase_label": null,
+      "section": "3.2",
+      "page": 12,
+      "quote": "Lebensräume",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-biology-2019.microbiology",
+      "document_id": "st-sek-biology-2019",
+      "subject_key": "biologie",
+      "title": "Mikrobiologie untersuchen",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.3",
+      "page": 13,
+      "quote": "Mikrobiologie",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-biology-2019.human-systems",
+      "document_id": "st-sek-biology-2019",
+      "subject_key": "biologie",
+      "title": "Der Mensch und seine Umwelt als Systeme",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.3",
+      "page": 14,
+      "quote": "Systemebenen",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-biology-2019.behaviour",
+      "document_id": "st-sek-biology-2019",
+      "subject_key": "biologie",
+      "title": "Verhalten von Lebewesen",
+      "grade_kind": "exact",
+      "grades": [
+        9
+      ],
+      "phase_label": null,
+      "section": "3.1 (Fußnote); 3.4",
+      "page": 15,
+      "quote": "Verhaltens",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-biology-2019.ecosystems",
+      "document_id": "st-sek-biology-2019",
+      "subject_key": "biologie",
+      "title": "Zusammenhänge zwischen Lebewesen und Umwelt",
+      "grade_kind": "exact",
+      "grades": [
+        9
+      ],
+      "phase_label": null,
+      "section": "3.1 (Fußnote); 3.4",
+      "page": 17,
+      "quote": "Wechselwirkungen",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-biology-2019.heredity",
+      "document_id": "st-sek-biology-2019",
+      "subject_key": "biologie",
+      "title": "Vererbung und ihre Gesetzmäßigkeiten",
+      "grade_kind": "band",
+      "grades": [
+        9,
+        10
+      ],
+      "phase_label": null,
+      "section": "3.4",
+      "page": 19,
+      "quote": "Vererbungsvorgänge",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-biology-2019.evolution",
+      "document_id": "st-sek-biology-2019",
+      "subject_key": "biologie",
+      "title": "Grundlagen der Evolution",
+      "grade_kind": "band",
+      "grades": [
+        9,
+        10
+      ],
+      "phase_label": null,
+      "section": "3.4",
+      "page": 20,
+      "quote": "Evolution",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    }
+  ],
+  "coverage": {
+    "complete": false,
+    "note": "Acht Kompetenzschwerpunkte als kuratierte Orientierung, keine vollständige Darstellung der Wissensbestände oder Unterrichtsplanung. Andere Fächer, Schulformen und Jahrgänge sind nicht durch dieses Paket abgedeckt."
+  },
+  "coverage_gaps": [
+    {
+      "state_code": "DE-ST",
+      "gap": "Hier nur Biologie Sekundarschule, Kompetenzschwerpunkte 5/6, 7/8, 9 und 9/10; keine detaillierten Inhalte, kein Leistungsnachweis und keine Aussagen zu Reihenfolge einzelner Klassen 5/6 oder 7/8."
+    }
+  ]
+}

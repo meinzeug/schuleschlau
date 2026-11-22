@@ -461,6 +461,27 @@ class _ExamsBodyState extends State<_ExamsBody> {
               : item['id'] == selected,
         )
         .firstOrNull;
+    final otherSessions = sessions
+        .where((session) => session['id'] != next?['id'])
+        .toList();
+    final otherNeedsAttention = otherSessions.any(
+      (session) =>
+          session['status'] == 'stale' ||
+          examObjects(session['rounds']).any(
+            (round) =>
+                round['error'] is String &&
+                (round['error'] as String).trim().isNotEmpty,
+          ),
+    );
+    void openReview() {
+      if (scope.current) {
+        openRoute(
+          context,
+          '/exams/${widget.childId}?exam=${exam['id']}&tab=review',
+        );
+      }
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -499,9 +520,17 @@ class _ExamsBodyState extends State<_ExamsBody> {
           ),
         const SizedBox(height: 12),
         if (next != null) sessionCard(next, prominent: true),
-        if (sessions.isNotEmpty && next == null)
+        if (sessions.isNotEmpty &&
+            next == null &&
+            sessions.every((session) => session['status'] == 'completed'))
           const Notice(
             'Alle geplanten Sitzungen sind bearbeitet. Das ist kein pauschaler Nachweis sicherer Beherrschung.',
+          ),
+        if (sessions.isNotEmpty &&
+            next == null &&
+            sessions.any((session) => session['status'] != 'completed'))
+          const Notice(
+            'Dieser Lerntag ist nicht verfügbar. Wähle einen anderen.',
           ),
         PageToolsGroup(
           id: 'exam-plan-details',
@@ -560,22 +589,38 @@ class _ExamsBodyState extends State<_ExamsBody> {
             ],
           ),
         ),
-        OutlinedButton.icon(
-          onPressed: () {
-            if (scope.current) {
-              openRoute(
-                context,
-                '/exams/${widget.childId}?exam=${exam['id']}&tab=review',
-              );
-            }
-          },
-          icon: const Icon(Icons.fact_check_outlined),
-          label: const Text('Geschriebene Arbeit nacharbeiten'),
-        ),
-        if (sessions.length > 1) ...[
+        if (state.isChild)
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              style: TextButton.styleFrom(minimumSize: const Size(0, 48)),
+              onPressed: openReview,
+              icon: const Icon(Icons.fact_check_outlined),
+              label: const Text('Geschriebene Arbeit nacharbeiten'),
+            ),
+          )
+        else
+          OutlinedButton.icon(
+            onPressed: openReview,
+            icon: const Icon(Icons.fact_check_outlined),
+            label: const Text('Geschriebene Arbeit nacharbeiten'),
+          ),
+        if (state.isChild && otherSessions.isNotEmpty) ...[
+          if (otherNeedsAttention)
+            const Notice('Ein weiterer Lerntag braucht deine Aufmerksamkeit.'),
+          _ChildExamDetails(
+            key: ValueKey(('exam-days', exam['id'], exam['revision'])),
+            label: 'Weitere Lerntage (${otherSessions.length})',
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (final session in otherSessions) sessionCard(session),
+              ],
+            ),
+          ),
+        ] else if (!state.isChild && sessions.length > 1) ...[
           const PlanSectionTitle('Deine Lerntage'),
-          for (final session in sessions)
-            if (session['id'] != next?['id']) sessionCard(session),
+          for (final session in otherSessions) sessionCard(session),
         ],
       ],
     );
@@ -642,27 +687,30 @@ class _ExamsBodyState extends State<_ExamsBody> {
                 onPressed: () => prepare(session),
               ),
             if (state.isChild)
-              ExpansionTile(
-                tilePadding: EdgeInsets.zero,
-                title: const Text('Mehr zum Lerntag'),
-                children: [
-                  for (final topic in examObjects(session['topics']))
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(
-                        '${topic['label'] ?? topic['topic_label'] ?? ''}',
+              _ChildExamDetails(
+                key: ValueKey(('session-details', session['id'])),
+                label: 'Mehr zum Lerntag',
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    for (final topic in examObjects(session['topics']))
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(
+                          '${topic['label'] ?? topic['topic_label'] ?? ''}',
+                        ),
+                        subtitle: Text(
+                          '${topic['question_count'] ?? topic['requested_questions'] ?? ''} Aufgaben geplant',
+                        ),
                       ),
-                      subtitle: Text(
-                        '${topic['question_count'] ?? topic['requested_questions'] ?? ''} Aufgaben geplant',
-                      ),
+                    Text(
+                      '${session['minutes']} Min. empfohlen · ${session['requested_questions']} Aufgaben geplant',
                     ),
-                  Text(
-                    '${session['minutes']} Min. empfohlen · ${session['requested_questions']} Aufgaben geplant',
-                  ),
-                  Text(
-                    '${session['completed_rounds'] ?? 0} von ${session['planned_rounds'] ?? rounds.length} Runden bearbeitet',
-                  ),
-                ],
+                    Text(
+                      '${session['completed_rounds'] ?? 0} von ${session['planned_rounds'] ?? rounds.length} Runden bearbeitet',
+                    ),
+                  ],
+                ),
               ),
             if (state.isParent &&
                 rounds.any((round) => round['unit_id'] is String))
@@ -830,4 +878,51 @@ class _ExamsBodyState extends State<_ExamsBody> {
       ),
     );
   }
+}
+
+/// Keeps optional planning detail discoverable without stretching a row over
+/// the entire mobile screen. Opening it never starts or changes an exercise.
+class _ChildExamDetails extends StatefulWidget {
+  final String label;
+  final Widget child;
+
+  const _ChildExamDetails({
+    super.key,
+    required this.label,
+    required this.child,
+  });
+
+  @override
+  State<_ChildExamDetails> createState() => _ChildExamDetailsState();
+}
+
+class _ChildExamDetailsState extends State<_ChildExamDetails> {
+  bool open = false;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      Align(
+        alignment: Alignment.centerLeft,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 220),
+          child: Semantics(
+            expanded: open,
+            child: IntrinsicWidth(
+              child: TextButton.icon(
+                style: TextButton.styleFrom(minimumSize: const Size(0, 48)),
+                onPressed: () => setState(() => open = !open),
+                icon: Icon(
+                  open ? Icons.expand_less_rounded : Icons.expand_more_rounded,
+                ),
+                label: Text(widget.label),
+              ),
+            ),
+          ),
+        ),
+      ),
+      if (open) widget.child,
+    ],
+  );
 }

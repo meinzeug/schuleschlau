@@ -387,6 +387,10 @@ def features_for(db, child_id, job_id):
 
 
 def choose_tier(function, features, *, economy=False):
+    if function == "public_image_review":
+        # Fixed independently configured vision route; never pick the image
+        # generation model or silently fall back to another model.
+        return "luna", "independent_public_image_review"
     # Start difficult material on the suitable route, without a trial cascade.
     if function == "public_image":
         return "image", "explicit_public_illustration"

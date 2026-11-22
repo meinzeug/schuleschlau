@@ -137,6 +137,20 @@ def seed(db):
     path = REFERENCE / "curriculum-topics-v1.json"
     if path.is_file():
         import_catalogue(db, json.loads(path.read_text()))
+    seed_additional(db)
+
+
+def seed_additional(db):
+    """Explicitly versioned, source-reviewed additions; never infer a course."""
+    for filename in (
+        "curriculum-st-sekundarschule-biologie-2019.json",
+        "curriculum-de-st-sek-math-deutsch-2019-v1.json",
+        "curriculum-de-st-sek-englisch-geschichte-2019-v1.json",
+    ):
+        path = REFERENCE / filename
+        if not path.is_file():
+            raise ValueError("Ein versionierter Lehrplanbestand fehlt.")
+        import_catalogue(db, json.loads(path.read_text()))
 
 
 @router.post("/admin/curriculum/import")

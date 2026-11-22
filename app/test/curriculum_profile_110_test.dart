@@ -89,7 +89,7 @@ DropdownButton<T> innerDropdown<T>(WidgetTester tester, Finder form) =>
 class Fixture {
   final calls = <http.Request>[];
   Json stored = profile();
-  Future<http.Response>? pendingGet, pendingPut;
+  Future<http.Response>? pendingGet, pendingPut, pendingDach;
   int failures = 0, failureStatus = 409;
   final child = ValueNotifier(childId);
   final replacement = ValueNotifier<AppState?>(null);
@@ -105,6 +105,29 @@ class Fixture {
               if (request.url.path == '/api/curriculum/catalog' &&
                   request.method == 'GET') {
                 return response(catalog());
+              }
+              if (request.url.path == '/api/curriculum/dach-scope' &&
+                  request.method == 'GET') {
+                return pendingDach ??
+                    response({
+                      'complete': false,
+                      'countries': [
+                        {
+                          'code': 'AT',
+                          'name': 'Österreich',
+                          'regions': [
+                            {'code': 'AT-9', 'name': 'Wien'},
+                          ],
+                        },
+                        {
+                          'code': 'CH',
+                          'name': 'Schweiz',
+                          'regions': [
+                            {'code': 'CH-ZH', 'name': 'Zürich'},
+                          ],
+                        },
+                      ],
+                    });
               }
               expectSync(request.url.path, path);
               if (request.method == 'GET') {
@@ -341,6 +364,60 @@ void main() {
       expect(f.puts, isEmpty);
     },
   );
+
+  testWidgets('class progression is an explicit editable proposal', (
+    tester,
+  ) async {
+    final f = Fixture()..stored = profile(configured: true);
+    await f.mount(tester, width: 320, scale: 2);
+    expect(gradeValue(tester), 7);
+    await tap(tester, find.byKey(const ValueKey('curriculum-next-grade')));
+    expect(gradeValue(tester), 8);
+    expect(f.puts, isEmpty);
+    await tap(tester, find.widgetWithText(FilledButton, 'Zuordnung speichern'));
+    expect(jsonDecode(f.puts.single.body)['grade'], 8);
+    expect(f.stored['grade'], 8);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('other education regions are an honest read-only overview', (
+    tester,
+  ) async {
+    final f = Fixture()..stored = profile(configured: true);
+    await f.mount(tester, width: 320, scale: 2);
+    expect(f.calls.where((r) => r.url.path.endsWith('/dach-scope')), isEmpty);
+    await tap(tester, find.text('Weitere Bildungsräume'));
+    expect(find.text('Österreich'), findsOneWidget);
+    expect(find.text('Schweiz'), findsOneWidget);
+    expect(
+      find.textContaining('noch nicht vollständig verfügbar'),
+      findsOneWidget,
+    );
+    await tap(tester, find.text('Österreich'));
+    expect(find.text('Wien'), findsOneWidget);
+    expect(f.puts, isEmpty);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('a late education overview cannot open after account change', (
+    tester,
+  ) async {
+    final delayed = Completer<http.Response>();
+    final f = Fixture()
+      ..stored = profile(configured: true)
+      ..pendingDach = delayed.future;
+    await f.mount(tester);
+    await tap(tester, find.text('Weitere Bildungsräume'));
+    f.state.user = {'id': 'another-parent', 'role': 'parent'};
+    f.state.refreshState();
+    await tester.pump();
+    delayed.complete(response({'countries': []}));
+    await tester.pumpAndSettle();
+    expect(find.text('Österreich'), findsNothing);
+    expect(find.text('Schweiz'), findsNothing);
+    expect(f.puts, isEmpty);
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets(
     '110 changing the federal state clears its school form and rejects an old form callback',

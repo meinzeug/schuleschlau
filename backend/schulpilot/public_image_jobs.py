@@ -69,7 +69,11 @@ def route_available(db):
 def state(db, spec, selector):
     image = find_current(db, selector)
     if image:
-        return {"status": "ready", "notice": NOTICE}
+        from .public_image_review import review_view
+
+        review = review_view(db, image)
+        return {"status": "unavailable" if review['review_status'] == 'rejected' else "ready",
+                "notice": NOTICE, **review}
     build = db.get(PublicImageBuild, lookup_key(spec))
     if not build or build.specification != spec:
         # A cached picture above remains available even when generation is
@@ -78,6 +82,14 @@ def state(db, spec, selector):
     job = db.get(Job, build.job_id) if build.job_id else None
     status = (job.status if job and job.status in ("queued", "running", "failed") else
               "failed" if build.status != "ready" else "missing")
+    rejected_image = find_current(db, selector, include_rejected=True)
+    if rejected_image and status == 'missing':
+        from .public_image_review import review_view
+
+        if review_view(db, rejected_image)['review_status'] == 'rejected':
+            retry = build.attempts < 2 and route_available(db)
+            return {'status': 'missing' if retry else 'unavailable', 'notice': NOTICE,
+                    'image_rejected': True, 'retry_allowed': retry, 'review_status': 'rejected'}
     return {"status": status, "notice": NOTICE,
             **({"retry_allowed": build.attempts < 2 and route_available(db)} if status == "failed" else {})}
 
@@ -100,6 +112,10 @@ def image_file(unit_id: str, p=Depends(authenticated), db=Depends(get_db)):
     row = find_current(db, resolved[0]) if resolved else None
     if row is None:
         raise HTTPException(404, "Für dieses Thema liegt noch kein Bild vor.")
+    from .public_image_review import review_view
+
+    if review_view(db, row)['review_status'] == 'rejected':
+        raise HTTPException(404, "Dieses Bild ist nicht für die Anzeige verfügbar.")
     return Response(row.png, media_type="image/png", headers={"Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff"})
 
 
@@ -137,7 +153,7 @@ def prepare(unit_id: str, key: str = Header(default="", alias="Idempotency-Key")
             raise HTTPException(409, "Dieser Anfrageschlüssel gehört zu einer anderen Auswahl.")
         return state(db, spec, selector)
     if find_current(db, selector):
-        return {"status": "ready", "notice": NOTICE}
+        return state(db, spec, selector)
     insert = pg_insert if db.bind.dialect.name == "postgresql" else sqlite_insert
     cache_key = lookup_key(spec)
     db.execute(insert(PublicImageBuild).values(lookup_key=cache_key, specification=spec, status="claimed", attempts=0, updated=int(now()))
@@ -308,7 +324,7 @@ def remember_late_receipt(db, job, result):
 
     raw = result.telemetry if result is not None and isinstance(result.telemetry, dict) else {}
     generation = identifier(raw.get("generation_id"))
-    if not generation or job.kind != "public_image":
+    if not generation or job.kind not in ("public_image", "public_image_review"):
         return
     usage = db.scalar(select(Usage).where(Usage.job_id == job.id, Usage.child_id == job.child_id,
         Usage.family_id == job.payload.get("family_id"), Usage.provider == "openrouter")

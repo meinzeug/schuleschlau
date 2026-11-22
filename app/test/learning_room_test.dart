@@ -387,6 +387,75 @@ void main() {
       expect(server.answers, 0);
     },
   );
+  testWidgets('an optional topic image leaves room for the active question', (
+    tester,
+  ) async {
+    final server = SavedRound();
+    server.value['explanation_visual_status'] = 'ready';
+    final methods = <String>[];
+    final png = base64Decode(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl61Z8AAAAASUVORK5CYII=',
+    );
+    await openRound(
+      tester,
+      server,
+      handle: (request) async {
+        if (request.url.path.endsWith('/public-image/file')) {
+          methods.add(request.method);
+          return http.Response.bytes(
+            png,
+            200,
+            headers: {'content-type': 'image/png'},
+          );
+        }
+        if (request.url.path.endsWith('/public-image')) {
+          methods.add(request.method);
+          return jsonReply({'status': 'ready'});
+        }
+        return server.handle(request);
+      },
+    );
+    expect(find.text('Bild ansehen'), findsOneWidget);
+    expect(find.text('Was bedeutet cat?'), findsOneWidget);
+    expect(find.text('KI-Bild · fachlich ungeprüft'), findsOneWidget);
+    await tapText(tester, 'Bild ansehen');
+    expect(find.text('KI-Bild · fachlich noch nicht geprüft'), findsOneWidget);
+    await tapText(tester, 'Bild schließen');
+    expect(find.text('Was bedeutet cat?'), findsOneWidget);
+    expect(methods, ['GET', 'GET']);
+    expect(server.answers, 0);
+    expect(server.hints, 0);
+  });
+  testWidgets('the topic image remains open during the introduction', (
+    tester,
+  ) async {
+    final server = SavedRound();
+    server.value['introduction_seen'] = false;
+    server.value['explanation_visual_status'] = 'ready';
+    final png = base64Decode(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl61Z8AAAAASUVORK5CYII=',
+    );
+    await openRound(
+      tester,
+      server,
+      handle: (request) async {
+        if (request.url.path.endsWith('/public-image/file')) {
+          return http.Response.bytes(
+            png,
+            200,
+            headers: {'content-type': 'image/png'},
+          );
+        }
+        if (request.url.path.endsWith('/public-image')) {
+          return jsonReply({'status': 'ready'});
+        }
+        return server.handle(request);
+      },
+    );
+    expect(find.text('Bild ansehen'), findsNothing);
+    expect(find.text('KI-Bild · fachlich noch nicht geprüft'), findsOneWidget);
+    expect(server.answers, 0);
+  });
 
   testWidgets(
     'Wrong vocabulary feedback preserves the cue and never calls a retry solved',

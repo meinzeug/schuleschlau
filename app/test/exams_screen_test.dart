@@ -256,6 +256,7 @@ class Fixture {
   Future<void> mount(
     WidgetTester tester, {
     String? selected,
+    String? sessionId,
     String tab = 'prepare',
     Size size = const Size(390, 844),
     double scale = 1,
@@ -291,6 +292,7 @@ class Fixture {
                   childId: 'child',
                   examId: selected ?? route.uri.queryParameters['exam'],
                   initialTab: route.uri.queryParameters['tab'] ?? tab,
+                  sessionId: sessionId,
                 ),
         ),
         GoRoute(

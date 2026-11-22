@@ -112,8 +112,10 @@ class _CurriculumProfileEditorState extends State<CurriculumProfileEditor>
       closing = false,
       foreground = true,
       needsRefresh = false,
-      didSave = false;
+      didSave = false,
+      scopeLoading = false;
   ModalRoute<bool>? discardRoute;
+  ModalRoute<void>? otherRegionsRoute;
   bool get owned =>
       mounted &&
       !closing &&
@@ -187,7 +189,11 @@ class _CurriculumProfileEditorState extends State<CurriculumProfileEditor>
     closing = true;
     epoch++;
     final route = ModalRoute.of(context), extra = discardRoute;
+    final regions = otherRegionsRoute;
     scheduleMicrotask(() {
+      if (regions?.isActive == true) {
+        regions!.navigator?.removeRoute(regions);
+      }
       if (extra?.isActive == true) {
         extra!.navigator?.removeRoute(extra);
       }
@@ -450,6 +456,84 @@ class _CurriculumProfileEditorState extends State<CurriculumProfileEditor>
     }
   }
 
+  Future<void> showOtherEducationRegions() async {
+    if (!interactive || scopeLoading) return;
+    setState(() => scopeLoading = true);
+    final expectedOwner = ownerState.user;
+    final expectedFamily = ownerState.familyId;
+    final expectedToken = ownerState.api.token;
+    final source = ModalRoute.of(context);
+    bool unchanged() =>
+        mounted &&
+        current &&
+        identical(ownerState.user, expectedOwner) &&
+        ownerState.familyId == expectedFamily &&
+        ownerState.api.token == expectedToken &&
+        source?.isCurrent == true;
+    try {
+      final data = await ownerState.api.get('/curriculum/dach-scope');
+      if (!unchanged()) return;
+      final countries = (data['countries'] as List? ?? [])
+          .whereType<Map>()
+          .map((item) => Json.from(item))
+          .where((item) => item['code'] == 'AT' || item['code'] == 'CH')
+          .toList();
+      if (countries.length != 2) {
+        throw ApiError('Die Übersicht ist gerade nicht vollständig verfügbar.');
+      }
+      if (!mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) {
+          otherRegionsRoute ??= ModalRoute.of(dialogContext);
+          return AlertDialog(
+            scrollable: true,
+            title: const Text('Weitere Bildungsräume'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text(
+                  'Österreich, die Schweiz und Studiengänge werden vorbereitet. Ihre Lehrpläne und Profile sind hier noch nicht vollständig verfügbar.',
+                ),
+                for (final country in countries)
+                  ExpansionTile(
+                    title: Text('${country['name']}'),
+                    subtitle: const Text(
+                      'Quellenübersicht · noch nicht auswählbar',
+                    ),
+                    children: [
+                      for (final item
+                          in (country['regions'] as List? ?? [])
+                              .whereType<Map>())
+                        ListTile(title: Text('${item['name']}')),
+                    ],
+                  ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('Schließen'),
+              ),
+            ],
+          );
+        },
+      );
+      otherRegionsRoute = null;
+    } catch (e) {
+      if (unchanged()) {
+        setState(
+          () => error = e is ApiError
+              ? e.message
+              : 'Die Übersicht ist gerade nicht verfügbar.',
+        );
+      }
+    } finally {
+      if (mounted) setState(() => scopeLoading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final localEpoch = epoch;
@@ -595,6 +679,32 @@ class _CurriculumProfileEditorState extends State<CurriculumProfileEditor>
                           });
                         },
                 ),
+                if (grade < 13)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      key: const ValueKey('curriculum-next-grade'),
+                      onPressed: !enabled
+                          ? null
+                          : () {
+                              if (!interactive ||
+                                  localEpoch != epoch ||
+                                  localState != stateCode ||
+                                  grade >= 13) {
+                                return;
+                              }
+                              setState(() {
+                                grade += 1;
+                                error = notice = null;
+                              });
+                            },
+                      icon: const Icon(Icons.arrow_upward_rounded),
+                      label: Text('Wechsel in Klasse ${grade + 1} vormerken'),
+                    ),
+                  ),
+                const Text(
+                  'Der Klassenwechsel wird erst mit „Zuordnung speichern“ übernommen. Lernstand und Antworten bleiben erhalten.',
+                ),
                 const SizedBox(height: 14),
                 const Text(
                   'Lehrpläne können mehrere Klassen oder Oberstufenphasen zusammenfassen. Das zeigen wir bei den Themen an.',
@@ -605,6 +715,16 @@ class _CurriculumProfileEditorState extends State<CurriculumProfileEditor>
                     'Der geprüfte Themenbestand wird erweitert. Fehlende Zuordnungen werden nicht als vollständiger Lehrplan ausgegeben.',
                   ),
                 ],
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    onPressed: enabled && !scopeLoading
+                        ? showOtherEducationRegions
+                        : null,
+                    icon: const Icon(Icons.public_rounded),
+                    label: const Text('Weitere Bildungsräume'),
+                  ),
+                ),
               ],
               if (error != null)
                 Padding(

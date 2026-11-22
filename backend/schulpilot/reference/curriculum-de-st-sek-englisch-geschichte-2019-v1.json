@@ -1,0 +1,808 @@
+{
+  "version": 1,
+  "retrieved": "2026-11-22",
+  "coverage": {
+    "complete": false,
+    "note": "Kuratierte Orientierung; keine vollständige Facherfassung. Englisch 7/8 nur grobe in beiden Abschlusswegen belegte Bereiche; 9 und 9/10 ohne bestätigten Bildungsgang als nicht automatisch klassenfilterbare Phasen. Geschichte: Wahlgruppe 5/6 ohne unterstellte schulische Auswahl; ausdrückliche Jahrgangsvorgaben und Doppeljahrgänge getrennt."
+  },
+  "documents": [
+    {
+      "id": "de-st-sek-englisch-2019-v1",
+      "state_code": "DE-ST",
+      "title": "Fachlehrplan Sekundarschule Englisch",
+      "official_url": "https://www.bildung-lsa.de/files/164f3f97e3adf65ff6f44685dd9e1ced/lp_sks_engl_01_08_2019.pdf",
+      "edition": "01.08.2019",
+      "effective_from": null,
+      "school_form_label": "Sekundarschule",
+      "school_form_id": "de-st.sekundarschule",
+      "school_form_scope": "specific",
+      "applies_to_school_forms": [],
+      "applicability_note": "5/6 gemeinsam; Englisch ab 7 abschlussbezogen mit unterschiedlichem Niveau. Geschichte: Wahlgruppe 5/6 und ausdrücklich markierter Jahrgang 9 bzw. 10 gemäß Quelle getrennt; Themen beweisen weder aktuelle Schulbehandlung noch Lernstand.",
+      "document_kind": "curriculum",
+      "source_notes": "Amtlicher Bildungsserver, abgerufen 22.11.2026; PDF nennt in Kraft seit 2012, Anpassung 2019. CC BY-SA 3.0; Quelle: Landesportal Sachsen-Anhalt. PDF-SHA256 dac1563a6b22da366e742b40d566dec5f234357fa6dcaacabf567ddc0e5a6897. Seitenzahlen sind gedruckte Seiten. Kurze Themenlabels sind eigene Paraphrasen.",
+      "source_status": "current_verified",
+      "retrieved": "2026-11-22"
+    },
+    {
+      "id": "de-st-sek-geschichte-2019-v1",
+      "state_code": "DE-ST",
+      "title": "Fachlehrplan Sekundarschule Geschichte",
+      "official_url": "https://www.bildung-lsa.de/files/164f3f97e3adf65ff6f44685dd9e1ced/lp_sks_gesch_01_08_2019.pdf",
+      "edition": "01.08.2019",
+      "effective_from": null,
+      "school_form_label": "Sekundarschule",
+      "school_form_id": "de-st.sekundarschule",
+      "school_form_scope": "specific",
+      "applies_to_school_forms": [],
+      "applicability_note": "5/6 gemeinsam; Englisch ab 7 abschlussbezogen mit unterschiedlichem Niveau. Geschichte: Wahlgruppe 5/6 und ausdrücklich markierter Jahrgang 9 bzw. 10 gemäß Quelle getrennt; Themen beweisen weder aktuelle Schulbehandlung noch Lernstand.",
+      "document_kind": "curriculum",
+      "source_notes": "Amtlicher Bildungsserver, abgerufen 22.11.2026; PDF nennt in Kraft seit 2012, Anpassung 2019. CC BY-SA 3.0; Quelle: Landesportal Sachsen-Anhalt. PDF-SHA256 a734089a5bb9aaff7d1a4c3ed572077fa504aa3b171796afb3078bc6c5a92120. Seitenzahlen sind gedruckte Seiten. Kurze Themenlabels sind eigene Paraphrasen.",
+      "source_status": "current_verified",
+      "retrieved": "2026-11-22"
+    }
+  ],
+  "topics": [
+    {
+      "id": "de-st-sek-englisch-56-hoeren-2019-v1",
+      "document_id": "de-st-sek-englisch-2019-v1",
+      "subject_key": "englisch",
+      "title": "Englisch hören und verstehen",
+      "grade_kind": "band",
+      "grades": [
+        5,
+        6
+      ],
+      "phase_label": null,
+      "section": "3.1: gemeinsamer Schuljahrgang 5/6",
+      "page": 10,
+      "quote": "Hör-/Sehver-",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-englisch-56-lesen-2019-v1",
+      "document_id": "de-st-sek-englisch-2019-v1",
+      "subject_key": "englisch",
+      "title": "Einfache englische Texte verstehen",
+      "grade_kind": "band",
+      "grades": [
+        5,
+        6
+      ],
+      "phase_label": null,
+      "section": "3.1: gemeinsamer Schuljahrgang 5/6",
+      "page": 10,
+      "quote": "Leseverstehen",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-englisch-56-sprechen-2019-v1",
+      "document_id": "de-st-sek-englisch-2019-v1",
+      "subject_key": "englisch",
+      "title": "Sich auf Englisch verständigen",
+      "grade_kind": "band",
+      "grades": [
+        5,
+        6
+      ],
+      "phase_label": null,
+      "section": "3.1: gemeinsamer Schuljahrgang 5/6",
+      "page": 10,
+      "quote": "Sprechen",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-englisch-56-schreiben-2019-v1",
+      "document_id": "de-st-sek-englisch-2019-v1",
+      "subject_key": "englisch",
+      "title": "Kurze englische Texte schreiben",
+      "grade_kind": "band",
+      "grades": [
+        5,
+        6
+      ],
+      "phase_label": null,
+      "section": "3.1: gemeinsamer Schuljahrgang 5/6",
+      "page": 11,
+      "quote": "Schreiben",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-englisch-56-sprachmittlung-2019-v1",
+      "document_id": "de-st-sek-englisch-2019-v1",
+      "subject_key": "englisch",
+      "title": "Einfache Inhalte sprachlich vermitteln",
+      "grade_kind": "band",
+      "grades": [
+        5,
+        6
+      ],
+      "phase_label": null,
+      "section": "3.1: gemeinsamer Schuljahrgang 5/6",
+      "page": 11,
+      "quote": "Sprachmittlung",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-englisch-56-wortschatz-2019-v1",
+      "document_id": "de-st-sek-englisch-2019-v1",
+      "subject_key": "englisch",
+      "title": "Wortschatz für Alltagssituationen",
+      "grade_kind": "band",
+      "grades": [
+        5,
+        6
+      ],
+      "phase_label": null,
+      "section": "3.1: gemeinsamer Schuljahrgang 5/6",
+      "page": 12,
+      "quote": "Wortschatz",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-englisch-56-grammatik-2019-v1",
+      "document_id": "de-st-sek-englisch-2019-v1",
+      "subject_key": "englisch",
+      "title": "Grundlegende Satzformen und Grammatik",
+      "grade_kind": "band",
+      "grades": [
+        5,
+        6
+      ],
+      "phase_label": null,
+      "section": "3.1: gemeinsamer Schuljahrgang 5/6",
+      "page": 12,
+      "quote": "Grammatik",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-englisch-56-schreibung-2019-v1",
+      "document_id": "de-st-sek-englisch-2019-v1",
+      "subject_key": "englisch",
+      "title": "Englische Wörter korrekt schreiben",
+      "grade_kind": "band",
+      "grades": [
+        5,
+        6
+      ],
+      "phase_label": null,
+      "section": "3.1: gemeinsamer Schuljahrgang 5/6",
+      "page": 12,
+      "quote": "Orthografie",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-englisch-56-kultur-2019-v1",
+      "document_id": "de-st-sek-englisch-2019-v1",
+      "subject_key": "englisch",
+      "title": "Kulturelle Begegnungen",
+      "grade_kind": "band",
+      "grades": [
+        5,
+        6
+      ],
+      "phase_label": null,
+      "section": "3.1: gemeinsamer Schuljahrgang 5/6",
+      "page": 12,
+      "quote": "Interkulturelle",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-englisch-56-lernen-2019-v1",
+      "document_id": "de-st-sek-englisch-2019-v1",
+      "subject_key": "englisch",
+      "title": "Strategien zum Sprachenlernen",
+      "grade_kind": "band",
+      "grades": [
+        5,
+        6
+      ],
+      "phase_label": null,
+      "section": "3.1: gemeinsamer Schuljahrgang 5/6",
+      "page": 13,
+      "quote": "Methodische",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-englisch-78-hoeren-2019-v1",
+      "document_id": "de-st-sek-englisch-2019-v1",
+      "subject_key": "englisch",
+      "title": "Englische Hörtexte verstehen",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.2.1 S. 15 und 3.3.1 S. 25: gemeinsamer Oberbegriff; Abschlussniveau unterschiedlich",
+      "page": 15,
+      "quote": "Hör-/Sehver-",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-englisch-78-lesen-2019-v1",
+      "document_id": "de-st-sek-englisch-2019-v1",
+      "subject_key": "englisch",
+      "title": "Englische Texte verstehen",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.2.1 S. 15 und 3.3.1 S. 25: gemeinsamer Oberbegriff; Abschlussniveau unterschiedlich",
+      "page": 15,
+      "quote": "Leseverstehen",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-englisch-78-sprechen-2019-v1",
+      "document_id": "de-st-sek-englisch-2019-v1",
+      "subject_key": "englisch",
+      "title": "Über vertraute Themen sprechen",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.2.1 S. 15 und 3.3.1 S. 25: gemeinsamer Oberbegriff; Abschlussniveau unterschiedlich",
+      "page": 15,
+      "quote": "Sprechen",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-englisch-78-schreiben-2019-v1",
+      "document_id": "de-st-sek-englisch-2019-v1",
+      "subject_key": "englisch",
+      "title": "Englische Texte schreiben",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.2.1 S. 16 und 3.3.1 S. 25: gemeinsamer Oberbegriff; Abschlussniveau unterschiedlich",
+      "page": 16,
+      "quote": "Schreiben",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-englisch-78-sprachmittlung-2019-v1",
+      "document_id": "de-st-sek-englisch-2019-v1",
+      "subject_key": "englisch",
+      "title": "Inhalte zwischen Sprachen vermitteln",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.2.1 S. 16 und 3.3.1 S. 25: gemeinsamer Oberbegriff; Abschlussniveau unterschiedlich",
+      "page": 16,
+      "quote": "Sprachmittlung",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-englisch-78-wortschatz-2019-v1",
+      "document_id": "de-st-sek-englisch-2019-v1",
+      "subject_key": "englisch",
+      "title": "Alltagswortschatz erweitern",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.2.1 S. 17 und 3.3.1 S. 26: gemeinsamer Oberbegriff; Abschlussniveau unterschiedlich",
+      "page": 17,
+      "quote": "Wortschatz",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-englisch-78-grammatik-2019-v1",
+      "document_id": "de-st-sek-englisch-2019-v1",
+      "subject_key": "englisch",
+      "title": "Grammatik im Sprachgebrauch",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.2.1 S. 17 und 3.3.1 S. 27: gemeinsamer Oberbegriff; Abschlussniveau unterschiedlich",
+      "page": 17,
+      "quote": "Grammatik",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-englisch-78-kultur-2019-v1",
+      "document_id": "de-st-sek-englisch-2019-v1",
+      "subject_key": "englisch",
+      "title": "Interkulturelle Begegnungen",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.2.1 S. 18 und 3.3.1 S. 27: gemeinsamer Oberbegriff; Abschlussniveau unterschiedlich",
+      "page": 18,
+      "quote": "Interkulturelle",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-englisch-78-lernen-2019-v1",
+      "document_id": "de-st-sek-englisch-2019-v1",
+      "subject_key": "englisch",
+      "title": "Englisch mit Strategien lernen",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.2.1 S. 18 und 3.3.1 S. 28: gemeinsamer Oberbegriff; Abschlussniveau unterschiedlich",
+      "page": 18,
+      "quote": "Methodische",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-englisch-real-910-hoeren-2019-v1",
+      "document_id": "de-st-sek-englisch-2019-v1",
+      "subject_key": "englisch",
+      "title": "Englisch hören und verstehen",
+      "grade_kind": "phase",
+      "grades": null,
+      "phase_label": "Realschulabschlussbezogener Unterricht 9/10",
+      "section": "3.3.2 im Realschulabschnitt 3.2; Nummerierungswiederholung im Original: Bildungsgang im Kinderprofil nicht bestätigt",
+      "page": 20,
+      "quote": "Hör-/Sehver-",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-englisch-real-910-schreiben-2019-v1",
+      "document_id": "de-st-sek-englisch-2019-v1",
+      "subject_key": "englisch",
+      "title": "Kommunikation und Schreiben",
+      "grade_kind": "phase",
+      "grades": null,
+      "phase_label": "Realschulabschlussbezogener Unterricht 9/10",
+      "section": "3.3.2 im Realschulabschnitt 3.2; Nummerierungswiederholung im Original: Bildungsgang im Kinderprofil nicht bestätigt",
+      "page": 20,
+      "quote": "Schreiben",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-englisch-haupt-9-hoeren-2019-v1",
+      "document_id": "de-st-sek-englisch-2019-v1",
+      "subject_key": "englisch",
+      "title": "Englisch hören und verstehen",
+      "grade_kind": "phase",
+      "grades": null,
+      "phase_label": "Hauptschulabschlussbezogener Unterricht 9",
+      "section": "3.3.2: Bildungsgang im Kinderprofil nicht bestätigt",
+      "page": 29,
+      "quote": "Hör-/Sehver-",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-englisch-haupt-9-schreiben-2019-v1",
+      "document_id": "de-st-sek-englisch-2019-v1",
+      "subject_key": "englisch",
+      "title": "Kommunikation und Schreiben",
+      "grade_kind": "phase",
+      "grades": null,
+      "phase_label": "Hauptschulabschlussbezogener Unterricht 9",
+      "section": "3.3.2: Bildungsgang im Kinderprofil nicht bestätigt",
+      "page": 29,
+      "quote": "Schreiben",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-geschichte-56-fruehe-menschen-2019-v1",
+      "document_id": "de-st-sek-geschichte-2019-v1",
+      "subject_key": "geschichte",
+      "title": "Frühe Lebensformen von Menschen",
+      "grade_kind": "band",
+      "grades": [
+        5,
+        6
+      ],
+      "phase_label": null,
+      "section": "3.2: gemeinsamer Schuljahrgang 5/6",
+      "page": 12,
+      "quote": "Lebensformen",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-geschichte-56-ottonisch-2019-v1",
+      "document_id": "de-st-sek-geschichte-2019-v1",
+      "subject_key": "geschichte",
+      "title": "Herrschaft im ottonischen Reich",
+      "grade_kind": "band",
+      "grades": [
+        5,
+        6
+      ],
+      "phase_label": null,
+      "section": "3.2: gemeinsamer Schuljahrgang 5/6",
+      "page": 14,
+      "quote": "ottonische",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-geschichte-56-mittelalter-2019-v1",
+      "document_id": "de-st-sek-geschichte-2019-v1",
+      "subject_key": "geschichte",
+      "title": "Alltag im späten Mittelalter",
+      "grade_kind": "band",
+      "grades": [
+        5,
+        6
+      ],
+      "phase_label": null,
+      "section": "3.2: gemeinsamer Schuljahrgang 5/6",
+      "page": 15,
+      "quote": "Lebenswelten",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-geschichte-56-quellen-2019-v1",
+      "document_id": "de-st-sek-geschichte-2019-v1",
+      "subject_key": "geschichte",
+      "title": "Geschichte anhand von Gegenständen untersuchen",
+      "grade_kind": "band",
+      "grades": [
+        5,
+        6
+      ],
+      "phase_label": null,
+      "section": "3.2: gemeinsamer Schuljahrgang 5/6",
+      "page": 16,
+      "quote": "Sachzeugnissen",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-geschichte-wahl56-aegypten-2019-v1",
+      "document_id": "de-st-sek-geschichte-2019-v1",
+      "subject_key": "geschichte",
+      "title": "Hochkultur am Beispiel Ägyptens",
+      "grade_kind": "phase",
+      "grades": null,
+      "phase_label": "Wahlgruppe Schuljahrgänge 5/6",
+      "section": "3.1 S.11 und 3.2: aus drei mindestens zwei Schwerpunkte; tatsächliche schulische Auswahl unbekannt",
+      "page": 13,
+      "quote": "Ägypten",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-geschichte-wahl56-griechenland-2019-v1",
+      "document_id": "de-st-sek-geschichte-2019-v1",
+      "subject_key": "geschichte",
+      "title": "Kultur im antiken Griechenland",
+      "grade_kind": "phase",
+      "grades": null,
+      "phase_label": "Wahlgruppe Schuljahrgänge 5/6",
+      "section": "3.1 S.11 und 3.2: aus drei mindestens zwei Schwerpunkte; tatsächliche schulische Auswahl unbekannt",
+      "page": 13,
+      "quote": "Griechenland",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-geschichte-wahl56-rom-2019-v1",
+      "document_id": "de-st-sek-geschichte-2019-v1",
+      "subject_key": "geschichte",
+      "title": "Römische Kaiserzeit",
+      "grade_kind": "phase",
+      "grades": null,
+      "phase_label": "Wahlgruppe Schuljahrgänge 5/6",
+      "section": "3.1 S.11 und 3.2: aus drei mindestens zwei Schwerpunkte; tatsächliche schulische Auswahl unbekannt",
+      "page": 14,
+      "quote": "Kaiserzeit",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-geschichte-78-entdeckungen-2019-v1",
+      "document_id": "de-st-sek-geschichte-2019-v1",
+      "subject_key": "geschichte",
+      "title": "Entdeckungsfahrten und ihre Folgen",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.3: Schuljahrgänge 7/8 als Doppeljahrgang",
+      "page": 17,
+      "quote": "Entdeckungsfahrten",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-geschichte-78-reformation-2019-v1",
+      "document_id": "de-st-sek-geschichte-2019-v1",
+      "subject_key": "geschichte",
+      "title": "Reformation und Konfessionen",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.3: Schuljahrgänge 7/8 als Doppeljahrgang",
+      "page": 18,
+      "quote": "Reformation",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-geschichte-78-staat-2019-v1",
+      "document_id": "de-st-sek-geschichte-2019-v1",
+      "subject_key": "geschichte",
+      "title": "Entstehung moderner Staaten",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.3: Schuljahrgänge 7/8 als Doppeljahrgang",
+      "page": 19,
+      "quote": "Staatswesens",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-geschichte-78-aufklaerung-2019-v1",
+      "document_id": "de-st-sek-geschichte-2019-v1",
+      "subject_key": "geschichte",
+      "title": "Aufklärung und Absolutismus",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.3: Schuljahrgänge 7/8 als Doppeljahrgang",
+      "page": 19,
+      "quote": "Aufklärung",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-geschichte-78-revolution-2019-v1",
+      "document_id": "de-st-sek-geschichte-2019-v1",
+      "subject_key": "geschichte",
+      "title": "Französische Revolution",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.3: Schuljahrgänge 7/8 als Doppeljahrgang",
+      "page": 20,
+      "quote": "Revolution",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-geschichte-78-nation-2019-v1",
+      "document_id": "de-st-sek-geschichte-2019-v1",
+      "subject_key": "geschichte",
+      "title": "Nationale Bewegungen in Deutschland",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.3: Schuljahrgänge 7/8 als Doppeljahrgang",
+      "page": 20,
+      "quote": "Nationalbewegung",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-geschichte-78-industrialisierung-2019-v1",
+      "document_id": "de-st-sek-geschichte-2019-v1",
+      "subject_key": "geschichte",
+      "title": "Entstehung der Industriegesellschaft",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.3: Schuljahrgänge 7/8 als Doppeljahrgang",
+      "page": 21,
+      "quote": "Industriegesellschaft",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-geschichte-78-sachtexte-2019-v1",
+      "document_id": "de-st-sek-geschichte-2019-v1",
+      "subject_key": "geschichte",
+      "title": "Geschichte anhand von Sachtexten untersuchen",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.3: Schuljahrgänge 7/8 als Doppeljahrgang",
+      "page": 22,
+      "quote": "Sachtexten",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-geschichte-9-erster-weltkrieg-2019-v1",
+      "document_id": "de-st-sek-geschichte-2019-v1",
+      "subject_key": "geschichte",
+      "title": "Erster Weltkrieg und seine Folgen",
+      "grade_kind": "exact",
+      "grades": [
+        9
+      ],
+      "phase_label": null,
+      "section": "3.1 S.10–11 und 3.4 S.23: ausdrücklich Schuljahrgang 9",
+      "page": 23,
+      "quote": "Weltkrieges",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-geschichte-9-ns-diktatur-2019-v1",
+      "document_id": "de-st-sek-geschichte-2019-v1",
+      "subject_key": "geschichte",
+      "title": "Herrschaft und Alltag im Nationalsozialismus",
+      "grade_kind": "exact",
+      "grades": [
+        9
+      ],
+      "phase_label": null,
+      "section": "3.1 S.10–11 und 3.4 S.24: ausdrücklich Schuljahrgang 9",
+      "page": 24,
+      "quote": "nationalsozialistischen",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-geschichte-9-deutschland-geschichte-2019-v1",
+      "document_id": "de-st-sek-geschichte-2019-v1",
+      "subject_key": "geschichte",
+      "title": "Deutsch-deutsche Geschichte",
+      "grade_kind": "exact",
+      "grades": [
+        9
+      ],
+      "phase_label": null,
+      "section": "3.1 S.10–11 und 3.4 S.25: ausdrücklich Schuljahrgang 9",
+      "page": 25,
+      "quote": "deutsch-deutschen",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-geschichte-9-digital-2019-v1",
+      "document_id": "de-st-sek-geschichte-2019-v1",
+      "subject_key": "geschichte",
+      "title": "Geschichte in digitalen Medien untersuchen",
+      "grade_kind": "exact",
+      "grades": [
+        9
+      ],
+      "phase_label": null,
+      "section": "3.1 S.10–11 und 3.4 S.26: ausdrücklich Schuljahrgang 9",
+      "page": 26,
+      "quote": "digitalen",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-geschichte-10-ausstellung-2019-v1",
+      "document_id": "de-st-sek-geschichte-2019-v1",
+      "subject_key": "geschichte",
+      "title": "Geschichte in einer Ausstellung darstellen",
+      "grade_kind": "exact",
+      "grades": [
+        10
+      ],
+      "phase_label": null,
+      "section": "3.1 S.10–11 und 3.4 S.29: ausdrücklich Schuljahrgang 10",
+      "page": 29,
+      "quote": "Ausstellung",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-geschichte-910-1945-2019-v1",
+      "document_id": "de-st-sek-geschichte-2019-v1",
+      "subject_key": "geschichte",
+      "title": "Das Jahr 1945",
+      "grade_kind": "band",
+      "grades": [
+        9,
+        10
+      ],
+      "phase_label": null,
+      "section": "3.4: Schuljahrgänge 9/10, keine Einzeljahrgangszuordnung",
+      "page": 26,
+      "quote": "1945",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-geschichte-910-systeme-2019-v1",
+      "document_id": "de-st-sek-geschichte-2019-v1",
+      "subject_key": "geschichte",
+      "title": "Konfrontation der politischen Systeme",
+      "grade_kind": "band",
+      "grades": [
+        9,
+        10
+      ],
+      "phase_label": null,
+      "section": "3.4: Schuljahrgänge 9/10, keine Einzeljahrgangszuordnung",
+      "page": 27,
+      "quote": "Systeme",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-geschichte-910-1990-2019-v1",
+      "document_id": "de-st-sek-geschichte-2019-v1",
+      "subject_key": "geschichte",
+      "title": "Das Jahr 1990",
+      "grade_kind": "band",
+      "grades": [
+        9,
+        10
+      ],
+      "phase_label": null,
+      "section": "3.4: Schuljahrgänge 9/10, keine Einzeljahrgangszuordnung",
+      "page": 28,
+      "quote": "1990",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    }
+  ],
+  "coverage_gaps": [
+    {
+      "state_code": "DE-ST",
+      "gap": "Englisch: Abschlussweg, Unterrichtsniveau und bestätigte Sprachvariante fehlen im Kinderprofil. Geschichte: schulische Auswahl aus der 5/6-Wahlgruppe unbekannt. Keine Annahme tatsächlicher Schulbehandlung oder vollständiger Lehrplanabdeckung."
+    }
+  ]
+}

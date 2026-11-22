@@ -857,6 +857,34 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 ## Lehrplan, Hausaufgaben, Tutor und Prüfungen
 
+- [ ] **DACH-Bildungswege und Hochschulen quellengestützt unterstützen**
+
+  Alle 16 deutschen und neun österreichischen Bundesländer sowie 26 Schweizer
+  Kantone mit ihren jeweils geltenden Schulformen, Sprachregionen, Stufen,
+  Abschlusswegen und Fachlehrplänen erschließen. Schweizer HarmoS-Jahre und
+  kantonale Bezeichnungen, österreichische Schulstufen und deutsche Klassen
+  dürfen nicht automatisch gleichgesetzt werden. Fachpläne und Fassungen mit
+  Quellen, Geltungszeiträumen und belastbaren Kompetenz-/Phasenbeziehungen
+  importieren; schulinterne Reihenfolgen nur bei konkretem Beleg übernehmen.
+  Hochschulen benötigen zusätzlich getrennte, versionierte Programme nach
+  Institution, Studiengang und Abschluss. Erwachsene dürfen nicht über ein
+  erfundenes Kinder- oder Klassenprofil modelliert werden.
+
+  Das neue read-only Quellenverzeichnis umfasst die 51 Regionen und zeigt
+  fehlende Profil- und Inhaltsunterstützung ausdrücklich. Im bestehenden
+  deutschen Schulprofil kann ein Klassenwechsel vorgeschlagen und bewusst
+  gespeichert werden; ein automatischer Übergang ist nicht implementiert.
+  Als erste fachlich belegte Erweiterung wurden Mathematik, Deutsch, Englisch,
+  Geschichte und Biologie der Sekundarschule Sachsen-Anhalt für die genannten
+  Jahrgangsbänder bzw. Abschlussphasen ergänzt. Andere Fächer, Österreich,
+  die Schweiz und Hochschulen bleiben offen; keine Vollständigkeit behaupten.
+
+  **Abnahme:** Lernende und Berechtigte können den eigenen Bildungsweg ohne
+  erfundene Stufe wählen und bei einem Wechsel vorhandene Nachweise behalten;
+  nationale/lokale Fassungen, Wahlmöglichkeiten und bekannte Lücken sind
+  sichtbar, gegen offizielle Quellen geprüft und auf allen unterstützten
+  Clients getestet.
+
 - [ ] **P1 – Lehrplanabdeckung fachlich kuratieren und offen ausweisen**
 
   Den Stand von `docs/CURRICULUM.md` und den versionierten Quelldateien gegen aktuelle amtliche Dokumente prüfen, fehlende Schulformen/Klassenbänder und ungeprüfte Fassungen priorisieren, Fachzuordnung und Fundstelle jeweils fachlich freigeben.
@@ -985,6 +1013,16 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 ## Kindgerechte Bedienung und Alltagstest
 
 - [ ] **P1 – Alle Kinderansichten sprachlich und in ihrer Bedienung entrümpeln**
+
+  - [x] **Themenbild und Gerätekarten während der Nutzung kompakter zeigen.**
+    In aktiven Kinderaufgaben erscheint ein vorhandenes Themenbild zunächst
+    als kleine Vorschau und kann ausdrücklich geöffnet werden; Einführung und
+    Erklärung behalten ihre Darstellung. Der KI-Hinweis bleibt sichtbar und
+    das Öffnen löst weder KI-Arbeit noch eine Antwort aus. Gerätekarten fassen
+    die doppelte Informationsaktion im anklickbaren Kopf zusammen; Warnung und
+    Geräteabmeldung bleiben erreichbar. Mobile Widgettests einschließlich
+    großer Schrift prüfen diese Teilfälle; die vollständige Prüfung aller
+    Kinderansichten bleibt offen.
 
   - [x] **Hausaufgaben und Klassenarbeit-Nacharbeit gezielt vereinfachen.**
     Bei Hausaufgaben bleibt die Antwortprüfung die Hauptaktion; seltene

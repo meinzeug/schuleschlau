@@ -14,21 +14,50 @@ exportiert; die neuen kindgebundenen Tabellen folgen der bestehenden Löschung.
 
 ## Daten und tatsächliche Abdeckung
 
-Die versionierten Dateien `reference/curriculum-sources-v1.json` und
-`reference/curriculum-topics-v1.json` enthalten58Dokumente und766Zuordnungen
+### DACH-Quellen und wachsende Bildungswege
+
+`GET /api/curriculum/dach-scope` liefert ein öffentliches, authentifiziert
+lesbares Quellenverzeichnis für die 16 deutschen Länder, neun österreichischen
+Bundesländer und 26 Schweizer Kantone. Es beschreibt zunächst nur Regionen und
+offizielle Einstiegsquellen. Insbesondere sind österreichische und Schweizer
+Kinderprofile, regionale Bildungswege, Themen und Hochschulprofile damit noch
+nicht integriert. Ein GET erzeugt keine Auswahl, kein Lernen und keinen
+KI-Auftrag. Die Elternansicht zeigt diese Grenze ausdrücklich an.
+
+In der Schweiz unterscheiden sich die sprachregionalen Lehrpläne und die
+kantonalen Fassungen; mehrsprachige Kantone dürfen nicht pauschal einer Sprache
+zugeordnet werden. Das EDK beschreibt Lehrplan 21, Plan d’études romand und
+Piano di studio sowie getrennte kantonale Regelungen für weiterführende Schulen:
+https://www.edk.ch/de/bildungssystem/beschreibung/lehrplaene. Österreichische
+Lehrpläne und ihre zeitlich gestaffelte Einführung werden schulformbezogen vom
+Ministerium veröffentlicht: https://www.bmb.gv.at/Themen/schule/schulpraxis/lp.html.
+Studiengänge benötigen zusätzlich Hochschule, Studiengang, Abschluss und
+gültige Fassung; weder das deutsche Klassenfeld noch ein Schulfach ist dafür
+ein ausreichender Ersatz.
+
+Im vorhandenen deutschen Schulprofil können Eltern einen Klassenwechsel als
+Vorschlag mit einem Knopfdruck einstellen und erst nach Prüfung bewusst
+speichern. Der Wechsel wird nicht nach Datum oder Alter erraten. Bereits
+gespeicherte Antworten und Lernnachweise werden dabei nicht umgeschrieben.
+Die Unterstützung weiterer Länder, ihrer Jahrgangssysteme und eigenständiger
+Hochschulprofile ist weiterhin offen.
+
+Die versionierten Dateien `reference/curriculum-sources-v1.json`,
+`reference/curriculum-topics-v1.json` und die drei ergänzenden Pakete für
+die Sekundarschule Sachsen-Anhalt enthalten 63 Dokumente und 869 Zuordnungen
 mit23Fachschlüsseln aus16Bundesländern. Dokumente behalten amtlichen Verweis,
 Fassung, Status und Digest; Themen behalten Abschnitt, gegebenenfalls Seite,
 Klassenband oder Originalphase. Ein Band wird nicht als amtlich festgelegte
 Einzelklasse ausgegeben. Vorgeschlagene kanonische Themenkennungen sind noch
 keine geprüften Kompetenzzuordnungen.
 
-Der Bestand ist ausdrücklich unvollständig:20Dokumente/309Zuordnungen sind als
-aktuell geprüft markiert,38Dokumente/457Zuordnungen als Fassung ungeprüft.
+Der Bestand ist ausdrücklich unvollständig: 25 Dokumente/412 Zuordnungen sind als
+aktuell geprüft markiert, 38 Dokumente/457 Zuordnungen als Fassung ungeprüft.
 Enthalten sind auch amtliche Indizes, Handreichungen und historische Dokumente.
 48schulformübergreifende Zuordnungen besitzen derzeit keine konkret nutzbare
 Schulformbeziehung. Für Klasse12 fehlen Zuordnungen; Klasse11 und13 haben
 nur fünf beziehungsweise vier. Dies ist weder ein vollständiger deutscher
-Lehrplanbestand noch eine Sammlung von766Grafiken oder Animationen.
+Lehrplanbestand noch eine Sammlung von 869 Grafiken oder Animationen.
 
 Der Import prüft erlaubte amtliche Hosts, Schema, eindeutige Kennungen,
 Fachstamm und echte Geltungsbereiche. Wiederholtes Einspielen desselben

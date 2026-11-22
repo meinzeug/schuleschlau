@@ -1085,6 +1085,23 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
     }
     final u = unit;
     final viewOwner = ownerAccount;
+    final modelKind = modelStep?['kind'];
+    final planPhase = shortPlan?['phase'];
+    final questionVisible =
+        state.isChild &&
+        (awaitingContinue ||
+            (u?['status'] == 'active' &&
+                u?['round_deferred'] != true &&
+                u?['introduction_seen'] != false &&
+                adaptiveAction != 'saved_explanation' &&
+                (modelKind == null ||
+                    ['practice', 'check_understanding'].contains(modelKind)) &&
+                ![
+                  'offer_probe',
+                  'explanation',
+                  'change_support',
+                ].contains(planPhase) &&
+                currentQuestion != null));
     final content = error != null
         ? Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1109,6 +1126,7 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
                   PublicImageCard(
                     state: state,
                     unit: u,
+                    compact: questionVisible,
                     isCurrent: () =>
                         requestIsCurrent(widget.unitId, ownerAccount) &&
                         identical(unit, u),

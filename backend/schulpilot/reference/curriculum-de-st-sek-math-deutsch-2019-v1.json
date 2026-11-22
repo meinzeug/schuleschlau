@@ -1,0 +1,839 @@
+{
+  "version": 1,
+  "retrieved": "2026-11-22",
+  "coverage": {
+    "complete": false,
+    "note": "Kuratierte Orientierung, keine vollständigen Fachlehrpläne. 5/6 gemeinsame Bänder, 7/8 nur in beiden Bildungsgängen benannte grobe Schwerpunkte. Bildungsgangspezifische Inhalte bleiben ungebundene Phasen und werden nie anhand der Klassenstufe geraten."
+  },
+  "documents": [
+    {
+      "id": "de-st-sek-mathe-2019-v1",
+      "state_code": "DE-ST",
+      "title": "Fachlehrplan Sekundarschule Mathematik",
+      "official_url": "https://www.bildung-lsa.de/files/164f3f97e3adf65ff6f44685dd9e1ced/lp_sks_mathe_01_08_2019.pdf",
+      "edition": "01.08.2019",
+      "effective_from": null,
+      "school_form_label": "Sekundarschule",
+      "school_form_id": "de-st.sekundarschule",
+      "school_form_scope": "specific",
+      "applies_to_school_forms": [],
+      "applicability_note": "5/6 gemeinsam; ab 7 abschlussbezogen differenziert. 7/8 umfasst nur gemeinsam benannte breite Schwerpunkte. Die Bildungsgänge haben unterschiedliche Anforderungen. Bildungsgangspezifische Einträge bleiben Phasen ohne Klassenfilter.",
+      "document_kind": "curriculum",
+      "source_notes": "Amtlicher Bildungsserver, Abruf 22.11.2026; PDF nennt in Kraft seit 2012, Anpassung 2019. CC BY-SA 3.0; Quelle: Landesportal Sachsen-Anhalt. PDF-SHA256 88e5b643f654715e3a107ae51d4ec0e17702e66e0886f1e3f443dcd20446ace9. Seitenzahlen sind gedruckte Seiten. Kurzlabels sind eigene Paraphrasen.",
+      "source_status": "current_verified",
+      "retrieved": "2026-11-22"
+    },
+    {
+      "id": "de-st-sek-deutsch-2019-v1",
+      "state_code": "DE-ST",
+      "title": "Fachlehrplan Sekundarschule Deutsch",
+      "official_url": "https://www.bildung-lsa.de/files/164f3f97e3adf65ff6f44685dd9e1ced/lp_sks_deutsch_01_08_2019_k2.pdf",
+      "edition": "01.08.2019",
+      "effective_from": null,
+      "school_form_label": "Sekundarschule",
+      "school_form_id": "de-st.sekundarschule",
+      "school_form_scope": "specific",
+      "applies_to_school_forms": [],
+      "applicability_note": "5/6 gemeinsam; ab 7 abschlussbezogen differenziert. 7/8 umfasst nur gemeinsam benannte breite Schwerpunkte. Die Bildungsgänge haben unterschiedliche Anforderungen. Bildungsgangspezifische Einträge bleiben Phasen ohne Klassenfilter.",
+      "document_kind": "curriculum",
+      "source_notes": "Amtlicher Bildungsserver, Abruf 22.11.2026; PDF nennt in Kraft seit 2012, Anpassung 2019. CC BY-SA 3.0; Quelle: Landesportal Sachsen-Anhalt. PDF-SHA256 2d84d1750e43ee956e0520719f205773b16582692ebaf03269d70303ae4e8a44. Seitenzahlen sind gedruckte Seiten. Kurzlabels sind eigene Paraphrasen.",
+      "source_status": "current_verified",
+      "retrieved": "2026-11-22"
+    }
+  ],
+  "topics": [
+    {
+      "id": "de-st-sek-mathe-56-naturzahlen-2019-v1",
+      "document_id": "de-st-sek-mathe-2019-v1",
+      "subject_key": "mathematik",
+      "title": "Zahlen und Teilbarkeit",
+      "grade_kind": "band",
+      "grades": [
+        5,
+        6
+      ],
+      "phase_label": null,
+      "section": "3.2: gemeinsamer Schuljahrgang 5/6",
+      "page": 22,
+      "quote": "Natürliche",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-mathe-56-gleichungen-brueche-2019-v1",
+      "document_id": "de-st-sek-mathe-2019-v1",
+      "subject_key": "mathematik",
+      "title": "Gleichungen und Bruchzahlen",
+      "grade_kind": "band",
+      "grades": [
+        5,
+        6
+      ],
+      "phase_label": null,
+      "section": "3.2: gemeinsamer Schuljahrgang 5/6",
+      "page": 23,
+      "quote": "Gleichungen",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-mathe-56-groessen-2019-v1",
+      "document_id": "de-st-sek-mathe-2019-v1",
+      "subject_key": "mathematik",
+      "title": "Größen und Einheiten",
+      "grade_kind": "band",
+      "grades": [
+        5,
+        6
+      ],
+      "phase_label": null,
+      "section": "3.2: gemeinsamer Schuljahrgang 5/6",
+      "page": 24,
+      "quote": "Größen",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-mathe-56-gebrochene-zahlen-2019-v1",
+      "document_id": "de-st-sek-mathe-2019-v1",
+      "subject_key": "mathematik",
+      "title": "Mit Bruchzahlen rechnen",
+      "grade_kind": "band",
+      "grades": [
+        5,
+        6
+      ],
+      "phase_label": null,
+      "section": "3.2: gemeinsamer Schuljahrgang 5/6",
+      "page": 25,
+      "quote": "Gebrochene",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-mathe-56-symmetrie-2019-v1",
+      "document_id": "de-st-sek-mathe-2019-v1",
+      "subject_key": "mathematik",
+      "title": "Formen und Spiegelungen",
+      "grade_kind": "band",
+      "grades": [
+        5,
+        6
+      ],
+      "phase_label": null,
+      "section": "3.2: gemeinsamer Schuljahrgang 5/6",
+      "page": 26,
+      "quote": "Symmetrie",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-mathe-56-flaechen-winkel-2019-v1",
+      "document_id": "de-st-sek-mathe-2019-v1",
+      "subject_key": "mathematik",
+      "title": "Flächen und Winkel",
+      "grade_kind": "band",
+      "grades": [
+        5,
+        6
+      ],
+      "phase_label": null,
+      "section": "3.2: gemeinsamer Schuljahrgang 5/6",
+      "page": 27,
+      "quote": "Umfang",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-mathe-56-dreiecke-2019-v1",
+      "document_id": "de-st-sek-mathe-2019-v1",
+      "subject_key": "mathematik",
+      "title": "Dreiecke erkunden",
+      "grade_kind": "band",
+      "grades": [
+        5,
+        6
+      ],
+      "phase_label": null,
+      "section": "3.2: gemeinsamer Schuljahrgang 5/6",
+      "page": 28,
+      "quote": "Dreiecke",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-mathe-56-proportionalitaet-2019-v1",
+      "document_id": "de-st-sek-mathe-2019-v1",
+      "subject_key": "mathematik",
+      "title": "Direkte und indirekte Zuordnungen",
+      "grade_kind": "band",
+      "grades": [
+        5,
+        6
+      ],
+      "phase_label": null,
+      "section": "3.2: gemeinsamer Schuljahrgang 5/6",
+      "page": 29,
+      "quote": "Proportionalität",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-mathe-56-daten-2019-v1",
+      "document_id": "de-st-sek-mathe-2019-v1",
+      "subject_key": "mathematik",
+      "title": "Daten und Durchschnitt",
+      "grade_kind": "band",
+      "grades": [
+        5,
+        6
+      ],
+      "phase_label": null,
+      "section": "3.2: gemeinsamer Schuljahrgang 5/6",
+      "page": 30,
+      "quote": "Arithmetisches",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-mathe-78-rational-2019-v1",
+      "document_id": "de-st-sek-mathe-2019-v1",
+      "subject_key": "mathematik",
+      "title": "Rationale Zahlen erkunden",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.3.1 S. 32 und 3.4.1 S. 48: gemeinsame Schwerpunktbezeichnung, Niveau unterschiedlich",
+      "page": 32,
+      "quote": "Rationale",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-mathe-78-prozent-gleichungen-2019-v1",
+      "document_id": "de-st-sek-mathe-2019-v1",
+      "subject_key": "mathematik",
+      "title": "Prozente und lineare Gleichungen",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.3.1 S. 33 und 3.4.1 S. 49: gemeinsame Schwerpunktbezeichnung, Niveau unterschiedlich",
+      "page": 33,
+      "quote": "Prozentrechnung",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-mathe-78-variablen-2019-v1",
+      "document_id": "de-st-sek-mathe-2019-v1",
+      "subject_key": "mathematik",
+      "title": "Variablen und Formeln",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.3.1 S. 34 und 3.4.1 S. 50: gemeinsame Schwerpunktbezeichnung, Niveau unterschiedlich",
+      "page": 34,
+      "quote": "Variablen",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-mathe-78-vierecke-2019-v1",
+      "document_id": "de-st-sek-mathe-2019-v1",
+      "subject_key": "mathematik",
+      "title": "Vierecke untersuchen",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.3.1 S. 35 und 3.4.1 S. 51: gemeinsame Schwerpunktbezeichnung, Niveau unterschiedlich",
+      "page": 35,
+      "quote": "Vierecke",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-mathe-78-kreise-2019-v1",
+      "document_id": "de-st-sek-mathe-2019-v1",
+      "subject_key": "mathematik",
+      "title": "Kreise und räumliche Darstellung",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.3.1 S. 36 und 3.4.1 S. 52: gemeinsame Schwerpunktbezeichnung, Niveau unterschiedlich",
+      "page": 36,
+      "quote": "Kreise",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-mathe-78-koerper-2019-v1",
+      "document_id": "de-st-sek-mathe-2019-v1",
+      "subject_key": "mathematik",
+      "title": "Prismen, Zylinder und rechtwinklige Dreiecke",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.3.1 S. 37 und 3.4.1 S. 53: gemeinsame Schwerpunktbezeichnung, Niveau unterschiedlich",
+      "page": 37,
+      "quote": "Prismen",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-mathe-78-funktionen-2019-v1",
+      "document_id": "de-st-sek-mathe-2019-v1",
+      "subject_key": "mathematik",
+      "title": "Lineare Zuordnungen",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.3.1 S. 38 und 3.4.1 S. 54: gemeinsame Schwerpunktbezeichnung, Niveau unterschiedlich",
+      "page": 38,
+      "quote": "Funktionen",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-mathe-78-daten-2019-v1",
+      "document_id": "de-st-sek-mathe-2019-v1",
+      "subject_key": "mathematik",
+      "title": "Daten und Zufall",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.3.1 S. 39 und 3.4.1 S. 55: gemeinsame Schwerpunktbezeichnung, Niveau unterschiedlich",
+      "page": 39,
+      "quote": "Wahrscheinlichkeiten",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-mathe-9-variablen-2019-v1",
+      "document_id": "de-st-sek-mathe-2019-v1",
+      "subject_key": "mathematik",
+      "title": "Variablen und Potenzen",
+      "grade_kind": "exact",
+      "grades": [
+        9
+      ],
+      "phase_label": null,
+      "section": "3.3.2 Fußnote S. 40 und 3.4.2 S. 57: gemeinsamer Oberbegriff, Niveau unterschiedlich",
+      "page": 57,
+      "quote": "Potenzen",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-mathe-9-koerper-2019-v1",
+      "document_id": "de-st-sek-mathe-2019-v1",
+      "subject_key": "mathematik",
+      "title": "Pyramiden und zusammengesetzte Körper",
+      "grade_kind": "exact",
+      "grades": [
+        9
+      ],
+      "phase_label": null,
+      "section": "3.3.2 Fußnote S. 40 und 3.4.2 S. 58: gemeinsamer Oberbegriff, Niveau unterschiedlich",
+      "page": 58,
+      "quote": "Pyramide",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-mathe-9-gleichungen-2019-v1",
+      "document_id": "de-st-sek-mathe-2019-v1",
+      "subject_key": "mathematik",
+      "title": "Lineare Gleichungssysteme",
+      "grade_kind": "exact",
+      "grades": [
+        9
+      ],
+      "phase_label": null,
+      "section": "3.3.2 Fußnote S. 40 und 3.4.2 S. 59: gemeinsamer Oberbegriff, Niveau unterschiedlich",
+      "page": 59,
+      "quote": "Gleichungssysteme",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-mathe-9-daten-2019-v1",
+      "document_id": "de-st-sek-mathe-2019-v1",
+      "subject_key": "mathematik",
+      "title": "Häufigkeitsverteilungen",
+      "grade_kind": "exact",
+      "grades": [
+        9
+      ],
+      "phase_label": null,
+      "section": "3.3.2 Fußnote S. 40 und 3.4.2 S. 60: gemeinsamer Oberbegriff, Niveau unterschiedlich",
+      "page": 60,
+      "quote": "Häufigkeitsverteilungen",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-mathe-real-910-aehnlichkeit-2019-v1",
+      "document_id": "de-st-sek-mathe-2019-v1",
+      "subject_key": "mathematik",
+      "title": "Ähnliche Figuren",
+      "grade_kind": "phase",
+      "grades": null,
+      "phase_label": "Realschulabschlussbezogener Unterricht 9/10",
+      "section": "3.3.2: abschlussbezogener Abschnitt; individuelle Jahrgangszuordnung offen",
+      "page": 42,
+      "quote": "Ähnlichkeit",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-mathe-real-910-trigonometrie-2019-v1",
+      "document_id": "de-st-sek-mathe-2019-v1",
+      "subject_key": "mathematik",
+      "title": "Trigonometrische Zusammenhänge",
+      "grade_kind": "phase",
+      "grades": null,
+      "phase_label": "Realschulabschlussbezogener Unterricht 9/10",
+      "section": "3.3.2: abschlussbezogener Abschnitt; individuelle Jahrgangszuordnung offen",
+      "page": 43,
+      "quote": "Trigonometrie",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-mathe-real-910-quadratisch-2019-v1",
+      "document_id": "de-st-sek-mathe-2019-v1",
+      "subject_key": "mathematik",
+      "title": "Quadratische Gleichungen und Funktionen",
+      "grade_kind": "phase",
+      "grades": null,
+      "phase_label": "Realschulabschlussbezogener Unterricht 9/10",
+      "section": "3.3.2: abschlussbezogener Abschnitt; individuelle Jahrgangszuordnung offen",
+      "page": 45,
+      "quote": "Quadratische",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-mathe-real-910-zufall-2019-v1",
+      "document_id": "de-st-sek-mathe-2019-v1",
+      "subject_key": "mathematik",
+      "title": "Zweistufige Zufallsversuche",
+      "grade_kind": "phase",
+      "grades": null,
+      "phase_label": "Realschulabschlussbezogener Unterricht 9/10",
+      "section": "3.3.2: abschlussbezogener Abschnitt; individuelle Jahrgangszuordnung offen",
+      "page": 46,
+      "quote": "Zufallsversuche",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-deutsch-56-grammatik-2019-v1",
+      "document_id": "de-st-sek-deutsch-2019-v1",
+      "subject_key": "deutsch",
+      "title": "Satzbau, Wortarten und Wortbildung",
+      "grade_kind": "band",
+      "grades": [
+        5,
+        6
+      ],
+      "phase_label": null,
+      "section": "3.1: gemeinsamer Schuljahrgang 5/6",
+      "page": 10,
+      "quote": "Grammatische",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-deutsch-56-rechtschreibung-2019-v1",
+      "document_id": "de-st-sek-deutsch-2019-v1",
+      "subject_key": "deutsch",
+      "title": "Rechtschreibung und Satzzeichen",
+      "grade_kind": "band",
+      "grades": [
+        5,
+        6
+      ],
+      "phase_label": null,
+      "section": "3.1: gemeinsamer Schuljahrgang 5/6",
+      "page": 11,
+      "quote": "Normrichtig",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-deutsch-56-sprechen-2019-v1",
+      "document_id": "de-st-sek-deutsch-2019-v1",
+      "subject_key": "deutsch",
+      "title": "Sprechen und Zuhören",
+      "grade_kind": "band",
+      "grades": [
+        5,
+        6
+      ],
+      "phase_label": null,
+      "section": "3.1: gemeinsamer Schuljahrgang 5/6",
+      "page": 12,
+      "quote": "sprechen",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-deutsch-56-schreiben-2019-v1",
+      "document_id": "de-st-sek-deutsch-2019-v1",
+      "subject_key": "deutsch",
+      "title": "Texte schreiben und überarbeiten",
+      "grade_kind": "band",
+      "grades": [
+        5,
+        6
+      ],
+      "phase_label": null,
+      "section": "3.1: gemeinsamer Schuljahrgang 5/6",
+      "page": 13,
+      "quote": "schreiben",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-deutsch-56-sachtexte-2019-v1",
+      "document_id": "de-st-sek-deutsch-2019-v1",
+      "subject_key": "deutsch",
+      "title": "Lesestrategien und Sachtexte",
+      "grade_kind": "band",
+      "grades": [
+        5,
+        6
+      ],
+      "phase_label": null,
+      "section": "3.1: gemeinsamer Schuljahrgang 5/6",
+      "page": 14,
+      "quote": "Sachtexte",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-deutsch-56-literatur-2019-v1",
+      "document_id": "de-st-sek-deutsch-2019-v1",
+      "subject_key": "deutsch",
+      "title": "Literarische Texte verstehen",
+      "grade_kind": "band",
+      "grades": [
+        5,
+        6
+      ],
+      "phase_label": null,
+      "section": "3.1: gemeinsamer Schuljahrgang 5/6",
+      "page": 15,
+      "quote": "Literarische",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-deutsch-56-medien-2019-v1",
+      "document_id": "de-st-sek-deutsch-2019-v1",
+      "subject_key": "deutsch",
+      "title": "Medien verstehen und nutzen",
+      "grade_kind": "band",
+      "grades": [
+        5,
+        6
+      ],
+      "phase_label": null,
+      "section": "3.1: gemeinsamer Schuljahrgang 5/6",
+      "page": 16,
+      "quote": "Medien",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-deutsch-78-grammatik-2019-v1",
+      "document_id": "de-st-sek-deutsch-2019-v1",
+      "subject_key": "deutsch",
+      "title": "Grammatik und Wortschatz",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.2.1 S. 17 und 3.3.1 S. 29: gemeinsamer Kompetenzbereich, Anforderungen unterschiedlich",
+      "page": 17,
+      "quote": "Grammatische",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-deutsch-78-rechtschreibung-2019-v1",
+      "document_id": "de-st-sek-deutsch-2019-v1",
+      "subject_key": "deutsch",
+      "title": "Rechtschreibung und Satzzeichen",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.2.1 S. 18 und 3.3.1 S. 30: gemeinsamer Kompetenzbereich, Anforderungen unterschiedlich",
+      "page": 18,
+      "quote": "Normrichtig",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-deutsch-78-sprechen-2019-v1",
+      "document_id": "de-st-sek-deutsch-2019-v1",
+      "subject_key": "deutsch",
+      "title": "Sprechen und Zuhören",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.2.1 S. 19 und 3.3.1 S. 31: gemeinsamer Kompetenzbereich, Anforderungen unterschiedlich",
+      "page": 19,
+      "quote": "sprechen",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-deutsch-78-schreiben-2019-v1",
+      "document_id": "de-st-sek-deutsch-2019-v1",
+      "subject_key": "deutsch",
+      "title": "Texte schreiben und überarbeiten",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.2.1 S. 20 und 3.3.1 S. 32: gemeinsamer Kompetenzbereich, Anforderungen unterschiedlich",
+      "page": 20,
+      "quote": "schreiben",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-deutsch-78-sachtexte-2019-v1",
+      "document_id": "de-st-sek-deutsch-2019-v1",
+      "subject_key": "deutsch",
+      "title": "Lesestrategien und Sachtexte",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.2.1 S. 21 und 3.3.1 S. 33: gemeinsamer Kompetenzbereich, Anforderungen unterschiedlich",
+      "page": 21,
+      "quote": "Sachtexte",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-deutsch-78-literatur-2019-v1",
+      "document_id": "de-st-sek-deutsch-2019-v1",
+      "subject_key": "deutsch",
+      "title": "Literarische Texte verstehen",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.2.1 S. 22 und 3.3.1 S. 33: gemeinsamer Kompetenzbereich, Anforderungen unterschiedlich",
+      "page": 22,
+      "quote": "Literarische",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-deutsch-78-medien-2019-v1",
+      "document_id": "de-st-sek-deutsch-2019-v1",
+      "subject_key": "deutsch",
+      "title": "Medien verstehen und nutzen",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.2.1 S. 23 und 3.3.1 S. 34: gemeinsamer Kompetenzbereich, Anforderungen unterschiedlich",
+      "page": 23,
+      "quote": "Medien",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-deutsch-real-910-grammatik-2019-v1",
+      "document_id": "de-st-sek-deutsch-2019-v1",
+      "subject_key": "deutsch",
+      "title": "Grammatik und Wortschatz",
+      "grade_kind": "phase",
+      "grades": null,
+      "phase_label": "Realschulabschlussbezogener Unterricht 9/10",
+      "section": "3.2.2: Bildungsgang noch nicht im Kinderprofil abgebildet",
+      "page": 24,
+      "quote": "Grammatische",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-deutsch-real-910-rechtschreibung-2019-v1",
+      "document_id": "de-st-sek-deutsch-2019-v1",
+      "subject_key": "deutsch",
+      "title": "Rechtschreiben und Zeichensetzung",
+      "grade_kind": "phase",
+      "grades": null,
+      "phase_label": "Realschulabschlussbezogener Unterricht 9/10",
+      "section": "3.2.2: Bildungsgang noch nicht im Kinderprofil abgebildet",
+      "page": 25,
+      "quote": "Normrichtig",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-deutsch-real-910-schreiben-2019-v1",
+      "document_id": "de-st-sek-deutsch-2019-v1",
+      "subject_key": "deutsch",
+      "title": "Sprechen und Schreiben",
+      "grade_kind": "phase",
+      "grades": null,
+      "phase_label": "Realschulabschlussbezogener Unterricht 9/10",
+      "section": "3.2.2: Bildungsgang noch nicht im Kinderprofil abgebildet",
+      "page": 26,
+      "quote": "schreiben",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-deutsch-real-910-lesen-2019-v1",
+      "document_id": "de-st-sek-deutsch-2019-v1",
+      "subject_key": "deutsch",
+      "title": "Sachtexte und Literatur",
+      "grade_kind": "phase",
+      "grades": null,
+      "phase_label": "Realschulabschlussbezogener Unterricht 9/10",
+      "section": "3.2.2: Bildungsgang noch nicht im Kinderprofil abgebildet",
+      "page": 27,
+      "quote": "Sachtexte",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-deutsch-real-910-medien-2019-v1",
+      "document_id": "de-st-sek-deutsch-2019-v1",
+      "subject_key": "deutsch",
+      "title": "Medien nutzen und reflektieren",
+      "grade_kind": "phase",
+      "grades": null,
+      "phase_label": "Realschulabschlussbezogener Unterricht 9/10",
+      "section": "3.2.2: Bildungsgang noch nicht im Kinderprofil abgebildet",
+      "page": 28,
+      "quote": "Medien",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-deutsch-haupt-9-grammatik-2019-v1",
+      "document_id": "de-st-sek-deutsch-2019-v1",
+      "subject_key": "deutsch",
+      "title": "Grammatik und Wortschatz",
+      "grade_kind": "phase",
+      "grades": null,
+      "phase_label": "Hauptschulabschlussbezogener Unterricht 9",
+      "section": "3.3.2: Bildungsgang noch nicht im Kinderprofil abgebildet",
+      "page": 35,
+      "quote": "Grammatische",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-deutsch-haupt-9-rechtschreibung-2019-v1",
+      "document_id": "de-st-sek-deutsch-2019-v1",
+      "subject_key": "deutsch",
+      "title": "Rechtschreiben und Zeichensetzung",
+      "grade_kind": "phase",
+      "grades": null,
+      "phase_label": "Hauptschulabschlussbezogener Unterricht 9",
+      "section": "3.3.2: Bildungsgang noch nicht im Kinderprofil abgebildet",
+      "page": 36,
+      "quote": "Normrichtig",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-deutsch-haupt-9-schreiben-2019-v1",
+      "document_id": "de-st-sek-deutsch-2019-v1",
+      "subject_key": "deutsch",
+      "title": "Sprechen und Schreiben",
+      "grade_kind": "phase",
+      "grades": null,
+      "phase_label": "Hauptschulabschlussbezogener Unterricht 9",
+      "section": "3.3.2: Bildungsgang noch nicht im Kinderprofil abgebildet",
+      "page": 37,
+      "quote": "schreiben",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-deutsch-haupt-9-lesen-2019-v1",
+      "document_id": "de-st-sek-deutsch-2019-v1",
+      "subject_key": "deutsch",
+      "title": "Sachtexte und Literatur",
+      "grade_kind": "phase",
+      "grades": null,
+      "phase_label": "Hauptschulabschlussbezogener Unterricht 9",
+      "section": "3.3.2: Bildungsgang noch nicht im Kinderprofil abgebildet",
+      "page": 38,
+      "quote": "Sachtexte",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "de-st-sek-deutsch-haupt-9-medien-2019-v1",
+      "document_id": "de-st-sek-deutsch-2019-v1",
+      "subject_key": "deutsch",
+      "title": "Medien nutzen",
+      "grade_kind": "phase",
+      "grades": null,
+      "phase_label": "Hauptschulabschlussbezogener Unterricht 9",
+      "section": "3.3.2: Bildungsgang noch nicht im Kinderprofil abgebildet",
+      "page": 39,
+      "quote": "Medien",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    }
+  ],
+  "coverage_gaps": [
+    {
+      "state_code": "DE-ST",
+      "gap": "Sekundarschule ab Klasse 7: Bildungsgang fehlt im Profil; phasenspezifische Inhalte insbesondere Deutsch 9 und 9/10 sowie Mathematik 9/10 bleiben deshalb ohne automatische Klassen-/Lernplanung. Keine Behauptung vollständiger Stoff- oder Themenabdeckung."
+    }
+  ]
+}

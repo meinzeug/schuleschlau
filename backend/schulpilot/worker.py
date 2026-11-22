@@ -144,6 +144,19 @@ def _process(job_id):
         from .public_image_jobs import process as process_public_image
 
         process_public_image(job_id)
+        try:
+            from .public_image_review import enqueue_after_image
+
+            enqueue_after_image(job_id)
+        except Exception as error:
+            # The saved illustration and its billed receipt survive an
+            # unavailable reviewer; there is no automatic repeat.
+            log.warning("public_image_review_not_queued type=%s", type(error).__name__)
+        return
+    if kind == "public_image_review":
+        from .public_image_review import process as process_public_review
+
+        process_public_review(job_id)
         return
     if kind == "unit_visuals":
         from .visual_jobs import process as process_visuals
@@ -1346,6 +1359,9 @@ def main():
                 from .parent_insights import schedule_one
 
                 schedule_one()
+                from .public_image_review import backfill_one as backfill_image_review
+
+                backfill_image_review()
                 last_maintenance = now()
             with DB() as db:
                 job_id = claim(db)
