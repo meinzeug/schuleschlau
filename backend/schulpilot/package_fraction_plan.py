@@ -1,7 +1,7 @@
-"""Private groundwork for exact fraction practice in initial package parts.
+"""Private exact fraction practice plans for initial package parts.
 
-This module is deliberately not connected to the worker or provider. A plan is
-not a learning record and does not authorize or fabricate a generated unit.
+A plan is not a learning record and does not itself authorize a provider call
+or publication; the worker and publication transactions perform those checks.
 """
 import copy
 import math
@@ -129,8 +129,8 @@ def _core(ident, operation, row):
 def add_reference(db, payload):
     """Offer only the exact stored recipe for one explicitly evidenced rule.
 
-    This helper does not authorize a provider call or enable the planner in the
-    package worker. Only original sources of the selected group count.
+    This helper does not authorize a provider call. Only original sources of
+    the selected group count.
     """
     from .visual_reference_models import VisualReference
 
@@ -173,8 +173,8 @@ def prepare(payload, slots, previous_prompts):
     """Plan only original, explicitly taught one-operation practice slots.
 
     Fixed diagnostic questions and open prior checks are returned unchanged.
-    The output is a private test artifact until schema/worker/publication and
-    concurrent history binding have been implemented and verified.
+    The output is private and must be bound and checked by the worker and
+    publication transactions, including concurrent history validation.
     """
     groups, context = payload.get('selected_groups'), payload.get('visual_context') or {}
     if (type(payload.get('package_partition')) is not int or not isinstance(groups, list)
@@ -314,6 +314,32 @@ def solution_step(plan, row):
             'presentation': {'version': 1, 'evidence_kind': 'knowledge', 'blocks': graphic_blocks(plan, row)}}
 
 
+def validate_visual_step(db, raw, context, question, *, group_id, introduction=False):
+    """Verify an exact package proof against its private plan and source.
+
+    Job ownership, source authorization and current learning history remain
+    the responsibility of the worker/publication transaction.
+    """
+    plan = context.get('package_fraction_plan') if isinstance(context, dict) else None
+    if (introduction or not isinstance(question, dict) or not isinstance(plan, dict)
+            or not isinstance(group_id, str) or not group_id or plan.get('group_id') != group_id
+            or not isinstance(plan.get('slots'), list) or not isinstance(plan.get('excluded_values'), list)):
+        raise ValueError(INVALID)
+    slots = [row.get('slot') if isinstance(row, dict) else None for row in plan['slots']]
+    payload = {'package_partition': plan.get('partition'), 'package_plan_digest': plan.get('package_plan_digest'),
+               'selected_groups': [{'id': group_id, 'subject': 'Mathematik'}], 'visual_context': context}
+    validate(payload, slots, plan['excluded_values'], plan)
+    validate_reference(db, plan)
+    rows = [row for row in plan['slots'] if isinstance(row.get('task'), dict)
+            and row['task'].get('id') == question.get('id')]
+    if len(rows) != 1 or any(question.get(k) != v for k, v in rows[0]['task'].items()):
+        raise ValueError(INVALID)
+    expected = solution_step(plan, rows[0])
+    actual = raw.model_dump(mode='json') if hasattr(raw, 'model_dump') else raw
+    if actual != expected or question.get('explanation') != expected['text']:
+        raise ValueError(INVALID)
+
+
 def validate_generated_output(payload, slots, previous_prompts, saved, output):
     """Prove the actual output, not a detached copy of its selected pictures.
 
@@ -338,9 +364,21 @@ def validate_generated_output(payload, slots, previous_prompts, saved, output):
         question = indexed.get(ident)
         expected = solution_step(saved, row)
         if (not isinstance(question, dict) or question.get('explanation') != expected['text']
-                or question.get('explanation_steps') != [expected]):
+                or not isinstance(question.get('explanation_steps'), list)
+                or len(question['explanation_steps']) != 1):
             raise ValueError(INVALID)
-        graphics[ident] = question['explanation_steps'][0]['presentation']['blocks']
+        # The provider's existing normalization removes absent optional nulls
+        # (e.g. scene/text_probe); canonicalize without repairing any value.
+        from .visual_reference_schemas import ExplanationStep
+
+        try:
+            actual = ExplanationStep.model_validate(question['explanation_steps'][0]).model_dump(mode='json')
+        except ValueError:
+            # Never propagate validation details containing private content.
+            raise ValueError(INVALID) from None
+        if actual != expected:
+            raise ValueError(INVALID)
+        graphics[ident] = actual['presentation']['blocks']
     validate_bound_tasks(payload, slots, previous_prompts, saved, questions, graphics)
 
 

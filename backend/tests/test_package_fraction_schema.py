@@ -220,6 +220,16 @@ def test_real_package_codec_roundtrip_hydrates_only_bound_fraction_steps(househo
     altered_plan['slots'][0]['task']['answer'] = '1/99'
     with pytest.raises(ValueError, match='Grafikplan'):
         package_part_output.validate(restored, fraction_plan=altered_plan)
+    protected_context = copy.deepcopy(request)
+    protected_context['visual_context']['package_fraction_plan'] = copy.deepcopy(plan)
+    changed_proof = copy.deepcopy(restored)
+    changed_proof['units'][0]['questions'][0]['explanation_steps'][0]['presentation']['blocks'][1]['numbers'][0] += 1
+    with DB() as db:
+        visual_references.validate_output(db, restored, protected_context)
+        with pytest.raises(ValueError):
+            visual_references.validate_output(db, restored, request)
+        with pytest.raises(ValueError):
+            visual_references.validate_output(db, changed_proof, protected_context)
 
 
 def test_actual_fixed_prerequisite_branches_are_left_byte_identical(household):

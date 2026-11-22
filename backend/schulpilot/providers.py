@@ -2490,7 +2490,7 @@ def request_provider(config, function, payload, image_bytes=None, *, synthetic_f
             from .package_part_output import validate as validate_part_output
 
             validation_phase = "part_bounds"
-            validate_part_output(data)
+            validate_part_output(data, fraction_plan=payload.get("package_fraction_plan"))
         # A new optional field must not mutate legacy stored questions by
         # serializing an absent presentation as `null`. Explicit presentations
         # remain in the model output and pass the same validation below.

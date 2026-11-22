@@ -262,6 +262,21 @@ def reconcile(db, records):
         if record["scope"] == "unit" and record.get("resource_kind") in ('assignment', 'grade', 'grade_import', 'grade_slot', *VOCABULARY_SCOPES)
         else record for record in records
     ]
+    material_targets = {record['target'] for record in records if record['scope'] == 'material'}
+    orphan_days = set()
+    if material_targets:
+        # A backup may retain a private plan even when its material row has
+        # already disappeared. Batch the authenticated journal identifiers
+        # once instead of rescanning jobs for every deleted page.
+        from .package_fraction_reservation import purge_source_plans
+
+        target_list = list(material_targets)
+        existing = set()
+        for start in range(0, len(target_list), 500):
+            existing.update(db.scalars(select(Material.id).where(Material.id.in_(target_list[start:start + 500]))))
+        missing = material_targets - existing
+        orphan_days = purge_source_plans(db, None, missing)
+        purge_source_plans(db, None, existing)
     paths = []
     # Collect image paths before user cascades can remove their Material rows.
     order = {"family": 0, "child": 1, "grade": 2, "grade_import": 3, "grade_slot": 4, "unit": 5,
@@ -362,6 +377,15 @@ def reconcile(db, records):
                 day.revision += 1
                 sources_removed(db, day)
         db.flush()
+    if orphan_days:
+        from .school_preparation import sources_removed
+
+        # The original row is already missing, so the normal deletion branch
+        # cannot discover and invalidate the day's saved private receipts.
+        for day_id in orphan_days:
+            day = db.get(SchoolDay, day_id)
+            if day is not None:
+                sources_removed(db, day)
     return paths
 
 

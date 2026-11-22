@@ -602,9 +602,19 @@ def purge_source_turns(db, material_ids, *, child_id=None):
     """Delete source quotes even when their turn was opened for a day or unit.
 
     Call before deleting materials; the normal erasure journal remains owned by
-    the material/account deletion workflow. Job payloads contain no private text.
+    the material/account deletion workflow. Also remove source-bound private
+    package plans from jobs; their excerpts must not outlive a deleted page.
     """
     material_ids = set(material_ids)
+    from .package_fraction_reservation import purge_source_plans
+
+    if child_id:
+        purge_source_plans(db, child_id, material_ids)
+    else:
+        from .db import Material
+
+        for owner_id in db.scalars(select(Material.child_id).where(Material.id.in_(material_ids)).distinct()):
+            purge_source_plans(db, owner_id, material_ids)
     from .exam_review import source_removed
 
     source_removed(db, child_id, material_ids)

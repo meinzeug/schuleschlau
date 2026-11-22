@@ -1,5 +1,22 @@
 # Entwurf: vorab geplante Bruchaufgaben in Paketpartitionen
 
+## Arbeitsstand vom 22. November 2026
+
+Die nachfolgenden Anforderungen sind inzwischen für reguläre OpenRouter-
+Paketpartitionen mit Lernstart, einer Mathematikgruppe und genau einer
+ausdrücklich belegten Erweiterungs- oder Kürzungsregel implementiert. Der
+Worker reserviert den privaten Plan vor dem bestehenden Anbieteraufruf unter
+der Kindersperre. Schema, Transport, Quellen-/Bildbeweis, Ergebnis und
+Veröffentlichung prüfen die feste Bindung erneut. Frühere Aufgaben, private
+Teilbelege und laufende Aufträge werden beim Ausschluss berücksichtigt. Die
+Sonderlogik ist nicht für mehrdeutige Regeln oder andere Provider aktiviert.
+
+Automatisierte Tests verwenden künstliche Quellen, echte lokale Worker- und
+Veröffentlichungsabläufe und einen simulierten HTTP-Anbieter. Sie sind kein
+Nachweis eines echten Anbieteraufrufs. Diese Abnahme und die Überprüfung des
+verwendeten Modelloutputs bleiben offen; der Roadmap-Punkt ist deshalb noch
+nicht abgehakt.
+
 Stand: 6. November 2026. Dies beschreibt einen offenen Implementierungsschritt;
 es ist keine Freigabe, kein neuer Lernnachweis und keine Behauptung, dass ein
 Paket bereits vorab geplante Bruchaufgaben verwendet.

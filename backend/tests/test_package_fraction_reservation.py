@@ -16,11 +16,11 @@ from test_school_preparation_parts import make_day
 from test_package_parts_worker import preparation
 
 
-def running_job(api, household):
+def running_job(api, household, content=EXPAND):
     day_id = make_day(household, count=1)
     with DB.begin() as db:
         page = db.scalar(select(Material).where(Material.school_day_id == day_id))
-        page.subject, page.topic, page.content = 'Mathematik', 'Brüche erweitern', EXPAND
+        page.subject, page.topic, page.content = 'Mathematik', 'Brüche', content
     preparation(api, day_id, 'synthetic-fraction-reservation')
     with DB() as db:
         job_id = worker.claim(db)

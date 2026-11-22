@@ -1,7 +1,7 @@
 """Private transaction for planned fraction package parts.
 
-Not called by the package worker yet. Caller owns commit/rollback and must
-perform the post-provider and publication checks before enabling dispatch.
+The package worker reserves plans before dispatch and validates them again
+after the provider call and before publication. Callers own transactions.
 """
 import copy
 from fractions import Fraction
@@ -12,6 +12,33 @@ from . import package_fraction_plan as fractions
 from .db import Child, Job
 
 INVALID = 'Die Vorbereitung des Bruchplans ist nicht mehr gültig.'
+
+
+def purge_source_plans(db, child_id, material_ids):
+    """Forget private source excerpts from job plans before source erasure.
+
+    The child/source owner remains responsible for locks, journal and deleting
+    units. Corrupt source lists cannot establish ownership, so their unusable
+    plans are scrubbed conservatively even during global journal replay.
+    """
+    ids = set(material_ids)
+    if not ids:
+        return set()
+    affected_days = set()
+    query = select(Job).where(Job.kind == 'package')
+    if child_id is not None:
+        query = query.where(Job.child_id == child_id)
+    for job in db.scalars(query):
+        if not isinstance(job.payload, dict) or 'package_fraction_plan' not in job.payload:
+            continue
+        sources = job.payload.get('package_partition_sources')
+        invalid = (not isinstance(sources, list) or any(not isinstance(row, dict) or not isinstance(row.get('id'), str)
+                                                        for row in sources))
+        if invalid or any(row['id'] in ids for row in sources):
+            if isinstance(job.payload.get('school_day_id'), str):
+                affected_days.add(job.payload['school_day_id'])
+            job.payload = {key: value for key, value in job.payload.items() if key != 'package_fraction_plan'}
+    return affected_days
 
 
 def _checked_payload(db, job, payload, pages):
@@ -131,3 +158,41 @@ def validate_result(db, job_id, payload, output):
         raise ValueError(INVALID)
     slots = [row['slot'] for row in expected['slots']]
     fractions.validate_generated_output(checked, slots, expected['excluded_values'], expected, output)
+
+
+def validate_publication(db, job, child, context, output, pages):
+    """Recheck a finished private receipt while the caller holds Child lock.
+
+    Legacy receipts without a plan retain their existing validation. A plan in
+    only one of the two independent private records is never accepted.
+    """
+    if not isinstance(job.payload, dict) or not isinstance(context, dict):
+        raise ValueError(INVALID)
+    plan = job.payload.get('package_fraction_plan')
+    visual = context.get('visual_context')
+    visual_plan = visual.get('package_fraction_plan') if isinstance(visual, dict) else None
+    if plan is None and visual_plan is None:
+        return None
+    if (not isinstance(plan, dict) or visual_plan != plan or job.kind != 'package'
+            or job.status != 'completed' or job.child_id != child.id):
+        raise ValueError(INVALID)
+    groups = job.payload.get('groups')
+    if not isinstance(groups, list) or len(groups) != 1 or not isinstance(groups[0], dict):
+        raise ValueError(INVALID)
+    group = groups[0]
+    payload = {'visual_context': visual, 'learning_entry': context.get('learning_entry'),
+               'package_partition': job.payload.get('package_partition'),
+               'package_plan_digest': job.payload.get('package_plan_digest'),
+               'selected_groups': [{'id': group.get('id'), 'subject': group.get('subject'),
+                                    'estimated_minutes': group.get('estimated_minutes')}]}
+    slots = _checked_payload(db, job, payload, pages)
+    if slots is None:
+        raise ValueError(INVALID)
+    fractions.validate(payload, slots, plan.get('excluded_values', []), plan)
+    fractions.validate_reference(db, plan)
+    prior = fractions.history(db, child.id, ignore_job_ids={job.id})
+    used = {str(Fraction(*row['input'])) for row in plan['slots'] if row.get('task') is not None}
+    if used.intersection(prior):
+        raise ValueError(fractions.UNCLEAR)
+    fractions.validate_generated_output(payload, slots, plan['excluded_values'], plan, output)
+    return plan

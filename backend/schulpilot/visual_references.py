@@ -421,6 +421,17 @@ def validate_steps(db, steps, subject, context, *, question=None, group_id=None,
         texts = [refs[ref]["content"] for ref in step.source_refs]
         # The generated prose never serves as new source evidence for its graphic.
         fake = question or {"prompt": "", "type": "short", "answer": "", "accepted": []}
+        if stored.id in ("math.fraction.expansion", "math.fraction.reduction") and step.id.startswith("pf_"):
+            from .package_fraction_plan import validate_visual_step
+
+            if subject != "Mathematik":
+                raise ValueError("Ungültiger geplanter Bruchbeweis.")
+            validate_visual_step(db, step, context, question, group_id=group_id, introduction=introduction)
+            checked.append(step.model_dump())
+            continue
+        if stored.id == "math.fraction.reduction":
+            # This dedicated recipe is never a generic provider-chosen proof.
+            raise ValueError("Ungültiger geplanter Kürzungsbeweis.")
         if stored.id == "math.fraction.expansion":
             from .study_fraction_expansions import validate_question_step
 

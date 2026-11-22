@@ -76,6 +76,16 @@ def bind_schema(schema, payload=None, *, question_count=2):
     walk(schema)
     _bind_graphic_branches(schema)
     if payload is not None:
+        fraction_plan = payload.get("package_fraction_plan")
+        if fraction_plan is not None:
+            from .package_fraction_adapter import bind as bind_fraction
+
+            if not isinstance(fraction_plan, dict) or not isinstance(fraction_plan.get("slots"), list):
+                raise ValueError("Der Bruchplan oder seine Quellen sind nicht mehr gültig.")
+            ids = {row["slot"]["id"] for row in fraction_plan["slots"]
+                   if isinstance(row, dict) and isinstance(row.get("task"), dict)}
+            _bind_references(schema, payload, skip_question_ids=ids)
+            return bind_fraction(schema, payload)
         _bind_references(schema, payload)
         from .package_decimal_addition import bind_schema as bind_decimal_addition
 
@@ -93,7 +103,7 @@ def bind_schema(schema, payload=None, *, question_count=2):
     return None
 
 
-def _bind_references(schema, payload, *, unit_subject=None):
+def _bind_references(schema, payload, *, unit_subject=None, skip_question_ids=()):
     """Bind the chosen immutable recipe and disclosure to the SAME step.
 
     Only a new planned request is affected. Full strict objects, ordinary refs
@@ -193,6 +203,9 @@ def _bind_references(schema, payload, *, unit_subject=None):
         for reference in context.get("references", []):
             if reference.get("subject") != subject:
                 continue
+            if reference.get("id") in ("math.fraction.expansion", "math.fraction.reduction"):
+                # These are permitted only through the exact planned branch.
+                continue
             if subject != "Mathematik" or reference.get("id") == "general.source_relation.phases":
                 from .package_prepared_scenes import reference_supported
 
@@ -236,6 +249,9 @@ def _bind_references(schema, payload, *, unit_subject=None):
         if "anyOf" in node:
             node["anyOf"] = [bind_questions(branch, subject, group) for branch in node["anyOf"]]
         elif "explanation_steps" in node.get("properties", {}):
+            ids = node["properties"].get("id", {}).get("enum", [])
+            if len(ids) == 1 and ids[0] in skip_question_ids:
+                return node
             node["properties"]["explanation_steps"] = steps_for(subject, group, introduction=False)
             if unit_subject is not None:
                 # A second independent panel would bypass the reference/stage

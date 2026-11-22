@@ -549,6 +549,30 @@ def _process(job_id):
                 usage_terms(db, family, enforce=True)
             # Release the DB transaction before the bounded external request.
             db.rollback()
+        groups = payload.get("selected_groups") or []
+        if (function == "package" and payload.get("package_partition") is not None
+                and config_values["provider"] == "openrouter" and not synthetic
+                and len(groups) == 1 and groups[0].get("subject") == "Mathematik"
+                and (payload.get("visual_context") or {}).get("required") is True
+                and payload.get("learning_entry")):
+            from .package_fraction_plan import EXHAUSTED as FRACTION_EXHAUSTED, INVALID as FRACTION_INVALID, UNCLEAR as FRACTION_UNCLEAR
+            from .package_fraction_reservation import INVALID as FRACTION_RESERVATION_INVALID
+            from .package_fraction_reservation import prepare as prepare_fraction_package
+
+            # The reservation is committed before dispatch. It rechecks the
+            # session and source snapshot under the existing Child lock.
+            try:
+                with DB.begin() as reservation_db:
+                    payload = prepare_fraction_package(reservation_db, job_id, payload)
+            except ValueError as error:
+                if error.args not in ((FRACTION_EXHAUSTED,), (FRACTION_INVALID,), (FRACTION_UNCLEAR,),
+                                      (FRACTION_RESERVATION_INVALID,)):
+                    raise
+                raise ProviderError(error.args[0], code="invalid_output") from None
+            fraction_plan = payload.get("package_fraction_plan")
+            if fraction_plan is not None:
+                payload = {**payload, "visual_context": {**payload["visual_context"],
+                           "package_fraction_plan": copy.deepcopy(fraction_plan)}}
         if synthetic and not fixture:
             data = sample_unit(variant, feedback[0] if feedback else "normal")
             if payload["review"]:
@@ -630,6 +654,18 @@ def _process(job_id):
                 from .school_day import save_package, validate_package_sources
 
                 validate_package_sources(db, job)
+                if payload.get("package_fraction_plan") is not None:
+                    from .package_fraction_reservation import validate_result as validate_fraction_result
+
+                    try:
+                        validate_fraction_result(db, job_id, payload, data)
+                    except ValueError as error:
+                        from .package_fraction_plan import INVALID as FRACTION_INVALID, UNCLEAR as FRACTION_UNCLEAR
+                        from .package_fraction_reservation import INVALID as FRACTION_RESERVATION_INVALID
+
+                        if error.args not in ((FRACTION_INVALID,), (FRACTION_UNCLEAR,), (FRACTION_RESERVATION_INVALID,)):
+                            raise
+                        raise ProviderError(error.args[0], code="invalid_output") from None
                 from .package_decimal_addition import validate_history as validate_decimal_history
 
                 validate_decimal_history(db, job.child_id, data)

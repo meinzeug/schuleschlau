@@ -166,7 +166,10 @@ def publish_prefix(db, day, child, plan, *, complete=False):
         data, context, group = receipt["output"], receipt["context"], receipt["group"]
         # All retained private snapshots are independently revalidated before
         # publication, including source/entry guards after any inference.
-        validate_part_output(data)
+        from .package_fraction_reservation import validate_publication as validate_fraction_publication
+
+        fraction_plan = validate_fraction_publication(db, job, child, context, data, source_pages)
+        validate_part_output(data, fraction_plan=fraction_plan)
         validate_visuals(db, data, context)
         guard_entry_context(db, child, context, [material for material in source_pages if material.id in group["material_ids"]])
         # Another worker may have stored a matching unpublished part after this

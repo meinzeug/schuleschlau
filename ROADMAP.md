@@ -2035,28 +2035,35 @@ Bestandteil des bestehenden Buildvertrags.
     vorsichtshalber nicht als sicher neue Aufgaben behandelt. Private
     Plansnapshots werden beim Anbietertransport entfernt. Künstliche reine
     Planungstests auf SQLite und PostgreSQL prüfen unter anderem 0/1/2 freie
-    Plätze, Quellenänderung, Grafikkonsistenz und fremde Gruppen. Dies ist
-    noch kein aktiver Paketweg. Ein zusätzliches versioniertes Kürzungsrezept
+    Plätze, Quellenänderung, Grafikkonsistenz und fremde Gruppen. Ein
+    zusätzliches versioniertes Kürzungsrezept
     wird nur bei einer belegten Regel und für die ausgewählte Gruppe privat
     angeboten; im allgemeinen Katalog ist es gesperrt. Ein isolierter
     Prüfer bindet die zwei tatsächlichen Lösungsbilder einschließlich Text,
     Quelle und Referenz an die Aufgabe; Manipulationstests laufen auf SQLite
     und PostgreSQL. Die Historie lädt konkurrierende Pläne nach einer anderen
-    Transaktion erneut. Eine noch nicht aktivierte Schemabindung bewahrt feste
+    Transaktion erneut. Die Schemabindung bewahrt feste
     und offene Vorwissenszweige und bindet geplante Aufgaben an eine eigene
     Grafik-ID. Tests verwenden das tatsächliche Paketschema und den Codec;
     manipulierte Aufgabenteile und vertauschte Bild-IDs werden zurückgewiesen.
     Der kompakte Paketprüfer akzeptiert zwei Bilder ausschließlich für eine
     exakt dem privaten Plan entsprechende Lösungsdarstellung; ohne diesen
     Plan und für Einführungen bleibt die Ein-Bild-Grenze bestehen.
-    Eine noch nicht vom Worker aufgerufene Reservierung speichert den Plan
+    Die Reservierung speichert den Plan
     unter Kindersperre im bestehenden Teilauftrag und prüft vor und nach dem
-    geplanten Aufruf Berechtigung, Originalquellen, Historie und Ausgabe.
+    Anbieteraufruf Berechtigung, Originalquellen, Historie und Ausgabe.
     Tests nutzen echte lokale Sitzungs-/Quellenprüfungen mit künstlichen Daten
-    und prüfen parallele Zugriffe auf isoliertem PostgreSQL. Weiterhin fehlen
-    im aktiven Paketweg die Einbindung in Worker und Grafikvalidierung, die
-    erneute Prüfung bei Veröffentlichung sowie die echte Anbieterprobe.
-    Der Punkt bleibt offen; der neue Helfer startet keine KI oder Lernrunde.
+    und prüfen parallele Zugriffe auf isoliertem PostgreSQL. Für reguläre
+    OpenRouter-Paketteile mit Lernstart und genau einer Mathematikgruppe nutzt
+    der Worker den gespeicherten Plan, wenn die Quellen eine eindeutige Regel
+    belegen; sonst bleibt der bisherige Pfad erhalten. Die Grafikprüfung
+    kontrolliert Quelle, Rezeptversion und beide Modelle; die Veröffentlichung
+    vergleicht Auftrag und privaten Beleg und prüft neu hinzugekommene Fragen.
+    Altbelege behalten ihren bisherigen Prüfweg. Künstliche End-to-End-Tests
+    verwenden den echten Worker und Adapter mit simuliertem Anbieter. Das
+    Löschen einer Heftseite und das Wiederholen ihres Löschjournals entfernen
+    den zugehörigen privaten Quellenausschnitt auch aus gespeicherten Plänen.
+    Der Punkt bleibt bis zur echten Anbieterprobe und vollständigen Abnahme offen.
 
     Ein versionierter Paketadapter soll nur für ein eindeutig gewähltes
     Mathematikfach und ausdrücklich bestätigte, zur Quellenrevision passende
