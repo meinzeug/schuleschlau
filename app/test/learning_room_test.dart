@@ -537,7 +537,7 @@ void main() {
       await tapText(tester, 'Ergebnis ansehen');
       expect(server.acknowledgements, 1);
       expect(server.answers, 1);
-      expect(find.text('Deine Runde ist bearbeitet.'), findsOneWidget);
+      expect(find.text('Runde geschafft!'), findsOneWidget);
       // This saved round was independently correct; its existing check action
       // offers another exercise, not a first unsupported attempt.
       expect(find.text('Weitere Übung öffnen'), findsOneWidget);

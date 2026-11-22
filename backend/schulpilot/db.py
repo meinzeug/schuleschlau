@@ -979,6 +979,7 @@ Index("jobs_queue", Job.status, Job.created)
 # Register additive catalog tables after all referenced private models exist.
 from . import (  # noqa: E402,F401  # noqa: E402,F401
     admin_user_models,
+    beta_models,
     catalog_models,
     child_cost_models,
     competence_models,

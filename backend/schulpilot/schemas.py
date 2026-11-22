@@ -22,6 +22,7 @@ class Register(Strict):
     display_name: str = Field(min_length=1, max_length=80)
     family_name: str = Field(min_length=1, max_length=120)
     adult_consent: Literal[True]
+    beta_requested: bool = Field(default=False, strict=True)
 
 
 class Login(Strict):

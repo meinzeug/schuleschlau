@@ -43,6 +43,18 @@ class VisionBudget(Strict):
     approved_at: int = Field(ge=1, strict=True)
 
 
+class ImageOutputBudget(Strict):
+    """Operator allowance, not a claimed Image API output-token cap."""
+    version: Literal[1] = 1
+    basis: Literal["operator_estimate"]
+    model: str = Field(min_length=3, max_length=160)
+    upstream: str = Field(min_length=1, max_length=100)
+    input_tokens: int = Field(ge=1, le=100_000, strict=True)
+    output_tokens: int = Field(ge=1, le=1_000_000, strict=True)
+    evidence: str = Field(min_length=20, max_length=500)
+    approved_at: int = Field(ge=1, strict=True)
+
+
 class ModelRoute(Strict):
     model: str = Field(min_length=3, max_length=160, pattern=r"^[a-z0-9_.-]+/[a-z0-9_.:-]+$")
     upstreams: list[str] = Field(min_length=1, max_length=4)
@@ -59,6 +71,7 @@ class ModelRoute(Strict):
     under13_approved: bool = False
     verified_at: int = Field(ge=1)
     vision_budget: VisionBudget | None = None
+    image_output_budget: ImageOutputBudget | None = None
 
     @model_validator(mode="after")
     def exact_endpoints(self):
@@ -75,6 +88,9 @@ class ModelRoute(Strict):
             or not self.evaluated or not self.image_capable
         ):
             raise ValueError("Die Bildkostenschätzung muss exakt zum geprüften Bildmodell und Endpunkt passen.")
+        if self.image_output_budget and (self.image_output_budget.model != self.model
+                or self.upstreams != [self.image_output_budget.upstream] or not self.evaluated):
+            raise ValueError("Die Ausgabebild-Schätzung muss zur geprüften Modellroute passen.")
         return self
 
 
@@ -105,7 +121,7 @@ class RoutingPolicy(Strict):
     version: Literal[1] = 1
     enabled: bool = False
     economy_mode: bool = False
-    routes: dict[Literal["luna", "sol", "astra"], ModelRoute]
+    routes: dict[Literal["luna", "sol", "astra", "image"], ModelRoute]
     budget: BudgetPolicy
     region: Literal["standard", "eu", "us"] = "standard"
     regional_access_evidence: str = Field(default="", max_length=500)
@@ -115,6 +131,12 @@ class RoutingPolicy(Strict):
     def required_routes(self):
         if "sol" not in self.routes or "luna" not in self.routes:
             raise ValueError("Geprüfte einfache und anspruchsvolle Route sind erforderlich.")
+        if "image" in self.routes and len(self.routes["image"].upstreams) != 1:
+            raise ValueError("Bildgenerierung benötigt genau einen ausdrücklich geprüften Endpunkt.")
+        if "image" in self.routes and not self.routes["image"].image_output_budget:
+            raise ValueError("Bildgenerierung benötigt eine dokumentierte Ausgabekostenschätzung.")
+        if any(route.image_output_budget for tier, route in self.routes.items() if tier != "image"):
+            raise ValueError("Eine Ausgabebild-Schätzung gehört nur zur Bildroute.")
         if len({route.model for route in self.routes.values()}) != len(self.routes):
             raise ValueError("Jede Modellstufe benötigt eine eindeutige Modellkennung.")
         if self.region != "standard" and not self.regional_access_evidence:
@@ -366,6 +388,8 @@ def features_for(db, child_id, job_id):
 
 def choose_tier(function, features, *, economy=False):
     # Start difficult material on the suitable route, without a trial cascade.
+    if function == "public_image":
+        return "image", "explicit_public_illustration"
     if function == "extract" and features.get("extraction_failed"):
         return "sol", "recorded_transcription_failure"
     if function == "extract" and features.get("transcription_review"):
@@ -425,6 +449,12 @@ def select_route(config, function, features=None, snapshot=None):
     route = policy.routes.get(tier)
     if not route:
         raise HTTPException(503, "Für diesen Lernschritt fehlt eine geprüfte KI-Route. Gespeicherte Übungen bleiben nutzbar.")
+    if tier == "image":
+        estimate = route.image_output_budget
+        minimum = (estimate.input_tokens * route.input_per_million_micros
+                   + estimate.output_tokens * route.output_per_million_micros + 999_999) // 1_000_000
+        if min(config.reserve_micros, route.reserve_micros) < minimum:
+            raise HTTPException(503, "Die Bildkosten müssen vor der Erzeugung aktualisiert werden.")
     values = {c.name: getattr(config, c.name) for c in ProviderConfig.__table__.columns}
     selection = {
         "tier": tier, "reason": reason, "policy_hash": policy_hash(policy_data),

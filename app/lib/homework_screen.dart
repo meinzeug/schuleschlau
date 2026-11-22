@@ -1888,9 +1888,10 @@ class _HomeworkDetailScreenState extends State<_HomeworkDetailBody>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Text(
-                    'Das Auswählen einer Karte sendet noch keine Anfrage.',
-                  ),
+                  if (!widget.state.isChild)
+                    const Text(
+                      'Das Auswählen einer Karte sendet noch keine Anfrage.',
+                    ),
                   for (final entry in choices.entries)
                     Padding(
                       padding: const EdgeInsets.only(top: 8),
@@ -1917,7 +1918,7 @@ class _HomeworkDetailScreenState extends State<_HomeworkDetailBody>
                                   fontWeight: FontWeight.w800,
                                 ),
                               ),
-                              Text(entry.value.$2),
+                              if (!widget.state.isChild) Text(entry.value.$2),
                             ],
                           ),
                         ),
@@ -3162,16 +3163,17 @@ class _HomeworkDetailScreenState extends State<_HomeworkDetailBody>
                             ),
                           ),
                         SizedBox(height: 12),
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: OutlinedButton.icon(
-                            onPressed: active ? chooseHelpKind : null,
-                            icon: const Icon(Icons.help_outline),
-                            label: const Text(
-                              'Hilfearten ansehen und auswählen',
+                        if (!widget.state.isChild)
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: OutlinedButton.icon(
+                              onPressed: active ? chooseHelpKind : null,
+                              icon: const Icon(Icons.help_outline),
+                              label: const Text(
+                                'Hilfearten ansehen und auswählen',
+                              ),
                             ),
                           ),
-                        ),
                         Wrap(
                           spacing: 8,
                           runSpacing: 8,
@@ -3181,16 +3183,24 @@ class _HomeworkDetailScreenState extends State<_HomeworkDetailBody>
                               icon: Icon(Icons.tips_and_updates_outlined),
                               label: Text('Kleiner Hinweis'),
                             ),
-                            OutlinedButton.icon(
-                              onPressed: active ? () => ask('plan') : null,
-                              icon: Icon(Icons.format_list_numbered),
-                              label: Text('In Schritte teilen'),
-                            ),
-                            OutlinedButton.icon(
-                              onPressed: active ? () => ask('example') : null,
-                              icon: Icon(Icons.compare_arrows),
-                              label: Text('Anderes Beispiel'),
-                            ),
+                            if (widget.state.isChild)
+                              TextButton.icon(
+                                onPressed: active ? chooseHelpKind : null,
+                                icon: const Icon(Icons.more_horiz_rounded),
+                                label: const Text('Mehr Hilfe'),
+                              )
+                            else ...[
+                              OutlinedButton.icon(
+                                onPressed: active ? () => ask('plan') : null,
+                                icon: Icon(Icons.format_list_numbered),
+                                label: Text('In Schritte teilen'),
+                              ),
+                              OutlinedButton.icon(
+                                onPressed: active ? () => ask('example') : null,
+                                icon: Icon(Icons.compare_arrows),
+                                label: Text('Anderes Beispiel'),
+                              ),
+                            ],
                           ],
                         ),
                         SizedBox(height: 16),

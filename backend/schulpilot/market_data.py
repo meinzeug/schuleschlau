@@ -84,6 +84,35 @@ def parse_prices(payload, model, upstreams):
     return result
 
 
+def parse_image_prices(payload, model, upstreams):
+    """Current Image API token rates, rejecting unpriced billing dimensions."""
+    if not isinstance(payload, dict) or payload.get("id") != model or len(upstreams) != 1:
+        raise ValueError("Invalid image metadata")
+    endpoints = payload.get("endpoints")
+    matches = [e for e in endpoints or [] if isinstance(e, dict) and e.get("provider_tag") == upstreams[0]]
+    if len(matches) != 1 or not isinstance(matches[0].get("pricing"), list):
+        raise ValueError("Configured image endpoint unavailable")
+    result = {}
+    for row in matches[0]["pricing"]:
+        if not isinstance(row, dict):
+            raise ValueError("Invalid image rate")
+        kind, unit = row.get("billable"), row.get("unit")
+        try:
+            amount = Decimal(str(row["cost_usd"]))
+            if not amount.is_finite() or amount < 0:
+                raise ValueError("Invalid image rate")
+        except (InvalidOperation, KeyError, TypeError):
+            raise ValueError("Invalid image rate") from None
+        if kind == "input_image":
+            continue  # The public prompt never includes input images.
+        if kind not in ("input_text", "output_image") or unit != "token" or kind in result:
+            raise ValueError("Unsupported image billing dimension")
+        result[kind] = int((amount * 1_000_000_000_000).to_integral_value(rounding=ROUND_CEILING))
+    if set(result) != {"input_text", "output_image"}:
+        raise ValueError("Missing image rates")
+    return {"prompt": result["input_text"], "completion": result["output_image"]}
+
+
 def get_limited(client, url, *, headers=None):
     with client.stream("GET", url, headers=headers) as response:
         response.raise_for_status()
@@ -143,10 +172,11 @@ def refresh_if_due(*, force=False):
                 import json
                 host = HOSTS[policy["region"]]
                 for tier, route in policy["routes"].items():
-                    url = host + "/api/v1/models/" + quote(route["model"], safe="/") + "/endpoints"
+                    url = host + ("/api/v1/images/models/" if tier == "image" else "/api/v1/models/") + quote(route["model"], safe="/") + "/endpoints"
                     try:
                         data = json.loads(get_limited(client, url, headers={"Authorization": "Bearer " + secret}))
-                        price_updates[tier] = (parse_prices(data, route["model"], route["upstreams"]), url)
+                        parser = parse_image_prices if tier == "image" else parse_prices
+                        price_updates[tier] = (parser(data, route["model"], route["upstreams"]), url)
                     except (ValueError, httpx.HTTPError, KeyError):
                         log.warning("market_data_price_unavailable tier=%s", tier)
     except (ValueError, httpx.HTTPError):

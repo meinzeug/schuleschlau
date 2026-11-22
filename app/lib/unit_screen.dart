@@ -14,6 +14,7 @@ import 'learning_round_overview.dart';
 import 'unit_sources_viewer.dart';
 import 'saved_visual_explanation.dart';
 import 'visual_preparation_card.dart';
+import 'public_image_card.dart';
 import 'learning_path_view.dart';
 import 'learning_next_step.dart';
 import 'vocabulary_screen.dart';
@@ -1105,6 +1106,15 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
               children: [
                 if (u['content_issue'] == null &&
                     u['round_kind'] != 'vocabulary')
+                  PublicImageCard(
+                    state: state,
+                    unit: u,
+                    isCurrent: () =>
+                        requestIsCurrent(widget.unitId, ownerAccount) &&
+                        identical(unit, u),
+                  ),
+                if (u['content_issue'] == null &&
+                    u['round_kind'] != 'vocabulary')
                   VisualPreparationCard(
                     state: state,
                     unit: u,
@@ -1202,6 +1212,23 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
                     onSources: (u['sources'] as List? ?? []).isEmpty
                         ? null
                         : (origin) => openSources(u, origin: origin),
+                  ),
+            options:
+                u == null ||
+                    u['round_deferred'] is! bool ||
+                    u['round_deferred'] == true ||
+                    u['status'] == 'completed'
+                ? null
+                : IconButton(
+                    tooltip: 'Mehr zur Runde',
+                    onPressed: actionBusy
+                        ? null
+                        : () => unawaited(perform(() => moreHelp(u))),
+                    constraints: const BoxConstraints(
+                      minWidth: 48,
+                      minHeight: 48,
+                    ),
+                    icon: const Icon(Icons.more_vert_rounded),
                   ),
             learningPath:
                 u == null || u['learning_session']?['learning_path'] is! Map
@@ -1350,7 +1377,10 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
     late Future<void> Function() action;
     var enabled = true;
     final nextAdaptive = adaptiveAction;
-    if (awaitingContinue) {
+    if (u['round_deferred'] == true) {
+      label = 'Runde wieder aufnehmen';
+      action = () => restoreDeferredRound(u);
+    } else if (awaitingContinue) {
       final closed = done(answeredQuestion);
       label = u['status'] == 'completed'
           ? 'Ergebnis ansehen'
@@ -2107,6 +2137,30 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
                 ),
               ),
         ],
+      );
+    }
+    if (u['round_deferred'] == true) {
+      return Panel(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Icon(Icons.bookmark_outline_rounded, size: 32),
+            const SizedBox(height: 12),
+            heading('Runde zur Seite gelegt'),
+            const SizedBox(height: 8),
+            const Text(
+              'Deine Antworten bleiben gespeichert. Du kannst die Runde später wieder aufnehmen.',
+            ),
+            const SizedBox(height: 12),
+            TextButton.icon(
+              onPressed: actionBusy
+                  ? null
+                  : () => openRoute(context, '/learn/${u['child_id']}'),
+              icon: const Icon(Icons.explore_outlined),
+              label: const Text('Andere Runde finden'),
+            ),
+          ],
+        ),
       );
     }
     if (awaitingContinue && answeredQuestion != null) {
@@ -3996,6 +4050,20 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
                 ),
               ),
               for (final option in [
+                if (u['round_deferred'] == false &&
+                    ['active', 'paused'].contains(u['status']) &&
+                    !awaitingContinue)
+                  (
+                    'defer_round',
+                    'Diese Runde haben wir schon gemacht',
+                    Icons.bookmark_border_rounded,
+                  ),
+                if (u['status'] == 'active' && currentQuestion != null)
+                  (
+                    'already_done',
+                    'Das haben wir schon gemacht',
+                    Icons.task_alt_rounded,
+                  ),
                 if ((u['sources'] as List? ?? []).isNotEmpty)
                   ('sources', 'Heftquellen ansehen', Icons.menu_book_outlined),
                 (
@@ -4070,19 +4138,107 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
     switch (selected) {
       case 'sources':
         unawaited(openSources(u));
-      case 'skip':
-        if (awaitingContinue) await acknowledgeFeedback();
+      case 'defer_round':
+        final confirmed = await showUnitDialog<bool>(
+          context: context,
+          builder: (dialog) => AlertDialog(
+            title: const Text('Diese Runde haben wir schon gemacht'),
+            content: const Text(
+              'Wir legen die Runde zur Seite. Deine Antworten bleiben gespeichert. Das zählt noch nicht als Lernnachweis; Elternaufträge bleiben offen.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => popUnitRoute(dialog, false),
+                child: const Text('Abbrechen'),
+              ),
+              FilledButton(
+                onPressed: () => popUnitRoute(dialog, true),
+                child: const Text('Runde zur Seite legen'),
+              ),
+            ],
+          ),
+        );
+        if (confirmed != true || !requestIsCurrent(u['id'], requestedOwner)) {
+          return;
+        }
+        await saveDraft();
+        if (!requestIsCurrent(u['id'], requestedOwner)) return;
+        if (draftOffline || draftConflict) {
+          throw ApiError(
+            'Deine Eingabe ist noch nicht sicher gespeichert. Bitte prüfe sie zuerst.',
+          );
+        }
+        await beat();
         if (!requestIsCurrent(u['id'], requestedOwner)) return;
         final session = await state.api.get(
           '/units/${u['id']}/learning-session',
         );
         if (!requestIsCurrent(u['id'], requestedOwner)) return;
         final updated = await state.api.post(
+          '/units/${u['id']}/learning-session/defer',
+          {
+            'request_key': tipRequestKey(),
+            'revision': session['revision'],
+            'reason': 'already_done',
+          },
+        );
+        if (requestIsCurrent(u['id'], requestedOwner)) {
+          needsTimeBaseline = true;
+          setState(() {
+            unit = updated;
+            restoreFeedback(updated);
+            acceptClockSnapshot();
+          });
+        }
+      case 'skip':
+      case 'already_done':
+        final selectedQuestionId = currentQuestion?['id'];
+        if (selectedQuestionId is! String) return;
+        if (selected == 'already_done') {
+          final confirmed = await showUnitDialog<bool>(
+            context: context,
+            builder: (dialog) => AlertDialog(
+              title: const Text('Das haben wir schon gemacht'),
+              content: const Text(
+                'Wir legen diese Aufgabe zur Seite. Das zählt noch nicht als Nachweis, dass du sie selbst gelöst hast.',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => popUnitRoute(dialog, false),
+                  child: const Text('Abbrechen'),
+                ),
+                FilledButton(
+                  onPressed: () => popUnitRoute(dialog, true),
+                  child: const Text('Aufgabe zur Seite legen'),
+                ),
+              ],
+            ),
+          );
+          if (confirmed != true ||
+              !requestIsCurrent(u['id'], requestedOwner) ||
+              currentQuestion?['id'] != selectedQuestionId) {
+            return;
+          }
+        }
+        if (awaitingContinue) await acknowledgeFeedback();
+        if (!requestIsCurrent(u['id'], requestedOwner) ||
+            currentQuestion?['id'] != selectedQuestionId) {
+          return;
+        }
+        final session = await state.api.get(
+          '/units/${u['id']}/learning-session',
+        );
+        if (!requestIsCurrent(u['id'], requestedOwner) ||
+            currentQuestion?['id'] != selectedQuestionId) {
+          return;
+        }
+        final updated = await state.api.post(
           '/units/${u['id']}/learning-session/skip',
           {
             'request_key': tipRequestKey(),
             'revision': session['revision'],
-            'question_id': currentQuestion?['id'],
+            'question_id': selectedQuestionId,
+            if (selected == 'already_done') 'reason': 'already_done',
           },
         );
         if (requestIsCurrent(u['id'], requestedOwner)) {
@@ -4253,6 +4409,26 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
       setState(() {
         unit = data;
         restoreFeedback(data);
+        acceptClockSnapshot();
+      });
+    }
+  }
+
+  Future<void> restoreDeferredRound(Json u) async {
+    final id = u['id'];
+    final requestedOwner = ownerAccount;
+    if (!requestIsCurrent(id, requestedOwner)) return;
+    final session = await state.api.get('/units/$id/learning-session');
+    if (!requestIsCurrent(id, requestedOwner)) return;
+    final updated = await state.api.post(
+      '/units/$id/learning-session/restore',
+      {'request_key': tipRequestKey(), 'revision': session['revision']},
+    );
+    if (requestIsCurrent(id, requestedOwner)) {
+      needsTimeBaseline = true;
+      setState(() {
+        unit = updated;
+        restoreFeedback(updated);
         acceptClockSnapshot();
       });
     }

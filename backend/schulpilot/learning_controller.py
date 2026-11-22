@@ -348,9 +348,13 @@ def projection(db, unit, *, include_draft=True):
     memory = db.get(LearningMemory, unit.id)
     decision, data = decide(db, unit, memory.working if memory else None)
     working = dict(memory.working) if memory else {}
+    from .round_deferrals import is_deferred
+
+    round_deferred = is_deferred(db, unit, memory)
     working.pop("adaptive_flow", None)  # Private recipe/source and unrevealed steps.
     working.pop("instructional_plan", None)
     working.pop("instructional_deferrals", None)
+    working.pop("round_deferral", None)
     if not include_draft:
         working.pop("draft", None)  # Unsubmitted input is not a parent activity.
     pending = db.get(Job, working.get("pending_check_job_id")) if working.get("pending_check_job_id") else None
@@ -377,7 +381,7 @@ def projection(db, unit, *, include_draft=True):
     return {"version": 2 if adaptive_plan.enabled(db, unit) else 1, "strategy_version": STRATEGY, "revision": memory.revision if memory else 0,
         "updated": memory.updated if memory else 0, "draft_revision": working.get("draft_revision", 0),
         "plan_revision": memory.plan_revision if memory else 0, "source_signature": data["source_signature"],
-        "source_valid": data["source_valid"], "action": decision,
+        "source_valid": data["source_valid"], "round_deferred": round_deferred, "action": decision,
         "learning_path": public_path(db, unit, data),
         "working_memory": working, "preparation": preparation, "short_plan": adaptive_plan.public_plan(db, unit),
         "instructional_plan": instructional_decisions.public(db, unit),
@@ -539,6 +543,94 @@ class SkipQuestion(Strict):
     request_key: str = Field(min_length=8, max_length=80, pattern=r"^[A-Za-z0-9_-]+$")
     revision: int = Field(ge=0)
     question_id: str = Field(min_length=1, max_length=80)
+    reason: Literal["unspecified", "already_done"] = "unspecified"
+
+
+class DeferRound(Strict):
+    request_key: str = Field(min_length=8, max_length=80, pattern=r"^[A-Za-z0-9_-]+$")
+    revision: int = Field(ge=0)
+    reason: Literal["already_done"]
+
+
+class RestoreRound(Strict):
+    request_key: str = Field(min_length=8, max_length=80, pattern=r"^[A-Za-z0-9_-]+$")
+    revision: int = Field(ge=0)
+
+
+def _round_action_context(db, p, unit_id):
+    from sqlalchemy import update
+    from .learning import get_unit
+    from .security import lock_session_after_child
+
+    unit = get_unit(db, p, unit_id, True, True, allow_deferred=True)
+    db.execute(update(Child).where(Child.id == unit.child_id).values(grade=Child.grade))
+    lock_session_after_child(db, p.user.id, p.session.id)
+    return unit
+
+
+@router.post("/units/{unit_id}/learning-session/defer")
+def defer_round(unit_id: str, data: DeferRound, p=Depends(child_user), db=Depends(get_db)):
+    from . import learning
+    from .round_deferrals import is_deferred
+
+    unit = _round_action_context(db, p, unit_id)
+    key, evidence = "round-defer:" + data.request_key, ["reason:already_done"]
+    previous = db.scalar(select(LearningEvent).where(LearningEvent.unit_id == unit.id, LearningEvent.event_key == key))
+    if previous:
+        if previous.evidence != evidence:
+            raise HTTPException(409, "Dieser Vorgang gehört zu einem anderen Lernschritt.")
+        return learning.unit_data(db, unit)
+    memory = db.get(LearningMemory, unit.id)
+    if data.revision != (memory.revision if memory else 0):
+        raise HTTPException(409, "Die Runde wurde geändert. Bitte lade sie neu.")
+    if unit.status not in ("ready", "active", "paused"):
+        raise HTTPException(409, "Diese Runde kann nicht zurückgestellt werden.")
+    _, state = decide(db, unit, memory.working if memory else None)
+    if not state["source_valid"]:
+        raise HTTPException(409, "Der Lernstoff wurde geändert. Prüfe zuerst die aktuelle Heftseite.")
+    if learning.pending_feedback(unit, state["attempts"], state["activities"]):
+        raise HTTPException(409, "Lies zuerst deine gespeicherte Rückmeldung.")
+    if db.scalar(select(Job.id).where(Job.child_id == unit.child_id, Job.status.in_(["queued", "running"]))):
+        raise HTTPException(409, "Für dich wird gerade noch etwas vorbereitet. Versuche es danach erneut.")
+    if is_deferred(db, unit, memory):
+        return learning.unit_data(db, unit)
+    if unit.status == "active":
+        unit.status = "paused"
+        unit.heartbeat = None
+    patch = {"round_deferral": {"version": 1, "reason": data.reason,
+        "source_signature": state["source_signature"], "plan_revision": memory.plan_revision if memory else 0}}
+    observe(db, unit, "round_deferred", key, evidence, working_patch=patch)
+    db.flush()
+    # Pausing may itself increment the plan revision. Bind the durable veto to
+    # that resulting revision, not the pre-pause one submitted by the client.
+    memory = db.get(LearningMemory, unit.id)
+    value = {**memory.working["round_deferral"], "plan_revision": memory.plan_revision}
+    memory.working = {**memory.working, "round_deferral": value}
+    db.commit()
+    return learning.unit_data(db, unit)
+
+
+@router.post("/units/{unit_id}/learning-session/restore")
+def restore_round(unit_id: str, data: RestoreRound, p=Depends(child_user), db=Depends(get_db)):
+    from . import learning
+
+    unit = _round_action_context(db, p, unit_id)
+    key, evidence = "round-restore:" + data.request_key, ["round:restore"]
+    previous = db.scalar(select(LearningEvent).where(LearningEvent.unit_id == unit.id, LearningEvent.event_key == key))
+    if previous:
+        if previous.evidence != evidence:
+            raise HTTPException(409, "Dieser Vorgang gehört zu einem anderen Lernschritt.")
+        return learning.unit_data(db, unit)
+    memory = db.get(LearningMemory, unit.id)
+    if data.revision != (memory.revision if memory else 0):
+        raise HTTPException(409, "Die Runde wurde geändert. Bitte lade sie neu.")
+    if unit.status == "completed":
+        raise HTTPException(409, "Diese Runde ist bereits beendet.")
+    if not memory or not (memory.working or {}).get("round_deferral"):
+        return learning.unit_data(db, unit)
+    observe(db, unit, "round_restored", key, evidence, working_patch={"round_deferral": None})
+    db.commit()
+    return learning.unit_data(db, unit)
 
 
 @router.post("/units/{unit_id}/learning-session/skip")
@@ -547,9 +639,10 @@ def skip_question(unit_id: str, data: SkipQuestion, p=Depends(child_user), db=De
 
     unit = learning.get_unit(db, p, unit_id, True, True)
     key = "skip:" + data.request_key
+    evidence = ["question:" + data.question_id] + (["reason:already_done"] if data.reason == "already_done" else [])
     previous = db.scalar(select(LearningEvent).where(LearningEvent.unit_id == unit.id, LearningEvent.event_key == key))
     if previous:
-        if previous.evidence != ["question:" + data.question_id]:
+        if previous.evidence != evidence:
             raise HTTPException(409, "Dieser Vorgang gehört zu einer anderen Aufgabe.")
         return learning.unit_data(db, unit)
     memory = db.get(LearningMemory, unit.id)
@@ -562,8 +655,11 @@ def skip_question(unit_id: str, data: SkipQuestion, p=Depends(child_user), db=De
     if not instructional_decisions.current(db, unit):
         # No invented replacement or fake completion. The original stays resumable.
         unit.status, unit.heartbeat = "paused", None
-    learning.record(db, unit.child_id, "question_skipped", {"question_id": data.question_id}, unit.id)
-    observe(db, unit, "question_skipped", key, ["question:" + data.question_id])
+    detail = {"question_id": data.question_id}
+    if data.reason == "already_done":
+        detail["reason"] = "already_done"
+    learning.record(db, unit.child_id, "question_skipped", detail, unit.id)
+    observe(db, unit, "question_skipped", key, evidence)
     db.commit()
     return learning.unit_data(db, unit)
 

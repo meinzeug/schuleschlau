@@ -750,7 +750,7 @@ class _AiRoutingPanelState extends State<AiRoutingPanel> {
                         style: const TextStyle(fontWeight: FontWeight.w700),
                       ),
                       Text(
-                        'Route ${entry.key} · ${(entry.value['upstreams'] as List? ?? []).join(', ')} · Denkstufe: ${entry.value['reasoning_effort'] ?? data!['effective_reasoning_effort'] ?? 'nicht gemeldet'} · ${entry.value['under13_approved'] == true ? 'Kinderroute freigegeben' : 'Kinderfreigabe offen'}',
+                        'Route ${entry.key} · ${(entry.value['upstreams'] as List? ?? []).join(', ')} · ${entry.key == 'image' ? 'Bildgenerierung' : 'Denkstufe: ${entry.value['reasoning_effort'] ?? data!['effective_reasoning_effort'] ?? 'nicht gemeldet'}'} · ${entry.value['under13_approved'] == true ? 'Kinderroute freigegeben' : 'Kinderfreigabe offen'}',
                       ),
                     ],
                   ),
@@ -864,5 +864,6 @@ String _routeTitle(String tier) => switch (tier) {
   'luna' => 'Kompakte Aufgaben und Hilfen',
   'sol' => 'Umfangreicher oder unklarer Bedarf',
   'astra' => 'Starke Eskalationsroute',
+  'image' => 'Allgemeine Themenbilder',
   _ => 'Modellroute',
 };

@@ -563,7 +563,8 @@ def analyze(exam_id: str, data: ReviewAnalyze, key: str = KEY, p=Depends(authent
         raise HTTPException(409, "Bitte zuerst den erkannten Text der ausgewählten Arbeitsseiten bestätigen.")
     if sum(len(page.content) for page in selected) > MAX_CONTENT:
         raise HTTPException(422, "Bitte für einen Auszug höchstens 60000 bestätigte Zeichen auswählen.")
-    rate_limit(db, "exam-review:" + p.user.id, 12, 3600, commit=False)
+    from .beta import limit_ai_feature
+    limit_ai_feature(db, child.family_id, "exam-review:" + p.user.id, 12, 3600)
     review = db.scalar(select(ExamReview).where(ExamReview.exam_id == exam.id))
     request = {"exam_id": exam.id, "action": "analyze", **data.model_dump()}
     previous = db.scalar(
@@ -696,7 +697,8 @@ def request_help(
         return turn_data(db, turn)
     if data.action == "check" and not data.draft.strip():
         raise HTTPException(422, "Bitte zuerst einen eigenen Überarbeitungsversuch schreiben.")
-    rate_limit(db, "exam-help:" + p.user.id, 12, 600, commit=False)
+    from .beta import limit_ai_feature
+    limit_ai_feature(db, child.family_id, "exam-help:" + p.user.id, 12, 600)
     turn = ExamReviewTurn(
         id=uid(),
         exam_id=exam.id,

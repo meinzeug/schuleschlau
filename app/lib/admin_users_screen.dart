@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
 import 'admin_workspace_ui.dart';
+import 'admin_beta_applications.dart';
 import 'api.dart';
 import 'page_tools.dart';
 import 'ui.dart';
@@ -590,6 +591,8 @@ class _AdminUsersScreenState extends State<AdminUsersScreen>
           if (notice != null)
             Semantics(liveRegion: true, child: Notice(notice!)),
           if (selected == null) ...[
+            AdminBetaApplications(widget.state),
+            const SizedBox(height: 12),
             PageToolsGroup(
               id: 'admin-user-filters',
               title: 'Suche & Kontofilter',

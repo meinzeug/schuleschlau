@@ -359,7 +359,7 @@ void main() {
             .text,
         'Mein zweiter Weg',
       );
-      await tap(tester, find.text('Hilfearten ansehen und auswählen'));
+      await tap(tester, find.text('Mehr Hilfe'));
       await tap(tester, find.text('Kleiner Hinweis').last);
       expect(requests.where((r) => r.method == 'POST'), isEmpty);
       await tap(tester, find.text('Zurück').last);
@@ -646,7 +646,7 @@ void main() {
       await newer;
       await tester.pumpAndSettle();
       await tap(tester, find.byTooltip('Große Schreibansicht schließen'));
-      await tap(tester, find.text('Hilfearten ansehen und auswählen'));
+      await tap(tester, find.text('Mehr Hilfe'));
       await tap(tester, find.text('Kleiner Hinweis').last);
       final oldSubmit = tester
           .widget<FilledButton>(

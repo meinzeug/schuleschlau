@@ -1,0 +1,9 @@
+# Lernrunde zurückstellen
+
+Ein Kind kann eine konkrete Runde mit „Das habe ich schon erledigt“ zurückstellen. Diese Selbstauskunft ist kein Ergebnis und kein Nachweis von Können: Es werden weder Antworten noch Lernstand oder Elternaufträge als erledigt eingetragen. Ein begonnener Ablauf wird pausiert; gespeicherte Entwürfe und Antworten bleiben erhalten. Ungelesenes Antwortfeedback und ein aktiver Vorbereitungsauftrag müssen vorher abgeschlossen werden.
+
+Die Entscheidung ist an das angemeldete Kind, die Einheit, die bestätigten Quellen und die Planrevision gebunden. Bei einer Änderung von Quellen oder Planung gilt die alte Zurückstellung nicht für den neuen Stand. Der serverseitige Lernplan zeigt zurückgestellte Runden und bestehende Elternpflichten weiterhin an, empfiehlt aber weder die zurückgestellte Runde noch abhängig folgende Schritte derselben Kette. Die Wiederaufnahme verlangt eine ausdrückliche Aktion; danach kann die Runde gestartet werden. Ein älterer Client kann die zurückgestellte Runde nicht unbemerkt bearbeiten.
+
+Die beiden schreibenden Endpunkte `learning-session/defer` und `learning-session/restore` verwenden eine Sitzungsrevision, einen Idempotenzschlüssel und die bestehende Einheitensperre. Die Antwort enthält `round_deferred` und die aktualisierte `learning_session`. Aufgabenantworten und die Rückmeldung werden nicht überschrieben. Lokale, noch nicht gespeicherte Eingaben muss die Oberfläche vor dem Zurückstellen sichern beziehungsweise schützen.
+
+Automatisierte Prüfungen decken Rechte, Wiederholungen, Entwürfe, Rückmeldung, Elternaufträge, veränderte Quellen und Planrevisionen ab. Ein PostgreSQL-Test weist durch Beobachtung einer Datenbanksperre nach, dass eine gleichzeitig gespeicherte Antwort vor der Zurückstellung abgeschlossen und ungelesenes Feedback nicht verborgen wird. Der native Client muss diese Bedienung ebenfalls unterstützen; ein Backendtest ersetzt keine Geräteabnahme.

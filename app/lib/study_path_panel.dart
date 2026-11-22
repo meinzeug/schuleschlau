@@ -57,10 +57,24 @@ class _StudyPathPanelState extends State<StudyPathPanel>
       .map((block) => Json.from(block as Map))
       .toList();
   Json? get next {
-    for (final block in blocks) {
-      if (block['id'] == path?['next_block_id']) return block;
+    final data = path;
+    if (data == null) return null;
+    if (data.containsKey('next_block_id')) {
+      final nextId = data['next_block_id'];
+      if (nextId == null) return null;
+      return blocks
+          .where(
+            (block) => block['id'] == nextId && block['round_deferred'] != true,
+          )
+          .firstOrNull;
     }
-    return blocks.where((block) => block['status'] != 'completed').firstOrNull;
+    // Older servers did not provide a next-block field.
+    return blocks
+        .where(
+          (block) =>
+              block['status'] != 'completed' && block['round_deferred'] != true,
+        )
+        .firstOrNull;
   }
 
   String? get waitingJob =>
@@ -438,7 +452,9 @@ class _StudyPathPanelState extends State<StudyPathPanel>
               'Lernschritt: ${block['label'] ?? _phaseLabel(block['phase'])}',
             ),
             SizedBox(height: 10),
-            Text('Stand: ${_blockLabel(block['status'])}'),
+            Text(
+              'Stand: ${block['round_deferred'] == true ? 'Zur Seite gelegt' : _blockLabel(block['status'])}',
+            ),
             SizedBox(height: 10),
             Text(
               '${block['question_count'] ?? 0} ${block['unit_id'] == null ? 'geplante' : 'vorbereitete'} Aufgaben',
@@ -553,6 +569,10 @@ class _StudyPathPanelState extends State<StudyPathPanel>
     final completed = (data?['completed_questions'] as num? ?? 0).toInt();
     final ready = (data?['ready_questions'] as num? ?? 0).toInt();
     final current = next;
+    final hasDeferred = blocks.any((block) => block['round_deferred'] == true);
+    final allCompleted = blocks.every(
+      (block) => block['status'] == 'completed',
+    );
     final retryExhausted =
         current != null &&
         (exhaustedBlocks.containsKey(current['id']) ||
@@ -842,6 +862,11 @@ class _StudyPathPanelState extends State<StudyPathPanel>
                     ),
                   ),
                 ],
+              ] else if (current == null && hasDeferred) ...[
+                Text(
+                  'Eine Runde liegt zur Seite. Du findest sie unter „Heute“ wieder.',
+                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+                ),
               ] else if (current == null &&
                   blocks.isNotEmpty &&
                   data?['application_missing'] == true &&
@@ -859,11 +884,13 @@ class _StudyPathPanelState extends State<StudyPathPanel>
                     posting ? 'Einen Moment …' : 'Mit dem Thema weiter',
                   ),
                 ),
-              ] else if (current == null && blocks.isNotEmpty)
+              ] else if (current == null && blocks.isNotEmpty && allCompleted)
                 Text(
                   'Alle Etappen sind bearbeitet. Gut gemacht!',
                   style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
-                ),
+                )
+              else if (current == null && blocks.isNotEmpty)
+                Text('Dein nächster Lernschritt ist gerade noch nicht bereit.'),
               if (!needsReview &&
                   (data?['block_reason'] as String? ?? '').isNotEmpty) ...[
                 SizedBox(height: 12),
@@ -967,8 +994,10 @@ class _StudyPathPanelState extends State<StudyPathPanel>
                         runSpacing: 6,
                         children: [
                           PlanPill(
-                            '${block['label'] ?? _phaseLabel(block['phase'])} · ${block['question_count'] ?? 0} Aufgaben · ${_blockLabel(block['status'])}',
-                            tone: block['status'] == 'completed'
+                            '${block['label'] ?? _phaseLabel(block['phase'])} · ${block['question_count'] ?? 0} Aufgaben · ${block['round_deferred'] == true ? 'Zur Seite gelegt' : _blockLabel(block['status'])}',
+                            tone: block['round_deferred'] == true
+                                ? PlanPillTone.neutral
+                                : block['status'] == 'completed'
                                 ? PlanPillTone.success
                                 : block['status'] == 'ready'
                                 ? PlanPillTone.info

@@ -130,6 +130,8 @@ void main() {
         expect(find.text('Wortkarten'), findsNothing);
         expect(find.text('Gespeicherte Modusstände'), findsNothing);
         expect(find.text('Wörter üben').hitTestable(), findsOneWidget);
+        expect(find.text('Tippe ein Wort an.'), findsOneWidget);
+        expect(find.text('Antippen zum Ansehen'), findsNothing);
         for (final cue in ['Apfel', 'Schule', 'Buch']) {
           expect(find.text(cue).hitTestable(), findsOneWidget);
           expect(tester.getBottomLeft(find.text(cue)).dy, lessThan(800));
@@ -197,8 +199,8 @@ void main() {
     (tester) async {
       final calls = <http.Request>[];
       await fixture.open(tester, calls, openTools: false, cards: false);
-      expect(find.text('Antippen zum Ansehen'), findsOneWidget);
-      await fixture.tap(tester, find.text('Antippen zum Ansehen'));
+      expect(find.text('Tippe ein Wort an.'), findsOneWidget);
+      await fixture.tap(tester, find.byTooltip('Wort einzeln ansehen'));
       expect(find.text('Wort 1 von 1'), findsOneWidget);
       expect(find.text('apple'), findsNothing);
       expect(find.text('Gespeicherte Modusstände'), findsNothing);
@@ -457,6 +459,7 @@ void main() {
     final calls = <http.Request>[];
     final data = words();
     data['items'] = <Json>[];
+    data['pagination'] = {...data['pagination'], 'total': 0};
     data['summary'] = {
       ...data['summary'],
       'confirmed_words': 0,
@@ -475,6 +478,9 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Wörter üben'), findsNothing);
+    expect(find.byTooltip('Vorherige Wortseite'), findsNothing);
+    expect(find.byTooltip('Nächste Wortseite'), findsNothing);
+    expect(find.text('Seite 1 · 0 Wörter'), findsNothing);
     expect(find.byTooltip('Wörter hinzufügen'), findsOneWidget);
     expect(calls.every((r) => r.method == 'GET'), isTrue);
     await fixture.tap(tester, find.byTooltip('Wörter hinzufügen'));

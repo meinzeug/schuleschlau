@@ -53,6 +53,9 @@ class _LandingScreenState extends State<LandingScreen> {
             ? snapshot.data ?? {}
             : {},
       );
+      final betaAvailable =
+          snapshot.data?['beta'] is Map &&
+          snapshot.data?['beta']['enabled'] == true;
       return Scaffold(
         body: SafeArea(
           child: LayoutBuilder(
@@ -87,12 +90,18 @@ class _LandingScreenState extends State<LandingScreen> {
                     children: [
                       FilledButton.icon(
                         onPressed: () => context.go(
-                          state.user == null ? '/register' : '/app',
+                          state.user == null
+                              ? (betaAvailable
+                                    ? '/register?beta=1'
+                                    : '/register')
+                              : '/app',
                         ),
                         icon: Icon(Icons.arrow_forward_rounded),
                         label: Text(
                           state.user != null
                               ? 'Mein Lernraum'
+                              : betaAvailable
+                              ? 'Für die Beta anmelden'
                               : offer.available
                               ? '30 Tage kostenlos testen'
                               : 'Elternkonto erstellen',
@@ -113,7 +122,11 @@ class _LandingScreenState extends State<LandingScreen> {
                       icon: const Icon(Icons.refresh_rounded),
                       label: const Text('Testangebot erneut prüfen'),
                     ),
-                  ] else
+                  ] else if (betaAvailable)
+                    const Notice(
+                      'Für Eltern: Nach deiner E-Mail-Bestätigung prüft das SchuleSchlau-Team deine Beta-Anmeldung. Der Zugang wird erst nach Freigabe aktiviert.',
+                    )
+                  else
                     TrialTermsSummary(offer, compact: true),
                 ],
               );
@@ -441,6 +454,9 @@ class AuthScreen extends StatefulWidget {
 }
 
 class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
+  bool get betaRequested =>
+      widget.mode == 'register' &&
+      widget.linkUri.queryParameters['beta'] == '1';
   final username = TextEditingController();
   final password = TextEditingController();
   final name = TextEditingController();
@@ -823,6 +839,7 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
             'display_name': name.text.trim(),
             'family_name': family.text.trim(),
             'adult_consent': consent,
+            if (betaRequested) 'beta_requested': true,
           },
           'recovery' => {'email': username.text.trim()},
           'resend' => {'email': username.text.trim()},
@@ -883,7 +900,8 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
     final mode = widget.mode;
     final revision = formRevision;
     final title = switch (mode) {
-      'register' => 'Euer Start mit SchuleSchlau',
+      'register' =>
+        betaRequested ? 'Für die Beta anmelden' : 'Euer Start mit SchuleSchlau',
       'recovery' => 'Passwort vergessen?',
       'resend' => 'Bestätigungslink fehlt?',
       'reset' => 'Neues Elternpasswort',
@@ -942,14 +960,25 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
                       if (mode != 'login')
                         Text(switch (mode) {
                           'login' => 'Eltern und Kinder melden sich mit ihrem eigenen Zugang an.',
-                          'register' => 'Erstelle dein Elternkonto und bestätige deine E-Mail. Hier löst du keine kostenpflichtige Bestellung aus.',
+                          'register' =>
+                            betaRequested
+                                ? 'Erstelle dein Elternkonto und bestätige deine E-Mail. Das Team prüft deine Anmeldung. Erst nach Freigabe beginnt die Beta; es entsteht keine Bestellung.'
+                                : 'Erstelle dein Elternkonto und bestätige deine E-Mail. Hier löst du keine kostenpflichtige Bestellung aus.',
                           'recovery' => 'Für Eltern: Gib die E-Mail deines Kontos ein. Kinder lassen ihr Passwort von ihren Eltern ändern.',
                           'resend' => 'Für ein noch unbestätigtes Elternkonto: Fordere bewusst einen neuen E-Mail-Link an. Prüfe auch deinen Spamordner. Die Rückmeldung verrät nicht, ob ein Konto existiert.',
                           'reset' => 'Wähle ein neues Elternpasswort. Der sichere Code kommt aus deinem E-Mail-Link.',
                           'invite' => 'Nimm die Einladung zu deiner Familie an. Nutze bei einem vorhandenen Elternkonto dessen Passwort.',
                           _ => 'Bestätige deine E-Mail-Adresse. Der sichere Code wird aus dem vollständigen E-Mail-Link übernommen.',
                         }, style: TextStyle(color: context.palette.muted)),
-                      if (mode == 'register' && !completed) ...[
+                      if (betaRequested) ...[
+                        const SizedBox(height: 8),
+                        const Notice(
+                          'Du hast schon ein Elternkonto? Melde dich damit an und beantrage die Beta in den Einstellungen. Eine erneute Registrierung mit derselben E-Mail erstellt keinen Beta-Antrag.',
+                        ),
+                      ],
+                      if (mode == 'register' &&
+                          !completed &&
+                          !betaRequested) ...[
                         const SizedBox(height: 16),
                         FutureBuilder<Json>(
                           future: registrationCatalog,
@@ -1293,7 +1322,10 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
                           label: submitting
                               ? 'Bitte warten …'
                               : switch (mode) {
-                                  'register' => 'Elternkonto anlegen',
+                                  'register' =>
+                                    betaRequested
+                                        ? 'Beta-Anmeldung absenden'
+                                        : 'Elternkonto anlegen',
                                   'recovery' =>
                                     'Wiederherstellungslink anfordern',
                                   'resend' => 'Bestätigungslink anfordern',
@@ -1331,7 +1363,9 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
                         ),
                       ],
                       SizedBox(height: 18),
-                      if ((mode == 'login' || mode == 'register') && !completed)
+                      if ((mode == 'login' ||
+                              (mode == 'register' && !betaRequested)) &&
+                          !completed)
                         GoogleLoginButton(
                           widget.state,
                           key: ValueKey(('google-auth', revision)),

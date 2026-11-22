@@ -28,6 +28,7 @@ class ChildTodayHero extends StatefulWidget {
 
 class _ChildTodayHeroState extends State<ChildTodayHero> {
   bool opening = false;
+  bool detailsOpen = false;
   int actionVersion = 0;
   @override
   void didUpdateWidget(covariant ChildTodayHero oldWidget) {
@@ -204,13 +205,39 @@ class _ChildTodayHeroState extends State<ChildTodayHero> {
                   mainAxisSize: MainAxisSize.min,
                   children: [heading, const SizedBox(height: 12), actionArea],
                 ),
-              if (widget.details != null)
-                ExpansionTile(
-                  key: const ValueKey('today-round-details'),
-                  tilePadding: EdgeInsets.zero,
-                  title: const Text('Mehr zur Runde'),
-                  children: [widget.details!],
+              if (widget.details != null) ...[
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 196),
+                    child: IntrinsicWidth(
+                      child: Semantics(
+                        expanded: detailsOpen,
+                        child: TextButton.icon(
+                          key: const ValueKey('today-round-details'),
+                          onPressed: () =>
+                              setState(() => detailsOpen = !detailsOpen),
+                          icon: Icon(
+                            detailsOpen
+                                ? Icons.expand_less_rounded
+                                : Icons.expand_more_rounded,
+                            size: 20,
+                          ),
+                          label: const Text('Mehr zur Runde'),
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
+                if (detailsOpen)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 12, bottom: 4),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: widget.details!,
+                    ),
+                  ),
+              ],
             ],
           ),
         );

@@ -470,6 +470,10 @@ class _AdminChildCostsState extends State<AdminChildCosts>
           style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
         ),
         if (loading) const LinearProgressIndicator(),
+        if (saved?['beta_unlimited'] == true)
+          const Notice(
+            'Für diesen freigegebenen Beta-Zugang gelten keine persönlichen KI-Grenzen. Gespeicherte Grenzen bleiben erhalten und greifen nach Ende der Beta wieder. Nutzung und Kosten werden weiterhin erfasst.',
+          ),
         if (saved != null) ...[
           if (saved!['system_stop'] == true ||
               (saved!['system_stop'] is Map &&

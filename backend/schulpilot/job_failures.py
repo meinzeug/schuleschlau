@@ -94,14 +94,16 @@ def generation_availability(db, family, function, *, child_id=None, job_id=None,
     except HTTPException as error:
         return {"code": "not_configured", "message": str(error.detail)}
     from .child_cost_controls import preflight
+    from .beta import approved
 
-    configured_child, child_blocker = preflight(db, child_id, config.reserve_micros)
+    is_beta = approved(db, family.id)
+    configured_child, child_blocker = (True, None) if is_beta else preflight(db, child_id, config.reserve_micros)
     if child_blocker:
         return child_blocker
     summary = usage_summary(db, family)
     if (
         summary["access"]["state"] not in ("existing", "active", "trial")
-        or (not configured_child and (not summary["calls_remaining"]
+        or (not is_beta and not configured_child and (not summary["calls_remaining"]
             or summary["budget_remaining_micros_usd"] < config.reserve_micros))
     ):
         return {
@@ -111,14 +113,14 @@ def generation_availability(db, family, function, *, child_id=None, job_id=None,
     period = datetime.now(timezone.utc).strftime("%Y-%m")
     global_bucket = db.get(UsageBucket, f"global:{period}")
     if config.emergency_stop or (
-        global_bucket and global_bucket.encumbered_micros + config.reserve_micros > config.global_limit_micros
+        not is_beta and global_bucket and global_bucket.encumbered_micros + config.reserve_micros > config.global_limit_micros
     ):
         return {
             "code": "not_configured",
             "message": "Neue KI-Schritte sind vorübergehend angehalten. Deine gespeicherten Inhalte bleiben da.",
         }
     try:
-        external_allowed(config, image=function == "extract", db=db)
+        external_allowed(config, image=function == "extract", image_output=function == "public_image", db=db)
     except ProviderError as error:
         return {"code": "not_configured", "message": str(error)}
     return None

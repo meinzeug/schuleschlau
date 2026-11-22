@@ -358,9 +358,11 @@ void main() {
     t,
   ) async {
     final (state, _, calls) = await n.open(t);
-    await n.tap(t, find.byTooltip('Foto zum Vergleich vormerken'));
+    await n.tap(t, find.byTooltip('Seitenaktionen'));
+    await n.tap(t, find.text('Zum Vergleich auswählen'));
     await n.tap(t, find.byTooltip('Nächste Seite'));
-    await n.tap(t, find.byTooltip('Foto zum Vergleich vormerken'));
+    await n.tap(t, find.byTooltip('Seitenaktionen'));
+    await n.tap(t, find.text('Zum Vergleich auswählen'));
     await n.tap(t, find.text('Fotos vergleichen'));
     expect(find.text('Zwei Heftfotos vergleichen'), findsOneWidget);
     state.familyId = 'other';

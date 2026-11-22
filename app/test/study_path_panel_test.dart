@@ -184,6 +184,47 @@ void _pause(WidgetTester tester) {
 }
 
 void main() {
+  testWidgets('a deferred round is not offered as next or reported complete', (
+    tester,
+  ) async {
+    _viewport(tester);
+    final requests = <String>[];
+    final deferred = _block('first', status: 'ready', unit: 'u')
+      ..['round_deferred'] = true;
+    final data = _path(blocks: [deferred, _block('dependent')])
+      ..['next_block_id'] = null;
+    final state = _state(
+      MockClient((request) async {
+        requests.add(request.method);
+        return _json(data);
+      }),
+    );
+    final router = await _open(tester, state);
+    expect(find.textContaining('Eine Runde liegt zur Seite'), findsOneWidget);
+    expect(find.text('Etappe öffnen'), findsNothing);
+    expect(find.text('Erste Etappe starten'), findsNothing);
+    expect(
+      find.text('Alle Etappen sind bearbeitet. Gut gemacht!'),
+      findsNothing,
+    );
+    expect(requests, ['GET']);
+    await _dispose(tester, router);
+    state.dispose();
+  });
+
+  testWidgets(
+    'legacy paths without a next id still offer their first open block',
+    (tester) async {
+      final data = _path()..remove('next_block_id');
+      final state = _state(MockClient((_) async => _json(data)));
+      final router = await _open(tester, state);
+      expect(find.text('Brüche first'), findsOneWidget);
+      expect(find.text('Erste Etappe starten'), findsOneWidget);
+      await _dispose(tester, router);
+      state.dispose();
+    },
+  );
+
   sessionReplacementTest();
   testWidgets('resuming while the first path read is pending revalidates it', (
     tester,

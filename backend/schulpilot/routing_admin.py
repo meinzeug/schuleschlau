@@ -26,7 +26,7 @@ def routing(p=Depends(admin), db=Depends(get_db)):
     policy = config.routing_policy if isinstance(config.routing_policy, dict) else {}
     routes = policy.get("routes") if isinstance(policy.get("routes"), dict) else {}
     prices = {tier: (state.updated if state else None) for tier in routes
-              if tier in ("luna", "sol", "astra")
+              if tier in ("luna", "sol", "astra", "image")
               for state in (db.get(ServiceState, "market-data-route-" + tier),)}
     return {"revision": config.revision, "policy": config.routing_policy, "provider": config.provider,
         "emergency_stop": config.emergency_stop,

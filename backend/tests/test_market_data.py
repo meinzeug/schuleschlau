@@ -174,3 +174,58 @@ def test_postgres_reservation_blocks_concurrent_quote_commit(api, household, mon
         assert sync.result(timeout=20) is False
     with DB() as db:
         assert db.get(ProviderConfig, 1).revision == revision
+def test_image_rates_use_exact_endpoint_and_reject_unpriced_dimensions():
+    from schulpilot.market_data import parse_image_prices
+
+    sample = {"id": "test/image", "endpoints": [{"provider_tag": "azure", "pricing": [
+        {"billable": "input_text", "unit": "token", "cost_usd": 0.00000175},
+        {"billable": "input_image", "unit": "token", "cost_usd": 0.0000025},
+        {"billable": "output_image", "unit": "token", "cost_usd": 0.00001}]}]}
+    assert parse_image_prices(sample, "test/image", ["azure"]) == {"prompt": 1750000, "completion": 10000000}
+    import copy
+    bad = copy.deepcopy(sample)
+    bad["endpoints"][0]["pricing"].append({"billable": "request", "unit": "request", "cost_usd": 0.1})
+    import pytest
+    with pytest.raises(ValueError):
+        parse_image_prices(bad, "test/image", ["azure"])
+    with pytest.raises(ValueError):
+        parse_image_prices(sample, "test/image", ["other"])
+
+
+def test_refresh_reads_image_api_rates_without_changing_approval(api, household, monkeypatch):
+    from schulpilot.db import now
+
+    _, _, policy = configure(household)
+    image = copy.deepcopy(policy['routes']['sol'])
+    image.update(model='test/image-model', upstreams=['azure'],
+        image_output_budget={'version': 1, 'basis': 'operator_estimate', 'model': 'test/image-model',
+            'upstream': 'azure', 'input_tokens': 500, 'output_tokens': 3000,
+            'evidence': 'Synthetic test reservation evidence', 'approved_at': int(now())})
+    policy['routes']['image'] = image
+    with DB.begin() as db:
+        db.get(ProviderConfig, 1).routing_policy = policy
+    tick = 1795334400
+    real_client = httpx.Client
+    requested = []
+    def handle(request):
+        requested.append(str(request.url))
+        if request.url.host == 'www.ecb.europa.eu':
+            return httpx.Response(200, content=xml_for(tick), request=request)
+        if '/images/models/' in request.url.path:
+            return httpx.Response(200, json={'id': 'test/image-model', 'endpoints': [{'provider_tag': 'azure',
+                'pricing': [{'billable': 'input_text', 'unit': 'token', 'cost_usd': 0.00000175},
+                            {'billable': 'output_image', 'unit': 'token', 'cost_usd': 0.00001}]}]}, request=request)
+        model = str(request.url.path).split('/models/', 1)[1].removesuffix('/endpoints')
+        return httpx.Response(200, json={'data': {'id': model, 'endpoints': [{'tag': 'azure', 'status': 0,
+            'pricing': {'prompt': '0.000001', 'completion': '0.000005'}}]}}, request=request)
+    monkeypatch.setattr(market_data.httpx, 'Client', lambda **kwargs: real_client(transport=httpx.MockTransport(handle)))
+    monkeypatch.setattr(market_data, 'settings', replace(market_data.settings, environment='test', openrouter_api_key='synthetic-key'))
+    monkeypatch.setattr(market_data, 'now', lambda: tick)
+    assert market_data.refresh_if_due(force=True)
+    with DB() as db:
+        route = db.get(ProviderConfig, 1).routing_policy['routes']['image']
+        assert route['input_per_million_micros'] == 1750000
+        assert route['output_per_million_micros'] == 10000000
+        assert route['verified_at'] == image['verified_at']
+        assert route['image_output_budget'] == image['image_output_budget']
+    assert any('/images/models/test/image-model/endpoints' in url for url in requested)

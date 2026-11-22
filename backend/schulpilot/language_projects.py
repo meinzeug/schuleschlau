@@ -108,7 +108,8 @@ def create(child_id: str, data: s.ProjectRequest, idempotency_key: str = KEY,
         raise HTTPException(422, "Bitte eine Lernsprache und unterschiedliche bestätigte Wörter wählen.")
     if data.mode in OWN_WORK and len(data.draft.strip()) < 10:
         raise HTTPException(422, "Schreibe zuerst deinen eigenen Versuch. Danach erhältst du Unterstützung.")
-    rate_limit(db, "language-project:" + p.user.id, 12, 3600, commit=False)
+    from .beta import limit_ai_feature
+    limit_ai_feature(db, child.family_id, "language-project:" + p.user.id, 12, 3600)
     if db.scalar(select(Job.id).where(Job.child_id == child.id, Job.status.in_(["queued", "running"]))):
         raise HTTPException(409, "Eine Verarbeitung läuft noch. Bitte kurz warten.")
     items = [db.get(VocabularyItem, item_id) for item_id in data.item_ids]

@@ -415,6 +415,10 @@ def path_data(db, day, child):
     from .learning_origins import open_rounds
 
     result["related_rounds"] = open_rounds(db, child.id, day.id)
+    from .round_deferrals import candidates as deferral_candidates, is_deferred
+
+    deferred_memories = deferral_candidates(db, child.id)
+
     for saved in source_backed_blocks(db, day):
         unit = db.get(LearningUnit, saved.get("unit_id")) if saved.get("unit_id") else None
         job = db.get(Job, saved.get("job_id")) if saved.get("job_id") else None
@@ -437,6 +441,7 @@ def path_data(db, day, child):
         block = {key: saved.get(key) for key in ("id", "title", "phase", "label", "unit_id", "job_id")}
         block.update(
             status=status,
+            round_deferred=bool(unit and unit.id in deferred_memories and is_deferred(db, unit, deferred_memories[unit.id])),
             question_count=count,
             completed_questions=answered,
             error=job.error if job and job.status == "failed" else None,
@@ -450,7 +455,8 @@ def path_data(db, day, child):
     from .learning import plan
 
     current = plan(db, child)
-    open_blocks = [b for b in result["blocks"] if b["status"] != "completed"]
+    deferred_blocks = [b for b in result["blocks"] if b.get("round_deferred")]
+    open_blocks = [b for b in result["blocks"] if b["status"] != "completed" and not b.get("round_deferred")]
     offered = [
         (b, item)
         for item in [*current["today"], *current.get("voluntary", [])]
@@ -467,7 +473,9 @@ def path_data(db, day, child):
         pair[1].get("status") not in ("active", "paused"),
         pair[0]["status"] != "ready",
     ))[0] if offered else None
-    next_block = preferred or next(iter(open_blocks), None)
+    # Do not silently skip a deferred prerequisite via the legacy fallback.
+    # Other independently planner-eligible blocks remain available.
+    next_block = preferred or (None if deferred_blocks else next(iter(open_blocks), None))
     if next_block:
         saved = next(b for b in value["blocks"] if b["id"] == next_block["id"])
         unit = db.get(LearningUnit, saved.get("unit_id")) if saved.get("unit_id") else None

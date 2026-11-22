@@ -1218,6 +1218,14 @@ class _ChildHomeContentState extends State<_ChildHomeContent> {
     }
 
     final plan = data['plan'] as Json;
+    final deferredRounds = (plan['deferred_rounds'] as List? ?? [])
+        .whereType<Map>()
+        .where(
+          (item) =>
+              item['id'] is String &&
+              RegExp(r'^[a-f0-9]{32}$').hasMatch(item['id'] as String),
+        )
+        .toList();
     final blockedStudyPaths = <Json>[];
     final blockedDays = <String>{};
     for (final raw in plan['blocked_study_paths'] as List? ?? []) {
@@ -1624,6 +1632,17 @@ class _ChildHomeContentState extends State<_ChildHomeContent> {
           ),
         ),
         hero,
+        if (deferredRounds.isNotEmpty)
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: () {
+                if (current()) _showChildPlan(context, state, renderedData);
+              },
+              icon: const Icon(Icons.bookmark_outline_rounded),
+              label: Text('Zurückgelegte Runden (${deferredRounds.length})'),
+            ),
+          ),
         for (final blocked in blockedStudyPaths) ...[
           const SizedBox(height: 12),
           ChildTodayTile(
@@ -1991,6 +2010,14 @@ Future<void> _showChildPlan(
   final child = data['child'] as Json;
   final plan = data['plan'] as Json;
   final today = plan['today'] as List? ?? [];
+  final deferred = (plan['deferred_rounds'] as List? ?? [])
+      .whereType<Map>()
+      .where(
+        (item) =>
+            item['id'] is String &&
+            RegExp(r'^[a-f0-9]{32}$').hasMatch(item['id'] as String),
+      )
+      .toList();
   final navigator = Navigator.of(context, rootNavigator: true);
   late DialogRoute<dynamic> ownRoute;
   ownRoute = DialogRoute<dynamic>(
@@ -2108,6 +2135,30 @@ Future<void> _showChildPlan(
                           },
                         ),
                     ],
+                    if (deferred.isNotEmpty) ...[
+                      const SizedBox(height: 16),
+                      PlanSectionTitle('Zurückgelegte Runden'),
+                      for (final item in deferred)
+                        ListTile(
+                          leading: const Icon(Icons.bookmark_outline_rounded),
+                          title: Text(
+                            (item['topic'] ?? 'Lernrunde').toString(),
+                          ),
+                          subtitle: Text(
+                            item['mandatory'] == true
+                                ? 'Elternauftrag bleibt offen'
+                                : (item['subject'] ?? '').toString(),
+                          ),
+                          trailing: const Icon(Icons.chevron_right_rounded),
+                          onTap: () {
+                            if (current() && ownRoute.isCurrent) {
+                              Navigator.pop(dialogContext, {
+                                'deferred_unit_id': item['id'],
+                              });
+                            }
+                          },
+                        ),
+                    ],
                     if ((plan['week'] as List? ?? []).isNotEmpty) ...[
                       SizedBox(height: 16),
                       PlanSectionTitle('Die nächsten Lerntage'),
@@ -2176,6 +2227,14 @@ Future<void> _showChildPlan(
       messageContext: references,
       referenceText: '${item['subject']} · ${item['topic']}',
     );
+    return;
+  }
+  if (chosen is Map &&
+      chosen['deferred_unit_id'] is String &&
+      context.mounted &&
+      current()) {
+    final id = chosen['deferred_unit_id'] as String;
+    if (RegExp(r'^[a-f0-9]{32}$').hasMatch(id)) openRoute(context, '/unit/$id');
     return;
   }
   if (chosen == 'open_collection' && context.mounted && current()) {

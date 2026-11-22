@@ -503,7 +503,110 @@ class _NotebookScreenState extends State<_NotebookContext>
     openRoute(context, '/learning-preparation/${widget.childId}/$jobId');
   }
 
-  Widget pageActions(Json item) => Wrap(
+  void toggleComparison(Json item) {
+    setState(() {
+      if (comparePages.containsKey(item['id'])) {
+        comparePages.remove(item['id']);
+      } else if (comparePages.length < 2) {
+        comparePages[item['id']] = Json.from(item);
+      } else {
+        toast(
+          context,
+          'Vergleiche höchstens zwei Fotos. Nimm zuerst eines heraus.',
+        );
+      }
+    });
+  }
+
+  Widget pageActions(Json item) {
+    if (MediaQuery.sizeOf(context).width >= 720) {
+      return desktopPageActions(item);
+    }
+    final hasPhoto = item['has_image'] == true;
+    final mayRead = materialCanReprocess(
+      widget.state,
+      item,
+      canManage: canManage,
+    );
+    final mayDelete = materialCanDelete(
+      widget.state,
+      item,
+      canManage: canManage,
+    );
+    final pageId = item['id'];
+    final pageRevision = item['revision'];
+    final openedView = view;
+    final openedEpoch = toolsEpoch;
+    return Wrap(
+      alignment: WrapAlignment.end,
+      children: [
+        if (view != 'album' && canPractice(item))
+          IconButton(
+            tooltip: 'Übungen zu dieser Heftseite erstellen',
+            onPressed: () => practicePage(item),
+            icon: const Icon(Icons.auto_stories_outlined),
+          ),
+        if (hasPhoto || mayRead || mayDelete)
+          PopupMenuButton<String>(
+            tooltip: 'Seitenaktionen',
+            enabled: current && !loading && !deleting,
+            icon: const Icon(Icons.more_vert),
+            onSelected: (action) {
+              if (!current ||
+                  loading ||
+                  deleting ||
+                  !toolsForeground ||
+                  toolsEpoch != openedEpoch ||
+                  view != openedView ||
+                  ModalRoute.of(context)?.isCurrent != true ||
+                  (view == 'album' && selected?['id'] != pageId)) {
+                return;
+              }
+              Json? latest;
+              for (final row in items) {
+                if (row['id'] == pageId && row['revision'] == pageRevision) {
+                  latest = row;
+                  break;
+                }
+              }
+              if (latest == null) return;
+              if (action == 'compare' && latest['has_image'] == true) {
+                toggleComparison(latest);
+              } else if (action == 'read' && canReprocess(latest)) {
+                reprocessPage(latest);
+              } else if (action == 'delete' && canDelete(latest)) {
+                deletePages(page: latest);
+              }
+            },
+            itemBuilder: (_) => [
+              if (hasPhoto)
+                PopupMenuItem(
+                  value: 'compare',
+                  child: Text(
+                    comparePages.containsKey(pageId)
+                        ? 'Aus Vergleich entfernen'
+                        : 'Zum Vergleich auswählen',
+                  ),
+                ),
+              if (mayRead)
+                PopupMenuItem(
+                  value: 'read',
+                  enabled: canReprocess(item),
+                  child: const Text('Mit KI neu lesen'),
+                ),
+              if (mayDelete)
+                PopupMenuItem(
+                  value: 'delete',
+                  enabled: canDelete(item),
+                  child: const Text('Heftseite löschen'),
+                ),
+            ],
+          ),
+      ],
+    );
+  }
+
+  Widget desktopPageActions(Json item) => Wrap(
     alignment: WrapAlignment.end,
     children: [
       if (view != 'album' && canPractice(item))
@@ -518,22 +621,7 @@ class _NotebookScreenState extends State<_NotebookContext>
               ? 'Foto aus Vergleich nehmen'
               : 'Foto zum Vergleich vormerken',
           isSelected: comparePages.containsKey(item['id']),
-          onPressed: !current || loading
-              ? null
-              : () {
-                  setState(() {
-                    if (comparePages.containsKey(item['id'])) {
-                      comparePages.remove(item['id']);
-                    } else if (comparePages.length < 2) {
-                      comparePages[item['id']] = Json.from(item);
-                    } else {
-                      toast(
-                        context,
-                        'Vergleiche höchstens zwei Fotos. Nimm zuerst eines heraus.',
-                      );
-                    }
-                  });
-                },
+          onPressed: !current || loading ? null : () => toggleComparison(item),
           icon: const Icon(Icons.compare_outlined),
         ),
 

@@ -150,8 +150,15 @@ def register(data: s.Register, request: Request, db=Depends(get_db)):
     email = str(data.email).lower()
     from .commerce import registration_notice
 
+    if data.beta_requested:
+        from .commerce import store
+        if not store(db)[0].beta_enabled:
+            raise HTTPException(403, "Die Beta-Anmeldung ist derzeit geschlossen.")
+
     reply = {"message": "Falls diese Adresse registriert werden kann, erhältst du eine Bestätigung per E-Mail.",
              "access_notice": registration_notice(db)}
+    if data.beta_requested:
+        reply["access_notice"] = "Nach E-Mail-Bestätigung wird die Beta-Anmeldung vom SchuleSchlau-Team geprüft."
     if db.scalar(select(User.id).where(User.username == email)):
         # Uniform reply avoids revealing existing registrations.
         return reply
@@ -182,7 +189,11 @@ def register(data: s.Register, request: Request, db=Depends(get_db)):
     db.add(Membership(family_id=family.id, user_id=user.id, permission="owner"))
     from .commerce import prepare_trial
 
-    prepare_trial(db, family, user, site)
+    if data.beta_requested:
+        from .beta_models import BetaApplication
+        db.add(BetaApplication(family_id=family.id, user_id=user.id, status="pending"))
+    else:
+        prepare_trial(db, family, user, site)
     token = new_token(db, "verify", user.id, ttl=86400)
     send_link(
         email,

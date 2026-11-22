@@ -561,6 +561,50 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
+  testWidgets('Mobile page actions are labeled and keep confirmation', (
+    tester,
+  ) async {
+    final (_, _, requests) = await open(
+      tester,
+      respond: (request) async {
+        if (request.url.path.endsWith('/delete-preview')) {
+          return jsonReply({'count': 1, 'selection_token': 'mobile-preview'});
+        }
+        if (request.url.path.endsWith('/subjects')) {
+          return jsonReply(subjects());
+        }
+        if (request.url.path.endsWith('/image')) {
+          return http.Response.bytes(
+            img.encodePng(img.Image(width: 4, height: 4)),
+            200,
+            headers: {'content-type': 'image/png'},
+          );
+        }
+        return jsonReply(pages(request));
+      },
+    );
+    expect(find.byTooltip('Seitenaktionen'), findsOneWidget);
+    expect(
+      tester.getSize(find.byTooltip('Seitenaktionen')).shortestSide,
+      greaterThanOrEqualTo(48),
+    );
+    expect(find.byTooltip('Mit KI neu lesen'), findsNothing);
+    await tap(tester, find.byTooltip('Seitenaktionen'));
+    expect(find.text('Zum Vergleich auswählen'), findsOneWidget);
+    expect(find.text('Mit KI neu lesen'), findsOneWidget);
+    expect(find.text('Heftseite löschen'), findsNothing);
+    await tap(tester, find.text('Zum Vergleich auswählen'));
+    expect(requests.every((r) => r.method == 'GET'), isTrue);
+    await tap(tester, find.byTooltip('Nächste Seite'));
+    await tap(tester, find.byTooltip('Seitenaktionen'));
+    await tap(tester, find.text('Heftseite löschen'), settle: false);
+    expect(find.text('Heftseite löschen?'), findsOneWidget);
+    expect(requests.where((r) => r.url.path.endsWith('/bulk-delete')), isEmpty);
+    await tap(tester, find.text('Abbrechen'), settle: false);
+    expect(requests.where((r) => r.url.path.endsWith('/bulk-delete')), isEmpty);
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets(
     'Children can delete unconfirmed pages and reread in album, tiles and list',
     (tester) async {
@@ -568,6 +612,7 @@ void main() {
       final requests = <http.Request>[];
       await open(
         tester,
+        width: 900,
         respond: (request) async {
           requests.add(request);
           if (request.url.path.endsWith('/materials/delete-preview')) {
@@ -640,7 +685,7 @@ void main() {
   testWidgets(
     'Child can reread a confirmed page but only delete an unconfirmed page',
     (tester) async {
-      await open(tester);
+      await open(tester, width: 900);
       expect(find.byTooltip('Heftseite löschen'), findsNothing);
       expect(find.byTooltip('Mit KI neu lesen'), findsOneWidget);
       await tap(tester, find.byTooltip('Nächste Seite'));
@@ -659,6 +704,7 @@ void main() {
       final writes = <http.Request>[];
       await open(
         tester,
+        width: 900,
         respond: (request) async {
           if (request.method == 'POST') {
             writes.add(request);
@@ -897,11 +943,11 @@ void main() {
   testWidgets('Parents can delete managed pages; read-only parents cannot', (
     tester,
   ) async {
-    await open(tester, parent: true, canManage: true);
+    await open(tester, width: 900, parent: true, canManage: true);
     expect(find.byTooltip('Heftseite löschen'), findsOneWidget);
     expect(find.byTooltip('Mit KI neu lesen'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
-    await open(tester, parent: true, canManage: false);
+    await open(tester, width: 900, parent: true, canManage: false);
     expect(find.byTooltip('Heftseite löschen'), findsNothing);
     expect(find.byTooltip('Mit KI neu lesen'), findsNothing);
     await chooseNotebookView(tester, 'Liste');

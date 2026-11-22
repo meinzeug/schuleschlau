@@ -73,7 +73,9 @@ class _VisualPreparationCardState extends State<VisualPreparationCard>
     publicTimer?.cancel();
     if (!current || ModalRoute.of(context)?.isCurrent == false) return;
     final id = widget.unit['id'];
-    if (id is! String || widget.unit['explanation_visual_status'] == 'ready') {
+    if (id is! String ||
+        widget.unit['explanation_visual_status'] is! String ||
+        widget.unit['explanation_visual_status'] == 'ready') {
       return;
     }
     final epoch = ++publicEpoch;
@@ -172,7 +174,7 @@ class _VisualPreparationCardState extends State<VisualPreparationCard>
                 ? 'Grafische Erklärung wird vorbereitet …'
                 : status == 'legacy_text'
                 ? 'Gespeicherte Texterklärung · Grafikschritte fehlen noch.'
-                : 'Die Grafik fehlt noch. Du kannst trotzdem lernen.',
+                : 'Die Erklärgrafik fehlt noch.',
             key: const ValueKey('visual-readiness'),
             style: TextStyle(color: context.palette.muted, fontSize: 14),
           ),

@@ -986,6 +986,17 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – Alle Kinderansichten sprachlich und in ihrer Bedienung entrümpeln**
 
+  **22.11.2026, weitere Teilverbesserung:** Die produktive Kinderansicht wurde
+  bei 390 × 844 Pixeln aufgerufen. „Mehr zur Runde“ erhält eine kompakte
+  Schaltfläche; seltene Heftseitenaktionen stehen mobil in einem beschrifteten
+  Menü. Hausaufgaben und Wortschatz zeigen weniger doppelte Hinweise und leere
+  Navigation. Aufgaben und ganze Runden können ausdrücklich zurückgestellt
+  und Runden später wieder geöffnet werden, ohne einen Lernnachweis zu
+  erzeugen; Elternaufträge bleiben offen. Widgettests prüfen unter anderem
+  schmale Ansichten, große Schrift und den erhaltenen Rückweg. Damit ist weder
+  die vollständige Kinderoberfläche überarbeitet noch geräteübergreifend
+  abgenommen; dieser Hauptpunkt bleibt offen.
+
   - [x] **Prüfhinweise bei vorhandenen Nacharbeitsaufgaben bündeln.** In der
     Kinderansicht weist ein sichtbarer, aufklappbarer Hinweis auf unklare
     Stellen hin und erhält die einzelnen Angaben samt Quellenbezug. Zusätzliche
@@ -1752,6 +1763,18 @@ Bestandteil des bestehenden Buildvertrags.
 ## Kapazität und öffentlicher Start
 
 - [ ] **Beta-Anmeldung für weitere Familien auf der Startseite bereitstellen.**
+  **Implementierung und isolierte Tests:** ausdrückliche E-Mail-Bewerbung,
+  erneute Bewerbung vorhandener Eltern, revisionsgebundene Adminentscheidung
+  nach verifizierter Adresse sowie beta-spezifische Kontingentausnahme mit
+  getrenntem Buchungszähler und Kosten-/Modellübersicht sind im aktuellen
+  Entwicklungsstand umgesetzt. PostgreSQL-Tests prüften konkurrierende
+  Entscheidungen und die Sperre zwischen Reservierung und Widerruf. Die
+  Eltern können den Status im Elternbereich lesen; automatische Push-/Mail-
+  Meldungen über Entscheidungen sind nicht Bestandteil dieses Nachweises.
+  [Vertrag und verbleibende technische Grenzen](docs/BETA.md). Der Punkt bleibt
+  offen bis zur gemeinsamen End-to-End-Prüfung und dem tatsächlich geprüften
+  Release auf der Zielinstallation.
+
   Der vorhandene Link erstellt ein Elternkonto; bei abgeschalteter Testphase
   bekommt es aber keinen KI-Lernzugang. Der Link darf daher noch nicht als
   funktionierende Beta-Anmeldung ausgegeben werden. Eltern bewerben sich auf

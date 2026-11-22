@@ -51,6 +51,28 @@ Future<AppState> open(
 
 void main() {
   testWidgets(
+    'child sees one direct hint and can choose further help without sending it',
+    (tester) async {
+      final requests = <http.Request>[];
+      await open(tester, requests: requests);
+      expect(find.text('Kleiner Hinweis'), findsOneWidget);
+      expect(find.text('Mehr Hilfe'), findsOneWidget);
+      expect(find.text('In Schritte teilen'), findsNothing);
+      expect(find.text('Anderes Beispiel'), findsNothing);
+      await h.tap(tester, 'Mehr Hilfe');
+      expect(find.text('Welche Hilfe brauchst du?'), findsOneWidget);
+      expect(find.text('In Schritte teilen'), findsOneWidget);
+      expect(find.text('Anderes Beispiel'), findsOneWidget);
+      expect(
+        find.text('Das Auswählen einer Karte sendet noch keine Anfrage.'),
+        findsNothing,
+      );
+      expect(requests.where((r) => r.method == 'POST'), isEmpty);
+      await h.tap(tester, 'Zurück');
+      expect(requests.where((r) => r.method == 'POST'), isEmpty);
+    },
+  );
+  testWidgets(
     'KK077 failed draft save keeps the original homework task selected and its question intact',
     (tester) async {
       await open(tester, failSave: true);

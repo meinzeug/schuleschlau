@@ -183,6 +183,66 @@ void addResume(Json data) {
 void main() {
   setUp(() => FlutterSecureStorage.setMockInitialValues({}));
 
+  testWidgets(
+    'deferred round remains reachable without starting or completing it',
+    (tester) async {
+      final data = childDay(), requests = <http.Request>[];
+      data['plan']['deferred_rounds'] = [
+        {
+          'id': 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+          'topic': 'Schon bearbeitet',
+          'subject': 'Biologie',
+          'mandatory': true,
+          'status': 'deferred',
+        },
+      ];
+      await mount(tester, data, requests);
+      await tap(tester, 'Zurückgelegte Runden (1)');
+      expect(find.text('Elternauftrag bleibt offen'), findsOneWidget);
+      await tap(tester, 'Schon bearbeitet');
+      expect(find.text('Gespeicherte Runde'), findsOneWidget);
+      expect(requests.every((request) => request.method == 'GET'), isTrue);
+    },
+  );
+
+  testWidgets('compact round details remain usable with large text', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(320, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: appTheme(),
+        home: MediaQuery(
+          data: const MediaQueryData(
+            size: Size(320, 844),
+            textScaler: TextScaler.linear(2),
+          ),
+          child: Scaffold(
+            body: SingleChildScrollView(
+              child: ChildTodayHero(
+                eyebrow: 'Dein nächster Schritt',
+                title: 'Lernen',
+                subtitle: 'Biologie',
+                action: TextButton(
+                  onPressed: () {},
+                  child: const Text('Weiterlernen'),
+                ),
+                details: const Text('Etwa 8 Minuten'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('Mehr zur Runde'));
+    await tester.pumpAndSettle();
+    expect(find.text('Etwa 8 Minuten'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   for (final width in [320.0, 390.0, 1280.0]) {
     testWidgets(
       'Saved resume stays primary beside today photos and old source review at $width px',
@@ -208,6 +268,19 @@ void main() {
         expect(
           find.textContaining('2 von 5 Aufgaben abgeschlossen'),
           findsNothing,
+        );
+        final more = tester.getRect(
+          find.byKey(const ValueKey('today-round-details')),
+        );
+        expect(
+          more.width,
+          lessThan(200),
+          reason: 'Secondary details must not fill the whole card.',
+        );
+        expect(
+          more.height,
+          greaterThanOrEqualTo(40),
+          reason: 'The compact control remains easy to tap.',
         );
         await tap(tester, 'Mehr zur Runde');
         expect(

@@ -827,23 +827,23 @@ class _VocabularyScreenState extends State<_VocabularyBody>
             query: visible ? search.text : '',
             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
           ),
-          subtitle: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (visible)
-                VisibleSearchText('${item['meaning']}', query: search.text)
-              else
-                Text(
-                  'Antippen zum Ansehen',
-                  style: TextStyle(color: context.palette.muted),
-                ),
-              if (item['source_changed'] == true)
-                Text(
-                  'Heftseite geändert · Bitte prüfen',
-                  style: TextStyle(color: context.palette.warningInk),
-                ),
-            ],
-          ),
+          subtitle: visible || item['source_changed'] == true
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (visible)
+                      VisibleSearchText(
+                        '${item['meaning']}',
+                        query: search.text,
+                      ),
+                    if (item['source_changed'] == true)
+                      Text(
+                        'Heftseite geändert · Bitte prüfen',
+                        style: TextStyle(color: context.palette.warningInk),
+                      ),
+                  ],
+                )
+              : null,
           trailing: PopupMenuButton<String>(
             tooltip: 'Wortaktionen',
             onOpened: beginLocalMenu,
@@ -3850,6 +3850,18 @@ class _VocabularyScreenState extends State<_VocabularyBody>
                             : 'Hier sind noch keine Wörter in dieser Sprache. Füge deine ersten Schulwörter hinzu.',
                       ),
                     ),
+                  if (widget.state.isChild &&
+                      wordLayout == 'list' &&
+                      (data?['items'] as List? ?? []).any(
+                        (row) => !isRevealed(row),
+                      ))
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Text(
+                        'Tippe ein Wort an.',
+                        style: TextStyle(color: context.palette.muted),
+                      ),
+                    ),
                   for (final item in data?['items'] as List? ?? [])
                     Padding(
                       padding: const EdgeInsets.only(bottom: 12),
@@ -4175,7 +4187,10 @@ class _VocabularyScreenState extends State<_VocabularyBody>
                               ),
                             ),
                     ),
-                  if (data != null)
+                  if (data != null &&
+                      (!widget.state.isChild ||
+                          page > 1 ||
+                          (data!['pagination']['total'] as int) > 0))
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [

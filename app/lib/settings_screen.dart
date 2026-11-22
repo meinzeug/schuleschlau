@@ -13,6 +13,7 @@ import 'codex_model_picker.dart';
 import 'dashboard.dart';
 import 'notification_panel.dart';
 import 'parent_workspace_ui.dart';
+import 'parent_beta_application.dart';
 import 'parent_profile_dialog.dart';
 import 'parent_goal_reminders.dart';
 import 'curriculum_profile_dialog.dart';
@@ -837,6 +838,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
           if (state.isParent &&
               state.familyId != null &&
               parentSection == 'data') ...[
+            if (state.isOwner) ...[
+              ParentBetaApplication(
+                state,
+                key: ValueKey((
+                  'parent-beta',
+                  state.user,
+                  state.familyId,
+                  state.api.token,
+                )),
+              ),
+              const SizedBox(height: 12),
+            ],
             section(
               'usage',
               const ParentSectionHeading(
@@ -854,23 +867,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     FamilyTrialUsageNotice(usage, onRefresh: refresh),
-                    Text(
-                      '${usage['calls_remaining']} von ${usage['calls_limit']} KI-Schritten übrig',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
+                    if (usage['unlimited'] == true)
+                      const Text(
+                        'Beta-Zugang · KI-Schritte unbegrenzt',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      )
+                    else if (usage['calls_remaining'] is num &&
+                        usage['calls_limit'] is num) ...[
+                      Text(
+                        '${usage['calls_remaining']} von ${usage['calls_limit']} KI-Schritten übrig',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 14),
-                    LinearProgressIndicator(
-                      value:
-                          ((usage['calls_remaining'] as num) /
-                                  ((usage['calls_limit'] as num).clamp(
-                                    1,
-                                    1000000,
-                                  )))
-                              .clamp(0, 1),
-                    ),
+                      const SizedBox(height: 14),
+                      LinearProgressIndicator(
+                        value:
+                            ((usage['calls_remaining'] as num) /
+                                    ((usage['calls_limit'] as num).clamp(
+                                      1,
+                                      1000000,
+                                    )))
+                                .clamp(0, 1),
+                      ),
+                    ] else
+                      const Text('Der Umfang konnte nicht angezeigt werden.'),
                     const SizedBox(height: 10),
                     Text(
                       '${usage['plan']} · ${usage['period']}',
@@ -886,7 +911,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                       children: [
                         Text(
-                          'Kostenlimit: ${((usage['budget_remaining_micros_usd'] ?? 0) / 1000000).toStringAsFixed(2)} USD übrig. Dieses Limit begrenzt neue KI-Schritte zusätzlich.',
+                          usage['unlimited'] == true
+                              ? 'Für diese Beta gelten keine persönlichen KI-Kostengrenzen. Tatsächliche Kosten werden erfasst.'
+                              : usage['budget_remaining_micros_usd'] is num
+                              ? 'Kostenlimit: ${((usage['budget_remaining_micros_usd'] as num) / 1000000).toStringAsFixed(2)} USD übrig. Dieses Limit begrenzt neue KI-Schritte zusätzlich.'
+                              : 'Das Kostenlimit konnte nicht angezeigt werden.',
                           style: TextStyle(
                             fontSize: 12,
                             color: context.palette.muted,

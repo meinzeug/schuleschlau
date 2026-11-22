@@ -281,6 +281,41 @@ def test_deliberate_skip_is_idempotent_and_never_an_answer(profile):
         assert not db.scalar(select(Attempt.id).where(Attempt.unit_id == uid))
         assert db.get(LearningUnit, uid).completed is None
 
+
+def test_child_already_done_veto_preserves_no_attempt_and_binds_reason(profile):
+    from schulpilot.db import Activity, Assignment, LearningEvent
+
+    client, uid, mid, _, _, child = profile
+    state = session(client, uid)
+    with DB.begin() as db:
+        assignment = Assignment(child_id=child["id"], kind="parent", subject="Mathematik", topic="Brüche",
+                                mandatory=True, done=False)
+        db.add(assignment)
+        db.flush()
+        assignment_id = assignment.id
+    with DB() as db:
+        before = evidence(db, db.get(LearningUnit, uid), [db.get(Material, mid)])
+    body = {"request_key": "already-done-artificial-0001", "revision": state["revision"],
+            "question_id": "sum", "reason": "already_done"}
+    path = f"/api/units/{uid}/learning-session/skip"
+    assert client.post(path, json=body).status_code == 200
+    assert client.post(path, json=body).status_code == 200
+    assert client.post(path, json={**body, "reason": "unspecified"}).status_code == 409
+    assert client.post(path, json={**body, "reason": "unknown"}).status_code == 422
+    with DB() as db:
+        unit = db.get(LearningUnit, uid)
+        assert unit.completed is None and unit.status == "paused"
+        assert not db.scalar(select(Attempt.id).where(Attempt.unit_id == uid))
+        rows = list(db.scalars(select(Activity).where(Activity.unit_id == uid, Activity.kind == "question_skipped")))
+        assert len(rows) == 1 and rows[0].detail == {"question_id": "sum", "reason": "already_done"}
+        event = db.scalar(select(LearningEvent).where(LearningEvent.unit_id == uid,
+            LearningEvent.event_key == "skip:" + body["request_key"]))
+        assert event.evidence == ["question:sum", "reason:already_done"]
+        assert db.get(Assignment, assignment_id).mandatory is True
+        assert db.get(Assignment, assignment_id).done is False
+        after = evidence(db, unit, [db.get(Material, mid)])
+        assert after == before
+
 @pytest.mark.parametrize("prior_kind,prior_outcome,prior_assisted,prior_uncertain", [
     ("learning", "incorrect", False, False),
     ("check", "correct", True, False),

@@ -418,6 +418,8 @@ def result(data: Result, request: Request, response: Response, db=Depends(get_db
             raise HTTPException(409, FAILURES["conflict"])
         if not data.registration:
             return {"status": "registration_required", "email": email}
+        if data.registration.beta_requested:
+            raise HTTPException(422, "Bitte für die Beta-Anmeldung die E-Mail-Registrierung verwenden.")
         if str(data.registration.email).lower() != email:
             raise HTTPException(422, "Bitte die von Google bestätigte E-Mail-Adresse verwenden.")
         rate_limit(db, "google-register:" + digest(request.client.host), 5, 3600)

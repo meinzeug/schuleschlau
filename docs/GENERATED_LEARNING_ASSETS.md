@@ -1,5 +1,61 @@
 # Geteilte KI-Lernbausteine
 
+## Separat erzeugte öffentliche Illustrationen
+
+Ein Bild für eine offene Lernrunde kann bewusst angefordert werden. Der Server
+gleicht die Einheit zunächst lokal gegen einen eindeutigen aktuellen öffentlichen
+Kataloginhalt oder einen ausdrücklich kuratierten öffentlichen Schwerpunkt ab.
+Nur Fach und öffentlicher Titel gelangen in den Bildprompt; Hefttexte, private
+Titel, Identitäten, Fotos, Antworten und Lernstände werden nicht übermittelt.
+Bei fehlenden oder mehrdeutigen Zuordnungen bleibt die Funktion bewusst nicht
+verfügbar. Alle Fächer und sämtliche denkbaren Themen sind damit nicht als
+abgedeckt nachgewiesen. Für allgemeine Bienenrunden gibt es zusätzlich einen
+eigenen öffentlichen Schwerpunkt „Honigbiene“ auf Basis der Arizona Extension.
+
+`GET /units/{id}/public-image` ist rein lesend; `POST` benötigt einen eigenen
+Idempotency-Key und reserviert genau einen Bildauftrag. Nach einer ausdrücklich
+angeforderten, erfolgreich gespeicherten Lernrunde mit fehlender Erklärgrafik
+kann der Worker zusätzlich genau einen solchen Bildauftrag automatisch
+reservieren, sofern die Bildroute eingerichtet und ein sicherer öffentlicher
+Treffer vorhanden ist. Er prüft dabei den ursprünglichen Eltern-/Kinderzugang
+erneut und verwendet einen stabilen Idempotency-Key. Fehler erzeugen keinen
+automatischen Folgeversuch und keinen kostenpflichtigen Szenen-Fallback; ist
+die Bildroute oder die öffentliche Zuordnung grundsätzlich nicht anwendbar,
+bleibt der bisherige Szenenweg erreichbar. Andere Familien mit dem
+gleichen geprüften öffentlichen Thema und Altersbereich können ein bereits
+gespeichertes Bild verwenden, ohne einen erneuten Anbieteraufruf zu bezahlen.
+`GET /units/{id}/public-image/file` liefert die PNG-Datei nur nach der normalen
+Einheiten- und Familienprüfung. Das Bild ist ein **ungeprüftes KI-Beispiel**,
+kein Fachbeleg oder Antwortschlüssel. Unterschiedliche Bildversionen bleiben
+anhand Inhaltshash und Modellherkunft nachvollziehbar. Fehlgeschlagene Aufträge
+lassen maximal einen erneuten ausdrücklichen Versuch zu; Statusabfragen starten
+keine Wiederholungen. Das Ansehen erzeugt keinen Kompetenznachweis.
+
+Die optionale Routingkonfiguration `routes.image` muss ein einzelnes geprüftes
+Bildmodell und genau einen Upstream, aktuelles Preisevidenz, Datenfreigaben,
+praktische Prüfung und eine `image_output_budget`-Operatorschätzung enthalten.
+Die Schätzung bindet Modell, Upstream, Eingabe- und Ausgabe-Token, Zeitpunkt
+und Evidenz und muss mit der Reservierung gedeckt sein. Sie ist **keine** vom
+Image-Endpunkt garantierte harte Ausgabetokengrenze. Der explizite reguläre
+Auftrag verwendet bestehende Familien-, Kind- und globale Buchungsmechanismen,
+ZDR und Datensammlungssperre; ohne Route oder gültige Freigabe kein Aufruf.
+Die vorhandene regelmäßige Preisaktualisierung prüft die Image-API-Metadaten;
+unbekannte Preiskomponenten werden nicht erfunden. Ist ein Kostenbeleg nicht
+verfügbar, bleibt die Reservierung bestehen. Einer verspäteten Antwort nach
+Abbruch entnommene Generation-ID kann dem Abgleich dienen; das Bild wird nicht
+veröffentlicht. Die Providerantwort wird auf Größe, statisches Bildformat,
+Pixelmaße und Metadaten geprüft und als PNG neu kodiert.
+
+Ein explizit freigegebener Echtaufruf mit künstlichem Katalogthema über den
+regulär reservierten Auftrag und den festen Azure-Endpunkt von
+`microsoft/mai-image-2.7-flash` erzeugte im isolierten SQLite-Test ein PNG;
+der Anbieter meldete 0,010398 USD. Dies ist kein Qualitäts- oder
+Freigabenachweis für beliebige Bildinhalte oder für echte Familien.
+Reproduzierbar mit `RUN_PUBLIC_IMAGE_PAID_PROBE=1` und dem in
+`backend/tests/test_public_image_jobs.py` beschriebenen isolierten Test;
+der Aufruf ist kostenpflichtig. Die Migration 0049 ergänzt nur die öffentliche
+Auftragszuordnung und muss zusammen mit 0048 eingespielt werden.
+
 ## Ergänzung: fehlende Grafik in einer angeforderten Lernrunde
 
 Wenn eine ausdrücklich gestartete reguläre Lernrunde ohne geprüfte Grafik

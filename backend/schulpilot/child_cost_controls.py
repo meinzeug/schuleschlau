@@ -203,7 +203,7 @@ def reserve_controlled(db, usage, policy):
     current = now()
     values = rollups(db, usage.child_id, policy, current=current, fallback=quote)
     for kind, value in values.items():
-        if value["unconverted_calls"]:
+        if value["unconverted_calls"] and not policy.get("beta_unlimited"):
             raise HTTPException(503, "Vor neuen KI-Aufträgen müssen bisherige Kosten in EUR geprüft werden.")
         limit = policy[("daily" if kind == "day" else "monthly") + "_limit_eur_micros"]
         if limit is not None and value["accounted_eur_micros"] + amount > limit:
@@ -216,6 +216,9 @@ def reserve_controlled(db, usage, policy):
 
 
 def projection(db, child, row=None):
+    from .beta import approved
+
+    beta_unlimited = approved(db, child.family_id)
     row = db.get(ChildCostControl, child.id) if row is None else row
     policy = policy_value(row) if row else {"revision": 0, "enabled": False,
         "timezone": Preferences(**child.preferences).timezone,
@@ -227,15 +230,16 @@ def projection(db, child, row=None):
         quote = None
     user = db.get(User, child.user_id)
     return {"child_id": child.id, "family_id": child.family_id, "username": user.username,
+        "beta_unlimited": beta_unlimited,
         "account_label": user.username, "mode": "configured" if policy["enabled"] else "legacy",
         **policy, "currency": "EUR", "cost_basis": BASIS, "conversion": quote,
         **rollups(db, child.id, policy, fallback=quote),
         "system_stop": {"emergency_stop": bool(config.emergency_stop),
             "global_limit_micros_usd": config.global_limit_micros,
             "global_call_limit": 1_000_000,
-            "notice": "Notfallstopp, Anbieterfreigabe und globales Betriebskostenlimit gelten getrennt weiter."},
-        "effective_limits": {"child_policy_authoritative": policy["enabled"],
-            "legacy_family_and_routing_caps_apply": not policy["enabled"]},
+            "notice": "Für Beta gelten keine Kostenlimits; Notfallstopp und Anbieterfreigabe bleiben aktiv." if beta_unlimited else "Notfallstopp, Anbieterfreigabe und globales Betriebskostenlimit gelten getrennt weiter."},
+        "effective_limits": {"child_policy_authoritative": policy["enabled"] and not beta_unlimited,
+            "legacy_family_and_routing_caps_apply": not policy["enabled"] and not beta_unlimited},
         "legacy_effective": legacy_effective(db, child, config) if not policy["enabled"] else None,
         "notice": "Unbekannte Anbieterpreise bleiben reserviert. Gebühren ohne Beleg sind ausdrücklich geschätzt. Keine Lernzeitbegrenzung."}
 

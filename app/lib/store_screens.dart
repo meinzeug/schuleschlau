@@ -1142,7 +1142,9 @@ class _OrdersScreenState extends State<OrdersScreen> {
                               heading('${data['access']['plan']}'),
                               Text(switch (data['access']['state']) {
                                 'active' =>
-                                  'Freigeschaltet bis ${calendar(data['access']['ends'])}',
+                                  data['access']['unlimited'] == true
+                                      ? 'Beta-Zugang freigegeben. KI-Nutzung ohne persönliche Mengenbegrenzung.'
+                                      : 'Freigeschaltet bis ${calendar(data['access']['ends'])}',
                                 'scheduled' =>
                                   'Start am ${calendar(data['access']['starts'])}',
                                 'trial' =>
@@ -1151,6 +1153,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                                   'Kostenlose Testphase beendet am ${trialDeadline(data['access']['trial']?['ends'])}',
                                 'existing' =>
                                   'Euer bisheriger Zugang bleibt bestehen.',
+                                'beta' => 'Beta-Zugang freigegeben. KI-Nutzung ohne persönliche Mengenbegrenzung.',
                                 _ => 'Aktuell keine bezahlte Laufzeit. Gespeicherte Inhalte bleiben erreichbar.',
                               }),
                               if (data['access']['state'] == 'trial') ...[
@@ -1195,10 +1198,15 @@ class _OrdersScreenState extends State<OrdersScreen> {
                                             'trial' => 'Kostenlose Testphase',
                                             'trial_expired' =>
                                               'Kostenlose Testphase beendet',
-                                            'active' => 'Bezahlter Tarif aktiv',
+                                            'active' =>
+                                              data['access']['unlimited'] ==
+                                                      true
+                                                  ? 'Beta-Zugang freigegeben'
+                                                  : 'Bezahlter Tarif aktiv',
                                             'scheduled' =>
                                               'Bezahlter Tarif vorgemerkt',
                                             'existing' => 'Bestehender Zugang',
+                                            'beta' => 'Beta-Zugang freigegeben',
                                             _ =>
                                               'Aktuell keine aktive Laufzeit',
                                           },
@@ -2283,6 +2291,8 @@ class _StoreAdminFormState extends State<StoreAdminForm> {
   );
   late bool enabled = baseline['enabled'];
   late bool trialEnabled = baseline['trial_enabled'] == true;
+  late bool betaEnabled = baseline['beta_enabled'] == true;
+  bool get betaSupported => baseline['beta_enabled'] is bool;
   bool get trialSupported =>
       baseline['trial_enabled'] is bool && baseline['trial_missing'] is List;
   late String tax = baseline['tax_mode'];
@@ -2319,6 +2329,7 @@ class _StoreAdminFormState extends State<StoreAdminForm> {
       bank.text != baseline['bank_name'] ||
       enabled != baseline['enabled'] ||
       trialEnabled != (baseline['trial_enabled'] == true) ||
+      betaEnabled != (baseline['beta_enabled'] == true) ||
       tax != baseline['tax_mode'] ||
       plans.text !=
           const JsonEncoder.withIndent('  ').convert(baseline['plans']);
@@ -2354,6 +2365,7 @@ class _StoreAdminFormState extends State<StoreAdminForm> {
           (trialSupported &&
               (remote['trial_enabled'] is! bool ||
                   remote['trial_missing'] is! List)) ||
+          (betaSupported && remote['beta_enabled'] is! bool) ||
           [
             'recipient',
             'iban',
@@ -2407,6 +2419,9 @@ class _StoreAdminFormState extends State<StoreAdminForm> {
         if (enabled == previous['enabled']) enabled = remote['enabled'];
         if (trialEnabled == (previous['trial_enabled'] == true)) {
           trialEnabled = remote['trial_enabled'] == true;
+        }
+        if (betaEnabled == (previous['beta_enabled'] == true)) {
+          betaEnabled = remote['beta_enabled'] == true;
         }
         if (tax == previous['tax_mode']) tax = remote['tax_mode'];
         rebasedData = remote;
@@ -2524,6 +2539,25 @@ class _StoreAdminFormState extends State<StoreAdminForm> {
               ? null
               : (value) => setState(() => trialEnabled = value),
         ),
+        const SizedBox(height: 16),
+        heading('Beta-Anmeldungen'),
+        if (!betaSupported)
+          const Notice(
+            'Der Server unterstützt die Beta-Anmeldung noch nicht.',
+            warning: true,
+          )
+        else
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Beta-Bewerbungen auf der Startseite anbieten'),
+            subtitle: const Text(
+              'Neue Anmeldungen brauchen eine bestätigte E-Mail und deine einzelne Freigabe. Bei freigegebenen Familien werden KI-Kosten weiterhin erfasst.',
+            ),
+            value: betaEnabled,
+            onChanged: busy
+                ? null
+                : (value) => setState(() => betaEnabled = value),
+          ),
         const SizedBox(height: 16),
         heading('Kostenpflichtigen Verkauf vorbereiten'),
         if ((baseline['missing'] as List).isNotEmpty) ...[
@@ -2818,6 +2852,7 @@ class _StoreAdminFormState extends State<StoreAdminForm> {
                 'revision': baseline['revision'],
                 'enabled': enabled,
                 if (trialSupported) 'trial_enabled': trialEnabled,
+                if (betaSupported) 'beta_enabled': betaEnabled,
                 'recipient': recipient.text,
                 'iban': iban.text,
                 'bank_name': bank.text,

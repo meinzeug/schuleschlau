@@ -24,6 +24,12 @@ SUPPORTED_BUILDERS = frozenset(("public-assets-1", "public-assets-2", "public-as
 RENDERER_VERSION = "presentation-1"
 OUTPUT_SCHEMA_VERSION = "learning-asset-1"
 PUBLIC_FOCI = {
+    "biology.honey_bee.general.v1": {
+        "id": "biology.honey_bee.general.v1", "version": 1, "subject": "Biologie",
+        "catalog_topic_id": "sofatutor:topic:5690", "title": "Honigbiene",
+        "content": "Honigbienen sind Insekten.",
+        "source": "https://extension.arizona.edu/publication/honeybee-series-honeybee-basic-biology",
+    },
     "biology.honey_bee.anatomy.v1": {
         "id": "biology.honey_bee.anatomy.v1", "version": 1, "subject": "Biologie",
         "catalog_topic_id": "sofatutor:topic:5690", "title": "Körperbau der Honigbiene",
@@ -532,7 +538,8 @@ def prepare(child_id: str, body: LearningAssetSpec, key: str = Header(default=""
         if previous.child_id != child_id or previous.request_digest != requested:
             raise HTTPException(409, "Dieser Anfrageschlüssel gehört zu einer anderen Auswahl.")
         return instance_data(db, previous)
-    rate_limit(db, "learning-asset-instance:" + p.user.id, 60, 3600, commit=False)
+    from .beta import limit_ai_feature
+    limit_ai_feature(db, child.family_id, "learning-asset-instance:" + p.user.id, 60, 3600)
     from sqlalchemy.dialects.postgresql import insert as pg_insert
     from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 
@@ -547,7 +554,7 @@ def prepare(child_id: str, body: LearningAssetSpec, key: str = Header(default=""
             raise HTTPException(409, "Die Demo nutzt vorhandene Beispiele und startet keine zusätzliche KI.")
         if db.scalar(select(Job.id).where(Job.child_id == child_id, Job.status.in_(["queued", "running"]))):
             raise HTTPException(409, "Für dieses Kind wird bereits ein Auftrag verarbeitet.")
-        rate_limit(db, "learning-asset:" + p.user.id, 10, 3600, commit=False)
+        limit_ai_feature(db, child.family_id, "learning-asset:" + p.user.id, 10, 3600)
         values = {"build_key": build_key, "user_id": p.user.id, "session_id": p.session.id, "family_id": child.family_id}
         job = Job(child_id=child_id, kind="learning_asset", payload=values, idempotency="asset:" + build_key)
         db.add(job)

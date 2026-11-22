@@ -1,5 +1,5 @@
 """Immutable catalogue illustrations built solely from public selectors."""
-from sqlalchemy import JSON, Column, Integer, LargeBinary, String
+from sqlalchemy import JSON, Column, ForeignKey, Integer, LargeBinary, String
 
 from .db import Base, now
 
@@ -19,3 +19,14 @@ class PublicImage(Base):
     height = Column(Integer, nullable=False)
     factual_status = Column(String(24), nullable=False, default="unassessed")
     created = Column(Integer, nullable=False, default=lambda: int(now()))
+
+
+class PublicImageBuild(Base):
+    __tablename__ = "public_image_builds"
+    lookup_key = Column(String(64), primary_key=True)
+    specification = Column(JSON, nullable=False)
+    status = Column(String(24), nullable=False)
+    job_id = Column(ForeignKey("jobs.id", ondelete="SET NULL"))
+    image_key = Column(ForeignKey("public_images.cache_key", ondelete="SET NULL"))
+    attempts = Column(Integer, nullable=False, default=0)
+    updated = Column(Integer, nullable=False, default=lambda: int(now()))

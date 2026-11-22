@@ -753,6 +753,7 @@ def export_one_child(child_id: str, include_photos: bool = True, p=Depends(paren
 def export_family(family_id: str, p=Depends(parent), db=Depends(get_db)):
     from .commerce import orders_export, trial_data
     from .db import FamilyTrial, NotificationRead, SchulbuddyTurn
+    from .beta_models import BetaApplication
     from .learning_assets import export_user as asset_instance_export
     from .parent_goal_reminders import export_own as export_parent_reminders
     from .profile_images import add_to_export
@@ -790,6 +791,10 @@ def export_family(family_id: str, p=Depends(parent), db=Depends(get_db)):
                                 SchulbuddyTurn.child_id.in_([c.id for c in children])))],
                         "orders": orders_export(db, family.id, include_withdrawals=True) if membership.permission == "owner" else [],
                         "trial": trial_data(db.get(FamilyTrial, family.id)),
+                        "beta_application": next(({"status": row.status, "revision": row.revision,
+                            "created": row.created, "approved_at": row.approved_at, "decided_at": row.decided_at}
+                            for row in db.scalars(select(BetaApplication).where(BetaApplication.family_id == family.id,
+                                BetaApplication.user_id == p.user.id))), None),
                         "notification_reads": [{"event_key": row.event_key, "created": row.created}
                             for row in db.scalars(select(NotificationRead).where(
                                 NotificationRead.user_id == p.user.id, NotificationRead.child_id.in_([c.id for c in children])))],

@@ -55,6 +55,8 @@ def voluntary_steps(candidates, today):
             first_in_chain[chain] = min(first_in_chain.get(chain, item["_sequence"]), item["_sequence"])
     result = []
     for item in candidates:
+        if item.get("_deferred"):
+            continue
         if any(item.get(key) and item[key] > today.isoformat() for key in ("scheduled_for", "not_before")):
             continue
         if item.get("_chain") and item["_sequence"] > first_in_chain[item["_chain"]]:
@@ -98,6 +100,8 @@ def distribute(candidates, prefs, today, *, daily_seconds=0, weekly_seconds=0, c
                     )
             eligible = []
             for item in pending:
+                if item.get("_deferred"):
+                    continue
                 if item.get("scheduled_for") and item["scheduled_for"] > day.isoformat():
                     continue
                 if item.get("not_before") and item["not_before"] > day.isoformat():
@@ -199,6 +203,6 @@ def distribute(candidates, prefs, today, *, daily_seconds=0, weekly_seconds=0, c
         "week": week,
         "planned_minutes": week[0]["planned_minutes"],
         "backlog_steps": len(candidates),
-        "beyond_week_steps": len(pending),
+        "beyond_week_steps": sum(not item.get("_deferred") for item in pending),
         "conflicts": conflicts,
     }

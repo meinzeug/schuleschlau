@@ -140,6 +140,11 @@ def _process(job_id):
 
         process_asset(job_id)
         return
+    if kind == "public_image":
+        from .public_image_jobs import process as process_public_image
+
+        process_public_image(job_id)
+        return
     if kind == "unit_visuals":
         from .visual_jobs import process as process_visuals
 
@@ -848,11 +853,23 @@ def _process(job_id):
         # A public illustration is a separate, bounded job. Its failure must
         # never change or retry the completed learning round.
         if kind == "unit":
-            try:
-                from .learning_assets import prepare_missing_unit_visual
-                prepare_missing_unit_visual(job_id)
-            except Exception as exc:
-                log.warning("public_visual_not_prepared job=%s type=%s", job_id, type(exc).__name__)
+            prepare_public_visuals(job_id)
+
+
+def prepare_public_visuals(job_id):
+    """Choose one applicable public build without retrying after an error."""
+    try:
+        from .public_image_jobs import prepare_missing_unit_image
+        image_status = prepare_missing_unit_image(job_id)
+    except Exception as exc:
+        log.warning("public_image_not_prepared job=%s type=%s", job_id, type(exc).__name__)
+        return
+    if image_status is None:
+        try:
+            from .learning_assets import prepare_missing_unit_visual
+            prepare_missing_unit_visual(job_id)
+        except Exception as exc:
+            log.warning("public_visual_not_prepared job=%s type=%s", job_id, type(exc).__name__)
 
 
 def reap_interrupted(cutoff=None):

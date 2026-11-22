@@ -52,6 +52,16 @@ def public_prompt(db, selector):
     topic = spec.get("catalog_topic")
     if not content or not topic:
         raise ImageContractError("public_content_required")
+    # A public focus can exist independently of the catalogue import. It is
+    # usable only while its public parent topic is in the active snapshot.
+    if db is not None:
+        from .catalog_models import CatalogSnapshot, CatalogState, CatalogTopic
+
+        actual = db.get(CatalogTopic, topic["id"])
+        snapshot = db.get(CatalogSnapshot, actual.snapshot_id) if actual else None
+        state = db.get(CatalogState, snapshot.provider) if snapshot else None
+        if not actual or not snapshot or not state or state.snapshot_id != snapshot.id or topic["snapshot_id"] != snapshot.id:
+            raise ImageContractError("public_catalog_stale")
     title, subject = content["title"], spec["subject"]
     if not allowed_public_content_title(title):
         raise ImageContractError("invalid_public_title")
@@ -124,13 +134,20 @@ def request_public_image(client, db, selector, *, token, model, upstream, region
     helper is deliberately not an API endpoint or an automatic worker task.
     Any transport/HTTP failure has unknown cost until independently reconciled.
     """
+    spec, prompt = public_prompt(db, selector)
+    return spec, request_resolved_image(client, prompt, token=token, model=model, upstream=upstream, region=region)
+
+
+def request_resolved_image(client, prompt, *, token, model, upstream, region):
+    """Send only the already canonicalized public prompt with no DB lock held."""
     import httpx
 
     if (region not in HOSTS or not isinstance(token, str) or not token
             or not isinstance(model, str) or not re.fullmatch(r"[a-z0-9_.-]+/[a-z0-9_.-]+", model)
             or not isinstance(upstream, str) or not re.fullmatch(r"[a-z0-9_.-]+(?:/[a-z0-9_.-]+)*", upstream)):
         raise ImageContractError("invalid_route")
-    spec, prompt = public_prompt(db, selector)
+    if not isinstance(prompt, str) or not 1 <= len(prompt) <= 2000:
+        raise ImageContractError("invalid_public_prompt")
     body = {"model": model, "prompt": prompt, "n": 1,
             "provider": {"only": [upstream], "allow_fallbacks": False,
                          "data_collection": "deny", "zdr": True}}
@@ -152,4 +169,4 @@ def request_public_image(client, db, selector, *, token, model, upstream, region
                                      request_id=response.headers.get("x-request-id"))
     except httpx.HTTPError:
         raise ImageContractError("provider_transport") from None
-    return spec, receipt
+    return receipt

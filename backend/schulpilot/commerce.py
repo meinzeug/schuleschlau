@@ -38,6 +38,7 @@ class Plan(s.Strict):
 class StoreSettings(s.Strict):
     enabled: bool = False
     trial_enabled: bool = False
+    beta_enabled: bool = False
     recipient: str = Field(default="", max_length=160)
     iban: str = Field(default="", max_length=40)
     bank_name: str = Field(default="", max_length=160)
@@ -292,6 +293,7 @@ def catalog(db=Depends(get_db)):
         "tax_notice": tax_notice(config.tax_mode),
         "terms_version": TERMS_VERSION if legal_ready else None,
         "trial": trial_catalog(db, config),
+        "beta": {"enabled": config.beta_enabled and runtime_settings(db).mail_ready},
         "terms": contract_text(seller) if legal_ready else preview,
         "terms_by_payment_method": {method: contract_text(seller, method) for method in methods} if legal_ready else {},
     }
@@ -315,6 +317,10 @@ def update_store(data: StoreUpdate, p=Depends(admin), db=Depends(get_db)):
     config = StoreSettings(**data.model_dump(exclude={"revision"}))
     if "trial_enabled" not in data.model_fields_set:
         config.trial_enabled = store(db)[0].trial_enabled
+    if "beta_enabled" not in data.model_fields_set:
+        config.beta_enabled = store(db)[0].beta_enabled
+    if config.beta_enabled and not runtime_settings(db).mail_ready:
+        raise HTTPException(422, "Für Beta-Anmeldungen muss der Bestätigungs-E-Mailversand eingerichtet sein.")
     if config.trial_enabled and trial_prerequisites(db):
         raise HTTPException(422, "Kostenlose Testphase kann noch nicht starten: " + ", ".join(trial_prerequisites(db)))
     if config.enabled and prerequisites(db, config):
@@ -381,6 +387,10 @@ def current_order(db, family, current=None):
 
 
 def access(db, family):
+    from .beta import approved
+
+    if approved(db, family.id):
+        return {"state": "active", "plan": "Beta", "unlimited": True, "starts": None, "ends": None}
     if not family.commerce_required:
         return {"state": "existing", "plan": family.plan, "starts": None, "ends": None}
     order = current_order(db, family)
@@ -426,6 +436,12 @@ def access(db, family):
 
 def usage_terms(db, family, *, enforce=False):
     period = datetime.now(timezone.utc).strftime("%Y-%m")
+    from .beta import approved
+
+    if approved(db, family.id, lock=enforce):
+        # The normal family ledger is retained; reserve() applies the explicitly
+        # unlimited beta policy, never these placeholder personal limits.
+        return f"{family.id}:{period}", 0, 0
     if not family.commerce_required:
         return f"{family.id}:{period}", family.call_limit, family.budget_micros
     order = current_order(db, family)

@@ -608,6 +608,7 @@ def unit_data(db, unit, include_answers=False, *, include_progress=True):
         "supports_feedback_exposure": True,
         "supports_detailed_feedback": True,
         "learning_session": session,
+        "round_deferred": session.get("round_deferred", False),
         "content_version": 1,
         "content_issue": content_issue(unit),
         "supports_answer_idempotency": True,
@@ -761,6 +762,7 @@ def plan(db, child, *, learning_paths=None, include_language=True):
     from .coaching import paths
     from .grades import priorities, subject_key
     from .legacy_learning_content import blocked_open_ids
+    from .round_deferrals import candidates as deferral_candidates, is_deferred
     from .study_path import plan_sources_current, source_backed_blocks
 
     prefs = s.Preferences(**child.preferences)
@@ -837,6 +839,7 @@ def plan(db, child, *, learning_paths=None, include_language=True):
         )
     )
     assignments_by_id = {a.id: a for a in assignments}
+    deferred_memories = deferral_candidates(db, child.id)
     minutes = min(prefs.session_minutes, max(5, available))
     candidates = []
     invalid_units = blocked_open_ids(db, child.id)
@@ -847,6 +850,7 @@ def plan(db, child, *, learning_paths=None, include_language=True):
         if unit.status != "completed" and unit.id not in invalid_units:
             goal = assignments_by_id.get(unit.assignment_id)
             chain = chains.get(unit.id)
+            deferred = unit.id in deferred_memories and is_deferred(db, unit, deferred_memories[unit.id])
             candidates.append(
                 {
                     "kind": "unit",
@@ -854,7 +858,7 @@ def plan(db, child, *, learning_paths=None, include_language=True):
                     "topic": unit.topic,
                     "subject": unit.subject,
                     "mandatory": bool(goal and goal.mandatory),
-                    "status": unit.status,
+                    "status": "deferred" if deferred else unit.status,
                     "estimated_minutes": max(1, (unit.estimated_minutes or minutes) - unit.active_seconds // 60),
                     "scheduled_for": goal.scheduled_for if goal else None,
                     "due": goal.due if goal else None,
@@ -864,6 +868,7 @@ def plan(db, child, *, learning_paths=None, include_language=True):
                     "round_kind": unit.round_kind,
                     "_chain": chain[0] if chain else None,
                     "_sequence": chain[1] if chain else 0,
+                    "_deferred": deferred,
                 }
             )
     for a in sorted(assignments, key=lambda a: (not a.mandatory, a.due or "9999", a.created)):
@@ -1041,6 +1046,9 @@ def plan(db, child, *, learning_paths=None, include_language=True):
             "Ein Elterntermin passt voraussichtlich nicht in die Lernzeit. Bitte Termin oder Schwerpunkte gemeinsam prüfen."
         )
     optional = voluntary_steps(candidates, today)
+    deferred_rounds = [{"id": item["id"], "subject": item["subject"], "topic": item["topic"],
+                        "mandatory": item["mandatory"], "status": "deferred"}
+                       for item in candidates if item.get("_deferred")]
     offered_materials = {item["id"] for item in optional if item["kind"] == "material"}
     offered_groups = set()
     group_materials = {}
@@ -1100,6 +1108,7 @@ def plan(db, child, *, learning_paths=None, include_language=True):
     ))
     return {
         **proposal,
+        "deferred_rounds": deferred_rounds,
         "date": today.isoformat(),
         "vocabulary": words,
         "available_minutes": available,
@@ -1447,7 +1456,7 @@ def complete_assignment(child_id: str, assignment_id: str, data: s.AssignmentCom
     return {"message": "Elternziel als erledigt markiert. Dies ist keine automatische Aussage über die Beherrschung."}
 
 
-def get_unit(db, p, unit_id, child_only=False, lock=False):
+def get_unit(db, p, unit_id, child_only=False, lock=False, *, allow_deferred=False):
     unit = db.get(LearningUnit, unit_id)
     if not unit:
         raise HTTPException(404, "Lerneinheit nicht gefunden.")
@@ -1457,6 +1466,11 @@ def get_unit(db, p, unit_id, child_only=False, lock=False):
     if lock:
         db.execute(update(LearningUnit).where(LearningUnit.id == unit.id).values(status=LearningUnit.status))
         db.refresh(unit)
+        if child_only and not allow_deferred:
+            from .round_deferrals import is_deferred
+
+            if is_deferred(db, unit):
+                raise HTTPException(409, "Diese Runde ist zurückgestellt. Hole sie bewusst zurück, wenn du weiterlernen möchtest.")
     return unit
 
 

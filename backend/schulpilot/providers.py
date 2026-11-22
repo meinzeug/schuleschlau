@@ -762,7 +762,7 @@ def routing_fingerprint(config):
     return hashlib.sha256(json.dumps(values, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
 
 
-def external_allowed(config, image=False, synthetic_fixture=False, *, operator_probe=False, db=None):
+def external_allowed(config, image=False, synthetic_fixture=False, *, operator_probe=False, db=None, image_output=False):
     from .model_routing import enabled, validate_ready
 
     if config.provider == "openrouter" and config.routing_policy and not enabled(config):
@@ -813,7 +813,7 @@ def external_allowed(config, image=False, synthetic_fixture=False, *, operator_p
         raise ProviderError(
             "Externe Verarbeitung ist bis zur dokumentierten Datenschutz- und Minderjährigenfreigabe gesperrt."
         )
-    if (not config.structured_capable and not (synthetic_fixture and (settings.synthetic_paid_probe or operator_probe))) or (image and not config.image_capable) or not config.capability_evidence:
+    if (not image_output and not config.structured_capable and not (synthetic_fixture and (settings.synthetic_paid_probe or operator_probe))) or (image and not config.image_capable) or not config.capability_evidence:
         raise ProviderError(
             "Benötigte Modellfähigkeiten sind nicht bestätigt. Bitte Verbindung und Bild-/Schemaausgabe prüfen."
         )
@@ -855,6 +855,12 @@ def reserve(db, family, child_id, job_id, function, synthetic_fixture=False, *, 
             reserve_guard(db, family, child_id, job_id, function, probe_tier, operator_evaluation)
         return previous
 
+    # Serialize beta access changes and child cost policy in the documented
+    # Child -> beta-application order; validation never trusts a caller's ID.
+    from .db import Child
+    if not db.execute(update(Child).where(Child.id == child_id, Child.family_id == family.id)
+                      .values(grade=Child.grade)).rowcount:
+        raise HTTPException(404, "Kinderzugang nicht gefunden.")
     family_bucket, family_calls, family_budget = usage_terms(db, family, enforce=True)
     # Metadata refresh and every new reservation serialize on the provider
     # row. A quote update cannot invalidate a job being committed in parallel.
@@ -879,7 +885,7 @@ def reserve(db, family, child_id, job_id, function, synthetic_fixture=False, *, 
         config = select_route(base_config, function, snapshot={"policy_hash": policy_hash(base_config.routing_policy),
             "tier": probe_tier, "reason": "synthetic_reference_comparison"})
     try:
-        external_allowed(config, function == "extract", synthetic_fixture, db=db)
+        external_allowed(config, function == "extract", synthetic_fixture, db=db, image_output=(function == "public_image"))
     except ProviderError as e:
         raise HTTPException(503, str(e)) from None
     if synthetic_fixture:
@@ -894,11 +900,28 @@ def reserve(db, family, child_id, job_id, function, synthetic_fixture=False, *, 
             503,
             "Dokumentierte Preisobergrenzen fehlen. Kosten sind unbekannt; der kostenpflichtige Aufruf bleibt gesperrt.",
         )
-    from .child_cost_controls import reservation_policy
+    from .child_cost_controls import BASIS, quote_for, reservation_policy
+    from .beta import application_for_family, approved
 
-    child_policy = reservation_policy(db, child_id, family_id=family.id)
+    is_beta = approved(db, family.id, lock=True) and not synthetic_fixture
+    if is_beta:
+        beta_application = application_for_family(db, family.id)
+        try:
+            quote = quote_for(base_config)
+        except HTTPException:
+            # Older/non-routed providers can still record their actual USD or
+            # unknown cost. Never invent an EUR rate or let a legacy per-child
+            # limit unexpectedly block an approved unlimited beta account.
+            quote = None
+        child_policy = ({"revision": beta_application.revision, "enabled": True, "timezone": "Europe/Berlin",
+            "daily_limit_eur_micros": None, "monthly_limit_eur_micros": None, "beta_unlimited": True,
+            "cost_basis": BASIS, "currency": "EUR", "quote": quote} if quote else None)
+    else:
+        child_policy = reservation_policy(db, child_id, family_id=family.id)
     period = __import__("datetime").datetime.now(__import__("datetime").timezone.utc).strftime("%Y-%m")
-    ids = [f"global:{period}", family_bucket]
+    # Beta expenses remain fully booked, but must not consume the configured
+    # global spending envelope of unrelated non-beta families.
+    ids = [f"beta-global:{period}" if is_beta else f"global:{period}", family_bucket]
     limits = [
         (ids[0], 1_000_000, config.global_limit_micros),
         (ids[1], family_calls, family_budget),
@@ -915,7 +938,7 @@ def reserve(db, family, child_id, job_id, function, synthetic_fixture=False, *, 
         conditions = [UsageBucket.id == name]
         # Explicit child day/month money limits replace the legacy family
         # financial envelope. Global/evaluation stops and access stay intact.
-        if not (child_policy and name == family_bucket):
+        if not (is_beta and name in (ids[0], family_bucket)) and not (child_policy and name == family_bucket):
             conditions += [UsageBucket.calls < calls,
                 UsageBucket.encumbered_micros + config.reserve_micros <= budget]
         result = db.execute(
@@ -952,9 +975,12 @@ def reserve(db, family, child_id, job_id, function, synthetic_fixture=False, *, 
         usage.route_snapshot = budget_snapshot(base_config, config)
     if child_policy:
         usage.route_snapshot = {**usage.route_snapshot, "child_cost_control": child_policy}
+    if is_beta:
+        usage.route_snapshot = {**usage.route_snapshot, "beta_unlimited": True}
     from .ai_accounting import reserve_child
 
-    reserve_child(db, usage, usage.route_snapshot)
+    if not (is_beta and not child_policy and not usage.route_snapshot.get("budget")):
+        reserve_child(db, usage, usage.route_snapshot)
     from .db import Job
     from .learning_controller import generation_guard
 
@@ -2787,20 +2813,23 @@ def usage_summary(db, family):
     from datetime import datetime, timezone
 
     from .commerce import access, usage_terms
+    from .beta import approved
 
     period = datetime.now(timezone.utc).strftime("%Y-%m")
     bucket_id, calls_limit, budget = usage_terms(db, family)
     entitlement = access(db, family)
     bucket = db.get(UsageBucket, bucket_id)
+    is_beta = approved(db, family.id)
     return {
-        "period": period if not family.commerce_required else "kostenlose Testphase" if entitlement["state"] in ("trial", "trial_expired") else "bezahlte Laufzeit",
-        "plan": "Kostenlose Testphase" if entitlement["state"] == "trial" else family.plan,
+        "period": period if is_beta or not family.commerce_required else "kostenlose Testphase" if entitlement["state"] in ("trial", "trial_expired") else "bezahlte Laufzeit",
+        "plan": "Beta" if is_beta else "Kostenlose Testphase" if entitlement["state"] == "trial" else family.plan,
         "calls_used": bucket.calls if bucket else 0,
-        "calls_limit": calls_limit,
-        "calls_remaining": max(0, calls_limit - (bucket.calls if bucket else 0)),
+        "unlimited": is_beta,
+        "calls_limit": None if is_beta else calls_limit,
+        "calls_remaining": None if is_beta else max(0, calls_limit - (bucket.calls if bucket else 0)),
         "access": entitlement,
-        "budget_micros_usd": budget,
-        "budget_remaining_micros_usd": max(0, budget - (bucket.encumbered_micros if bucket else 0)),
+        "budget_micros_usd": None if is_beta else budget,
+        "budget_remaining_micros_usd": None if is_beta else max(0, budget - (bucket.encumbered_micros if bucket else 0)),
         "encumbered_micros_usd": bucket.encumbered_micros if bucket else 0,
         "known_cost_micros_usd": bucket.known_cost_micros if bucket else 0,
         "unknown_cost_calls": bucket.unknown_calls if bucket else 0,

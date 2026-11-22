@@ -12,6 +12,7 @@ class LearningRoom extends StatelessWidget {
   final Widget? clock;
   final Widget? assistant;
   final Widget? overview;
+  final Widget? options;
   final Widget? learningPath;
   final Widget child;
   final Widget? primaryAction;
@@ -34,6 +35,7 @@ class LearningRoom extends StatelessWidget {
     this.clock,
     this.assistant,
     this.overview,
+    this.options,
     this.learningPath,
     this.primaryAction,
     this.actionMessage,
@@ -104,6 +106,7 @@ class LearningRoom extends StatelessWidget {
             icon: const Icon(Icons.pause_rounded, size: 22),
           ),
         ?overview,
+        ?options,
         ?assistant,
       ],
     );
