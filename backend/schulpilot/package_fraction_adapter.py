@@ -15,6 +15,7 @@ class Binding:
     payload: dict
     plan: dict
     slots: list
+    standard: object
 
     @property
     def context(self):
@@ -26,18 +27,21 @@ class Binding:
             candidates.append({'id': step['id'], 'question': copy.deepcopy(row['task']),
                                'text': step['text'], 'reference': step['reference'],
                                'source_refs': step['source_refs'], 'disclosure': 'solution'})
-        return {'version': 1, 'revision': 'package-fraction-wire-1', 'candidates': candidates}
+        return {'version': 1, 'revision': 'package-fraction-wire-1',
+                'candidates': [*self.standard.context['candidates'], *candidates]}
 
     @property
     def rules(self):
-        return ('\npackage-fraction-wire-1: Die geplanten Bruchfragen sind fest an jeweils eine '
+        return (self.standard.rules + '\npackage-fraction-wire-1: Die geplanten Bruchfragen sind fest an jeweils eine '
                 'Grafik-ID, Antwort, Quelle und solution-Text gebunden. Alle Felder unverändert '
                 'übernehmen; presentation.blocks enthält ausschließlich die zugehörige ID. '
                 'Vorwissen und Einführung behalten ihre vorhandenen Grafikverträge. '
                 'Ergänze nur kurze Hinweise, die die Lösung nicht verraten.')
 
     def hydrate(self, data):
-        return contract.hydrate(self.payload, self.slots, self.plan['excluded_values'], self.plan, data)
+        ids = {row['slot']['id'] for row in self.plan['slots'] if row.get('task') is not None}
+        standard = self.standard.hydrate(data, skip_question_ids=ids)
+        return contract.hydrate(self.payload, self.slots, self.plan['excluded_values'], self.plan, standard)
 
 
 def bind(schema, payload):
@@ -49,4 +53,13 @@ def bind(schema, payload):
     result = contract.bind(schema, payload, slots, plan['excluded_values'], plan)
     schema.clear()
     schema.update(result)
-    return Binding(copy.deepcopy(payload), copy.deepcopy(plan), copy.deepcopy(slots))
+    # Keep introduction and unplanned diagnostic slots on the compact,
+    # independently checked graphic-ID contract. Inline graphics exceed the
+    # upstream structured-output nesting limit for these package branches.
+    from .package_prepared_graphics import bind_schema as bind_prepared_graphics
+
+    ids = {row['slot']['id'] for row in plan['slots'] if row.get('task') is not None}
+    standard = bind_prepared_graphics(schema, payload, skip_question_ids=ids)
+    if standard is None:
+        raise ValueError('Der Teilauftrag hat keine passende Referenz/Grafik für seine Aufdeckstufe.')
+    return Binding(copy.deepcopy(payload), copy.deepcopy(plan), copy.deepcopy(slots), standard)

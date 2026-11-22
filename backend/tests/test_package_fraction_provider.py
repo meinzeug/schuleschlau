@@ -21,7 +21,7 @@ def model_output(bound):
     def standard(row):
         return {'id': 'e1', 'text': row['text'], 'competence_id': None, 'disclosure': row['disclosure'],
                 'reference': row['reference'], 'source_refs': row['source_refs'],
-                'presentation': {'version': 1, 'evidence_kind': 'knowledge', 'blocks': [row['block']]}}
+                'presentation': {'version': 1, 'evidence_kind': 'knowledge', 'blocks': [row['id']]}}
     questions = []
     used_prior_models = set()
     for row in plan['slots']:
@@ -35,7 +35,7 @@ def model_output(bound):
                              and not candidate.get('question_core')
                              and tuple(candidate['block']['numbers']) not in used_prior_models)
                 used_prior_models.add(tuple(fixed['block']['numbers']))
-                n, d = fixed['block']['numbers']
+                n, d = map(int, fixed['block']['numbers'])
                 core = {'id': row['slot']['id'], 'type': 'short', 'prompt': f'Was beschreibt {n}/{d}?',
                         'answer': f'{n} von {d} gleich großen Teilen', 'options': [], 'accepted': []}
             else:
@@ -54,7 +54,7 @@ def model_output(bound):
 
 
 @pytest.mark.parametrize('content', [EXPAND, REDUCE])
-@pytest.mark.parametrize('fault', [None, 'answer', 'graphic_id', 'source'])
+@pytest.mark.parametrize('fault', [None, 'answer', 'graphic_id', 'source', 'prior_graphic'])
 def test_provider_bound_schema_codec_validation_and_private_plan_stripping(api, household, monkeypatch, content, fault):
     _, job_id, request = running_job(api, household, content)
     with DB.begin() as db:
@@ -68,9 +68,14 @@ def test_provider_bound_schema_codec_validation_and_private_plan_stripping(api, 
         if fault == 'answer': question['answer'] = '1/99'
         if fault == 'graphic_id': question['explanation_steps'][0]['presentation']['blocks'] = ['foreign']
         if fault == 'source': question['explanation_steps'][0]['source_refs'] = ['foreign']
+        if fault == 'prior_graphic':
+            prior = next(q for q in data['units'][0]['questions'] if q is not question)
+            prior['explanation_steps'][0]['presentation']['blocks'] = question['explanation_steps'][0]['presentation']['blocks']
     capture, real_client, calls = PackageOutputCapture(monkeypatch), httpx.Client, []
     def handler(request):
         body = json.loads(request.content)
+        from schulpilot.graphic_table_transport import nesting_depth
+        assert nesting_depth(body['response_format']['json_schema']['schema']) <= 10
         value = json.loads(body['messages'][1]['content'][0]['text'])
         assert 'package_fraction_plan' not in value
         assert 'package_fraction_plan' not in value['visual_context']
@@ -97,3 +102,21 @@ def test_provider_bound_schema_codec_validation_and_private_plan_stripping(api, 
     planned = next(q for q in result.data['units'][0]['questions'] if q['id'] in
                    {row['task']['id'] for row in plan['slots'] if row['task']})
     assert len(planned['explanation_steps'][0]['presentation']['blocks']) == 2
+
+
+def test_oversized_schema_fails_before_provider_and_does_not_consume_credit(api, household, monkeypatch):
+    _, job_id, request = running_job(api, household, EXPAND)
+    with DB.begin() as db:
+        bound = reservation.prepare(db, job_id, request)
+    bound['visual_context']['package_fraction_plan'] = copy.deepcopy(bound['package_fraction_plan'])
+    monkeypatch.setattr('schulpilot.graphic_table_transport.nesting_depth', lambda _: 11)
+    monkeypatch.setattr(providers, 'external_allowed', lambda *args, **kwargs: None)
+    monkeypatch.setattr(providers, 'decrypt', lambda _: 'synthetic-no-network-key')
+    monkeypatch.setattr('schulpilot.model_routing.selection', lambda _: {'route': {'upstreams': ['azure']}, 'region': 'standard'})
+    monkeypatch.setattr(providers.httpx, 'Client', lambda **kwargs: pytest.fail('unexpected provider call'))
+    value = config()
+    value.max_output_tokens, value.reserve_micros = 8000, 250000
+    with pytest.raises(providers.ProviderError) as caught:
+        providers.request_provider(value, 'package', bound)
+    assert caught.value.billing_result.cost_micros == 0
+    assert caught.value.billing_result.cost_source == 'cancelled'

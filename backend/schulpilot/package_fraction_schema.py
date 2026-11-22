@@ -1,4 +1,4 @@
-"""Private, inactive wire contract for planned package fraction questions.
+"""Private wire contract for planned package fraction questions.
 
 The caller must independently check rights, source revisions, history and the
 stored reference. This binder alone must not be used to dispatch a job.

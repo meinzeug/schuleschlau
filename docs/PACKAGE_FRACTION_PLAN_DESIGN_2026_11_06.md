@@ -12,14 +12,19 @@ Teilbelege und laufende Aufträge werden beim Ausschluss berücksichtigt. Die
 Sonderlogik ist nicht für mehrdeutige Regeln oder andere Provider aktiviert.
 
 Automatisierte Tests verwenden künstliche Quellen, echte lokale Worker- und
-Veröffentlichungsabläufe und einen simulierten HTTP-Anbieter. Sie sind kein
-Nachweis eines echten Anbieteraufrufs. Diese Abnahme und die Überprüfung des
-verwendeten Modelloutputs bleiben offen; der Roadmap-Punkt ist deshalb noch
-nicht abgehakt.
+Veröffentlichungsabläufe und einen simulierten HTTP-Anbieter. Eine echte
+Probe mit zwei künstlichen Seiten erreichte OpenRouter und aktivierte den
+Plan, wurde aber wegen eines ungültigen Schemas abgewiesen. Der gesendete
+Vertrag war zwölf Container tief. Für Einführungs- und Vorwissensgrafiken wird
+nun ebenfalls der vorhandene kompakte, fachlich geprüfte ID-Transport genutzt;
+ein eigener Vorabcheck begrenzt die Tiefe vor einem kostenpflichtigen Aufruf.
+Die erneute echte Anbieterprobe und die Prüfung ihrer konkreten Ausgabe bleiben
+offen; der Roadmap-Punkt ist deshalb noch nicht abgehakt.
 
-Stand: 6. November 2026. Dies beschreibt einen offenen Implementierungsschritt;
-es ist keine Freigabe, kein neuer Lernnachweis und keine Behauptung, dass ein
-Paket bereits vorab geplante Bruchaufgaben verwendet.
+## Ursprünglicher Entwurf vom 6. November 2026
+
+Die folgenden Abschnitte dokumentieren den ursprünglichen Planungsstand; der
+aktuelle Implementierungs- und Abnahmestand steht oben.
 
 Die bestehende Erweiterungsdarstellung in `study_fraction_expansions.py`
 verlangt eine wörtlich belegte allgemeine Erweiterungsregel und bindet Aufgabe,

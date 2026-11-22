@@ -82,9 +82,6 @@ def bind_schema(schema, payload=None, *, question_count=2):
 
             if not isinstance(fraction_plan, dict) or not isinstance(fraction_plan.get("slots"), list):
                 raise ValueError("Der Bruchplan oder seine Quellen sind nicht mehr gültig.")
-            ids = {row["slot"]["id"] for row in fraction_plan["slots"]
-                   if isinstance(row, dict) and isinstance(row.get("task"), dict)}
-            _bind_references(schema, payload, skip_question_ids=ids)
             return bind_fraction(schema, payload)
         _bind_references(schema, payload)
         from .package_decimal_addition import bind_schema as bind_decimal_addition

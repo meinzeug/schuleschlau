@@ -250,7 +250,7 @@ class Binding:
                 "candidates": [{key: copy.deepcopy(value) for key, value in row.items() if key != "block"}
                                for row in self.candidates if self.offered(row)]}
 
-    def hydrate(self, data):
+    def hydrate(self, data, *, skip_question_ids=()):
         """Restore only the exact requested ID; reject every scope/field mix."""
         result = copy.deepcopy(data)
         choices = {row["id"]: row for row in self.candidates if self.offered(row)}
@@ -261,6 +261,8 @@ class Binding:
             if not isinstance(unit, dict) or not isinstance(unit.get("questions"), list):
                 raise ValueError("Ungültige Struktur der vorbereiteten Grafikzuordnung.")
             for item in [unit, *unit["questions"]]:
+                if item is not unit and isinstance(item, dict) and item.get("id") in skip_question_ids:
+                    continue  # Another independently authenticated binder checks this exact slot.
                 steps = item.get("explanation_steps") if isinstance(item, dict) else None
                 if not isinstance(steps, list) or len(steps) != 1 or not isinstance(steps[0], dict):
                     raise ValueError("Ungültige Struktur der vorbereiteten Grafikzuordnung.")
@@ -289,7 +291,7 @@ class Binding:
         return result
 
 
-def bind_schema(schema, payload):
+def bind_schema(schema, payload, *, skip_question_ids=()):
     candidates = compile_candidates(payload)
     groups = payload.get("selected_groups") or []
     # Deliberately bounded first compiler: existing non-maths/legacy generation
@@ -315,10 +317,12 @@ def bind_schema(schema, payload):
             prompt["pattern"] = pattern
         return node
 
-    return bind_candidates(schema, Binding(tuple(candidates)), question_binding=question_binding)
+    return bind_candidates(schema, Binding(tuple(candidates)), question_binding=question_binding,
+                           skip_question_ids=skip_question_ids)
 
 
-def bind_candidates(schema, binding, *, question_kinds=("fraction",), prompt_pattern=_fraction_prompt_pattern, question_binding=None):
+def bind_candidates(schema, binding, *, question_kinds=("fraction",), prompt_pattern=_fraction_prompt_pattern,
+                    question_binding=None, skip_question_ids=()):
     """Reuse the strict ID/stage binder; ordinary maths retains its own policy."""
     candidates = binding.candidates
     definitions = schema["$defs"]
@@ -381,6 +385,9 @@ def bind_candidates(schema, binding, *, question_kinds=("fraction",), prompt_pat
                 if not choices:
                     return None
             node["anyOf"] = choices
+            return node
+        ids = node.get("properties", {}).get("id", {}).get("enum", [])
+        if len(ids) == 1 and ids[0] in skip_question_ids:
             return node
         branches = []
         for stage_candidates in question_bases.values():

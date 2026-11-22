@@ -2063,7 +2063,12 @@ Bestandteil des bestehenden Buildvertrags.
     verwenden den echten Worker und Adapter mit simuliertem Anbieter. Das
     Löschen einer Heftseite und das Wiederholen ihres Löschjournals entfernen
     den zugehörigen privaten Quellenausschnitt auch aus gespeicherten Plänen.
-    Der Punkt bleibt bis zur echten Anbieterprobe und vollständigen Abnahme offen.
+    Eine echte OpenRouter-Probe mit zwei künstlichen Seiten aktivierte den Plan,
+    wurde aber mit `invalid_schema` abgewiesen; der dabei übertragene Vertrag
+    hatte zwölf verschachtelte Container. Einführungen und nicht geplante
+    Vorwissensfragen verwenden nun ebenfalls kompakte, unabhängig geprüfte
+    Grafik-IDs. Der Punkt bleibt bis zur erneuten echten Anbieterprobe und
+    vollständigen Abnahme offen; die abgewiesenen Kosten sind nicht bekannt.
 
     Ein versionierter Paketadapter soll nur für ein eindeutig gewähltes
     Mathematikfach und ausdrücklich bestätigte, zur Quellenrevision passende

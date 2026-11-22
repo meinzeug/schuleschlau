@@ -37,6 +37,8 @@ def test_worker_reserves_before_provider_and_checks_before_publication(api, hous
     capture, real_client, seen, encoded = PackageOutputCapture(monkeypatch), httpx.Client, [], {}
     def handler(request):
         body = json.loads(request.content)
+        from schulpilot.graphic_table_transport import nesting_depth
+        assert nesting_depth(body['response_format']['json_schema']['schema']) <= 10
         outgoing = json.loads(body['messages'][1]['content'][0]['text'])
         assert 'package_fraction_plan' not in outgoing and 'excluded_values' not in json.dumps(outgoing)
         value = encoded['output']

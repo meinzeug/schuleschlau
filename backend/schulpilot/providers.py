@@ -2028,6 +2028,17 @@ def request_provider(config, function, payload, image_bytes=None, *, synthetic_f
 
         package_output = bind_package_output(wire_schema)
         wire_schema = package_output.wire_schema
+        if config.provider == "openrouter" and payload.get("package_fraction_plan") is not None:
+            from .graphic_table_transport import nesting_depth
+
+            # Reject an unsupported transport before the paid request; never
+            # weaken the source/answer contract or retry with another provider.
+            if nesting_depth(wire_schema) > 10:
+                raise ProviderError(
+                    "Die Grafikstruktur dieser Runde muss technisch geprüft werden. Deine Heftseiten bleiben erhalten.",
+                    code="invalid_output", billing_result=Result({}, 0, 0, 0,
+                        telemetry={"pre_dispatch": True}, cost_source="cancelled"),
+                )
         instructions = package_rules(payload, indexed_choices=indexed_choices) + package_output.rules
         if package_part_output.enabled(payload):
             instructions += package_part_output.RULES
