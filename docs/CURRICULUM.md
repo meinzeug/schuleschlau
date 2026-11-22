@@ -43,21 +43,21 @@ Die Unterstützung weiterer Länder, ihrer Jahrgangssysteme und eigenständiger
 Hochschulprofile ist weiterhin offen.
 
 Die versionierten Dateien `reference/curriculum-sources-v1.json`,
-`reference/curriculum-topics-v1.json` und die vier ergänzenden Pakete für
-die Sekundarschule Sachsen-Anhalt enthalten 64 Dokumente und 886 Zuordnungen
+`reference/curriculum-topics-v1.json` und die fünf ergänzenden Pakete für
+die Sekundarschule Sachsen-Anhalt enthalten 66 Dokumente und 908 Zuordnungen
 mit23Fachschlüsseln aus16Bundesländern. Dokumente behalten amtlichen Verweis,
 Fassung, Status und Digest; Themen behalten Abschnitt, gegebenenfalls Seite,
 Klassenband oder Originalphase. Ein Band wird nicht als amtlich festgelegte
 Einzelklasse ausgegeben. Vorgeschlagene kanonische Themenkennungen sind noch
 keine geprüften Kompetenzzuordnungen.
 
-Der Bestand ist ausdrücklich unvollständig: 26 Dokumente/429 Zuordnungen sind als
+Der Bestand ist ausdrücklich unvollständig: 28 Dokumente/451 Zuordnungen sind als
 aktuell geprüft markiert, 38 Dokumente/457 Zuordnungen als Fassung ungeprüft.
 Enthalten sind auch amtliche Indizes, Handreichungen und historische Dokumente.
 48schulformübergreifende Zuordnungen besitzen derzeit keine konkret nutzbare
 Schulformbeziehung. Für Klasse12 fehlen Zuordnungen; Klasse11 und13 haben
 nur fünf beziehungsweise vier. Dies ist weder ein vollständiger deutscher
-Lehrplanbestand noch eine Sammlung von 886 Grafiken oder Animationen.
+Lehrplanbestand noch eine Sammlung von 908 Grafiken oder Animationen.
 
 Der [Physik-Fachlehrplan Sekundarschule Sachsen-Anhalt, Fassung 01.08.2019](https://www.bildung-lsa.de/files/164f3f97e3adf65ff6f44685dd9e1ced/lp_sks_physik_01_08_2019.pdf)
 ist über den [amtlichen Lehrplanindex](https://www.bildung-lsa.de/informationsportal/unterricht/sekundarschule/schulformbezogene_informationen/lehrplan.html)
@@ -69,6 +69,13 @@ Wahlalternativen; die schulische Entscheidung ist unbekannt. Bei einer
 Klassenfilterung ohne bekannten Abschlussweg werden die Phaseneinträge deshalb
 nicht als passend behauptet. Der Bestand ersetzt weder Schulplanung noch
 bestätigten Unterrichtsstoff.
+
+Die amtlichen Fachlehrpläne [Chemie](https://www.bildung-lsa.de/files/164f3f97e3adf65ff6f44685dd9e1ced/lp_sks_chemie_01_08_2019.pdf)
+und [Geographie](https://www.bildung-lsa.de/files/164f3f97e3adf65ff6f44685dd9e1ced/lp_sks_geo_01_08_2019.pdf)
+ergänzen je elf Kompetenzschwerpunkte der Sekundarschule. Die in den
+Übersichten ausdrücklich für Jahrgang 9 festgelegten Schwerpunkte sind separat
+markiert; die übrigen Doppeljahrgänge werden nicht auf ein bestimmtes Jahr
+verteilt. Reihenfolge und tatsächliche Behandlung an der Schule bleiben offen.
 
 Der Import prüft erlaubte amtliche Hosts, Schema, eindeutige Kennungen,
 Fachstamm und echte Geltungsbereiche. Wiederholtes Einspielen desselben

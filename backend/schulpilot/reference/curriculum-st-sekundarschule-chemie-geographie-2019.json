@@ -1,0 +1,438 @@
+{
+  "version": 1,
+  "retrieved": "2026-11-22",
+  "documents": [
+    {
+      "id": "st-sek-chemie-2019",
+      "state_code": "DE-ST",
+      "title": "Fachlehrplan Sekundarschule Chemie",
+      "official_url": "https://www.bildung-lsa.de/files/164f3f97e3adf65ff6f44685dd9e1ced/lp_sks_chemie_01_08_2019.pdf",
+      "edition": "01.08.2019",
+      "effective_from": null,
+      "school_form_label": "Sekundarschule",
+      "school_form_id": "de-st.sekundarschule",
+      "school_form_scope": "specific",
+      "applies_to_school_forms": [],
+      "source_status": "current_verified",
+      "retrieved": "2026-11-22",
+      "applicability_note": "Am 22.11.2026 vom amtlichen Lehrplanindex der Sekundarschule verlinkt. Inhalte der Doppeljahrgänge bleiben als Band gekennzeichnet; die in der Übersicht mit Stern markierten Schwerpunkte sind verbindlich in Jahrgang 9. Schulinterne Reihenfolge und individuelle Unterrichtsauswahl sind nicht bekannt.",
+      "document_kind": "curriculum",
+      "source_notes": "Ministerium für Bildung Sachsen-Anhalt; Quelle: Landesportal Sachsen-Anhalt (lisa.sachsen-anhalt.de), CC BY-SA 3.0; eigene Kurzlabels. Index: https://www.bildung-lsa.de/informationsportal/unterricht/sekundarschule/schulformbezogene_informationen/lehrplan.html ; gedruckte Seitenzahlen. PDF-SHA256 f331d1430396c833b5aa8957f31f456b3f0a9b0eb42fd05c7d7505d15f2ae442."
+    },
+    {
+      "id": "st-sek-geographie-2019",
+      "state_code": "DE-ST",
+      "title": "Fachlehrplan Sekundarschule Geographie",
+      "official_url": "https://www.bildung-lsa.de/files/164f3f97e3adf65ff6f44685dd9e1ced/lp_sks_geo_01_08_2019.pdf",
+      "edition": "01.08.2019",
+      "effective_from": null,
+      "school_form_label": "Sekundarschule",
+      "school_form_id": "de-st.sekundarschule",
+      "school_form_scope": "specific",
+      "applies_to_school_forms": [],
+      "source_status": "current_verified",
+      "retrieved": "2026-11-22",
+      "applicability_note": "Am 22.11.2026 vom amtlichen Lehrplanindex der Sekundarschule verlinkt. Inhalte der Doppeljahrgänge bleiben als Band gekennzeichnet; die in der Übersicht mit Stern markierten Schwerpunkte sind verbindlich in Jahrgang 9. Schulinterne Reihenfolge und individuelle Unterrichtsauswahl sind nicht bekannt.",
+      "document_kind": "curriculum",
+      "source_notes": "Ministerium für Bildung Sachsen-Anhalt; Quelle: Landesportal Sachsen-Anhalt (lisa.sachsen-anhalt.de), CC BY-SA 3.0; eigene Kurzlabels. Index: https://www.bildung-lsa.de/informationsportal/unterricht/sekundarschule/schulformbezogene_informationen/lehrplan.html ; gedruckte Seitenzahlen. PDF-SHA256 fb6907714a209c8e2932c6aadb4e9680a080fb51205acf768c2400dc27ceecd8."
+    }
+  ],
+  "topics": [
+    {
+      "id": "st-sek-chemie-2019.nature",
+      "document_id": "st-sek-chemie-2019",
+      "subject_key": "chemie",
+      "title": "Chemie als Naturwissenschaft",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.2",
+      "page": 12,
+      "quote": "Naturwissenschaft",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-chemie-2019.metals",
+      "document_id": "st-sek-chemie-2019",
+      "subject_key": "chemie",
+      "title": "Metalle und Legierungen",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.2",
+      "page": 13,
+      "quote": "Metalle",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-chemie-2019.air",
+      "document_id": "st-sek-chemie-2019",
+      "subject_key": "chemie",
+      "title": "Luft als Stoffgemisch",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.2",
+      "page": 14,
+      "quote": "Luft",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-chemie-2019.metal-production",
+      "document_id": "st-sek-chemie-2019",
+      "subject_key": "chemie",
+      "title": "Metallgewinnung und chemische Prozesse",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.2",
+      "page": 15,
+      "quote": "Metallgewinnung",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-chemie-2019.water",
+      "document_id": "st-sek-chemie-2019",
+      "subject_key": "chemie",
+      "title": "Wasser als Verbindung",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.2",
+      "page": 16,
+      "quote": "Wasser",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-chemie-2019.acids",
+      "document_id": "st-sek-chemie-2019",
+      "subject_key": "chemie",
+      "title": "Säuren, Basen und Salze im Alltag",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.2",
+      "page": 17,
+      "quote": "Säuren",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-chemie-2019.carbon-silicon",
+      "document_id": "st-sek-chemie-2019",
+      "subject_key": "chemie",
+      "title": "Kohlenstoff und Silicium vergleichen",
+      "grade_kind": "exact",
+      "grades": [
+        9
+      ],
+      "phase_label": null,
+      "section": "3.1 (Fußnote); 3.3",
+      "page": 18,
+      "quote": "Silicium",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-chemie-2019.oil-gas",
+      "document_id": "st-sek-chemie-2019",
+      "subject_key": "chemie",
+      "title": "Erdöl und Erdgas",
+      "grade_kind": "exact",
+      "grades": [
+        9
+      ],
+      "phase_label": null,
+      "section": "3.1 (Fußnote); 3.3",
+      "page": 19,
+      "quote": "Erdöl",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-chemie-2019.derivatives",
+      "document_id": "st-sek-chemie-2019",
+      "subject_key": "chemie",
+      "title": "Kohlenwasserstoffderivate und ihre Wirkungen",
+      "grade_kind": "exact",
+      "grades": [
+        9
+      ],
+      "phase_label": null,
+      "section": "3.1 (Fußnote); 3.3",
+      "page": 20,
+      "quote": "Derivate",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-chemie-2019.production",
+      "document_id": "st-sek-chemie-2019",
+      "subject_key": "chemie",
+      "title": "Chemisch-technische Herstellung lebensnotwendiger Stoffe",
+      "grade_kind": "band",
+      "grades": [
+        9,
+        10
+      ],
+      "phase_label": null,
+      "section": "3.3",
+      "page": 21,
+      "quote": "Prozesse",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-chemie-2019.experiments",
+      "document_id": "st-sek-chemie-2019",
+      "subject_key": "chemie",
+      "title": "Alltagsbezogene Experimente",
+      "grade_kind": "band",
+      "grades": [
+        9,
+        10
+      ],
+      "phase_label": null,
+      "section": "3.3",
+      "page": 22,
+      "quote": "Experimente",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-geographie-2019.earth",
+      "document_id": "st-sek-geographie-2019",
+      "subject_key": "geographie",
+      "title": "Die Erde als Planet und Lebensraum",
+      "grade_kind": "band",
+      "grades": [
+        5,
+        6
+      ],
+      "phase_label": null,
+      "section": "3.2",
+      "page": 11,
+      "quote": "Planet",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-geographie-2019.country",
+      "document_id": "st-sek-geographie-2019",
+      "subject_key": "geographie",
+      "title": "Deutschland themenorientiert beschreiben",
+      "grade_kind": "band",
+      "grades": [
+        5,
+        6
+      ],
+      "phase_label": null,
+      "section": "3.2",
+      "page": 12,
+      "quote": "Land",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-geographie-2019.continent",
+      "document_id": "st-sek-geographie-2019",
+      "subject_key": "geographie",
+      "title": "Europa themenorientiert untersuchen",
+      "grade_kind": "band",
+      "grades": [
+        5,
+        6
+      ],
+      "phase_label": null,
+      "section": "3.2",
+      "page": 13,
+      "quote": "Kontinent",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-geographie-2019.habitats",
+      "document_id": "st-sek-geographie-2019",
+      "subject_key": "geographie",
+      "title": "Natur- und Lebensräume vergleichen",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.3",
+      "page": 14,
+      "quote": "Lebensräume",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-geographie-2019.earth-shape",
+      "document_id": "st-sek-geographie-2019",
+      "subject_key": "geographie",
+      "title": "Veränderungen der Erdoberfläche",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.3",
+      "page": 15,
+      "quote": "Gestalt",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-geographie-2019.economic-spaces",
+      "document_id": "st-sek-geographie-2019",
+      "subject_key": "geographie",
+      "title": "Wirtschaftsräume und ihre Entwicklung",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.3",
+      "page": 16,
+      "quote": "Wirtschaftsräumen",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-geographie-2019.sustainability",
+      "document_id": "st-sek-geographie-2019",
+      "subject_key": "geographie",
+      "title": "Räume und Nachhaltigkeit",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.3",
+      "page": 17,
+      "quote": "Nachhaltigkeit",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-geographie-2019.inequalities",
+      "document_id": "st-sek-geographie-2019",
+      "subject_key": "geographie",
+      "title": "Regionale Unterschiede und Verflechtungen",
+      "grade_kind": "exact",
+      "grades": [
+        9
+      ],
+      "phase_label": null,
+      "section": "3.1 (Fußnote); 3.4",
+      "page": 18,
+      "quote": "Disparitäten",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-geographie-2019.spatial-use",
+      "document_id": "st-sek-geographie-2019",
+      "subject_key": "geographie",
+      "title": "Raumausstattung und Raumnutzung",
+      "grade_kind": "exact",
+      "grades": [
+        9
+      ],
+      "phase_label": null,
+      "section": "3.1 (Fußnote); 3.4",
+      "page": 19,
+      "quote": "Raumausstattung",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-geographie-2019.global-change",
+      "document_id": "st-sek-geographie-2019",
+      "subject_key": "geographie",
+      "title": "Kernprobleme des globalen Wandels",
+      "grade_kind": "band",
+      "grades": [
+        9,
+        10
+      ],
+      "phase_label": null,
+      "section": "3.4",
+      "page": 20,
+      "quote": "Kernprobleme",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-geographie-2019.application",
+      "document_id": "st-sek-geographie-2019",
+      "subject_key": "geographie",
+      "title": "Natur-, Lebens- und Wirtschaftsräume vertiefen",
+      "grade_kind": "band",
+      "grades": [
+        9,
+        10
+      ],
+      "phase_label": null,
+      "section": "3.4",
+      "page": 21,
+      "quote": "Vertiefung",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    }
+  ],
+  "coverage": {
+    "complete": false,
+    "note": "Nur zwei Fachlehrpläne der Sekundarschule Sachsen-Anhalt; schulinterne Reihenfolge und einzelne Inhalte sind keine dokumentierte Unterrichtsbestätigung."
+  },
+  "coverage_gaps": []
+}
