@@ -33,6 +33,10 @@ und wurde verworfen (0,02085 USD). Dies begründet keine allgemeine Freigabe
 für Luna und keinen erfolgreichen Grafikabschluss. Zusätzlich verwendete eine
 weitere Sol-Probe versehentlich eine nur für Paketvorlagen gedachte Referenz;
 sie ist kein aussagekräftiger Test des regulären Seitenpfads.
+Ein weiterer künstlicher Sol-Grafikauftrag mit ausdrücklichem Quellenpfeil
+wurde wegen einer ungültigen Grafikreferenz verworfen (0,025924 USD). Die
+versuchsweise geänderte Routenauswahl wurde deshalb wieder zurückgenommen;
+keiner der Tests rechtfertigt eine pauschale Modellumstellung.
 
 Die betroffene produktive Bienenrunde wurde ausschließlich lesend geprüft:
 Sie bot nur das allgemeine Szenenrezept und die Quelle hatte keinen Pfeil.

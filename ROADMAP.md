@@ -2023,12 +2023,12 @@ Bestandteil des bestehenden Buildvertrags.
   - [ ] **Vorbereitung fehlender Erklärgrafiken zuverlässig machen.**
     Die konkrete Bienenrunde hatte nur das allgemeine Szenenrezept zur Auswahl,
     aber keinen dafür erforderlichen Pfeil in der Quelle. Zusätzlich war die
-    zuvor ausgewählte Luna-Route abgelaufen. Der neue Code wählt für explizite
-    Grafikerklärungen die feste Sol-Route und lehnt eine nachweislich
-    unbrauchbare alleinige Szenenvorlage vor Reservierung ab. Ein künstlicher
-    Sol-Aufruf ohne Quellenpfeil lieferte keine gültige Szene und wurde korrekt
-    abgewiesen. Eine passende geprüfte alternative Darstellung und ein
-    erfolgreicher Ende-zu-Ende-Lauf für die Bienenrunde fehlen noch.
+    zuvor ausgewählte Luna-Route abgelaufen. Der neue Code lehnt eine nachweislich
+    unbrauchbare alleinige Szenenvorlage vor Reservierung ab. Auch zwei
+    künstliche Sol-Grafikaufrufe wurden wegen ungültiger Szenen abgewiesen;
+    eine probeweise Sol-Routenumstellung wurde deshalb nicht beibehalten. Eine
+    passende geprüfte alternative Darstellung und ein erfolgreicher
+    Ende-zu-Ende-Lauf für die Bienenrunde fehlen noch.
 
   - [x] **Öffentliche Unterthemen eindeutig und datensparsam zuordnen.**
     Die automatische Auswahl erkennt zusätzlich vollständige Titel bestätigter,
