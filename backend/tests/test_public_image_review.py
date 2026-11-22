@@ -1,5 +1,6 @@
 """Separate public image review; no real child and no provider call."""
 from uuid import uuid4
+import pytest
 from sqlalchemy import select
 from schulpilot.db import DB, Job, Usage
 from schulpilot.providers import Result
@@ -82,6 +83,12 @@ def test_review_failure_is_honest_and_retry_requires_explicit_action(api, image_
     review_image(jid)
     path = '/api/units/' + case['unit'] + '/public-image'
     assert api.get(path).json()['review_status'] == 'unavailable'
+    with DB() as db:
+        job = db.get(Job, jid)
+        assert job.error_code == 'provider_unavailable'
+        assert job.error == 'Die Bildprüfung konnte nicht abgeschlossen werden.'
+        usage = db.scalar(select(Usage).where(Usage.job_id == jid))
+        assert usage.status == 'failed_unknown' and usage.cost_micros is None
     enqueue_after_image(creator)
     with DB() as db:
         assert db.query(Job).filter_by(kind='public_image_review').count() == 1
@@ -131,6 +138,29 @@ def test_provider_review_sends_only_public_topic_and_pinned_vision(api, image_ca
         result = request_review(client, config, image, value, token='SYNTHETIC-NOT-A-REAL-KEY', route=route)
     assert result.data['verdict'] == 'consistent' and result.cost_micros == 1000
     assert len(requests) == 1
+
+
+def test_billed_provider_error_is_settled_once_with_closed_category(api, image_case, monkeypatch):
+    from schulpilot.providers import ProviderError
+    _, creator = generated(api, image_case)
+    enqueue_after_image(creator)
+    with DB.begin() as db:
+        job = db.scalar(select(Job).where(Job.kind == 'public_image_review'))
+        job.status = 'running'; jid = job.id
+    receipt = Result({}, 9, 0, 1000, cost_source='reported',
+                     telemetry={'provider_error_code': 429, 'error_type': 'rate_limit_exceeded'})
+    def fail(*args, **kwargs):
+        raise ProviderError('PRIVATE provider content', code='provider_busy', billing_result=receipt)
+    monkeypatch.setattr('schulpilot.public_image_review.request_review', fail)
+    review_image(jid)
+    review_image(jid)
+    with DB() as db:
+        job = db.get(Job, jid)
+        usage = db.scalar(select(Usage).where(Usage.job_id == jid))
+        assert job.status == 'failed' and job.error_code == 'provider_busy'
+        assert 'PRIVATE' not in job.error
+        assert usage.cost_micros == 1000 and usage.cost_source == 'reported'
+        assert usage.settlement_version == 1
 
 
 def test_review_output_and_late_job_are_not_fabricated(api, image_case, monkeypatch):
@@ -434,6 +464,64 @@ def test_malformed_billed_review_preserves_provider_receipt(monkeypatch):
         request_review(client, config, image, value, token='SYNTHETIC', route=route)
     assert caught.value.billing_result.cost_micros == 3000
     assert caught.value.billing_result.cost_source == 'reported'
+
+
+@pytest.mark.parametrize(('status', 'expected'), [
+    (400, 'not_configured'), (403, 'not_configured'), (429, 'provider_busy'),
+    (408, 'provider_timeout'), (504, 'provider_timeout'), (503, 'provider_unavailable'),
+])
+def test_review_http_errors_are_closed_categories_without_provider_text(monkeypatch, status, expected):
+    import io
+    from types import SimpleNamespace
+    import httpx
+    from PIL import Image
+    from schulpilot.providers import ProviderError
+    from schulpilot.public_image_review_contract import request_review
+
+    png = io.BytesIO(); Image.new('RGB', (80, 80), 'blue').save(png, 'PNG')
+    image = SimpleNamespace(png=png.getvalue(), model='test/image')
+    config = SimpleNamespace(provider='openrouter', image_capable=True, model='test/vision', reserve_micros=100000,
+        input_per_million_micros=1000, output_per_million_micros=1000, max_output_tokens=2000)
+    route = {'region': 'standard', 'route': {'upstreams': ['azure']}}
+    value = {'subject': 'Biologie', 'topic': 'Insekten', 'public_facts': '', 'reference_available': False}
+    monkeypatch.setattr('schulpilot.providers.external_allowed', lambda *args, **kwargs: None)
+    monkeypatch.setattr('schulpilot.provider_cost_preflight.projection', lambda *args: {'projected_micros': 1})
+    def fail(request):
+        return httpx.Response(status, request=request, text='PRIVATE upstream message')
+    with httpx.Client(transport=httpx.MockTransport(fail)) as client, pytest.raises(ProviderError) as caught:
+        request_review(client, config, image, value, token='SYNTHETIC', route=route)
+    assert caught.value.code == expected
+    assert 'PRIVATE' not in str(caught.value)
+    assert caught.value.billing_result is None
+
+
+def test_review_http_success_error_keeps_receipt_without_provider_text(monkeypatch):
+    import io
+    from types import SimpleNamespace
+    import httpx
+    from PIL import Image
+    from schulpilot.providers import ProviderError
+    from schulpilot.public_image_review_contract import request_review
+
+    png = io.BytesIO(); Image.new('RGB', (80, 80), 'blue').save(png, 'PNG')
+    image = SimpleNamespace(png=png.getvalue(), model='test/image')
+    config = SimpleNamespace(provider='openrouter', image_capable=True, model='test/vision', reserve_micros=100000,
+        input_per_million_micros=1000, output_per_million_micros=1000, max_output_tokens=2000)
+    route = {'region': 'standard', 'route': {'upstreams': ['azure']}}
+    value = {'subject': 'Biologie', 'topic': 'Insekten', 'public_facts': '', 'reference_available': False}
+    monkeypatch.setattr('schulpilot.providers.external_allowed', lambda *args, **kwargs: None)
+    monkeypatch.setattr('schulpilot.provider_cost_preflight.projection', lambda *args: {'projected_micros': 1})
+    def error(request):
+        return httpx.Response(200, request=request, json={'id': 'gen-test-003',
+            'error': {'code': 429, 'message': 'PRIVATE provider message',
+                      'metadata': {'error_type': 'rate_limit_exceeded', 'raw': 'PRIVATE raw data'}},
+            'usage': {'prompt_tokens': 9, 'completion_tokens': 0, 'cost': 0.001}})
+    with httpx.Client(transport=httpx.MockTransport(error)) as client, pytest.raises(ProviderError) as caught:
+        request_review(client, config, image, value, token='SYNTHETIC', route=route)
+    assert caught.value.code == 'provider_busy'
+    assert caught.value.billing_result.cost_micros == 1000
+    assert caught.value.billing_result.telemetry['provider_error_code'] == 429
+    assert 'PRIVATE' not in str(caught.value.billing_result.telemetry)
 
 
 def test_worker_dispatches_review_after_successful_image_commit(api, image_case):

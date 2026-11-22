@@ -62,7 +62,8 @@ def request_review(client, config, image, public_input, *, token, route):
     """Perform one pinned Vision call. Unknown charges remain unknown on error."""
     from .ai_accounting import response_metrics
     from .provider_cost_preflight import projection
-    from .providers import ProviderError, Result, external_allowed, strict_schema
+    from .providers import (ProviderError, Result, annotate_openrouter_error, external_allowed,
+                            openrouter_failure_code, strict_schema)
 
     if config.provider != 'openrouter' or not config.image_capable:
         raise ProviderError('Für die Bildprüfung fehlt eine geprüfte Bildroute.', code='not_configured')
@@ -120,7 +121,10 @@ def request_review(client, config, image, public_input, *, token, route):
                 headers={'Authorization': 'Bearer ' + token, 'X-OpenRouter-Cache': 'false'},
                 json=body, follow_redirects=False) as response:
             if response.status_code != 200:
-                raise ProviderError('Die Bildprüfung ist momentan nicht verfügbar.', code='provider_unavailable')
+                # A status alone is enough for the closed category.  Do not
+                # persist the response body or infer that no cost occurred.
+                raise ProviderError('Die Bildprüfung ist momentan nicht verfügbar.',
+                                    code=openrouter_failure_code({'code': response.status_code}))
             parts, size = [], 0
             for part in response.iter_bytes():
                 size += len(part)
@@ -135,9 +139,16 @@ def request_review(client, config, image, public_input, *, token, route):
                 raise ProviderError('Die Bildprüfung war unvollständig.', code='invalid_output')
             billed = Result({}, **response_metrics(envelope, (time.monotonic() - started) * 1000,
                                                      response.headers.get('x-request-id')))
+            if envelope.get('error') is not None:
+                # HTTP 200 can still carry a provider error and a receipt.
+                # Retain only allowlisted metadata, never the provider text.
+                provider_error = envelope['error']
+                annotate_openrouter_error(billed, provider_error)
+                raise ProviderError('Die Bildprüfung ist momentan nicht verfügbar.',
+                                    code=openrouter_failure_code(provider_error), billing_result=billed)
             try:
                 choices = envelope['choices']
-                if envelope.get('error') is not None or not isinstance(choices, list) or len(choices) != 1:
+                if not isinstance(choices, list) or len(choices) != 1:
                     raise ValueError('choices')
                 choice = choices[0]
                 if not isinstance(choice, dict) or choice.get('finish_reason') != 'stop':

@@ -323,4 +323,7 @@ def process(job_id):
             if result is None and not sent:
                 result = Result({}, 0, 0, 0, cost_source='cancelled')
             settle(db, db.scalar(select(Usage).where(Usage.job_id == job.id)), result, failed=True)
+            from .job_failures import failure_code
+
+            job.error_code = failure_code(error)
             job.status, job.finished, job.error = 'failed', int(now()), 'Die Bildprüfung konnte nicht abgeschlossen werden.'

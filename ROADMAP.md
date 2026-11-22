@@ -1953,6 +1953,17 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Ausgabelängen, Schemafehler und Providerstörungen systematisch behandeln**
 
+  - [x] **Fehler der unabhängigen KI-Bildprüfung datensparsam unterscheiden.**
+    Neue fehlgeschlagene Prüfaufträge speichern eine geschlossene Fehlerklasse.
+    Bekannte HTTP-Status unterscheiden Auslastung, Zeitüberschreitung,
+    Konfiguration und Nichterreichbarkeit; fehlerhafte Ausgaben und unerwartete
+    Ausnahmen bleiben getrennt. Auch eine Fehlerantwort mit HTTP 200 erhält
+    ihre begrenzte Anbieterklasse und, falls vorhanden, den Kostenbeleg.
+    Anbietertexte und Bildinhalte werden dabei nicht gespeichert; unbekannte
+    Kosten bleiben reserviert. Es gibt keinen automatischen Anbieterwechsel oder
+    Wiederholungsauftrag. Künstliche Adapter- und Workerfälle prüfen diese Wege.
+    Der vor dieser Änderung aufgetretene Fehler ist rückwirkend nicht bestimmbar.
+
   - [x] **Unterbrochene Aufträge und verspätete Ergebnisse atomar trennen.**
     Statusänderungen verwenden einen optimistischen Vergleich; der begrenzte
     Reaper prüft Status und Alter beim Abbruch erneut. Transaktionale Tests auf
@@ -2094,7 +2105,7 @@ Bestandteil des bestehenden Buildvertrags.
 - [ ] **P1 – Erklärgrafiken und Animationen fachlich und technisch abnehmen**
 
   - [ ] **Echte KI-Bilddateien sicher über OpenRouter anbinden.**
-    **Teilfortschritt:** Der noch nicht in Aufträge oder Oberflächen integrierte
+    **Historischer Teilfortschritt:** Der damals noch nicht in Aufträge oder Oberflächen integrierte
     Bildadapter löst ausschließlich geprüfte öffentliche Kataloginhalte auf,
     bindet Region und Anbieter explizit und sendet keine privaten Hefttexte.
     Er begrenzt Antworten, dekodiert genau ein statisches Bild, entfernt
@@ -2112,7 +2123,7 @@ Bestandteil des bestehenden Buildvertrags.
     geprüfter OpenAI-Bildendpunkt lehnte dieselbe ZDR-Vorgabe mit 404 ab;
     die Vorgabe wurde nicht gelockert.
 
-    Für den regulären Weg fehlen insbesondere ein explizit konfigurierter und
+    Zum damaligen Zeitpunkt fehlten für den regulären Weg insbesondere ein explizit konfigurierter und
     geprüfter Bildanbieter mit Preisobergrenze und normaler atomarer
     Reservierung/Abrechnung, ein datensparsamer öffentlicher Themenprompt ohne
     private Heftinhalte, begrenzte Bildvalidierung und sichere Speicherung,
@@ -2120,6 +2131,15 @@ Bestandteil des bestehenden Buildvertrags.
     Anzeige als ungeprüftes KI-Bild. Bilder dürfen keine geprüften
     mathematischen/inhaltlichen Zusammenhänge vortäuschen. Erst nach Tests des
     echten reservierten Wegs und der tatsächlichen App-Anzeige abhaken.
+
+    **Stand 22.11.2026:** Der reservierte Erzeugungsweg, geschützte Speicherung,
+    Wiederverwendung und App-Anzeige sind implementiert. Eine separat reservierte
+    unabhängige KI-Bildprüfung ist angebunden; ihr Urteil ist keine fachliche
+    Garantie. Ein künstlicher Echtaufruf und die Darstellung eines bereits
+    erzeugten öffentlichen Bilds im mobilen Browser wurden geprüft. Die erste
+    automatische Prüfung dieses Altbilds scheiterte ohne damals gespeicherte
+    Fehlerklasse; ein ausdrücklich gestarteter weiterer Versuch gelang. Eine
+    fachkundige Abnahme und breitere thematische Erprobung bleiben offen.
 
   - [ ] **Vorbereitung fehlender Erklärgrafiken zuverlässig machen.**
     Die konkrete Bienenrunde hatte nur das allgemeine Szenenrezept zur Auswahl,
