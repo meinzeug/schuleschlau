@@ -2073,8 +2073,15 @@ Bestandteil des bestehenden Buildvertrags.
     rückwirkend belegen. Eine nachweislich unzulässige Auswahl des speziellen
     Erweiterungs-/Kürzungsrezepts für gewöhnliche Grafiken ist nun gesperrt;
     feste inhaltsfreie Fehlercodes erleichtern zukünftige Diagnosen. Der Punkt
-    bleibt bis zur erfolgreichen echten Anbieterprobe und vollständigen Abnahme
-    offen; die Kosten des abgewiesenen Schemaaufrufs sind nicht bekannt.
+    blieb bis zur erfolgreichen echten Anbieterprobe und vollständigen Abnahme
+    offen; die Kosten des abgewiesenen Schemaaufrufs sind nicht bekannt. Ein
+    weiterer echter künstlicher Lauf kostete laut Anbieter 0,002978 USD und
+    scheiterte bei der Bruchplanbindung. Die Fehlerdiagnose trennt jetzt
+    fehlende/doppelte Aufgabenplätze, abweichende Grafikschritte und Aufgaben.
+    Der Transport bindet jeden vorgesehenen Aufgabenplatz einzeln an seine ID;
+    Modellantworten werden weiterhin unverändert streng nachgeprüft. Die
+    genaue Ursache des vergangenen Modelloutputs ist nicht gespeichert und
+    daher rückwirkend nicht belegt; die echte Abnahme bleibt offen.
 
     Ein versionierter Paketadapter soll nur für ein eindeutig gewähltes
     Mathematikfach und ausdrücklich bestätigte, zur Quellenrevision passende

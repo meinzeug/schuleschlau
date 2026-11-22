@@ -2026,7 +2026,10 @@ def request_provider(config, function, payload, image_bytes=None, *, synthetic_f
         wire_schema = schema_projection(schema)
         from .package_output_transport import bind as bind_package_output
 
-        package_output = bind_package_output(wire_schema)
+        fraction_plan = payload.get("package_fraction_plan")
+        order = [row["slot"]["id"] for row in fraction_plan["slots"]] if isinstance(fraction_plan, dict) else None
+        package_output = (bind_package_output(wire_schema, question_order=order)
+                          if order is not None else bind_package_output(wire_schema))
         wire_schema = package_output.wire_schema
         if config.provider == "openrouter" and payload.get("package_fraction_plan") is not None:
             from .graphic_table_transport import nesting_depth

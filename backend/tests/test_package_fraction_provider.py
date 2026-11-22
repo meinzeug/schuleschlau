@@ -82,7 +82,34 @@ def test_provider_bound_schema_codec_validation_and_private_plan_stripping(api, 
     def handler(request):
         body = json.loads(request.content)
         from schulpilot.graphic_table_transport import nesting_depth
-        assert nesting_depth(body['response_format']['json_schema']['schema']) <= 10
+        wire_schema = body['response_format']['json_schema']['schema']
+        assert nesting_depth(wire_schema) <= 10
+        defs, aliases = wire_schema.get('$defs', {}), capture.binding.aliases
+        def resolve(node):
+            while '$ref' in node:
+                node = defs[node['$ref'].rsplit('/', 1)[-1]]
+            return node
+        def find_slots(node):
+            node = resolve(node)
+            if aliases['questions'] in node.get('properties', {}):
+                return resolve(node['properties'][aliases['questions']])
+            for child in [*node.get('properties', {}).values(), *node.get('anyOf', [])]:
+                found = find_slots(child)
+                if found is not None:
+                    return found
+            if isinstance(node.get('items'), dict):
+                return find_slots(node['items'])
+            return None
+        def branch_ids(node):
+            node = resolve(node)
+            if 'anyOf' in node:
+                return {ident for branch in node['anyOf'] for ident in branch_ids(branch)}
+            field = resolve(node['properties'][aliases['id']])
+            return set(field['enum'])
+        slots = find_slots(wire_schema)
+        assert slots is not None
+        for index, row in enumerate(plan['slots']):
+            assert branch_ids(slots['properties'][f'v{index}']) == {row['slot']['id']}
         value = json.loads(body['messages'][1]['content'][0]['text'])
         assert 'package_fraction_plan' not in value
         assert 'package_fraction_plan' not in value['visual_context']
@@ -92,6 +119,19 @@ def test_provider_bound_schema_codec_validation_and_private_plan_stripping(api, 
                    for row in value['prepared_graphics']['candidates'] if row['id'].startswith('pg_'))
         calls.append(body)
         wire = capture.wire(data)
+        if fault is None:
+            import sys
+            try:
+                from jsonschema import Draft202012Validator
+            except ModuleNotFoundError:
+                sys.path.append('/usr/lib/python3/dist-packages')
+                from jsonschema import Draft202012Validator
+            validator = Draft202012Validator(wire_schema)
+            assert validator.is_valid(wire)
+            duplicate = copy.deepcopy(wire)
+            question_slots = duplicate[aliases['units']]['v0'][aliases['questions']]
+            question_slots['v1'] = copy.deepcopy(question_slots['v0'])
+            assert not validator.is_valid(duplicate)
         return httpx.Response(200, json={'choices': [{'finish_reason': 'stop', 'message': {
             'content': json.dumps(wire, ensure_ascii=False)}}],
             'usage': {'prompt_tokens': 111, 'completion_tokens': 2223, 'cost': 0.0321}})

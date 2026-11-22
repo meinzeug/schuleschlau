@@ -23,8 +23,13 @@ Grafikprüfung mit einem allgemeinen Code abgewiesen; die genaue Fehlerursache
 ist rückwirkend nicht belegt. Die spezielle Erweiterungs-/Kürzungsreferenz war
 nachweislich auch für normale Einzelgrafiken angeboten worden, obwohl die
 Prüfung sie dort nicht zulässt; dieser Widerspruch ist jetzt geschlossen und
-mit einem Manipulationstest abgesichert. Die erfolgreiche echte Anbieterprobe
-und die Prüfung ihrer konkreten Ausgabe bleiben offen.
+mit einem Manipulationstest abgesichert. Der nächste echte künstliche Aufruf
+scheiterte bei der Planbindung; sein Inhalt wurde nicht gespeichert. Damit die
+KI ihre beiden Aufgabeplätze nicht versehentlich doppelt belegt, bindet der
+Transport nun jeden Platz an die vom Lernstart vorgegebene Aufgaben-ID. Die
+Validierung unterscheidet künftig inhaltsfrei Slot-, Grafik- und Kernfehler.
+Die erfolgreiche echte Anbieterprobe und die Prüfung ihrer konkreten Ausgabe
+bleiben offen.
 
 ## Ursprünglicher Entwurf vom 6. November 2026
 

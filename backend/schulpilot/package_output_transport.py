@@ -235,7 +235,7 @@ class Binding:
         return copy.deepcopy(value)
 
 
-def bind(schema):
+def bind(schema, *, question_order=None):
     """Bind aliases/constants to the FINAL request schema, never caller data."""
     _json(schema)  # Also rejects Python cycles/non-finite schema values.
     original = copy.deepcopy(schema)
@@ -282,18 +282,47 @@ def bind(schema):
             if name not in node.get("required", []):
                 constants.pop(name, None)
 
-    def project(node):
+    if question_order is not None and (not isinstance(question_order, list) or not question_order
+            or any(not isinstance(value, str) or not value for value in question_order)
+            or len(set(question_order)) != len(question_order)):
+        raise ValueError("Ungültige Reihenfolge der geplanten Paketaufgaben.")
+
+    def select_question(node, ident):
+        if '$ref' in node:
+            return select_question(definitions[node['$ref'].removeprefix('#/$defs/')], ident)
+        if 'anyOf' in node:
+            variants = [value for branch in node['anyOf'] if (value := select_question(branch, ident)) is not None]
+            return {**node, 'anyOf': variants} if variants else None
+        field = node.get('properties', {}).get('id', {})
+        while '$ref' in field:
+            field = definitions[field['$ref'].removeprefix('#/$defs/')]
+        values = field.get('enum', [field['const']] if 'const' in field else [])
+        return copy.deepcopy(node) if values == [ident] else None
+
+    def project(node, *, question_slots=False):
         if not isinstance(node, dict):
             return copy.deepcopy(node)
+        if question_slots and '$ref' in node:
+            return project(definitions[node['$ref'].removeprefix('#/$defs/')], question_slots=True)
         fixed_size = _fixed_array_size(node)
         if fixed_size is not None:
             keys = ["v" + str(index) for index in range(fixed_size)]
-            return {"type": "object", "properties": {key: project(node["items"]) for key in keys},
+            items = [node['items']] * fixed_size
+            if question_slots:
+                if fixed_size != len(question_order):
+                    raise ValueError("Ungültige Reihenfolge der geplanten Paketaufgaben.")
+                items = [select_question(node['items'], ident) for ident in question_order]
+                if any(item is None for item in items):
+                    raise ValueError("Ungültige Reihenfolge der geplanten Paketaufgaben.")
+            return {"type": "object", "properties": {key: project(item) for key, item in zip(keys, items, strict=True)},
                     "required": keys, "additionalProperties": False,
                     "description": "Exact-length list: write v0, v1, etc. in their original order."}
+        if question_slots:
+            raise ValueError("Ungültige Reihenfolge der geplanten Paketaufgaben.")
         result = copy.deepcopy(node)
         if "properties" in node:
-            result["properties"] = {aliases[name]: project(child) for name, child in node["properties"].items()
+            result["properties"] = {aliases[name]: project(child, question_slots=name == 'questions' and question_order is not None)
+                                    for name, child in node["properties"].items()
                                     if name not in constants}
             if "required" in node:
                 result["required"] = [aliases[name] for name in node["required"] if name not in constants]

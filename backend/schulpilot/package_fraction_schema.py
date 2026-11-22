@@ -8,6 +8,10 @@ import re
 
 from .package_fraction_plan import INVALID, solution_step, validate, validate_generated_output
 
+SLOTS_MISMATCH = 'Die Antwort enthält nicht alle geplanten Bruchaufgaben genau einmal.'
+STEP_MISMATCH = 'Die übertragene Bruchgrafik stimmt nicht mit dem geplanten Lösungsschritt überein.'
+OUTPUT_MISMATCH = 'Die übertragene Bruchaufgabe stimmt nicht mit dem geprüften Plan überein.'
+
 
 def _accepts(field, value):
     if not isinstance(field, dict) or any(key in field for key in ("$ref", "oneOf", "allOf", "not")):
@@ -130,8 +134,13 @@ def hydrate(payload, slots, previous_prompts, plan, wire):
         units = value["units"]
         if len(units) != 1 or not isinstance(units[0]["questions"], list):
             raise ValueError(INVALID)
+        questions = units[0]['questions']
+        actual_ids = [question.get('id') for question in questions if isinstance(question, dict)]
+        expected_ids = [row['slot']['id'] for row in plan['slots']]
+        if len(actual_ids) != len(questions) or len(set(actual_ids)) != len(actual_ids) or set(actual_ids) != set(expected_ids):
+            raise ValueError(SLOTS_MISMATCH)
         candidates = {row["slot"]["id"]: row for row in plan["slots"] if row.get("task") is not None}
-        for question in units[0]["questions"]:
+        for question in questions:
             row = candidates.get(question.get("id"))
             if row is None:
                 continue
@@ -139,9 +148,12 @@ def hydrate(payload, slots, previous_prompts, plan, wire):
             encoded = copy.deepcopy(expected)
             encoded["presentation"]["blocks"] = [expected["id"]]
             if question.get("explanation_steps") != [encoded]:
-                raise ValueError(INVALID)
+                raise ValueError(STEP_MISMATCH)
             question["explanation_steps"] = [expected]
-        validate_generated_output(payload, slots, previous_prompts, plan, value)
+        try:
+            validate_generated_output(payload, slots, previous_prompts, plan, value)
+        except ValueError:
+            raise ValueError(OUTPUT_MISMATCH) from None
     except (KeyError, TypeError, IndexError, AttributeError):
         raise ValueError(INVALID) from None
     return value

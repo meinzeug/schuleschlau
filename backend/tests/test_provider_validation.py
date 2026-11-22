@@ -342,6 +342,9 @@ def test_prepared_graphic_guard_metadata_is_closed_and_does_not_change_billing(m
     ('Ungültiger geplanter Kürzungsbeweis.', 'fraction_special_reference_scope'),
     ('Ungültiger geplanter Bruchbeweis.', 'fraction_plan_scope'),
     ('Der Bruchplan oder seine Quellen sind nicht mehr gültig.', 'fraction_plan_binding'),
+    ('Die Antwort enthält nicht alle geplanten Bruchaufgaben genau einmal.', 'fraction_plan_slots'),
+    ('Die übertragene Bruchgrafik stimmt nicht mit dem geplanten Lösungsschritt überein.', 'fraction_plan_wire_step'),
+    ('Die übertragene Bruchaufgabe stimmt nicht mit dem geprüften Plan überein.', 'fraction_plan_output'),
     ('Die ausgewählte Grafikreferenz wurde geändert oder ist beschädigt.', 'visual_reference_revision'),
 ])
 def test_fraction_visual_failure_diagnostics_never_copy_content(message, reason):

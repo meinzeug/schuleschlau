@@ -30,8 +30,8 @@ class PackageOutputCapture:
 
         monkeypatch.setattr(graphic_transport, "bind", capture_graphics)
         original = package_output_transport.bind
-        def capture(schema):
-            self.binding = original(schema)
+        def capture(schema, **kwargs):
+            self.binding = original(schema, **kwargs)
             return self.binding
         monkeypatch.setattr(package_output_transport, "bind", capture)
 

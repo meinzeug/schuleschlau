@@ -126,7 +126,17 @@ def test_hydrator_rejects_swapped_graphics_even_if_the_schema_were_bypassed():
     wire = data_for(plan)
     first, second = wire['units'][0]['questions']
     first['explanation_steps'][0]['presentation']['blocks'] = second['explanation_steps'][0]['presentation']['blocks']
-    with pytest.raises(ValueError, match='nicht mehr gültig'):
+    with pytest.raises(ValueError, match='geplanten Lösungsschritt'):
+        contract.hydrate(request, selected, [], plan, wire)
+
+
+def test_hydrator_rejects_duplicate_question_slot_without_repair():
+    request = payload()
+    selected = slots('practice', 'practice')
+    plan = planner.prepare(request, selected, [])
+    wire = data_for(plan)
+    wire['units'][0]['questions'][1] = copy.deepcopy(wire['units'][0]['questions'][0])
+    with pytest.raises(ValueError, match='genau einmal'):
         contract.hydrate(request, selected, [], plan, wire)
 
 
