@@ -185,9 +185,15 @@ def payload_projection(payload):
     reference text remains separate; it is never assigned a material identity.
     """
     value = copy.deepcopy(payload)
+    # A local planning snapshot can contain numeric exclusions derived from
+    # earlier exercises. It is never provider input, even if a future caller
+    # accidentally attaches it before projection. The bound task contract is
+    # transported separately through the schema/candidate mechanism.
+    value.pop("package_fraction_plan", None)
     materials = value.get("materials") or []
     visual = value.get("visual_context")
     if isinstance(visual, dict):
+        visual.pop("package_fraction_plan", None)
         for source in visual.get("sources", []):
             if not isinstance(source, dict):
                 continue

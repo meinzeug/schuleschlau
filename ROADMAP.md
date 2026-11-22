@@ -2025,6 +2025,22 @@ Bestandteil des bestehenden Buildvertrags.
     nicht aktiviert. [Entwurf und offene Schritte](docs/PACKAGE_FRACTION_PLAN_DESIGN_2026_11_06.md).
 
   - [ ] **Bruchaufgaben für initiale Paketpartitionen vorab verbindlich planen.**
+    **Vorbereitender Teilstand:** `package_fraction_plan.py` berechnet für
+    ausdrücklich belegtes Erweitern oder Kürzen eine begrenzte Auswahl mit
+    festem Faktor beziehungsweise Teiler. Bestehende diagnostische und offene
+    Vorwissensplätze bleiben unverändert; gleichwertige Brüche in übergebener
+    Historie und ausgewählten Quellen werden ausgeschlossen. Bei unklarer
+    historischer Aufgabenstellung oder erschöpfter Auswahl bricht die Planung
+    ab. Gemischte Zahlen und noch ungeplante parallele Aufträge werden
+    vorsichtshalber nicht als sicher neue Aufgaben behandelt. Private
+    Plansnapshots werden beim Anbietertransport entfernt. Künstliche reine
+    Planungstests auf SQLite und PostgreSQL prüfen unter anderem 0/1/2 freie
+    Plätze, Quellenänderung, Grafikkonsistenz und fremde Gruppen. Dies ist
+    noch kein aktiver Paketweg:
+    persistente parallele Historie, Grafik- und Schemabindung, Rechteprüfung,
+    Veröffentlichung, PostgreSQL-Konkurrenz und echte Anbieterprobe fehlen.
+    Der Punkt bleibt offen; der neue Helfer startet keine KI oder Lernrunde.
+
     Ein versionierter Paketadapter soll nur für ein eindeutig gewähltes
     Mathematikfach und ausdrücklich bestätigte, zur Quellenrevision passende
     Rechenregeln Aufgaben vor dem Anbieteraufruf lokal berechnen. Feste

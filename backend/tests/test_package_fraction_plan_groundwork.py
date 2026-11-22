@@ -1,0 +1,203 @@
+"""Pure planning only: this does not test or enable a package provider path."""
+import copy
+from fractions import Fraction
+
+import pytest
+from schulpilot import package_fraction_plan as planner
+
+EXPAND = 'Beim Erweitern multipliziert man Zähler und Nenner mit derselben Zahl. Beispiel: 1/2 = 2/4.'
+REDUCE = 'Beim Kürzen teilt man Zähler und Nenner durch dieselbe Zahl. Beispiel: 2/4 = 1/2.'
+
+
+def payload(content=EXPAND):
+    return {'package_partition': 0, 'package_plan_digest': 'a' * 64,
+        'selected_groups': [{'id': 'g1', 'subject': 'Mathematik'}],
+        'visual_context': {'required': True, 'references': [
+            {'id': 'math.fraction.expansion', 'version': 1, 'subject': 'Mathematik', 'digest': 'a' * 64},
+            {'id': 'math.fraction.reduction', 'version': 1, 'subject': 'Mathematik', 'digest': 'b' * 64}],
+            'sources': [{'ref': 'p1', 'group_id': 'g1', 'material_id': '1' * 32,
+                         'revision': 1, 'subject': 'Mathematik', 'content': content}]}}
+
+
+def slots(*roles):
+    return [{'id': f'q{i+1}', 'role': role} for i, role in enumerate(roles)]
+
+
+@pytest.mark.parametrize(('content', 'method'), [(EXPAND, 'expand'), (REDUCE, 'reduce')])
+@pytest.mark.parametrize('count', [0, 1, 2])
+def test_exact_calculation_and_no_duplicate_values(content, method, count):
+    items = slots(*(['practice'] * count), *(['prior_check'] * (2 - count)))
+    value = planner.prepare(payload(content), items, ['Beispiel 1/3'])
+    assert value['operation'] == method
+    actual = [s for s in value['slots'] if s['task']]
+    assert len(actual) == count
+    seen = {'1/2', '1/3'}
+    for item in actual:
+        n, d = item['input']; a, b = item['output']; k = item['factor_or_divisor']
+        assert (a, b) == ((n*k, d*k) if method == 'expand' else (n//k, d//k))
+        assert Fraction(n, d) == Fraction(a, b)
+        assert str(Fraction(n, d)) not in seen
+        assert item['task']['answer'] == f'{a}/{b}'
+        assert ('Faktor' if method == 'expand' else 'Teiler') + f' {k}' in item['task']['prompt']
+        seen.add(str(Fraction(n, d)))
+
+
+def test_fixed_and_open_prior_checks_are_never_rewritten():
+    fixed = {'id': 'prior', 'role': 'prior_check', 'type': 'choice', 'prompt': 'Original'}
+    free = {'id': 'next', 'role': 'practice'}
+    value = planner.prepare(payload(), [fixed, free], [])
+    assert value['slots'][0] == {'slot': fixed, 'task': None}
+    assert value['slots'][1]['task']['id'] == 'next'
+
+
+def test_unknown_rules_cross_group_and_ambiguity_do_not_create_a_plan():
+    assert planner.prepare(payload('Thema Brüche, 1/2.'), slots('practice'), []) is None
+    assert planner.prepare(payload(EXPAND + '\n' + REDUCE), slots('practice'), []) is None
+    p = payload(); p['visual_context']['sources'][0]['group_id'] = 'other'
+    assert planner.prepare(p, slots('practice'), []) is None
+    p = payload(); p['visual_context']['sources'][0]['source_type'] = 'curated_foundation'
+    assert planner.prepare(p, slots('practice'), []) is None
+    p = payload(); p['selected_groups'][0]['subject'] = 'Biologie'
+    assert planner.prepare(p, slots('practice'), []) is None
+
+
+def test_equivalent_historical_values_and_unknown_questions_are_conservative():
+    assert planner.history_exclusions(['Erweitere 2/4 mit 3', r'Kürze \\frac{3}{6}']) == ['1/2']
+    with pytest.raises(ValueError, match='nicht sicher'):
+        planner.prepare(payload(), slots('practice'), ['Erweitere den abgebildeten Bruch.'])
+    with pytest.raises(ValueError, match='nicht sicher'):
+        planner.prepare(payload(), slots('practice'), ['Nenne den Nenner in der Abbildung.'])
+    for ambiguous in ('Wandle 2 1/2 um.', 'Wandle 2 ½ um.', r'Wandle 2 \frac{1}{2} um.'):
+        with pytest.raises(ValueError, match='nicht sicher'):
+            planner.prepare(payload(), slots('practice'), [ambiguous])
+        with pytest.raises(ValueError, match='nicht sicher'):
+            planner.prepare(payload(EXPAND + '\n' + ambiguous), slots('practice'), [])
+    old = [f'{a}/{b}' for a, b, _, _, _ in planner._pool('expand')]
+    with pytest.raises(ValueError, match='keine ausreichend'):
+        planner.prepare(payload(), slots('practice'), old)
+
+
+def test_digest_binds_source_revision_and_finite_task_plan():
+    initial = planner.prepare(payload(), slots('practice'), [])
+    planner.validate(payload(), slots('practice'), [], initial)
+    changed = copy.deepcopy(payload()); changed['visual_context']['sources'][0]['revision'] += 1
+    revised = planner.prepare(changed, slots('practice'), [])
+    assert revised['source_digest'] != initial['source_digest']
+    assert revised['digest'] != initial['digest']
+    assert planner.prepare(payload(), slots('practice'), []) == initial
+    changed_ref = copy.deepcopy(payload()); changed_ref['visual_context']['references'][0]['digest'] = 'c' * 64
+    with pytest.raises(ValueError, match='nicht mehr gültig'):
+        planner.validate(changed_ref, slots('practice'), [], initial)
+    with pytest.raises(ValueError, match='nicht mehr gültig'):
+        planner.validate(changed, slots('practice'), [], initial)
+    forged = copy.deepcopy(initial); forged['slots'][0]['task']['answer'] = '1/99'
+    with pytest.raises(ValueError, match='nicht mehr gültig'):
+        planner.validate(payload(), slots('practice'), [], forged)
+    with pytest.raises(ValueError, match='nicht mehr gültig'):
+        planner.validate(payload(), slots('practice'), [initial['slots'][0]['task']['prompt']], initial)
+
+
+def test_private_history_excludes_only_own_sources_questions_and_active_plan(api, household):
+    from conftest import create_child
+    from schulpilot.db import DB, Job, LearningUnit, Material
+    parent, first = household
+    second = create_child(api, parent, username='fraction-history-other')
+    pending = planner.prepare(payload(), slots('practice'), ['1/3', '3/8'])
+    task = pending['slots'][0]['task']
+    with DB.begin() as db:
+        db.add(LearningUnit(child_id=first['id'], subject='Mathematik', topic='Brüche',
+            explanation='', provider='synthetic-test', questions=[{'prompt': 'Erweitere 2/6 mit 2.'}]))
+        db.add(LearningUnit(child_id=second['id'], subject='Mathematik', topic='Brüche',
+            explanation='', provider='synthetic-test', questions=[{'prompt': 'Erweitere 2/10 mit 2.'}]))
+        db.add(Material(child_id=first['id'], title='Synthetic', subject='Mathematik',
+            content='Beispiel 3/8', confirmed=True))
+        db.add(Material(child_id=first['id'], title='Not confirmed', subject='Mathematik',
+            content='Beispiel 1/7', confirmed=False))
+        job = Job(child_id=first['id'], kind='package', status='running', idempotency='synthetic-fraction-plan',
+                  payload={'package_fraction_plan': pending})
+        db.add(job); db.flush(); job_id = job.id
+        found = planner.history(db, first['id'])
+        assert '1/3' in found and '3/8' in found and str(Fraction(*pending['slots'][0]['input'])) in found
+        assert '1/5' not in found and '1/7' not in found
+        assert str(Fraction(*pending['slots'][0]['input'])) not in planner.history(db, first['id'], ignore_job_ids={job_id})
+        assert task['prompt'] not in found
+
+
+def test_unplanned_concurrent_package_blocks_history_until_accounted_for(household):
+    from schulpilot.db import DB, Job
+    _, child = household
+    with DB.begin() as db:
+        other = Job(child_id=child['id'], kind='package', status='running',
+                    idempotency='synthetic-old-concurrent', payload={})
+        db.add(other); db.flush()
+        with pytest.raises(ValueError, match='nicht sicher'):
+            planner.history(db, child['id'])
+        assert planner.history(db, child['id'], ignore_job_ids={other.id}) == []
+
+
+@pytest.mark.parametrize('tamper', ['answer', 'prompt', 'factor', 'goal', 'numbers', 'disclosure', 'duplicate', 'fixed'])
+def test_bound_task_and_graphics_tampering_is_rejected(tamper):
+    fixed = {'id': 'prior', 'role': 'prior_check', 'type': 'choice', 'prompt': 'Original?',
+             'answer': 'A', 'options': ['A', 'B'], 'accepted': []}
+    free = {'id': 'next', 'role': 'practice', 'learning_goal_id': 'goal1'}
+    chosen = [fixed, free]
+    plan = planner.prepare(payload(), chosen, [])
+    row = plan['slots'][1]
+    questions = [{**fixed}, {**row['task'], 'hints': ['Versuche es.']}]
+    graphics = {'next': planner.graphic_blocks(plan, row)}
+    planner.validate_bound_tasks(payload(), chosen, [], plan, questions, graphics)
+    if tamper == 'answer': questions[1]['answer'] = '1/99'
+    if tamper == 'prompt': questions[1]['prompt'] += ' verändert'
+    if tamper == 'goal': questions[1]['learning_goal_id'] = 'goal2'
+    if tamper == 'fixed': questions[0]['answer'] = 'B'
+    if tamper == 'duplicate': questions[0]['id'] = 'next'
+    if tamper == 'numbers': graphics['next'][1]['numbers'][0] += 1
+    if tamper == 'disclosure': graphics['next'][0]['disclosure'] = 'given'
+    if tamper == 'factor':
+        plan['slots'][1]['factor_or_divisor'] += 1
+    with pytest.raises(ValueError, match='nicht mehr gültig'):
+        planner.validate_bound_tasks(payload(), chosen, [], plan, questions, graphics)
+
+
+def test_unpublished_part_is_only_a_child_scoped_exclusion(household):
+    from schulpilot.db import Child, DB
+    from test_package_question_history import staged, sibling_for
+    _, child = household
+    with DB.begin() as db:
+        own = db.get(Child, child['id'])
+        sibling = sibling_for(db, own)
+        _, job = staged(db, own, day_date='2026-11-01',
+            first='Erweitere 2/3 mit dem Faktor 4.', second='Was heißt cat auf Deutsch?')
+        staged(db, sibling, day_date='2026-11-02', first='Was heißt cat auf Deutsch?', second='Was heißt dog auf Deutsch?')
+        assert set(planner.history(db, own.id)) == {'2/3'}
+        assert planner.history(db, own.id, ignore_job_ids={job.id}) == []
+
+
+def test_stored_visual_recipe_digest_must_be_authentic(household):
+    from schulpilot.db import DB
+    from schulpilot.visual_reference_models import VisualReference
+    context = payload()
+    with DB() as db:
+        reference = db.get(VisualReference, ('math.fraction.expansion', 1))
+        assert reference is not None
+        context['visual_context']['references'][0]['digest'] = reference.digest
+        plan = planner.prepare(context, slots('practice'), [])
+        planner.validate_reference(db, plan)
+        altered = copy.deepcopy(plan); altered['reference']['digest'] = 'f' * 64
+        with pytest.raises(ValueError, match='nicht mehr gültig'):
+            planner.validate_reference(db, altered)
+        reduction = planner.prepare(payload(REDUCE), slots('practice'), [])
+        with pytest.raises(ValueError, match='nicht mehr gültig'):
+            planner.validate_reference(db, reduction)
+
+
+def test_private_history_plan_never_leaves_via_package_transport():
+    from schulpilot.package_transport import payload_projection
+    request = payload()
+    plan = planner.prepare(request, slots('practice'), ['1/3'])
+    request['package_fraction_plan'] = copy.deepcopy(plan)
+    request['visual_context']['package_fraction_plan'] = copy.deepcopy(plan)
+    projected = payload_projection(request)
+    assert 'package_fraction_plan' not in projected
+    assert 'package_fraction_plan' not in projected['visual_context']
+    assert request['package_fraction_plan'] == plan
