@@ -449,6 +449,19 @@
       "scope": "unit_composition_only"
     },
     {
+      "id": "math.fraction.reduction",
+      "version": 1,
+      "subjects": [
+        "Mathematik"
+      ],
+      "kind": "fraction",
+      "purpose": "Ein vorab rechnerisch geprüfter Kürzungsschritt zeigt Ausgangsbruch und Ergebnisbruch als gleich große Teilmodelle. Ausschließlich an die unveränderte servergeplante Aufgabe und eine wörtlich belegte allgemeine Kürzungsregel gebunden.",
+      "terms": [],
+      "interaction": "fraction_reduction",
+      "variant": null,
+      "scope": "unit_composition_only"
+    },
+    {
       "id": "german.original_examples.comparison",
       "version": 1,
       "subjects": [

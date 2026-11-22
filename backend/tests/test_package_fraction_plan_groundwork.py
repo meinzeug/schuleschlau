@@ -135,6 +135,26 @@ def test_unplanned_concurrent_package_blocks_history_until_accounted_for(househo
         assert planner.history(db, child['id'], ignore_job_ids={other.id}) == []
 
 
+def test_history_refreshes_cached_pending_plan_after_other_transaction(household):
+    from schulpilot.db import DB, Job
+    _, child = household
+    initial = planner.prepare(payload(), slots('practice'), [])
+    later = planner.prepare(payload(), slots('practice'), [initial['slots'][0]['task']['prompt']])
+    with DB.begin() as db:
+        if db.bind.dialect.name != 'postgresql':
+            pytest.skip('Concurrent refresh requires isolated PostgreSQL')
+        job = Job(child_id=child['id'], kind='package', status='running',
+                  idempotency='synthetic-fraction-stale', payload={'package_fraction_plan': initial})
+        db.add(job); db.flush(); job_id = job.id
+    with DB() as stale:
+        cached = stale.get(Job, job_id)
+        assert cached.payload['package_fraction_plan'] == initial
+        with DB.begin() as fresh:
+            fresh.get(Job, job_id).payload = {'package_fraction_plan': later}
+        assert planner.history(stale, child['id']) == [str(Fraction(*later['slots'][0]['input']))]
+        assert cached.payload['package_fraction_plan'] == later
+
+
 @pytest.mark.parametrize('tamper', ['answer', 'prompt', 'factor', 'goal', 'numbers', 'disclosure', 'duplicate', 'fixed'])
 def test_bound_task_and_graphics_tampering_is_rejected(tamper):
     fixed = {'id': 'prior', 'role': 'prior_check', 'type': 'choice', 'prompt': 'Original?',
@@ -176,6 +196,7 @@ def test_unpublished_part_is_only_a_child_scoped_exclusion(household):
 def test_stored_visual_recipe_digest_must_be_authentic(household):
     from schulpilot.db import DB
     from schulpilot.visual_reference_models import VisualReference
+    from schulpilot.visual_references import candidates
     context = payload()
     with DB() as db:
         reference = db.get(VisualReference, ('math.fraction.expansion', 1))
@@ -186,9 +207,18 @@ def test_stored_visual_recipe_digest_must_be_authentic(household):
         altered = copy.deepcopy(plan); altered['reference']['digest'] = 'f' * 64
         with pytest.raises(ValueError, match='nicht mehr gültig'):
             planner.validate_reference(db, altered)
-        reduction = planner.prepare(payload(REDUCE), slots('practice'), [])
+        reduction_context = payload(REDUCE)
+        recipe = db.get(VisualReference, ('math.fraction.reduction', 1))
+        assert recipe is not None
+        reduction_context['visual_context']['references'][1]['digest'] = recipe.digest
+        reduction = planner.prepare(reduction_context, slots('practice'), [])
+        planner.validate_reference(db, reduction)
+        assert not any(ref['id'] == 'math.fraction.reduction'
+                       for ref in candidates(db, 'Mathematik', REDUCE, package_prepared=True))
+        forged_reduction = copy.deepcopy(reduction)
+        forged_reduction['reference']['digest'] = 'f' * 64
         with pytest.raises(ValueError, match='nicht mehr gültig'):
-            planner.validate_reference(db, reduction)
+            planner.validate_reference(db, forged_reduction)
 
 
 def test_private_history_plan_never_leaves_via_package_transport():
@@ -201,3 +231,87 @@ def test_private_history_plan_never_leaves_via_package_transport():
     assert 'package_fraction_plan' not in projected
     assert 'package_fraction_plan' not in projected['visual_context']
     assert request['package_fraction_plan'] == plan
+
+
+@pytest.mark.parametrize(('content', 'reference'), [
+    (EXPAND, 'math.fraction.expansion'), (REDUCE, 'math.fraction.reduction')])
+def test_only_exact_stored_recipe_for_confirmed_group_is_added(household, content, reference):
+    from schulpilot.db import DB
+    from schulpilot.visual_reference_models import VisualReference
+    request = payload(content)
+    request['visual_context']['references'] = []
+    with DB() as db:
+        result = planner.add_reference(db, request)
+        actual = result['visual_context']['references']
+        stored = db.get(VisualReference, (reference, 1))
+        assert actual == [{'id': reference, 'version': 1, 'digest': stored.digest,
+                           'kind': 'fraction', 'subject': 'Mathematik'}]
+        assert request['visual_context']['references'] == []
+        assert planner.add_reference(db, result) == result
+        planned = planner.prepare(result, slots('practice'), [])
+        planner.validate_reference(db, planned)
+        wrong = copy.deepcopy(result)
+        wrong['visual_context']['references'][0]['digest'] = 'f' * 64
+        with pytest.raises(ValueError, match='nicht mehr gültig'):
+            planner.add_reference(db, wrong)
+        other_group = copy.deepcopy(request)
+        other_group['visual_context']['sources'][0]['group_id'] = 'other'
+        assert planner.add_reference(db, other_group) == other_group
+        ambiguous = payload(EXPAND + '\n' + REDUCE)
+        ambiguous['visual_context']['references'] = []
+        assert planner.add_reference(db, ambiguous) == ambiguous
+
+
+@pytest.mark.parametrize('content', [EXPAND, REDUCE])
+@pytest.mark.parametrize('change', ['none', 'answer', 'first_model', 'second_model',
+                                    'reference', 'source', 'step_text', 'disclosure'])
+def test_generated_output_binds_the_actual_two_models_and_task(content, change):
+    request = payload(content)
+    selected = slots('practice', 'practice')
+    plan = planner.prepare(request, selected, [])
+    questions = []
+    for row in plan['slots']:
+        step = planner.solution_step(plan, row)
+        questions.append({**row['task'], 'explanation': step['text'], 'explanation_steps': [step]})
+    output = {'units': [{'group_id': 'g1', 'subject': 'Mathematik', 'questions': questions}]}
+    question = questions[0]
+    step = question['explanation_steps'][0]
+    if change == 'answer': question['answer'] = '1/99'
+    if change == 'first_model': step['presentation']['blocks'][0]['numbers'][0] += 1
+    if change == 'second_model': step['presentation']['blocks'][1]['numbers'][1] += 1
+    if change == 'reference': step['reference']['id'] = 'different'
+    if change == 'source': step['source_refs'] = ['foreign']
+    if change == 'step_text': step['text'] += ' Veränderung.'
+    if change == 'disclosure': step['disclosure'] = 'given'
+    if change == 'none':
+        planner.validate_generated_output(request, selected, [], plan, output)
+    else:
+        with pytest.raises(ValueError, match='nicht mehr gültig'):
+            planner.validate_generated_output(request, selected, [], plan, output)
+
+
+@pytest.mark.parametrize('prior_kind', ['open', 'fixed'])
+@pytest.mark.parametrize('practice_count', [0, 1])
+def test_generated_output_retains_prior_questions(prior_kind, practice_count):
+    prior = {'id': 'prior', 'role': 'prior_check'}
+    if prior_kind == 'fixed':
+        prior.update(type='choice', prompt='Was ist ein Zähler?', answer='Oben',
+                     options=['Oben', 'Unten'], accepted=[])
+    selected = [prior, {'id': 'other', 'role': 'practice' if practice_count else 'prior_check'}]
+    request = payload()
+    plan = planner.prepare(request, selected, [])
+    prior_result = ({**prior} if prior_kind == 'fixed' else
+                    {'id': 'prior', 'type': 'short', 'prompt': 'Was ist ein Bruch?', 'answer': 'Ein Anteil'})
+    questions = [prior_result]
+    row = plan['slots'][1]
+    if row['task']:
+        step = planner.solution_step(plan, row)
+        questions.append({**row['task'], 'explanation': step['text'], 'explanation_steps': [step]})
+    else:
+        questions.append({'id': 'other', 'type': 'short', 'prompt': 'Was ist ein Nenner?', 'answer': 'Unten'})
+    output = {'units': [{'group_id': 'g1', 'subject': 'Mathematik', 'questions': questions}]}
+    planner.validate_generated_output(request, selected, [], plan, output)
+    if prior_kind == 'fixed':
+        questions[0]['answer'] = 'Unten'
+        with pytest.raises(ValueError, match='nicht mehr gültig'):
+            planner.validate_generated_output(request, selected, [], plan, output)

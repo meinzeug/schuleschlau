@@ -2036,7 +2036,13 @@ Bestandteil des bestehenden Buildvertrags.
     Plansnapshots werden beim Anbietertransport entfernt. Künstliche reine
     Planungstests auf SQLite und PostgreSQL prüfen unter anderem 0/1/2 freie
     Plätze, Quellenänderung, Grafikkonsistenz und fremde Gruppen. Dies ist
-    noch kein aktiver Paketweg:
+    noch kein aktiver Paketweg. Ein zusätzliches versioniertes Kürzungsrezept
+    wird nur bei einer belegten Regel und für die ausgewählte Gruppe privat
+    angeboten; im allgemeinen Katalog ist es gesperrt. Ein isolierter
+    Prüfer bindet die zwei tatsächlichen Lösungsbilder einschließlich Text,
+    Quelle und Referenz an die Aufgabe; Manipulationstests laufen auf SQLite
+    und PostgreSQL. Die Historie lädt konkurrierende Pläne nach einer anderen
+    Transaktion erneut. Weiterhin fehlen im aktiven Paketweg:
     persistente parallele Historie, Grafik- und Schemabindung, Rechteprüfung,
     Veröffentlichung, PostgreSQL-Konkurrenz und echte Anbieterprobe fehlen.
     Der Punkt bleibt offen; der neue Helfer startet keine KI oder Lernrunde.

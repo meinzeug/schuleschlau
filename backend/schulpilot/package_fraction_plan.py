@@ -77,7 +77,8 @@ def history(db, child_id, *, ignore_job_ids=()):
             found.update(values(content))
     ignored = set(ignore_job_ids)
     for job in db.scalars(select(Job).where(Job.child_id == child_id, Job.kind == 'package',
-                                             Job.status.in_(['queued', 'running']))):
+                                             Job.status.in_(['queued', 'running']))
+                          .execution_options(populate_existing=True)):
         if job.id in ignored:
             continue
         plan = job.payload.get('package_fraction_plan') if isinstance(job.payload, dict) else None
@@ -123,6 +124,49 @@ def _core(ident, operation, row):
         prompt = f'Kürze den Bruch {n}/{d} durch den Teiler {factor}. Gib den fertigen Bruch an.'
     return {'id': ident, 'type': 'short', 'prompt': prompt, 'answer': f'{out_n}/{out_d}',
             'options': [], 'accepted': []}
+
+
+def add_reference(db, payload):
+    """Offer only the exact stored recipe for one explicitly evidenced rule.
+
+    This helper does not authorize a provider call or enable the planner in the
+    package worker. Only original sources of the selected group count.
+    """
+    from .visual_reference_models import VisualReference
+
+    groups = payload.get('selected_groups')
+    context = payload.get('visual_context')
+    if (type(payload.get('package_partition')) is not int or not isinstance(groups, list)
+            or len(groups) != 1 or not isinstance(groups[0], dict)
+            or groups[0].get('subject') != 'Mathematik' or not isinstance(context, dict)
+            or not context.get('required')):
+        return payload
+    group = groups[0].get('id')
+    if not isinstance(group, str) or not group:
+        raise ValueError(INVALID)
+    sources = _sources(context, group_id=group)
+    rules = [(name, _procedure_quote(sources, label)) for name, label in
+             (('expand', 'Brüche erweitern'), ('reduce', 'Brüche kürzen'))]
+    eligible = [name for name, quote in rules if quote]
+    if len(eligible) != 1:
+        return payload
+    ident = {'expand': 'math.fraction.expansion', 'reduce': 'math.fraction.reduction'}[eligible[0]]
+    saved = db.get(VisualReference, (ident, 1), populate_existing=True)
+    if (saved is None or not isinstance(saved.recipe, dict) or _digest(saved.recipe) != saved.digest
+            or saved.recipe.get('id') != ident or saved.recipe.get('version') != 1
+            or saved.recipe.get('kind') != 'fraction' or saved.recipe.get('scope') != 'unit_composition_only'
+            or 'Mathematik' not in saved.recipe.get('subjects', [])):
+        raise ValueError(INVALID)
+    references = context.get('references', [])
+    if not isinstance(references, list):
+        raise ValueError(INVALID)
+    ref = {'id': ident, 'version': 1, 'digest': saved.digest, 'kind': 'fraction', 'subject': 'Mathematik'}
+    matching = [row for row in references if isinstance(row, dict) and row.get('id') == ident]
+    if matching and matching != [ref]:
+        raise ValueError(INVALID)
+    if matching:
+        return payload
+    return {**payload, 'visual_context': {**context, 'references': [*references, ref]}}
 
 
 def prepare(payload, slots, previous_prompts):
@@ -246,6 +290,58 @@ def graphic_blocks(plan, row):
             'source_excerpt': plan['source_excerpt'], 'labels': [], 'numbers': numbers,
             'connections': [], 'marks': [], 'unit': '', 'variant': '', 'disclosure': 'solution'}).model_dump(mode='json'))
     return blocks
+
+
+def solution_step(plan, row):
+    """Build an exact, initially hidden two-picture proof for a planned task."""
+    if row not in plan.get('slots', []) or not isinstance(row.get('task'), dict):
+        raise ValueError(INVALID)
+    n, d = row['input']
+    out_n, out_d = row['output']
+    k = row['factor_or_divisor']
+    if plan['operation'] == 'expand':
+        text = (f'Erweitere Zähler und Nenner von {n}/{d} mit {k}. '
+                f'So entsteht {out_n}/{out_d}. Beide Bilder zeigen gleich viel.')
+    elif plan['operation'] == 'reduce':
+        text = (f'Teile Zähler und Nenner von {n}/{d} durch {k}. '
+                f'So entsteht {out_n}/{out_d}. Beide Bilder zeigen gleich viel.')
+    else:
+        raise ValueError(INVALID)
+    return {'id': 'pf_' + _digest({'revision': REVISION, 'plan': plan['digest'], 'task': row['task']})[:24],
+            'text': text, 'competence_id': None, 'disclosure': 'solution',
+            'reference': {'id': plan['reference']['id'], 'version': plan['reference']['version']},
+            'source_refs': [plan['source_ref']],
+            'presentation': {'version': 1, 'evidence_kind': 'knowledge', 'blocks': graphic_blocks(plan, row)}}
+
+
+def validate_generated_output(payload, slots, previous_prompts, saved, output):
+    """Prove the actual output, not a detached copy of its selected pictures.
+
+    This is one offline guard only: it does not establish authorization or
+    perform the production visual/schema/publication checks.
+    """
+    validate(payload, slots, previous_prompts, saved)
+    units = output.get('units') if isinstance(output, dict) else None
+    if (not isinstance(units, list) or len(units) != 1 or not isinstance(units[0], dict)
+            or units[0].get('subject') != 'Mathematik' or units[0].get('group_id') != saved.get('group_id')):
+        raise ValueError(INVALID)
+    questions = units[0].get('questions')
+    if (not isinstance(questions, list) or any(not isinstance(q, dict) or not isinstance(q.get('id'), str)
+                                                for q in questions)):
+        raise ValueError(INVALID)
+    indexed = {q['id']: q for q in questions}
+    graphics = {}
+    for row in saved.get('slots', []):
+        if row.get('task') is None:
+            continue
+        ident = row['slot']['id']
+        question = indexed.get(ident)
+        expected = solution_step(saved, row)
+        if (not isinstance(question, dict) or question.get('explanation') != expected['text']
+                or question.get('explanation_steps') != [expected]):
+            raise ValueError(INVALID)
+        graphics[ident] = question['explanation_steps'][0]['presentation']['blocks']
+    validate_bound_tasks(payload, slots, previous_prompts, saved, questions, graphics)
 
 
 def validate_bound_tasks(payload, slots, previous_prompts, saved, questions, graphics):
