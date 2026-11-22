@@ -4064,17 +4064,10 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
                     'Das haben wir schon gemacht',
                     Icons.task_alt_rounded,
                   ),
-                if ((u['sources'] as List? ?? []).isNotEmpty)
-                  ('sources', 'Heftquellen ansehen', Icons.menu_book_outlined),
                 (
                   'explanation',
                   'Erklärung ansehen',
                   Icons.auto_stories_outlined,
-                ),
-                (
-                  'tips',
-                  'Passendes Erklärvideo',
-                  Icons.ondemand_video_outlined,
                 ),
                 if (u['synthetic'] != true &&
                     u['source_material_ids']?.isNotEmpty == true)
@@ -4083,39 +4076,6 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
                     'Eine Frage stellen',
                     Icons.chat_bubble_outline_rounded,
                   ),
-                if (u['learning_session']?['can_request_decision'] == true)
-                  (
-                    'plan',
-                    'Einen passenden Lernweg vorbereiten',
-                    Icons.route_rounded,
-                  ),
-                if (u['learning_session']?['can_request_support_check'] == true)
-                  (
-                    'support_check',
-                    'Nach der Erklärung neu probieren',
-                    Icons.psychology_outlined,
-                  ),
-                if (['queued', 'running'].contains(
-                  u['learning_session']?['decision_preparation']?['status'],
-                ))
-                  (
-                    'plan_status',
-                    'Vorbereitung ansehen',
-                    Icons.hourglass_top_rounded,
-                  ),
-                ('parents', 'Eltern live dazuholen', Icons.video_call_rounded),
-                (
-                  'knowledge',
-                  'Vorwissen & Lernziele',
-                  Icons.psychology_alt_outlined,
-                ),
-                ('difficulty', 'Die Aufgabe passt nicht', Icons.tune_rounded),
-                if (u['status'] == 'active' && currentQuestion != null)
-                  (
-                    'skip',
-                    'Für später aufheben',
-                    Icons.bookmark_outline_rounded,
-                  ),
               ])
                 ListTile(
                   leading: Icon(option.$3, color: context.palette.teal),
@@ -4123,6 +4083,74 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
                   minVerticalPadding: 12,
                   onTap: () => popUnitRoute(sheet, option.$1),
                 ),
+              ExpansionTile(
+                key: const ValueKey('learning-more-options'),
+                leading: Icon(Icons.more_horiz_rounded),
+                title: const Text('Weitere Möglichkeiten'),
+                children: [
+                  for (final option in [
+                    if ((u['sources'] as List? ?? []).isNotEmpty)
+                      (
+                        'sources',
+                        'Heftquellen ansehen',
+                        Icons.menu_book_outlined,
+                      ),
+                    (
+                      'tips',
+                      'Passendes Erklärvideo',
+                      Icons.ondemand_video_outlined,
+                    ),
+                    if (u['learning_session']?['can_request_decision'] == true)
+                      (
+                        'plan',
+                        'Einen passenden Lernweg vorbereiten',
+                        Icons.route_rounded,
+                      ),
+                    if (u['learning_session']?['can_request_support_check'] ==
+                        true)
+                      (
+                        'support_check',
+                        'Nach der Erklärung neu probieren',
+                        Icons.psychology_outlined,
+                      ),
+                    if (['queued', 'running'].contains(
+                      u['learning_session']?['decision_preparation']?['status'],
+                    ))
+                      (
+                        'plan_status',
+                        'Vorbereitung ansehen',
+                        Icons.hourglass_top_rounded,
+                      ),
+                    (
+                      'parents',
+                      'Eltern live dazuholen',
+                      Icons.video_call_rounded,
+                    ),
+                    (
+                      'knowledge',
+                      'Vorwissen & Lernziele',
+                      Icons.psychology_alt_outlined,
+                    ),
+                    (
+                      'difficulty',
+                      'Die Aufgabe passt nicht',
+                      Icons.tune_rounded,
+                    ),
+                    if (u['status'] == 'active' && currentQuestion != null)
+                      (
+                        'skip',
+                        'Für später aufheben',
+                        Icons.bookmark_outline_rounded,
+                      ),
+                  ])
+                    ListTile(
+                      leading: Icon(option.$3, color: context.palette.teal),
+                      title: MathText(option.$2),
+                      minVerticalPadding: 12,
+                      onTap: () => popUnitRoute(sheet, option.$1),
+                    ),
+                ],
+              ),
               TextButton(
                 onPressed: () => popUnitRoute(sheet),
                 child: Text('Zurück zur Aufgabe'),

@@ -164,6 +164,11 @@ void main() {
       await t.pump();
       await t.pump(const Duration(milliseconds: 400));
       expect(find.text('Was hilft dir jetzt?'), findsOneWidget);
+      await t.ensureVisible(find.text('Weitere Möglichkeiten'));
+      await t.pump(const Duration(milliseconds: 300));
+      await t.tap(find.text('Weitere Möglichkeiten'));
+      await t.pump();
+      await t.pump(const Duration(milliseconds: 400));
       await t.ensureVisible(find.text('Heftquellen ansehen'));
       await t.pump();
       expect(find.text('Heftquellen ansehen').hitTestable(), findsOneWidget);

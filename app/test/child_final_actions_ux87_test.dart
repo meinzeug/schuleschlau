@@ -361,6 +361,11 @@ void main() {
         await t.tap(find.text('Mehr Hilfe'));
         await t.pump();
         await t.pump(const Duration(milliseconds: 400));
+        await t.ensureVisible(find.text('Weitere Möglichkeiten'));
+        await t.pump(const Duration(milliseconds: 300));
+        await t.tap(find.text('Weitere Möglichkeiten'));
+        await t.pump();
+        await t.pump(const Duration(milliseconds: 400));
         await t.tap(find.text('Passendes Erklärvideo'));
         await t.pump();
         await t.pump(const Duration(milliseconds: 400));

@@ -85,6 +85,11 @@ void main() {
         await tester.tap(find.text('Mehr Hilfe'));
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 400));
+        await tester.ensureVisible(find.text('Weitere Möglichkeiten'));
+        await tester.pump(const Duration(milliseconds: 300));
+        await tester.tap(find.text('Weitere Möglichkeiten'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 400));
         expect(
           find.text('Einen passenden Lernweg vorbereiten'),
           findsOneWidget,
@@ -125,6 +130,11 @@ void main() {
     await tester.ensureVisible(find.text('Mehr Hilfe'));
     await tester.tap(find.text('Mehr Hilfe'));
     await tester.pump(const Duration(milliseconds: 350));
+    await tester.ensureVisible(find.text('Weitere Möglichkeiten'));
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.tap(find.text('Weitere Möglichkeiten'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
     await tester.ensureVisible(find.text('Nach der Erklärung neu probieren'));
     await tester.pump(const Duration(milliseconds: 250));
     await tester.tap(find.text('Nach der Erklärung neu probieren'));

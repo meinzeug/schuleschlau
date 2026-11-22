@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:schulpilot/api.dart';
@@ -153,4 +154,39 @@ void main() {
     expect(tester.takeException(), isNull);
     await handle.close();
   });
+
+  for (final width in [320.0, 390.0]) {
+    testWidgets(
+      'secondary options stay explicit at $width pixels and 2x text',
+      (tester) async {
+        final server = room.SavedRound();
+        server.value['round_deferred'] = false;
+        final handle = await room.openRound(tester, server, textScale: 2);
+        tester.view.physicalSize = Size(width, 844);
+        await tester.pump();
+        await tester.tap(find.byTooltip('Mehr zur Runde'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 450));
+        expect(
+          find.text('Diese Runde haben wir schon gemacht'),
+          findsOneWidget,
+        );
+        expect(find.text('Das haben wir schon gemacht'), findsOneWidget);
+        expect(find.text('Erklärung ansehen'), findsOneWidget);
+        expect(find.text('Passendes Erklärvideo'), findsNothing);
+        expect(find.text('Für später aufheben'), findsNothing);
+        expect(server.hints, 0);
+        expect(server.answers, 0);
+        await tap(tester, 'Weitere Möglichkeiten');
+        expect(find.text('Passendes Erklärvideo'), findsOneWidget);
+        expect(find.text('Für später aufheben'), findsOneWidget);
+        expect(find.text('Die Aufgabe passt nicht'), findsOneWidget);
+        expect(find.text('Vorwissen & Lernziele'), findsOneWidget);
+        expect(server.hints, 0);
+        expect(server.answers, 0);
+        expect(tester.takeException(), isNull);
+        await handle.close();
+      },
+    );
+  }
 }

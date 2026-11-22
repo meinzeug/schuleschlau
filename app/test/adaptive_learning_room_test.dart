@@ -398,6 +398,11 @@ void main() {
       await tester.tap(find.text('Hilfe'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 400));
+      await tester.ensureVisible(find.text('Weitere Möglichkeiten'));
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.tap(find.text('Weitere Möglichkeiten'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
       expect(find.text('Einen passenden Lernweg vorbereiten'), findsOneWidget);
       expect(server.planRequests, isEmpty);
       await tester.ensureVisible(

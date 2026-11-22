@@ -368,6 +368,11 @@ void main() {
       await adaptive.openWithPreparationRoute(t, s);
       await inspectHelp(t);
       expect(s.planRequests, isEmpty);
+      await t.ensureVisible(find.text('Weitere Möglichkeiten'));
+      await t.pump(const Duration(milliseconds: 300));
+      await t.tap(find.text('Weitere Möglichkeiten'));
+      await t.pump();
+      await t.pump(const Duration(milliseconds: 400));
       final command = find.text('Einen passenden Lernweg vorbereiten');
       await t.ensureVisible(command);
       await t.pump(const Duration(milliseconds: 300));
@@ -591,9 +596,9 @@ void main() {
       await select(t, 'Antwort prüfen');
       expect(find.text('Heute 12:00 / 20:00'), findsOneWidget);
       expect(find.text('Ergebnis ansehen'), findsOneWidget);
-      expect(find.text('Deine Runde ist bearbeitet.'), findsNothing);
+      expect(find.text('Runde geschafft!'), findsNothing);
       await select(t, 'Ergebnis ansehen');
-      expect(find.text('Deine Runde ist bearbeitet.'), findsOneWidget);
+      expect(find.text('Runde geschafft!'), findsOneWidget);
       expect(s.answers, 1);
       expect(s.acknowledgements, 1);
     },
@@ -706,7 +711,7 @@ void main() {
         ];
       final s = room.SavedRound(questions: [q], status: 'completed');
       await room.openRound(t, s);
-      expect(find.text('Deine Runde ist bearbeitet.'), findsOneWidget);
+      expect(find.text('Runde geschafft!'), findsOneWidget);
       await t.pump(const Duration(seconds: 40));
       expect(s.calls, ['GET /api/units/unit']);
       expect(s.starts, 0);

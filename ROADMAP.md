@@ -1005,6 +1005,10 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
   die vollständige Kinderoberfläche überarbeitet noch geräteübergreifend
   abgenommen; dieser Hauptpunkt bleibt offen.
 
+  Das in der mobilen Live-Ansicht aufgefallene lange Lernrundenmenü zeigt
+  Erklärung, Frage und Zurückstellen direkt; weitere Möglichkeiten sind
+  aufklappbar. Bestehende Aktionen und Quellen bleiben erreichbar.
+
   - [x] **Prüfhinweise bei vorhandenen Nacharbeitsaufgaben bündeln.** In der
     Kinderansicht weist ein sichtbarer, aufklappbarer Hinweis auf unklare
     Stellen hin und erhält die einzelnen Angaben samt Quellenbezug. Zusätzliche

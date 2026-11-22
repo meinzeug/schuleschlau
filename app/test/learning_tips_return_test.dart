@@ -147,6 +147,11 @@ void main() {
       await tester.tap(moreHelp);
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 400));
+      await tester.ensureVisible(find.text('Weitere Möglichkeiten'));
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.tap(find.text('Weitere Möglichkeiten'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
       final tipsButton = find.text('Passendes Erklärvideo');
       await tester.ensureVisible(tipsButton);
       await tester.tap(tipsButton);
