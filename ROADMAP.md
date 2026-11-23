@@ -2227,6 +2227,21 @@ Bestandteil des bestehenden Buildvertrags.
     Fehlerklasse; ein ausdrücklich gestarteter weiterer Versuch gelang. Eine
     fachkundige Abnahme und breitere thematische Erprobung bleiben offen.
 
+    - [x] **Bildaufträge beim Neuladen und Rundenwechsel richtig zuordnen.**
+      Ein neuer Ansichtsdatensatz derselben Runde erhält den Schlüssel eines
+      noch unklaren Bildauftrags; eine ausdrückliche Wiederholung kann deshalb
+      keinen zweiten Auftrag allein wegen des Neuladens erzeugen. Beim Wechsel
+      zu einer anderen Runde werden Schlüssel und Bedienzustand getrennt;
+      verspätete Antworten der alten Runde können den neuen Auftrag nicht
+      freigeben. Künstliche Fluttertests prüfen beide Wettläufe.
+
+    - [x] **Bildprüfung bei Ansichtsaktualisierung fortsetzen.** Eine bereits
+      laufende unabhängige Prüfung bleibt während des Neuladens gesperrt und
+      behält bei einer unklaren Antwort ihren Schlüssel für die ausdrückliche
+      Wiederholung. Eine neue Runde erhält ihren eigenen Zustand. Ein
+      künstlicher Widgettest prüft Wiederholung und Schlüsselgleichheit;
+      das ist keine neue fachliche Prüfung des erzeugten Bildes.
+
   - [ ] **Vorbereitung fehlender Erklärgrafiken zuverlässig machen.**
     Die konkrete Bienenrunde hatte nur das allgemeine Szenenrezept zur Auswahl,
     aber keinen dafür erforderlichen Pfeil in der Quelle. Zusätzlich war die
@@ -2246,6 +2261,20 @@ Bestandteil des bestehenden Buildvertrags.
       erneut geprüft. Künstliche API- und Widgettests prüfen verfügbare und
       nicht verfügbare Vorlagen. Eine passende neue Darstellung oder eine
       erfolgreiche KI-Generierung ist dadurch noch nicht nachgewiesen.
+
+    - [x] **Quellgebundene Grafikaufträge stabil an ihre Runde binden.** Ein
+      Neuladen derselben Runde verwirft die ausstehende Antwort nicht; ein
+      Rundenwechsel setzt den Bedienzustand zurück und eine verspätete Antwort
+      kann den Auftrag der neuen Runde nicht entsperren oder aktualisieren.
+      Künstliche Fluttertests decken beide Reihenfolgen ab. Der bestehende
+      serverseitige Idempotenz- und Quellenvertrag bleibt unverändert.
+
+    - [x] **Allgemeines Beispiel bei Themenwechsel erneut abgleichen.** Wird
+      Fach, Thema oder Grafikstatus derselben Runde geändert, verschwindet das
+      bisherige allgemeine Beispiel sofort. Ein verspäteter alter Leseabruf
+      darf es nicht erneut anzeigen; das neue Beispiel wird ausschließlich
+      lesend angefordert. Ein künstlicher Widgettest prüft die überlappenden
+      Antworten. Die Prüfung weist keine fachliche Qualität des Beispiels nach.
 
   - [x] **Öffentliche Unterthemen eindeutig und datensparsam zuordnen.**
     Die automatische Auswahl erkennt zusätzlich vollständige Titel bestätigter,

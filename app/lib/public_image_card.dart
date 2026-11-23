@@ -46,7 +46,7 @@ class _PublicImageCardState extends State<PublicImageCard>
   bool reviewReferenceAvailable = false;
   bool expanded = false;
   bool? routeWasCurrent;
-  int epoch = 0;
+  int epoch = 0, actionEpoch = 0;
   Timer? timer;
 
   bool get current =>
@@ -75,6 +75,7 @@ class _PublicImageCardState extends State<PublicImageCard>
   @override
   void dispose() {
     epoch++;
+    actionEpoch++;
     timer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
@@ -109,16 +110,23 @@ class _PublicImageCardState extends State<PublicImageCard>
     if (!identical(oldWidget.unit, widget.unit)) {
       epoch++;
       timer?.cancel();
-      status = requestKey = null;
-      if (widget.unit['id'] != oldWidget.unit['id']) reviewRequestKey = null;
+      final changedUnit = widget.unit['id'] != oldWidget.unit['id'];
+      status = null;
+      if (changedUnit) {
+        actionEpoch++;
+        requestKey = null;
+        reviewRequestKey = null;
+        busy = false;
+        reviewBusy = false;
+        expanded = false;
+      }
       reviewStatus = null;
       image = null;
       error = null;
       reviewError = null;
       retryAllowed = false;
-      reviewAllowed = reviewBusy = false;
+      reviewAllowed = false;
       reviewReferenceAvailable = false;
-      if (widget.unit['id'] != oldWidget.unit['id']) expanded = false;
       unawaited(load());
     }
   }
@@ -172,9 +180,10 @@ class _PublicImageCardState extends State<PublicImageCard>
       final effectiveStatus = nextReview == 'rejected'
           ? (rejectedRetry ? 'missing' : 'unavailable')
           : next;
-      if ({'approved', 'rejected'}.contains(nextReview) ||
-          (reviewStatus == 'pending' &&
-              {'uncertain', 'unavailable'}.contains(nextReview))) {
+      if (!reviewBusy &&
+          ({'approved', 'rejected'}.contains(nextReview) ||
+              (reviewStatus == 'pending' &&
+                  {'uncertain', 'unavailable'}.contains(nextReview)))) {
         reviewRequestKey = null;
       }
       setState(() {
@@ -215,7 +224,7 @@ class _PublicImageCardState extends State<PublicImageCard>
         timer = Timer(const Duration(seconds: 5), () {
           if (current) unawaited(load());
         });
-      } else if (effectiveStatus == 'failed') {
+      } else if (effectiveStatus == 'failed' && !busy) {
         requestKey = null;
       }
     } catch (_) {
@@ -233,7 +242,7 @@ class _PublicImageCardState extends State<PublicImageCard>
 
   Future<void> prepare() async {
     final url = path;
-    final snapshot = widget.unit;
+    final serial = actionEpoch;
     if (busy ||
         !current ||
         url == null ||
@@ -254,27 +263,35 @@ class _PublicImageCardState extends State<PublicImageCard>
       if (!current ||
           path != url ||
           requestKey != key ||
-          !identical(widget.unit, snapshot)) {
+          serial != actionEpoch) {
         return;
       }
       final next = value['status'];
       if (next is String) setState(() => status = next);
       await load();
+      if (current &&
+          path == url &&
+          serial == actionEpoch &&
+          status == 'failed') {
+        requestKey = null;
+      }
     } catch (e) {
       if (current &&
           path == url &&
           requestKey == key &&
-          identical(widget.unit, snapshot)) {
+          serial == actionEpoch) {
         setState(() => error = e);
       }
     } finally {
-      if (mounted && path == url) setState(() => busy = false);
+      if (mounted && path == url && serial == actionEpoch) {
+        setState(() => busy = false);
+      }
     }
   }
 
   Future<void> requestReview() async {
     final url = path;
-    final snapshot = widget.unit;
+    final serial = actionEpoch;
     if (reviewBusy ||
         !reviewAllowed ||
         !current ||
@@ -296,7 +313,7 @@ class _PublicImageCardState extends State<PublicImageCard>
       if (current &&
           path == url &&
           reviewRequestKey == key &&
-          identical(widget.unit, snapshot)) {
+          serial == actionEpoch) {
         if ({
           'approved',
           'rejected',
@@ -306,12 +323,23 @@ class _PublicImageCardState extends State<PublicImageCard>
           reviewRequestKey = null;
         }
         await load();
+        if (current &&
+            path == url &&
+            serial == actionEpoch &&
+            {
+              'approved',
+              'rejected',
+              'uncertain',
+              'unavailable',
+            }.contains(reviewStatus)) {
+          reviewRequestKey = null;
+        }
       }
     } catch (e) {
       if (current &&
           path == url &&
           reviewRequestKey == key &&
-          identical(widget.unit, snapshot)) {
+          serial == actionEpoch) {
         setState(
           () => reviewError = e is ApiError
               ? e.message
@@ -319,7 +347,7 @@ class _PublicImageCardState extends State<PublicImageCard>
         );
       }
     } finally {
-      if (mounted && path == url && identical(widget.unit, snapshot)) {
+      if (mounted && path == url && serial == actionEpoch) {
         setState(() => reviewBusy = false);
       }
     }

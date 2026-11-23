@@ -16,6 +16,173 @@ http.Response jsonReply(Object value, [int status = 200]) => http.Response(
 );
 
 void main() {
+  testWidgets(
+    'same-round refresh keeps the pending image review and its retry key',
+    (tester) async {
+      final pending = Completer<http.Response>();
+      final posts = <http.Request>[];
+      final png = base64Decode(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl61Z8AAAAASUVORK5CYII=',
+      );
+      final state = AppState(
+        api: Api(
+          base: 'https://example.invalid/api',
+          client: MockClient((request) async {
+            if (request.method == 'POST') {
+              posts.add(request);
+              return posts.length == 1
+                  ? pending.future
+                  : jsonReply({'review_status': 'pending'}, 202);
+            }
+            if (request.url.path.endsWith('/file')) {
+              return http.Response.bytes(
+                png,
+                200,
+                headers: {'content-type': 'image/png'},
+              );
+            }
+            return jsonReply({
+              'status': 'ready',
+              'review_status': 'unavailable',
+              'review_request_allowed': true,
+            });
+          }),
+        ),
+      )..user = {'id': 'child', 'role': 'child', 'families': <Json>[]};
+      addTearDown(state.dispose);
+      Widget screen() => MaterialApp(
+        theme: appTheme(),
+        home: Scaffold(
+          body: PublicImageCard(
+            state: state,
+            unit: {'id': 'unit', 'explanation_visual_status': 'incomplete'},
+            isCurrent: () => true,
+          ),
+        ),
+      );
+      await tester.pumpWidget(screen());
+      await tester.pump();
+      await tester.pump();
+      await tester.pump();
+      await tester.tap(find.text('KI-Bildprüfung starten'));
+      await tester.pump();
+      await tester.pumpWidget(screen());
+      await tester.pump();
+      await tester.pump();
+      await tester.pump();
+      expect(find.text('Wird angefragt …'), findsOneWidget);
+      pending.complete(jsonReply({'detail': 'Verbindung unterbrochen'}, 503));
+      await tester.pump();
+      await tester.pump();
+      await tester.tap(find.text('KI-Bildprüfung starten'));
+      await tester.pump();
+      expect(posts.length, 2);
+      expect(
+        posts.first.headers['Idempotency-Key'],
+        posts.last.headers['Idempotency-Key'],
+      );
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
+
+  testWidgets('late image request cannot unlock a new round', (tester) async {
+    final pending = [Completer<http.Response>(), Completer<http.Response>()];
+    final posts = <http.Request>[];
+    final state = AppState(
+      api: Api(
+        base: 'https://example.invalid/api',
+        client: MockClient((request) async {
+          if (request.method == 'GET') return jsonReply({'status': 'missing'});
+          posts.add(request);
+          return pending[posts.length - 1].future;
+        }),
+      ),
+    )..user = {'id': 'child', 'role': 'child', 'families': <Json>[]};
+    addTearDown(state.dispose);
+    Widget screen(String id) => MaterialApp(
+      theme: appTheme(),
+      home: Scaffold(
+        body: PublicImageCard(
+          state: state,
+          unit: {'id': id, 'explanation_visual_status': 'incomplete'},
+          isCurrent: () => true,
+        ),
+      ),
+    );
+    await tester.pumpWidget(screen('first'));
+    await tester.pump();
+    await tester.pump();
+    await tester.tap(find.text('Bild zum Thema erstellen'));
+    await tester.pump();
+    await tester.pumpWidget(screen('second'));
+    await tester.pump();
+    await tester.pump();
+    await tester.tap(find.text('Bild zum Thema erstellen'));
+    await tester.pump();
+    expect(posts.length, 2);
+    expect(
+      posts.first.headers['Idempotency-Key'],
+      isNot(posts.last.headers['Idempotency-Key']),
+    );
+    pending.first.complete(jsonReply({'status': 'queued'}, 202));
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('Wird angefragt …'), findsOneWidget);
+    pending.last.complete(jsonReply({'status': 'queued'}, 202));
+    await tester.pump();
+    await tester.pump();
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('same-round refresh preserves an uncertain image request key', (
+    tester,
+  ) async {
+    final pending = Completer<http.Response>();
+    final posts = <http.Request>[];
+    final state = AppState(
+      api: Api(
+        base: 'https://example.invalid/api',
+        client: MockClient((request) async {
+          if (request.method == 'GET') return jsonReply({'status': 'missing'});
+          posts.add(request);
+          return posts.length == 1
+              ? pending.future
+              : jsonReply({'status': 'queued'}, 202);
+        }),
+      ),
+    )..user = {'id': 'child', 'role': 'child', 'families': <Json>[]};
+    addTearDown(state.dispose);
+    Widget screen() => MaterialApp(
+      theme: appTheme(),
+      home: Scaffold(
+        body: PublicImageCard(
+          state: state,
+          unit: {'id': 'unit', 'explanation_visual_status': 'incomplete'},
+          isCurrent: () => true,
+        ),
+      ),
+    );
+    await tester.pumpWidget(screen());
+    await tester.pump();
+    await tester.pump();
+    await tester.tap(find.text('Bild zum Thema erstellen'));
+    await tester.pump();
+    // Rebuilding the same unit while its POST is unresolved must retain its key.
+    await tester.pumpWidget(screen());
+    await tester.pump();
+    pending.complete(jsonReply({'detail': 'Kurz nicht erreichbar.'}, 503));
+    await tester.pump();
+    await tester.pump();
+    await tester.tap(find.text('Bild zum Thema erstellen'));
+    await tester.pump();
+    expect(posts.length, 2);
+    expect(
+      posts[1].headers['Idempotency-Key'],
+      posts[0].headers['Idempotency-Key'],
+    );
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
   testWidgets('pending image status resumes after another route closes', (
     tester,
   ) async {

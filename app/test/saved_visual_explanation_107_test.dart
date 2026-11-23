@@ -762,6 +762,101 @@ void main() {
       expect(reloads, 1);
     },
   );
+  testWidgets(
+    'graphic requests stay bound to their round across refresh and switch',
+    (tester) async {
+      final first = Completer<http.Response>();
+      final second = Completer<http.Response>();
+      final posts = <http.Request>[];
+      var refreshes = 0;
+      final state = app((request) {
+        if (request.method == 'GET') return reply({'status': 'missing'});
+        posts.add(request);
+        return posts.length == 1 ? first.future : second.future;
+      });
+      addTearDown(state.dispose);
+      Widget screen(String id) => MaterialApp(
+        theme: appTheme(),
+        home: Scaffold(
+          body: VisualPreparationCard(
+            state: state,
+            unit: {'id': id, 'explanation_visual_status': 'legacy_text'},
+            isCurrent: () => true,
+            refresh: () async {
+              refreshes++;
+            },
+          ),
+        ),
+      );
+      await tester.pumpWidget(screen('first'));
+      await tester.pump();
+      await tester.tap(find.text('Grafische Erklärung vorbereiten'));
+      await tester.pump();
+      // A new map for the same round must not discard its in-flight result.
+      await tester.pumpWidget(screen('first'));
+      first.complete(reply({'id': 'one', 'status': 'queued'}, 202));
+      await tester.pump();
+      await tester.pump();
+      expect(refreshes, 1);
+      await tester.pumpWidget(screen('second'));
+      await tester.pump();
+      await tester.tap(find.text('Grafische Erklärung vorbereiten'));
+      await tester.pump();
+      expect(posts.length, 2);
+      expect(
+        posts[0].headers['Idempotency-Key'],
+        isNot(posts[1].headers['Idempotency-Key']),
+      );
+      expect(posts.last.url.path, '/api/units/second/visual-explanation');
+      second.complete(reply({'id': 'two', 'status': 'queued'}, 202));
+      await tester.pump();
+      await tester.pump();
+      expect(refreshes, 2);
+    },
+  );
+  testWidgets('an old graphic reply cannot unlock the next round request', (
+    tester,
+  ) async {
+    final pending = [Completer<http.Response>(), Completer<http.Response>()];
+    final posts = <http.Request>[];
+    var refreshes = 0;
+    final state = app((request) {
+      if (request.method == 'GET') return reply({'status': 'missing'});
+      posts.add(request);
+      return pending[posts.length - 1].future;
+    });
+    addTearDown(state.dispose);
+    Widget screen(String id) => MaterialApp(
+      theme: appTheme(),
+      home: Scaffold(
+        body: VisualPreparationCard(
+          state: state,
+          unit: {'id': id, 'explanation_visual_status': 'legacy_text'},
+          isCurrent: () => true,
+          refresh: () async {
+            refreshes++;
+          },
+        ),
+      ),
+    );
+    await tester.pumpWidget(screen('first'));
+    await tester.pump();
+    await tester.tap(find.text('Grafische Erklärung vorbereiten'));
+    await tester.pump();
+    await tester.pumpWidget(screen('second'));
+    await tester.pump();
+    await tester.tap(find.text('Grafische Erklärung vorbereiten'));
+    await tester.pump();
+    pending.first.complete(reply({'id': 'old', 'status': 'queued'}, 202));
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('Wird angefragt …'), findsOneWidget);
+    expect(refreshes, 0);
+    pending.last.complete(reply({'id': 'new', 'status': 'queued'}, 202));
+    await tester.pump();
+    await tester.pump();
+    expect(refreshes, 1);
+  });
   testWidgets('missing graphic offers one compact action without a warning', (
     tester,
   ) async {
@@ -861,6 +956,63 @@ void main() {
     expect(find.text('Allgemeines Beispiel'), findsOneWidget);
     expect(calls.every((call) => call.method == 'GET'), isTrue);
   });
+  testWidgets(
+    'a changed topic discards the old public example and its late reply',
+    (tester) async {
+      final oldReply = Completer<http.Response>();
+      final newReply = Completer<http.Response>();
+      final requests = <http.Request>[];
+      final state = app((request) {
+        requests.add(request);
+        return requests.length == 1 ? oldReply.future : newReply.future;
+      });
+      addTearDown(state.dispose);
+      Widget screen(String topic) => MaterialApp(
+        theme: appTheme(),
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: VisualPreparationCard(
+              state: state,
+              unit: {
+                'id': 'unit',
+                'subject': 'Biologie',
+                'topic': topic,
+                'explanation_visual_status': 'legacy_text',
+              },
+              isCurrent: () => true,
+              refresh: () async {},
+            ),
+          ),
+        ),
+      );
+      Map<String, dynamic> result(String title) => {
+        'status': 'ready',
+        'asset': {
+          'title': title,
+          'text': title,
+          'presentation': steps[0]['presentation'],
+        },
+      };
+      await tester.pumpWidget(screen('alt'));
+      await tester.pump();
+      await tester.pumpWidget(screen('neu'));
+      await tester.pump();
+      expect(requests.length, 2);
+      oldReply.complete(reply(result('Altes Beispiel')));
+      await tester.pump();
+      await tester.pump();
+      expect(find.text('Allgemeines KI-Beispiel ansehen'), findsNothing);
+      newReply.complete(reply(result('Neues Beispiel')));
+      await tester.pump();
+      await tester.pump();
+      expect(find.text('Allgemeines KI-Beispiel ansehen'), findsOneWidget);
+      await tester.tap(find.text('Allgemeines KI-Beispiel ansehen'));
+      await tester.pumpAndSettle();
+      expect(find.text('Altes Beispiel'), findsNothing);
+      expect(find.text('Neues Beispiel'), findsWidgets);
+      expect(requests.every((request) => request.method == 'GET'), isTrue);
+    },
+  );
   testWidgets('a projected public scene is actually playable in a unit', (
     tester,
   ) async {

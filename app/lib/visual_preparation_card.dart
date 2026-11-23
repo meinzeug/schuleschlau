@@ -32,6 +32,13 @@ class _VisualPreparationCardState extends State<VisualPreparationCard>
   Json? publicVisual;
   Timer? publicTimer;
   int publicEpoch = 0, missingChecks = 0;
+  int prepareEpoch = 0;
+  (Object?, Object?, Object?, Object?) get publicContext => (
+    widget.unit['id'],
+    widget.unit['subject'],
+    widget.unit['topic'],
+    widget.unit['explanation_visual_status'],
+  );
   late final Json? owner = widget.state.user;
   late final String? ownerToken = widget.state.api.token,
       ownerFamily = widget.state.familyId;
@@ -56,6 +63,7 @@ class _VisualPreparationCardState extends State<VisualPreparationCard>
   @override
   void dispose() {
     publicEpoch++;
+    prepareEpoch++;
     publicTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
@@ -79,9 +87,14 @@ class _VisualPreparationCardState extends State<VisualPreparationCard>
       return;
     }
     final epoch = ++publicEpoch;
+    final contextAtRequest = publicContext;
     try {
       final value = await widget.state.api.get('/units/$id/public-visual');
-      if (!current || epoch != publicEpoch || widget.unit['id'] != id) return;
+      if (!current ||
+          epoch != publicEpoch ||
+          publicContext != contextAtRequest) {
+        return;
+      }
       setState(() => publicVisual = value);
       final status = value['status'];
       if (status == 'missing') missingChecks++;
@@ -98,12 +111,24 @@ class _VisualPreparationCardState extends State<VisualPreparationCard>
   @override
   void didUpdateWidget(covariant VisualPreparationCard oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.unit['id'] != oldWidget.unit['id']) {
+    final changedUnit = widget.unit['id'] != oldWidget.unit['id'];
+    if (changedUnit ||
+        widget.unit['subject'] != oldWidget.unit['subject'] ||
+        widget.unit['topic'] != oldWidget.unit['topic'] ||
+        widget.unit['explanation_visual_status'] !=
+            oldWidget.unit['explanation_visual_status']) {
       publicEpoch++;
       publicTimer?.cancel();
       publicVisual = null;
       missingChecks = 0;
       unawaited(loadPublicVisual());
+    }
+    if (changedUnit) {
+      prepareEpoch++;
+      busy = false;
+      dispatched = false;
+      error = null;
+      requestKey = null;
     }
     if (widget.unit['visual_preparation'] is Map &&
         ![
@@ -125,19 +150,25 @@ class _VisualPreparationCardState extends State<VisualPreparationCard>
     final owner = widget.state.user,
         token = widget.state.api.token,
         family = widget.state.familyId;
-    final snapshot = widget.unit;
+    final unitId = widget.unit['id'];
+    if (unitId is! String || unitId.isEmpty) return;
+    final serial = ++prepareEpoch;
     bool requestCurrent() =>
         current &&
-        identical(widget.unit, snapshot) &&
+        widget.unit['id'] == unitId &&
+        serial == prepareEpoch &&
         identical(widget.state.user, owner) &&
         widget.state.api.token == token &&
         widget.state.familyId == family;
-    setState(() => busy = true);
+    setState(() {
+      busy = true;
+      error = null;
+    });
     requestKey ??=
         'visual-${DateTime.now().microsecondsSinceEpoch}-${Random.secure().nextInt(1 << 30)}';
     try {
       final job = await widget.state.api.post(
-        '/units/${snapshot['id']}/visual-explanation',
+        '/units/${Uri.encodeComponent(unitId)}/visual-explanation',
         null,
         {'Idempotency-Key': requestKey!},
       );
@@ -150,7 +181,7 @@ class _VisualPreparationCardState extends State<VisualPreparationCard>
     } catch (e) {
       if (requestCurrent()) setState(() => error = e);
     } finally {
-      if (mounted) setState(() => busy = false);
+      if (mounted && serial == prepareEpoch) setState(() => busy = false);
     }
   }
 
