@@ -134,7 +134,7 @@ try {
   const answer=childPage.waitForResponse(r=>new URL(r.url()).pathname==='/api/units/'+unit+'/questions/sum/answer' && r.request().method()==='POST');
   answer.catch(()=>{});
   await tap(childPage,button(childPage,'Antwort prüfen')); assert.equal((await answer).status(),200);
-  await childPage.getByText('Richtig!',{exact:true}).waitFor();
+  await childPage.getByText('Richtig!',{exact:true}).last().waitFor();
   step='done'; console.log(JSON.stringify({approved:true}));
 } catch(e) {
   if (debugPage) { await debugPage.screenshot({path:screens+'/browser-failure.png'}); console.error('route '+new URL(debugPage.url()).pathname+' '+(await debugPage.locator('flt-semantics').allTextContents()).slice(-8).join(' | ').slice(0,1500)); }
