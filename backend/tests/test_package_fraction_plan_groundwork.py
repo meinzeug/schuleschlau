@@ -7,6 +7,8 @@ from schulpilot import package_fraction_plan as planner
 
 EXPAND = 'Beim Erweitern multipliziert man Zähler und Nenner mit derselben Zahl. Beispiel: 1/2 = 2/4.'
 REDUCE = 'Beim Kürzen teilt man Zähler und Nenner durch dieselbe Zahl. Beispiel: 2/4 = 1/2.'
+OCR_EXPAND = 'Brüche erweitern\n\nZähler und Nenner mit derselben Zahl multiplizieren.\n\n2/3 = 4/6.'
+OCR_REDUCE = 'Brüche kürzen\n\nZähler und Nenner durch dieselbe Zahl teilen.\n\n3/9 = 1/3.'
 
 
 def payload(content=EXPAND):
@@ -71,15 +73,92 @@ def test_fixed_and_open_prior_checks_are_never_rewritten():
     assert value['slots'][1]['task']['id'] == 'next'
 
 
-def test_unknown_rules_cross_group_and_ambiguity_do_not_create_a_plan():
+def test_unknown_rules_cross_group_and_unmapped_goals_do_not_create_a_plan():
     assert planner.prepare(payload('Thema Brüche, 1/2.'), slots('practice'), []) is None
-    assert planner.prepare(payload(EXPAND + '\n' + REDUCE), slots('practice'), []) is None
+    assert planner.prepare(payload(EXPAND + '\n' + REDUCE),
+                           [{'id': 'q1', 'role': 'practice', 'learning_goal_id': 'unmapped'}], []) is None
     p = payload(); p['visual_context']['sources'][0]['group_id'] = 'other'
     assert planner.prepare(p, slots('practice'), []) is None
     p = payload(); p['visual_context']['sources'][0]['source_type'] = 'curated_foundation'
     assert planner.prepare(p, slots('practice'), []) is None
     p = payload(); p['selected_groups'][0]['subject'] = 'Biologie'
     assert planner.prepare(p, slots('practice'), []) is None
+
+
+def test_mixed_explicit_rules_rotate_without_claiming_mastery_or_repeating_values():
+    request = payload(EXPAND + '\n' + REDUCE)
+    chosen = slots('prior_check', 'practice')
+    first = planner.prepare(request, chosen, [])
+    assert first['operation'] in ('expand', 'reduce')
+    assert first['revision'] == planner.MIXED_REVISION
+    assert first['slots'][0] == {'slot': chosen[0], 'task': None}
+    prior = [first['slots'][1]['task']['prompt']]
+    following = planner.prepare(request, chosen, prior)
+    assert following['operation'] != first['operation']
+    assert Fraction(*following['slots'][1]['input']) != Fraction(*first['slots'][1]['input'])
+    planner.validate(request, chosen, first['excluded_values'], first)
+    planner.validate(request, chosen, following['excluded_values'], following)
+    for plan in (first, following):
+        row = plan['slots'][1]
+        factor = row['factor_or_divisor']
+        assert ('Faktor' if plan['operation'] == 'expand' else 'Teiler') + f' {factor}' in row['task']['prompt']
+        assert Fraction(*row['input']) == Fraction(*row['output'])
+
+
+def test_mixed_explicit_rules_prefer_the_less_often_offered_procedure():
+    request = payload(EXPAND + '\n' + REDUCE)
+    chosen = slots('practice', 'practice')
+    counts = {'expand': 4, 'reduce': 1}
+    plan = planner.prepare(request, chosen, [], operation_counts=counts)
+    assert plan['operation'] == 'reduce' and plan['mixed_operation_counts'] == counts
+    assert all('Teiler' in row['task']['prompt'] for row in plan['slots'])
+    planner.validate(request, chosen, plan['excluded_values'], plan, operation_counts=counts)
+    with pytest.raises(ValueError, match='nicht mehr gültig'):
+        planner.validate(request, chosen, plan['excluded_values'], plan,
+                         operation_counts={'expand': 4, 'reduce': 2})
+
+
+def test_operation_history_counts_only_own_distinct_offered_questions(api, household):
+    from conftest import create_child
+    from schulpilot.db import DB, LearningUnit
+    parent, child = household
+    other = create_child(api, parent, username='fraction-operation-sibling')
+    with DB.begin() as db:
+        db.add(LearningUnit(child_id=child['id'], subject='Mathematik', topic='Künstlich', explanation='',
+            provider='synthetic-test', questions=[{'prompt': 'Erweitere 1/3 mit dem Faktor 2.'},
+                                                   {'prompt': 'Erweitere 1/3 mit dem Faktor 2.'},
+                                                   {'prompt': 'Kürze 4/6 durch den Teiler 2.'}]))
+        db.add(LearningUnit(child_id=other['id'], subject='Mathematik', topic='Künstlich', explanation='',
+            provider='synthetic-test', questions=[{'prompt': 'Kürze 6/9 durch den Teiler 3.'}]))
+        db.flush()
+        assert planner.operation_history(db, child['id']) == {'expand': 1, 'reduce': 1}
+
+
+def test_literal_ocr_heading_and_rule_are_bound_even_when_two_sources_are_combined():
+    request = payload(OCR_REDUCE)
+    request['visual_context']['sources'].append({
+        **request['visual_context']['sources'][0], 'ref': 'p2', 'material_id': '2' * 32, 'content': OCR_EXPAND})
+    chosen = slots('prior_check', 'practice')
+    value = planner.prepare(request, chosen, [])
+    assert value is not None
+    assert value['source_excerpt'] in (OCR_REDUCE.split('\n\n3/9')[0], OCR_EXPAND.split('\n\n2/3')[0])
+    assert value['slots'][1]['task'] is not None
+    planner.validate(request, chosen, value['excluded_values'], value)
+
+
+@pytest.mark.parametrize('content', [
+    'Brüche kürzen\n\nHeute keine Regel.\n\nZähler und Nenner durch dieselbe Zahl teilen.',
+    'Brüche kürzen und erweitern\n\nZähler und Nenner durch dieselbe Zahl teilen.',
+    'Brüche kürzen\n\nZähler und Nenner durch dieselbe Zahl teilen. Das ist falsch.',
+    'Brüche kürzen\n\nZähler und Nenner durch dieselbe Zahl teilen.\n\nHeute nur durch 2.',
+    'Brüche erweitern\n\nZähler und Nenner mit derselben Zahl multiplizieren.\n\nNur mit dem Faktor 2.',
+    'Falsches Beispiel:\n\nBrüche kürzen\n\nZähler und Nenner durch dieselbe Zahl teilen.',
+    'Brüche kürzen\n\nZähler und Nenner durch dieselbe Zahl teilen.\n\nDiese Regel ist falsch.',
+])
+def test_heading_rule_does_not_bridge_unrelated_or_restricted_text(content):
+    from schulpilot.math_tasks import _procedure_quote
+    label = 'Brüche erweitern' if 'erweitern' in content and 'kürzen' not in content else 'Brüche kürzen'
+    assert _procedure_quote([{'content': content}], label) is None
 
 
 def test_equivalent_historical_values_and_unknown_questions_are_conservative():
@@ -100,6 +179,7 @@ def test_equivalent_historical_values_and_unknown_questions_are_conservative():
 
 def test_digest_binds_source_revision_and_finite_task_plan():
     initial = planner.prepare(payload(), slots('practice'), [])
+    assert initial['revision'] == planner.REVISION
     planner.validate(payload(), slots('practice'), [], initial)
     changed = copy.deepcopy(payload()); changed['visual_context']['sources'][0]['revision'] += 1
     revised = planner.prepare(changed, slots('practice'), [])
@@ -278,9 +358,13 @@ def test_only_exact_stored_recipe_for_confirmed_group_is_added(household, conten
         other_group = copy.deepcopy(request)
         other_group['visual_context']['sources'][0]['group_id'] = 'other'
         assert planner.add_reference(db, other_group) == other_group
-        ambiguous = payload(EXPAND + '\n' + REDUCE)
-        ambiguous['visual_context']['references'] = []
-        assert planner.add_reference(db, ambiguous) == ambiguous
+        mixed = payload(EXPAND + '\n' + REDUCE)
+        mixed['visual_context']['references'] = []
+        enriched = planner.add_reference(db, mixed)
+        assert {item['id'] for item in enriched['visual_context']['references']} == {
+            'math.fraction.expansion', 'math.fraction.reduction'}
+        assert planner.add_reference(db, enriched) == enriched
+        planner.validate_reference(db, planner.prepare(enriched, slots('practice'), []))
 
 
 @pytest.mark.parametrize('content', [EXPAND, REDUCE])

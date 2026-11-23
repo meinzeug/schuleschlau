@@ -128,16 +128,18 @@ def prepare(db, job_id, payload, *, require_existing=False):
     if provisional is None:
         return payload
     prior = fractions.history(db, child_id, ignore_job_ids={job.id})
+    counts = (fractions.operation_history(db, child_id, ignore_job_ids={job.id})
+              if provisional.get('mixed_rule') else None)
     saved = job.payload.get('package_fraction_plan')
     if saved is None:
         if require_existing:
             raise ValueError(INVALID)
-        saved = fractions.prepare(enriched, slots, prior)
+        saved = fractions.prepare(enriched, slots, prior, operation_counts=counts)
         fractions.validate_reference(db, saved)
         job.payload = {**job.payload, 'package_fraction_plan': copy.deepcopy(saved)}
         db.flush()
     else:
-        fractions.validate(enriched, slots, saved.get('excluded_values', []), saved)
+        fractions.validate(enriched, slots, saved.get('excluded_values', []), saved, operation_counts=counts)
         fractions.validate_reference(db, saved)
         used = {str(Fraction(*row['input'])) for row in saved['slots'] if row.get('task') is not None}
         if used.intersection(prior):
@@ -188,9 +190,11 @@ def validate_publication(db, job, child, context, output, pages):
     slots = _checked_payload(db, job, payload, pages)
     if slots is None:
         raise ValueError(INVALID)
-    fractions.validate(payload, slots, plan.get('excluded_values', []), plan)
-    fractions.validate_reference(db, plan)
     prior = fractions.history(db, child.id, ignore_job_ids={job.id})
+    counts = (fractions.operation_history(db, child.id, ignore_job_ids={job.id})
+              if plan.get('mixed_rule') else None)
+    fractions.validate(payload, slots, plan.get('excluded_values', []), plan, operation_counts=counts)
+    fractions.validate_reference(db, plan)
     used = {str(Fraction(*row['input'])) for row in plan['slots'] if row.get('task') is not None}
     if used.intersection(prior):
         raise ValueError(fractions.UNCLEAR)

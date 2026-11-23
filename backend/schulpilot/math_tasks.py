@@ -67,6 +67,36 @@ def _connected_reduction_clause(quote):
     ))
 
 
+def _headed_fraction_rule(sources, label):
+    """Recognize a standalone heading followed immediately by its full rule.
+
+    Only the literal two-line source is returned. An intervening paragraph,
+    example, qualifier or a different heading is not evidence of a rule.
+    """
+    if label not in ("Brüche erweitern", "Brüche kürzen"):
+        return None
+    heading = r"Brüche[ \t]+" + (r"erweitern" if label == "Brüche erweitern" else r"kürzen")
+    common = (r"mit[ \t]+(?:derselben|der[ \t]+gleichen)[ \t]+(?:ganzen[ \t]+)?Zahl"
+              if label == "Brüche erweitern" else
+              r"durch[ \t]+(?:dieselbe|die[ \t]+gleiche)[ \t]+(?:ganze[ \t]+)?Zahl")
+    verb = r"multiplizieren" if label == "Brüche erweitern" else r"teilen"
+    rule = r"Zähler[ \t]+und[ \t]+Nenner[ \t]+" + common + r"[ \t]+" + verb
+    pattern = re.compile(r"(?im)^[ \t]*" + heading + r"[ \t]*:?[ \t]*\r?\n(?:[ \t]*\r?\n)?"
+                         + r"[ \t]*" + rule + r"[ \t]*[.!][ \t]*(?=\r?$)")
+    for source in sources:
+        content = source["content"]
+        for match in pattern.finditer(content):
+            before = next((line.strip() for line in reversed(content[:match.start()].splitlines()) if line.strip()), "")
+            after = next((line.strip() for line in content[match.end():].splitlines() if line.strip()), "")
+            warning = r"\b(?:falsch\w*|gegenbeispiel\w*|fehlerhaft\w*|nicht|niemals|keinesfalls|später|morgen)\b"
+            if re.search(warning, before, re.I) or re.search(warning, after, re.I):
+                continue
+            quote = match.group().strip()
+            if len(quote) <= 350:
+                return quote
+    return None
+
+
 def _procedure_quote(sources, label):
     """Require a general rule in one clause, not nearby vocabulary/examples."""
     operation = {
@@ -91,6 +121,9 @@ def _procedure_quote(sources, label):
                              if label == "Brüche erweitern" else [content])
         if any(re.search(restricted, text, re.I) for text in restriction_texts):
             return None
+    headed = _headed_fraction_rule(sources, label)
+    if headed:
+        return headed
     if label == "Brüche erweitern":
         # A short workbook imperative states the same general operation as
         # multiplying both parts. Preserve its literal OCR line breaks. This

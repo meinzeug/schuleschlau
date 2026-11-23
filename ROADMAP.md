@@ -2102,6 +2102,18 @@ Bestandteil des bestehenden Buildvertrags.
     Die eigentliche Bruchplanung bleibt offen.
     [Prüfung und Grenzen](docs/PACKAGE_PENDING_HISTORY_2026_11_05.md).
 
+  - [x] **Gemischte, ausdrücklich belegte Bruchregeln vorab planen.**
+    Getrennte Überschrift und unmittelbar folgende vollständige Regel werden
+    bei eng begrenzter Übereinstimmung als wörtlicher Quellenbeleg erkannt.
+    Der versionierte Plan bindet für freie Übungsplätze Faktoren, Aufgaben,
+    Ergebnisse, Quelle und geprüfte Grafik. Bei zwei belegten Verfahren wird
+    das seltener angebotene bevorzugt; geänderte Historie wird erneut geprüft.
+    Mehrseitige bestätigte Bruchpakete verwenden vor der Reservierung die
+    konfigurierte Sol-Route. Künstliche Worker-, Quellen-, Kosten- und
+    PostgreSQL-Fälle prüfen diese Teilfunktion. Der echte durchgehende
+    Lernweg bleibt bis zu seiner eigenen Abnahme offen.
+    [Umfang und Grenzen](docs/PACKAGE_FRACTION_MIXED_2026_11_23.md).
+
   - [x] **Geprüfte Brucherweiterungsbeweise auf Paketgruppen vorbereiten.**
     Die bestehenden Beweishelfer können Originalquellen einer ausdrücklich
     gewählten Fachgruppe getrennt verarbeiten; fremde Gruppen und kuratierte

@@ -11,7 +11,7 @@ from schulpilot import package_fraction_plan as fractions
 from schulpilot.db import DB, Child, Job, LearningUnit, Material, SchoolDay, Session
 from schulpilot.school_day import validate_package_sources
 from schulpilot.providers import ProviderError
-from test_package_fraction_plan_groundwork import EXPAND
+from test_package_fraction_plan_groundwork import EXPAND, OCR_EXPAND, OCR_REDUCE
 from test_school_preparation_parts import make_day
 from test_package_parts_worker import preparation
 
@@ -19,8 +19,11 @@ from test_package_parts_worker import preparation
 def running_job(api, household, content=EXPAND, *, count=1):
     day_id = make_day(household, count=count)
     with DB.begin() as db:
-        for page in db.scalars(select(Material).where(Material.school_day_id == day_id)):
-            page.subject, page.topic, page.content = 'Mathematik', 'Brüche', content
+        pages = list(db.scalars(select(Material).where(Material.school_day_id == day_id).order_by(Material.page_number)))
+        texts = content if isinstance(content, list) else [content] * len(pages)
+        assert len(texts) == len(pages)
+        for page, text in zip(pages, texts):
+            page.subject, page.topic, page.content = 'Mathematik', 'Brüche', text
     preparation(api, day_id, 'synthetic-fraction-reservation')
     with DB() as db:
         job_id = worker.claim(db)
@@ -55,6 +58,22 @@ def test_authorized_job_persists_one_immutable_plan_and_replays(api, household):
     response = api.get(f'/api/jobs/{job_id}')
     assert response.status_code == 200
     assert 'package_fraction_plan' not in response.text and EXPAND not in response.text
+
+
+def test_mixed_plan_rechecks_offered_procedure_counts_before_provider_result(api, household):
+    _, job_id, request = running_job(api, household, [OCR_REDUCE, OCR_EXPAND], count=2)
+    with DB.begin() as db:
+        planned = reservation.prepare(db, job_id, request)['package_fraction_plan']
+        assert planned['mixed_rule'] is True
+        assert planned['mixed_operation_counts'] == {'expand': 0, 'reduce': 0}
+    with DB.begin() as db:
+        db.add(LearningUnit(child_id=household[1]['id'], subject='Mathematik', topic='Künstlich', explanation='',
+            provider='synthetic-test', questions=[{'prompt': 'Erweitere 5/11 mit dem Faktor 2.'}]))
+    with pytest.raises(ValueError, match='nicht mehr gültig'):
+        with DB.begin() as db:
+            reservation.prepare(db, job_id, request, require_existing=True)
+    with DB() as db:
+        assert db.get(Job, job_id).payload['package_fraction_plan'] == planned
 
 
 @pytest.mark.parametrize('fault', ['changed_source', 'foreign_group', 'changed_partition', 'revoked_session',

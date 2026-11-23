@@ -357,11 +357,13 @@ def features_for(db, child_id, job_id):
     ids.discard(None)
     sources = list(db.scalars(select(Material).where(Material.child_id == child_id, Material.id.in_(ids)))) if ids else []
     from .coach_routing import output_need as coach_output_need
+    from .grades import subject_key
     from .image_quality import poor_image
     from .material_review import routing_check
     from .material_routing import extended_output as material_extended_output
     from .notebook_routing import extended_output as notebook_extended_output
     from .notebook_routing import length_failed as notebook_length_failed
+    from .package_fraction_plan import _METHOD as fraction_method
     from .study_routing import extended_output as study_extended_output
 
     return {
@@ -374,6 +376,14 @@ def features_for(db, child_id, job_id):
         "transcription_review": extraction_recheck(db, child_id, job) or routing_check(db, child_id, job),
         "study_length_failed": study_length_failed(db, child_id, job),
         "package_length_failed": package_length_failed(db, child_id, job),
+        # More than one confirmed fraction page needs a complete structured
+        # packet. Choose the already configured teaching route *before* the
+        # single reservation; never transfer this flag to another child or
+        # infer a mastery state from a source.
+        "package_multi_fraction": bool(job and job.kind == "package" and len(sources) >= 2
+            and len(sources) == len(ids)
+            and all(m.confirmed and subject_key(m.subject) == "mathematik" for m in sources)
+            and any(fraction_method.search((m.topic or "") + "\n" + (m.content or "")) for m in sources)),
         "study_extended_output": study_extended_output(db, child_id, job),
         "notebook_length_failed": notebook_length_failed(db, child_id, job),
         "notebook_extended_output": notebook_extended_output(db, child_id, job),
@@ -400,6 +410,8 @@ def choose_tier(function, features, *, economy=False):
         return "sol", "recorded_transcription_review"
     if function == "package" and features.get("package_length_failed"):
         return "sol", "recorded_package_output_length"
+    if function == "package" and features.get("package_multi_fraction"):
+        return "sol", "multi_source_fraction_teaching"
     if function in ("unit", "study_block") and features.get("study_length_failed"):
         return "sol", "recorded_study_output_length"
     if function == "unit" and features.get("notebook_length_failed"):

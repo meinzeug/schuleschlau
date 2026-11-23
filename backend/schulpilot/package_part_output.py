@@ -297,9 +297,10 @@ def validate(data, *, fraction_plan=None):
     Ordinary callers keep the original one-graphic limit.
     """
     if fraction_plan is not None:
-        from .package_fraction_plan import REVISION, _digest
+        from .package_fraction_plan import REVISIONS, _digest
 
-        if (not isinstance(fraction_plan, dict) or fraction_plan.get('revision') != REVISION
+        if (not isinstance(fraction_plan, dict) or not isinstance(fraction_plan.get('revision'), str)
+                or fraction_plan['revision'] not in REVISIONS
                 or fraction_plan.get('digest') != _digest({k: v for k, v in fraction_plan.items() if k != 'digest'})
                 or not isinstance(fraction_plan.get('slots'), list)):
             raise ValueError("Der Grafikplan ist ungültig.")

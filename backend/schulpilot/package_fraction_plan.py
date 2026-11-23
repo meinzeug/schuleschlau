@@ -13,6 +13,8 @@ from .package_prepared_graphics import _digest
 from .study_fraction_expansions import _sources
 
 REVISION = 'package-fraction-plan-1'
+MIXED_REVISION = 'package-fraction-plan-2'
+REVISIONS = frozenset((REVISION, MIXED_REVISION))
 EXHAUSTED = 'Für diese Regel sind keine ausreichend verschiedenen neuen Brüche verfügbar.'
 UNCLEAR = 'Frühere Bruchaufgaben können nicht sicher auf Wiederholungen geprüft werden.'
 INVALID = 'Der Bruchplan oder seine Quellen sind nicht mehr gültig.'
@@ -53,6 +55,7 @@ def history(db, child_id, *, ignore_job_ids=()):
     value, never prove mastery. This helper alone does not reserve or publish.
     """
     from sqlalchemy import select
+
     from .db import Job, LearningUnit, Material
     from .grades import subject_key
     from .package_question_history import unpublished_prompts_for_exclusion
@@ -86,7 +89,7 @@ def history(db, child_id, *, ignore_job_ids=()):
             # An old/concurrent package could still publish any fraction.
             # Without a persisted plan, its intended task cannot be excluded.
             raise ValueError(UNCLEAR)
-        if (not isinstance(plan, dict) or plan.get('revision') != REVISION
+        if (not isinstance(plan, dict) or not isinstance(plan.get('revision'), str) or plan['revision'] not in REVISIONS
                 or plan.get('digest') != _digest({k: v for k, v in plan.items() if k != 'digest'})
                 or not isinstance(plan.get('slots'), list)):
             raise ValueError(INVALID)
@@ -99,6 +102,55 @@ def history(db, child_id, *, ignore_job_ids=()):
                     raise ValueError(INVALID)
                 found.update(history_exclusions([task['prompt']]))
     return sorted(found)
+
+
+def operation_history(db, child_id, *, ignore_job_ids=()):
+    """Count distinct previously offered procedures, never answers or mastery.
+
+    The caller holds Child and first validates the same private history through
+    ``history``. Pending plans and staged outputs only affect selection; they
+    do not establish a learning result.
+    """
+    from sqlalchemy import select
+
+    from .checks import fraction_instruction
+    from .db import Job, LearningUnit
+    from .grades import subject_key
+    from .package_question_history import unpublished_prompts_for_exclusion
+
+    prompts = set()
+    for subject, questions in db.execute(select(LearningUnit.subject, LearningUnit.questions)
+                                         .where(LearningUnit.child_id == child_id)):
+        if subject_key(subject) == 'mathematik':
+            if not isinstance(questions, list):
+                raise ValueError(INVALID)
+            for question in questions:
+                if not isinstance(question, dict) or not isinstance(question.get('prompt'), str):
+                    raise ValueError(INVALID)
+                prompts.add(question['prompt'])
+    prompts.update(unpublished_prompts_for_exclusion(db, child_id, 'Mathematik', ignore_job_ids=ignore_job_ids))
+    ignored = set(ignore_job_ids)
+    for job in db.scalars(select(Job).where(Job.child_id == child_id, Job.kind == 'package',
+                                             Job.status.in_(['queued', 'running']))):
+        if job.id in ignored:
+            continue
+        plan = job.payload.get('package_fraction_plan') if isinstance(job.payload, dict) else None
+        if (not isinstance(plan, dict) or not isinstance(plan.get('revision'), str) or plan['revision'] not in REVISIONS
+                or plan.get('digest') != _digest({k: v for k, v in plan.items() if k != 'digest'})
+                or not isinstance(plan.get('slots'), list)):
+            raise ValueError(UNCLEAR)
+        for row in plan['slots']:
+            task = row.get('task') if isinstance(row, dict) else None
+            if task is not None:
+                if not isinstance(task, dict) or not isinstance(task.get('prompt'), str):
+                    raise ValueError(INVALID)
+                prompts.add(task['prompt'])
+    counts = {'expand': 0, 'reduce': 0}
+    for prompt in prompts:
+        instruction = fraction_instruction(prompt)
+        if instruction and instruction['operation'] in counts:
+            counts[instruction['operation']] += 1
+    return counts
 
 
 def _pool(operation):
@@ -127,7 +179,7 @@ def _core(ident, operation, row):
 
 
 def add_reference(db, payload):
-    """Offer only the exact stored recipe for one explicitly evidenced rule.
+    """Offer exact stored recipes only for explicitly evidenced rules.
 
     This helper does not authorize a provider call. Only original sources of
     the selected group count.
@@ -148,28 +200,32 @@ def add_reference(db, payload):
     rules = [(name, _procedure_quote(sources, label)) for name, label in
              (('expand', 'Brüche erweitern'), ('reduce', 'Brüche kürzen'))]
     eligible = [name for name, quote in rules if quote]
-    if len(eligible) != 1:
+    if not eligible:
         return payload
-    ident = {'expand': 'math.fraction.expansion', 'reduce': 'math.fraction.reduction'}[eligible[0]]
-    saved = db.get(VisualReference, (ident, 1), populate_existing=True)
-    if (saved is None or not isinstance(saved.recipe, dict) or _digest(saved.recipe) != saved.digest
-            or saved.recipe.get('id') != ident or saved.recipe.get('version') != 1
-            or saved.recipe.get('kind') != 'fraction' or saved.recipe.get('scope') != 'unit_composition_only'
-            or 'Mathematik' not in saved.recipe.get('subjects', [])):
-        raise ValueError(INVALID)
     references = context.get('references', [])
     if not isinstance(references, list):
         raise ValueError(INVALID)
-    ref = {'id': ident, 'version': 1, 'digest': saved.digest, 'kind': 'fraction', 'subject': 'Mathematik'}
-    matching = [row for row in references if isinstance(row, dict) and row.get('id') == ident]
-    if matching and matching != [ref]:
-        raise ValueError(INVALID)
-    if matching:
+    result = list(references)
+    for operation in eligible:
+        ident = {'expand': 'math.fraction.expansion', 'reduce': 'math.fraction.reduction'}[operation]
+        saved = db.get(VisualReference, (ident, 1), populate_existing=True)
+        if (saved is None or not isinstance(saved.recipe, dict) or _digest(saved.recipe) != saved.digest
+                or saved.recipe.get('id') != ident or saved.recipe.get('version') != 1
+                or saved.recipe.get('kind') != 'fraction' or saved.recipe.get('scope') != 'unit_composition_only'
+                or 'Mathematik' not in saved.recipe.get('subjects', [])):
+            raise ValueError(INVALID)
+        ref = {'id': ident, 'version': 1, 'digest': saved.digest, 'kind': 'fraction', 'subject': 'Mathematik'}
+        matching = [row for row in result if isinstance(row, dict) and row.get('id') == ident]
+        if matching and matching != [ref]:
+            raise ValueError(INVALID)
+        if not matching:
+            result.append(ref)
+    if result == references:
         return payload
-    return {**payload, 'visual_context': {**context, 'references': [*references, ref]}}
+    return {**payload, 'visual_context': {**context, 'references': result}}
 
 
-def prepare(payload, slots, previous_prompts):
+def prepare(payload, slots, previous_prompts, *, operation_counts=None):
     """Plan only original, explicitly taught one-operation practice slots.
 
     Fixed diagnostic questions and open prior checks are returned unchanged.
@@ -197,11 +253,28 @@ def prepare(payload, slots, previous_prompts):
     rule = {name: _procedure_quote(sources, label) for name, label in
             (('expand', 'Brüche erweitern'), ('reduce', 'Brüche kürzen'))}
     eligible = [(name, quote) for name, quote in rule.items() if quote]
-    # A mixed page has two different eligible procedures; a topic title alone
-    # cannot determine which one the child has actually selected.
-    if len(eligible) != 1:
+    if not eligible:
         return None
-    operation, quote = eligible[0]
+    excluded = set(history_exclusions(previous_prompts))
+    for row in sources:
+        excluded.update(values(row['content']))
+    free = [s for s in slots if s.get('role') == 'practice' and 'type' not in s]
+    # A single practice slot cannot cover two rules. Choose only from explicitly
+    # evidenced procedures, preferring the one offered less often. This is
+    # exercise selection, never a claim about mastery. A named goal cannot be
+    # mapped to a procedure from the identifier alone.
+    if len(eligible) > 1 and (not free or any('learning_goal_id' in s for s in free)):
+        return None
+    if operation_counts is not None and (not isinstance(operation_counts, dict)
+            or set(operation_counts) != {'expand', 'reduce'}
+            or any(type(v) is not int or v < 0 for v in operation_counts.values())):
+        raise ValueError(INVALID)
+    if len(eligible) > 1 and operation_counts is not None:
+        least = min(operation_counts[name] for name, _ in eligible)
+        candidates = [item for item in eligible if operation_counts[item[0]] == least]
+    else:
+        candidates = eligible
+    operation, quote = candidates[len(excluded) % len(candidates)]
     source = next((s for s in sources if quote in s['content']), None)
     if source is None:
         raise ValueError(INVALID)
@@ -214,10 +287,6 @@ def prepare(payload, slots, previous_prompts):
                      and isinstance(r.get('digest'), str) and re.fullmatch(r'[a-f0-9]{64}', r['digest'])]
     if len(selected_refs) != 1:
         return None
-    excluded = set(history_exclusions(previous_prompts))
-    for row in sources:
-        excluded.update(values(row['content']))
-    free = [s for s in slots if s.get('role') == 'practice' and 'type' not in s]
     choices, seen = [], set(excluded)
     for row in _pool(operation) if free else ():
         n, d = row[:2]
@@ -244,19 +313,25 @@ def prepare(payload, slots, previous_prompts):
             task['learning_goal_id'] = slot['learning_goal_id']
         planned.append({'slot': copy.deepcopy(slot), 'task': task,
                         'input': list(row[:2]), 'factor_or_divisor': row[2], 'output': list(row[3:])})
-    value = {'version': 1, 'revision': REVISION, 'operation': operation, 'group_id': group,
+    value = {'version': 1, 'revision': MIXED_REVISION if len(eligible) > 1 else REVISION,
+             'operation': operation, 'group_id': group,
              'partition': payload['package_partition'], 'package_plan_digest': payload.get('package_plan_digest'),
              'source_ref': source['ref'], 'source_digest': _digest(source), 'source_excerpt': quote,
              'reference': {'id': recipe_id, 'version': 1, 'digest': selected_refs[0]['digest']},
              'excluded_values': sorted(excluded), 'slots': planned}
+    if len(eligible) > 1:
+        value['mixed_rule'] = True
+        if operation_counts is not None:
+            value['mixed_operation_counts'] = copy.deepcopy(operation_counts)
     return {**value, 'digest': _digest(value)}
 
 
-def validate(payload, slots, previous_prompts, saved):
+def validate(payload, slots, previous_prompts, saved, *, operation_counts=None):
     """Recompute against current authoritative inputs; never repair a plan."""
     if not isinstance(saved, dict) or saved.get('digest') != _digest({k: v for k, v in saved.items() if k != 'digest'}):
         raise ValueError(INVALID)
-    if prepare(payload, slots, previous_prompts) != saved:
+    counts = saved.get('mixed_operation_counts') if operation_counts is None else operation_counts
+    if prepare(payload, slots, previous_prompts, operation_counts=counts) != saved:
         raise ValueError(INVALID)
 
 
@@ -307,7 +382,7 @@ def solution_step(plan, row):
                 f'So entsteht {out_n}/{out_d}. Beide Bilder zeigen gleich viel.')
     else:
         raise ValueError(INVALID)
-    return {'id': 'pf_' + _digest({'revision': REVISION, 'plan': plan['digest'], 'task': row['task']})[:24],
+    return {'id': 'pf_' + _digest({'revision': plan['revision'], 'plan': plan['digest'], 'task': row['task']})[:24],
             'text': text, 'competence_id': None, 'disclosure': 'solution',
             'reference': {'id': plan['reference']['id'], 'version': plan['reference']['version']},
             'source_refs': [plan['source_ref']],
