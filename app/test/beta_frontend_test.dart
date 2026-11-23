@@ -171,6 +171,173 @@ void main() {
     expect(find.text('Beta-Zugang freigegeben.'), findsOneWidget);
   });
 
+  testWidgets('admin sees when a model breakdown is incomplete', (
+    tester,
+  ) async {
+    final state = AppState(
+      api: Api(
+        base: 'https://example.invalid/api',
+        client: MockClient(
+          (_) async => reply({
+            'items': [
+              {
+                'id': '22222222222222222222222222222222',
+                'display_name': 'Künstliches Elternkonto',
+                'family_name': 'Testfamilie',
+                'email_verified': true,
+                'status': 'approved',
+                'revision': 2,
+                'usage': {
+                  'calls': 12,
+                  'known_usd_micros': 120000,
+                  'unknown_calls': 0,
+                  'models_truncated': false,
+                  'by_model': {
+                    for (var i = 0; i < 11; i++)
+                      'fixture/model-$i': {
+                        'calls': 1,
+                        'known_usd_micros': 10000,
+                        'unknown_calls': 0,
+                      },
+                  },
+                },
+              },
+            ],
+            'page': 1,
+            'has_more': false,
+          }),
+        ),
+      ),
+    )..user = {'id': 'operator', 'role': 'admin'};
+    addTearDown(state.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: appTheme(),
+        home: Scaffold(
+          body: SingleChildScrollView(child: AdminBetaApplications(state)),
+        ),
+      ),
+    );
+    await tester.tap(find.text('Beta-Anmeldungen'));
+    await tester.pumpAndSettle();
+    expect(
+      find.textContaining(
+        'Weitere Modelle sind in den Gesamtkosten enthalten.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.textContaining('12 KI-Aufrufe'), findsOneWidget);
+  });
+
+  testWidgets('admin sees when the server truncated a short model breakdown', (
+    tester,
+  ) async {
+    final state = AppState(
+      api: Api(
+        base: 'https://example.invalid/api',
+        client: MockClient(
+          (_) async => reply({
+            'items': [
+              {
+                'id': '22222222222222222222222222222222',
+                'display_name': 'Künstliches Elternkonto',
+                'family_name': 'Testfamilie',
+                'email_verified': true,
+                'status': 'approved',
+                'revision': 2,
+                'usage': {
+                  'calls': 12,
+                  'known_usd_micros': 120000,
+                  'unknown_calls': 0,
+                  'models_truncated': true,
+                  'by_model': {
+                    for (var i = 0; i < 1; i++)
+                      'fixture/model-$i': {
+                        'calls': 1,
+                        'known_usd_micros': 10000,
+                        'unknown_calls': 0,
+                      },
+                  },
+                },
+              },
+            ],
+            'page': 1,
+            'has_more': false,
+          }),
+        ),
+      ),
+    )..user = {'id': 'operator', 'role': 'admin'};
+    addTearDown(state.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: appTheme(),
+        home: Scaffold(
+          body: SingleChildScrollView(child: AdminBetaApplications(state)),
+        ),
+      ),
+    );
+    await tester.tap(find.text('Beta-Anmeldungen'));
+    await tester.pumpAndSettle();
+    expect(
+      find.textContaining(
+        'Weitere Modelle sind in den Gesamtkosten enthalten.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.textContaining('12 KI-Aufrufe'), findsOneWidget);
+  });
+
+  testWidgets('tiny reported beta costs are not rounded down to zero', (
+    tester,
+  ) async {
+    final state = AppState(
+      api: Api(
+        base: 'https://example.invalid/api',
+        client: MockClient(
+          (_) async => reply({
+            'items': [
+              {
+                'id': '22222222222222222222222222222222',
+                'display_name': 'Künstliches Elternkonto',
+                'family_name': 'Testfamilie',
+                'email_verified': true,
+                'status': 'approved',
+                'revision': 2,
+                'usage': {
+                  'calls': 1,
+                  'known_usd_micros': 1,
+                  'unknown_calls': 0,
+                  'by_model': {
+                    'fixture/model': {
+                      'calls': 1,
+                      'known_usd_micros': 1,
+                      'unknown_calls': 0,
+                    },
+                  },
+                },
+              },
+            ],
+            'page': 1,
+            'has_more': false,
+          }),
+        ),
+      ),
+    )..user = {'id': 'operator', 'role': 'admin'};
+    addTearDown(state.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: appTheme(),
+        home: Scaffold(
+          body: SingleChildScrollView(child: AdminBetaApplications(state)),
+        ),
+      ),
+    );
+    await tester.tap(find.text('Beta-Anmeldungen'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('0.000001 USD bekannte Kosten'), findsOneWidget);
+    expect(find.textContaining('0.000001 USD bekannt'), findsOneWidget);
+  });
+
   testWidgets('unverified email cannot be approved', (tester) async {
     var posts = 0;
     final state =

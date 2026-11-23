@@ -1843,6 +1843,28 @@ Bestandteil des bestehenden Buildvertrags.
 ## Kapazität und öffentlicher Start
 
 - [ ] **Beta-Anmeldung für weitere Familien auf der Startseite bereitstellen.**
+  - [x] **Beta-Antrag, Freigabe und künstliche Lernantwort im Browser verbinden.**
+    Ein isolierter Lauf bedient die öffentliche Beta-Anmeldung mobil, den
+    Bestätigungslink und die Adminfreigabe auf Desktop sowie Eltern- und
+    Kinderanmeldung und eine gespeicherte Beispielaufgabe mobil. Derselbe
+    Lauf prüft simulierte Kosten, Nullgrenzen und Widerruf. Keine E-Mail oder
+    KI verlässt den Test. Die öffentliche Installation meldet die Beta als
+    aktiviert; eine echte Produktionsanmeldung und ein tatsächlicher
+    Anbieter-/Fotolernweg sind hiermit nicht belegt.
+    [Prüfumfang](docs/BETA_BROWSER_2026_11_23.md).
+
+  - [x] **Kleine Beta-Kosten ohne Rundung auf null anzeigen.** Die
+    Gesamtsumme und die Modellwerte zeigen USD bis zur gespeicherten
+    Millionstel-Einheit. Ein künstlicher Widgettest prüft einen tatsächlich
+    gemeldeten Wert von einem Millionstel Dollar und unbekannte Kosten bleiben
+    getrennt. Dies ist keine Bestätigung realer Anbieterpreise.
+
+  - [x] **Unvollständige Modellliste in der Beta-Kostenansicht kennzeichnen.**
+    Eine gekürzte Modellaufzählung erhält einen Hinweis; die nicht gekürzten
+    Gesamtsummen und unbekannten Kosten bleiben sichtbar. Künstliche
+    Widgettests prüfen die auf zehn Modelle begrenzte Anzeige und eine
+    serverseitig gekürzte Liste getrennt.
+
   - [x] **Beta-Status nach Rückkehr aktuell laden.** Wenn eine Bewerbung
     während einer anderen offenen Seite abgeschlossen wird, liest die
     Elternansicht bei der Rückkehr den Serverstatus erneut. Sie schickt dabei
@@ -2590,7 +2612,19 @@ Bestandteil des bestehenden Buildvertrags.
 
   **Abnahme:** Alle Anzeigen lassen sich auf dieselben gespeicherten Daten zurückführen, Familienmitglieder sehen nur Berechtigtes, Import und Wiederholung sind idempotent und es entstehen keine erfundenen Diagnosen oder Notenprognosen.
 
-- [ ] **P1 – Adminoberfläche und laufende Betriebsentscheidungen abnehmen**
+- [x] **P1 – Adminoberfläche und laufende Betriebsentscheidungen abnehmen**
+
+  **23.11.2026, erneute technische Abnahme:** Auf dem aktuellen Entwicklungsstand
+  bestanden 136 SQLite- und 144 PostgreSQL-Fälle zu Konten, Rechten, Budgets,
+  Kostenbelegen, Notfallstopp, Beta und revisionsgebundenen Einstellungen;
+  datenbankspezifische Auslassungen sind im Prüfbericht angegeben. Ergänzend
+  bestanden private Bild-/Noten-/Tutorzugriffe und die konkurrierenden
+  Freigabe-/Seitenprüfänderungen auf beiden passenden Datenbanken. 117 Flutter-
+  und 80 Chrome-Webrunner-Fälle prüften die Adminoberfläche, einschließlich
+  kleiner Ansichten, großer Schrift und Providerfehler. Keine echten
+  Anbieteraufrufe oder produktiven Familienänderungen wurden dafür ausgeführt.
+  [Ergebnisse und Grenzen](docs/ADMIN_ACCEPTANCE_2026_11_23.md). Die
+  unabhängige Sicherheitsprüfung und echte Anbieterpreise bleiben separat offen.
 
   **06.11.2026, erneute Prüfung:** Der zuvor abgenommene Parallelitätsumfang
   war nicht vollständig: Ein später generisch gespeicherter alter

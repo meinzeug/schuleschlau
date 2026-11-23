@@ -37,7 +37,7 @@ class _AdminBetaApplicationsState extends State<AdminBetaApplications>
       return 'Nutzung nicht verfügbar';
     }
     final usd = ((value['known_usd_micros'] as num) / 1000000).toStringAsFixed(
-      4,
+      6,
     );
     final buffer = StringBuffer(
       '${value['calls']} KI-Aufrufe · $usd USD bekannte Kosten · ${value['unknown_calls']} noch unbekannt',
@@ -61,11 +61,15 @@ class _AdminBetaApplicationsState extends State<AdminBetaApplications>
         final name = entry.key as String;
         final shown = name.length <= 100 ? name : '${name.substring(0, 100)}…';
         final modelCost = ((detail['known_usd_micros'] as num) / 1000000)
-            .toStringAsFixed(4);
+            .toStringAsFixed(6);
         buffer.write(
           '\n$shown: ${detail['calls']} Aufrufe, $modelCost USD bekannt, ${detail['unknown_calls']} unbekannt',
         );
       }
+    }
+    if ((models is Map && models.length > 10) ||
+        value['models_truncated'] == true) {
+      buffer.write('\nWeitere Modelle sind in den Gesamtkosten enthalten.');
     }
     return buffer.toString();
   }
