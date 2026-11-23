@@ -1495,10 +1495,19 @@ def unit_view(unit_id: str, p=Depends(authenticated), db=Depends(get_db),
     # repeat every check because sources and permissions can change.
     visual_status = value.get("explanation_visual_status")
     if can_prepare and visual_status is not None and visual_status != "ready":
-        from .visual_jobs import context as visual_context
+        from .visual_jobs import context as visual_context, existing_preparations, preparation_unavailable
 
         try:
-            visual_context(db, unit, labs_enabled="labs-v1" in getattr(p.session, "request_capabilities", ()))
+            signature, _ = visual_context(db, unit, labs_enabled="labs-v1" in getattr(p.session, "request_capabilities", ()))
+            jobs = existing_preparations(db, unit.child_id, unit.id, signature)
+            if preparation_unavailable(jobs):
+                can_prepare = False
+                active = next((job for job in jobs if job.status in ("queued", "running")), None)
+                if active:
+                    value["visual_preparation"] = {"id": active.id, "status": active.status, "error": active.error}
+                else:
+                    value["visual_prepare_unavailable"] = True
+                    value["visual_prepare_reason"] = "attempts_exhausted"
         except HTTPException as error:
             if error.status_code != 409:
                 raise

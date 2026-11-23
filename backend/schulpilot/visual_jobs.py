@@ -11,6 +11,16 @@ from .visual_references import _hydrate, digest, guard_context, source_binding, 
 router = APIRouter(tags=["Grafische Erklärungen"])
 
 
+def existing_preparations(db, child_id, unit_id, signature):
+    """Only this immutable source/round context consumes its two attempts."""
+    return list(db.scalars(select(Job).where(Job.child_id == child_id, Job.kind == "unit_visuals",
+        Job.payload["unit_id"].as_string() == unit_id, Job.payload["signature"].as_string() == signature)))
+
+
+def preparation_unavailable(jobs):
+    return any(row.status in ("queued", "running", "completed") for row in jobs) or len(jobs) >= 2
+
+
 def context(db, unit, *, labs_enabled=False):
     from .learning_controller import source_state
 
@@ -108,9 +118,8 @@ def prepare(unit_id: str, key: str = Header(default="", alias="Idempotency-Key")
         if previous.kind != "unit_visuals" or previous.child_id != child.id or previous.payload != values:
             raise HTTPException(409, "Dieser Schlüssel gehört zu einer anderen Erklärung.")
         return {"id": previous.id, "status": previous.status}
-    old = list(db.scalars(select(Job).where(Job.child_id == child.id, Job.kind == "unit_visuals",
-        Job.payload["unit_id"].as_string() == unit.id, Job.payload["signature"].as_string() == signature)))
-    if any(row.status in ("queued", "running", "completed") for row in old) or len(old) >= 2:
+    old = existing_preparations(db, child.id, unit.id, signature)
+    if preparation_unavailable(old):
         raise HTTPException(409, "Die vorhandene Grafikvorbereitung bleibt gespeichert. Lade ihren Stand, statt sie erneut zu starten.")
     if db.scalar(select(Job.id).where(Job.child_id == child.id, Job.status.in_(["queued", "running"]))):
         raise HTTPException(409, "Für dieses Kind wird bereits ein Auftrag verarbeitet.")

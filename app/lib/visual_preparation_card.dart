@@ -29,6 +29,7 @@ class _VisualPreparationCardState extends State<VisualPreparationCard>
   bool busy = false, dispatched = false;
   Object? error;
   String? requestKey;
+  String? acceptedJobId;
   Json? publicVisual;
   Timer? publicTimer;
   int publicEpoch = 0, missingChecks = 0;
@@ -129,6 +130,7 @@ class _VisualPreparationCardState extends State<VisualPreparationCard>
       dispatched = false;
       error = null;
       requestKey = null;
+      acceptedJobId = null;
     }
     if (widget.unit['visual_preparation'] is Map &&
         ![
@@ -139,9 +141,13 @@ class _VisualPreparationCardState extends State<VisualPreparationCard>
     }
     if (widget.unit['visual_preparation'] is Map &&
         widget.unit['visual_preparation']['status'] == 'failed' &&
+        !busy &&
+        acceptedJobId != null &&
+        widget.unit['visual_preparation']['id'] == acceptedJobId &&
         (oldWidget.unit['visual_preparation'] is! Map ||
             oldWidget.unit['visual_preparation']['status'] != 'failed')) {
       requestKey = null;
+      acceptedJobId = null;
     }
   }
 
@@ -173,11 +179,23 @@ class _VisualPreparationCardState extends State<VisualPreparationCard>
         {'Idempotency-Key': requestKey!},
       );
       if (requestCurrent()) {
+        acceptedJobId = job['id'] is String ? job['id'] as String : null;
         setState(
           () => dispatched = ['queued', 'running'].contains(job['status']),
         );
       }
       if (requestCurrent()) await widget.refresh();
+      // An explicit response for this same key proves that its job has
+      // finished; a lost response does not authorize a fresh request key.
+      if (requestCurrent() &&
+          (job['status'] == 'failed' ||
+              (acceptedJobId != null &&
+                  widget.unit['visual_preparation'] is Map &&
+                  widget.unit['visual_preparation']['id'] == acceptedJobId &&
+                  widget.unit['visual_preparation']['status'] == 'failed'))) {
+        requestKey = null;
+        acceptedJobId = null;
+      }
     } catch (e) {
       if (requestCurrent()) setState(() => error = e);
     } finally {
@@ -205,6 +223,10 @@ class _VisualPreparationCardState extends State<VisualPreparationCard>
             Text(
               pending
                   ? 'Grafische Erklärung wird vorbereitet …'
+                  : unavailable &&
+                        widget.unit['visual_prepare_reason'] ==
+                            'attempts_exhausted'
+                  ? 'Die Grafik ist gerade nicht verfügbar. Du kannst weiterlernen.'
                   : unavailable
                   ? 'Dazu gibt es gerade keine passende Grafik. Du kannst weiterlernen.'
                   : 'Zu deiner Erklärung fehlt noch eine Grafik.',

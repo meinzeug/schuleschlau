@@ -814,6 +814,141 @@ void main() {
       expect(refreshes, 2);
     },
   );
+  testWidgets(
+    'an old failed status does not replace an unresolved request key',
+    (tester) async {
+      final pending = Completer<http.Response>();
+      final posts = <http.Request>[];
+      final state = app((request) {
+        if (request.method == 'GET') return reply({'status': 'missing'});
+        posts.add(request);
+        return posts.length == 1
+            ? pending.future
+            : reply({'id': 'job', 'status': 'queued'}, 202);
+      });
+      addTearDown(state.dispose);
+      Widget screen(bool oldFailure) => MaterialApp(
+        theme: appTheme(),
+        home: Scaffold(
+          body: VisualPreparationCard(
+            state: state,
+            unit: {
+              'id': 'unit',
+              'explanation_visual_status': 'legacy_text',
+              if (oldFailure)
+                'visual_preparation': {'id': 'old', 'status': 'failed'},
+            },
+            isCurrent: () => true,
+            refresh: () async {},
+          ),
+        ),
+      );
+      await tester.pumpWidget(screen(false));
+      await tester.pump();
+      await tester.tap(find.text('Grafische Erklärung vorbereiten'));
+      await tester.pump();
+      await tester.pumpWidget(screen(true));
+      await tester.pump();
+      pending.complete(reply({'detail': 'Verbindung unterbrochen'}, 503));
+      await tester.pump();
+      await tester.pump();
+      await tester.tap(find.text('Grafische Erklärung erneut anfragen'));
+      await tester.pump();
+      expect(posts.length, 2);
+      expect(
+        posts.first.headers['Idempotency-Key'],
+        posts.last.headers['Idempotency-Key'],
+      );
+    },
+  );
+  testWidgets(
+    'an old failure arriving after a lost response keeps the request key',
+    (tester) async {
+      final posts = <http.Request>[];
+      final state = app((request) {
+        if (request.method == 'GET') return reply({'status': 'missing'});
+        posts.add(request);
+        return posts.length == 1
+            ? reply({'detail': 'Verbindung unterbrochen'}, 503)
+            : reply({'id': 'job', 'status': 'queued'}, 202);
+      });
+      addTearDown(state.dispose);
+      Widget screen(bool oldFailure) => MaterialApp(
+        theme: appTheme(),
+        home: Scaffold(
+          body: VisualPreparationCard(
+            state: state,
+            unit: {
+              'id': 'unit',
+              'explanation_visual_status': 'legacy_text',
+              if (oldFailure)
+                'visual_preparation': {'id': 'old', 'status': 'failed'},
+            },
+            isCurrent: () => true,
+            refresh: () async {},
+          ),
+        ),
+      );
+      await tester.pumpWidget(screen(false));
+      await tester.pump();
+      await tester.tap(find.text('Grafische Erklärung vorbereiten'));
+      await tester.pump();
+      await tester.pump();
+      await tester.pumpWidget(screen(true));
+      await tester.pump();
+      await tester.tap(find.text('Grafische Erklärung erneut anfragen'));
+      await tester.pump();
+      expect(posts.length, 2);
+      expect(
+        posts.first.headers['Idempotency-Key'],
+        posts.last.headers['Idempotency-Key'],
+      );
+    },
+  );
+  testWidgets('a confirmed failed graphic job allows a new explicit attempt', (
+    tester,
+  ) async {
+    final posts = <http.Request>[];
+    final state = app((request) {
+      if (request.method == 'GET') return reply({'status': 'missing'});
+      posts.add(request);
+      return reply({
+        'id': posts.length == 1 ? 'first' : 'second',
+        'status': 'queued',
+      }, 202);
+    });
+    addTearDown(state.dispose);
+    Widget screen(bool failed) => MaterialApp(
+      theme: appTheme(),
+      home: Scaffold(
+        body: VisualPreparationCard(
+          state: state,
+          unit: {
+            'id': 'unit',
+            'explanation_visual_status': 'legacy_text',
+            if (failed)
+              'visual_preparation': {'id': 'first', 'status': 'failed'},
+          },
+          isCurrent: () => true,
+          refresh: () async {},
+        ),
+      ),
+    );
+    await tester.pumpWidget(screen(false));
+    await tester.pump();
+    await tester.tap(find.text('Grafische Erklärung vorbereiten'));
+    await tester.pump();
+    await tester.pump();
+    await tester.pumpWidget(screen(true));
+    await tester.pump();
+    await tester.tap(find.text('Grafische Erklärung erneut anfragen'));
+    await tester.pump();
+    expect(posts.length, 2);
+    expect(
+      posts.first.headers['Idempotency-Key'],
+      isNot(posts.last.headers['Idempotency-Key']),
+    );
+  });
   testWidgets('an old graphic reply cannot unlock the next round request', (
     tester,
   ) async {
@@ -915,6 +1050,35 @@ void main() {
       );
       expect(find.text('Grafische Erklärung vorbereiten'), findsNothing);
       expect(calls.every((call) => call.method == 'GET'), isTrue);
+    },
+  );
+  testWidgets(
+    'exhausted graphic attempts are explained without an unusable retry',
+    (tester) async {
+      final state = app((request) => reply({'status': 'missing'}));
+      addTearDown(state.dispose);
+      await mount(
+        tester,
+        VisualPreparationCard(
+          state: state,
+          unit: {
+            'id': 'unit',
+            'explanation_visual_status': 'legacy_text',
+            'can_prepare_visual': false,
+            'visual_prepare_unavailable': true,
+            'visual_prepare_reason': 'attempts_exhausted',
+          },
+          isCurrent: () => true,
+          refresh: () async {},
+        ),
+      );
+      expect(
+        find.text(
+          'Die Grafik ist gerade nicht verfügbar. Du kannst weiterlernen.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Grafische Erklärung vorbereiten'), findsNothing);
     },
   );
   testWidgets('107 no invented learning path is displayed without saved plan', (

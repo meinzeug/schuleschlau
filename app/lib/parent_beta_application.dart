@@ -23,6 +23,7 @@ class _ParentBetaApplicationState extends State<ParentBetaApplication>
       foreground = true,
       supported = true;
   int epoch = 0;
+  bool? routeWasCurrent;
   String? status, error;
 
   bool get current =>
@@ -65,6 +66,18 @@ class _ParentBetaApplicationState extends State<ParentBetaApplication>
         if (active) load();
       });
     }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final routeCurrent = ModalRoute.of(context)?.isCurrent != false;
+    if (routeCurrent && routeWasCurrent == false) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (active && !busy) load();
+      });
+    }
+    routeWasCurrent = routeCurrent;
   }
 
   void identityChanged() {

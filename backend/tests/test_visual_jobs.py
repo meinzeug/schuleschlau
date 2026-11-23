@@ -204,6 +204,47 @@ def test_unit_view_keeps_available_graphic_action_without_reserving(api, legacy)
     assert not calls["reserve"] and not calls["provider"]
 
 
+@pytest.mark.parametrize("states", [("failed", "failed"), ("completed",)])
+def test_unit_view_hides_exhausted_graphic_attempts_for_current_context(api, legacy, states):
+    uid, _, cid, calls = legacy
+    with DB.begin() as db:
+        unit = db.get(LearningUnit, uid)
+        signature, _ = context(db, unit)
+        for state in states:
+            db.add(Job(child_id=cid, kind="unit_visuals", status=state,
+                       payload={"unit_id": uid, "signature": signature}, idempotency=uuid4().hex))
+    response = api.get(f"/api/units/{uid}")
+    assert response.status_code == 200, response.text
+    assert response.json()["can_prepare_visual"] is False
+    assert response.json()["visual_prepare_reason"] == "attempts_exhausted"
+    assert not calls["reserve"] and not calls["provider"]
+    assert start(api, uid).status_code == 409
+    # A genuinely changed round gets its own existing source-bound contract.
+    with DB.begin() as db:
+        db.get(LearningUnit, uid).topic = "Brüche neu betrachtet"
+    response = api.get(f"/api/units/{uid}")
+    assert response.status_code == 200 and response.json()["can_prepare_visual"] is True
+
+
+def test_unit_view_prefers_active_graphic_job_over_other_old_failures(api, legacy):
+    uid, _, cid, calls = legacy
+    with DB.begin() as db:
+        signature, _ = context(db, db.get(LearningUnit, uid))
+        old = Job(child_id=cid, kind="unit_visuals", status="failed", created=10,
+                  payload={"unit_id": uid, "signature": signature}, idempotency=uuid4().hex)
+        running = Job(child_id=cid, kind="unit_visuals", status="running", created=10,
+                      payload={"unit_id": uid, "signature": signature}, idempotency=uuid4().hex)
+        db.add_all([old, running])
+        db.flush()
+        running_id = running.id
+    response = api.get(f"/api/units/{uid}")
+    assert response.status_code == 200, response.text
+    assert response.json()["visual_preparation"]["id"] == running_id
+    assert response.json()["visual_preparation"]["status"] == "running"
+    assert response.json()["can_prepare_visual"] is False
+    assert not calls["reserve"] and not calls["provider"]
+
+
 def test_sidecar_context_is_derived_from_existing_source_revision_and_saved_question(api, legacy):
     uid, mid, _, _ = legacy
     with DB() as db:

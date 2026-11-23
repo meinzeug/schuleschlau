@@ -504,6 +504,69 @@ void main() {
     expect(find.text('Für die Beta anmelden'), findsNothing);
   });
 
+  testWidgets('beta status reloads after returning from another page', (
+    tester,
+  ) async {
+    final pending = Completer<http.Response>();
+    final requests = <http.Request>[];
+    var serverStatus = 'none';
+    const family = '44444444444444444444444444444444';
+    final navigator = GlobalKey<NavigatorState>();
+    final state =
+        AppState(
+            api: Api(
+              base: 'https://example.invalid/api',
+              client: MockClient((request) async {
+                requests.add(request);
+                if (request.method == 'POST') return pending.future;
+                if (request.url.path.endsWith('/store/catalog')) {
+                  return reply({
+                    'beta': {'enabled': true},
+                  });
+                }
+                return reply({'status': serverStatus});
+              }),
+            ),
+          )
+          ..user = {
+            'id': '11111111111111111111111111111111',
+            'role': 'parent',
+            'families': [
+              {'id': family, 'permission': 'owner'},
+            ],
+          }
+          ..familyId = family
+          ..api.token = 'synthetic-session';
+    addTearDown(state.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        navigatorKey: navigator,
+        theme: appTheme(),
+        home: Scaffold(
+          body: SingleChildScrollView(child: ParentBetaApplication(state)),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Für die Beta anmelden'));
+    await tester.pump();
+    navigator.currentState!.push(
+      MaterialPageRoute<void>(
+        builder: (_) => const Scaffold(body: Text('Andere Seite')),
+      ),
+    );
+    await tester.pumpAndSettle();
+    serverStatus = 'pending';
+    pending.complete(reply({'status': 'pending'}, 202));
+    await tester.pump();
+    navigator.currentState!.pop();
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Deine Anmeldung wird geprüft'), findsOneWidget);
+    expect(find.text('Für die Beta anmelden'), findsNothing);
+    expect(requests.where((request) => request.method == 'POST').length, 1);
+    expect(requests.where((request) => request.method == 'GET').length, 4);
+  });
+
   testWidgets('old server without beta support is not presented as an error', (
     tester,
   ) async {

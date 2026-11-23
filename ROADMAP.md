@@ -1830,6 +1830,13 @@ Bestandteil des bestehenden Buildvertrags.
 ## Kapazität und öffentlicher Start
 
 - [ ] **Beta-Anmeldung für weitere Familien auf der Startseite bereitstellen.**
+  - [x] **Beta-Status nach Rückkehr aktuell laden.** Wenn eine Bewerbung
+    während einer anderen offenen Seite abgeschlossen wird, liest die
+    Elternansicht bei der Rückkehr den Serverstatus erneut. Sie schickt dabei
+    keine weitere Bewerbung. Ein künstlicher Fluttertest prüft den verzögerten
+    Abschluss, Navigation und genau einen POST; die End-to-End-Abnahme der
+    gesamten Beta-Anmeldung bleibt offen.
+
   **Implementierung und isolierte Tests:** ausdrückliche E-Mail-Bewerbung,
   erneute Bewerbung vorhandener Eltern, revisionsgebundene Adminentscheidung
   nach verifizierter Adresse sowie beta-spezifische Kontingentausnahme mit
@@ -2251,6 +2258,21 @@ Bestandteil des bestehenden Buildvertrags.
     eine probeweise Sol-Routenumstellung wurde deshalb nicht beibehalten. Eine
     passende geprüfte alternative Darstellung und ein erfolgreicher
     Ende-zu-Ende-Lauf für die Bienenrunde fehlen noch.
+
+    - [x] **Ausgeschöpfte Grafikversuche richtig anzeigen.** Die Rundenansicht
+      verwendet dieselbe quellgebundene Versuchszählung wie der Startendpunkt.
+      Nach ausgeschöpften Versuchen bietet sie keinen sicher scheiternden
+      erneuten Start an; ein tatsächlich laufender Auftrag bleibt auch bei
+      gleichzeitigen alten Fehlern als laufend sichtbar. Eine neue
+      Quellen-/Rundenfassung behält ihre eigene Versuchszählung. Künstliche
+      API- und Widgettests prüfen beide Fälle ohne Anbieteraufrufe.
+
+    - [x] **Unklare Grafikantworten nicht durch alte Fehler umschlüsseln.**
+      Ein beim Neuladen erscheinender Fehler eines älteren Auftrags ändert
+      während einer noch laufenden Anfrage nicht deren Idempotenzschlüssel.
+      Eine bewusste Wiederholung nach Verbindungsfehler verwendet denselben
+      Schlüssel; erst eine bestätigte terminale Antwort erlaubt einen neuen.
+      Ein künstlicher Widgettest prüft den Wettlauf.
 
     - [x] **Aussichtslose Grafikaktion vorab erkennen.** Die lesende
       Rundenansicht prüft dieselben Quellen und Vorlagen wie der spätere
