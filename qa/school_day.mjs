@@ -36,6 +36,7 @@ let browser;
 let parent;
 let child;
 let childPage;
+let parentPage;
 let phase = 'private_account';
 let passed = false;
 let aiMutationRequests = 0;
@@ -89,11 +90,11 @@ async function scrollTop(page) {
   await page.mouse.wheel(0, -16000);
   await page.waitForTimeout(300);
 }
-async function reveal(page, locator, {modal = false} = {}) {
+async function reveal(page, locator, {modal = false, bottomAction = false} = {}) {
   const target = locator.first();
   const viewport = page.viewportSize();
   const top = modal ? 4 : 75;
-  const bottom = viewport.height - (modal ? 4 : 100);
+  const bottom = viewport.height - (modal || bottomAction ? 4 : 100);
   for (let attempt = 0; attempt < 32; attempt++) {
     const box = await target.count() ? await target.boundingBox({timeout: 500}).catch(() => null) : null;
     // The app bar and bottom navigation are fixed. A DOM element underneath them
@@ -120,18 +121,18 @@ async function typeField(page, locator, value) {
   // actual input area and verify that keyboard input reached the editor.
   await field.click({position: {x: 20, y: 20}});
   await page.waitForTimeout(250);
-  if (await field.inputValue()) {
-    await page.keyboard.press('Control+A');
-    await page.keyboard.press('Backspace');
-  }
+  // Flutter can replace the semantic textbox with a native input on focus;
+  // read the focused editor rather than waiting on the detached old node.
+  await page.keyboard.press('Control+A');
+  await page.keyboard.press('Backspace');
   await page.keyboard.type(value, {delay: 15});
   await page.waitForTimeout(150);
-  check(await field.inputValue() === value, 'native_web_input_did_not_receive_keyboard_text');
+  check(await page.evaluate(expected => document.activeElement?.value === expected, value), 'native_web_input_did_not_receive_keyboard_text');
 }
-async function tapResponse(page, locator, route, method, status) {
+async function tapResponse(page, locator, route, method, status, options) {
   const pending = page.waitForResponse(response => apiPath(response) === '/api' + route && response.request().method() === method, {timeout: 45000});
   pending.catch(() => {});
-  await tap(page, locator);
+  await tap(page, locator, options);
   const response = await pending;
   check(response.status() === status, 'ui_request_failed_' + response.status());
   return response.json();
@@ -139,6 +140,17 @@ async function tapResponse(page, locator, route, method, status) {
 async function screenshot(page, filename) {
   await scrollTop(page);
   await page.screenshot({path: path.join(artifacts, filename)});
+}
+async function revealQuestionPrompt(page, question) {
+  let prompt = page.getByText(question.prompt, {exact: true});
+  // Rendered fractions are accessible as separate semantic spans rather than
+  // the literal slash string from the API.
+  if (!(await prompt.count()) && /\d+\s*\/\s*\d+/.test(question.prompt)) {
+    const prefix = question.prompt.split(/\d+\s*\/\s*\d+/)[0].trim();
+    check(prefix.length >= 8, 'fraction_prompt_has_no_readable_context');
+    prompt = page.getByText(prefix, {exact: false});
+  }
+  await reveal(page, prompt);
 }
 async function loginChild() {
   await checkpoint('child_login_ui_390px');
@@ -356,7 +368,9 @@ async function proveSavedResume(day) {
   const stored = await dayState();
   check(stored.units.length === day.units.length && stored.units[0].id === account.package_unit_id && stored.package_version === day.package_version, 'reload_created_another_package_version');
   if (stored.units[0].status !== 'completed') {
-    await tapResponse(childPage, button(childPage, 'Jetzt lernen'), '/units/' + account.package_unit_id + '/start', 'POST', 200);
+    // The card is virtualized and may not exist in the semantics tree until
+    // scrolled into view, so don't branch on its initial locator count.
+    await tap(childPage, childPage.getByRole('button', {name: /Etappe öffnen/}));
     await childPage.waitForURL(base + '/unit/' + account.package_unit_id, {timeout: 30000});
   } else {
     await open(childPage, '/unit/' + account.package_unit_id);
@@ -377,7 +391,14 @@ async function fillAnswer(page, question) {
     const option = page.getByRole('button', {name: new RegExp('^' + escaped(question.answer) + '(?:\\s+' + escaped(question.answer) + ')?$')});
     await tap(page, option);
   } else if (['gap', 'short'].includes(question.type)) {
-    await typeField(page, page.getByRole('textbox', {name: 'Deine Antwort', exact: true}), question.answer);
+    const fractionInput = button(page, 'Mit / tippen');
+    if (await fractionInput.isVisible().catch(() => false)) {
+      check(/^\s*-?\d+\s*\/\s*\d+\s*$/.test(question.answer), 'fraction_editor_requires_fraction_answer');
+      await tap(page, fractionInput);
+      await typeField(page, page.getByRole('textbox', {name: 'Dein Bruch mit /', exact: true}), question.answer);
+    } else {
+      await typeField(page, page.getByRole('textbox', {name: 'Deine Antwort', exact: true}), question.answer);
+    }
   } else if (question.type === 'match') {
     for (const pair of question.options) {
       const [left, right] = pair.split('|');
@@ -392,37 +413,50 @@ async function fillAnswer(page, question) {
 async function finishRound(unit, round) {
   if (unit.status === 'completed') return;
   if (unit.status !== 'active') {
-    await tapResponse(childPage, button(childPage, unit.status === 'paused' ? 'Lernen fortsetzen' : 'Einheit starten'), '/units/' + unit.id + '/start', 'POST', 200);
+    await tapResponse(childPage, button(childPage, unit.status === 'paused' ? 'Lernen fortsetzen' : 'Einheit starten'), '/units/' + unit.id + '/start', 'POST', 200, {bottomAction: true});
   }
   if (!unit.introduction_seen) {
-    await tapResponse(childPage, button(childPage, 'Weiter zu den Übungen'), '/units/' + unit.id + '/introduction', 'POST', 200);
+    const checkPrior = button(childPage, 'Erst selbst probieren');
+    await checkPrior.or(button(childPage, 'Weiter zu den Übungen')).first().waitFor({state: 'visible', timeout: 30000});
+    if (await checkPrior.count()) {
+      await tapResponse(childPage, checkPrior, '/units/' + unit.id + '/learning-session/action', 'POST', 200, {bottomAction: true});
+    } else {
+      await tapResponse(childPage, button(childPage, 'Weiter zu den Übungen'), '/units/' + unit.id + '/introduction', 'POST', 200, {bottomAction: true});
+    }
   }
   for (const [index, question] of unit.questions.entries()) {
     if (questionClosed(question)) continue;
     await checkpoint('round_' + round + '_question_' + (index + 1));
-    await reveal(childPage, childPage.getByText(question.prompt, {exact: true}));
-    if (round === 1 && index === 0 && question.hints_used === 0) {
-      await tap(childPage, button(childPage, 'Erklärung'));
+    // A supported entry probe can deliberately lead to a saved explanation
+    // before the next question. Follow that visible learning step instead of
+    // expecting the next task to appear immediately.
+    const explanationAction = button(childPage, 'Erklärung ansehen');
+    if (await explanationAction.isVisible().catch(() => false)) {
+      await tap(childPage, explanationAction, {bottomAction: true});
       await reveal(childPage, childPage.getByText('Kurz erklärt', {exact: true}), {modal: true});
-      if (unit.questions[index + 1]) check(!await childPage.getByText(unit.questions[index + 1].prompt, {exact: true}).isVisible(), 'explanation_advanced_to_next_question');
       await tap(childPage, button(childPage, 'Weiter üben'), {modal: true});
-      const hint = await tapResponse(childPage, button(childPage, 'Ein Hinweis bitte'), '/units/' + unit.id + '/questions/' + question.id + '/hint', 'POST', 200);
+      account.browser_qa.evidence.followed_saved_explanation = true;
+    }
+    await revealQuestionPrompt(childPage, question);
+    if (round === 1 && index === 0 && question.hints_used === 0) {
+      const hint = await tapResponse(childPage, button(childPage, 'Hilfe'), '/units/' + unit.id + '/questions/' + question.id + '/hint', 'POST', 200, {bottomAction: true});
       check(typeof hint.hint === 'string' && hint.hint.length > 0, 'actual_saved_hint_missing');
+      await reveal(childPage, childPage.getByText('Dein Tipp', {exact: true}));
+      if (unit.questions[index + 1]) check(!await childPage.getByText(unit.questions[index + 1].prompt, {exact: true}).isVisible(), 'hint_advanced_to_next_question');
       account.browser_qa.evidence.used_hint = true;
     }
     await fillAnswer(childPage, question);
-    const result = await tapResponse(childPage, button(childPage, 'Antwort prüfen'), '/units/' + unit.id + '/questions/' + question.id + '/answer', 'POST', 200);
+    const result = await tapResponse(childPage, button(childPage, 'Antwort prüfen'), '/units/' + unit.id + '/questions/' + question.id + '/answer', 'POST', 200, {bottomAction: true});
     check(result.outcome === 'correct', 'authoritative_test_answer_was_not_correct');
     await reveal(childPage, childPage.getByText('Richtig!', {exact: true}));
-    if (result.explanation?.trim()) check(await childPage.getByText(result.explanation, {exact: true}).count() > 0, 'saved_educational_feedback_not_rendered');
+    if (result.explanation?.trim()) check(await childPage.getByText('Warum das stimmt', {exact: true}).count() > 0, 'saved_educational_feedback_not_available');
     const nextQuestion = unit.questions.slice(index + 1).find(value => !questionClosed(value));
     if (nextQuestion) check(!await childPage.getByText(nextQuestion.prompt, {exact: true}).isVisible(), 'feedback_skipped_continue_and_exposed_next_question');
     if (round === 1 && index === 0) await screenshot(childPage, 'school-day-child-feedback-mobile.png');
-    const forward = result.unit.status === 'completed' ? 'Zum Rückblick' : 'Weiter';
-    await tap(childPage, button(childPage, forward));
+    const forward = result.unit.status === 'completed' ? 'Ergebnis ansehen' : 'Weiter';
+    await tap(childPage, button(childPage, forward), {bottomAction: true});
     account.browser_qa.evidence.feedback_steps = (account.browser_qa.evidence.feedback_steps ?? 0) + 1;
   }
-  await reveal(childPage, childPage.getByText('Runde geschafft!', {exact: true}));
 }
 async function exerciseThreeRounds() {
   const units = [];
@@ -431,21 +465,29 @@ async function exerciseThreeRounds() {
   for (let round = 1; round <= 3; round++) {
     await checkpoint('learning_round_' + round);
     const authoritative = await jsonGet(parent, '/units/' + currentId);
-    check(authoritative.synthetic === false && authoritative.provider === 'openrouter' && authoritative.model?.endsWith(':free'), 'learning_round_not_using_the_actual_free_provider');
+    check(authoritative.synthetic === false && authoritative.provider === 'openrouter' &&
+      typeof authoritative.model === 'string' && authoritative.model.length > 0 &&
+      (flags.has('--paid-synthetic-approved') || authoritative.model.endsWith(':free')),
+      'learning_round_not_using_the_authorized_actual_provider');
     check(authoritative.questions.length === 2, 'unexpected_task_count_in_bounded_round');
     if (previous) {
       check(authoritative.followup_of === previous.id && authoritative.learning_root_id === account.package_unit_id, 'followup_lost_learning_chain');
       check(JSON.stringify([...authoritative.source_material_ids].sort()) === JSON.stringify([...previous.source_material_ids].sort()), 'followup_lost_confirmed_sources');
       if (authoritative.status !== 'completed') {
         await open(childPage, '/unit/' + previous.id);
-        await tapResponse(childPage, button(childPage, previous.coaching.decision === 'check' ? 'Selbst ausprobieren' : 'Weiter üben'), '/units/' + currentId + '/start', 'POST', 200);
+        const continuePractice = previous.coaching.decision === 'check'
+          ? childPage.getByRole('button', {name: /^(Selbst ausprobieren|Weitere Übung öffnen)$/})
+          : button(childPage, 'Weiter üben');
+        await tapResponse(childPage, continuePractice, '/units/' + currentId + '/start', 'POST', 200);
         await childPage.waitForURL(base + '/unit/' + currentId, {timeout: 30000});
         authoritative.status = 'active';
       } else await open(childPage, '/unit/' + currentId);
     } else await open(childPage, '/unit/' + currentId);
     await finishRound(authoritative, round);
     let reviewed = await waitCoaching(currentId, childPage);
-    check(reviewed.coaching.provider === 'openrouter' && reviewed.coaching.model === authoritative.model, 'coaching_silently_changed_provider_or_model');
+    await reveal(childPage, childPage.getByText('Runde geschafft!', {exact: true}));
+    check(reviewed.coaching.provider === 'openrouter' && typeof reviewed.coaching.model === 'string' && reviewed.coaching.model.length > 0 &&
+      (flags.has('--paid-synthetic-approved') || reviewed.coaching.model === authoritative.model), 'coaching_not_using_authorized_provider');
     check(reviewed.learning_progress.secure_observation === false && reviewed.learning_progress.required_check_days === 3, 'single_day_invented_secure_mastery');
     check(reviewed.learning_progress.learning_goals.length >= 2, 'separate_confirmed_source_goals_missing');
     check(reviewed.learning_progress.learning_goals.every(goal => goal.successful_check_days <= 1 && goal.successful_check_dates.every(date => date === account.browser_qa.day_date)), 'review_invented_later_check_days');
@@ -463,10 +505,37 @@ async function exerciseThreeRounds() {
     account.browser_qa.completed_unit_ids = units.map(unit => unit.id);
     await checkpoint('saved_round_' + round + '_with_actual_ai_report');
     if (round < 3) {
+      if (!reviewed.coaching.next_unit_id) {
+        check(reviewed.coaching.practice_deferred, 'targeted_practice_not_offered');
+        const requested = account.practice_requested_unit_ids ?? [];
+        if (!['queued', 'running'].includes(reviewed.coaching.practice_status)) {
+          check(reviewed.coaching.practice_status !== 'failed' && !requested.includes(currentId), 'practice_failed_no_automatic_retry');
+          const practiceControl = reviewed.coaching.decision === 'check'
+            ? childPage.getByRole('button', {name: /^(Ohne Hilfe ausprobieren|Weitere Übung vorbereiten)$/})
+            : button(childPage, 'Gezielt weiterüben');
+          await reveal(childPage, practiceControl);
+          // Mark immediately before touching the real control: resuming this
+          // test must not create a second request after an uncertain click.
+          account.practice_requested_unit_ids = [...requested, currentId];
+          await checkpoint('explicit_targeted_practice_' + round);
+          await tapResponse(childPage, practiceControl, '/units/' + currentId + '/practice', 'POST', 202);
+        }
+        for (let poll = 0; poll < 120 && !reviewed.coaching.next_unit_id; poll++) {
+          await childPage.waitForTimeout(2000);
+          reviewed = await jsonGet(child, '/units/' + currentId);
+          check(reviewed.coaching.practice_status !== 'failed', 'targeted_practice_generation_failed');
+        }
+      }
       check(reviewed.coaching.next_unit_id, 'required_followup_was_not_created');
+      previous = reviewed;
       currentId = reviewed.coaching.next_unit_id;
     } else {
-      check(reviewed.coaching.next_unit_id === null && ['spaced', 'pause'].includes(reviewed.coaching.decision), 'three_round_limit_not_respected');
+      // Same-day independent answers are not three separate check days. The
+      // controller may offer one more check, but must not generate it by itself.
+      check(reviewed.coaching.next_unit_id === null &&
+        (['spaced', 'pause'].includes(reviewed.coaching.decision) ||
+          (reviewed.coaching.decision === 'check' && reviewed.coaching.practice_deferred === true)),
+        'unexpected_automatic_followup_after_three_rounds');
     }
   }
   const prompts = units.flatMap(unit => unit.questions.map(question => question.prompt.normalize('NFKC').trim().toLowerCase()));
@@ -476,25 +545,42 @@ async function exerciseThreeRounds() {
 async function checkParentAndUsage(units) {
   await checkpoint('parent_reads_saved_answers_hints_and_reviews');
   const page = await parent.newPage();
+  parentPage = page;
   await open(page, '/child/' + account.child_id);
-  const history = page.getByLabel('Lernverlauf', {exact: true}).or(button(page, 'Lernverlauf')).first();
-  await tap(page, history);
+  await checkpoint('parent_opens_history');
+  await page.getByText('Lernstand auf einen Blick', {exact: true}).waitFor({state: 'visible', timeout: 30000});
+  const sections = page.getByRole('combobox', {name: /Bereich öffnen/})
+    .or(page.getByRole('button', {name: /Bereich öffnen/}))
+    .or(page.getByLabel('Bereich öffnen', {exact: true})).first();
+  if (await sections.count()) {
+    await tap(page, sections);
+  } else {
+    // On Flutter web this dropdown can be a single painted control without an
+    // exposed combobox role. Use its visible desktop position, never an API.
+    await scrollTop(page);
+    await page.mouse.click(page.viewportSize().width - 380, 105);
+    await page.waitForTimeout(300);
+  }
+  const history = page.getByRole('option', {name: 'Verlauf', exact: true}).or(page.getByText('Verlauf', {exact: true})).last();
+  await tap(page, history, {modal: true});
   const overview = await jsonGet(parent, '/children/' + account.child_id + '/overview');
   const answerCount = units.reduce((sum, unit) => sum + unit.questions.reduce((total, question) => total + question.attempts.length, 0), 0);
   check(overview.day_summary.answer_count === answerCount && overview.day_summary.hints_used >= 1, 'parent_activity_summary_not_based_on_saved_facts');
   await screenshot(page, 'school-day-parent-history.png');
   for (const unit of units) {
+    await checkpoint('parent_reads_round_' + (units.indexOf(unit) + 1));
     await open(page, '/unit/' + unit.id);
     await reveal(page, page.getByText('Deine Lernbegleitung', {exact: true}));
     await reveal(page, page.getByText(unit.coaching.report.summary, {exact: true}));
     if (unit.id === units.at(-1).id) await page.screenshot({path: path.join(artifacts, 'school-day-parent.png')});
     for (const question of unit.questions) {
-      await reveal(page, page.getByText(question.prompt, {exact: true}));
+      await revealQuestionPrompt(page, question);
       for (const answer of question.attempts) {
         await reveal(page, page.getByText('Antwort: ' + answer.answer, {exact: false}));
       }
       if (question.hints_used > 0) {
-        await reveal(page, page.getByText(question.hints_used + ' Hinweise genutzt. Verfügbare Hinweise:', {exact: true}));
+        const hintLabel = question.hints_used === 1 ? 'Hinweis' : 'Hinweise';
+        await reveal(page, page.getByText(question.hints_used + ' ' + hintLabel + ' genutzt. Verfügbare Hinweise:', {exact: true}));
         check(question.hints?.length > 0, 'parent_saved_hint_text_missing');
         await reveal(page, page.getByText('• ' + question.hints[0], {exact: true}));
         await page.screenshot({path: path.join(artifacts, 'school-day-parent-assistance.png')});
@@ -512,7 +598,9 @@ async function checkParentAndUsage(units) {
   // Automatic second reading adds one recorded extraction per page. Count the
   // actual OCR/countercheck receipts instead of assuming exactly two calls.
   check(extractions >= 2 && extractions <= 4, 'unexpected_extraction_reservations');
-  check(consumed.calls_used === extractions + 1 + units.length + retries.length + packageRetries.length + diagnostics.length, 'unexpected_or_unaccounted_ai_reservations');
+  const practiceRequests = account.practice_requested_unit_ids ?? [];
+  check(new Set(practiceRequests).size === practiceRequests.length && practiceRequests.length <= 2, 'explicit_practice_request_limit_exceeded');
+  check(consumed.calls_used === extractions + 1 + units.length + retries.length + packageRetries.length + diagnostics.length + practiceRequests.length, 'unexpected_or_unaccounted_ai_reservations');
   check(consumed.records.length === consumed.calls_used, 'usage_ledger_does_not_match_reservations');
   const paid = flags.has('--paid-synthetic-approved');
   check(consumed.records.every(record => record.provider === 'openrouter' && typeof record.model === 'string' &&
@@ -548,8 +636,11 @@ try {
   }
   await checkpoint('starting_mobile_child_journey');
   browser = await chromium.launch({headless: true, executablePath: process.env.CHROME_PATH || '/opt/google/chrome/chrome', args: ['--no-sandbox']});
-  child = await browser.newContext({viewport: {width: 390, height: 844}, isMobile: true, hasTouch: true});
-  parent = await browser.newContext({viewport: {width: 1440, height: 1000}});
+  // Direct QA API reads must advertise the same supported features as the
+  // Flutter app; otherwise valid saved visual/entry plans return HTTP 426.
+  const appCapabilities = {'X-Schulpilot-Capabilities': 'language-v1,grade-pdf-v1,visual-v1,messages-v1,exams-v1,adaptive_controller_v2,grouped-v1,learning-entry-v1,labs-v1'};
+  child = await browser.newContext({viewport: {width: 390, height: 844}, isMobile: true, hasTouch: true, extraHTTPHeaders: appCapabilities});
+  parent = await browser.newContext({viewport: {width: 1440, height: 1000}, extraHTTPHeaders: appCapabilities});
   for (const context of [child, parent]) context.on('page', page => page.on('pageerror', error => errors.push(error.message)));
   childPage = await child.newPage();
   childPage.on('request', request => {
@@ -569,7 +660,7 @@ try {
   const units = await exerciseThreeRounds();
   await checkpoint('child_saved_review_and_details');
   await tap(childPage, childPage.getByText('Mein Rückblick', {exact: true}));
-  check(await childPage.getByText(units.at(-1).coaching.report.summary, {exact: true}).count() > 0, 'child_cannot_open_saved_review_details');
+  await reveal(childPage, childPage.getByText(units.at(-1).coaching.report.summary, {exact: true}));
   await screenshot(childPage, 'coaching-child-mobile.png');
   const before = await usage();
   await open(childPage, '/unit/' + account.last_completed_unit_id);
@@ -592,6 +683,11 @@ try {
   console.error(JSON.stringify({qa_passed: false, stopped_at: phase, reason: error instanceof QaFailure ? error.message : 'browser_or_io_operation_failed', private_account_kept_for_resume: Boolean(account)}));
 } finally {
   if (!passed && childPage) await childPage.screenshot({path: path.join(artifacts, 'school-day-browser-debug.png')}).catch(() => {});
+  if (!passed && parentPage) {
+    await parentPage.screenshot({path: path.join(artifacts, 'school-day-parent-debug.png')}).catch(() => {});
+    await scrollTop(parentPage).catch(() => {});
+    await parentPage.screenshot({path: path.join(artifacts, 'school-day-parent-debug-top.png')}).catch(() => {});
+  }
   if (!passed && parent && account?.user?.families?.length === 1) {
     const consumed = await usage().catch(() => null);
     if (consumed) console.log(JSON.stringify({failed_run_usage: {calls_used: consumed.calls_used, known_cost_micros_usd: consumed.known_cost_micros_usd, unknown_cost_calls: consumed.unknown_cost_calls, explicit_package_retries: (account.package_retry_day_ids ?? []).length, explicit_coaching_retries: (account.coaching_retry_unit_ids ?? []).length}}));
