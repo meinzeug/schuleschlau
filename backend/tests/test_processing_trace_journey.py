@@ -6,11 +6,12 @@ claim about live OCR accuracy, provider availability, or all subject formats.
 """
 import copy
 
+import pytest
 from conftest import HEADERS
 from fastapi.testclient import TestClient
 from schulpilot.db import DB, Activity, Attempt, Job, LearningUnit, Mastery, Material, SchoolDay, UnitSource, Usage
 from schulpilot.main import app
-from schulpilot.providers import Result
+from schulpilot.providers import ProviderError, Result
 from schulpilot.school_preparation import _advance, advance_one
 from schulpilot.source_lineage_models import SourceImageReceipt, SourceRevision
 from schulpilot.visual_reference_models import UnitVisualSnapshot
@@ -62,6 +63,14 @@ def test_upload_review_package_visual_answer_trace_is_private_and_read_only_on_g
         assert all(db.scalar(select(Usage).where(Usage.job_id == identifier)).status == 'completed' for identifier in extract_jobs)
         revision = material.revision
 
+    for identifier, phase in zip(extract_jobs, ('recognition', 'countercheck'), strict=True):
+        trace = api.get(f'/api/jobs/{identifier}/trace')
+        assert trace.status_code == 200
+        assert trace.json()['phase'] == phase and trace.json()['status'] == 'completed'
+        assert trace.json()['source_snapshot'] is not None
+        assert trace.json()['model']['config_revision'] > 0
+    assert operator.get(f'/api/jobs/{extract_jobs[0]}/trace').status_code == 403
+
     calls = []
     def package(config, function, payload, *args, **kwargs):
         assert function == 'package'
@@ -89,6 +98,11 @@ def test_upload_review_package_visual_answer_trace_is_private_and_read_only_on_g
         uid, question_id, answer = unit.id, unit.questions[0]['id'], unit.questions[0]['answer']
         counts_before = tuple(db.scalar(select(func.count()).select_from(model))
             for model in (Job, Usage, Attempt, Activity, Mastery))
+    trace = api.get(f'/api/jobs/{job_id}/trace')
+    assert trace.status_code == 200 and trace.json()['phase'] == 'generation'
+    assert any(item['id'] == uid for item in trace.json()['units'])
+    assert any(ref['id'] == 'general.source_relation.phases' and ref['version'] == 1
+               for item in trace.json()['units'] for ref in item['references'])
     assert len(calls) == 1
 
 
@@ -170,3 +184,107 @@ def test_source_revision_changed_during_generation_cannot_become_a_ready_package
         assert result.json()['preparation']['status'] in ('failed', 'blocked')
         assert result.json()['units'] == []
     assert calls == ['package']
+
+
+@pytest.mark.parametrize("stage", ["recognition", "countercheck"])
+def test_real_worker_failure_has_private_bounded_trace_and_no_read_side_effects(pipeline, operator, stage):
+    api, child = pipeline["api"], pipeline["child"]
+    day = api.post(f"/api/children/{child['id']}/school-day/today").json()
+    page = upload(pipeline, day)
+    failure = ProviderError("synthetic private upstream body", code="provider_timeout")
+    pipeline["outputs"][:] = [failure] if stage == "recognition" else [reading(), failure]
+    assert (
+        api.post(
+            f"/api/school-days/{day['id']}/prepare", headers={"Idempotency-Key": "trace-failure-" + stage}
+        ).status_code
+        == 202
+    )
+    for _ in range(1 if stage == "recognition" else 2):
+        advance_one()
+        with DB() as db:
+            identifier = claim(db)
+            assert identifier
+        process(identifier)
+    with DB() as db:
+        job = db.get(Job, identifier)
+        assert job.status == "failed" and job.error_code == "provider_timeout"
+        before = tuple(
+            db.scalar(select(func.count()).select_from(model)) for model in (Job, Usage, Attempt, Activity, Mastery)
+        )
+        assert db.get(Material, page["id"]).confirmed is False
+    for _ in range(3):
+        trace = api.get(f"/api/jobs/{identifier}/trace")
+        assert trace.status_code == 200 and trace.json()["phase"] == stage
+        assert trace.json()["status"] == "failed" and trace.json()["error_code"] == "provider_timeout"
+        assert "synthetic private upstream body" not in trace.text
+        assert trace.json()["model"] is not None
+        assert trace.json()["units"] == []
+    assert operator.get(f"/api/jobs/{identifier}/trace").status_code == 403
+    with DB() as db:
+        assert (
+            tuple(
+                db.scalar(select(func.count()).select_from(model)) for model in (Job, Usage, Attempt, Activity, Mastery)
+            )
+            == before
+        )
+    assert len(pipeline["calls"]) == (1 if stage == "recognition" else 2)
+
+
+def test_rejected_package_output_stays_billed_and_never_becomes_a_ready_unit(pipeline, operator, monkeypatch):
+    api, child = pipeline["api"], pipeline["child"]
+    day = api.post(f"/api/children/{child['id']}/school-day/today").json()
+    page = upload(pipeline, day)
+    pipeline["outputs"][:] = [reading(CASE["source"]), reading(CASE["source"])]
+    assert (
+        api.post(f"/api/school-days/{day['id']}/prepare", headers={"Idempotency-Key": "trace-bad-package"}).status_code
+        == 202
+    )
+    for _ in range(2):
+        advance_one()
+        with DB() as db:
+            identifier = claim(db)
+            assert identifier
+        process(identifier)
+    calls = []
+
+    def reject(config, function, payload, *args, **kwargs):
+        calls.append(function)
+        raise ProviderError(
+            "synthetic model content is private",
+            code="invalid_output",
+            billing_result=Result({}, 20, 50, 23, cost_source="reported"),
+        )
+
+    monkeypatch.setattr("schulpilot.worker.request_provider", reject)
+    advance_one()
+    with DB() as db:
+        identifier = claim(db)
+        assert identifier
+    process(identifier)
+    with DB.begin() as db:
+        _advance(db, db.get(SchoolDay, day["id"]))
+    with DB() as db:
+        failed = db.get(Job, identifier)
+        usage = db.scalar(select(Usage).where(Usage.job_id == identifier))
+        assert failed.status == "failed" and failed.error_code == "invalid_output"
+        assert usage.cost_micros == 23 and usage.status == "failed_billed"
+        assert db.scalar(select(func.count()).select_from(LearningUnit)) == 0
+        before = tuple(
+            db.scalar(select(func.count()).select_from(model)) for model in (Job, Usage, Attempt, Activity, Mastery)
+        )
+    for _ in range(3):
+        trace = api.get(f"/api/jobs/{identifier}/trace")
+        assert trace.status_code == 200
+        assert trace.json()["phase"] == "generation" and trace.json()["error_code"] == "invalid_output"
+        assert trace.json()["units"] == [] and "synthetic model content is private" not in trace.text
+        assert api.get(f"/api/school-days/{day['id']}").json()["preparation"]["status"] == "failed"
+    assert operator.get(f"/api/jobs/{identifier}/trace").status_code == 403
+    with DB() as db:
+        assert (
+            tuple(
+                db.scalar(select(func.count()).select_from(model)) for model in (Job, Usage, Attempt, Activity, Mastery)
+            )
+            == before
+        )
+        assert db.get(Material, page["id"]).confirmed is True
+    assert calls == ["package"]

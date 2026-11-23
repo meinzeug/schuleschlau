@@ -932,3 +932,8 @@ from . import material_actions  # noqa: E402
 router.add_api_route("/children/{child_id}/materials/delete-preview", material_actions.delete_preview, methods=["POST"])
 router.add_api_route("/children/{child_id}/materials/bulk-delete", material_actions.bulk_delete, methods=["POST"])
 router.add_api_route("/materials/{material_id}/reprocess", material_actions.reprocess, methods=["POST"], status_code=202)
+
+# Read-only metadata for the authorized family; no new jobs or provider calls.
+from . import processing_trace  # noqa: E402
+
+router.include_router(processing_trace.router)

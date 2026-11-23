@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import 'api.dart';
+import 'processing_trace_panel.dart';
 import 'study_path_panel.dart' show isTechnicalPreparationFailure;
 import 'ui.dart';
 
@@ -415,6 +416,12 @@ class _LearningPreparationScreenState extends State<_LearningPreparationBody>
                     label: Text('Gespeicherte Runden ansehen'),
                   ),
                 ],
+                if (widget.state.isParent && job?['id'] is String)
+                  ProcessingTracePanel(
+                    key: ValueKey((widget.state, job!['id'])),
+                    state: widget.state,
+                    jobId: job!['id'] as String,
+                  ),
                 SizedBox(height: 12),
                 TextButton.icon(
                   onPressed: () {

@@ -1843,6 +1843,13 @@ Bestandteil des bestehenden Buildvertrags.
 ## Kapazität und öffentlicher Start
 
 - [ ] **Beta-Anmeldung für weitere Familien auf der Startseite bereitstellen.**
+  - [x] **Produktive Registrierung und Bestätigungsmail mit eigenem Testkonto prüfen.**
+    Eine frische künstliche Beta-Familie durchlief die tatsächliche Registrierung,
+    Mailbestätigung und Kinderanmeldung auf dem Zielserver und wurde danach über
+    ihren eigenen Elternzugang gelöscht. Kein KI-Auftrag wurde ausgelöst; die
+    produktive Adminfreigabe und der Lernweg bleiben noch offen.
+    [Prüfumfang](docs/BETA_LIVE_SIGNUP_2026_11_23.md).
+
   - [x] **Beta-Antrag, Freigabe und künstliche Lernantwort im Browser verbinden.**
     Ein isolierter Lauf bedient die öffentliche Beta-Anmeldung mobil, den
     Bestätigungslink und die Adminfreigabe auf Desktop sowie Eltern- und
@@ -2000,6 +2007,17 @@ Bestandteil des bestehenden Buildvertrags.
 ## KI-Verarbeitung, Referenzen und Darstellung
 
 - [ ] **P1 – Gesamte Verarbeitungskette durchgängig nachvollziehbar machen**
+
+  - [x] **Private Auftragsmetadaten für berechtigte Eltern bereitstellen.**
+    Ein lesender, begrenzter Endpunkt zeigt Phase, Status, Fehlerklasse,
+    Modellrevision und gebundene Quellen-/Grafikreferenzen. Weder Kind, fremde
+    Familie noch Betriebsadmin erhalten Zugriff. Künstliche erfolgreiche und
+    fehlgeschlagene OCR-, Gegenprüf- und Paketläufe, fremde Zuordnungen sowie
+    wiederholte GETs sind geprüft. Die Elternansicht zeigt die Details erst
+    nach ausdrücklichem Öffnen; Kinder sehen sie nicht. Die übrigen Phasen
+    bleiben Bestandteil des offenen Hauptpunkts.
+    [Vertrag und Grenzen](docs/PROCESSING_TRACE_2026_11_23.md).
+
 
   - [x] **Künstliche Quell- und Antwortkette zusammenhängend prüfen.**
     Ein künstliches Foto läuft über Upload, zwei getrennt gespeicherte
@@ -2613,6 +2631,13 @@ Bestandteil des bestehenden Buildvertrags.
   **Abnahme:** Alle Anzeigen lassen sich auf dieselben gespeicherten Daten zurückführen, Familienmitglieder sehen nur Berechtigtes, Import und Wiederholung sind idempotent und es entstehen keine erfundenen Diagnosen oder Notenprognosen.
 
 - [x] **P1 – Adminoberfläche und laufende Betriebsentscheidungen abnehmen**
+
+  - [x] **Abschlussdatum der Einrichtung bei späterer Adminpflege erhalten.**
+    Das lokale Admin-CLI setzt das Abschlussdatum nur bei der Ersteinrichtung;
+    Anlegen und Zurücksetzen weiterer Administratoren bewahren den vorhandenen
+    Zeitstempel. Drei künstliche CLI-Fälle prüfen beide Folgeaktionen und die
+    erstmalige Einrichtung.
+
 
   **23.11.2026, erneute technische Abnahme:** Auf dem aktuellen Entwicklungsstand
   bestanden 136 SQLite- und 144 PostgreSQL-Fälle zu Konten, Rechten, Budgets,

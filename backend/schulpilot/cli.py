@@ -120,7 +120,11 @@ def main():
             user.disabled = False
             db.execute(update(Session).where(Session.user_id == user.id).values(revoked=True))
         item = db.get(Installation, 1)
-        item.completed, item.completed_at, item.bootstrap_digest, item.bootstrap_expires = True, int(now()), None, None
+        # Creating or recovering a later administrator is not a new setup.
+        # Preserve the original completion timestamp on existing installations.
+        if not item.completed:
+            item.completed_at = int(now())
+        item.completed, item.bootstrap_digest, item.bootstrap_expires = True, None, None
         audit(db, "local-cli", args.command, user.id)
     from .installation import code_path
 
