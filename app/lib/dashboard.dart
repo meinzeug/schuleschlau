@@ -62,19 +62,45 @@ class DashboardScreen extends StatelessWidget {
         ),
       );
     }
+    final account = state.user, familyId = state.familyId;
     return PageFrame(
       state: state,
       title: 'Deine Familie',
       showTitle: false,
-      child: LoadView<Json>(
-        key: ValueKey('${state.familyId}-${state.revision}'),
-        load: () => state.api.get('/families/${state.familyId}'),
-        builder: (family, refresh) {
-          final account = state.user, familyId = state.familyId;
+      child: LoadView<(Json, (Object?, String?, int?))>(
+        key: ValueKey((
+          ObjectKey(account),
+          familyId,
+          state.api.token,
+          state.revision,
+        )),
+        load: () async {
+          final identity = state.api.requestIdentity();
           bool current() =>
               context.mounted &&
               identical(account, state.user) &&
-              familyId == state.familyId;
+              familyId == state.familyId &&
+              state.api.ownsRequest(identity);
+          try {
+            final family = await state.api.get('/families/$familyId');
+            if (!current()) {
+              throw ApiError('Bitte lade die Familienübersicht erneut.');
+            }
+            return (family, identity);
+          } catch (_) {
+            if (!current()) {
+              throw ApiError('Bitte lade die Familienübersicht erneut.');
+            }
+            rethrow;
+          }
+        },
+        builder: (result, refresh) {
+          final family = result.$1;
+          bool current() =>
+              context.mounted &&
+              identical(account, state.user) &&
+              familyId == state.familyId &&
+              state.api.ownsRequest(result.$2);
           final children = (family['children'] as List? ?? [])
               .whereType<Map>()
               .map(Json.from)
@@ -120,6 +146,7 @@ class DashboardScreen extends StatelessWidget {
                         )
                         .toList(),
                     onChanged: (v) {
+                      if (!current()) return;
                       state.familyId = v;
                       state.refreshState();
                     },
@@ -162,7 +189,9 @@ class DashboardScreen extends StatelessWidget {
                 icon: Icons.diversity_1_rounded,
                 action: IconButton(
                   tooltip: 'Aktualisieren',
-                  onPressed: refresh,
+                  onPressed: () {
+                    if (current()) refresh();
+                  },
                   icon: Icon(Icons.refresh_rounded),
                 ),
               ),
@@ -177,8 +206,9 @@ class DashboardScreen extends StatelessWidget {
                         ActionButton(
                           label: 'Ersten Kinderzugang einrichten',
                           onPressed: () async {
+                            if (!current()) return;
                             await showChildDialog(context, state);
-                            refresh();
+                            if (current()) refresh();
                           },
                         ),
                     ],
@@ -188,7 +218,11 @@ class DashboardScreen extends StatelessWidget {
                 Column(
                   children: [
                     for (final child in children)
-                      _FamilyChildCard(child: Json.from(child), state: state),
+                      _FamilyChildCard(
+                        child: Json.from(child),
+                        state: state,
+                        requestIdentity: result.$2,
+                      ),
                   ],
                 ),
               if (state.canManage && children.isNotEmpty)
@@ -203,10 +237,12 @@ class DashboardScreen extends StatelessWidget {
                     children: [
                       if (state.canManage && children.isNotEmpty)
                         OutlinedButton.icon(
-                          onPressed: () =>
-                              showChildDialog(context, state).then((_) {
-                                if (context.mounted) refresh();
-                              }),
+                          onPressed: () {
+                            if (!current()) return;
+                            showChildDialog(context, state).then((_) {
+                              if (current()) refresh();
+                            });
+                          },
                           icon: Icon(Icons.person_add_alt_1_rounded, size: 18),
                           label: Text('Kind hinzufügen'),
                         ),
@@ -226,7 +262,12 @@ class DashboardScreen extends StatelessWidget {
 class _FamilyChildCard extends StatelessWidget {
   final Json child;
   final AppState state;
-  const _FamilyChildCard({required this.child, required this.state});
+  final (Object?, String?, int?) requestIdentity;
+  const _FamilyChildCard({
+    required this.child,
+    required this.state,
+    required this.requestIdentity,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -240,7 +281,8 @@ class _FamilyChildCard extends StatelessWidget {
     bool current() =>
         context.mounted &&
         identical(account, state.user) &&
-        family == state.familyId;
+        family == state.familyId &&
+        state.api.ownsRequest(requestIdentity);
     void visit(String route) {
       if (current()) {
         openRoute(context, route);

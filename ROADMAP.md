@@ -3096,6 +3096,17 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Echtzeitstatus gezielt und zuverlässig bereitstellen**
 
+  - [x] **Familienübersicht und Klassenarbeitsauswahl an die Anmeldeabsicht binden.**
+    Beide Familienabrufe prüfen Konto, Familie, Sitzung und Anmeldeabsicht
+    nach Abschluss. Verspätete Ergebnisse und Fehler zeigen keine alten
+    Familieninhalte; ein erneutes Laden ist ausdrücklich möglich. Bereits
+    angezeigte Kinderkarten und Verwaltungsaktionen werden nach Beginn einer
+    neuen Anmeldung nicht mehr ausgeführt. Widgettests prüfen Erfolg und Fehler,
+    Konto-, Familien-, Token- und Absichtswechsel sowie das normale Öffnen;
+    dieselben 16 künstlichen Fälle bestehen auch im Chrome-Webrunner bei 390 px.
+    Die übrigen Transporte, der Beginn einer Anfrage während laufender
+    Anmeldung und der separate Cookie-Wettlauf bleiben offen.
+
   - [x] **Verspätete Fach- und Sammlungslisten beim Anmeldewechsel verwerfen.**
     Fachübersicht und paginierte Lern- beziehungsweise Materialliste binden
     jeden Leseauftrag zusätzlich an die beim Start aktuelle Anmeldeabsicht.
