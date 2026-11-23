@@ -2237,6 +2237,16 @@ Bestandteil des bestehenden Buildvertrags.
     passende geprüfte alternative Darstellung und ein erfolgreicher
     Ende-zu-Ende-Lauf für die Bienenrunde fehlen noch.
 
+    - [x] **Aussichtslose Grafikaktion vorab erkennen.** Die lesende
+      Rundenansicht prüft dieselben Quellen und Vorlagen wie der spätere
+      ausdrückliche Start. Ist bereits klar, dass der Server keinen solchen
+      Auftrag annehmen könnte, erscheint eine kurze Erklärung statt eines
+      Buttons, der unmittelbar scheitert. Es entstehen weder Auftrag noch
+      Kosten oder Lernbelege; beim Start werden Rechte und Quellen weiterhin
+      erneut geprüft. Künstliche API- und Widgettests prüfen verfügbare und
+      nicht verfügbare Vorlagen. Eine passende neue Darstellung oder eine
+      erfolgreiche KI-Generierung ist dadurch noch nicht nachgewiesen.
+
   - [x] **Öffentliche Unterthemen eindeutig und datensparsam zuordnen.**
     Die automatische Auswahl erkennt zusätzlich vollständige Titel bestätigter,
     kuratierter Kataloginhalte im aktiven Snapshot; Fach und Themenzuordnung

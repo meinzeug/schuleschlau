@@ -164,15 +164,18 @@ class _VisualPreparationCardState extends State<VisualPreparationCard>
         dispatched ||
         job is Map && ['queued', 'running'].contains(job['status']);
     final failed = job is Map && job['status'] == 'failed';
+    final unavailable = widget.unit['visual_prepare_unavailable'] == true;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (pending || status == 'legacy_text')
+          if (pending || status == 'legacy_text' || unavailable)
             Text(
               pending
                   ? 'Grafische Erklärung wird vorbereitet …'
+                  : unavailable
+                  ? 'Dazu gibt es gerade keine passende Grafik. Du kannst weiterlernen.'
                   : 'Zu deiner Erklärung fehlt noch eine Grafik.',
               key: const ValueKey('visual-readiness'),
               style: TextStyle(color: context.palette.muted, fontSize: 14),

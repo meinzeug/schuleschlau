@@ -788,6 +788,40 @@ void main() {
     expect(find.text('Grafische Erklärung vorbereiten'), findsOneWidget);
     expect(calls.every((call) => call.method == 'GET'), isTrue);
   });
+  testWidgets(
+    'unavailable source graphic keeps the round usable without a dead action',
+    (tester) async {
+      final calls = <http.Request>[];
+      final state = app((request) {
+        calls.add(request);
+        return reply({'status': 'missing'});
+      });
+      addTearDown(state.dispose);
+      await mount(
+        tester,
+        VisualPreparationCard(
+          state: state,
+          unit: {
+            'id': 'unit',
+            'explanation_visual_status': 'legacy_text',
+            'synthetic': false,
+            'can_prepare_visual': false,
+            'visual_prepare_unavailable': true,
+          },
+          isCurrent: () => true,
+          refresh: () async {},
+        ),
+      );
+      expect(
+        find.text(
+          'Dazu gibt es gerade keine passende Grafik. Du kannst weiterlernen.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Grafische Erklärung vorbereiten'), findsNothing);
+      expect(calls.every((call) => call.method == 'GET'), isTrue);
+    },
+  );
   testWidgets('107 no invented learning path is displayed without saved plan', (
     tester,
   ) async {

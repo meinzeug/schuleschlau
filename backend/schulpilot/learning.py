@@ -1489,6 +1489,21 @@ def unit_view(unit_id: str, p=Depends(authenticated), db=Depends(get_db),
             if error.status_code != 403:
                 raise
             can_prepare = False
+    # A source-bound graphic is optional. Do not offer a paid action that the
+    # same server would reject before reserving it (for example, a scene whose
+    # source has no relation). This is a read-only preflight; POST must still
+    # repeat every check because sources and permissions can change.
+    visual_status = value.get("explanation_visual_status")
+    if can_prepare and visual_status is not None and visual_status != "ready":
+        from .visual_jobs import context as visual_context
+
+        try:
+            visual_context(db, unit, labs_enabled="labs-v1" in getattr(p.session, "request_capabilities", ()))
+        except HTTPException as error:
+            if error.status_code != 409:
+                raise
+            can_prepare = False
+            value["visual_prepare_unavailable"] = True
     value["can_prepare_visual"] = can_prepare
     return value
 

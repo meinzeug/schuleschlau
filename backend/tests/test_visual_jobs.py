@@ -169,6 +169,41 @@ def test_scene_without_source_arrow_is_rejected_before_reservation(api, legacy, 
     assert calls["provider"] == []
 
 
+def test_unit_view_does_not_offer_impossible_graphic_or_start_a_job(api, legacy, monkeypatch):
+    from schulpilot import visual_jobs
+
+    uid, _, _, calls = legacy
+    original = visual_jobs.with_visual_context
+
+    def no_scene_evidence(*args, **kwargs):
+        value = original(*args, **kwargs)
+        value["visual_context"]["references"] = [{"id": "general.source_relation.phases", "kind": "scene"}]
+        assert all("→" not in row["content"] and "->" not in row["content"]
+                   for row in value["visual_context"]["sources"])
+        return value
+
+    monkeypatch.setattr(visual_jobs, "with_visual_context", no_scene_evidence)
+    with DB() as db:
+        before = db.query(Job).count(), db.query(Attempt).count(), db.query(Activity).count()
+    response = api.get(f"/api/units/{uid}")
+    assert response.status_code == 200, response.text
+    assert response.json()["can_prepare_visual"] is False
+    assert response.json()["visual_prepare_unavailable"] is True
+    with DB() as db:
+        assert before == (db.query(Job).count(), db.query(Attempt).count(), db.query(Activity).count())
+    assert not calls["reserve"] and not calls["provider"]
+    assert start(api, uid).status_code == 409
+
+
+def test_unit_view_keeps_available_graphic_action_without_reserving(api, legacy):
+    uid, _, _, calls = legacy
+    response = api.get(f"/api/units/{uid}")
+    assert response.status_code == 200, response.text
+    assert response.json()["can_prepare_visual"] is True
+    assert "visual_prepare_unavailable" not in response.json()
+    assert not calls["reserve"] and not calls["provider"]
+
+
 def test_sidecar_context_is_derived_from_existing_source_revision_and_saved_question(api, legacy):
     uid, mid, _, _ = legacy
     with DB() as db:
