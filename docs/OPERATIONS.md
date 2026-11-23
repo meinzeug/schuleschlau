@@ -197,6 +197,30 @@ Konfigurationen und andere Anwendungen bleiben unberührt. Damit bleibt der
 dokumentierte unmittelbare Code-Rückweg erhalten, ohne unbeschränkt viele
 historische Kopien auf dem Server anzusammeln.
 
+Die getrennten Wiederherstellungs-Runtimes unter
+`/opt/schulpilot/restore-runtimes` haben eine eigene, begrenzte Aufbewahrung:
+`deploy/prune_restore_runtimes.py` zeigt ohne Parameter einen Probelauf;
+`--apply` erhält höchstens drei abgeschlossene Runtimes, darunter die zum
+aktuellen und vorherigen Release gehörenden sowie alle durch Systemd oder
+laufende Prozesse referenzierten Stände. Frisch angelegte Runtimes und junge
+Vorbereitungen werden vorsichtshalber geschützt. Alte abgebrochene
+`.prepare-*`-Verzeichnisse werden nur nach mindestens einem Tag und ohne
+Referenz entfernt. Andere Dateien und Sicherungsarchive bleiben unangetastet.
+Vor dem Löschen prüft das Werkzeug die laufende Restore-Konfiguration,
+Mountpoints und Prozessverweise und hält die Release- sowie Backup-Sperre.
+Bei fehlenden Nachweisen oder mehr als drei geschützten Versionen stoppt es;
+die Begrenzung ist daher keine Zusage, bei unsicherem Zustand etwas zu löschen.
+Der Deploymentabschluss und `schulpilot-restore-retention.timer` führen die
+Bereinigung regelmäßig aus. Der Betriebsmonitor meldet einen inaktiven Timer
+oder fehlgeschlagenen Bereinigungsdienst, sobald kein Releasewechsel läuft.
+Vor dem Anlegen einer neuen Runtime muss der
+Operator ausdrücklich `sudo python3 /opt/schulpilot/current/deploy/prune_restore_runtimes.py --apply --reserve-slot`
+ausführen. Der Befehl hält dann höchstens zwei nicht anderweitig geschützte
+Stände vor; schlägt die Prüfung fehl, darf keine weitere Runtime angelegt
+werden. Unkoordinierte manuelle Kopien oder gerade geschützte Vorbereitungen
+können kurzzeitig mehr Platz belegen und werden nicht gewaltsam entfernt.
+Die Toolausgabe und der aktive Timer ersetzen keine Wiederherstellungsprobe.
+
 Die Caddy-Hauptdatei erhält lediglich `import /etc/caddy/schulpilot.caddy`. Das Fragment übernimmt `/api` einschließlich Unterpfaden; alle anderen Direktlinks fallen auf Flutter `index.html` zurück. Statische Ressourcen kommen vom eigenen Server, ohne externes Flutter-CDN. Let’s Encrypt wird über Caddy ACME HTTP-01 bezogen und automatisch erneuert; HTTP leitet per 308 auf HTTPS. Die bestehende Caddy-Version bleibt erhalten.
 
 Dienste: `schulpilot-api.service`, `schulpilot-worker.service`, `schulpilot-backup.timer`. Automatischer Start und Neustart bei Ausfall; unprivilegierte API/Worker, schreibgeschützter Anwendungscode, geschütztes Home, minimale Fähigkeiten, getrennte Speicherlimits. Keine vollständigen Anfragen/Antworten in Zugriffslogs. `systemctl status`, `/api/health` und `journalctl -u schulpilot-api -u schulpilot-worker` dienen der Diagnose. Ein eigener Prozess-Watchdog und eine unabhängige HTTPS-Prüfung auf dem zweiten Host sind vorbereitet; Einrichtung und tatsächlicher Prüfstand stehen unten beziehungsweise in STATUS.md.

@@ -117,3 +117,6 @@ trap - EXIT
 if ! ssh -o BatchMode=yes dorfspy sudo -n python3 /opt/schulpilot/current/deploy/prune_releases.py --apply; then
   echo "WARNING: deployment is healthy, but obsolete release cleanup was skipped; inspect the cleanup message above." >&2
 fi
+if ! ssh -o BatchMode=yes dorfspy sudo -n python3 /opt/schulpilot/current/deploy/prune_restore_runtimes.py --apply; then
+  echo "WARNING: deployment is healthy, but old restore runtimes were retained; inspect the cleanup message above." >&2
+fi

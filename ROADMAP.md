@@ -221,6 +221,15 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [x] **P0 – Speicherplatz prüfen und rechtzeitig absichern**
 
+  **23.11.2026, gezielte Runtime-Bereinigung:** 62 alte oder abgebrochene
+  Wiederherstellungs-Runtimes wurden nach Prüfung von Systemd-Verweisen,
+  Prozessen, Release- und Backup-Sperre entfernt; drei aktuelle Stände blieben
+  erhalten. Die Root-Belegung sank von 97 % auf 70 %, danach bestand eine echte
+  Wiederherstellungsprobe. Ein begrenztes Bereinigungswerkzeug samt Timer und
+  reservierbarem Platz für die nächste Runtime wurde anschließend ergänzt;
+  es bricht bei unbekannten oder zu vielen geschützten Ständen ab. Die
+  automatisierte Übernahme und der echte Timerlauf müssen separat geprüft werden.
+
   **03.11.2026, lokale Dauerhaftigkeit:** Der Offsite-Client synchronisiert
   Archiv-, Journal- und Verzeichniseinträge vor dem Server-ACK. Bei einem
   fehlgeschlagenen Abschluss nach ACK bleiben Prüfmarker und vorhandener
@@ -1867,6 +1876,14 @@ Bestandteil des bestehenden Buildvertrags.
   Konten prüfen und den Zustand auf der öffentlichen Startseite korrekt anzeigen.
 
 - [ ] **P1 – Kapazitätsannahmen vor wachsendem Betrieb messen**
+
+  - [x] **Installierten Fotodienst mit künstlichem Bild und falscher UID prüfen.**
+    Auf dem Zielserver verarbeitete die tatsächlich installierte getrennte
+    Fotokomponente ein künstliches JPEG mit EXIF-Drehung korrekt; eine andere
+    UID wurde trotz Socketgruppe abgewiesen. API- und Dienstspeicherlimits
+    wurden lesend geprüft. Es gab weder KI-Aufruf noch gespeichertes Foto.
+    [Test und Grenzen](docs/PHOTO_ISOLATION_TARGET_2026_11_23.md).
+    Parallele Produktivlast, echter Webimport und Rückweg bleiben offen.
 
   - [x] **Stehende Fotouploads früher freigeben.** Eine Verbindung ohne
     weitere Daten gibt den einzelnen Foto-Eingangsplatz nach 15 Sekunden

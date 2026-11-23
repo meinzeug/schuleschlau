@@ -72,6 +72,18 @@ class RestoreMonitorTest(unittest.TestCase):
             os.utime(archive, (NOW - age, NOW - age))
             self.assertEqual(monitor.backup_retention_overdue([archive], NOW), overdue)
 
+    def test_restore_runtime_retention_failure_is_visible_without_changing_legacy_hosts(self):
+        calls = []
+        def failed(args):
+            calls.append(args)
+            return SimpleNamespace(returncode=1 if 'is-active' in args else 0)
+        self.assertEqual(monitor.restore_runtime_retention_failures(False, False, failed), [])
+        self.assertEqual(monitor.restore_runtime_retention_failures(True, True, failed), [])
+        self.assertEqual(calls, [])
+        self.assertEqual(monitor.restore_runtime_retention_failures(True, False, failed), [
+            'restore_runtime_retention_timer_inactive', 'restore_runtime_retention_failed'])
+        self.assertEqual(len(calls), 2)
+
     def test_configured_backup_volume_requires_exact_uuid(self):
         config = self.root / 'backup-volume.uuid'
         self.assertIsNone(monitor.backup_volume_failure(config, '/backup'))

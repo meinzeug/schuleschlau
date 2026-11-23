@@ -79,6 +79,7 @@ UNIT_NAMES = (
     "schulpilot-backup.timer", "schulpilot-backup-retention.service", "schulpilot-backup-retention.timer",
     "schulpilot-monitor.service", "schulpilot-monitor.timer",
     "schulpilot-restore-check.service", "schulpilot-restore-check.timer",
+    "schulpilot-restore-retention.service", "schulpilot-restore-retention.timer",
 )
 TURN_NAMES = ("schulpilot-turn.service", "schulpilot-turn-cert.service", "schulpilot-turn-cert.timer")
 
@@ -278,6 +279,8 @@ try:
                 timers.append("schulpilot-backup-retention.timer")
             if (release / "deploy/schulpilot-restore-check.timer").is_file():
                 timers.append("schulpilot-restore-check.timer")
+            if (release / "deploy/schulpilot-restore-retention.timer").is_file():
+                timers.append("schulpilot-restore-retention.timer")
             if (release / "deploy/schulpilot-monitor.timer").is_file():
                 timers.append("schulpilot-monitor.timer")
             environment = {"PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"}
@@ -315,7 +318,7 @@ try:
             # These change enabled/active timer state. Only do so once new writers may
             # have run: earlier failures can then restore the old service definitions
             # without having to guess the operator's previous timer configuration.
-            for optional in ("schulpilot-backup-retention.timer", "schulpilot-restore-check.timer", "schulpilot-monitor.timer"):
+            for optional in ("schulpilot-backup-retention.timer", "schulpilot-restore-check.timer", "schulpilot-restore-retention.timer", "schulpilot-monitor.timer"):
                 if optional not in timers and Path("/etc/systemd/system", optional).exists():
                     subprocess.run(["systemctl", "stop", optional], check=True)
             enable_services = ["schulpilot-api", "schulpilot-worker", *timers]

@@ -1,0 +1,11 @@
+[Unit]
+Description=Periodically limit SCHULPILOT restore runtimes
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=5min
+AccuracySec=30s
+Unit=schulpilot-restore-retention.service
+
+[Install]
+WantedBy=timers.target

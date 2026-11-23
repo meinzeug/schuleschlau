@@ -67,6 +67,17 @@ def backup_retention_overdue(backups, now):
     return any(now - backup.stat().st_mtime > RESTORE_MAX_AGE for backup in backups)
 
 
+def restore_runtime_retention_failures(installed, deployment_in_progress, runner):
+    if not installed or deployment_in_progress:
+        return []
+    failures = []
+    if runner(['systemctl', 'is-active', '--quiet', 'schulpilot-restore-retention.timer']).returncode:
+        failures.append('restore_runtime_retention_timer_inactive')
+    if runner(['systemctl', 'is-failed', '--quiet', 'schulpilot-restore-retention.service']).returncode == 0:
+        failures.append('restore_runtime_retention_failed')
+    return failures
+
+
 def backup_journal_available(backup):
     """Presence only; this does not verify signatures or journal completeness."""
     try:
@@ -226,9 +237,11 @@ def main():
     config = environment("/etc/schulpilot/environment")
     failures = []
     deployment_in_progress = False
+    release_in_progress = False
     if check_lock is not None:
         try:
             lock = check_lock(Path("/opt/schulpilot"))
+            release_in_progress = bool(lock and lock.get('operation') in ('deploy', 'activate', 'rollback'))
             if lock and lock.get("stage") in ("activating", "published") and time.time() - lock.get("updated_at", 0) < 180:
                 deployment_in_progress = True
         except Exception:
@@ -301,6 +314,9 @@ def main():
         failures.append("backup_retention_failed")
     if subprocess.run(["systemctl", "is-failed", "--quiet", "schulpilot-restore-check.service"]).returncode == 0:
         failures.append("restore_rehearsal_failed")
+    failures.extend(restore_runtime_retention_failures(
+        Path('/etc/systemd/system/schulpilot-restore-retention.timer').is_file(),
+        release_in_progress, subprocess.run))
     restore_failure, restore_initializing = restore_status(
         restore, restore.with_name("restore-setup-started"), time.time()
     )
