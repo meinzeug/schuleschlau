@@ -1507,6 +1507,8 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
       eyebrow: 'Fotos abgegeben',
       title: isPackage
           ? 'Dein Lernpaket entsteht'
+          : completed != null && total > 0 && completed >= total
+          ? 'Deine Seiten werden fertig vorbereitet'
           : 'Wir lesen deine Heftseiten',
       subtitle: 'Du kannst die App schließen und später weitermachen.',
       label: 'Zur Startseite',

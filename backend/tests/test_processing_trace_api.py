@@ -1,5 +1,6 @@
 """Private, read-only, bounded processing metadata; all examples artificial."""
 
+import pytest
 from conftest import HEADERS, register
 from fastapi.testclient import TestClient
 from schulpilot.db import DB, Activity, Attempt, Job, LearningUnit, Material, Usage, uid
@@ -120,6 +121,30 @@ def test_failed_trace_exposes_controlled_category_without_error_body(api, househ
     assert response.json()["phase"] == "recognition"
     assert response.json()["error_code"] == "provider_timeout"
     assert response.json()["model"] is None
+    assert CANARY not in response.text
+
+
+@pytest.mark.parametrize(("telemetry", "expected"), [
+    ({"finish_reason": "length", "secret": CANARY}, "output_length"),
+    ({"validation": {"version": 1, "errors": [{"reason": "question_fraction_ambiguous", "input": CANARY}]}}, "question_fraction_ambiguous"),
+    ({"validation": {"version": 1, "errors": [{"reason": "question_fraction_result"}]}}, "question_fraction_result"),
+    ({"validation": {"version": 1, "errors": [{"reason": {"secret": CANARY}}]}}, None),
+    ({"validation": {"version": True, "errors": [{"reason": "question_fraction_ambiguous"}]}}, None),
+    ({"validation": {"version": 1, "errors": [{"reason": CANARY}]}}, None),
+])
+def test_failure_detail_is_closed_content_free_and_read_only(api, household, telemetry, expected):
+    owner, child = household
+    with DB.begin() as db:
+        job = Job(child_id=child["id"], kind="package", payload={}, status="failed", idempotency=uid(), error_code="invalid_output")
+        db.add(job)
+        db.flush()
+        db.add(Usage(family_id=owner["families"][0]["id"], child_id=child["id"], job_id=job.id,
+                     provider="synthetic", model="fixture/model", config_revision=3, function="package",
+                     status="failed_billed", reserved_micros=0, bucket_ids=[], route_snapshot={}, telemetry=telemetry))
+        job_id = job.id
+    response = api.get(f"/api/jobs/{job_id}/trace")
+    assert response.status_code == 200
+    assert response.json()["failure_detail"] == expected
     assert CANARY not in response.text
 
 

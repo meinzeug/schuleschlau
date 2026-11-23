@@ -155,6 +155,16 @@ class _ProcessingTracePanelState extends State<ProcessingTracePanel> {
                 ),
                 if (value['error_code'] is String)
                   Text('Fehlerklasse: ${value['error_code']}'),
+                if (switch (value['failure_detail']) {
+                      'output_length' => 'Die KI hat ihr Ausgabelimit erreicht. Das Ergebnis wurde verworfen.',
+                      'question_fraction_ambiguous' =>
+                        'Eine Bruchaufgabe war nicht eindeutig gestellt.',
+                      'question_fraction_result' || 'question_fraction_form' =>
+                        'Eine Bruchlösung passte nicht zur Aufgabenstellung.',
+                      _ => null,
+                    }
+                    case final String explanation)
+                  Text(explanation),
                 if (model is Map && model['model'] is String)
                   Text('Modell: ${model['model']}'),
                 if (model is Map && model['config_revision'] is int)

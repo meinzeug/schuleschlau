@@ -51,6 +51,7 @@ def processing_trace(job_id: str, p=Depends(parent), db=Depends(get_db)):
         )
     )
     model = None
+    failure_detail = None
     if len(usages) == 1:
         usage = usages[0]
         model = {
@@ -58,6 +59,19 @@ def processing_trace(job_id: str, p=Depends(parent), db=Depends(get_db)):
             "model": label(usage.model),
             "config_revision": usage.config_revision if type(usage.config_revision) is int else None,
         }
+        telemetry = usage.telemetry if isinstance(usage.telemetry, dict) else {}
+        if job.status == "failed" and telemetry.get("finish_reason") == "length":
+            failure_detail = "output_length"
+        elif job.status == "failed":
+            validation = telemetry.get("validation")
+            if isinstance(validation, dict) and type(validation.get("version")) is int and validation["version"] == 1:
+                errors = validation.get("errors")
+                if isinstance(errors, list):
+                    for entry in errors[:3]:
+                        reason = entry.get("reason") if isinstance(entry, dict) else None
+                        if isinstance(reason, str) and reason in {"question_fraction_ambiguous", "question_fraction_result", "question_fraction_form"}:
+                            failure_detail = reason
+                            break
 
     proposed = payload.get("sources") if isinstance(payload.get("sources"), list) else []
     sources, seen = [], set()
@@ -132,6 +146,7 @@ def processing_trace(job_id: str, p=Depends(parent), db=Depends(get_db)):
         "phase": kinds.get(job.kind, "other"),
         "status": job.status,
         "error_code": (job.error_code if job.error_code in CODES else "unknown") if job.status == "failed" else None,
+        "failure_detail": failure_detail,
         "model": model,
         "model_ambiguous": len(usages) > 1,
         "sources": sources,

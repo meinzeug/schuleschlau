@@ -1044,6 +1044,13 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – Alle Kinderansichten sprachlich und in ihrer Bedienung entrümpeln**
 
+  - [x] **Fortlaufende Vorbereitung nach dem Lesen verständlich anzeigen.**
+    Sind alle Seiten gelesen, aber noch Arbeit im Hintergrund offen, zeigt die
+    Kinderansicht „Deine Seiten werden fertig vorbereitet“ statt weiterhin
+    ausschließlich vom Lesen zu sprechen. Widgettests bei 320 und 390 Pixeln
+    sowie großer Schrift prüfen den Zustand auch im Chrome-Webrunner. Die
+    umfassende Abnahme aller Kinderansichten bleibt offen.
+
   - [x] **Themenbild und Gerätekarten während der Nutzung kompakter zeigen.**
     In aktiven Kinderaufgaben erscheint ein vorhandenes Themenbild zunächst
     als kleine Vorschau und kann ausdrücklich geöffnet werden; Einführung und
@@ -1846,9 +1853,18 @@ Bestandteil des bestehenden Buildvertrags.
   - [x] **Produktive Registrierung und Bestätigungsmail mit eigenem Testkonto prüfen.**
     Eine frische künstliche Beta-Familie durchlief die tatsächliche Registrierung,
     Mailbestätigung und Kinderanmeldung auf dem Zielserver und wurde danach über
-    ihren eigenen Elternzugang gelöscht. Kein KI-Auftrag wurde ausgelöst; die
-    produktive Adminfreigabe und der Lernweg bleiben noch offen.
+    ihren eigenen Elternzugang gelöscht. In diesem Teiltest wurde kein
+    KI-Auftrag ausgelöst. Die Adminfreigabe wurde anschließend gesondert
+    geprüft; der durchgehende produktive Lernweg bleibt offen.
     [Prüfumfang](docs/BETA_LIVE_SIGNUP_2026_11_23.md).
+
+  - [x] **Produktive Betaentscheidung und echte Fotoverarbeitung mit künstlicher Familie prüfen.**
+    Eine eigene künstliche Familie erhielt nach Mailbestätigung eine reguläre
+    Adminfreigabe. Zwei Seiten wurden im mobilen Browser abgegeben und vom
+    tatsächlichen Anbieter gelesen und gegengeprüft; die Kosten wurden erfasst.
+    Die anschließende Paketerstellung scheiterte und ist nicht als gelöst
+    nachgewiesen. Testfamilie und temporärer Administrator wurden anschließend
+    gelöscht. [Prüfumfang und Grenzen](docs/BETA_LIVE_SIGNUP_2026_11_23.md).
 
   - [x] **Beta-Antrag, Freigabe und künstliche Lernantwort im Browser verbinden.**
     Ein isolierter Lauf bedient die öffentliche Beta-Anmeldung mobil, den

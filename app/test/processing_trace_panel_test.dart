@@ -34,6 +34,7 @@ void main() {
               'phase': 'generation',
               'status': 'failed',
               'error_code': 'invalid_output',
+              'failure_detail': 'question_fraction_ambiguous',
               'sources': [],
               'units': [],
             });
@@ -68,6 +69,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(calls.where((path) => path.endsWith('/trace')), hasLength(1));
     expect(find.text('Fehlerklasse: invalid_output'), findsOneWidget);
+    expect(
+      find.text('Eine Bruchaufgabe war nicht eindeutig gestellt.'),
+      findsOneWidget,
+    );
     expect(calls.every((path) => path.startsWith('GET ')), isTrue);
   });
 

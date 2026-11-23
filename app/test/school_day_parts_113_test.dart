@@ -62,6 +62,27 @@ void main() {
   setUp(() => FlutterSecureStorage.setMockInitialValues({}));
 
   for (final width in [320.0, 390.0]) {
+    testWidgets('All read pages still show ongoing preparation at $width px', (
+      tester,
+    ) async {
+      final server = partsServer({
+        'status': 'processing',
+        'phase': 'extract',
+        'total_pages': 1,
+        'completed_pages': 1,
+      });
+      await openParts(tester, server, width: width, textScale: 2);
+      expect(
+        find.text('Deine Seiten werden fertig vorbereitet'),
+        findsOneWidget,
+      );
+      expect(find.text('1 von 1 Seite'), findsOneWidget);
+      expectNoWrites(server);
+      expect(tester.takeException(), isNull);
+    });
+  }
+
+  for (final width in [320.0, 390.0]) {
     for (final scale in [1.0, 2.0]) {
       testWidgets('Package parts stay readable at $width px and $scale text', (
         tester,
@@ -215,10 +236,11 @@ void main() {
   const malformed = <Json>[
     {'total_parts': 0, 'completed_parts': 0, 'active_part': null},
     {'total_parts': 25, 'completed_parts': 1, 'active_part': 1},
-    {'total_parts': 3.0, 'completed_parts': 1, 'active_part': 1},
+    // Whole-valued doubles and integers are indistinguishable on Web/JS.
+    {'total_parts': 3.5, 'completed_parts': 1, 'active_part': 1},
     {'total_parts': 3, 'completed_parts': -1, 'active_part': 1},
     {'total_parts': 3, 'completed_parts': 4, 'active_part': 1},
-    {'total_parts': 3, 'completed_parts': 1.0, 'active_part': 1},
+    {'total_parts': 3, 'completed_parts': 1.5, 'active_part': 1},
     {'total_parts': 3, 'completed_parts': 1, 'active_part': -1},
     {'total_parts': 3, 'completed_parts': 1, 'active_part': 3},
     {'total_parts': 3, 'completed_parts': 1, 'active_part': true},

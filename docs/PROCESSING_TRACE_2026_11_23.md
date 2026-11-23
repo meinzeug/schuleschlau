@@ -6,6 +6,10 @@ fremde Familien und Betriebsadministratoren erhalten keinen Zugang. Die
 Antwort enthält Phase, Status, eine beschränkte Fehlerklasse und, falls genau
 ein zugehöriger Verbrauchsbeleg vorhanden ist, Anbieter, Modell und
 Konfigurationsrevision. Mehrdeutige Belege werden als solche gekennzeichnet.
+Für fehlgeschlagene Aufträge können genau zugeordnete, geschlossene Diagnosen
+zusätzlich ein erreichtes Ausgabelimit oder bestimmte Bruchprüfungsfehler
+benennen. Unbekannte, manipulierte oder mehrdeutige Telemetrie wird nicht
+übernommen. Die Elternansicht übersetzt diese Gründe in kurze Sätze.
 
 Für bekannte zugehörige Quellen stehen angeforderte und aktuelle Revision
 bereit. Eine Abschriftversion wird nur zugeordnet, wenn Material, Kind und die

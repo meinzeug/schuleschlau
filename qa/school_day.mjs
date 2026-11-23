@@ -6,16 +6,28 @@
 // package. --retry-failed-coaching permits one explicit UI retry per failed unit.
 // --diagnose-package-once is a separate operator-requested attempt after a
 // server correction; its marker and previous failed calls are retained.
+// --paid-synthetic-approved explicitly permits the separately journalled,
+// artificial beta family and the two hash-verified artificial pages only.
 // OCR is never retried by this driver and no replacement model is used.
 import {chromium} from 'playwright';
-import {chmod, readFile, realpath, rename, unlink, writeFile} from 'node:fs/promises';
+import {chmod, lstat, readFile, realpath, rename, unlink, writeFile} from 'node:fs/promises';
+import {homedir} from 'node:os';
+import {createHash} from 'node:crypto';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {hasActivePreparation, pagePreparationSettled, preparationFailureCode} from './school_day_status.mjs';
+import {isArtificialFreeAccount, ownsArtificialBeta} from './school_day_identity.mjs';
 
-const base = 'https://schulpilot.dorfspy.de';
+const base = 'https://schuleschlau.dorfspy.de';
 const artifacts = fileURLToPath(new URL('../artifacts/', import.meta.url));
 const accountFile = path.join(artifacts, '.school-day-qa-account.json');
-const allowedFlags = new Set(['--keep-for-native', '--retry-failed-package', '--retry-failed-coaching', '--diagnose-package-once']);
+const allowedFlags = new Set(['--keep-for-native', '--retry-failed-package', '--retry-failed-coaching', '--diagnose-package-once', '--paid-synthetic-approved']);
+// Hashes of the two inspected, explicitly labelled artificial pages generated
+// by prepare_normal_ai_smoke.py; unreviewed replacements cannot leave the VM.
+const paidImageHashes = [
+  '1f2bf2d391f33dc6eb0eab978b49ee34bfa518cbdf14bdf7e3f7650e79b04a02',
+  '189592ea8c364103c2fcd88de18925a102e671b6765df6e8f1b9328c30771959',
+];
 const flags = new Set(process.argv.slice(2));
 const headers = {'X-Schulpilot-Request': '1'};
 const errors = [];
@@ -143,8 +155,13 @@ async function loginChild() {
 }
 async function enterWizard() {
   await checkpoint('child_home_to_photo_wizard');
-  const homeAction = childPage.getByRole('button', {name: /^(Heutige Seiten scannen|Heftfotos fortsetzen|Heftfotos sammeln)$/}).first();
-  await tap(childPage, homeAction);
+  if (account.school_day_id) {
+    // Resume the already identified test day without creating another day.
+    await open(childPage, '/after-school/' + account.child_id + '?day=' + account.school_day_id);
+  } else {
+    const homeAction = childPage.getByRole('button', {name: /^(Heutige Seiten scannen|Heftfotos fortsetzen|Heftfotos sammeln)$/}).first();
+    await tap(childPage, homeAction);
+  }
   await childPage.waitForURL(new RegExp('/after-school/' + account.child_id + '(?:\\?|$)'), {timeout: 30000});
   let day;
   for (let poll = 0; poll < 30; poll++) {
@@ -163,7 +180,7 @@ async function waitDay(predicate, code, polls = 165) {
   for (let poll = 0; poll < polls; poll++) {
     const day = await dayState();
     check(day && day.id === account.school_day_id, 'saved_day_identity_changed');
-    check(!day.last_error, code + '_failed_no_automatic_retry');
+    check(!day.last_error || hasActivePreparation(day), preparationFailureCode(day, code));
     if (predicate(day)) return day;
     await childPage.waitForTimeout(2000);
   }
@@ -200,7 +217,7 @@ async function uploadAndConfirm(day) {
     }
     await screenshot(childPage, 'school-day-child-mobile.png');
     await checkpoint('continue_automatically_recognizes_two_pages');
-    await tap(childPage, button(childPage, 'Weiter'));
+    await tap(childPage, button(childPage, 'Fotos abgeben'));
   } else if (day.pages.some(page => page.status === 'uploaded')) {
     // A stopped browser can have uploaded photos without having started OCR.
     // Reopening the persisted review shows one Continue button for those pages;
@@ -208,7 +225,12 @@ async function uploadAndConfirm(day) {
     await checkpoint('resume_unprocessed_uploaded_pages');
     await tap(childPage, button(childPage, 'Weiter'));
   }
-  day = await waitDay(value => value.pages.length === 2 && value.pages.every(page => ['review', 'confirmed'].includes(page.status)), 'real_page_recognition');
+  day = await waitDay(pagePreparationSettled, 'real_page_recognition');
+  // The API can finish before the visible screen has consumed its next status
+  // update. Wait for the actual review control before using touch input.
+  if (day.pages.some(page => !page.confirmed)) {
+    await childPage.getByText(/^Seite \d+ prüfen$/, {exact: true}).first().waitFor({state: 'visible', timeout: 30000});
+  }
   check(day.pages.every(page => page.synthetic === false && page.extraction_provider === 'openrouter'), 'photo_recognition_was_not_actual_openrouter');
   const contents = day.pages.map(page => page.content).join(' ');
   check(/3\s*[/⁄]\s*9|\\(?:t)?frac\s*\{3\}\s*\{9\}/.test(contents), 'original_artificial_fraction_example_not_recognized');
@@ -255,18 +277,23 @@ async function ensurePackage(day) {
     retry = true;
   }
   if (day.units.length === 0) {
-    const queued = await tapResponse(childPage, button(childPage, 'Jetzt lernen'), '/school-days/' + day.id + '/package', 'POST', 202);
-    check(queued.id, 'package_job_identifier_missing');
     if (retry) {
-      account.browser_qa.package_retry_job_id = queued.id;
+      const retryAction = childPage.getByRole('button', {name: /^(Fehlenden Teil erneut vorbereiten|Erneut vorbereiten)$/}).first();
+      const queued = await tapResponse(childPage, retryAction, '/school-days/' + day.id + '/prepare', 'POST', 202);
+      const jobId = queued.preparation?.job?.id;
+      if (jobId) account.browser_qa.package_retry_job_id = jobId;
       await checkpoint(diagnostic ? 'explicit_package_diagnosis_accepted' : 'explicit_package_retry_accepted');
+      day = await waitDay(value => value.units.length > 0 && value.stage === 'ready', 'explicit_package_retry', 240);
+    } else {
+      const queued = await tapResponse(childPage, button(childPage, 'Jetzt lernen'), '/school-days/' + day.id + '/package', 'POST', 202);
+      check(queued.id, 'package_job_identifier_missing');
+      day = await waitPackageJob(queued.id);
     }
-    day = await waitPackageJob(queued.id);
     // Keep the IDs before navigation assertions, so an interrupted browser can
     // resume this exact package instead of creating another family or package.
     account.package_unit_id = day.units[0].id;
     await checkpoint('actual_package_saved');
-    await childPage.waitForURL(base + '/unit/' + account.package_unit_id, {timeout: 45000});
+    if (!retry) await childPage.waitForURL(base + '/unit/' + account.package_unit_id, {timeout: 45000});
   }
   check(day.units.length === 1, 'two_same_subject_pages_should_form_one_package_unit');
   account.package_unit_id ??= day.units[0].id;
@@ -478,12 +505,19 @@ async function checkParentAndUsage(units) {
   const retries = account.coaching_retry_unit_ids ?? [];
   const packageRetries = account.package_retry_day_ids ?? [];
   const diagnostics = account.package_diagnostic_attempts ?? [];
+  const extractions = consumed.records.filter(record => record.function === 'extract').length;
   check(new Set(retries).size === retries.length && retries.length <= 3, 'explicit_retry_limit_exceeded');
   check(new Set(packageRetries).size === packageRetries.length && packageRetries.length <= 1, 'explicit_package_retry_limit_exceeded');
   check(diagnostics.length <= 1, 'explicit_diagnosis_limit_exceeded');
-  check(consumed.calls_used === 3 + units.length + retries.length + packageRetries.length + diagnostics.length, 'unexpected_or_unaccounted_ai_reservations');
+  // Automatic second reading adds one recorded extraction per page. Count the
+  // actual OCR/countercheck receipts instead of assuming exactly two calls.
+  check(extractions >= 2 && extractions <= 4, 'unexpected_extraction_reservations');
+  check(consumed.calls_used === extractions + 1 + units.length + retries.length + packageRetries.length + diagnostics.length, 'unexpected_or_unaccounted_ai_reservations');
   check(consumed.records.length === consumed.calls_used, 'usage_ledger_does_not_match_reservations');
-  check(consumed.records.every(record => record.provider === 'openrouter' && record.model === units[0].model && (record.cost_micros_usd === 0 || record.cost_micros_usd === null)), 'provider_or_cost_did_not_stay_free_or_explicitly_unknown');
+  const paid = flags.has('--paid-synthetic-approved');
+  check(consumed.records.every(record => record.provider === 'openrouter' && typeof record.model === 'string' &&
+    (paid ? (record.cost_micros_usd === null || (Number.isSafeInteger(record.cost_micros_usd) && record.cost_micros_usd >= 0))
+      : (record.model === units[0].model && (record.cost_micros_usd === 0 || record.cost_micros_usd === null)))), 'provider_or_cost_outside_test_contract');
   check(consumed.unknown_cost_calls === consumed.records.filter(record => record.cost_micros_usd === null).length, 'unknown_costs_were_reported_as_zero');
   return {answerCount, consumed, retryCount: retries.length, packageRetryCount: packageRetries.length, diagnosticCount: diagnostics.length};
 }
@@ -491,11 +525,26 @@ async function checkParentAndUsage(units) {
 try {
   check([...flags].every(flag => allowedFlags.has(flag)), 'unsupported_driver_argument');
   account = JSON.parse(await readFile(accountFile, 'utf8'));
-  check(account.normal_account && account.verified && /\+schulpilot-normal-qa-[a-f0-9]{12}@(?:gmail|googlemail)\.com$/i.test(account.credentials?.parent_username ?? ''), 'prepare_or_resume_only_the_owned_regular_artificial_qa_family');
+  if (flags.has('--paid-synthetic-approved')) {
+    const journalPath = path.join(homedir(), '.local/share/schulpilot-operations/beta-live-signup.json');
+    const metadata = await lstat(journalPath);
+    check(metadata.isFile() && !metadata.isSymbolicLink() && (metadata.mode & 0o077) === 0 &&
+      (typeof process.getuid !== 'function' || metadata.uid === process.getuid()), 'private_beta_journal_required');
+    const journal = JSON.parse(await readFile(journalPath, 'utf8'));
+    check(ownsArtificialBeta(account, journal), 'paid_test_requires_exact_owned_beta_family');
+  } else {
+    check(isArtificialFreeAccount(account), 'prepare_or_resume_only_the_owned_regular_artificial_qa_family');
+  }
   check(account.child_id && account.user?.families?.length === 1 && account.image_paths?.length === 2, 'private_prepared_account_is_incomplete');
   for (const [index, image] of account.image_paths.entries()) {
     const actual = await realpath(image);
     check(path.dirname(actual) === artifacts.replace(/\/$/, '') && path.basename(actual) === 'normal-school-page-' + (index + 1) + '.jpg', 'only_prepared_artificial_images_are_allowed');
+    if (flags.has('--paid-synthetic-approved')) {
+      const metadata = await lstat(actual);
+      check(metadata.isFile() && metadata.size <= 6 * 1024 * 1024, 'invalid_artificial_image');
+      const digest = createHash('sha256').update(await readFile(actual)).digest('hex');
+      check(digest === paidImageHashes[index], 'unverified_artificial_image');
+    }
   }
   await checkpoint('starting_mobile_child_journey');
   browser = await chromium.launch({headless: true, executablePath: process.env.CHROME_PATH || '/opt/google/chrome/chrome', args: ['--no-sandbox']});
@@ -534,7 +583,7 @@ try {
   account.browser_qa.evidence.completed = true;
   await checkpoint('passed');
   passed = true;
-  console.log(JSON.stringify({regular_parent_and_child: true, synthetic_demo_used: false, normal_photo_uploads: 2, mobile_viewport: 390, learning_rounds: units.length, completed_questions: answerCount, actual_free_ai_calls: consumed.calls_used, known_cost_micros_usd: consumed.known_cost_micros_usd, unknown_cost_calls: consumed.unknown_cost_calls, explicit_coaching_retries: retryCount, explicit_package_retries: packageRetryCount, explicit_package_diagnostics: diagnosticCount, saved_package_resume_without_ai: true, feedback_waited_for_continue: true, parent_sees_saved_answers_hints_and_reviews: true, runtime_errors: errors}));
+  console.log(JSON.stringify({regular_parent_and_child: true, synthetic_demo_used: false, normal_photo_uploads: 2, mobile_viewport: 390, learning_rounds: units.length, completed_questions: answerCount, ...(flags.has('--paid-synthetic-approved') ? {actual_ai_calls: consumed.calls_used} : {actual_free_ai_calls: consumed.calls_used}), paid_synthetic_approved: flags.has('--paid-synthetic-approved'), known_cost_micros_usd: consumed.known_cost_micros_usd, unknown_cost_calls: consumed.unknown_cost_calls, explicit_coaching_retries: retryCount, explicit_package_retries: packageRetryCount, explicit_package_diagnostics: diagnosticCount, saved_package_resume_without_ai: true, feedback_waited_for_continue: true, parent_sees_saved_answers_hints_and_reviews: true, runtime_errors: errors}));
 } catch (error) {
   process.exitCode = 1;
   // Playwright's detailed errors may quote the selected answer or typed value.
