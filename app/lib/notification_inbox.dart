@@ -144,6 +144,7 @@ class NotificationInbox extends ChangeNotifier {
     }
     final generation = _generation;
     final foregroundRevision = _foregroundRevision;
+    final identity = api.requestIdentity();
     _loading = true;
     // Refresh can begin while a sibling (the bell) is being rebuilt on navigation.
     scheduleMicrotask(() {
@@ -157,6 +158,7 @@ class NotificationInbox extends ChangeNotifier {
         final data = await api.get('/notifications/inbox?paginate=1');
         if (_disposed ||
             generation != _generation ||
+            !api.ownsRequest(identity) ||
             !_foreground ||
             foregroundRevision != _foregroundRevision) {
           return;
@@ -181,6 +183,7 @@ class NotificationInbox extends ChangeNotifier {
           final historical = await api.get('/notifications/inbox?$query');
           if (_disposed ||
               generation != _generation ||
+              !api.ownsRequest(identity) ||
               !_foreground ||
               foregroundRevision != _foregroundRevision) {
             return;
@@ -210,6 +213,7 @@ class NotificationInbox extends ChangeNotifier {
           }
           if (_disposed ||
               generation != _generation ||
+              !api.ownsRequest(identity) ||
               !_foreground ||
               foregroundRevision != _foregroundRevision ||
               gateRevision != _refreshGateRevision ||
@@ -243,6 +247,7 @@ class NotificationInbox extends ChangeNotifier {
       }
     } catch (failure) {
       if (generation == _generation &&
+          api.ownsRequest(identity) &&
           failure is ApiError &&
           failure.status == 429) {
         _resumeRefreshPending = false;
@@ -251,6 +256,7 @@ class NotificationInbox extends ChangeNotifier {
           failure is ApiError &&
           (failure.status == 401 || failure.status == 403);
       if (generation == _generation &&
+          api.ownsRequest(identity) &&
           (denied || foregroundRevision == _foregroundRevision)) {
         // A failed rights/source revalidation must not keep previously cached
         // private notices on screen as though they were still authorized.
@@ -259,6 +265,7 @@ class NotificationInbox extends ChangeNotifier {
     } finally {
       if (!_disposed && generation == _generation) {
         _loading = false;
+        if (!api.ownsRequest(identity)) _resumeRefreshPending = false;
         notifyListeners();
         if (!_disposed &&
             generation == _generation &&
@@ -291,6 +298,7 @@ class NotificationInbox extends ChangeNotifier {
     }
     final generation = _generation;
     final foregroundRevision = _foregroundRevision;
+    final identity = api.requestIdentity();
     _loadingMore = true;
     moreError = null;
     notifyListeners();
@@ -305,6 +313,7 @@ class NotificationInbox extends ChangeNotifier {
         final response = await api.get('/notifications/inbox?$query');
         if (_disposed ||
             generation != _generation ||
+            !api.ownsRequest(identity) ||
             foregroundRevision != _foregroundRevision) {
           return;
         }
@@ -317,6 +326,7 @@ class NotificationInbox extends ChangeNotifier {
         }
         if (_disposed ||
             generation != _generation ||
+            !api.ownsRequest(identity) ||
             foregroundRevision != _foregroundRevision ||
             !_foreground ||
             gate == NoticePublishGate.cancelled) {
@@ -347,6 +357,7 @@ class NotificationInbox extends ChangeNotifier {
       _rebuildItems();
     } catch (error) {
       if (generation == _generation &&
+          api.ownsRequest(identity) &&
           error is ApiError &&
           error.status == 429) {
         _resumeRefreshPending = false;
@@ -354,6 +365,7 @@ class NotificationInbox extends ChangeNotifier {
       final denied =
           error is ApiError && (error.status == 401 || error.status == 403);
       if (generation == _generation &&
+          api.ownsRequest(identity) &&
           (denied || foregroundRevision == _foregroundRevision)) {
         if (denied) {
           _discardPrivateSnapshot();
@@ -366,6 +378,7 @@ class NotificationInbox extends ChangeNotifier {
     } finally {
       if (!_disposed && generation == _generation) {
         _loadingMore = false;
+        if (!api.ownsRequest(identity)) _resumeRefreshPending = false;
         notifyListeners();
         if (!_disposed &&
             generation == _generation &&
@@ -422,6 +435,7 @@ class NotificationInbox extends ChangeNotifier {
   Future<void> markRead(List<String> ids) async {
     if (_disposed || _account == null || ids.isEmpty) return;
     final generation = _generation;
+    final identity = api.requestIdentity();
     final ownUnread = items
         .where((item) => item['read'] != true)
         .map((item) => item['id'])
@@ -439,8 +453,21 @@ class NotificationInbox extends ChangeNotifier {
       // An older GET may never undo a pending or successful acknowledgement.
       _readRevision++;
       Future<void> send() async {
-        await api.post('/notifications/inbox/read', {'ids': fresh});
-        if (_disposed || generation != _generation) return;
+        try {
+          await api.post('/notifications/inbox/read', {'ids': fresh});
+        } catch (_) {
+          if (_disposed ||
+              generation != _generation ||
+              !api.ownsRequest(identity)) {
+            return;
+          }
+          rethrow;
+        }
+        if (_disposed ||
+            generation != _generation ||
+            !api.ownsRequest(identity)) {
+          return;
+        }
         _readRevision++;
         // The same event may occur in overlapping pages after concurrent
         // inserts. Update every cached copy before a window rotation can expose

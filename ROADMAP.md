@@ -3033,6 +3033,26 @@ Bestandteil des bestehenden Buildvertrags.
     Demo, Google und der separate Cookie-Wettlauf bleiben offen.
     [Prüfung](docs/LOGIN_INTENT_DISPOSAL_2026_11_07.md).
 
+  - [x] **Benachrichtigungsabruf und Verlauf an die Anmeldeabsicht binden.**
+    Beim Beginn einer neuen Anmeldung werden verspätete Kopf- und
+    Verlaufsantworten nicht mehr in den bisherigen Speicher übernommen; auch
+    verspätete Berechtigungsfehler löschen ihn nicht. Künstliche Tests prüfen
+    beide Wege einschließlich einer verzögerten Freigabe zur Veröffentlichung.
+
+  - [x] **Verspätete Lesebestätigungen lokal abgrenzen.** Ein nach Beginn
+    einer neuen Anmeldung eintreffender Erfolg oder Fehler verändert die alte
+    lokale Benachrichtigungsliste nicht. Ein bereits abgesandter und auf dem
+    Server angenommener Schreibvorgang wird dadurch nicht rückgängig gemacht.
+    Ein künstlicher Test prüft die verspätete Antwort.
+
+  - [x] **Grafikstatus und Grafikaufträge an die Anmeldeabsicht binden.**
+    Verspätete Ergebnisse von Bildstatus, Bilddatei, Bildprüfung und
+    Erklärgrafik-Vorbereitung werden bei neuer Anmeldeabsicht verworfen;
+    geplante Statusabfragen starten dann nicht erneut. Bereits gesendete
+    Aufträge bleiben serverseitig bestehen und ihre Wiederholungsschlüssel
+    erhalten. Künstliche Widgettests prüfen verzögerten Status, Bildauftrag
+    und Erklärgrafik-Auftrag; die gesonderte Cookie-Lücke bleibt offen.
+
   - [ ] **Verspätete gemeinsame API-Antworten nach Kontowechsel absichern.**
     Ein zentraler Abbruch über alle Transporte wurde nach fehlgeschlagener
     vollständiger CI zurückgenommen: Mehrere bestehende Aufrufer behandeln

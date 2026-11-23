@@ -139,9 +139,11 @@ class _PublicImageCardState extends State<PublicImageCard>
       return;
     }
     final serial = ++epoch;
+    final identity = widget.state.api.requestIdentity();
     try {
       final value = await widget.state.api.get(url);
       if (!current ||
+          !widget.state.api.ownsRequest(identity) ||
           serial != epoch ||
           path != url ||
           !identical(widget.unit, snapshot)) {
@@ -202,6 +204,7 @@ class _PublicImageCardState extends State<PublicImageCard>
         if (image == null) {
           final bytes = await widget.state.api.bytes('$url/file');
           if (!current ||
+              !widget.state.api.ownsRequest(identity) ||
               serial != epoch ||
               path != url ||
               !identical(widget.unit, snapshot)) {
@@ -217,18 +220,24 @@ class _PublicImageCardState extends State<PublicImageCard>
         }
         if (nextReview == 'pending') {
           timer = Timer(const Duration(seconds: 5), () {
-            if (current) unawaited(load());
+            if (current && widget.state.api.ownsRequest(identity)) {
+              unawaited(load());
+            }
           });
         }
       } else if (effectiveStatus == 'queued' || effectiveStatus == 'running') {
         timer = Timer(const Duration(seconds: 5), () {
-          if (current) unawaited(load());
+          if (current && widget.state.api.ownsRequest(identity)) {
+            unawaited(load());
+          }
         });
       } else if (effectiveStatus == 'failed' && !busy) {
         requestKey = null;
       }
     } catch (_) {
-      if (current && serial == epoch) {
+      if (current &&
+          widget.state.api.ownsRequest(identity) &&
+          serial == epoch) {
         // Older servers do not provide the optional endpoint.
         setState(() {
           status ??= 'unavailable';
@@ -243,6 +252,7 @@ class _PublicImageCardState extends State<PublicImageCard>
   Future<void> prepare() async {
     final url = path;
     final serial = actionEpoch;
+    final identity = widget.state.api.requestIdentity();
     if (busy ||
         !current ||
         url == null ||
@@ -261,6 +271,7 @@ class _PublicImageCardState extends State<PublicImageCard>
         'Idempotency-Key': key,
       });
       if (!current ||
+          !widget.state.api.ownsRequest(identity) ||
           path != url ||
           requestKey != key ||
           serial != actionEpoch) {
@@ -270,6 +281,7 @@ class _PublicImageCardState extends State<PublicImageCard>
       if (next is String) setState(() => status = next);
       await load();
       if (current &&
+          widget.state.api.ownsRequest(identity) &&
           path == url &&
           serial == actionEpoch &&
           status == 'failed') {
@@ -277,6 +289,7 @@ class _PublicImageCardState extends State<PublicImageCard>
       }
     } catch (e) {
       if (current &&
+          widget.state.api.ownsRequest(identity) &&
           path == url &&
           requestKey == key &&
           serial == actionEpoch) {
@@ -292,6 +305,7 @@ class _PublicImageCardState extends State<PublicImageCard>
   Future<void> requestReview() async {
     final url = path;
     final serial = actionEpoch;
+    final identity = widget.state.api.requestIdentity();
     if (reviewBusy ||
         !reviewAllowed ||
         !current ||
@@ -311,6 +325,7 @@ class _PublicImageCardState extends State<PublicImageCard>
         'Idempotency-Key': key,
       });
       if (current &&
+          widget.state.api.ownsRequest(identity) &&
           path == url &&
           reviewRequestKey == key &&
           serial == actionEpoch) {
@@ -324,6 +339,7 @@ class _PublicImageCardState extends State<PublicImageCard>
         }
         await load();
         if (current &&
+            widget.state.api.ownsRequest(identity) &&
             path == url &&
             serial == actionEpoch &&
             {
@@ -337,6 +353,7 @@ class _PublicImageCardState extends State<PublicImageCard>
       }
     } catch (e) {
       if (current &&
+          widget.state.api.ownsRequest(identity) &&
           path == url &&
           reviewRequestKey == key &&
           serial == actionEpoch) {

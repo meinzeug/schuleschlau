@@ -88,10 +88,12 @@ class _VisualPreparationCardState extends State<VisualPreparationCard>
       return;
     }
     final epoch = ++publicEpoch;
+    final identity = widget.state.api.requestIdentity();
     final contextAtRequest = publicContext;
     try {
       final value = await widget.state.api.get('/units/$id/public-visual');
       if (!current ||
+          !widget.state.api.ownsRequest(identity) ||
           epoch != publicEpoch ||
           publicContext != contextAtRequest) {
         return;
@@ -102,7 +104,11 @@ class _VisualPreparationCardState extends State<VisualPreparationCard>
       if (status == 'queued' ||
           status == 'claimed' ||
           (status == 'missing' && missingChecks < 4)) {
-        publicTimer = Timer(const Duration(seconds: 5), loadPublicVisual);
+        publicTimer = Timer(const Duration(seconds: 5), () {
+          if (widget.state.api.ownsRequest(identity)) {
+            unawaited(loadPublicVisual());
+          }
+        });
       }
     } catch (_) {
       // The optional public example never blocks the saved unit.
@@ -156,11 +162,13 @@ class _VisualPreparationCardState extends State<VisualPreparationCard>
     final owner = widget.state.user,
         token = widget.state.api.token,
         family = widget.state.familyId;
+    final identity = widget.state.api.requestIdentity();
     final unitId = widget.unit['id'];
     if (unitId is! String || unitId.isEmpty) return;
     final serial = ++prepareEpoch;
     bool requestCurrent() =>
         current &&
+        widget.state.api.ownsRequest(identity) &&
         widget.unit['id'] == unitId &&
         serial == prepareEpoch &&
         identical(widget.state.user, owner) &&

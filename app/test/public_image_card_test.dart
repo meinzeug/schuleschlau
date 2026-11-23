@@ -16,6 +16,76 @@ http.Response jsonReply(Object value, [int status = 200]) => http.Response(
 );
 
 void main() {
+  testWidgets('a new login discards a delayed image status', (tester) async {
+    final pending = Completer<http.Response>();
+    final state = AppState(
+      api: Api(
+        base: 'https://example.invalid/api',
+        client: MockClient((request) => pending.future),
+      ),
+    )..user = {'id': 'child', 'role': 'child', 'families': <Json>[]};
+    addTearDown(state.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: appTheme(),
+        home: Scaffold(
+          body: PublicImageCard(
+            state: state,
+            unit: {'id': 'unit', 'explanation_visual_status': 'incomplete'},
+            isCurrent: () => true,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    state.beginAuthentication();
+    pending.complete(jsonReply({'status': 'missing'}));
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('Bild zum Thema erstellen'), findsNothing);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('a new login suppresses the follow-up after image creation', (
+    tester,
+  ) async {
+    final pending = Completer<http.Response>();
+    var gets = 0;
+    final state = AppState(
+      api: Api(
+        base: 'https://example.invalid/api',
+        client: MockClient((request) async {
+          if (request.method == 'POST') return pending.future;
+          gets++;
+          return jsonReply({'status': 'missing'});
+        }),
+      ),
+    )..user = {'id': 'child', 'role': 'child', 'families': <Json>[]};
+    addTearDown(state.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: appTheme(),
+        home: Scaffold(
+          body: PublicImageCard(
+            state: state,
+            unit: {'id': 'unit', 'explanation_visual_status': 'incomplete'},
+            isCurrent: () => true,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+    await tester.tap(find.text('Bild zum Thema erstellen'));
+    await tester.pump();
+    state.beginAuthentication();
+    pending.complete(jsonReply({'status': 'queued'}, 202));
+    await tester.pump();
+    await tester.pump();
+    expect(gets, 1);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
   testWidgets(
     'same-round refresh keeps the pending image review and its retry key',
     (tester) async {

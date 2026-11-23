@@ -95,6 +95,39 @@ Widget view(AppState state, {Object source = 'source', List<Json>? values}) =>
       sourceKey: source,
     );
 void main() {
+  testWidgets('a new login cancels a delayed graphic preparation response', (
+    tester,
+  ) async {
+    final pending = Completer<http.Response>();
+    var refreshes = 0;
+    final state = app(
+      (request) => request.method == 'GET'
+          ? reply({'status': 'missing'})
+          : pending.future,
+    );
+    addTearDown(state.dispose);
+    await mount(
+      tester,
+      VisualPreparationCard(
+        state: state,
+        unit: {'id': 'unit', 'explanation_visual_status': 'legacy_text'},
+        isCurrent: () => true,
+        refresh: () async {
+          refreshes++;
+        },
+      ),
+    );
+    await tester.tap(find.text('Grafische Erklärung vorbereiten'));
+    await tester.pump();
+    state.beginAuthentication();
+    pending.complete(reply({'id': 'job', 'status': 'queued'}, 202));
+    await tester.pump();
+    await tester.pump();
+    expect(refreshes, 0);
+    expect(find.text('Grafische Erklärung wird vorbereitet …'), findsNothing);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
   testWidgets('107 enlarged graphic keeps phase and saves it after returning', (
     tester,
   ) async {
