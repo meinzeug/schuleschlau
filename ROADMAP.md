@@ -228,7 +228,11 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
   Wiederherstellungsprobe. Ein begrenztes Bereinigungswerkzeug samt Timer und
   reservierbarem Platz für die nächste Runtime wurde anschließend ergänzt;
   es bricht bei unbekannten oder zu vielen geschützten Ständen ab. Die
-  automatisierte Übernahme und der echte Timerlauf müssen separat geprüft werden.
+  Übernahme in Release `901c89e`: Der Timer ist auf dem Zielserver aktiviert;
+  ein tatsächlicher Dienstlauf und eine anschließende Wiederherstellungsprobe
+  waren erfolgreich. Drei Runtime-Verzeichnisse waren vorhanden. Der Timer
+  kann bei laufendem Deployment oder unklaren Schutzverweisen vorübergehend
+  zurückstellen; vor neuer Vorbereitung ist `--reserve-slot` erforderlich.
 
   **03.11.2026, lokale Dauerhaftigkeit:** Der Offsite-Client synchronisiert
   Archiv-, Journal- und Verzeichniseinträge vor dem Server-ACK. Bei einem
