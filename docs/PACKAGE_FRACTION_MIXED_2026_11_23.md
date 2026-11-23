@@ -32,9 +32,8 @@ bestehenden Freigaben, Budget- und Kostenprüfungen gelten weiter. Andere
 Fächer, fremde oder unbestätigte Quellen lösen diese Auswahl nicht aus.
 
 Die künstlichen Tests prüfen Planung, Quelle, Rechenweg, Grafiken, Modellroute,
-Kindtrennung und den echten Worker mit simuliertem Anbietertransport. Ein
-erfolgreicher echter KI-Lernweg wird dadurch noch nicht behauptet; er wird
-gesondert mit einer künstlichen Testfamilie geprüft.
+Kindtrennung und den echten Worker mit simuliertem Anbietertransport. Die
+nachfolgenden Anbieterproben ergänzen sie um echte Aufrufe und Browserbedienung.
 
 ## Erste echte Anbieterprobe nach Deployment
 
@@ -63,9 +62,35 @@ mehrtägiger Beherrschungsnachweis ausgegeben. Bis dahin waren für diesen
 künstlichen Haushalt elf Aufrufe mit insgesamt 0,192590 USD in den verfügbaren
 Kostenbelegen erfasst, einschließlich der alten Fehlversuche.
 
-Die vollständige Elternansicht war zu diesem Zeitpunkt noch nicht erfolgreich
-geprüft. Der frühere Browsertreiber
-musste an die aktuellen App-Fähigkeiten, den Vorwissenseinstieg, den
-Bruch-Editor und die bewusste Anforderung von Anschlussübungen angepasst
-werden. Eine Anmeldesperre nach wiederholten Testanmeldungen wurde nicht
-umgangen; sie muss vor der Fortsetzung auslaufen.
+Eltern konnten anschließend die gespeicherten Antworten, Hinweise und drei
+Rückblicke im Browser einsehen. Der Verlauf wurde über seine authentifizierte
+Adresse geöffnet; der Elternbereichs-Auswahldialog wurde dabei nicht geprüft.
+Es traten keine protokollierten Browser-Laufzeitfehler auf. Das künstliche
+Familienkonto wurde nach der Prüfung regulär gelöscht.
+
+## Frischer Upload und erneuter Lernweg
+
+Ein weiteres künstliches Eltern- und Kinderkonto durchlief die reguläre
+Beta-Anmeldung mit tatsächlicher E-Mail-Bestätigung. Zwei künstliche
+Mathematikfotos wurden bei 390 Pixeln über Dateiauswahl und Zuschnitt hochgeladen
+und von OpenRouter erkannt und gegengeprüft. Das daraus entstandene Paket wurde
+beim ersten Versuch gespeichert, ohne erneuten Paketauftrag. Nach der
+Unterbrechung des Browsertests wurde dieselbe Runde wieder aufgenommen;
+insgesamt wurden drei Runden und sechs Antworten einschließlich Hinweis,
+Auswertung und zweimal ausdrücklich angeforderter Anschlussübung geprüft.
+Die Elternansicht zeigte Antworten, Hinweise und Rückblicke.
+
+Ein Timeout des Testwerkzeugs zog zwischenzeitlich die Beta-Freigabe des
+künstlichen Kontos zurück, während die zweite Anschlussübung noch lief. Dieser
+Auftrag scheiterte; die gespeicherten Antworten blieben erhalten. Nach Korrektur
+des Testablaufs und Wiederfreigabe wurde die Anschlussübung einmal ausdrücklich
+erneut angefordert und erfolgreich bearbeitet. Künftig wartet der lokale
+Test-Orchestrator aktive Aufträge dieses Testkontos vor dem Entzug ab. Die elf
+regulär erfassten KI-Aufrufe dieses zweiten Testkontos kosteten einschließlich
+des abgebrochenen Auftrags und der ausdrücklichen Wiederholung laut verfügbaren
+Belegen insgesamt 0,242509 USD; es gab keine unbekannten Kostenbelege. Das
+künstliche Testkonto und der temporäre Testadministrator wurden regulär gelöscht.
+
+Die Prüfung belegt diesen konkreten Bruch-Lernweg mit künstlichem Material,
+keine generelle Fehlerfreiheit für alle Fächer, Fotos oder Endgeräte. Die
+Anmeldesperre nach wiederholten Testanmeldungen wurde nicht umgangen.

@@ -2110,8 +2110,13 @@ Bestandteil des bestehenden Buildvertrags.
     das seltener angebotene bevorzugt; geänderte Historie wird erneut geprüft.
     Mehrseitige bestätigte Bruchpakete verwenden vor der Reservierung die
     konfigurierte Sol-Route. Künstliche Worker-, Quellen-, Kosten- und
-    PostgreSQL-Fälle prüfen diese Teilfunktion. Der echte durchgehende
-    Lernweg bleibt bis zu seiner eigenen Abnahme offen.
+    PostgreSQL-Fälle prüfen diese Teilfunktion. Eine echte künstliche
+    Anbieterproben durchliefen drei mobile Runden einschließlich Hinweis,
+    Erklärung, gezielter Folgeübungen und Elternansicht; ein zweites
+    künstliches Konto wurde vom Foto-Upload an geprüft. Der Browsertest wurde
+    unterbrochen und bei gespeicherten Runden fortgesetzt; eine durch seinen
+    vorzeitigen Freigabeentzug fehlgeschlagene Folgeübung wurde ausdrücklich
+    wiederholt. Die allgemeine Anbieter- und Fachabnahme bleibt offen.
     [Umfang und Grenzen](docs/PACKAGE_FRACTION_MIXED_2026_11_23.md).
 
   - [x] **Geprüfte Brucherweiterungsbeweise auf Paketgruppen vorbereiten.**

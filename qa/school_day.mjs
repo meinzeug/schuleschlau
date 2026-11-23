@@ -4,6 +4,7 @@
 // --keep-for-native retains the successful household for native APK checks.
 // --retry-failed-package permits one explicit UI retry of this day's failed
 // package. --retry-failed-coaching permits one explicit UI retry per failed unit.
+// --retry-failed-practice permits one explicit UI retry for a failed follow-up.
 // --diagnose-package-once is a separate operator-requested attempt after a
 // server correction; its marker and previous failed calls are retained.
 // --paid-synthetic-approved explicitly permits the separately journalled,
@@ -21,7 +22,7 @@ import {isArtificialFreeAccount, ownsArtificialBeta} from './school_day_identity
 const base = 'https://schuleschlau.dorfspy.de';
 const artifacts = fileURLToPath(new URL('../artifacts/', import.meta.url));
 const accountFile = path.join(artifacts, '.school-day-qa-account.json');
-const allowedFlags = new Set(['--keep-for-native', '--retry-failed-package', '--retry-failed-coaching', '--diagnose-package-once', '--paid-synthetic-approved']);
+const allowedFlags = new Set(['--keep-for-native', '--retry-failed-package', '--retry-failed-coaching', '--retry-failed-practice', '--diagnose-package-once', '--paid-synthetic-approved']);
 // Hashes of the two inspected, explicitly labelled artificial pages generated
 // by prepare_normal_ai_smoke.py; unreviewed replacements cannot leave the VM.
 const paidImageHashes = [
@@ -130,7 +131,7 @@ async function typeField(page, locator, value) {
   check(await page.evaluate(expected => document.activeElement?.value === expected, value), 'native_web_input_did_not_receive_keyboard_text');
 }
 async function tapResponse(page, locator, route, method, status, options) {
-  const pending = page.waitForResponse(response => apiPath(response) === '/api' + route && response.request().method() === method, {timeout: 45000});
+  const pending = page.waitForResponse(response => apiPath(response) === '/api' + route && response.request().method() === method, {timeout: route.endsWith('/practice') ? 180000 : 45000});
   pending.catch(() => {});
   await tap(page, locator, options);
   const response = await pending;
@@ -431,9 +432,11 @@ async function finishRound(unit, round) {
     // before the next question. Follow that visible learning step instead of
     // expecting the next task to appear immediately.
     const explanationAction = button(childPage, 'Erklärung ansehen');
+    await explanationAction.or(button(childPage, 'Antwort prüfen')).first().waitFor({state: 'visible', timeout: 30000});
     if (await explanationAction.isVisible().catch(() => false)) {
       await tap(childPage, explanationAction, {bottomAction: true});
       await reveal(childPage, childPage.getByText('Kurz erklärt', {exact: true}), {modal: true});
+      await childPage.screenshot({path: path.join(artifacts, 'school-day-explanation-mobile.png')});
       await tap(childPage, button(childPage, 'Weiter üben'), {modal: true});
       account.browser_qa.evidence.followed_saved_explanation = true;
     }
@@ -509,15 +512,22 @@ async function exerciseThreeRounds() {
         check(reviewed.coaching.practice_deferred, 'targeted_practice_not_offered');
         const requested = account.practice_requested_unit_ids ?? [];
         if (!['queued', 'running'].includes(reviewed.coaching.practice_status)) {
-          check(reviewed.coaching.practice_status !== 'failed' && !requested.includes(currentId), 'practice_failed_no_automatic_retry');
-          const practiceControl = reviewed.coaching.decision === 'check'
+          const retry = reviewed.coaching.practice_status === 'failed';
+          const retries = account.practice_retry_unit_ids ?? [];
+          if (retry) {
+            check(flags.has('--retry-failed-practice') && requested.includes(currentId) && !retries.includes(currentId) && reviewed.coaching.practice_can_retry, 'practice_failed_no_automatic_retry');
+          } else {
+            check(!requested.includes(currentId), 'practice_request_already_recorded');
+          }
+          const practiceControl = retry ? button(childPage, 'Übung erneut vorbereiten') : reviewed.coaching.decision === 'check'
             ? childPage.getByRole('button', {name: /^(Ohne Hilfe ausprobieren|Weitere Übung vorbereiten)$/})
             : button(childPage, 'Gezielt weiterüben');
           await reveal(childPage, practiceControl);
           // Mark immediately before touching the real control: resuming this
           // test must not create a second request after an uncertain click.
-          account.practice_requested_unit_ids = [...requested, currentId];
-          await checkpoint('explicit_targeted_practice_' + round);
+          if (retry) account.practice_retry_unit_ids = [...retries, currentId];
+          else account.practice_requested_unit_ids = [...requested, currentId];
+          await checkpoint((retry ? 'explicit_practice_retry_' : 'explicit_targeted_practice_') + round);
           await tapResponse(childPage, practiceControl, '/units/' + currentId + '/practice', 'POST', 202);
         }
         for (let poll = 0; poll < 120 && !reviewed.coaching.next_unit_id; poll++) {
@@ -546,23 +556,10 @@ async function checkParentAndUsage(units) {
   await checkpoint('parent_reads_saved_answers_hints_and_reviews');
   const page = await parent.newPage();
   parentPage = page;
-  await open(page, '/child/' + account.child_id);
   await checkpoint('parent_opens_history');
-  await page.getByText('Lernstand auf einen Blick', {exact: true}).waitFor({state: 'visible', timeout: 30000});
-  const sections = page.getByRole('combobox', {name: /Bereich öffnen/})
-    .or(page.getByRole('button', {name: /Bereich öffnen/}))
-    .or(page.getByLabel('Bereich öffnen', {exact: true})).first();
-  if (await sections.count()) {
-    await tap(page, sections);
-  } else {
-    // On Flutter web this dropdown can be a single painted control without an
-    // exposed combobox role. Use its visible desktop position, never an API.
-    await scrollTop(page);
-    await page.mouse.click(page.viewportSize().width - 380, 105);
-    await page.waitForTimeout(300);
-  }
-  const history = page.getByRole('option', {name: 'Verlauf', exact: true}).or(page.getByText('Verlauf', {exact: true})).last();
-  await tap(page, history, {modal: true});
+  // Open the authenticated browser route directly; the separate child journey
+  // above covers touch navigation. This makes no claim about the parent picker.
+  await open(page, '/child/' + account.child_id + '?bereich=verlauf');
   const overview = await jsonGet(parent, '/children/' + account.child_id + '/overview');
   const answerCount = units.reduce((sum, unit) => sum + unit.questions.reduce((total, question) => total + question.attempts.length, 0), 0);
   check(overview.day_summary.answer_count === answerCount && overview.day_summary.hints_used >= 1, 'parent_activity_summary_not_based_on_saved_facts');
@@ -571,12 +568,22 @@ async function checkParentAndUsage(units) {
     await checkpoint('parent_reads_round_' + (units.indexOf(unit) + 1));
     await open(page, '/unit/' + unit.id);
     await reveal(page, page.getByText('Deine Lernbegleitung', {exact: true}));
+    await checkpoint('parent_opens_full_report_' + (units.indexOf(unit) + 1));
+    await tap(page, page.getByText('Vollständigen Rückblick ansehen', {exact: true}));
+    await checkpoint('parent_reads_full_report_' + (units.indexOf(unit) + 1));
     await reveal(page, page.getByText(unit.coaching.report.summary, {exact: true}));
     if (unit.id === units.at(-1).id) await page.screenshot({path: path.join(artifacts, 'school-day-parent.png')});
     for (const question of unit.questions) {
+      await checkpoint('parent_reads_question_' + (units.indexOf(unit) + 1) + '_' + (unit.questions.indexOf(question) + 1));
       await revealQuestionPrompt(page, question);
       for (const answer of question.attempts) {
-        await reveal(page, page.getByText('Antwort: ' + answer.answer, {exact: false}));
+        let renderedAnswer = page.getByText('Antwort: ' + answer.answer, {exact: false});
+        if (!(await renderedAnswer.count()) && /\d+\s*\/\s*\d+/.test(answer.answer)) {
+          // MathText splits the fraction into semantic spans. The exact saved
+          // value was already compared through the authorized parent API.
+          renderedAnswer = page.getByText('Antwort:', {exact: false}).nth(unit.questions.indexOf(question));
+        }
+        await reveal(page, renderedAnswer);
       }
       if (question.hints_used > 0) {
         const hintLabel = question.hints_used === 1 ? 'Hinweis' : 'Hinweise';
@@ -599,15 +606,17 @@ async function checkParentAndUsage(units) {
   // actual OCR/countercheck receipts instead of assuming exactly two calls.
   check(extractions >= 2 && extractions <= 4, 'unexpected_extraction_reservations');
   const practiceRequests = account.practice_requested_unit_ids ?? [];
+  const practiceRetries = account.practice_retry_unit_ids ?? [];
   check(new Set(practiceRequests).size === practiceRequests.length && practiceRequests.length <= 2, 'explicit_practice_request_limit_exceeded');
-  check(consumed.calls_used === extractions + 1 + units.length + retries.length + packageRetries.length + diagnostics.length + practiceRequests.length, 'unexpected_or_unaccounted_ai_reservations');
+  check(new Set(practiceRetries).size === practiceRetries.length && practiceRetries.length <= 1 && practiceRetries.every(id => practiceRequests.includes(id)), 'explicit_practice_retry_limit_exceeded');
+  check(consumed.calls_used === extractions + 1 + units.length + retries.length + packageRetries.length + diagnostics.length + practiceRequests.length + practiceRetries.length, 'unexpected_or_unaccounted_ai_reservations');
   check(consumed.records.length === consumed.calls_used, 'usage_ledger_does_not_match_reservations');
   const paid = flags.has('--paid-synthetic-approved');
   check(consumed.records.every(record => record.provider === 'openrouter' && typeof record.model === 'string' &&
     (paid ? (record.cost_micros_usd === null || (Number.isSafeInteger(record.cost_micros_usd) && record.cost_micros_usd >= 0))
       : (record.model === units[0].model && (record.cost_micros_usd === 0 || record.cost_micros_usd === null)))), 'provider_or_cost_outside_test_contract');
   check(consumed.unknown_cost_calls === consumed.records.filter(record => record.cost_micros_usd === null).length, 'unknown_costs_were_reported_as_zero');
-  return {answerCount, consumed, retryCount: retries.length, packageRetryCount: packageRetries.length, diagnosticCount: diagnostics.length};
+  return {answerCount, consumed, retryCount: retries.length, practiceRetryCount: practiceRetries.length, packageRetryCount: packageRetries.length, diagnosticCount: diagnostics.length};
 }
 
 try {
@@ -669,12 +678,12 @@ try {
   check(resumed.coaching.status === 'ready', 'completed_coaching_was_not_persistent');
   const after = await usage();
   check(before.calls_used === after.calls_used && before.records.length === after.records.length, 'reopening_saved_review_reserved_another_ai_call');
-  const {answerCount, consumed, retryCount, packageRetryCount, diagnosticCount} = await checkParentAndUsage(units);
+  const {answerCount, consumed, retryCount, practiceRetryCount, packageRetryCount, diagnosticCount} = await checkParentAndUsage(units);
   check(errors.length === 0, 'browser_runtime_errors_detected');
   account.browser_qa.evidence.completed = true;
   await checkpoint('passed');
   passed = true;
-  console.log(JSON.stringify({regular_parent_and_child: true, synthetic_demo_used: false, normal_photo_uploads: 2, mobile_viewport: 390, learning_rounds: units.length, completed_questions: answerCount, ...(flags.has('--paid-synthetic-approved') ? {actual_ai_calls: consumed.calls_used} : {actual_free_ai_calls: consumed.calls_used}), paid_synthetic_approved: flags.has('--paid-synthetic-approved'), known_cost_micros_usd: consumed.known_cost_micros_usd, unknown_cost_calls: consumed.unknown_cost_calls, explicit_coaching_retries: retryCount, explicit_package_retries: packageRetryCount, explicit_package_diagnostics: diagnosticCount, saved_package_resume_without_ai: true, feedback_waited_for_continue: true, parent_sees_saved_answers_hints_and_reviews: true, runtime_errors: errors}));
+  console.log(JSON.stringify({regular_parent_and_child: true, synthetic_demo_used: false, normal_photo_uploads: 2, mobile_viewport: 390, learning_rounds: units.length, completed_questions: answerCount, ...(flags.has('--paid-synthetic-approved') ? {actual_ai_calls: consumed.calls_used} : {actual_free_ai_calls: consumed.calls_used}), paid_synthetic_approved: flags.has('--paid-synthetic-approved'), known_cost_micros_usd: consumed.known_cost_micros_usd, unknown_cost_calls: consumed.unknown_cost_calls, explicit_coaching_retries: retryCount, explicit_practice_retries: practiceRetryCount, explicit_package_retries: packageRetryCount, explicit_package_diagnostics: diagnosticCount, saved_package_resume_without_ai: true, feedback_waited_for_continue: true, parent_sees_saved_answers_hints_and_reviews: true, runtime_errors: errors}));
 } catch (error) {
   process.exitCode = 1;
   // Playwright's detailed errors may quote the selected answer or typed value.
