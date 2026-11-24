@@ -3436,7 +3436,19 @@ Bestandteil des bestehenden Buildvertrags.
 
   **Abnahme:** Bericht mit nachvollziehbaren Fundstellen, Risikoeinstufung und Nachtests liegt vor; kritische und hohe Befunde sind behoben beziehungsweise vor jeglicher Freigabe durch die verantwortliche Stelle nachvollziehbar entschieden.
 
-- [ ] **P1 – Abnahmen systematisch und wiederholbar automatisieren**
+- [x] **P1 – Abnahmen systematisch und wiederholbar automatisieren**
+
+  **Abnahme 24.11.2026:** Der vollständige GitHub-Lauf
+  [45387679206](https://github.com/meinzeug/schuleschlau/actions/runs/45387679206)
+  bestand für `a30edee`, einschließlich aller Backend- und Flutterpartitionen,
+  isoliertem PostgreSQL, Operationsprüfungen, Webbuild und elf lokalen
+  Browserfällen. Der Browserumfang deckt künstlichen Fotoimport, Aufgaben und
+  Lernstand, Schulbuddy, Benachrichtigungen sowie Eltern-/Kinderrollen ab. Die
+  CI prüft Sammlung, Ausführung und Ergebnisverträge; Testdoppel, Skips und
+  fehlende Nachweise bleiben erkennbar. Der vorherige fehlgeschlagene Lauf ist
+  dokumentiert. Tatsächliche Anbieterqualität, native Geräte, fachliche
+  Vollständigkeit und produktive Wiederherstellung bleiben eigenständige
+  offene Abnahmen. [Prüfmatrix](docs/ACCEPTANCE_AUTOMATION_2026_11_24.md).
 
   - [x] **Fotoauswahl und Zuschnitt im mobilen Browser-Gate prüfen.**
     Ein künstliches Foto wird bei 390 × 844 Pixeln über den tatsächlichen

@@ -12,8 +12,16 @@ Der Folgelauf [45385656837](https://github.com/meinzeug/schuleschlau/actions/run
 für `586b9e8` scheiterte im Browsergate: Der Glockentest fand keine sichtbare
 erste Übereinstimmung für den Titel „Benachrichtigungen“. Der
 Test wartet nach der Korrektur auf die sichtbare Überschrift der tatsächlichen
-Gesamtansicht; Lesestatus und Scrollen werden weiterhin geprüft. Dieser Lauf
-bleibt ein Fehlschlag, bis ein neuer Lauf erfolgreich nachgewiesen ist.
+Gesamtansicht; Lesestatus und Scrollen werden weiterhin geprüft. Der
+historische Lauf bleibt fehlgeschlagen.
+
+Der vollständige korrigierte Lauf
+[45387679206](https://github.com/meinzeug/schuleschlau/actions/runs/45387679206)
+bestand für `a30edee`. Er beinhaltet das neue Browsergate mit elf
+Pflichtfällen. Lokal bestanden zusätzlich 67 Schulbuddy-Fälle und drei
+Migrationsfälle auf isoliertem PostgreSQL sowie 48 Staging-, Rückweg- und
+Artefaktprüfungen. Die einzelnen Laufzeiten und Warnungen sind den jeweiligen
+Testausgaben beziehungsweise dem GitHub-Lauf zu entnehmen.
 
 | Bereich | Automatisierter Nachweis | Grenzen |
 | --- | --- | --- |

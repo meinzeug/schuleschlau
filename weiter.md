@@ -1,5 +1,18 @@
 # Übergabe an die nächste Coding-KI
 
+## Arbeitsstand 24. November 2026
+
+Der Hauptpunkt „Abnahmen systematisch und wiederholbar automatisieren“ ist
+abgeschlossen; Umfang und Grenzen stehen in `ROADMAP.md` und
+`docs/ACCEPTANCE_AUTOMATION_2026_11_24.md`. Der vollständige GitHub-Lauf
+45387679206 bestand für `a30edee`; sein Vorgänger 45385656837 ist wegen
+eines Browser-Testfehlers fehlgeschlagen. Fotoimport und Schulbuddy sind im
+isolierten Browsergate mit künstlichen Daten abgedeckt. Dies ersetzt weder die
+noch offenen fachlichen und nativen Abnahmen noch eine echte
+Wiederherstellung. Die aktuelle Nutzeranweisung erlaubt Commit und Push;
+ein Release nur auf Aufforderung oder wenn es für einen nötigen Test
+erforderlich ist. Git- und Serverstand vor weiterer Arbeit erneut prüfen.
+
 ## Aktueller Auftrag vom 22. November 2026
 
 Der Betreiber wünscht echte OpenRouter-Bilder zu Lerninhalten, einen gemeinsam
