@@ -34,6 +34,8 @@ class LocalRunnerSafety(unittest.TestCase):
         self.assertEqual(env["PARENT_PREFS_CAS_BROWSER"], "1")
         self.assertEqual(env["NOTIFICATION_LOCAL_BROWSER"], "1")
         self.assertEqual(env["SCHULBUDDY_LOCAL_BROWSER"], "1")
+        self.assertEqual(env["PARENT_MULTICHILD_BROWSER"], "1")
+        self.assertEqual(env["PARENT_MULTICHILD_PDF_BROWSER"], "1")
         self.assertEqual(env["PYTEST_DISABLE_PLUGIN_AUTOLOAD"], "1")
 
     def test_workflow_runs_browser_contract_against_fresh_web_build(self):
@@ -59,6 +61,10 @@ class LocalRunnerSafety(unittest.TestCase):
             ("test_schulbuddy_local_browser", "test_schulbuddy_source_and_saved_reply_in_mobile_browser"),
             ("test_schulbuddy_local_browser", "test_schulbuddy_browser_rejects_external_database_before_import"),
             ("test_photo_local_browser", "test_photo_picker_and_crop_in_mobile_browser"),
+            ("test_parent_multichild_acceptance", "test_parent_reads_multiple_children_facts_without_creating_learning_or_provider_calls"),
+            ("test_parent_multichild_acceptance", "test_parent_multichild_local_flutter_browser"),
+            ("test_parent_multichild_acceptance", "test_parent_multichild_pdf_local_flutter_browser"),
+            ("test_parent_multichild_acceptance", "test_browser_harness_rejects_external_test_database_before_import"),
         )
         with tempfile.TemporaryDirectory() as scratch:
             path = Path(scratch) / "results.xml"

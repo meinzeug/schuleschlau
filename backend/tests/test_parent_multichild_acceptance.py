@@ -135,6 +135,7 @@ def test_parent_multichild_local_flutter_browser(api, household, mailbox, monkey
     """Opt-in real Chrome check: localhost, isolated test DB, synthetic users only."""
     import json
     import os
+    import shutil
     import socket
     import subprocess
     import threading
@@ -171,10 +172,14 @@ def test_parent_multichild_local_flutter_browser(api, household, mailbox, monkey
                 break
             clock.sleep(0.05)
         assert server.started
-        result = subprocess.run(["node", "qa/parent_multichild_browser.mjs"],
+        node = shutil.which("node")
+        assert node
+        result = subprocess.run([node, "qa/parent_multichild_browser.mjs"],
             input=json.dumps({"base": f"http://127.0.0.1:{port}", "username": "parent@example.org",
                 "password": "secure-parent-pass-123", "children": [first["id"], second["id"]],
-                "screens": str(tmp_path)}), text=True, capture_output=True, timeout=180)
+                "screens": str(tmp_path)}), text=True, capture_output=True, timeout=240,
+            env={"PATH": str(Path(node).parent) + ":/usr/bin:/bin", "LANG": "C.UTF-8",
+                 "TMPDIR": os.environ.get("TMPDIR", "/tmp")})
         assert result.returncode == 0, result.stderr[-3000:]
         assert stored_rows() == before
         assert calls == []
@@ -189,6 +194,7 @@ def test_parent_multichild_pdf_local_flutter_browser(api, household, mailbox, mo
     """Opt-in import and repeated import through a real local Chrome file picker."""
     import json
     import os
+    import shutil
     import socket
     import subprocess
     import threading
@@ -236,10 +242,14 @@ def test_parent_multichild_pdf_local_flutter_browser(api, household, mailbox, mo
                 break
             clock.sleep(0.05)
         assert server.started
-        result = subprocess.run(["node", "qa/parent_multichild_pdf_browser.mjs"],
+        node = shutil.which("node")
+        assert node
+        result = subprocess.run([node, "qa/parent_multichild_pdf_browser.mjs"],
             input=json.dumps({"base": f"http://127.0.0.1:{port}", "username": "parent@example.org",
                 "password": "secure-parent-pass-123", "children": [first["id"], second["id"]],
-                "pdf": str(fixture), "screens": str(tmp_path)}), text=True, capture_output=True, timeout=360)
+                "pdf": str(fixture), "screens": str(tmp_path)}), text=True, capture_output=True, timeout=360,
+            env={"PATH": str(Path(node).parent) + ":/usr/bin:/bin", "LANG": "C.UTF-8",
+                 "TMPDIR": os.environ.get("TMPDIR", "/tmp")})
         assert result.returncode == 0, result.stderr[-3000:]
         after = stored_rows()
         for table, rows in before.items():

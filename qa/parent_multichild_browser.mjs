@@ -2,13 +2,15 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {chromium} from 'playwright';
+import {restrictBrowserNetwork, closeRestrictedBrowserContext} from './browser_network_guard.mjs';
 
 const input = JSON.parse(readFileSync(0, 'utf8'));
 const url = new URL(input.base);
 assert.equal(url.hostname, '127.0.0.1');
 assert.equal(url.protocol, 'http:');
 const browser = await chromium.launch({headless: true, executablePath: '/opt/google/chrome/chrome', args:['--no-sandbox']});
-const context = await browser.newContext({viewport:{width:390,height:844}});
+const context = await browser.newContext({viewport:{width:390,height:844},serviceWorkers:'block'});
+await restrictBrowserNetwork(context, input.base);
 const page = await context.newPage();
 const errors = [], writes = [];
 page.on('pageerror', () => errors.push('runtime'));
@@ -91,6 +93,6 @@ try {
   assert.deepEqual(errors, []);
   process.stdout.write('isolated browser checks passed\n');
 } finally {
-  await context.close();
+  await closeRestrictedBrowserContext(context);
   await browser.close();
 }

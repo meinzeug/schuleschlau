@@ -23,6 +23,8 @@ def test_environment(web_dir, scratch, path):
         "PARENT_PREFS_CAS_BROWSER": "1",
         "NOTIFICATION_LOCAL_BROWSER": "1",
         "SCHULBUDDY_LOCAL_BROWSER": "1",
+        "PARENT_MULTICHILD_BROWSER": "1",
+        "PARENT_MULTICHILD_PDF_BROWSER": "1",
         "PYTHONPATH": str(ROOT / "backend"),
         "PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1",
     }
@@ -46,6 +48,7 @@ def main():
                 "backend/tests/test_notification_cross_device_browser.py",
                 "backend/tests/test_schulbuddy_local_browser.py",
                 "backend/tests/test_photo_local_browser.py",
+                "backend/tests/test_parent_multichild_acceptance.py",
                 "--tb=short", "-ra", "--junitxml", str(Path(scratch) / "browser-results.xml"),
             ],
             cwd=ROOT,
@@ -71,6 +74,10 @@ def check_results(path):
         ("test_schulbuddy_local_browser", "test_schulbuddy_source_and_saved_reply_in_mobile_browser"),
         ("test_schulbuddy_local_browser", "test_schulbuddy_browser_rejects_external_database_before_import"),
         ("test_photo_local_browser", "test_photo_picker_and_crop_in_mobile_browser"),
+        ("test_parent_multichild_acceptance", "test_parent_reads_multiple_children_facts_without_creating_learning_or_provider_calls"),
+        ("test_parent_multichild_acceptance", "test_parent_multichild_local_flutter_browser"),
+        ("test_parent_multichild_acceptance", "test_parent_multichild_pdf_local_flutter_browser"),
+        ("test_parent_multichild_acceptance", "test_browser_harness_rejects_external_test_database_before_import"),
     }
     root = ElementTree.parse(path).getroot()
     seen = set()

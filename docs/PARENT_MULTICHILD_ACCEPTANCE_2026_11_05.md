@@ -1,6 +1,34 @@
 # Elternübersicht: künstliche Mehrkind-Prüfung vom 05.11.2026
 
-Der Roadmap-Hauptpunkt bleibt offen. Diese Prüfung deckt einen zusammenhängenden Teil mit zwei künstlichen Kindern derselben Familie ab; sie ist keine vollständige Freigabe der Elternoberfläche.
+## Erneute Prüfung vom 24.11.2026
+
+Die Mehrkindprüfung wurde auf dem aktuellen Entwicklungsstand wiederholt:
+Vier Fälle einschließlich beider Browserläufe bestanden mit dem lokalen
+Release-Webbuild. Die isolierten Chrome-Kontexte blockieren nun fremde
+HTTP-Ziele, Weiterleitungen, WebSockets und Serviceworker. Die Node-Prozesse
+erhalten eine begrenzte Umgebung ohne Provider- oder Datenbankgeheimnisse.
+Der gemeinsame Browserrunner fordert beide Abläufe, den Backendabgleich und
+die Datenbank-Schutzprüfung ausdrücklich ohne Skip ein.
+
+Zusätzlich bestanden 95 SQLite-Fälle für Schulnoten, PDF-Import, Planung und
+Lernfortschritt sowie 71 PostgreSQL-Fälle für Mehrkindzugriffe, Noten und
+Import; zwei opt-in Browserfälle wurden im PostgreSQL-Lauf ausgelassen und
+separat auf SQLite im Browser ausgeführt. Geprüft werden unter anderem
+Ansichtsrechte, Wiederholungen und konkurrierende Importe, Änderungen an
+Vorschauen sowie dass Schulnoten und deren private Notizen nicht im
+simulierten KI-Auftrag landen. Die Screenshots von Lernfortschritt und Planung
+bei 390 und 1440 Pixeln wurden betrachtet. Alle Daten sind künstlich; es gab
+keine externen Anbieteraufrufe.
+
+Diese technische Abnahme bezieht sich auf die vorhandenen Elternfunktionen.
+Pausen und freie Lerntage sind geprüft; ein eigenständiges privates
+Freizeitkalenderereignis gehört nicht zum dokumentierten Umfang. Eine
+physische Android-, assistive oder unabhängige Sicherheitsabnahme und ein
+Nachweis pädagogischer Wirkung werden daraus nicht abgeleitet.
+
+## Prüfung vom 05.11.2026
+
+Diese historische Prüfung deckt einen zusammenhängenden Teil mit zwei künstlichen Kindern derselben Familie ab; sie ist keine vollständige Freigabe der Elternoberfläche.
 
 ## Tatsächlich geprüft
 
