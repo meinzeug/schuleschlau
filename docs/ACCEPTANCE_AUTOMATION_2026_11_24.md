@@ -8,6 +8,13 @@ bestand für `49efc8b`. Er enthält noch nicht die nachfolgend ergänzten
 Schulbuddy- und Foto-Browsertests. Der Erfolg einer späteren Revision ist
 an deren eigenem Lauf abzulesen.
 
+Der Folgelauf [45385656837](https://github.com/meinzeug/schuleschlau/actions/runs/45385656837)
+für `586b9e8` scheiterte im Browsergate: Der Glockentest fand keine sichtbare
+erste Übereinstimmung für den Titel „Benachrichtigungen“. Der
+Test wartet nach der Korrektur auf die sichtbare Überschrift der tatsächlichen
+Gesamtansicht; Lesestatus und Scrollen werden weiterhin geprüft. Dieser Lauf
+bleibt ein Fehlschlag, bis ein neuer Lauf erfolgreich nachgewiesen ist.
+
 | Bereich | Automatisierter Nachweis | Grenzen |
 | --- | --- | --- |
 | Fotoimport | `test_photo_local_browser.py`: künstliches Foto über mobile Dateiauswahl und Zuschnitt zur gespeicherten Seite; ohne Abgabe kein KI-Auftrag | Keine Kamera, Android, OCR-Qualität oder Freigabe echter Fotos |

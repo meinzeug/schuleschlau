@@ -128,7 +128,7 @@ try {
   debugPage = pageTwo;
   await open(pageTwo,'/notifications');
   await pageTwo.waitForURL(url=>url.pathname==='/notifications',{timeout:15000});
-  await pageTwo.getByText('Benachrichtigungen',{exact:true}).first().waitFor({timeout:15000});
+  await pageTwo.getByText('Deine Neuigkeiten',{exact:true}).filter({visible:true}).first().waitFor({timeout:15000});
   await poll(()=>inbox(two), data=>data.items.some(item=>item.read));
   const beforeScroll = await inbox(two);
   let scrolled = beforeScroll;
