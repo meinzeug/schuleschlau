@@ -2,6 +2,16 @@
 
 ## Arbeitsstand 24. November 2026
 
+Die funktionale Abnahme von Benachrichtigungen und Zielnavigation ist in der
+Roadmap abgeschlossen. Ein isolierter Browserlauf prüft zusätzlich die
+Kinder-Glocke für Heftseiten und Lernrunde, getrennte Lesestände und keine
+neuen KI-Aufträge. SQLite-, PostgreSQL-, Flutter- und Chrome-Fälle schließen
+auch einen simulierten Push-Timeout ein. Eine tatsächliche Android-Zustellung
+war nur im älteren, separat dokumentierten Emulatorlauf sichtbar; aktuelle
+native und physische Gerätebeobachtungen daraus nicht ableiten. Einzelheiten:
+`docs/NOTIFICATION_CROSS_CLIENT_2026_11_24.md`. Kein Deployment aus diesen
+Tests ableiten.
+
 Der funktionale Abnahmepunkt zu Kinderwegen und Wiederaufnahme ist in der
 Roadmap abgeschlossen. Der künstliche Mehrtageslauf wurde um die sichtbare
 Hauptnavigation, beide Startwege bei 320, 390 und 1280 Pixeln, einen zweiten

@@ -5,9 +5,9 @@ import {restrictBrowserNetwork, closeRestrictedBrowserContext} from './browser_n
 
 let input = '';
 for await (const part of process.stdin) input += part;
-const {base, unit, screens} = JSON.parse(input);
+const {base, unit, child, day, screens} = JSON.parse(input);
 const origin = new URL(base);
-if (origin.protocol !== 'http:' || origin.hostname !== '127.0.0.1' || !origin.port || !/^[a-f0-9]{32}$/.test(unit)) throw new Error('Invalid isolated fixture');
+if (origin.protocol !== 'http:' || origin.hostname !== '127.0.0.1' || !origin.port || ![unit,child,day].every(id=>/^[a-f0-9]{32}$/.test(id))) throw new Error('Invalid isolated fixture');
 const browser = await chromium.launch({headless:true, executablePath:'/opt/google/chrome/chrome', args:['--no-sandbox']});
 const contexts = [];
 let debugPage, step = 'start';
@@ -49,12 +49,12 @@ try {
     await page.waitForTimeout(400);
     assert.equal(await input.inputValue(),value);
   }
-  async function login(ctx, username) {
+  async function login(ctx, username, password='secure-parent-pass-123') {
     const page = await ctx.newPage();
     debugPage = page;
     await open(page,'/login');
     await type(page,'E-Mail oder Benutzername',username);
-    await type(page,'Passwort','secure-parent-pass-123');
+    await type(page,'Passwort',password);
     const response = page.waitForResponse(r=>new URL(r.url()).pathname==='/api/auth/login' && r.request().method()==='POST');
     await tap(page,page.getByRole('button',{name:'Anmelden',exact:true}));
     assert.equal((await response).status(),200);
@@ -143,7 +143,34 @@ try {
   assert.ok(scrolled.items.some(item=>!item.read));
   assert.ok((await inbox(two,baseline.next_cursor)).items.some(item=>!item.read));
   await pageTwo.screenshot({path:screens+'/all-notices-scrolled-390.png'});
-  console.log(JSON.stringify({passed:true, contexts:3, firstVisible:readFirst.size, afterScroll:scrolled.items.filter(item=>item.read).length, roundLink:true}));
+  step='child-ready-notices';
+  const parentBeforeChild = await inbox(one);
+  const childContext = await context();
+  const childPage = await login(childContext,'test-child','secure-child-pass-123');
+  const childInbox = await inbox(childContext);
+  const roundNotice=childInbox.items.find(item=>item.kind==='round_ready' && item.route==='/unit/'+unit);
+  const pageNotice=childInbox.items.find(item=>item.kind==='preparation' && item.route===`/after-school/${child}?day=${day}`);
+  assert(roundNotice && pageNotice);
+  assert.equal(roundNotice.read,false);
+  assert.equal(pageNotice.read,false);
+  await tap(childPage,childPage.getByRole('button',{name:/Benachrichtigungen/}));
+  await childPage.screenshot({path:screens+'/child-bell-390.png'});
+  await tap(childPage,childPage.getByRole('button',{name:/Heftseite.*Bitte prüfen/}));
+  await childPage.waitForURL(url=>url.pathname===`/after-school/${child}` && url.searchParams.get('day')===day,{timeout:15000});
+  await open(childPage,'/app');
+  await tap(childPage,childPage.getByRole('button',{name:/Benachrichtigungen/}));
+  await tap(childPage,childPage.getByRole('button',{name:/Deine Lernrunde ist bereit/}));
+  await childPage.waitForURL(url=>url.pathname==='/unit/'+unit,{timeout:15000});
+  const childAfter=await poll(()=>inbox(childContext), data=>[roundNotice.id,pageNotice.id].every(id=>data.items.some(item=>item.id===id && item.read)));
+  assert([roundNotice.id,pageNotice.id].every(id=>childAfter.items.some(item=>item.id===id && item.read)));
+  const parentAfterChild=await inbox(one);
+  for (const id of [roundNotice.id,pageNotice.id]) {
+    const before=parentBeforeChild.items.find(item=>item.id===id);
+    const after=parentAfterChild.items.find(item=>item.id===id);
+    assert(before && after);
+    assert.equal(after.read,before.read);
+  }
+  console.log(JSON.stringify({passed:true, contexts:4, firstVisible:readFirst.size, afterScroll:scrolled.items.filter(item=>item.read).length, roundLink:true, childPreparation:true, childRound:true}));
 } catch (error) {
   if (debugPage) await debugPage.screenshot({path:screens+'/failure-'+step+'.png'}).catch(()=>{});
   console.error('Failed at '+step+': '+error.message);

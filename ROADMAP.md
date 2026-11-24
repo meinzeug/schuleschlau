@@ -2884,7 +2884,30 @@ Bestandteil des bestehenden Buildvertrags.
 
   **Abnahme:** Fehlerzustände und tatsächlich wirksame Limits sind verständlich; Notfallstopp bleibt bei gestörter Providerabfrage erreichbar, Änderungen sind auditiert, parallele Bearbeitung und widerrufene Sitzungen werden korrekt behandelt.
 
-- [ ] **P1 – Benachrichtigung und direkte Zielnavigation vollständig prüfen**
+- [x] **P1 – Benachrichtigung und direkte Zielnavigation vollständig prüfen**
+
+  **Funktionale Abnahme 24.11.2026:** Im isolierten Browserlauf mit vier
+  getrennten Sitzungen öffnen künstliches Kind und Eltern die berechtigten
+  Ziele; die Kinder-Glocke führt sowohl zu erkannten Heftseiten als auch zur
+  gespeicherten Lernrunde. Lesebelege bleiben kontogebunden; Nachladen und
+  Scrollen markieren nicht erreichte Meldungen nicht. 136 SQLite-Fälle
+  bestanden, zwei PostgreSQL-Fälle wurden dort ausgelassen und im Lauf mit
+  138 erfolgreichen PostgreSQL-Fällen ausgeführt. Je ein weiterer
+  Timeout-Fall bestand auf beiden Datenbanken. 61 Flutter- und 20
+  Chrome-Widgetfälle sowie das lokale Browsergate mit 17 Fällen bestanden.
+  Die simulierte Pushstörung führt nicht zum Verlust der In-App-Meldung oder
+  einem automatischen Doppelversand. Die tatsächlich sichtbare neutrale
+  Android-Zustellung und das Lernrundenziel sind getrennt in den
+  Emulatorberichten vom 05.11.2026 belegt; dies ist keine erneute native
+  Abnahme des aktuellen Stands oder eine physische Geräteprüfung.
+  [Prüfung und Grenzen](docs/NOTIFICATION_CROSS_CLIENT_2026_11_24.md).
+
+  - [x] **Kinder-Glocke für Heftseiten und Lernrunde prüfen.** Eine
+    synthetisch vorbereitete Heftseite und eine bereits gespeicherte Runde
+    führen aus dem Kinderkonto zu ihren jeweiligen Zielen. Der Lesestatus des
+    Elternkontos bleibt unverändert; die Bedienung erzeugt keine neuen
+    KI-Aufträge, Kostenbuchungen oder Pushversendungen. Der Test ist im
+    isolierten Browsergate enthalten.
 
   - [x] **Glocke, Lesestatus und Rundenziel mit unabhängig angemeldeten Webclients prüfen.**
     24.11.2026: Drei getrennte Browserkontexte mit künstlichen Konten und dem

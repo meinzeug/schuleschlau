@@ -292,6 +292,37 @@ def test_round_push_is_per_event_and_tap_targets_ready_unit(case, api, tmp_path,
         client.__exit__(None, None, None)
 
 
+def test_failed_push_keeps_inbox_and_does_not_repeat_or_create_a_round(case, api, tmp_path, monkeypatch):
+    assert remember(case)
+    client, _ = child_device(api, case, tmp_path)
+    sent = []
+    def fail(*args, **kwargs):
+        sent.append((args, kwargs))
+        raise n.FcmError('synthetic_timeout')
+    monkeypatch.setattr(n, 'send_fcm', fail)
+    try:
+        with DB.begin() as db:
+            jobs_before = db.scalar(select(func.count()).select_from(Job))
+            n.prepare(db)
+        assert n.deliver_one(DB)
+        with DB.begin() as db:
+            delivery = db.scalar(select(PushDelivery))
+            assert delivery.status == 'failed' and delivery.error_code == 'synthetic_timeout'
+            n.prepare(db)
+        assert not n.deliver_one(DB)
+        assert len(sent) == 1
+        assert sent[0][1] == {'unit_path': '/unit/' + case['unit']}
+        inbox = client.get('/api/notifications/inbox').json()['items']
+        notice = next(item for item in inbox if item['kind'] == 'round_ready')
+        assert notice['route'] == '/unit/' + case['unit']
+        assert client.get(notice['route'].replace('/unit/', '/api/units/')).status_code == 200
+        with DB() as db:
+            assert db.scalar(select(func.count()).select_from(Job)) == jobs_before
+            assert db.scalar(select(func.count()).select_from(PushDelivery)) == 1
+    finally:
+        client.__exit__(None, None, None)
+
+
 @pytest.mark.parametrize(
     "change", ["child_consent", "device_category", "source", "session", "child_quiet", "device_quiet", "round_started"]
 )
