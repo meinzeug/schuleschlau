@@ -1396,7 +1396,13 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
                 !captureRequested)
               childPreparationFailed(context)
             else if (stage == 'collecting')
-              childCollecting(context)
+              Align(
+                alignment: Alignment.topLeft,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 640),
+                  child: childCollecting(context),
+                ),
+              )
             else if (stage == 'review')
               childChecking(context)
             else

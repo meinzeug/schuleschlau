@@ -1845,6 +1845,25 @@ Bestandteil des bestehenden Buildvertrags.
   **Abnahme:** sichtbare Anzeige und Ziel tatsächlich dokumentiert sind; FCM-Annahme oder Validierung allein reichen nicht. In-App-Neuigkeiten bleiben ohne Push nutzbar.
 - [ ] **P1 – Web und native Freigabe vollständig bedienen**
 
+  - [x] **Fotoimport und Anmeldelinks auf schmalem und breitem Web prüfen.**
+    Der tatsächliche Dateidialog und Zuschnitt wurden bei 390 und 1280 Pixeln
+    unter der konfigurierten CSP mit künstlichen Fotos bedient; Blob-XHR,
+    gespeicherte Seiten und das Ausbleiben automatischer KI-Aufträge sind
+    geprüft. Die Fotoaktionskarte ist auf breiten Ansichten auf 640 Pixel
+    begrenzt; der gerenderte Kontrast ihrer Hauptaktion wurde gemessen.
+    Künstliche Bestätigungs-, Reset- und Einladungslinks überstehen Kaltstart,
+    Neuladen und einen neuen Link; Anmeldung und Abmeldung funktionieren in
+    beiden Größen. Die Fälle sind im isolierten Browsergate verankert.
+    [Prüfumfang und Grenzen](docs/WEB_NATIVE_ACCEPTANCE_2026_11_24.md).
+
+  - [x] **Android-Tastatur mit aktuellem Debugstand beobachten.**
+    Auf einem temporären Android-36-Emulator ohne Hardwaretastatur wurden
+    Kaltstart, vollständige Bildschirmtastatur, Eingabefokus und Rückkehr aus
+    dem Hintergrund mit künstlichem Text beobachtet. Der Emulator wurde
+    danach gelöscht. Eine signierte Release-APK, ein physisches Gerät und ein
+    nativer Foto-/Lernweg wurden in diesem Lauf nicht geprüft.
+    [Prüfumfang](docs/WEB_NATIVE_ACCEPTANCE_2026_11_24.md).
+
   - [x] **Geöffnete Erklärgrafik und Leseposition im Android-Emulator prüfen.**
     Im künstlichen Fotofall wurden Kreis-/Balkenansicht und Zähler/Nenner
     gewechselt, die Position serverseitig gespeichert und nach Hintergrund und

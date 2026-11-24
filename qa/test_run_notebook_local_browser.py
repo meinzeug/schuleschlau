@@ -36,6 +36,7 @@ class LocalRunnerSafety(unittest.TestCase):
         self.assertEqual(env["SCHULBUDDY_LOCAL_BROWSER"], "1")
         self.assertEqual(env["PARENT_MULTICHILD_BROWSER"], "1")
         self.assertEqual(env["PARENT_MULTICHILD_PDF_BROWSER"], "1")
+        self.assertEqual(env["AUTH_LOCAL_BROWSER"], "1")
         self.assertEqual(env["PYTEST_DISABLE_PLUGIN_AUTOLOAD"], "1")
 
     def test_workflow_runs_browser_contract_against_fresh_web_build(self):
@@ -65,6 +66,8 @@ class LocalRunnerSafety(unittest.TestCase):
             ("test_parent_multichild_acceptance", "test_parent_multichild_local_flutter_browser"),
             ("test_parent_multichild_acceptance", "test_parent_multichild_pdf_local_flutter_browser"),
             ("test_parent_multichild_acceptance", "test_browser_harness_rejects_external_test_database_before_import"),
+            ("test_auth_local_browser", "test_cold_start_links_and_logout_in_two_web_sizes"),
+            ("test_auth_local_browser", "test_auth_browser_rejects_external_database_before_import"),
         )
         with tempfile.TemporaryDirectory() as scratch:
             path = Path(scratch) / "results.xml"

@@ -11,6 +11,7 @@ if (origin.protocol !== 'http:' || origin.hostname !== '127.0.0.1' || !origin.po
 const browser = await chromium.launch({headless:true, executablePath:'/opt/google/chrome/chrome', args:['--no-sandbox']});
 const ctx = await browser.newContext({viewport:{width:390,height:844}, serviceWorkers:'block'});
 let phase = 'setup', page;
+const buttonBoxes={};
 try {
   await restrictBrowserNetwork(ctx, base);
   page = await ctx.newPage();
@@ -51,17 +52,34 @@ try {
   const logged=page.waitForResponse(r=>new URL(r.url()).pathname==='/api/auth/login' && r.request().method()==='POST');
   await tap(page.getByRole('button',{name:'Anmelden',exact:true}));
   assert.equal((await logged).status(),200);
-  phase='photo-picker';
-  await open('/after-school/'+child+'?capture=1');
-  const picker=page.waitForEvent('filechooser',{timeout:30000});
-  await tap(page.getByRole('button',{name:'Fotos auswählen',exact:true}));
-  await (await picker).setFiles(photo);
-  phase='crop';
-  await page.getByRole('button',{name:'Zuschnitt übernehmen',exact:true}).waitFor({timeout:30000});
-  await tap(page.getByRole('button',{name:'Zuschnitt übernehmen',exact:true}));
-  await page.getByRole('button',{name:'Fotos abgeben',exact:true}).waitFor({timeout:30000});
-  await page.screenshot({path:screens+'/photo-cropped-390.png'});
-  console.log(JSON.stringify({passed:true}));
+  phase='blob-xhr';
+  const blobRead=await page.evaluate(()=>new Promise((resolve,reject)=>{
+    const url=URL.createObjectURL(new Blob(['synthetic-photo-read']));
+    const request=new XMLHttpRequest();
+    request.open('GET',url);
+    request.onload=()=>{ URL.revokeObjectURL(url); resolve(request.responseText); };
+    request.onerror=()=>{ URL.revokeObjectURL(url); reject(new Error('blob XHR blocked')); };
+    request.send();
+  }));
+  assert.equal(blobRead,'synthetic-photo-read');
+  for (const width of [390,1280]) {
+    await page.setViewportSize({width,height:844});
+    phase='photo-picker-'+width;
+    await open('/after-school/'+child+'?capture=1');
+    const picker=page.waitForEvent('filechooser',{timeout:30000});
+    picker.catch(()=>{});
+    await tap(page.getByRole('button',{name:'Fotos auswählen',exact:true}));
+    await (await picker).setFiles(photo);
+    phase='crop-'+width;
+    await page.getByRole('button',{name:'Zuschnitt übernehmen',exact:true}).waitFor({timeout:30000});
+    await tap(page.getByRole('button',{name:'Zuschnitt übernehmen',exact:true}));
+    await page.getByRole('button',{name:'Fotos abgeben',exact:true}).waitFor({timeout:30000});
+    const buttonBox=await page.getByRole('button',{name:'Fotos abgeben',exact:true}).boundingBox();
+    assert.ok(buttonBox && buttonBox.width >= 260 && buttonBox.width <= 640);
+    buttonBoxes[String(width)]=buttonBox;
+    await page.screenshot({path:screens+'/photo-cropped-'+width+'.png'});
+  }
+  console.log(JSON.stringify({passed:true,buttonBoxes}));
 } catch (error) {
   if (page) await page.screenshot({path:screens+'/failure-'+phase+'.png'}).catch(()=>{});
   console.error('Failed at '+phase+': '+error.message);

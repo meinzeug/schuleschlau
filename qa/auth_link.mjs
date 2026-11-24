@@ -51,9 +51,9 @@ try {
   };
   if (data.route === 'invite') {
     await type('Dein Anzeigename', 'Synthetischer eingeladener Elternteil');
-    await type('Bestehendes oder neues Elternpasswort', data.password);
+    await type('Elternpasswort', data.password);
   } else if (data.route === 'reset') {
-    await type('Passwort (mindestens 12 Zeichen)', data.password);
+    await type('Neues Passwort', data.password);
   }
   const path = data.route === 'invite' ? '/invitations/accept' : '/auth/' + data.route;
   const result = page.waitForResponse(response =>
