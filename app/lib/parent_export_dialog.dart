@@ -11,11 +11,13 @@ Future<void> showParentChildExport(
 ) async {
   if (!context.mounted || !state.isParent || state.familyId == null) return;
   final account = state.user, family = state.familyId;
+  final identity = state.api.requestIdentity();
   bool current() =>
       context.mounted &&
       identical(account, state.user) &&
       family == state.familyId &&
-      state.isParent;
+      state.isParent &&
+      state.api.ownsRequest(identity);
   final route = DialogRoute<void>(
     context: context,
     barrierDismissible: false,
@@ -24,16 +26,18 @@ Future<void> showParentChildExport(
   void changed() {
     if (current()) return;
     Future<void>.microtask(() {
-      if (route.isActive) route.navigator?.removeRoute(route);
+      if (!current() && route.isActive) route.navigator?.removeRoute(route);
     });
   }
 
   state.addListener(changed);
+  state.authenticationChanges.addListener(changed);
   try {
     await Navigator.of(context, rootNavigator: true).push(route);
     await route.completed;
   } finally {
     state.removeListener(changed);
+    state.authenticationChanges.removeListener(changed);
   }
 }
 
@@ -82,7 +86,16 @@ class _ExportState extends State<_Export> {
         );
       }
     } finally {
-      if (mounted && widget.current()) setState(() => busy = false);
+      if (mounted && widget.current()) {
+        setState(() => busy = false);
+      } else if (mounted) {
+        // A token may change without an AppState notification. Do not leave
+        // an obsolete export stuck in its busy state after the reply arrives.
+        final route = ModalRoute.of(context);
+        if (route != null && route.isActive) {
+          route.navigator?.removeRoute(route);
+        }
+      }
     }
   }
 

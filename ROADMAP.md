@@ -1223,6 +1223,15 @@ Die folgenden Punkte beschreiben ausstehende, wiederholbare Betriebs- und Freiga
   automatisierte Freigabeprüfung ersetzt keinen unabhängigen Sicherheitstest.
 - [ ] **P1 – Datenlebenszyklus und Löschung pro Datenart prüfen**
 
+  - [x] **Kinderexport an die Elternsitzung und Anmeldeabsicht binden.**
+    Beginnt eine neue Anmeldung, schließt der alte Exportdialog; verspätete
+    Dateidaten oder Fehler lösen keinen neuen Speicherdialog aus. Auch nach
+    einem stillen Tokenwechsel wird die alte Antwort verworfen und die
+    Ladeanzeige beendet. Ein bereits an das Betriebssystem übergebener
+    Speichervorgang lässt sich damit nicht rückgängig machen. Künstliche
+    Widgetfälle prüfen beide Wechsel, Fehler und den regulären Speicherweg;
+    die allgemeine Cookie- und Mehrgeräteabnahme bleibt offen.
+
   - [x] **Löschjournal-Sperre für SQLAlchemy-Schreibwege prüfen und
     Restore-Replay von Betriebsdiagnosedateien trennen.** Normale ORM-,
     Core- und Bulk-Schreibwege auf dem Anwendungspool verlangen bis zum
