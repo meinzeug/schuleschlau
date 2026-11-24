@@ -16,7 +16,7 @@ from fastapi import HTTPException, Request
 from schulpilot import auth, coaching, learning, main, security, study_authority, worker
 from schulpilot import db as database
 from schulpilot.config import settings
-from schulpilot.db import DB, Assignment, Attempt, Child, Family, Job, LearningUnit, UnitCoaching, now
+from schulpilot.db import DB, Activity, Assignment, Attempt, Child, Family, Job, LearningUnit, UnitCoaching, now
 from schulpilot.main import app
 from schulpilot.providers import Result
 from sqlalchemy import event, select
@@ -30,7 +30,7 @@ def profile(api, household):
     yield from original_profile.__wrapped__(api, household)
 
 
-def test_synthetic_recall_journey_in_390px_browser(profile, monkeypatch, tmp_path, request):
+def test_synthetic_recall_journey_across_web_widths(profile, monkeypatch, tmp_path, request):
     if os.environ.get('RECALL_MOBILE_BROWSER') != '1':
         pytest.skip('Set RECALL_MOBILE_BROWSER=1 for the isolated browser test')
     if os.environ.get('TEST_DATABASE_URL') or settings.environment != 'test' or make_url(settings.database_url).get_backend_name() != 'sqlite':
@@ -106,6 +106,13 @@ def test_synthetic_recall_journey_in_390px_browser(profile, monkeypatch, tmp_pat
         with DB() as db:
             job = db.get(Job, job_id)
             return {'status': job.status, 'error': job.error, 'result': job.result, 'kind': job.kind}
+    def meet_goal(req: Request):
+        check(req)
+        # A deliberately seeded, synthetic saved time record exercises the
+        # voluntary path without waiting twenty real minutes in CI.
+        with DB.begin() as db:
+            db.add(Activity(child_id=child['id'], kind='active_time', detail={'seconds': 1200}, created=test_now()))
+        return {'ok': True}
     def answers(unit_id: str, req: Request):
         check(req)
         with DB() as db:
@@ -119,6 +126,7 @@ def test_synthetic_recall_journey_in_390px_browser(profile, monkeypatch, tmp_pat
     routes_before = list(app.router.routes)
     app.add_api_route('/__recall_test__/advance', advance, methods=['POST'], include_in_schema=False)
     app.add_api_route('/__recall_test__/work', run_job, methods=['POST'], include_in_schema=False)
+    app.add_api_route('/__recall_test__/meet-goal', meet_goal, methods=['POST'], include_in_schema=False)
     app.add_api_route('/__recall_test__/answers/{unit_id}', answers, methods=['POST'], include_in_schema=False)
     sock = socket.socket()
     sock.bind(('127.0.0.1', 0))

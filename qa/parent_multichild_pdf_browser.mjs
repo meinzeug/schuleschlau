@@ -10,7 +10,20 @@ assert.equal(url.hostname, '127.0.0.1');
 assert.equal(url.protocol, 'http:');
 const browser = await chromium.launch({headless:true, executablePath:'/opt/google/chrome/chrome', args:['--no-sandbox']});
 const context = await browser.newContext({viewport:{width:390,height:900},serviceWorkers:'block'});
-await restrictBrowserNetwork(context, input.base);
+let expectedResponse;
+await restrictBrowserNetwork(context, input.base, {observeResponse: async (request, response) => {
+  if (!expectedResponse || request.method() !== 'POST' || new URL(request.url()).pathname !== expectedResponse.path) return;
+  const pending=expectedResponse; expectedResponse=undefined;
+  try { pending.resolve({status:response.status(),body:await response.json()}); }
+  catch (error) { pending.reject(error); throw error; }
+}});
+function captureResponse(path, timeout=45000) {
+  assert.equal(expectedResponse,undefined);
+  return new Promise((resolve,reject) => {
+    const timer=setTimeout(()=>{expectedResponse=undefined;reject(new Error('Local response timed out'));},timeout);
+    expectedResponse={path,resolve:value=>{clearTimeout(timer);resolve(value);},reject:error=>{clearTimeout(timer);reject(error);}};
+  });
+}
 const page = await context.newPage();
 const writes = [], errors = [];
 page.on('pageerror', () => errors.push('runtime'));
@@ -54,7 +67,7 @@ try {
       const previouslyImported = width !== 390 || pass !== 0;
       await tap(button('PDF importieren'));
       const chooser=page.waitForEvent('filechooser',{timeout:20000});
-      const uploaded=page.waitForResponse(r=>new URL(r.url()).pathname===`/api/children/${child}/grade-imports` && r.request().method()==='POST',{timeout:45000}).then(async r=>({status:r.status(),body:await r.json()}));
+      const uploaded=captureResponse(`/api/children/${child}/grade-imports`);
       await tap(button('PDF auswählen')); await (await chooser).setFiles(input.pdf);
       const upload=await uploaded; assert.equal(upload.status,201);
       const preview=upload.body;
@@ -66,7 +79,7 @@ try {
       assert.equal((await beforeConfirm.json()).pagination.total,previouslyImported ? 3 : 0);
       await button('Auswahl übernehmen').waitFor({state:'attached',timeout:15000});
       await page.screenshot({path:`${input.screens}/pdf-preview-${childIndex}-${width}-${pass}.png`});
-      const confirmed=page.waitForResponse(r=>new URL(r.url()).pathname===`/api/children/${child}/grade-imports/${preview.id}/confirm` && r.request().method()==='POST',{timeout:30000}).then(async r=>({status:r.status(),body:await r.json()}));
+      const confirmed=captureResponse(`/api/children/${child}/grade-imports/${preview.id}/confirm`,30000);
       await tap(button('Auswahl übernehmen'));
       const response=await confirmed; assert.equal(response.status,200);
       const result=response.body; assert.equal(result.added,previouslyImported ? 0 : 3);

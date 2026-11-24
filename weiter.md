@@ -2,6 +2,18 @@
 
 ## Arbeitsstand 24. November 2026
 
+Der funktionale Abnahmepunkt zu Kinderwegen und Wiederaufnahme ist in der
+Roadmap abgeschlossen. Der künstliche Mehrtageslauf wurde um die sichtbare
+Hauptnavigation, beide Startwege bei 320, 390 und 1280 Pixeln, einen zweiten
+Browser und das Wiederaufnehmen offener Rückmeldungen erweitert. Für den
+freiwilligen Pfad wird im isolierten Test gespeicherte Aktivitätszeit
+eingetragen; keine reale Lernzeit behaupten. Der schmale Lernkopf zeigt die
+Aufgabenangabe wieder vollständig. Beim PDF-Browserfall wurde ein Rennen beim
+Lesen der Antwort über den bestehenden lokalen Netzschutz repariert.
+Nachweise und Grenzen: `docs/CHILD_PATH_ACCEPTANCE_2026_11_24.md`. Die
+Tastatur- und Screenreaderbedienung der eingeklappten Desktopleiste bleibt
+offen. Vor einem Release alle aktuellen CI- und Serverstände erneut prüfen.
+
 Für die Web- und Geräteabnahme enthält `041d6c8` den tatsächlichen
 Fotoimport mit Zuschnitt und Blob-XHR sowie Anmeldelinks, Login und Logout
 auf schmalem und breitem Web. Auf einem frischen Android-36-Emulator wurde

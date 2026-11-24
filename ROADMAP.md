@@ -1145,6 +1145,14 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – Barrierearme mobile Führung nachweisen**
 
+  - [ ] **Desktop-Seitenleiste mit Tastatur und Screenreader prüfen.**
+    Im Chrome-Test ließ sich das sichtbare Ziel „Lernen“ der eingeklappten
+    NavigationRail bei 1280 Pixeln nicht über die verwendete Rollenabfrage
+    lokalisieren; ein Klick auf das sichtbare Symbol führte zum richtigen
+    Ziel. Die Ursache und die Ausgabe durch tatsächliche Bedienhilfen sind
+    gesondert zu prüfen. Daraus folgt für sich allein weder eine vollständige
+    Barrierefreiheitsabnahme noch ein nachgewiesener Bedienhilfefehler.
+
   - [x] **Ziffernwahl über den Nummernblock ermöglichen.** Bei sichtbarer
     Auswahl akzeptiert die Tastaturhilfe auch die Zifferntasten des
     Nummernblocks. Eine Wahl prüft oder übermittelt keine Antwort; Textfelder,
@@ -2571,7 +2579,24 @@ Bestandteil des bestehenden Buildvertrags.
 
 ## Produktmodule und Familienalltag
 
-- [ ] **P1 – Kinderwege, Navigation und Wiederaufnahme vollständig abnehmen**
+- [x] **P1 – Kinderwege, Navigation und Wiederaufnahme vollständig abnehmen**
+
+  **Funktionale Abnahme 24.11.2026:** Ein isolierter Browserlauf mit
+  künstlichem Konto und sechs simulierten Lerntagen bediente Fachübersicht,
+  Themenkarte, Vorbereitung, Lernweg, Aufgaben, Rückmeldung und Ergebnis bei
+  320, 390 und 1280 Pixeln. Der Start über Themenkarte und freiwilliges
+  Weiterlernen wurde auf jeder Breite geprüft; für das erfüllte Mindestziel
+  wurde künstlich gespeicherte Zeit verwendet. Neuladen und eine unabhängig
+  angemeldete zweite Sitzung erhalten die offene Rückmeldung ohne doppelte
+  Antwort. Der spätere Elternauftrag bleibt erhalten. 110 Flutter-Fälle zu
+  Layout, Fachnavigation, Feedback und Lernzeit sowie das isolierte
+  Browsergate bestanden; der abschließend ergänzte Klick auf die Desktopleiste
+  wurde danach im erweiterten Lernweg separat erfolgreich geprüft.
+  Die Aufgabenangabe im schmalen Kopf ist nun vollständig sichtbar.
+  Fachliche KI-Qualität, echte Kinderbeobachtung und vollständige
+  Barrierefreiheit bleiben eigene offene Punkte; die Desktopleiste wurde
+  sichtbar angeklickt, nicht per Rollenabfrage lokalisiert.
+  [Prüfbericht und Screenshots](docs/CHILD_PATH_ACCEPTANCE_2026_11_24.md).
 
   - [x] **Begonnene Zuordnung beim Hintergrundwechsel verwerfen.** Eine
     Ziehgeste aus der vorherigen Vordergrundphase kann nach Rückkehr keine

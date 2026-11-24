@@ -12,7 +12,7 @@ function bounded(promise, milliseconds, description) {
   ]).finally(() => clearTimeout(timer));
 }
 
-export async function restrictBrowserNetwork(context, base, {fetchTimeoutMs = 30000, closeTimeoutMs = 35000, abortRequest = null} = {}) {
+export async function restrictBrowserNetwork(context, base, {fetchTimeoutMs = 30000, closeTimeoutMs = 35000, abortRequest = null, observeResponse = null} = {}) {
   const allowed = new URL(base);
   if (allowed.protocol !== 'http:' || allowed.hostname !== '127.0.0.1' || !allowed.port)
     throw new Error('A dedicated loopback origin is required');
@@ -22,6 +22,8 @@ export async function restrictBrowserNetwork(context, base, {fetchTimeoutMs = 30
     throw new Error('A bounded close timeout is required');
   if (abortRequest !== null && typeof abortRequest !== 'function')
     throw new Error('The synthetic abort hook must be a function');
+  if (observeResponse !== null && typeof observeResponse !== 'function')
+    throw new Error('The synthetic response observer must be a function');
 
   // HTTP routing does not intercept WebSocket upgrades.
   await context.routeWebSocket('**/*', socket => socket.close({code: 1008, reason: 'Synthetic test only'}));
@@ -52,6 +54,7 @@ export async function restrictBrowserNetwork(context, base, {fetchTimeoutMs = 30
       // reaches Chromium. No browser fixture needs redirects to succeed.
       const response = await route.fetch({maxRedirects: 0, timeout: fetchTimeoutMs});
       if (response.status() >= 300 && response.status() < 400) return await route.abort();
+      if (observeResponse) await observeResponse(route.request(), response);
       return await route.fulfill({response});
     } catch (error) {
       state.failures.push(error);

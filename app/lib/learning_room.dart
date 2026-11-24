@@ -48,7 +48,9 @@ class LearningRoom extends StatelessWidget {
     final keyboard = MediaQuery.viewInsetsOf(context).bottom > 0;
     const phases = ['Verstehen', 'Üben', 'Rückblick'];
     final enlarged = MediaQuery.textScalerOf(context).scale(1) > 1.4;
-    final desktop = MediaQuery.sizeOf(context).width >= 720;
+    final width = MediaQuery.sizeOf(context).width;
+    final desktop = width >= 720;
+    final separateContext = width < 360 && !enlarged;
     final total = questionTotal ?? 0;
     final completed = (questionCompleted ?? 0).clamp(0, total > 0 ? total : 0);
     final contextLabel = [phases[phase], ?progress].join(' · ');
@@ -85,16 +87,17 @@ class LearningRoom extends StatelessWidget {
                         fontWeight: FontWeight.w800,
                       ),
                     ),
-                    Text(
-                      contextLabel,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: context.palette.muted,
-                        fontSize: 12,
-                        height: 1.3,
+                    if (!separateContext)
+                      Text(
+                        contextLabel,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: context.palette.muted,
+                          fontSize: 12,
+                          height: 1.3,
+                        ),
                       ),
-                    ),
                   ],
                 ),
         ),
@@ -142,6 +145,14 @@ class LearningRoom extends StatelessWidget {
                     ),
                   ),
                 ],
+              ),
+            ),
+          if (separateContext)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 0, 8, 2),
+              child: Text(
+                contextLabel,
+                style: TextStyle(color: context.palette.muted, fontSize: 12),
               ),
             ),
           if (total > 0)

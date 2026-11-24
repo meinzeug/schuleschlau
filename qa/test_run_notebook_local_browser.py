@@ -53,7 +53,7 @@ class LocalRunnerSafety(unittest.TestCase):
         cases = (
             ("test_notebook_local_browser", "test_notebook_local_browser"),
             ("test_notebook_local_browser", "test_notebook_browser_rejects_external_database_before_import"),
-            ("test_recall_mobile_browser", "test_synthetic_recall_journey_in_390px_browser"),
+            ("test_recall_mobile_browser", "test_synthetic_recall_journey_across_web_widths"),
             ("test_recall_mobile_browser", "test_recall_browser_rejects_external_database_before_import"),
             ("test_preferences_browser_cas", "test_real_browser_preferences_cas"),
             ("test_preferences_browser_cas", "test_browser_cas_refuses_external_test_database_before_import"),

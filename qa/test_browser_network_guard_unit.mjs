@@ -75,6 +75,40 @@ test('synthetic interruption only aborts loopback requests and never bypasses or
   await closeRestrictedBrowserContext(c);
 });
 
+test('response observer sees only successful loopback fetches before fulfilment', async () => {
+  const c = context();
+  const events = [];
+  await restrictBrowserNetwork(c, origin, {observeResponse: async (request, response) => {
+    events.push(['observe',request.url(),response.status()]);
+  }});
+  await c.handler(route({
+    request: () => ({url: () => 'https://foreign.invalid/fixture'}),
+    async fetch() { assert.fail('foreign origin must never be fetched'); },
+  }));
+  await c.handler(route({
+    async fetch() { return {status: () => 302}; },
+  }));
+  await c.handler(route({
+    async fetch() { return {status: () => 200}; },
+    async fulfill() { events.push(['fulfil']); },
+  }));
+  assert.deepEqual(events,[['observe',`${origin}/fixture`,200],['fulfil']]);
+  await closeRestrictedBrowserContext(c);
+});
+
+test('response observer errors fail closed', async () => {
+  const c = context();
+  let aborted = false;
+  await restrictBrowserNetwork(c, origin, {observeResponse: () => { throw new Error('observer failed'); }});
+  await c.handler(route({
+    async fetch() { return {status: () => 200}; },
+    async fulfill() { assert.fail('failed observation must not be fulfilled'); },
+    async abort() { aborted = true; },
+  }));
+  assert(aborted);
+  await assert.rejects(closeRestrictedBrowserContext(c), /Synthetic browser network guard failed/);
+});
+
 test('an invalid synthetic interruption decision fails closed', async () => {
   const c = context();
   let aborted = 0;
