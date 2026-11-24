@@ -50,6 +50,47 @@ test('new requests during cleanup are aborted, existing handler drains first', a
   assert.equal(c.closed, true);
 });
 
+test('synthetic interruption only aborts loopback requests and never bypasses origin checks', async () => {
+  const c = context();
+  let hookCalls = 0, aborted = 0, fetched = 0, fulfilled = 0;
+  await restrictBrowserNetwork(c, origin, {abortRequest: () => ++hookCalls === 1});
+  await c.handler(route({
+    request: () => ({url: () => 'https://foreign.invalid/fixture'}),
+    async abort() { aborted++; },
+    async fetch() { assert.fail('foreign origin must never be fetched'); },
+  }));
+  assert.equal(hookCalls, 0);
+  await c.handler(route({
+    async abort() { aborted++; },
+    async fetch() { assert.fail('interrupted request must not be fetched'); },
+  }));
+  await c.handler(route({
+    async fetch() { fetched++; return {status: () => 200}; },
+    async fulfill() { fulfilled++; },
+  }));
+  assert.equal(hookCalls, 2);
+  assert.equal(aborted, 2);
+  assert.equal(fetched, 1);
+  assert.equal(fulfilled, 1);
+  await closeRestrictedBrowserContext(c);
+});
+
+test('an invalid synthetic interruption decision fails closed', async () => {
+  const c = context();
+  let aborted = 0;
+  await restrictBrowserNetwork(c, origin, {abortRequest: () => 'not-a-boolean'});
+  await c.handler(route({
+    async abort() { aborted++; },
+    async fetch() { assert.fail('invalid interruption decision must not fetch'); },
+  }));
+  assert.equal(aborted, 1);
+  await assert.rejects(closeRestrictedBrowserContext(c), error => {
+    assert(error instanceof AggregateError);
+    assert.match(error.errors[0].message, /decision must be a boolean/);
+    return true;
+  });
+});
+
 test('a stuck handler fails within the deadline and still closes context', async () => {
   const c = context();
   await restrictBrowserNetwork(c, origin, {closeTimeoutMs: 30});

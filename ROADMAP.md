@@ -2546,7 +2546,22 @@ Bestandteil des bestehenden Buildvertrags.
 
   **Abnahme:** Jede getestete Route erreicht ihr tatsächliches Ziel ohne festhängende Schleife; Feedback bleibt bis zur bewussten Fortsetzung sichtbar, Antworten und Position überleben Wiederaufnahme und angezeigte Zeit beruht auf gespeicherten Aktivitätssekunden.
 
-- [ ] **P1 – Hefte, Materialarten und Suche im digitalen Ranzen abnehmen**
+- [x] **P1 – Hefte, Materialarten und Suche im digitalen Ranzen abnehmen**
+
+  **Funktionale Abnahme 24.11.2026:** Ein isolierter Browserlauf prüft fünf
+  künstliche Fotoseiten und einen weiteren Hefter mit 47 Seiten, einschließlich
+  eines gezielt unterbrochenen Abrufs, ausdrücklicher Wiederaufnahme, Suche,
+  serverseitiger Paginierung und Geschwisterschutz. Die reine Heftebedienung
+  des zusätzlich geprüften Kindes erzeugt weder neue Lernaktivität noch
+  zusätzliche Aufträge oder Kosten. Zusammen mit bestehenden Prüfungen für
+  Fachauswahl, unzugeordnete Seiten, Zoom, Filter, Rechte, Löschvorschau,
+  Neueinlesen und Quellenrevisionen ist die obige funktionale Abnahme
+  abgeschlossen. Die sechs Fälle des zusammenhängenden Browser-Runners,
+  102 Flutter-Fälle und gezielte SQLite-/PostgreSQL-Prüfungen bestanden.
+  Keine Aussage über realistische Fotoerkennung, fachliche KI-Erzeugung,
+  Offline-Nutzung nach Neustart oder unabhängige Kinderabnahme; diese bleiben
+  in den jeweiligen anderen Hauptpunkten offen.
+  [Prüfung und Grenzen](docs/NOTEBOOK_BROWSING_ACCEPTANCE_2026_11_24.md).
 
   - [x] **Kinder-Löschung auf unbestätigte freie Quellen begrenzen.**
     Die Kinderansicht und sämtliche Löschwege schützen bestätigte Seiten,

@@ -326,26 +326,29 @@ void main() {
     final (_, _, calls) = await _open(tester, width: 320);
     expect(_icon('Heftseite löschen'), findsNothing);
     await n.tap(tester, find.byTooltip('Nächste Seite'));
+    final actions = find.byTooltip('Seitenaktionen');
+    _minimumTarget(tester, actions);
+    expect(
+      tester.getTopLeft(actions).dy,
+      greaterThanOrEqualTo(tester.getBottomLeft(_frame).dy),
+    );
+    await n.tap(tester, actions);
     for (final label in [
-      'Foto zum Vergleich vormerken',
+      'Zum Vergleich auswählen',
       'Mit KI neu lesen',
       'Heftseite löschen',
     ]) {
-      final action = _icon(label);
-      _minimumTarget(tester, action);
-      expect(
-        tester.getTopLeft(action).dy,
-        greaterThanOrEqualTo(tester.getBottomLeft(_frame).dy),
-      );
-      expect(tester.widget<IconButton>(action).onPressed, isNotNull);
-      await tester.ensureVisible(action);
-      await tester.pumpAndSettle();
-      expect(action.hitTestable(), findsOneWidget);
+      final item = find.widgetWithText(PopupMenuItem<String>, label);
+      expect(item, findsOneWidget);
+      expect(tester.getSize(item).height, greaterThanOrEqualTo(48));
+      expect(tester.widget<PopupMenuItem<String>>(item).enabled, isTrue);
     }
-    await n.tap(tester, _icon('Foto zum Vergleich vormerken'));
+    await n.tap(tester, find.text('Zum Vergleich auswählen'));
     expect(find.text('1 von 2 Fotos vorgemerkt'), findsOneWidget);
-    await n.tap(tester, _icon('Foto aus Vergleich nehmen'));
-    await n.tap(tester, _icon('Mit KI neu lesen'));
+    await n.tap(tester, actions);
+    await n.tap(tester, find.text('Aus Vergleich entfernen'));
+    await n.tap(tester, actions);
+    await n.tap(tester, find.text('Mit KI neu lesen'));
     expect(find.text('Seite neu einlesen?'), findsOneWidget);
     expect(
       find.textContaining('Dabei können KI-Kosten entstehen.'),

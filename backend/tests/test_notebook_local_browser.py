@@ -16,7 +16,7 @@ from conftest import HEADERS, create_child, register
 from fastapi.testclient import TestClient
 from schulpilot import main, providers
 from schulpilot.config import settings
-from schulpilot.db import DB, Attempt, Job, LearningUnit, Material, UnitSource, Usage, now
+from schulpilot.db import DB, Activity, Attempt, Job, LearningUnit, Material, UnitSource, Usage, now
 from schulpilot.main import app
 from schulpilot.subject_registry import identity
 from schulpilot.synthetic import sample_unit
@@ -40,11 +40,12 @@ def test_notebook_local_browser(api, household, mailbox, monkeypatch, tmp_path):
     parent, first = household
     second = create_child(api, parent, "notebook-browser-second")
     third = create_child(api, parent, "notebook-browser-third")
+    many = create_child(api, parent, "notebook-browser-many")
     configured(parent["families"][0]["id"])
     calls = []
     monkeypatch.setattr(providers, "request_provider", lambda *args, **kwargs: calls.append(True))
     pages = []
-    for child in (first, second):
+    for child in (first, second, many):
         own = []
         for name in NAMES:
             response = api.post(
@@ -84,6 +85,17 @@ def test_notebook_local_browser(api, household, mailbox, monkeypatch, tmp_path):
                 }
             )
         pages.append(own)
+    # A separate child exercises a genuinely paginated collection in the UI.
+    # These additional rows are synthetic text pages, not invented photos.
+    with DB.begin() as db:
+        for number in range(42):
+            db.add(Material(
+                child_id=many["id"], title=f"Künstliche Zusatzseite {number:02}",
+                subject="Mathematik", subject_id=identity("mathematik"),
+                topic=f"Künstliche Zusatzseite {number:02}",
+                content="Künstlicher Text für die Seitennavigation.",
+                status="confirmed", confirmed=True, synthetic=True, created=1000 + number,
+            ))
     # One artificial unconfirmed page, belonging only to the third child.
     response = api.post(
         f"/api/children/{third['id']}/materials",
@@ -125,6 +137,7 @@ def test_notebook_local_browser(api, household, mailbox, monkeypatch, tmp_path):
     with DB() as db:
         assert not list(db.scalars(select(Job))) and not list(db.scalars(select(Usage)))
         assert len(list(db.scalars(select(Attempt)))) == 1
+        activities_before = len(list(db.scalars(select(Activity).where(Activity.child_id == many["id"]))))
     # Exercise the same parent reads before the browser; never print data or
     # SQL parameters if this artificial fixture exposes an application error.
     import traceback
@@ -166,6 +179,7 @@ def test_notebook_local_browser(api, household, mailbox, monkeypatch, tmp_path):
             "parent_password": "secure-parent-pass-123",
             "child_password": "secure-child-pass-123",
             "children": [first["id"], second["id"], third["id"]],
+            "many_child": many["id"],
             "pages": pages,
             "unconfirmed_id": unconfirmed_id,
             "subject_id": identity("mathematik"),
@@ -189,6 +203,7 @@ def test_notebook_local_browser(api, household, mailbox, monkeypatch, tmp_path):
             assert len(jobs) == 2 and all(j.status == "queued" and j.attempts == 0 and j.result is None for j in jobs)
             assert len(list(db.scalars(select(Usage)))) == 2
             assert len(list(db.scalars(select(Attempt)))) == 1
+            assert len(list(db.scalars(select(Activity).where(Activity.child_id == many["id"])))) == activities_before
             assert db.get(Material, unconfirmed_id) is None
             for job in jobs:
                 index = [first["id"], second["id"]].index(job.child_id)

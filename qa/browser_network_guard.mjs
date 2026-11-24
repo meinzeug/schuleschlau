@@ -12,7 +12,7 @@ function bounded(promise, milliseconds, description) {
   ]).finally(() => clearTimeout(timer));
 }
 
-export async function restrictBrowserNetwork(context, base, {fetchTimeoutMs = 30000, closeTimeoutMs = 35000} = {}) {
+export async function restrictBrowserNetwork(context, base, {fetchTimeoutMs = 30000, closeTimeoutMs = 35000, abortRequest = null} = {}) {
   const allowed = new URL(base);
   if (allowed.protocol !== 'http:' || allowed.hostname !== '127.0.0.1' || !allowed.port)
     throw new Error('A dedicated loopback origin is required');
@@ -20,6 +20,8 @@ export async function restrictBrowserNetwork(context, base, {fetchTimeoutMs = 30
     throw new Error('A bounded fetch timeout is required');
   if (!Number.isInteger(closeTimeoutMs) || closeTimeoutMs < 1 || closeTimeoutMs > 60000)
     throw new Error('A bounded close timeout is required');
+  if (abortRequest !== null && typeof abortRequest !== 'function')
+    throw new Error('The synthetic abort hook must be a function');
 
   // HTTP routing does not intercept WebSocket upgrades.
   await context.routeWebSocket('**/*', socket => socket.close({code: 1008, reason: 'Synthetic test only'}));
@@ -39,6 +41,11 @@ export async function restrictBrowserNetwork(context, base, {fetchTimeoutMs = 30
       const url = new URL(route.request().url());
       if (['data:', 'blob:'].includes(url.protocol)) return await route.continue();
       if (url.origin !== allowed.origin) return await route.abort();
+      // The test hook can only make loopback traffic fail; it never bypasses
+      // the origin/redirect guard and does not install a competing route.
+      const interrupted = abortRequest ? abortRequest(route.request()) : false;
+      if (typeof interrupted !== 'boolean') throw new Error('Synthetic abort decision must be a boolean');
+      if (interrupted) return await route.abort('failed');
 
       // route.continue() only intercepts the first URL in a redirect chain.
       // Fetch without following redirects, and reject every redirect before it
