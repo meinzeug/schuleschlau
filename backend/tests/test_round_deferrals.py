@@ -1,10 +1,10 @@
 """Child decisions defer a round, never certify knowledge or parent duties."""
 import pytest
-from sqlalchemy import select
-
-from schulpilot.db import Assignment, Attempt, Child, DB, LearningEvent, LearningMemory, LearningUnit, Material
+from schulpilot.db import DB, Assignment, Attempt, Child, LearningEvent, LearningMemory, LearningUnit, Material
 from schulpilot.learning import plan
-from test_adaptive_plan import fraction_profile as original_profile, session
+from sqlalchemy import select
+from test_adaptive_plan import fraction_profile as original_profile
+from test_adaptive_plan import session
 from test_study_path import study as original_study
 
 
@@ -170,14 +170,15 @@ def test_study_path_does_not_recommend_deferred_round_or_skip_same_subject(study
 
 
 def test_pending_answer_serializes_before_deferral_on_postgres(profile, monkeypatch):
+    import time
     from concurrent.futures import ThreadPoolExecutor
     from threading import Event
-    import time
+
     from fastapi.testclient import TestClient
-    from sqlalchemy import text
     from schulpilot import learning
     from schulpilot.db import engine
     from schulpilot.main import app
+    from sqlalchemy import text
 
     if engine.dialect.name != "postgresql":
         pytest.skip("Real PostgreSQL transaction race")

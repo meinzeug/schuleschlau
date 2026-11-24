@@ -1,20 +1,18 @@
 """Synthetic beta enrollment, reviewed access and auditable accounting."""
 import json
-from uuid import uuid4
 
 import pytest
-from fastapi import HTTPException
-from sqlalchemy import select
-
 from conftest import create_child
+from fastapi import HTTPException
 from schulpilot.beta_models import BetaApplication
 from schulpilot.child_cost_models import ChildCostControl, UsageCostBalance
 from schulpilot.commerce import access, usage_terms
 from schulpilot.config import settings
-from schulpilot.db import DB, Audit, Family, ProviderConfig, StoreConfiguration, Usage, UsageBucket, User, uid
+from schulpilot.db import DB, Audit, Family, ProviderConfig, StoreConfiguration, Usage, UsageBucket, uid
 from schulpilot.job_failures import generation_availability
 from schulpilot.providers import Result, reserve, settle, usage_summary
 from schulpilot.security import encrypt
+from sqlalchemy import select
 from test_codex_models import operator as operator_fixture
 from test_model_routing import setup_policy
 
@@ -199,6 +197,7 @@ def test_long_window_ai_limit_exempts_only_approved_beta(api, household):
 
 def test_competing_admin_decisions_have_one_winner_on_postgres(api, mailbox, operator):
     from concurrent.futures import ThreadPoolExecutor
+
     from fastapi.testclient import TestClient
     from schulpilot.db import engine
     from schulpilot.main import app
@@ -221,13 +220,14 @@ def test_competing_admin_decisions_have_one_winner_on_postgres(api, mailbox, ope
 
 
 def test_revocation_waits_for_reservation_and_blocks_next_on_postgres(api, mailbox, operator):
+    import time
     from concurrent.futures import ThreadPoolExecutor
     from threading import Event
-    import time
+
     from fastapi.testclient import TestClient
-    from sqlalchemy import text
     from schulpilot.db import engine
     from schulpilot.main import app
+    from sqlalchemy import text
 
     if engine.dialect.name != "postgresql":
         pytest.skip("Real PostgreSQL transaction race")

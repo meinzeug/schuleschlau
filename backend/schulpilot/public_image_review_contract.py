@@ -62,8 +62,14 @@ def request_review(client, config, image, public_input, *, token, route):
     """Perform one pinned Vision call. Unknown charges remain unknown on error."""
     from .ai_accounting import response_metrics
     from .provider_cost_preflight import projection
-    from .providers import (ProviderError, Result, annotate_openrouter_error, external_allowed,
-                            openrouter_failure_code, strict_schema)
+    from .providers import (
+        ProviderError,
+        Result,
+        annotate_openrouter_error,
+        external_allowed,
+        openrouter_failure_code,
+        strict_schema,
+    )
 
     if config.provider != 'openrouter' or not config.image_capable:
         raise ProviderError('Für die Bildprüfung fehlt eine geprüfte Bildroute.', code='not_configured')

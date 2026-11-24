@@ -43,7 +43,7 @@ from schulpilot.visual_reference_models import VisualReference
 from schulpilot.visual_references import candidates, digest
 from sqlalchemy import select
 from test_model_routing import setup_policy
-from test_round_ready_notifications import case
+from test_round_ready_notifications import case as case
 
 REAL_ADAPTER = providers.request_provider
 
@@ -51,8 +51,8 @@ TEXT = "KI-Beispiel: Start → Ziel. Ziel → Abschluss."
 
 
 def test_image_prompt_resolves_only_current_curated_public_content(prepared):
-    from pydantic import ValidationError
     from fastapi import HTTPException
+    from pydantic import ValidationError
     from schulpilot.public_image_contract import public_prompt
 
     with DB.begin() as db:
@@ -78,10 +78,11 @@ def test_image_prompt_resolves_only_current_curated_public_content(prepared):
 def test_public_images_are_immutable_reusable_and_require_current_catalogue(prepared):
     import base64
     import io
-    from PIL import Image
+
     from fastapi import HTTPException
-    from schulpilot.public_image_contract import parse_response, public_prompt
+    from PIL import Image
     from schulpilot.public_image_catalog import find_current, publish
+    from schulpilot.public_image_contract import parse_response, public_prompt
     from schulpilot.public_image_models import PublicImage
 
     with DB.begin() as db:
@@ -120,10 +121,11 @@ def test_public_images_are_immutable_reusable_and_require_current_catalogue(prep
 def test_concurrent_identical_public_images_are_idempotent_postgres(prepared):
     import base64
     import io
+
     from PIL import Image
     from schulpilot.db import engine
-    from schulpilot.public_image_contract import parse_response, public_prompt
     from schulpilot.public_image_catalog import publish
+    from schulpilot.public_image_contract import parse_response, public_prompt
     from schulpilot.public_image_models import PublicImage
 
     if engine.dialect.name != "postgresql":

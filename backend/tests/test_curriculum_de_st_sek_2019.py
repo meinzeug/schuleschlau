@@ -2,11 +2,11 @@
 import json
 from pathlib import Path
 
-from sqlalchemy import func, select
 from schulpilot.curriculum import import_catalogue
 from schulpilot.curriculum_models import CurriculumDocument, CurriculumTopic
 from schulpilot.curriculum_schemas import CatalogueInput
-from schulpilot.db import Activity, DB, Job, Usage
+from schulpilot.db import DB, Activity, Job, Usage
+from sqlalchemy import func, select
 
 PACKAGE = Path(__file__).resolve().parents[1] / 'schulpilot/reference/curriculum-de-st-sek-math-deutsch-2019-v1.json'
 

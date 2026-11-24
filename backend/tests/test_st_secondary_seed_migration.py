@@ -6,8 +6,8 @@ import uuid
 from pathlib import Path
 
 import pytest
-from sqlalchemy import create_engine, event, text
 from schulpilot.db import engine as test_engine
+from sqlalchemy import create_engine, event, text
 
 
 @pytest.mark.parametrize('dialect', ['sqlite', 'postgresql'])

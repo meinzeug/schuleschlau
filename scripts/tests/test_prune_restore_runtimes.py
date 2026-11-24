@@ -1,13 +1,12 @@
+import json
 import os
 import time
-import json
 from contextlib import contextmanager
-from pathlib import Path
 
 import pytest
 
-from deploy.prune_restore_runtimes import RetentionError, _reference_names, plan, process_references
 from deploy import prune_restore_runtimes as retention
+from deploy.prune_restore_runtimes import RetentionError, _reference_names, plan, process_references
 from deploy.stage_release import acquire_lock, release_lock
 
 

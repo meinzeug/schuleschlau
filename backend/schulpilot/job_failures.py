@@ -93,8 +93,8 @@ def generation_availability(db, family, function, *, child_id=None, job_id=None,
             if enabled(config) else config_for_function(config, function))
     except HTTPException as error:
         return {"code": "not_configured", "message": str(error.detail)}
-    from .child_cost_controls import preflight
     from .beta import approved
+    from .child_cost_controls import preflight
 
     is_beta = approved(db, family.id)
     configured_child, child_blocker = (True, None) if is_beta else preflight(db, child_id, config.reserve_micros)

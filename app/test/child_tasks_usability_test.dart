@@ -265,9 +265,9 @@ void main() {
       final router = await _openUnit(tester, state);
       await _tap(tester, 'Katze');
       await _tap(tester, 'Antwort prüfen');
-      expect(find.text('Deine Runde ist bearbeitet.'), findsNothing);
+      expect(find.text('Runde geschafft!'), findsNothing);
       await _tap(tester, 'Ergebnis ansehen');
-      expect(find.text('Deine Runde ist bearbeitet.'), findsOneWidget);
+      expect(find.text('Runde geschafft!'), findsOneWidget);
       expect(find.text('Was bedeutet cat?'), findsNothing);
       await _tap(tester, 'Mein Rückblick');
       expect(

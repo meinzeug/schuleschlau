@@ -36,6 +36,9 @@ void main() {
       final harness = await room.openRound(tester, server, textScale: scale);
       expect(server.explanationRequests, isEmpty);
       expect(graphic('first'), findsNothing);
+      await tester.ensureVisible(find.text('Deine Aufgaben'));
+      await tester.tap(find.text('Deine Aufgaben'));
+      await tester.pumpAndSettle();
       await tester.ensureVisible(detail('first'));
       await tester.tap(detail('first'));
       await tester.pumpAndSettle();
@@ -69,6 +72,9 @@ void main() {
     server.value.remove('supports_question_explanation');
     final before = jsonEncode(server.value);
     final harness = await room.openRound(tester, server);
+    await tester.ensureVisible(find.text('Deine Aufgaben'));
+    await tester.tap(find.text('Deine Aufgaben'));
+    await tester.pumpAndSettle();
     await tester.ensureVisible(detail('first'));
     await tester.tap(detail('first'));
     await tester.pumpAndSettle();

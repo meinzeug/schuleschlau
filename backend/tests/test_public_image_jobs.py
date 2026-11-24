@@ -7,15 +7,14 @@ from uuid import uuid4
 
 import pytest
 from PIL import Image
-
 from schulpilot.catalog_models import CatalogContent, CatalogMembership, CatalogState
 from schulpilot.db import DB, Job, LearningUnit, ProviderConfig, Usage, now
 from schulpilot.public_image_contract import parse_response
 from schulpilot.public_image_jobs import process
 from schulpilot.public_image_models import PublicImage, PublicImageBuild
 from sqlalchemy import select
-from test_learning_assets import prepared
-from test_round_ready_notifications import case
+from test_learning_assets import prepared as prepared
+from test_round_ready_notifications import case as case
 
 
 @pytest.fixture
@@ -356,6 +355,7 @@ def test_different_family_reuses_same_public_picture_after_authorization(api, im
 
 def test_two_families_concurrently_claim_only_one_paid_public_image(api, image_case, mailbox):
     from concurrent.futures import ThreadPoolExecutor
+
     from conftest import HEADERS, create_child, register
     from fastapi.testclient import TestClient
     from schulpilot.db import engine
@@ -417,6 +417,7 @@ def test_opt_in_live_synthetic_image_through_reserved_job(api, image_case, monke
     """Explicit paid probe; disposable test DB and fixed public data only."""
     import os
     from pathlib import Path
+
     import httpx
     from schulpilot.config import settings
     from schulpilot.market_data import parse_image_prices

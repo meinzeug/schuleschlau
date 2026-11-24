@@ -762,7 +762,8 @@ def plan(db, child, *, learning_paths=None, include_language=True):
     from .coaching import paths
     from .grades import priorities, subject_key
     from .legacy_learning_content import blocked_open_ids
-    from .round_deferrals import candidates as deferral_candidates, is_deferred
+    from .round_deferrals import candidates as deferral_candidates
+    from .round_deferrals import is_deferred
     from .study_path import plan_sources_current, source_backed_blocks
 
     prefs = s.Preferences(**child.preferences)
@@ -1495,7 +1496,8 @@ def unit_view(unit_id: str, p=Depends(authenticated), db=Depends(get_db),
     # repeat every check because sources and permissions can change.
     visual_status = value.get("explanation_visual_status")
     if can_prepare and visual_status is not None and visual_status != "ready":
-        from .visual_jobs import context as visual_context, existing_preparations, preparation_unavailable
+        from .visual_jobs import context as visual_context
+        from .visual_jobs import existing_preparations, preparation_unavailable
 
         try:
             signature, _ = visual_context(db, unit, labs_enabled="labs-v1" in getattr(p.session, "request_capabilities", ()))

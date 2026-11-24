@@ -751,9 +751,9 @@ def export_one_child(child_id: str, include_photos: bool = True, p=Depends(paren
 
 @router.get("/families/{family_id}/export")
 def export_family(family_id: str, p=Depends(parent), db=Depends(get_db)):
+    from .beta_models import BetaApplication
     from .commerce import orders_export, trial_data
     from .db import FamilyTrial, NotificationRead, SchulbuddyTurn
-    from .beta_models import BetaApplication
     from .learning_assets import export_user as asset_instance_export
     from .parent_goal_reminders import export_own as export_parent_reminders
     from .profile_images import add_to_export

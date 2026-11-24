@@ -555,7 +555,9 @@ def _process(job_id):
                 and len(groups) == 1 and groups[0].get("subject") == "Mathematik"
                 and (payload.get("visual_context") or {}).get("required") is True
                 and payload.get("learning_entry")):
-            from .package_fraction_plan import EXHAUSTED as FRACTION_EXHAUSTED, INVALID as FRACTION_INVALID, UNCLEAR as FRACTION_UNCLEAR
+            from .package_fraction_plan import EXHAUSTED as FRACTION_EXHAUSTED
+            from .package_fraction_plan import INVALID as FRACTION_INVALID
+            from .package_fraction_plan import UNCLEAR as FRACTION_UNCLEAR
             from .package_fraction_reservation import INVALID as FRACTION_RESERVATION_INVALID
             from .package_fraction_reservation import prepare as prepare_fraction_package
 
@@ -660,7 +662,8 @@ def _process(job_id):
                     try:
                         validate_fraction_result(db, job_id, payload, data)
                     except ValueError as error:
-                        from .package_fraction_plan import INVALID as FRACTION_INVALID, UNCLEAR as FRACTION_UNCLEAR
+                        from .package_fraction_plan import INVALID as FRACTION_INVALID
+                        from .package_fraction_plan import UNCLEAR as FRACTION_UNCLEAR
                         from .package_fraction_reservation import INVALID as FRACTION_RESERVATION_INVALID
 
                         if error.args not in ((FRACTION_INVALID,), (FRACTION_UNCLEAR,), (FRACTION_RESERVATION_INVALID,)):

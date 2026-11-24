@@ -7,7 +7,8 @@ required before any use in live package generation.
 import copy
 from dataclasses import dataclass
 
-from . import package_fraction_plan as fractions, package_fraction_schema as contract
+from . import package_fraction_plan as fractions
+from . import package_fraction_schema as contract
 
 
 @dataclass(frozen=True)

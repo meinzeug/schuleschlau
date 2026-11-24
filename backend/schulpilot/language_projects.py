@@ -26,7 +26,7 @@ from .db import (
 from .learning import record
 from .model_routing import job_config
 from .providers import ProviderError, external_allowed, request_provider, reserve, settle
-from .security import authenticated, child_access, child_user, rate_limit
+from .security import authenticated, child_access, child_user
 from .vocabulary import KEY, authority, current_sources, fingerprint, literal_present, lock_child, normalized
 
 router = APIRouter(tags=["Quellgebundene Sprachwerkstatt"])

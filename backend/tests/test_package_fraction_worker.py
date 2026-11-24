@@ -4,10 +4,10 @@ import json
 import httpx
 import pytest
 from package_output_helpers import PackageOutputCapture
-from sqlalchemy import select
 from schulpilot import providers, school_preparation, worker
 from schulpilot.db import DB, Job, LearningUnit, Material, SchoolDay, Session, Usage
 from schulpilot.visual_reference_models import UnitVisualSnapshot
+from sqlalchemy import select
 from test_package_fraction_plan_groundwork import EXPAND, REDUCE
 from test_package_fraction_provider import model_output
 from test_package_fraction_reservation import running_job
@@ -24,6 +24,7 @@ def test_worker_reserves_before_provider_and_checks_before_publication(api, hous
     day_id, job_id, _ = running_job(api, household, content, count=page_count)
     if mode != 'default':
         import copy
+
         from schulpilot import learning_entry
         original_entry = learning_entry.with_learning_entry
         def entry_without_fixed_probe(*args, **kwargs):

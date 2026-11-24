@@ -415,7 +415,8 @@ def path_data(db, day, child):
     from .learning_origins import open_rounds
 
     result["related_rounds"] = open_rounds(db, child.id, day.id)
-    from .round_deferrals import candidates as deferral_candidates, is_deferred
+    from .round_deferrals import candidates as deferral_candidates
+    from .round_deferrals import is_deferred
 
     deferred_memories = deferral_candidates(db, child.id)
 

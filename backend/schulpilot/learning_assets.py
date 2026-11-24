@@ -13,7 +13,7 @@ from sqlalchemy import text as sql_text
 from .db import DB, Child, Family, Job, Session, Subject, Usage, User, get_db, now
 from .learning_asset_models import LearningAssetBuild, LearningAssetInstance
 from .learning_asset_schemas import LearningAssetOutput, LearningAssetSpec
-from .security import Principal, authenticated, child_access, rate_limit
+from .security import Principal, authenticated, child_access
 from .subject_content import PROFILES, canonical_profile, public_presentation, validate_question
 from .visual_reference_models import VisualReference
 from .visual_references import _meaningful, digest

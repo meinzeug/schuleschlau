@@ -559,6 +559,7 @@ class RestoreRound(Strict):
 
 def _round_action_context(db, p, unit_id):
     from sqlalchemy import update
+
     from .learning import get_unit
     from .security import lock_session_after_child
 

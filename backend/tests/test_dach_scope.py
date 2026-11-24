@@ -2,10 +2,9 @@
 import json
 
 import pytest
-from sqlalchemy import func, select
-
 from schulpilot import dach_scope
-from schulpilot.db import Activity, DB, Job, Usage
+from schulpilot.db import DB, Activity, Job, Usage
+from sqlalchemy import func, select
 
 
 def test_dach_scope_is_authenticated_read_only_and_preserves_legacy_states(api, household):

@@ -7,7 +7,6 @@ from schulpilot.curriculum_schemas import CatalogueInput
 from schulpilot.db import DB, Activity, Job, Usage
 from sqlalchemy import func, select
 
-
 SOURCE = (Path(__file__).parents[1] / 'schulpilot/reference/'
           'curriculum-st-sekundarschule-biologie-2019.json')
 

@@ -58,8 +58,8 @@ def main():
     import httpx
     from schulpilot import fixtures, visual_references
     from schulpilot.db import DB, Child, Family, Installation, Job, ProviderConfig, Usage, User, init_db, now, uid
-    from schulpilot.model_routing import RoutingPolicy, select_route
     from schulpilot.market_data import parse_prices
+    from schulpilot.model_routing import RoutingPolicy, select_route
     from schulpilot.providers import ProviderError, Result, request_provider, reserve, settle
     from schulpilot.security import password_hash
     from sqlalchemy import select

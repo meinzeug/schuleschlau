@@ -4,7 +4,6 @@ The result is an AI opinion, not a factual or human certification. Provider
 errors and unavailable routes never produce an approval or an implicit retry.
 """
 import copy
-import hashlib
 
 import httpx
 from fastapi import APIRouter, Depends, Header, HTTPException
@@ -69,9 +68,10 @@ def review_route_available(db, image):
 def queue(db, unit, child, user, session, image, selector, spec, *, explicit=False, request_key=None):
     """Reserve exactly one review; caller owns a dedicated transaction."""
     from types import SimpleNamespace
-    from .public_image_jobs import authority as image_authority
+
     from .model_routing import enabled, select_route
     from .providers import reserve
+    from .public_image_jobs import authority as image_authority
 
     # Unit and Child are already locked by both callers. Capture only
     # server-derived identities, then re-read session/family/source after any
@@ -200,6 +200,7 @@ def backfill_one():
     authenticated explicit action remains possible later.
     """
     import logging
+
     from .public_image_models import PublicImageBuild
 
     with DB.begin() as db:
@@ -234,6 +235,7 @@ def backfill_one():
 
 def authority(db, job):
     from types import SimpleNamespace
+
     from .public_image_jobs import authority as image_authority
 
     proxy = SimpleNamespace(payload={**job.payload, 'unit_id': job.payload['review_unit_id']}, child_id=job.child_id)

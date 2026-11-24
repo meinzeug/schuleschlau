@@ -6,7 +6,7 @@ No inference, provider switch, route evaluation or change to spending limits.
 import copy
 import logging
 from datetime import datetime, timezone
-from decimal import Decimal, InvalidOperation, ROUND_CEILING
+from decimal import ROUND_CEILING, Decimal, InvalidOperation
 from urllib.parse import quote
 from xml.etree import ElementTree
 

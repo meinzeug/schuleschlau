@@ -2,10 +2,9 @@ import base64
 import io
 import json
 
-import pytest
 import httpx
+import pytest
 from PIL import Image, PngImagePlugin
-
 from schulpilot.public_image_contract import ImageContractError, parse_response, public_prompt, request_public_image
 
 

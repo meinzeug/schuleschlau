@@ -5,11 +5,10 @@ from datetime import datetime, timezone
 
 import httpx
 import pytest
-from sqlalchemy import select
-
 from schulpilot import market_data
 from schulpilot.db import DB, Audit, Job, ProviderConfig, ServiceState
 from schulpilot.model_routing import BudgetPolicy
+from sqlalchemy import select
 from test_model_routing import setup_policy
 
 
@@ -138,6 +137,7 @@ def test_one_unavailable_source_does_not_forge_its_data(api, household, monkeypa
 def test_postgres_reservation_blocks_concurrent_quote_commit(api, household, monkeypatch):
     from concurrent.futures import ThreadPoolExecutor
     from threading import Event
+
     from schulpilot.db import Family, uid
     from schulpilot.providers import reserve
 

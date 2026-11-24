@@ -1,5 +1,6 @@
 """Add the source-linked ST secondary physics headings without learner writes."""
 import json
+
 from alembic import op
 from sqlalchemy.orm import Session
 

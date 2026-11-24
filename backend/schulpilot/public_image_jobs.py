@@ -1,17 +1,17 @@
 """Explicit, separately reserved public-only illustrations for learning units."""
-import copy
 import re
 
 import httpx
 from fastapi import APIRouter, Depends, Header, HTTPException
 from fastapi.responses import Response
-from sqlalchemy import select, text as sql_text, update
+from sqlalchemy import select, update
+from sqlalchemy import text as sql_text
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 
 from .db import DB, Child, Family, Job, LearningUnit, ProviderConfig, Session, Usage, User, get_db, now
-from .learning_assets import actor, public_focus_for_unit, public_selection_for_unit
 from .learning_asset_schemas import LearningAssetSpec
+from .learning_assets import actor, public_focus_for_unit, public_selection_for_unit
 from .public_image_catalog import find_current, lookup_key, publish
 from .public_image_contract import ImageContractError, public_prompt, request_resolved_image
 from .public_image_models import PublicImageBuild
