@@ -3096,15 +3096,22 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Echtzeitstatus gezielt und zuverlässig bereitstellen**
 
+  - [x] **Geöffnete Foto- und Gerätedialoge beim Anmeldewechsel schließen.**
+    Eine separate Benachrichtigung über die lokale Anmeldeabsicht schließt
+    bereits geöffnete Fotovorschauen, Gerätedetails und Bestätigungen, ohne
+    allgemeine App-Listener und dadurch möglicherweise Datenabrufe auszulösen.
+    Auch überdeckte Fotovorschauen werden entfernt. Künstliche Tests prüfen
+    Dialoge, Abbruch und konkurrierende Anmeldeabsichten; daraus folgt keine
+    allgemeine Lösung für andere Ansichten oder den Cookie-Wettlauf.
+
   - [x] **Offene lokale Fotolisten an die Anmeldeabsicht binden.** Spät
     geladene lokale Fotos und Fehler werden nach Sitzungs- oder Absichtswechsel
     nicht angezeigt. Alte Vorschau- und Tagesaktionen werden nicht ausgeführt;
     ein bewusstes erneutes Laden nach abgebrochener Anmeldung ist möglich.
-    Eine bereits geöffnete Vorschau schließt bei der nächsten geschützten
-    Vorschauaktion oder einer Zustandsbenachrichtigung. Künstliche Widgettests
-    prüfen die Wechsel und den lokalen Fotobestand. Die allgemeine
-    sitzungsübergreifende Cookie-Abnahme und das sofortige passive Verbergen
-    bereits geöffneter Vorschauen bei bloßer Anmeldeabsicht bleiben offen.
+    Eine bereits geöffnete Vorschau schließt auch ohne Bedienung bei einer
+    neuen Anmeldeabsicht. Künstliche Widgettests prüfen die Wechsel und den
+    lokalen Fotobestand. Die allgemeine sitzungsübergreifende Cookie-Abnahme
+    bleibt offen.
 
   - [x] **Kindergeräteliste und Abmeldungen an die Anmeldeabsicht binden.**
     Späte Geräteantworten und Fehler werden nach einem Sitzungs- oder

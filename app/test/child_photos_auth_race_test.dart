@@ -86,6 +86,23 @@ Future<void> mount(WidgetTester tester, AppState state) async {
 
 void main() {
   setUp(() => FlutterSecureStorage.setMockInitialValues({}));
+  test('authentication notifications stay separate and old cancellation cannot invalidate a newer intent', () {
+    final state = account(const FlutterSecureStorage());
+    addTearDown(state.dispose);
+    var appChanges = 0, authChanges = 0;
+    state.addListener(() => appChanges++);
+    state.authenticationChanges.addListener(() => authChanges++);
+    final old = state.beginAuthentication();
+    final current = state.beginAuthentication();
+    final identity = state.api.requestIdentity();
+    state.cancelAuthentication(old);
+    expect(state.api.ownsRequest(identity), isTrue);
+    expect(authChanges, 2);
+    state.cancelAuthentication(current);
+    expect(state.api.ownsRequest(identity), isFalse);
+    expect(authChanges, 3);
+    expect(appChanges, 0);
+  });
   testWidgets(
     'delayed local photos are discarded after a new login intent and can be reloaded',
     (tester) async {
@@ -134,7 +151,7 @@ void main() {
       );
     },
   );
-  testWidgets('preview closes on an action after login intent changes', (
+  testWidgets('preview closes without interaction when login intent changes', (
     tester,
   ) async {
     final state = account(const FlutterSecureStorage());
@@ -163,8 +180,48 @@ void main() {
     await helpers.tap(tester, find.text('Öffnen'));
     expect(find.text('1 von 2'), findsOneWidget);
     state.beginAuthentication();
-    await helpers.tap(tester, find.byTooltip('Nächstes vorgemerktes Foto'));
+    await tester.pumpAndSettle();
     expect(find.byType(InteractiveViewer), findsNothing);
     expect(find.text('2 von 2'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+  testWidgets('covered photo preview cannot reappear after a login intent', (
+    tester,
+  ) async {
+    final state = account(const FlutterSecureStorage());
+    final navigator = GlobalKey<NavigatorState>();
+    addTearDown(state.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        navigatorKey: navigator,
+        theme: appTheme(),
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => TextButton(
+              onPressed: () => showChildPhotoPreview(
+                context,
+                state,
+                photos: [photo.bytes(2)],
+              ),
+              child: const Text('Öffnen'),
+            ),
+          ),
+        ),
+      ),
+    );
+    await helpers.tap(tester, find.text('Öffnen'));
+    navigator.currentState!.push(
+      MaterialPageRoute<void>(
+        builder: (_) => const Scaffold(body: Text('Andere Ansicht')),
+      ),
+    );
+    await tester.pumpAndSettle();
+    state.beginAuthentication();
+    await tester.pumpAndSettle();
+    navigator.currentState!.pop();
+    await tester.pumpAndSettle();
+    expect(find.text('Öffnen'), findsOneWidget);
+    expect(find.byType(InteractiveViewer), findsNothing);
+    expect(tester.takeException(), isNull);
   });
 }

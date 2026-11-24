@@ -110,16 +110,22 @@ class _ChildAccountState extends State<ChildAccount> {
       ),
     );
     void changed() {
-      if (!ownsAccountRequest(identity) && route.isActive) {
-        route.navigator?.removeRoute(route);
+      if (!ownsAccountRequest(identity)) {
+        Future<void>.microtask(() {
+          if (!ownsAccountRequest(identity) && route.isActive) {
+            route.navigator?.removeRoute(route);
+          }
+        });
       }
     }
 
     state.addListener(changed);
+    state.authenticationChanges.addListener(changed);
     try {
       await navigator.push(route);
     } finally {
       state.removeListener(changed);
+      state.authenticationChanges.removeListener(changed);
     }
   }
 
@@ -162,6 +168,7 @@ class _ChildAccountState extends State<ChildAccount> {
 
         bool? confirmed;
         state.addListener(accountChanged);
+        state.authenticationChanges.addListener(accountChanged);
         try {
           confirmed = await showDialog<bool>(
             context: context,
@@ -202,6 +209,7 @@ class _ChildAccountState extends State<ChildAccount> {
           );
         } finally {
           state.removeListener(accountChanged);
+          state.authenticationChanges.removeListener(accountChanged);
         }
         if (confirmed != true || !ownsAccountRequest(identity)) {
           return;
@@ -295,17 +303,23 @@ class _ChildAccountState extends State<ChildAccount> {
       ),
     );
     void changed() {
-      if (!ownsAccountRequest(identity) && route.isActive) {
-        route.navigator?.removeRoute(route);
+      if (!ownsAccountRequest(identity)) {
+        Future<void>.microtask(() {
+          if (!ownsAccountRequest(identity) && route.isActive) {
+            route.navigator?.removeRoute(route);
+          }
+        });
       }
     }
 
     state.addListener(changed);
+    state.authenticationChanges.addListener(changed);
     bool? accepted;
     try {
       accepted = await Navigator.of(context).push(route);
     } finally {
       state.removeListener(changed);
+      state.authenticationChanges.removeListener(changed);
     }
     if (accepted != true || !ownsAccountRequest(identity)) {
       return;

@@ -654,13 +654,25 @@ class AppState extends ChangeNotifier {
     }
   }
 
-  int _authenticationRevision = 0;
+  // Authentication intent changes must not trigger every AppState listener:
+  // those listeners can refresh unrelated screens or start network requests.
+  final ValueNotifier<int> _authenticationRevisionSignal = ValueNotifier(0);
+  int get _authenticationRevision => _authenticationRevisionSignal.value;
+  Listenable get authenticationChanges => _authenticationRevisionSignal;
   Future<void> _authenticationStorage = Future<void>.value();
   Future<void>? _privacyCleanup;
   bool _privacyCleanupFailed = false;
-  int beginAuthentication() => ++_authenticationRevision;
+  int beginAuthentication() => _authenticationRevisionSignal.value += 1;
   void cancelAuthentication(int revision) {
-    if (revision == _authenticationRevision) _authenticationRevision++;
+    if (revision == _authenticationRevision) {
+      _authenticationRevisionSignal.value += 1;
+    }
+  }
+
+  @override
+  void dispose() {
+    _authenticationRevisionSignal.dispose();
+    super.dispose();
   }
 
   void _requireAuthentication(int revision) {

@@ -39,14 +39,22 @@ Future<void> showChildPhotoPreview(
     ),
   );
   void changed() {
-    if (!current() && route.isActive) route.navigator?.removeRoute(route);
+    if (!current()) {
+      // Intent changes can arrive while Flutter is building another route.
+      // Remove the stale viewer after that synchronous notification completes.
+      Future<void>.microtask(() {
+        if (!current() && route.isActive) route.navigator?.removeRoute(route);
+      });
+    }
   }
 
   state.addListener(changed);
+  state.authenticationChanges.addListener(changed);
   try {
     await Navigator.of(context, rootNavigator: true).push(route);
   } finally {
     state.removeListener(changed);
+    state.authenticationChanges.removeListener(changed);
   }
 }
 

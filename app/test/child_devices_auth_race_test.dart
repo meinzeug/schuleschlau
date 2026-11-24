@@ -150,13 +150,7 @@ void main() {
     await tapVisible(tester, find.text('Gerät abmelden'));
     expect(find.text('Dieses Gerät abmelden?'), findsOneWidget);
     f.state.beginAuthentication();
-    await tapVisible(
-      tester,
-      find.descendant(
-        of: find.byType(AlertDialog),
-        matching: find.text('Gerät abmelden'),
-      ),
-    );
+    await tester.pumpAndSettle();
     expect(find.byType(AlertDialog), findsNothing);
     expect(f.deletions, isEmpty);
   });
@@ -168,13 +162,7 @@ void main() {
       await tapVisible(tester, find.text('Andere Geräte gemeinsam abmelden'));
       expect(find.text('Andere Geräte abmelden?'), findsOneWidget);
       f.state.beginAuthentication();
-      await tapVisible(
-        tester,
-        find.descendant(
-          of: find.byType(AlertDialog),
-          matching: find.text('Andere Geräte abmelden'),
-        ),
-      );
+      await tester.pumpAndSettle();
       expect(find.byType(AlertDialog), findsNothing);
       expect(f.deletions, isEmpty);
     },
@@ -186,6 +174,18 @@ void main() {
     await f.mount(tester);
     f.state.api.token = 'different-session';
     await tapVisible(tester, find.text('Testtablet'));
+    expect(find.byType(AlertDialog), findsNothing);
+    expect(f.deletions, isEmpty);
+  });
+  testWidgets('open device details close without interaction on new login', (
+    tester,
+  ) async {
+    final f = DeviceFixture();
+    await f.mount(tester);
+    await tapVisible(tester, find.text('Testtablet'));
+    expect(find.textContaining('Angemeldet seit:'), findsOneWidget);
+    f.state.beginAuthentication();
+    await tester.pumpAndSettle();
     expect(find.byType(AlertDialog), findsNothing);
     expect(f.deletions, isEmpty);
   });
