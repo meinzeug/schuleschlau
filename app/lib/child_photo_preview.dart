@@ -14,10 +14,12 @@ Future<void> showChildPhotoPreview(
 }) async {
   if (photos.isEmpty || photos.length > 8 || state.user == null) return;
   final owner = state.user, family = state.familyId;
+  final identity = state.api.requestIdentity();
   bool current() =>
       context.mounted &&
       identical(state.user, owner) &&
-      state.familyId == family;
+      state.familyId == family &&
+      state.api.ownsRequest(identity);
   late final DialogRoute<void> route;
   route = DialogRoute<void>(
     context: context,
@@ -28,8 +30,9 @@ Future<void> showChildPhotoPreview(
               photos: photos,
               initialIndex: initialIndex,
               title: title,
+              isCurrent: current,
               close: () {
-                if (current() && route.isCurrent) route.navigator?.pop();
+                if (route.isCurrent) route.navigator?.pop();
               },
             )
           : SizedBox.shrink(),
@@ -51,11 +54,13 @@ class _LocalPhotoPreview extends StatefulWidget {
   final List<Uint8List> photos;
   final int initialIndex;
   final String title;
+  final bool Function() isCurrent;
   final VoidCallback close;
   const _LocalPhotoPreview({
     required this.photos,
     required this.initialIndex,
     required this.title,
+    required this.isCurrent,
     required this.close,
   });
   @override
@@ -67,6 +72,10 @@ class _LocalPhotoPreviewState extends State<_LocalPhotoPreview> {
   final zoom = TransformationController();
   final Map<int, MemoryImage> images = {};
   void move(int delta) {
+    if (!widget.isCurrent()) {
+      widget.close();
+      return;
+    }
     final next = index + delta;
     if (next < 0 || next >= widget.photos.length) return;
     setState(() {
@@ -76,8 +85,20 @@ class _LocalPhotoPreviewState extends State<_LocalPhotoPreview> {
   }
 
   void scale(double delta) {
+    if (!widget.isCurrent()) {
+      widget.close();
+      return;
+    }
     final next = (zoom.value.getMaxScaleOnAxis() + delta).clamp(1.0, 8.0);
     zoom.value = Matrix4.diagonal3Values(next, next, 1);
+  }
+
+  void resetZoom() {
+    if (!widget.isCurrent()) {
+      widget.close();
+      return;
+    }
+    zoom.value = Matrix4.identity();
   }
 
   @override
@@ -107,8 +128,7 @@ class _LocalPhotoPreviewState extends State<_LocalPhotoPreview> {
           SingleActivator(LogicalKeyboardKey.equal, shift: true): () =>
               scale(1),
           SingleActivator(LogicalKeyboardKey.minus): () => scale(-1),
-          SingleActivator(LogicalKeyboardKey.digit0): () =>
-              zoom.value = Matrix4.identity(),
+          SingleActivator(LogicalKeyboardKey.digit0): resetZoom,
         },
         child: Focus(
           autofocus: true,
@@ -151,7 +171,7 @@ class _LocalPhotoPreviewState extends State<_LocalPhotoPreview> {
                       icon: Icon(Icons.zoom_out_rounded),
                     ),
                     TextButton(
-                      onPressed: () => zoom.value = Matrix4.identity(),
+                      onPressed: resetZoom,
                       child: Text('Ganze Seite'),
                     ),
                   ],

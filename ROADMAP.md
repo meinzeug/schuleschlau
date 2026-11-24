@@ -3096,6 +3096,16 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Echtzeitstatus gezielt und zuverlässig bereitstellen**
 
+  - [x] **Offene lokale Fotolisten an die Anmeldeabsicht binden.** Spät
+    geladene lokale Fotos und Fehler werden nach Sitzungs- oder Absichtswechsel
+    nicht angezeigt. Alte Vorschau- und Tagesaktionen werden nicht ausgeführt;
+    ein bewusstes erneutes Laden nach abgebrochener Anmeldung ist möglich.
+    Eine bereits geöffnete Vorschau schließt bei der nächsten geschützten
+    Vorschauaktion oder einer Zustandsbenachrichtigung. Künstliche Widgettests
+    prüfen die Wechsel und den lokalen Fotobestand. Die allgemeine
+    sitzungsübergreifende Cookie-Abnahme und das sofortige passive Verbergen
+    bereits geöffneter Vorschauen bei bloßer Anmeldeabsicht bleiben offen.
+
   - [x] **Kindergeräteliste und Abmeldungen an die Anmeldeabsicht binden.**
     Späte Geräteantworten und Fehler werden nach einem Sitzungs- oder
     Absichtswechsel verworfen. Bereits geöffnete Bestätigungen können keine

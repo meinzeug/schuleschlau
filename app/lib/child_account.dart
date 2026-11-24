@@ -49,7 +49,7 @@ class _ChildAccountState extends State<ChildAccount> {
     }
   }
 
-  bool ownsDevices((Object?, String?, int?) identity) =>
+  bool ownsAccountRequest((Object?, String?, int?) identity) =>
       mounted &&
       ownerAccount != null &&
       identical(state.user, ownerAccount) &&
@@ -60,7 +60,7 @@ class _ChildAccountState extends State<ChildAccount> {
     (Object?, String?, int?) identity,
   ) async {
     final account = ownerAccount;
-    if (account == null || !ownsDevices(identity)) return;
+    if (account == null || !ownsAccountRequest(identity)) return;
     final navigator = Navigator.of(context, rootNavigator: true);
     late DialogRoute<void> route;
     String date(dynamic stamp) =>
@@ -110,7 +110,7 @@ class _ChildAccountState extends State<ChildAccount> {
       ),
     );
     void changed() {
-      if (!ownsDevices(identity) && route.isActive) {
+      if (!ownsAccountRequest(identity) && route.isActive) {
         route.navigator?.removeRoute(route);
       }
     }
@@ -139,7 +139,9 @@ class _ChildAccountState extends State<ChildAccount> {
     (Object?, String?, int?) identity,
   ) async {
     final account = state.user;
-    if (!ownsDevices(identity) || account == null || pendingSession != null) {
+    if (!ownsAccountRequest(identity) ||
+        account == null ||
+        pendingSession != null) {
       return;
     }
     final current = session['current'] == true;
@@ -148,11 +150,11 @@ class _ChildAccountState extends State<ChildAccount> {
       if (!current) {
         ModalRoute<dynamic>? confirmationRoute;
         void accountChanged() {
-          if (ownsDevices(identity)) return;
+          if (ownsAccountRequest(identity)) return;
           final route = confirmationRoute;
           if (route == null) return;
           Future<void>.microtask(() {
-            if (!ownsDevices(identity) && route.isActive) {
+            if (!ownsAccountRequest(identity) && route.isActive) {
               route.navigator?.removeRoute(route);
             }
           });
@@ -186,7 +188,10 @@ class _ChildAccountState extends State<ChildAccount> {
                     onPressed: () {
                       if (dialogContext.mounted &&
                           confirmationRoute?.isCurrent == true) {
-                        Navigator.pop(dialogContext, ownsDevices(identity));
+                        Navigator.pop(
+                          dialogContext,
+                          ownsAccountRequest(identity),
+                        );
                       }
                     },
                     child: const Text('Gerät abmelden'),
@@ -198,13 +203,13 @@ class _ChildAccountState extends State<ChildAccount> {
         } finally {
           state.removeListener(accountChanged);
         }
-        if (confirmed != true || !ownsDevices(identity)) {
+        if (confirmed != true || !ownsAccountRequest(identity)) {
           return;
         }
       }
       setState(() => deletingSession = true);
       await state.api.delete('/auth/sessions/${session['id']}');
-      if (!ownsDevices(identity)) return;
+      if (!ownsAccountRequest(identity)) return;
       if (current) {
         await state.clear(
           expectedUser: account,
@@ -217,7 +222,7 @@ class _ChildAccountState extends State<ChildAccount> {
         toast(context, 'Gerät abgemeldet. Hier bleibst du angemeldet.');
       }
     } catch (error) {
-      if (mounted && ownsDevices(identity)) showError(context, error);
+      if (mounted && ownsAccountRequest(identity)) showError(context, error);
     } finally {
       if (mounted) {
         setState(() {
@@ -232,7 +237,7 @@ class _ChildAccountState extends State<ChildAccount> {
     List<Json> sessions,
     (Object?, String?, int?) identity,
   ) async {
-    if (!ownsDevices(identity) ||
+    if (!ownsAccountRequest(identity) ||
         pendingSession != null ||
         ModalRoute.of(context)?.isCurrent == false) {
       return;
@@ -281,7 +286,7 @@ class _ChildAccountState extends State<ChildAccount> {
           FilledButton(
             onPressed: () {
               if (ctx.mounted && route.isCurrent) {
-                Navigator.pop(ctx, ownsDevices(identity));
+                Navigator.pop(ctx, ownsAccountRequest(identity));
               }
             },
             child: Text('Andere Geräte abmelden'),
@@ -290,7 +295,7 @@ class _ChildAccountState extends State<ChildAccount> {
       ),
     );
     void changed() {
-      if (!ownsDevices(identity) && route.isActive) {
+      if (!ownsAccountRequest(identity) && route.isActive) {
         route.navigator?.removeRoute(route);
       }
     }
@@ -302,7 +307,7 @@ class _ChildAccountState extends State<ChildAccount> {
     } finally {
       state.removeListener(changed);
     }
-    if (accepted != true || !ownsDevices(identity)) {
+    if (accepted != true || !ownsAccountRequest(identity)) {
       return;
     }
     setState(() {
@@ -312,25 +317,25 @@ class _ChildAccountState extends State<ChildAccount> {
     var removed = 0;
     try {
       final fresh = await state.api.list('/auth/sessions');
-      if (!ownsDevices(identity)) return;
+      if (!ownsAccountRequest(identity)) return;
       final stillOwn = fresh
           .where((s) => s['current'] != true && ids.contains(s['id']))
           .map((s) => s['id'].toString())
           .toList();
       for (final id in stillOwn) {
-        if (!ownsDevices(identity)) return;
+        if (!ownsAccountRequest(identity)) return;
         await state.api.delete('/auth/sessions/$id');
-        if (!ownsDevices(identity)) return;
+        if (!ownsAccountRequest(identity)) return;
         removed++;
       }
-      if (mounted && ownsDevices(identity)) {
+      if (mounted && ownsAccountRequest(identity)) {
         toast(
           context,
           '$removed weitere ${removed == 1 ? 'Gerät ist' : 'Geräte sind'} abgemeldet. Hier bleibst du angemeldet.',
         );
       }
     } catch (error) {
-      if (mounted && ownsDevices(identity)) {
+      if (mounted && ownsAccountRequest(identity)) {
         showError(
           context,
           ApiError(
@@ -343,7 +348,7 @@ class _ChildAccountState extends State<ChildAccount> {
         setState(() {
           pendingSession = null;
           deletingSession = false;
-          if (ownsDevices(identity)) version++;
+          if (ownsAccountRequest(identity)) version++;
         });
       }
     }
@@ -455,12 +460,12 @@ class _ChildAccountState extends State<ChildAccount> {
                       final identity = state.api.requestIdentity();
                       try {
                         final values = await state.api.list('/auth/sessions');
-                        if (!ownsDevices(identity)) {
+                        if (!ownsAccountRequest(identity)) {
                           throw ApiError('Bitte lade die Geräte erneut.');
                         }
                         return (values, identity);
                       } catch (_) {
-                        if (!ownsDevices(identity)) {
+                        if (!ownsAccountRequest(identity)) {
                           throw ApiError('Bitte lade die Geräte erneut.');
                         }
                         rethrow;
@@ -503,7 +508,7 @@ class _ChildAccountState extends State<ChildAccount> {
                                 IconButton(
                                   tooltip: 'Geräte aktualisieren',
                                   onPressed: () {
-                                    if (ownsDevices(identity)) {
+                                    if (ownsAccountRequest(identity)) {
                                       reload();
                                     }
                                   },
@@ -516,7 +521,7 @@ class _ChildAccountState extends State<ChildAccount> {
                               alignment: Alignment.centerLeft,
                               child: OutlinedButton.icon(
                                 onPressed: () {
-                                  if (ownsDevices(identity)) {
+                                  if (ownsAccountRequest(identity)) {
                                     reload();
                                   }
                                 },
@@ -558,7 +563,7 @@ class _ChildAccountState extends State<ChildAccount> {
                                   const SizedBox(height: 12),
                                   OutlinedButton.icon(
                                     onPressed: () {
-                                      if (ownsDevices(identity)) {
+                                      if (ownsAccountRequest(identity)) {
                                         setState(() => version++);
                                       }
                                     },
@@ -721,125 +726,144 @@ class _ChildAccountState extends State<ChildAccount> {
                     'Noch nicht gesendete Fotos',
                     subtitle: 'Nur auf diesem Gerät, höchstens 24 Stunden. Öffnen sendet kein Foto.',
                   ),
-                  LoadView<List<Json>>(
+                  LoadView<(List<Json>, (Object?, String?, int?))>(
                     key: ValueKey(('pending-local', ObjectKey(ownerAccount))),
                     load: () async {
-                      if (!identical(state.user, ownerAccount) ||
-                          ownerAccount?['id'] is! String) {
-                        return [];
+                      final identity = state.api.requestIdentity();
+                      try {
+                        if (!ownsAccountRequest(identity) ||
+                            ownerAccount?['id'] is! String) {
+                          throw ApiError(
+                            'Bitte lade die lokalen Fotos erneut.',
+                          );
+                        }
+                        final photos = await state.pendingUploads.read(
+                          ownerAccount!['id'],
+                        );
+                        if (!ownsAccountRequest(identity)) {
+                          throw ApiError(
+                            'Bitte lade die lokalen Fotos erneut.',
+                          );
+                        }
+                        return (
+                          photos
+                              .where(
+                                (photo) =>
+                                    photo['child'] == ownerAccount!['child_id'],
+                              )
+                              .toList(),
+                          identity,
+                        );
+                      } catch (_) {
+                        if (!ownsAccountRequest(identity)) {
+                          throw ApiError(
+                            'Bitte lade die lokalen Fotos erneut.',
+                          );
+                        }
+                        rethrow;
                       }
-                      final photos = await state.pendingUploads.read(
-                        ownerAccount!['id'],
-                      );
-                      if (!identical(state.user, ownerAccount)) return [];
-                      return photos
-                          .where(
-                            (photo) =>
-                                photo['child'] == ownerAccount!['child_id'],
-                          )
-                          .toList();
                     },
-                    builder: (photos, reload) => Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        if (photos.isEmpty)
-                          Notice(
-                            'Hier warten keine Fotos auf das Senden. Deine gespeicherten Heftseiten findest du unter Hefte.',
+                    builder: (result, reload) {
+                      final photos = result.$1;
+                      final identity = result.$2;
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          if (photos.isEmpty)
+                            Notice(
+                              'Hier warten keine Fotos auf das Senden. Deine gespeicherten Heftseiten findest du unter Hefte.',
+                            ),
+                          Text(
+                            '${photos.length} von höchstens 8 vorgemerkten Fotos auf diesem Gerät',
                           ),
-                        Text(
-                          '${photos.length} von höchstens 8 vorgemerkten Fotos auf diesem Gerät',
-                        ),
-                        for (final photo in photos)
-                          Padding(
-                            padding: EdgeInsets.only(top: 12),
-                            child: Panel(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  Text(
-                                    'Vorgemerktes Foto ${photos.indexOf(photo) + 1}',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  if (photo['created'] is num)
+                          for (final photo in photos)
+                            Padding(
+                              padding: EdgeInsets.only(top: 12),
+                              child: Panel(
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
                                     Text(
-                                      'Vorgemerkt am ${DateFormat('dd.MM.yyyy · HH:mm').format(DateTime.fromMillisecondsSinceEpoch((photo['created'] as num).toInt()).toLocal())}',
+                                      'Vorgemerktes Foto ${photos.indexOf(photo) + 1}',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
-                                  Wrap(
-                                    spacing: 8,
-                                    runSpacing: 8,
-                                    children: [
-                                      TextButton.icon(
-                                        onPressed: () async {
-                                          if (!identical(
-                                                state.user,
-                                                ownerAccount,
-                                              ) ||
-                                              ModalRoute.of(context)
-                                                      ?.isCurrent ==
-                                                  false) {
-                                            return;
-                                          }
-                                          try {
-                                            await showChildPhotoPreview(
-                                              context,
-                                              state,
-                                              photos: [
-                                                base64Decode(photo['image']),
-                                              ],
-                                              title: 'Dein lokales Heftfoto',
-                                            );
-                                          } catch (_) {
-                                            if (context.mounted &&
-                                                identical(
-                                                  state.user,
-                                                  ownerAccount,
-                                                )) {
-                                              toast(
+                                    if (photo['created'] is num)
+                                      Text(
+                                        'Vorgemerkt am ${DateFormat('dd.MM.yyyy · HH:mm').format(DateTime.fromMillisecondsSinceEpoch((photo['created'] as num).toInt()).toLocal())}',
+                                      ),
+                                    Wrap(
+                                      spacing: 8,
+                                      runSpacing: 8,
+                                      children: [
+                                        TextButton.icon(
+                                          onPressed: () async {
+                                            if (!ownsAccountRequest(identity) ||
+                                                ModalRoute.of(context)
+                                                        ?.isCurrent ==
+                                                    false) {
+                                              return;
+                                            }
+                                            try {
+                                              await showChildPhotoPreview(
                                                 context,
-                                                'Dieses lokale Foto konnte nicht geöffnet werden.',
+                                                state,
+                                                photos: [
+                                                  base64Decode(photo['image']),
+                                                ],
+                                                title: 'Dein lokales Heftfoto',
+                                              );
+                                            } catch (_) {
+                                              if (context.mounted &&
+                                                  ownsAccountRequest(
+                                                    identity,
+                                                  )) {
+                                                toast(
+                                                  context,
+                                                  'Dieses lokale Foto konnte nicht geöffnet werden.',
+                                                );
+                                              }
+                                            }
+                                          },
+                                          icon: Icon(Icons.zoom_in_rounded),
+                                          label: Text('Foto ansehen'),
+                                        ),
+                                        OutlinedButton.icon(
+                                          onPressed: () {
+                                            if (ownsAccountRequest(identity) &&
+                                                ModalRoute.of(context)
+                                                        ?.isCurrent !=
+                                                    false) {
+                                              openRoute(
+                                                context,
+                                                '/after-school/${ownerAccount!['child_id']}?day=${Uri.encodeQueryComponent(photo['day'])}',
                                               );
                                             }
-                                          }
-                                        },
-                                        icon: Icon(Icons.zoom_in_rounded),
-                                        label: Text('Foto ansehen'),
-                                      ),
-                                      OutlinedButton.icon(
-                                        onPressed: () {
-                                          if (identical(
-                                                state.user,
-                                                ownerAccount,
-                                              ) &&
-                                              ModalRoute.of(context)
-                                                      ?.isCurrent !=
-                                                  false) {
-                                            openRoute(
-                                              context,
-                                              '/after-school/${ownerAccount!['child_id']}?day=${Uri.encodeQueryComponent(photo['day'])}',
-                                            );
-                                          }
-                                        },
-                                        icon: Icon(Icons.arrow_forward_rounded),
-                                        label: Text('Zum zugehörigen Tag'),
-                                      ),
-                                    ],
-                                  ),
-                                ],
+                                          },
+                                          icon: Icon(
+                                            Icons.arrow_forward_rounded,
+                                          ),
+                                          label: Text('Zum zugehörigen Tag'),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
+                          SizedBox(height: 12),
+                          TextButton.icon(
+                            onPressed: () {
+                              if (ownsAccountRequest(identity)) reload();
+                            },
+                            icon: Icon(Icons.refresh_rounded),
+                            label: Text('Lokale Fotos aktualisieren'),
                           ),
-                        SizedBox(height: 12),
-                        TextButton.icon(
-                          onPressed: () {
-                            if (identical(state.user, ownerAccount)) reload();
-                          },
-                          icon: Icon(Icons.refresh_rounded),
-                          label: Text('Lokale Fotos aktualisieren'),
-                        ),
-                      ],
-                    ),
+                        ],
+                      );
+                    },
                   ),
                 ],
                 if (section == 'about') ...[
