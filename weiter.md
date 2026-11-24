@@ -2,6 +2,22 @@
 
 ## Arbeitsstand 24. November 2026
 
+Für die Web- und Geräteabnahme enthält `041d6c8` den tatsächlichen
+Fotoimport mit Zuschnitt und Blob-XHR sowie Anmeldelinks, Login und Logout
+auf schmalem und breitem Web. Auf einem frischen Android-36-Emulator wurde
+mit lokaler Debug-APK die sichtbare Tastatur und die Rückkehr aus dem
+Hintergrund geprüft. Die Fotoaktionskarte ist auf breiten Ansichten
+begrenzt. Umfang, frühere Gerätebeobachtungen und verbleibende Grenzen stehen
+in `docs/WEB_NATIVE_ACCEPTANCE_2026_11_24.md`; ein physisches Gerät und der
+vollständige native Foto-/Lernweg wurden dabei nicht erneut geprüft. Vor einer
+weiteren Arbeit Git-, CI- und Serverstand prüfen; kein Deployment aus diesen
+Tests ableiten.
+
+Der vollständige GitHub-Lauf 45423097373 für `041d6c8` ist erfolgreich.
+Der entsprechende technische Abnahmepunkt ist in `ROADMAP.md` abgeschlossen;
+die dort genannten gesonderten Geräte- und Barrierefreiheitsprüfungen bleiben
+offen.
+
 Die technische Abnahme „Elternübersicht, Noten und Planung gegen echte
 gespeicherte Fakten prüfen“ ist abgeschlossen. Der vollständige GitHub-Lauf
 45392669156 bestand für `94285b1`; der Prüfbericht

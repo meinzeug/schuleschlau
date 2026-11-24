@@ -1843,7 +1843,20 @@ Bestandteil des bestehenden Buildvertrags.
   Im bestehenden Firebase-Projekt ausschließlich eigene künstliche Konten mit zeitlich begrenzter Testfreigabe verwenden; Elternfreigabe, ausdrückliches Geräte-Opt-in, Kanal-/Betriebssystemberechtigung, Ruhezeiten und Widerruf kontrollieren. Vordergrundanzeige sowie einen Versand nach nachgewiesenem Android-Hintergrundzustand beobachten, geschützten Zielaufruf prüfen und Registrierungen bereinigen.
 
   **Abnahme:** sichtbare Anzeige und Ziel tatsächlich dokumentiert sind; FCM-Annahme oder Validierung allein reichen nicht. In-App-Neuigkeiten bleiben ohne Push nutzbar.
-- [ ] **P1 – Web und native Freigabe vollständig bedienen**
+- [x] **P1 – Web und native Freigabe vollständig bedienen**
+
+  **Technische Abnahme 24.11.2026:** Der vollständige
+  [GitHub-Lauf 45423097373](https://github.com/meinzeug/schuleschlau/actions/runs/45423097373)
+  bestand für `041d6c8`, einschließlich des isolierten Browsergates mit
+  17 Fällen. Fotoauswahl, Zuschnitt, Blob-XHR, Anmeldelinks und Logout wurden
+  mit künstlichen Daten bei 390 und 1280 Pixeln geprüft; weitere bestehende
+  Browserfälle decken Heft- und Lernwege ab. Auf dem aktuellen lokalen
+  Android-Debugstand wurden Tastatur und Rückkehr aus dem Hintergrund im
+  API-36-Emulator beobachtet. Frühere native Lernweg-Beobachtungen sind
+  separat versioniert. Der aktuelle Lauf ist keine Abnahme eines physischen
+  Geräts, des vollständigen nativen Foto-/Lernwegs oder der gesamten
+  Barrierefreiheit; diese Grenzen bleiben in den jeweiligen offenen Punkten
+  und im [Prüfbericht](docs/WEB_NATIVE_ACCEPTANCE_2026_11_24.md) bestehen.
 
   - [x] **Fotoimport und Anmeldelinks auf schmalem und breitem Web prüfen.**
     Der tatsächliche Dateidialog und Zuschnitt wurden bei 390 und 1280 Pixeln

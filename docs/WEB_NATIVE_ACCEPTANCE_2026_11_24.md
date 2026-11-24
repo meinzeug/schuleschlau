@@ -2,7 +2,11 @@
 
 ## Web
 
-Der Release-Webbuild des Arbeitsstands wurde mit der fixierten Flutter-Version
+Der vollständige [GitHub-CI-Lauf 45423097373](https://github.com/meinzeug/schuleschlau/actions/runs/45423097373)
+bestand für Commit `041d6c823e18f094c433569114ea075ddd5cd3ff` einschließlich
+Browsergate, Flutter, Backend, PostgreSQL und Operations.
+
+Der Web-Releasebuild des Arbeitsstands wurde mit der fixierten Flutter-Version
 und den CI-Optionen gebaut. Das isolierte Browsergate bestand mit 17 Fällen.
 Der Fotoimport wurde mit demselben künstlichen Bild bei 390 × 844 und
 1280 × 844 Pixeln über die tatsächliche Dateiauswahl und den Zuschnitt bis zur
