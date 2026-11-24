@@ -2453,6 +2453,15 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Schulbuddy als sicheren kontextbezogenen Lernbegleiter prüfen**
 
+  - [x] **Schulbuddy-Kontext öffentlicher Erkundungen wiederherstellen.**
+    Die bereits durch die Referenzprüfung für die Anzeige aufbereitete Grafik
+    wird dem Tutor einmalig übergeben. Eine zweite Validierung verlangte zuvor
+    entfernte Quellbelege und führte zu HTTP 500. Künstliche API- und Workerfälle
+    prüfen den berechtigten Zugriff, den Grafikzustand, unveränderten Lernstand
+    und die Ablehnung bei Quellenwechsel und fremdem Zugriff. Die Fälle bestanden
+    auf SQLite und isoliertem PostgreSQL. Die allgemeine fachliche und
+    geräteübergreifende Tutorabnahme bleibt offen.
+
   - [x] **Tutorverlauf an die lokale Anmeldeabsicht binden.** Beginnt eine neue
     Anmeldung, werden sichtbare Fragen und rein lokale Entwürfe des alten
     Tutorfensters entfernt; alte Sendeaktionen, verspätete Antworten und

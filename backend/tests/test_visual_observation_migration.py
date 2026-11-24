@@ -28,7 +28,7 @@ with DB.begin() as db:
             'subject':'Mathematik','topic':'Brüche','content':'Originaltext',
             'uncertainties':[],'homework':[],'confirmed':False,'synthetic':False,'created':1}
     db.execute(materials.insert().values(**values))
-command.upgrade(config, 'head')
+command.upgrade(config, '0047')
 with engine.begin() as connection:
     row=connection.execute(select(Table('materials',MetaData(),autoload_with=connection))).mappings().one()
     assert row['content']=='Originaltext' and row['visual_observations']==[]
@@ -43,11 +43,26 @@ else:
     raise AssertionError('unsafe preferences downgrade must fail closed')
 with engine.connect() as connection:
     assert connection.exec_driver_sql('select version_num from alembic_version').scalar_one()=='0047'
+command.upgrade(config, 'head')
+from alembic.script import ScriptDirectory
+expected_head = ScriptDirectory.from_config(config).get_current_head()
+with engine.connect() as connection:
+    assert connection.exec_driver_sql('select version_num from alembic_version').scalar_one() == expected_head
+    row = connection.execute(select(Table('materials', MetaData(), autoload_with=connection))).mappings().one()
+    assert row['content'] == 'Originaltext' and row['visual_observations'] == []
+try:
+    command.downgrade(config, '0046')
+except RuntimeError as error:
+    assert 'Published curriculum evidence requires a forward correction' in str(error)
+else:
+    raise AssertionError('published curriculum downgrade must fail closed')
+with engine.connect() as connection:
+    assert connection.exec_driver_sql('select version_num from alembic_version').scalar_one() == expected_head
 sys.path.insert(0, 'deploy')
 from visual_restore_probe import probe
 with DB.begin() as db:
     probe(db, 'synthetic-test-key')
-print('legacy material and preferences preserved, head 0047, signed replay verified')
+print('legacy material and preferences preserved, historical 0047 and current head, signed replay verified')
 '''
 
 
@@ -69,7 +84,7 @@ def test_0044_real_upgrade_preserves_old_material(tmp_path):
         run = subprocess.run([sys.executable, '-c', SCRIPT], cwd=root, env=environment,
                              capture_output=True, text=True, timeout=90)
         assert run.returncode == 0, run.stdout + run.stderr
-        assert 'head 0047' in run.stdout
+        assert 'historical 0047 and current head' in run.stdout
     finally:
         if original:
             with engine.begin() as connection:

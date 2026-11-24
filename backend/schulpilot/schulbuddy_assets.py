@@ -3,7 +3,6 @@ from fastapi import HTTPException
 
 from .learning_asset_models import LearningAssetBuild, LearningAssetInstance
 from .learning_assets import NOTICE, build_data
-from .subject_content import public_presentation
 from .visual_reference_models import VisualReference
 from .visual_references import digest
 
@@ -28,7 +27,10 @@ def bind_asset(db, instance, payload):
         raise HTTPException(409, "Die Erkundungsreferenz ist nicht mehr gültig.")
     asset = value["asset"]
     context = {key: asset[key] for key in ("subject", "title", "text", "explorations")}
-    context.update(presentation=public_presentation(asset["presentation"]), reference=reference,
+    # build_data has already checked the immutable reference and projected the
+    # public rendering contract. Revalidating that projection would require
+    # the deliberately removed source excerpts and reject valid graphics.
+    context.update(presentation=asset["presentation"], reference=reference,
                    mode="unassessed_exploration", technical_status="validated",
                    factual_status="unassessed", notice=NOTICE)
     payload["current_learning_asset"] = context
