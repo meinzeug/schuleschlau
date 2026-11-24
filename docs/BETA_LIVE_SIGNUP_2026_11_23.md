@@ -68,3 +68,35 @@ künstlichen Dateien sein. Kostenlose Testläufe behalten ihren bisherigen
 Vertrag; unbekannte Kosten werden nicht als null ausgegeben. Der Schalter
 genehmigt keine realen Kinderdaten und keine pauschale Änderung bestehender
 Kontingente.
+
+## Abschluss 24.11.2026
+
+Auf `schuleschlau.dorfspy.de` mit Version `1.38.149+304`, Quellstand
+`cd423ce315a0f13d873ff4066ba965facf6c10dc`, wurde eine neue künstliche Familie
+über die reguläre API registriert. Die Bestätigungsmail wurde im eigenen
+Testpostfach tatsächlich empfangen und eingelöst. Ein temporär angelegter
+Administrator gab den Antrag revisionsgebunden über die reguläre API frei.
+Die Anmelde- und Adminformulare wurden bei diesem Lauf nicht im Browser bedient.
+
+Im isolierten Chromium-Kontext mit 390 × 844 Pixeln meldete sich das künstliche
+Kind an und gab zwei festgelegte künstliche Fotos über den Dateidialog ab.
+Erkennung und Gegenprüfung führten zu einem gespeicherten Lernpaket. Drei
+Lernrunden mit insgesamt sechs beantworteten Aufgaben, Hinweisen und
+KI-Rückblicken wurden abgeschlossen. Die Elternansicht zeigte Verlauf,
+gespeicherte Antworten und Rückblicke; die Aktivitätssumme wurde gegen die
+gespeicherten Versuche geprüft. Das erneute Öffnen eines gespeicherten
+Rückblicks löste keinen zusätzlichen KI-Auftrag aus. Der Test prüfte außerdem,
+dass keine Aufgabenstellung in den drei Runden wiederholt wurde.
+
+Der reguläre Verbrauchsbeleg verzeichnete zehn echte OpenRouter-Aufrufe und
+0,186950 USD bekannte Kosten; unbekannte Kosten und explizite Wiederholungen
+waren null. Nach dem Durchlauf wurde die Beta-Freigabe regulär widerrufen und
+von der Familie als widerrufen gesehen. Die künstliche Familie wurde über den
+Elternzugang gelöscht, der temporäre Testadministrator entfernt und seine
+Löschung journalisiert. Die privaten Wiederherstellungsdateien wurden entfernt.
+
+Dieser Einzelfall belegt keine allgemeine fachliche Korrektheit oder dauerhafte
+Verfügbarkeit des Anbieters, keine sichtbare Pushzustellung und keine Freigabe
+für echte Kinderdaten. Die übrigen Kinder-, Geräte- und Datenschutzabnahmen
+bleiben gesondert offen. Frühere fehlgeschlagene Testläufe oben bleiben als
+historische Befunde erhalten.

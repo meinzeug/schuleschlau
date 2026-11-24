@@ -1858,7 +1858,24 @@ Bestandteil des bestehenden Buildvertrags.
 
 ## Kapazität und öffentlicher Start
 
-- [ ] **Beta-Anmeldung für weitere Familien auf der Startseite bereitstellen.**
+- [x] **Beta-Anmeldung für weitere Familien auf der Startseite bereitstellen.**
+
+  **Abnahme 24.11.2026:** Auf der Zielinstallation `1.38.149+304`
+  (`cd423ce`) durchlief eine eigens angelegte künstliche Familie die echte
+  Registrierung mit bestätigter E-Mail und die revisionsgebundene
+  Adminfreigabe über die reguläre API. Im 390-Pixel-Browser wurden zwei
+  künstliche Fotos abgegeben, verarbeitet und zu einem Lernpaket geführt;
+  drei Runden mit sechs Antworten, Hilfen, Rückblicken und Elternansicht
+  wurden abgeschlossen. Der Kostenbeleg enthält zehn echte OpenRouter-Aufrufe
+  und 0,186950 USD bekannte Kosten ohne unbekannte Kosten; es gab keinen
+  Wiederholungsversuch. Die gespeicherte Runde wurde ohne neue KI-Anfrage
+  wieder geöffnet. Der reguläre Widerruf sowie die anschließende Löschung der
+  künstlichen Familie und des temporären Testadministrators wurden bestätigt.
+  Registrierung und Adminentscheidung erfolgten in diesem Lauf über HTTPS-API,
+  nicht über die jeweiligen Browserformulare; deren isolierte Browsertests
+  sind unten getrennt nachgewiesen. Eine Stichprobe belegt keine allgemeine
+  KI-Qualität, dauerhafte Verfügbarkeit oder Freigabe für reale Kinderdaten.
+  [Testbericht](docs/BETA_LIVE_SIGNUP_2026_11_23.md#abschluss-24112026).
   - [x] **Produktive Registrierung und Bestätigungsmail mit eigenem Testkonto prüfen.**
     Eine frische künstliche Beta-Familie durchlief die tatsächliche Registrierung,
     Mailbestätigung und Kinderanmeldung auf dem Zielserver und wurde danach über
@@ -1912,9 +1929,8 @@ Bestandteil des bestehenden Buildvertrags.
   Entscheidungen und die Sperre zwischen Reservierung und Widerruf. Die
   Eltern können den Status im Elternbereich lesen; automatische Push-/Mail-
   Meldungen über Entscheidungen sind nicht Bestandteil dieses Nachweises.
-  [Vertrag und verbleibende technische Grenzen](docs/BETA.md). Der Punkt bleibt
-  offen bis zur gemeinsamen End-to-End-Prüfung und dem tatsächlich geprüften
-  Release auf der Zielinstallation.
+  [Vertrag und verbleibende technische Grenzen](docs/BETA.md). Die zuvor
+  fehlende gemeinsame Prüfung auf der Zielinstallation ist oben dokumentiert.
 
   Der vorhandene Link erstellt ein Elternkonto; bei abgeschalteter Testphase
   bekommt es aber keinen KI-Lernzugang. Der Link darf daher noch nicht als
