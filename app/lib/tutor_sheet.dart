@@ -45,6 +45,7 @@ class _TutorDraftMemory {
   final AppState state;
   Json? account;
   String? family, session;
+  int? authenticationRevision;
   final drafts =
       <
         String,
@@ -58,17 +59,21 @@ class _TutorDraftMemory {
   _TutorDraftMemory(this.state)
     : account = state.user,
       family = state.familyId,
-      session = state.api.token {
+      session = state.api.token,
+      authenticationRevision = state.api.requestIdentity().$3 {
     state.addListener(changed);
+    state.authenticationChanges.addListener(changed);
   }
   void changed() {
     if (!identical(account, state.user) ||
         family != state.familyId ||
-        session != state.api.token) {
+        session != state.api.token ||
+        authenticationRevision != state.api.requestIdentity().$3) {
       drafts.clear();
       account = state.user;
       family = state.familyId;
       session = state.api.token;
+      authenticationRevision = state.api.requestIdentity().$3;
     }
   }
 
@@ -147,6 +152,7 @@ class _TutorSheetState extends State<_TutorSheet> with WidgetsBindingObserver {
   late final Json? actor = widget.state.user;
   late final family = widget.state.familyId;
   late final session = widget.state.api.token;
+  late final (Object?, String?, int?) identity;
   bool loading = true, reading = false, sending = false;
   bool refreshAfterRead = false, automaticReadBlocked = false;
   bool historyWindow = false;
@@ -175,7 +181,8 @@ class _TutorSheetState extends State<_TutorSheet> with WidgetsBindingObserver {
       actor != null &&
       identical(state.user, actor) &&
       family == state.familyId &&
-      session == state.api.token;
+      session == state.api.token &&
+      state.api.ownsRequest(identity);
   bool get active => mounted && ownerMatches && foreground && routeVisible;
   bool get hasPending =>
       turns.any((turn) => ['queued', 'running'].contains(turn['status']));
@@ -184,8 +191,10 @@ class _TutorSheetState extends State<_TutorSheet> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    identity = state.api.requestIdentity();
     WidgetsBinding.instance.addObserver(this);
     state.addListener(identityChanged);
+    state.authenticationChanges.addListener(authenticationChanged);
     memory.changed();
     final saved = memory.drafts[draftScope];
     if (state.isChild && ownerMatches && saved != null) {
@@ -251,6 +260,15 @@ class _TutorSheetState extends State<_TutorSheet> with WidgetsBindingObserver {
     }
   }
 
+  void authenticationChanged() {
+    // An intent can change while another route is building. The ownership
+    // checks stop actions immediately; clear private UI after that frame's
+    // synchronous notification instead of calling setState during build.
+    scheduleMicrotask(() {
+      if (mounted) identityChanged();
+    });
+  }
+
   void draftChanged() {
     rememberDraft();
     if (mounted) setState(() {});
@@ -263,6 +281,7 @@ class _TutorSheetState extends State<_TutorSheet> with WidgetsBindingObserver {
     poll?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     state.removeListener(identityChanged);
+    state.authenticationChanges.removeListener(authenticationChanged);
     question.removeListener(draftChanged);
     question.dispose();
     historySearch.dispose();
@@ -601,7 +620,6 @@ class _TutorSheetState extends State<_TutorSheet> with WidgetsBindingObserver {
                     tooltip: 'Schließen',
                     onPressed: () {
                       if (mounted &&
-                          ownerMatches &&
                           ModalRoute.of(context)?.isCurrent == true) {
                         Navigator.of(context).pop();
                       }

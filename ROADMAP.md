@@ -2422,6 +2422,16 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Schulbuddy als sicheren kontextbezogenen Lernbegleiter prüfen**
 
+  - [x] **Tutorverlauf an die lokale Anmeldeabsicht binden.** Beginnt eine neue
+    Anmeldung, werden sichtbare Fragen und rein lokale Entwürfe des alten
+    Tutorfensters entfernt; alte Sendeaktionen, verspätete Antworten und
+    Fehler werden verworfen und das Fenster bleibt schließbar. Der lokale
+    Entwurf wird auch bei abgebrochener Anmeldung nicht wiederhergestellt.
+    Ein bereits abgeschickter Auftrag bleibt serverseitig bestehen; es gibt
+    keinen automatischen Wiederholungsauftrag. Künstliche Widgetfälle prüfen
+    die Wechsel sowie den normalen Ablauf. Die allgemeine Cookie- und
+    fachliche Tutorabnahme bleibt offen.
+
   - [x] **Tutor-Commit gegen parallelen Datenschutzwiderruf schützen.**
     Die bei der Reservierung und Veröffentlichung frisch geprüfte Installations-
     freigabe wird in derselben Transaktion bis zum Commit gesichert. Bei

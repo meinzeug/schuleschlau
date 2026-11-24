@@ -104,6 +104,107 @@ void _pause(WidgetTester tester) {
 }
 
 void main() {
+  for (final success in [true, false]) {
+    testWidgets(
+      'new login intent hides a late tutor ${success ? 'history' : 'error'}',
+      (tester) async {
+        _viewport(tester);
+        final pending = Completer<http.Response>();
+        var reads = 0;
+        final state = _state(
+          MockClient((request) async {
+            reads++;
+            return pending.future;
+          }),
+        );
+        await _open(tester, state);
+        expect(reads, 1);
+        state.beginAuthentication();
+        pending.complete(
+          success
+              ? _json({
+                  'questions': [_turn()],
+                  'next_cursor': null,
+                })
+              : _json({'detail': 'Alter privater Fehler'}, status: 503),
+        );
+        await tester.pump();
+        await tester.pump(const Duration(seconds: 9));
+        expect(find.textContaining('Die Teile sind gleich groß'), findsNothing);
+        expect(find.text('Alter privater Fehler'), findsNothing);
+        expect(find.text('Bitte melde dich erneut an.'), findsOneWidget);
+        expect(reads, 1);
+        await tester.tap(find.byTooltip('Schließen'));
+        await tester.pumpAndSettle();
+        expect(find.text('Bitte melde dich erneut an.'), findsNothing);
+        await tester.pumpWidget(const SizedBox());
+      },
+    );
+  }
+
+  testWidgets(
+    'new login intent clears the local tutor draft even after cancellation',
+    (tester) async {
+      _viewport(tester);
+      var posts = 0;
+      final state = _state(
+        MockClient((request) async {
+          if (request.method == 'POST') posts++;
+          return _json({'questions': [], 'next_cursor': null});
+        }),
+      );
+      await _open(tester, state);
+      await tester.enterText(
+        find.byType(TextField),
+        'Ein privater Testentwurf',
+      );
+      final intent = state.beginAuthentication();
+      await tester.pump();
+      expect(find.text('Ein privater Testentwurf'), findsNothing);
+      await tester.tap(find.byTooltip('Schließen'));
+      await tester.pumpAndSettle();
+      state.cancelAuthentication(intent);
+      await tester.tap(find.text('Fragen öffnen'));
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<TextField>(find.byType(TextField)).controller!.text,
+        isEmpty,
+      );
+      expect(posts, 0);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
+  testWidgets('late tutor submission cannot publish after a new login intent', (
+    tester,
+  ) async {
+    _viewport(tester);
+    final pending = Completer<http.Response>();
+    var posts = 0;
+    final state = _state(
+      MockClient((request) async {
+        if (request.method == 'POST') {
+          posts++;
+          return pending.future;
+        }
+        return _json({'questions': [], 'next_cursor': null});
+      }),
+    );
+    await _open(tester, state);
+    await tester.enterText(find.byType(TextField), 'Eine künstliche Frage');
+    await _tap(tester, 'Frage stellen');
+    expect(posts, 1);
+    state.beginAuthentication();
+    pending.complete(_json(_turn()));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 9));
+    expect(find.textContaining('Die Teile sind gleich groß'), findsNothing);
+    expect(find.text('Eine künstliche Frage'), findsNothing);
+    expect(find.text('Bitte melde dich erneut an.'), findsOneWidget);
+    expect(posts, 1);
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('returning from another route revalidates a running tutor read', (
     tester,
   ) async {
@@ -249,6 +350,33 @@ void main() {
       await tester.pumpWidget(const SizedBox());
     },
   );
+
+  testWidgets('old send callback cannot submit after a new login intent', (
+    tester,
+  ) async {
+    _viewport(tester);
+    var posts = 0;
+    final state = _state(
+      MockClient((request) async {
+        if (request.method == 'POST') posts++;
+        return _json({'questions': [], 'next_cursor': null});
+      }),
+    );
+    await _open(tester, state);
+    await tester.enterText(find.byType(TextField), 'Eine künstliche Frage');
+    await tester.pump();
+    final send = tester
+        .widget<FilledButton>(
+          find.widgetWithText(FilledButton, 'Frage stellen'),
+        )
+        .onPressed!;
+    state.beginAuthentication();
+    send();
+    await tester.pump();
+    expect(posts, 0);
+    expect(find.text('Bitte melde dich erneut an.'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
 
   testWidgets(
     'session replacement clears tutor history and rejects delayed GET',
