@@ -22,6 +22,7 @@ def test_environment(web_dir, scratch, path):
         "RECALL_MOBILE_BROWSER": "1",
         "PARENT_PREFS_CAS_BROWSER": "1",
         "NOTIFICATION_LOCAL_BROWSER": "1",
+        "SCHULBUDDY_LOCAL_BROWSER": "1",
         "PYTHONPATH": str(ROOT / "backend"),
         "PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1",
     }
@@ -43,6 +44,8 @@ def main():
                 "backend/tests/test_recall_mobile_browser.py",
                 "backend/tests/test_preferences_browser_cas.py",
                 "backend/tests/test_notification_cross_device_browser.py",
+                "backend/tests/test_schulbuddy_local_browser.py",
+                "backend/tests/test_photo_local_browser.py",
                 "--tb=short", "-ra", "--junitxml", str(Path(scratch) / "browser-results.xml"),
             ],
             cwd=ROOT,
@@ -65,6 +68,9 @@ def check_results(path):
         ("test_preferences_browser_cas", "test_browser_cas_refuses_external_test_database_before_import"),
         ("test_notification_cross_device_browser", "test_browser_cross_device_notice_reads_and_round_link"),
         ("test_notification_cross_device_browser", "test_notification_browser_rejects_external_database_before_import"),
+        ("test_schulbuddy_local_browser", "test_schulbuddy_source_and_saved_reply_in_mobile_browser"),
+        ("test_schulbuddy_local_browser", "test_schulbuddy_browser_rejects_external_database_before_import"),
+        ("test_photo_local_browser", "test_photo_picker_and_crop_in_mobile_browser"),
     }
     root = ElementTree.parse(path).getroot()
     seen = set()

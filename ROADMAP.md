@@ -3438,6 +3438,26 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Abnahmen systematisch und wiederholbar automatisieren**
 
+  - [x] **Fotoauswahl und Zuschnitt im mobilen Browser-Gate prüfen.**
+    Ein künstliches Foto wird bei 390 × 844 Pixeln über den tatsächlichen
+    Dateiauswahldialog ausgewählt, zugeschnitten und als eigene Seite im
+    lokalen Backend gespeichert. Ohne Abgabe werden weder KI-Aufträge noch
+    Kostenbelege erzeugt. Der Fall läuft mit isolierter SQLite-Datenbank im
+    verpflichtenden Browser-Gate; OCR, Kamera und Android bleiben getrennte
+    Abnahmen. [Übersicht](docs/ACCEPTANCE_AUTOMATION_2026_11_24.md).
+
+  - [x] **Schulbuddy mit Heftkontext im mobilen Browser-Gate prüfen.**
+    Eine künstliche bestätigte Seite wird im 390-Pixel-Browser geöffnet; eine
+    bewusst eingegebene Frage durchläuft den regulären lokalen Auftrags- und
+    Workerpfad mit simuliertem Anbieter. Die Antwort und ihr Quellzitat
+    erscheinen und bleiben nach erneutem Öffnen erhalten. Das Neuladen löst
+    keinen zweiten Auftrag aus; ein fremdes Familienkonto darf den gespeicherten
+    Chat nicht lesen, und es entstehen keine Aufgabenversuche oder
+    Kompetenznachweise. Der Runner verweigert fremde Testdatenbanken und
+    verlangt den ausgeführten Fall ohne Skip. Dies ist weder ein echter
+    Anbieteraufruf noch eine vollständige fachliche Tutorabnahme.
+    [Prüfbericht](docs/SCHULBUDDY_BROWSER_GATE_2026_11_24.md).
+
   - [x] **PostgreSQL-Testläufe an den isolierten Cluster binden.**
     Der Testläufer startet Kindprozesse mit einer begrenzten Umgebung und
     prüft Datenbank, Unix-Socket und Datenverzeichnis vor pytest. Browser-Opt-ins
