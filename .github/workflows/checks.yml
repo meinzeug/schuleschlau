@@ -123,6 +123,7 @@ jobs:
           backend/tests/test_recall_planning_journey.py
           backend/tests/test_job_interruption_race_roadmap.py::test_interrupted_package_never_publishes_a_late_provider_result
           backend/tests/test_job_interruption_race_roadmap.py::test_completed_package_wins_over_an_already_selected_reaper
+          backend/tests/test_package_worker_process_restart.py::test_real_worker_kill_preserves_parts_and_requires_explicit_retry
           backend/tests/test_schulbuddy_session_serialization.py
           backend/tests/test_schulbuddy_config_serialization.py
           backend/tests/test_schulbuddy_installation_serialization.py

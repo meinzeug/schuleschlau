@@ -92,8 +92,14 @@ def test_stale_account_is_rejected_before_photo_intake(api, household):
 
 def test_push_config_does_not_treat_account_mismatch_as_anonymous(household, monkeypatch):
     from schulpilot import notifications
+    from schulpilot.db import DB, Child
 
-    parent, _ = household
+    parent, child = household
+    # New children may have parental push consent by default. Exercise the
+    # denied state explicitly rather than assuming a particular creation default.
+    with DB.begin() as db:
+        row = db.get(Child, child['id'])
+        row.preferences = {**row.preferences, 'push_consent': False}
     monkeypatch.setattr(notifications, 'public_config', lambda **_: {'available': True, 'firebase': {'test': 'public'}})
     with TestClient(app, headers={'X-Schulpilot-Request': '1'}) as browser:
         login = browser.post('/api/auth/login', json={
@@ -109,5 +115,12 @@ def test_push_config_does_not_treat_account_mismatch_as_anonymous(household, mon
         assert mismatch.status_code == 409
         assert mismatch.headers['X-Schulpilot-Account-Changed'] == '1'
         assert 'firebase' not in mismatch.json()
+        with DB.begin() as db:
+            row = db.get(Child, child['id'])
+            row.preferences = {**row.preferences, 'push_consent': True}
+        permitted = browser.get('/api/notifications/config', headers={'X-Schulpilot-Account': child_id})
+        assert permitted.status_code == 200 and permitted.json()['available'] is True
+        mismatch = browser.get('/api/notifications/config', headers={'X-Schulpilot-Account': parent['id']})
+        assert mismatch.status_code == 409 and 'firebase' not in mismatch.json()
     with TestClient(app) as anonymous:
         assert anonymous.get('/api/notifications/config').json()['available'] is True

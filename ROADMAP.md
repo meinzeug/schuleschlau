@@ -2061,7 +2061,38 @@ Bestandteil des bestehenden Buildvertrags.
 
   **Abnahme:** Ein künstlicher Erfolgsfall und je ein reproduzierbarer Fehler pro relevanter Phase sind vom berechtigten Betriebs- beziehungsweise Familienkontext nachvollziehbar; GET-Abfragen starten keine KI und ändern keinen Lernstand.
 
-- [ ] **P1 – Ausgabelängen, Schemafehler und Providerstörungen systematisch behandeln**
+- [x] **P1 – Ausgabelängen, Schemafehler und Providerstörungen systematisch behandeln**
+
+  **Abnahme 24.11.2026:** Die dokumentierten 400-/429-/5xx-, Timeout-,
+  Längen- und Schemafehler durchlaufen den echten Adapter mit künstlichem
+  Transport und den mehrteiligen Paketworker. Ein zusätzlicher Test beendet
+  einen echten isolierten Workerprozess während des simulierten Transports;
+  nach normalem Reaperlauf und ausdrücklich gestarteter Wiederaufnahme
+  verarbeiten zwei neue Workerprozesse die übrigen Teile. Quellen, frühere
+  Antworten und die unbekannte Kostenreservierung bleiben erhalten. Der
+  Fall ist im PostgreSQL-CI-Gate verpflichtend; das vollständige lokale Gate
+  bestand mit 81 Fällen ohne Skip. Echte künstliche OpenRouter-Mehrseitenläufe
+  und ihre Kosten sind getrennt dokumentiert. Das belegt keine allgemeine
+  Anbieterverfügbarkeit, vollständige OCR- oder fachliche Qualität und keine
+  Garantie gegen künftige Modellfehler.
+  [Prüfung und Grenzen](docs/PACKAGE_FAILURE_ACCEPTANCE_2026_11_24.md).
+
+  - [x] **Prozessabbruch und Neustart von Paketworkern tatsächlich auslösen.**
+    Der separate Prozess wird nach dem Claim am simulierten Transport mit
+    SIGKILL beendet. Der reguläre Reaper und zwei frisch gestartete Prozesse
+    erhalten nach bewusster Wiederaufnahme den ersten Teil, frühere Antworten
+    und alle sieben Quellenrevisionen; unbekannte Kosten bleiben reserviert.
+    Für die Testwartezeit wird nur der künstliche Auftragszeitpunkt verändert.
+    Ein Hostabsturz oder echter Anbieterabbruch ist damit nicht simuliert.
+
+  - [x] **Schulbuddy bei gesperrter Providerkonfiguration sicher abbrechen.**
+    Die Reservierung wartet bei diesem Auftragsart-Konflikt nicht auf den
+    Operator, sondern gibt 409 und rollt Frage, Auftrag, Kontingent und
+    Ratenzähler zurück. Andere Auftragsarten behalten ihre bestehende
+    Reservierungsreihenfolge. Der bestehende PostgreSQL-Rennentest, die
+    gemeinsame Paket-/Schulbuddy-Prüfung und das vollständige Gate bestehen.
+    Der ebenfalls aufgedeckte Push-Test setzt die elterliche Freigabe jetzt
+    explizit und prüft beide Zustände; der heutige Standard bleibt erhalten.
 
   - [x] **Fehler der unabhängigen KI-Bildprüfung datensparsam unterscheiden.**
     Neue fehlgeschlagene Prüfaufträge speichern eine geschlossene Fehlerklasse.

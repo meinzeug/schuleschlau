@@ -22,6 +22,9 @@ REQUIRED_LIFECYCLE_TESTS = {
         "test_completed_package_wins_over_an_already_selected_reaper",
     )
 } | {
+    ("backend.tests.test_package_worker_process_restart",
+     "test_real_worker_kill_preserves_parts_and_requires_explicit_retry"),
+} | {
     ("backend.tests.test_preferences_cas_2026", "test_parallel_preferences_same_revision_has_one_winner"),
 } | {
     (

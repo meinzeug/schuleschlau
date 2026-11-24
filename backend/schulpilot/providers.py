@@ -15,6 +15,7 @@ from fastapi import HTTPException
 from pydantic import ValidationError
 from sqlalchemy import select, update
 from sqlalchemy import text as sql_text
+from sqlalchemy.exc import OperationalError
 
 from . import schemas as s
 from .config import runtime_settings, settings
@@ -864,8 +865,18 @@ def reserve(db, family, child_id, job_id, function, synthetic_fixture=False, *, 
     family_bucket, family_calls, family_budget = usage_terms(db, family, enforce=True)
     # Metadata refresh and every new reservation serialize on the provider
     # row. A quote update cannot invalidate a job being committed in parallel.
-    base_config = db.scalar(select(ProviderConfig).where(ProviderConfig.id == 1)
-                            .with_for_update().execution_options(populate_existing=True))
+    config_lock = select(ProviderConfig).where(ProviderConfig.id == 1).with_for_update(
+        nowait=function == "schulbuddy"
+    ).execution_options(populate_existing=True)
+    try:
+        base_config = db.scalar(config_lock)
+    except OperationalError as error:
+        if function != "schulbuddy" or getattr(error.orig, "sqlstate", None) != "55P03":
+            raise
+        # No turn, reservation or rate-limit write from this attempt survives.
+        # Do not wait for an operator while holding the child's other locks.
+        db.rollback()
+        raise HTTPException(409, "Die KI-Einstellung wird gerade geändert. Bitte später erneut versuchen.") from None
     if function == "schulbuddy":
         from .schulbuddy_provider import configured
 
@@ -901,8 +912,8 @@ def reserve(db, family, child_id, job_id, function, synthetic_fixture=False, *, 
             503,
             "Dokumentierte Preisobergrenzen fehlen. Kosten sind unbekannt; der kostenpflichtige Aufruf bleibt gesperrt.",
         )
-    from .child_cost_controls import BASIS, quote_for, reservation_policy
     from .beta import application_for_family, approved
+    from .child_cost_controls import BASIS, quote_for, reservation_policy
 
     is_beta = approved(db, family.id, lock=True) and not synthetic_fixture
     if is_beta:
@@ -2052,9 +2063,9 @@ def request_provider(config, function, payload, image_bytes=None, *, synthetic_f
         if outgoing_payload is not payload:
             instructions += "\nmaterial.content_ref verweist auf die vollständig enthaltenen Quellen in materials[].content."
     if function == "learning_asset":
+        from .learning_assets import CONTENT_RULE
         from .learning_assets import RULES as ASSET_RULES
         from .learning_assets import bind_schema as bind_asset_schema
-        from .learning_assets import CONTENT_RULE
 
         bind_asset_schema(schema, payload)
         prune_schema(schema)
@@ -2827,8 +2838,8 @@ def verify_free_endpoint(model, upstream, image=False):
 def usage_summary(db, family):
     from datetime import datetime, timezone
 
-    from .commerce import access, usage_terms
     from .beta import approved
+    from .commerce import access, usage_terms
 
     period = datetime.now(timezone.utc).strftime("%Y-%m")
     bucket_id, calls_limit, budget = usage_terms(db, family)

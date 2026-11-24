@@ -13,6 +13,13 @@ spec.loader.exec_module(check)
 
 
 class PostgresCiResultsTest(unittest.TestCase):
+    def test_worker_restart_is_explicitly_required(self):
+        self.assertIn(
+            ("backend.tests.test_package_worker_process_restart",
+             "test_real_worker_kill_preserves_parts_and_requires_explicit_retry"),
+            check.REQUIRED_LIFECYCLE_TESTS,
+        )
+
     def test_account_assertion_cases_are_explicitly_required(self):
         expected = {
             ("backend.tests.test_expected_account_guard", name)

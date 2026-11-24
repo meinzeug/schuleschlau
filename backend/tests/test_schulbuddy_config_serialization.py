@@ -5,7 +5,7 @@ from threading import Event
 
 import pytest
 from schulpilot import schulbuddy
-from schulpilot.db import DB, Job, ProviderConfig, SchulbuddyTurn, Usage, engine
+from schulpilot.db import DB, Job, ProviderConfig, RateBucket, SchulbuddyTurn, Usage, engine
 from sqlalchemy import select, update
 from test_schulbuddy import ask, counts, finish
 from test_schulbuddy import book as book_fixture
@@ -70,12 +70,24 @@ def test_locked_provider_row_fails_closed_after_provider_call(api, book, transpo
 def test_locked_provider_row_rolls_back_new_reservation(api, book, transport):
     if engine.dialect.name != "postgresql":
         pytest.skip("PostgreSQL row locking required")
+    with DB() as db:
+        before = sorted((row.id, row.count) for row in db.scalars(
+            select(RateBucket).where(RateBucket.id.like('schulbuddy:%'))
+        ))
+    key = 'synthetic-locked-provider-retry'
     with ThreadPoolExecutor(max_workers=1) as pool:
         with DB.begin() as editor:
             editor.execute(select(ProviderConfig).where(ProviderConfig.id == 1).with_for_update())
-            response = pool.submit(ask, book).result(timeout=10)
+            response = pool.submit(ask, book, key=key).result(timeout=10)
             assert response.status_code == 409, response.text
     assert transport["calls"] == [] and counts() == (0, 0, 0, 0)
+    with DB() as db:
+        after = sorted((row.id, row.count) for row in db.scalars(
+            select(RateBucket).where(RateBucket.id.like('schulbuddy:%'))
+        ))
+    assert after == before
+    assert ask(book, key=key).status_code == 202
+    assert transport["calls"] == [] and counts() == (1, 1, 0, 0)
 
 
 def test_real_emergency_stop_waits_only_for_short_final_commit(api, book, transport, monkeypatch):
