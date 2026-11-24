@@ -49,9 +49,18 @@ class _ChildAccountState extends State<ChildAccount> {
     }
   }
 
-  Future<void> deviceDetails(Json session) async {
+  bool ownsDevices((Object?, String?, int?) identity) =>
+      mounted &&
+      ownerAccount != null &&
+      identical(state.user, ownerAccount) &&
+      state.api.ownsRequest(identity);
+
+  Future<void> deviceDetails(
+    Json session,
+    (Object?, String?, int?) identity,
+  ) async {
     final account = ownerAccount;
-    if (account == null || !identical(state.user, account)) return;
+    if (account == null || !ownsDevices(identity)) return;
     final navigator = Navigator.of(context, rootNavigator: true);
     late DialogRoute<void> route;
     String date(dynamic stamp) =>
@@ -91,9 +100,7 @@ class _ChildAccountState extends State<ChildAccount> {
         actions: [
           TextButton(
             onPressed: () {
-              if (ctx.mounted &&
-                  identical(state.user, account) &&
-                  route.isCurrent) {
+              if (ctx.mounted && route.isCurrent) {
                 Navigator.pop(ctx);
               }
             },
@@ -103,7 +110,7 @@ class _ChildAccountState extends State<ChildAccount> {
       ),
     );
     void changed() {
-      if (!identical(state.user, account) && route.isActive) {
+      if (!ownsDevices(identity) && route.isActive) {
         route.navigator?.removeRoute(route);
       }
     }
@@ -127,11 +134,12 @@ class _ChildAccountState extends State<ChildAccount> {
     openRoute(context, '/messages/$child');
   }
 
-  Future<void> revokeSession(Json session) async {
+  Future<void> revokeSession(
+    Json session,
+    (Object?, String?, int?) identity,
+  ) async {
     final account = state.user;
-    if (!identical(account, ownerAccount) ||
-        account == null ||
-        pendingSession != null) {
+    if (!ownsDevices(identity) || account == null || pendingSession != null) {
       return;
     }
     final current = session['current'] == true;
@@ -140,11 +148,11 @@ class _ChildAccountState extends State<ChildAccount> {
       if (!current) {
         ModalRoute<dynamic>? confirmationRoute;
         void accountChanged() {
-          if (identical(state.user, account)) return;
+          if (ownsDevices(identity)) return;
           final route = confirmationRoute;
           if (route == null) return;
           Future<void>.microtask(() {
-            if (!identical(state.user, account) && route.isActive) {
+            if (!ownsDevices(identity) && route.isActive) {
               route.navigator?.removeRoute(route);
             }
           });
@@ -168,7 +176,6 @@ class _ChildAccountState extends State<ChildAccount> {
                   TextButton(
                     onPressed: () {
                       if (dialogContext.mounted &&
-                          identical(state.user, account) &&
                           confirmationRoute?.isCurrent == true) {
                         Navigator.pop(dialogContext, false);
                       }
@@ -178,9 +185,8 @@ class _ChildAccountState extends State<ChildAccount> {
                   FilledButton(
                     onPressed: () {
                       if (dialogContext.mounted &&
-                          identical(state.user, account) &&
                           confirmationRoute?.isCurrent == true) {
-                        Navigator.pop(dialogContext, true);
+                        Navigator.pop(dialogContext, ownsDevices(identity));
                       }
                     },
                     child: const Text('Gerät abmelden'),
@@ -192,22 +198,26 @@ class _ChildAccountState extends State<ChildAccount> {
         } finally {
           state.removeListener(accountChanged);
         }
-        if (confirmed != true || !mounted || !identical(state.user, account)) {
+        if (confirmed != true || !ownsDevices(identity)) {
           return;
         }
       }
       setState(() => deletingSession = true);
       await state.api.delete('/auth/sessions/${session['id']}');
-      if (!identical(state.user, account)) return;
+      if (!ownsDevices(identity)) return;
       if (current) {
-        await state.clear(expectedUser: account);
+        await state.clear(
+          expectedUser: account,
+          expectedToken: identity.$2,
+          expectedAuthenticationRevision: identity.$3,
+        );
         if (mounted && state.user == null) context.go('/login');
       } else if (mounted) {
         setState(() => version++);
         toast(context, 'Gerät abgemeldet. Hier bleibst du angemeldet.');
       }
     } catch (error) {
-      if (mounted && identical(state.user, account)) showError(context, error);
+      if (mounted && ownsDevices(identity)) showError(context, error);
     } finally {
       if (mounted) {
         setState(() {
@@ -218,10 +228,11 @@ class _ChildAccountState extends State<ChildAccount> {
     }
   }
 
-  Future<void> revokeOthers(List<Json> sessions) async {
-    if (!mounted ||
-        ownerAccount == null ||
-        !identical(state.user, ownerAccount) ||
+  Future<void> revokeOthers(
+    List<Json> sessions,
+    (Object?, String?, int?) identity,
+  ) async {
+    if (!ownsDevices(identity) ||
         pendingSession != null ||
         ModalRoute.of(context)?.isCurrent == false) {
       return;
@@ -261,9 +272,7 @@ class _ChildAccountState extends State<ChildAccount> {
         actions: [
           TextButton(
             onPressed: () {
-              if (ctx.mounted &&
-                  identical(state.user, ownerAccount) &&
-                  route.isCurrent) {
+              if (ctx.mounted && route.isCurrent) {
                 Navigator.pop(ctx, false);
               }
             },
@@ -271,10 +280,8 @@ class _ChildAccountState extends State<ChildAccount> {
           ),
           FilledButton(
             onPressed: () {
-              if (ctx.mounted &&
-                  identical(state.user, ownerAccount) &&
-                  route.isCurrent) {
-                Navigator.pop(ctx, true);
+              if (ctx.mounted && route.isCurrent) {
+                Navigator.pop(ctx, ownsDevices(identity));
               }
             },
             child: Text('Andere Geräte abmelden'),
@@ -283,7 +290,7 @@ class _ChildAccountState extends State<ChildAccount> {
       ),
     );
     void changed() {
-      if (!identical(state.user, ownerAccount) && route.isActive) {
+      if (!ownsDevices(identity) && route.isActive) {
         route.navigator?.removeRoute(route);
       }
     }
@@ -295,7 +302,7 @@ class _ChildAccountState extends State<ChildAccount> {
     } finally {
       state.removeListener(changed);
     }
-    if (accepted != true || !mounted || !identical(state.user, ownerAccount)) {
+    if (accepted != true || !ownsDevices(identity)) {
       return;
     }
     setState(() {
@@ -305,25 +312,25 @@ class _ChildAccountState extends State<ChildAccount> {
     var removed = 0;
     try {
       final fresh = await state.api.list('/auth/sessions');
-      if (!mounted || !identical(state.user, ownerAccount)) return;
+      if (!ownsDevices(identity)) return;
       final stillOwn = fresh
           .where((s) => s['current'] != true && ids.contains(s['id']))
           .map((s) => s['id'].toString())
           .toList();
       for (final id in stillOwn) {
-        if (!mounted || !identical(state.user, ownerAccount)) return;
+        if (!ownsDevices(identity)) return;
         await state.api.delete('/auth/sessions/$id');
-        if (!mounted || !identical(state.user, ownerAccount)) return;
+        if (!ownsDevices(identity)) return;
         removed++;
       }
-      if (mounted && identical(state.user, ownerAccount)) {
+      if (mounted && ownsDevices(identity)) {
         toast(
           context,
           '$removed weitere ${removed == 1 ? 'Gerät ist' : 'Geräte sind'} abgemeldet. Hier bleibst du angemeldet.',
         );
       }
     } catch (error) {
-      if (mounted && identical(state.user, ownerAccount)) {
+      if (mounted && ownsDevices(identity)) {
         showError(
           context,
           ApiError(
@@ -336,7 +343,7 @@ class _ChildAccountState extends State<ChildAccount> {
         setState(() {
           pendingSession = null;
           deletingSession = false;
-          version++;
+          if (ownsDevices(identity)) version++;
         });
       }
     }
@@ -442,10 +449,26 @@ class _ChildAccountState extends State<ChildAccount> {
                       subtitle:
                           'Erkennst du ein Gerät nicht? Melde es hier ab.',
                     ),
-                  LoadView<List<dynamic>>(
+                  LoadView<(List<dynamic>, (Object?, String?, int?))>(
                     key: ValueKey('child-devices:$owner:$version'),
-                    load: () => state.api.list('/auth/sessions'),
-                    builder: (values, reload) {
+                    load: () async {
+                      final identity = state.api.requestIdentity();
+                      try {
+                        final values = await state.api.list('/auth/sessions');
+                        if (!ownsDevices(identity)) {
+                          throw ApiError('Bitte lade die Geräte erneut.');
+                        }
+                        return (values, identity);
+                      } catch (_) {
+                        if (!ownsDevices(identity)) {
+                          throw ApiError('Bitte lade die Geräte erneut.');
+                        }
+                        rethrow;
+                      }
+                    },
+                    builder: (result, reload) {
+                      final values = result.$1;
+                      final identity = result.$2;
                       final sessions =
                           values.map((value) => Json.from(value)).toList()
                             ..sort((a, b) {
@@ -480,7 +503,7 @@ class _ChildAccountState extends State<ChildAccount> {
                                 IconButton(
                                   tooltip: 'Geräte aktualisieren',
                                   onPressed: () {
-                                    if (identical(state.user, ownerAccount)) {
+                                    if (ownsDevices(identity)) {
                                       reload();
                                     }
                                   },
@@ -493,7 +516,7 @@ class _ChildAccountState extends State<ChildAccount> {
                               alignment: Alignment.centerLeft,
                               child: OutlinedButton.icon(
                                 onPressed: () {
-                                  if (identical(state.user, ownerAccount)) {
+                                  if (ownsDevices(identity)) {
                                     reload();
                                   }
                                 },
@@ -508,7 +531,7 @@ class _ChildAccountState extends State<ChildAccount> {
                               padding: EdgeInsets.only(top: 8),
                               child: OutlinedButton.icon(
                                 onPressed: pendingSession == null
-                                    ? () => revokeOthers(sessions)
+                                    ? () => revokeOthers(sessions, identity)
                                     : null,
                                 icon: Icon(Icons.devices_other_rounded),
                                 label: Text(
@@ -534,7 +557,11 @@ class _ChildAccountState extends State<ChildAccount> {
                                   ),
                                   const SizedBox(height: 12),
                                   OutlinedButton.icon(
-                                    onPressed: () => setState(() => version++),
+                                    onPressed: () {
+                                      if (ownsDevices(identity)) {
+                                        setState(() => version++);
+                                      }
+                                    },
                                     icon: const Icon(Icons.refresh_rounded),
                                     label: const Text('Geräte neu laden'),
                                   ),
@@ -553,8 +580,10 @@ class _ChildAccountState extends State<ChildAccount> {
                                       button: true,
                                       label: 'Geräteinfos ansehen',
                                       child: InkWell(
-                                        onTap: () =>
-                                            deviceDetails(Json.from(session)),
+                                        onTap: () => deviceDetails(
+                                          Json.from(session),
+                                          identity,
+                                        ),
                                         borderRadius: BorderRadius.circular(12),
                                         child: Padding(
                                           padding: EdgeInsets.symmetric(
@@ -651,6 +680,7 @@ class _ChildAccountState extends State<ChildAccount> {
                                             ? null
                                             : () => revokeSession(
                                                 Json.from(session),
+                                                identity,
                                               ),
                                         icon: Icon(
                                           deletingSession &&

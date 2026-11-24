@@ -3096,6 +3096,17 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Echtzeitstatus gezielt und zuverlässig bereitstellen**
 
+  - [x] **Kindergeräteliste und Abmeldungen an die Anmeldeabsicht binden.**
+    Späte Geräteantworten und Fehler werden nach einem Sitzungs- oder
+    Absichtswechsel verworfen. Bereits geöffnete Bestätigungen können keine
+    alte Abmeldung auslösen; bei einer laufenden Sammelabmeldung werden nach
+    einem Wechsel keine weiteren Geräte abgemeldet. Ein bereits angenommener
+    Löschauftrag bleibt bestehen und wird nicht automatisch wiederholt.
+    Der Abschluss einer alten Abmeldung darf eine neue Anmeldung nicht löschen.
+    Neun künstliche Widgettests prüfen die Einzel- und Sammelwege sowie
+    bewusstes Neuladen auch im Chrome-Webrunner bei 390 px. Die allgemeine
+    API- und Cookie-Race-Abnahme bleibt offen.
+
   - [x] **Familienübersicht und Klassenarbeitsauswahl an die Anmeldeabsicht binden.**
     Beide Familienabrufe prüfen Konto, Familie, Sitzung und Anmeldeabsicht
     nach Abschluss. Verspätete Ergebnisse und Fehler zeigen keine alten
