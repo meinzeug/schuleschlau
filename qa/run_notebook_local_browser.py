@@ -21,6 +21,7 @@ def test_environment(web_dir, scratch, path):
         "NOTEBOOK_LOCAL_BROWSER": "1",
         "RECALL_MOBILE_BROWSER": "1",
         "PARENT_PREFS_CAS_BROWSER": "1",
+        "NOTIFICATION_LOCAL_BROWSER": "1",
         "PYTHONPATH": str(ROOT / "backend"),
         "PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1",
     }
@@ -41,6 +42,7 @@ def main():
                 "backend/tests/test_notebook_local_browser.py",
                 "backend/tests/test_recall_mobile_browser.py",
                 "backend/tests/test_preferences_browser_cas.py",
+                "backend/tests/test_notification_cross_device_browser.py",
                 "--tb=short", "-ra", "--junitxml", str(Path(scratch) / "browser-results.xml"),
             ],
             cwd=ROOT,
@@ -61,6 +63,8 @@ def check_results(path):
         ("test_recall_mobile_browser", "test_recall_browser_rejects_external_database_before_import"),
         ("test_preferences_browser_cas", "test_real_browser_preferences_cas"),
         ("test_preferences_browser_cas", "test_browser_cas_refuses_external_test_database_before_import"),
+        ("test_notification_cross_device_browser", "test_browser_cross_device_notice_reads_and_round_link"),
+        ("test_notification_cross_device_browser", "test_notification_browser_rejects_external_database_before_import"),
     }
     root = ElementTree.parse(path).getroot()
     seen = set()

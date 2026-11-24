@@ -2814,6 +2814,19 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Benachrichtigung und direkte Zielnavigation vollständig prüfen**
 
+  - [x] **Glocke, Lesestatus und Rundenziel mit unabhängig angemeldeten Webclients prüfen.**
+    24.11.2026: Drei getrennte Browserkontexte mit künstlichen Konten und dem
+    tatsächlichen lokalen Backend prüfen bei 390 × 844 Pixeln 60 Meldungen,
+    sichtbarkeitsbezogene Lesebelege, das Nachladen und Scrollen im Glockenmenü,
+    die Gesamtansicht und den Link zur gespeicherten Runde. Zwei Sitzungen
+    desselben Kontos teilen ihren Lesestand; eine weitere berechtigte Person
+    behält ihren eigenen. Eine fremde Familie erhält keinen Zugriff. Der
+    reproduzierbare Test ist im lokalen Browser-CI-Gate enthalten. Ein
+    Android-Emulator-Test mit der installierten aktuellen APK scheiterte an
+    wiederholten System-UI-Hängern unter hoher VM-Last; er zählt nicht als
+    bestandene native Mehrgeräteabnahme. Das künstliche Testkonto wurde
+    gelöscht. [Prüfbericht](docs/NOTIFICATION_CROSS_CLIENT_2026_11_24.md).
+
   - [x] **Benachrichtigungen auf einem echten Gerät durch den Betreiber prüfen.**
     Am 08.11.2026 bestätigte der Betreiber, dass die Benachrichtigungen auf
     einem echten Gerät funktionieren. Dieser Nachweis beruht auf seiner
