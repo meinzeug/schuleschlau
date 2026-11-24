@@ -2,6 +2,15 @@
 
 ## Arbeitsstand 24. November 2026
 
+Die technische Abnahme „Elternübersicht, Noten und Planung gegen echte
+gespeicherte Fakten prüfen“ ist abgeschlossen. Der vollständige GitHub-Lauf
+45392669156 bestand für `94285b1`; der Prüfbericht
+`docs/PARENT_MULTICHILD_ACCEPTANCE_2026_11_05.md` trennt künstliche Browser-,
+SQLite- und PostgreSQL-Nachweise von weiterhin offenen Geräte-, Sicherheits-
+und Wirkungsprüfungen. Das gemeinsame Browsergate umfasst nun auch den
+Mehrkind- und PDF-Import. Ein eigenständiger Freizeitkalender wurde nicht
+abgenommen. Kein Deployment aus diesem Nachweis ableiten.
+
 Der Hauptpunkt „Abnahmen systematisch und wiederholbar automatisieren“ ist
 abgeschlossen; Umfang und Grenzen stehen in `ROADMAP.md` und
 `docs/ACCEPTANCE_AUTOMATION_2026_11_24.md`. Der vollständige GitHub-Lauf

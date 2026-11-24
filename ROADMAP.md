@@ -2717,7 +2717,22 @@ Bestandteil des bestehenden Buildvertrags.
   und Schutz bei Sitzungs-/Kindwechsel; 15 Widgettests bestanden. Damit wird
   weder Offline-Zugriff noch ein verschlüsselter Gerätespeicher behauptet.
 
-- [ ] **P1 – Elternübersicht, Noten und Planung gegen echte gespeicherte Fakten prüfen**
+- [x] **P1 – Elternübersicht, Noten und Planung gegen echte gespeicherte Fakten prüfen**
+
+  **Technische Abnahme 24.11.2026:** Zwei künstliche Kinder mit getrennten
+  gespeicherten Aufgaben, Versuchen, Hilfen, Lernzeiten, Noten und
+  Pflichtterminen wurden über die tatsächlichen Elternansichten bei 390 und
+  1440 Pixeln geprüft. Der künstliche PDF-Import wurde für beide Kinder bei
+  390 und 1280 Pixeln wiederholt; Vorschau und explizite Übernahme blieben
+  duplikatfrei, ohne Roh-PDF oder Lernbelege zu erzeugen. Rechte anderer
+  Familien und Kinder, private Schulnotizen und konkurrierende Importe wurden
+  gesondert auf SQLite und PostgreSQL geprüft. Der vollständige GitHub-Lauf
+  [45392669156](https://github.com/meinzeug/schuleschlau/actions/runs/45392669156)
+  bestand für `94285b1`, einschließlich des erweiterten Browsergates. Die
+  geprüften Pausen und freien Lerntage bilden den vorhandenen Freizeitumfang;
+  ein separates Freizeitkalendermodell ist hiermit nicht nachgewiesen.
+  Physische Geräte, unabhängige Sicherheit und Lernwirkung bleiben getrennte
+  Abnahmen. [Prüfbericht](docs/PARENT_MULTICHILD_ACCEPTANCE_2026_11_05.md).
 
   - [x] **Verspätete Lernplanantworten nach neuer Anmeldeabsicht begrenzen.**
     Überholte Ladeantworten und unklar abgeschlossene Auftragsänderungen

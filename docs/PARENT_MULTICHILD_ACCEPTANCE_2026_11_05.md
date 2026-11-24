@@ -9,11 +9,14 @@ HTTP-Ziele, Weiterleitungen, WebSockets und Serviceworker. Die Node-Prozesse
 erhalten eine begrenzte Umgebung ohne Provider- oder Datenbankgeheimnisse.
 Der gemeinsame Browserrunner fordert beide Abläufe, den Backendabgleich und
 die Datenbank-Schutzprüfung ausdrücklich ohne Skip ein.
+Der vollständige [GitHub-Lauf 45392669156](https://github.com/meinzeug/schuleschlau/actions/runs/45392669156)
+bestand für `94285b1` einschließlich des erweiterten Browsergates.
 
 Zusätzlich bestanden 95 SQLite-Fälle für Schulnoten, PDF-Import, Planung und
 Lernfortschritt sowie 71 PostgreSQL-Fälle für Mehrkindzugriffe, Noten und
 Import; zwei opt-in Browserfälle wurden im PostgreSQL-Lauf ausgelassen und
-separat auf SQLite im Browser ausgeführt. Geprüft werden unter anderem
+separat auf SQLite im Browser ausgeführt. Weitere 26 Fälle zu Elternplanung
+und Lernfortschritt bestanden auf isoliertem PostgreSQL. Geprüft werden unter anderem
 Ansichtsrechte, Wiederholungen und konkurrierende Importe, Änderungen an
 Vorschauen sowie dass Schulnoten und deren private Notizen nicht im
 simulierten KI-Auftrag landen. Die Screenshots von Lernfortschritt und Planung
