@@ -1046,7 +1046,10 @@ def process(job_id):
             job = db.get(Job, job_id)
             if not job or job.status != "running":
                 return
+            from .job_failures import failure_code
+
             job.status, job.error, job.finished = "failed", reason[:500], int(now())
+            job.error_code = failure_code(error)
             turn = db.get(ExamReviewTurn, job.payload.get("turn_id")) if job.payload.get("turn_id") else None
             review = db.get(ExamReview, job.payload.get("review_id"))
             if turn:

@@ -210,6 +210,27 @@ def test_exam_review_trace_tracks_actual_queued_and_completed_job_without_source
     assert len(transport['calls']) == 1
 
 
+def test_failed_exam_review_trace_is_bounded_and_read_only(api, paper, transport):
+    def fail():
+        raise ProviderError('synthetic private exam provider detail', code='provider_timeout')
+
+    transport['effect'] = fail
+    job_id = analyze(paper)['id']
+    assert finish() == job_id
+    with DB() as db:
+        before = tuple(db.scalar(select(func.count()).select_from(model)) for model in (Job, Usage, Attempt, Activity, Mastery))
+    for _ in range(2):
+        response = api.get(f'/api/jobs/{job_id}/trace')
+        assert response.status_code == 200
+        data = response.json()
+        assert data['phase'] == 'exam_review' and data['status'] == 'failed'
+        assert data['error_code'] == 'provider_timeout'
+        assert data['sources'] == [{'id': paper['material_id'], 'revision': 1, 'current_revision': 1}]
+        assert EXAM_TEXT not in response.text and 'synthetic private exam provider detail' not in response.text
+    with DB() as db:
+        assert tuple(db.scalar(select(func.count()).select_from(model)) for model in (Job, Usage, Attempt, Activity, Mastery)) == before
+
+
 def test_coach_job_trace_retains_its_bound_source_revision(api, normal_unit, monkeypatch):
     kid, unit_id, material_id, _, _ = normal_unit
     calls = mocked_review(monkeypatch)

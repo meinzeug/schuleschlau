@@ -2093,6 +2093,13 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Gesamte Verarbeitungskette durchgängig nachvollziehbar machen**
 
+  - [x] **Fehler bei der Klassenarbeitsnacharbeit nachvollziehbar machen.**
+    Neue fehlgeschlagene Aufträge erhalten die begrenzte Fehlerklasse. Ein
+    künstlicher Anbieter-Timeout wurde im regulären Worker ausgelöst und in
+    der Elternspur ohne Anbietertext mit gebundener Quellenrevision geprüft.
+    Wiederholtes Lesen ändert keine Aufträge, Antworten oder Lernstände.
+    Für die vollständige Phasenabnahme sind weitere Fehlerfälle erforderlich.
+
   - [x] **Quellenfassungen neuer Lernrückblicke erhalten.**
     Neue Rückblickaufträge speichern ausschließlich die bereits geprüften
     Quellenkennungen und Revisionen. Die Elternspur zeigt deren damaligen und

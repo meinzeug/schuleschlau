@@ -2,6 +2,11 @@
 
 ## Arbeitsstand 24. November 2026
 
+Am 25.11. wurde auch bei Klassenarbeitsnacharbeit die begrenzte
+Fehlerklassifizierung ergänzt und ein künstlicher Timeout im Worker samt
+Elternspur und PostgreSQL geprüft. Der Hauptpunkt zur durchgehenden
+Verarbeitungskette bleibt offen; weitere Phasen und Fehler sind zu prüfen.
+
 Die Auftragsspur unterscheidet seit 25.11. zusätzlich mehrere feste
 Auftragsphasen und zeigt ausdrücklich gebundene Klassenarbeitsseitenfassungen
 ohne Inhalt. Neue Lernrückblickaufträge bewahren ihre geprüften Quellenfassungen.

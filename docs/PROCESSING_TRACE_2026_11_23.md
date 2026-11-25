@@ -58,3 +58,11 @@ Die abschließende Regression für Auftragsspur und Lernrückblick bestand mit
 je 89 Fällen auf isoliertem SQLite und PostgreSQL. Die Elternansicht bestand
 18 Widgetfälle auf der Flutter-VM und im Chrome-Webrunner. Die
 Anbieterantworten und Fehler waren künstlich.
+
+Bei neuen Fehlern der Klassenarbeitsnacharbeit wird die vorhandene begrenzte
+Fehlerklassifizierung ebenfalls gespeichert. Ein künstlicher Timeout im
+regulären Worker ist mit der gebundenen Quellenrevision über die Elternspur
+nachvollziehbar; Anbietertext und Aufgabeninhalt werden dort nicht ausgegeben.
+Wiederholte Spurabrufe erzeugen keine Aufträge oder Lernnachweise. Der Test
+wurde auch mit isoliertem PostgreSQL ausgeführt. Frühere Fehler bleiben
+unverändert; die vollständige Abnahme aller Verarbeitungsschritte ist offen.
