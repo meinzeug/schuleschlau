@@ -303,7 +303,7 @@ def test_invalid_citations_fail_honestly_without_changing_learning_results(api, 
     else:
         transport["output"]["sources"] *= 2
     assert ask(notebook).status_code == 202
-    finish()
+    job_id = finish()
     turn = saved(api, notebook)[0]
     assert turn["status"] == "failed" and turn["reply"] is None and turn["error"]
     assert len(transport["calls"]) == 1
@@ -311,6 +311,30 @@ def test_invalid_citations_fail_honestly_without_changing_learning_results(api, 
         assert db.scalar(select(Usage)).cost_micros == 0
         assert db.scalar(select(func.count()).select_from(Attempt)) == 0
         assert db.scalar(select(Activity.id).where(Activity.kind == "explanation")) is None
+        before = tuple(db.scalar(select(func.count()).select_from(model)) for model in (Job, Usage, Attempt, Activity, Mastery))
+    for _ in range(2):
+        trace = api.get(f"/api/jobs/{job_id}/trace")
+        assert trace.status_code == 200
+        assert trace.json()["phase"] == "tutor" and trace.json()["error_code"] == "invalid_output"
+        assert trace.json()["sources"] == [{"id": notebook["material_id"], "revision": 1, "current_revision": 1}]
+        assert TEXT not in trace.text and QUESTION not in trace.text
+    with DB() as db:
+        assert tuple(db.scalar(select(func.count()).select_from(model)) for model in (Job, Usage, Attempt, Activity, Mastery)) == before
+
+
+def test_tutor_trace_uses_only_its_own_bound_turn_and_retains_revision(api, notebook, transport):
+    assert ask(notebook).status_code == 202
+    job_id = finish()
+    with DB.begin() as db:
+        db.get(Material, notebook["material_id"]).revision += 1
+    response = api.get(f"/api/jobs/{job_id}/trace")
+    assert response.status_code == 200
+    assert response.json()["sources"] == [{"id": notebook["material_id"], "revision": 1, "current_revision": 2}]
+    assert TEXT not in response.text and QUESTION not in response.text
+    with DB.begin() as db:
+        turn = db.scalar(select(TutorTurn).where(TutorTurn.job_id == job_id))
+        turn.job_id = None
+    assert api.get(f"/api/jobs/{job_id}/trace").json()["sources"] == []
 
 
 @pytest.mark.parametrize("kind", ["clarification", "not_in_material"])

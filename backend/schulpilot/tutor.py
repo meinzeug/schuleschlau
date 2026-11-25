@@ -435,7 +435,8 @@ def checked_reply(data, payload, revisions):
     try:
         reply = TutorOutput.model_validate(data).model_dump()
     except ValidationError:
-        raise ProviderError("Die Antwort konnte nicht sicher geprüft werden. Bitte stelle die Frage erneut.") from None
+        raise ProviderError("Die Antwort konnte nicht sicher geprüft werden. Bitte stelle die Frage erneut.",
+                            code="invalid_output") from None
     by_ref = {source["ref"]: source for source in [*payload["sources"], *payload.get("foundations", [])]}
     metadata = {source["ref"]: source for source in revisions}
     seen = set()
@@ -443,7 +444,8 @@ def checked_reply(data, payload, revisions):
         source = by_ref.get(citation["ref"])
         quote = normalized_quote(citation["quote"])
         if not source or quote not in normalized_quote(source["content"]) or (citation["ref"], quote) in seen:
-            raise ProviderError("Die Antwort enthält keinen passenden wörtlichen Quellenbeleg. Bitte frage erneut.")
+            raise ProviderError("Die Antwort enthält keinen passenden wörtlichen Quellenbeleg. Bitte frage erneut.",
+                                code="invalid_output")
         seen.add((citation["ref"], quote))
         if citation["ref"].startswith("k"):
             citation.update(label=source["label"], foundation_id=source["id"], version=source["version"],
@@ -453,7 +455,7 @@ def checked_reply(data, payload, revisions):
         else:
             citation.update(label=metadata[citation["ref"]]["label"], material_id=metadata[citation["ref"]]["id"])
     if reply["kind"] == "foundation" and not any(c.get("origin") == "reviewed_supplement" for c in reply["sources"]):
-        raise ProviderError("Die ergänzende Erklärung hat keinen geprüften Grundwissen-Beleg.")
+        raise ProviderError("Die ergänzende Erklärung hat keinen geprüften Grundwissen-Beleg.", code="invalid_output")
     return reply
 
 

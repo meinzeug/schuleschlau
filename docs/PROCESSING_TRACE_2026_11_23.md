@@ -79,3 +79,13 @@ Ein weiterer künstlicher Fall ändert die Seite während des Anbieteraufrufs:
 Das Ergebnis wird verworfen und die Elternspur zeigt die gebundene alte
 neben der aktuellen Revision sowie `source_changed`. SQLite und isoliertes
 PostgreSQL bestehen diesen und drei weitere Autoritäts-/Kontextwechsel.
+
+Für Heftfragen liest die Elternspur gespeicherte Quellenrevisionen aus dem
+zugehörigen Tutorvorgang, sofern dessen Auftrags- und Kindzuordnung
+übereinstimmen. Frage, Antwort, Zitat und gespeichertes Quellenlabel werden
+nicht ausgegeben. Verwirft die Quellenprüfung eine Antwort oder ein Zitat,
+speichern neue Fehler die Klasse `invalid_output`. Vier künstliche Fälle mit
+unpassenden Quellenbelegen und ein erfolgreicher, später geänderter
+Quellenstand wurden auf SQLite und isoliertem PostgreSQL geprüft. Entferntes
+oder unpassendes Bindeglied ergibt eine leere Quellenliste. Die Fälle
+belegen keine generelle fachliche Qualität von Tutorantworten.

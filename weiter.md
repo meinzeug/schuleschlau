@@ -2,6 +2,12 @@
 
 ## Arbeitsstand 24. November 2026
 
+Die Elternspur verknüpft Heftfragen jetzt mit ihren ausdrücklich gespeicherten
+Tutor-Quellenfassungen und klassifiziert zurückgewiesene Zitate. Geprüft sind
+künstliche Tutorläufe mit SQLite und isoliertem PostgreSQL; Frage und Antwort
+erscheinen nicht in der Spur. Die vollständige Abnahme der gesamten
+Verarbeitungskette bleibt offen.
+
 Neue Grafikvorbereitungen speichern die tatsächlich im Grafikkontext
 verwendeten Quellenrevisionen. Eine ungültige Grafikantwort erhält eine
 datensparsame Fehlerklasse, ohne gespeicherte Übungen zu verändern. Alte

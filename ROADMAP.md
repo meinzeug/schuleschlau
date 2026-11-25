@@ -2093,6 +2093,14 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Gesamte Verarbeitungskette durchgängig nachvollziehbar machen**
 
+  - [x] **Quellen und Fehler von Heftfragen nachvollziehbar machen.**
+    Die Elternspur zeigt nur ausdrücklich am zugehörigen Tutorvorgang
+    gespeicherte Seitenfassungen. Unpassende Zitate und ungültige Antworten
+    werden als begrenzte Fehlerklasse ausgewiesen. Künstliche reguläre
+    Tutorläufe prüfen Erfolg, vier fehlerhafte Quellenbelege, geänderte
+    Seiten und wiederholte lesende Abfragen auf SQLite und PostgreSQL.
+    Andere Phasen und ihre vollständige Abnahme bleiben offen.
+
   - [x] **Grafikvorbereitung bei ungültiger Antwort nachverfolgen.**
     Neue Aufträge bewahren die tatsächlich verwendeten Seitenfassungen; alte
     idempotente Anfragen funktionieren weiterhin. Schema- und Fachprüfungsfehler
