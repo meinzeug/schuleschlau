@@ -21,8 +21,10 @@ from .db import Job, LearningUnit, UnitSource, Usage
 from .source_lineage_models import SourceImageReceipt, SourceInvalidation, SourceRevision
 from .subject_content import SourceBlock
 
-POLICY_VERSION = "literal-safety-2"
+POLICY_VERSION = "literal-safety-3"
 PREPROCESS_VERSION = "exif-rgb-max3200-jpeg95-1"
+AUTO_CONFLICT_SUMMARY = "Abweichender Schüler-/Korrekturbereich bleibt ungeklärt."
+AUTO_CONFLICT_LOCAL = "Die beiden Abschriften dieses Schüler-/Korrekturbereichs unterscheiden sich; Original erhalten."
 REASONS = {
     "exam_only": "Eine korrigierte Arbeit ist keine allgemeine Lernstoffquelle.",
     "unreadable": "Der Wortlaut ist nicht lesbar.",
@@ -184,6 +186,51 @@ def block_data(material):
     return result
 
 
+def _auto_conflict_summary_is_local(db, material, blocks):
+    """Recognize only an exactly reproducible automatic merge, never model-supplied warnings."""
+    if (db is None or not material.image_digest
+            or not any(AUTO_CONFLICT_LOCAL in block.get("reading_uncertainties", []) for block in blocks)):
+        return False
+    auto = db.scalar(select(SourceRevision).where(
+        SourceRevision.material_id == material.id, SourceRevision.child_id == material.child_id,
+        SourceRevision.revision == material.revision, SourceRevision.cause == "auto_check",
+    ).order_by(SourceRevision.sequence.desc()).limit(1))
+    if not auto or auto.snapshot != source_snapshot(material) or not isinstance(auto.receipt, dict):
+        return False
+    receipt = auto.receipt
+    if receipt.get("origin") != "automatic_image_countercheck" or receipt.get("check_status") != "checked":
+        return False
+    first = db.get(SourceRevision, receipt.get("first_snapshot_id"))
+    second = db.get(SourceRevision, receipt.get("second_snapshot_id"))
+    if not first or not second:
+        return False
+    for row, cause in ((first, "extraction"), (second, "auto_check_reading"), (auto, "auto_check")):
+        if (not isinstance(row.snapshot, dict) or not isinstance(row.receipt, dict)
+                or row.material_id != material.id or row.child_id != material.child_id or row.cause != cause
+                or row.digest != digest({"literal": row.snapshot, "receipt": row.receipt})):
+            return False
+    if (first.revision != material.revision - 1 or second.revision != first.revision
+            or first.digest != receipt.get("first_snapshot_digest")
+            or first.receipt.get("job_id") != receipt.get("first_job_id")
+            or second.receipt.get("job_id") != receipt.get("job_id")
+            or any(row.snapshot.get("image_digest") != material.image_digest for row in (first, second))):
+        return False
+    if any(not isinstance(row.snapshot.get("uncertainties"), list)
+           or AUTO_CONFLICT_SUMMARY in row.snapshot["uncertainties"] for row in (first, second)):
+        return False
+    try:
+        from .extraction import validate_material
+        from .material_review import _protected_readings
+        from .schemas import ExtractionOutput
+
+        raw = {key: second.snapshot[key] for key in ExtractionOutput.model_fields if key in second.snapshot}
+        merged = validate_material(_protected_readings(raw, first))
+        keys = ("subject", "topic", "content", "source_blocks", "uncertainties", "homework", "legibility")
+        return all(merged[key] == auto.snapshot.get(key) for key in keys)
+    except (ValueError, TypeError, KeyError, AttributeError):
+        return False
+
+
 def learning_source(db, material, revision=None):
     """Read-only projection: exact eligible block text + explicit exclusions.
 
@@ -219,8 +266,14 @@ def learning_source(db, material, revision=None):
     # any block and must remain conservative until explicit confirmation.
     local_warnings = {warning for block in blocks for warning in block.get("reading_uncertainties", [])}
     warnings = material.uncertainties
+    scoped_auto_summary = (
+        isinstance(warnings, list) and AUTO_CONFLICT_SUMMARY in warnings
+        and _auto_conflict_summary_is_local(db, material, blocks)
+    )
     page_warning = not isinstance(warnings, list) or any(
-        not isinstance(warning, str) or not warning.strip() or warning not in local_warnings for warning in warnings
+        not isinstance(warning, str) or not warning.strip() or (
+            warning not in local_warnings and not (warning == AUTO_CONFLICT_SUMMARY and scoped_auto_summary)
+        ) for warning in warnings
     )
     has_reading_warning = page_warning or bool(local_warnings)
     reading_confirmed = False

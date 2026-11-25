@@ -221,7 +221,7 @@ async function uploadAndConfirm(day) {
       await tap(childPage, button(childPage, 'Fotos auswählen'));
       await (await picked).setFiles(images);
       for (let index = 0; index < images.length; index++) {
-        const crop = button(childPage, 'Zuschnitt übernehmen');
+        const crop = button(childPage, 'Foto übernehmen');
         await crop.waitFor({state: 'attached', timeout: 30000});
         await tap(childPage, crop, {modal: true});
         await childPage.waitForTimeout(700);

@@ -428,8 +428,8 @@ async function prepareDay() {
     await tap(page, button(page, 'Fotos auswählen'));
     await (await chosen).setFiles(account.image_paths);
     for (let index = 0; index < 2; index++) {
-      await button(page, 'Zuschnitt übernehmen').waitFor({state: 'attached', timeout: 30000});
-      await tap(page, button(page, 'Zuschnitt übernehmen'), {modal: true});
+      await button(page, 'Foto übernehmen').waitFor({state: 'attached', timeout: 30000});
+      await tap(page, button(page, 'Foto übernehmen'), {modal: true});
       await page.waitForTimeout(700);
     }
     day = await waitDay(value => value.pages.length === 2, 'two_original_photo_uploads');

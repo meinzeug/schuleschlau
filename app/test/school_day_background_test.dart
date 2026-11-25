@@ -347,7 +347,7 @@ void main() {
     expect(server.reads, readsAway);
     navigation.go('/after-school/child');
     await settleUi(tester);
-    expect(find.text('Seite 1 prüfen'), findsOneWidget);
+    expect(find.text('Seite 1 ansehen'), findsOneWidget);
     expect(server.submissions, 1);
     expect(server.pages.single['confirmed'], false);
     expect(tester.takeException(), isNull);
@@ -384,7 +384,7 @@ void main() {
       );
       await tapText(tester, 'Heftseite löschen');
       expect(server.pages.single['id'], 'page2');
-      expect(find.text('Seite 2 prüfen'), findsOneWidget);
+      expect(find.text('Seite 2 ansehen'), findsOneWidget);
       expect(server.pages.single['confirmed'], false);
 
       await tapText(tester, 'Seite löschen');
@@ -432,7 +432,7 @@ void main() {
 
   for (final width in [320.0, 1280.0]) {
     testWidgets(
-      'Confirmation and package preparation never auto start on $width px',
+      'Offene Seiten überlässt das Kind den Eltern auf $width px',
       (tester) async {
         mobile(tester, width);
         final server = PreparationServer(
@@ -448,25 +448,11 @@ void main() {
         await settleUi(tester);
         expect(server.pages.single['confirmed'], false);
         expect(find.byType(CheckboxListTile), findsNothing);
-        await tapText(tester, 'Stimmt, weiter');
-        expect(server.pages.single['confirmed'], true);
+        expect(find.text('Stimmt, weiter'), findsNothing);
+        expect(find.text('Diese Seite prüfen deine Eltern. Dein Foto ist gespeichert.'), findsOneWidget);
+        expect(server.pages.single['confirmed'], false);
         expect(server.submissions, 0);
-        expect(find.text('Noch eine Seite hinzufügen'), findsOneWidget);
-        await tapText(tester, 'Im Hintergrund vorbereiten');
-        expect(server.submissions, 1);
-        expect(find.text('Dein Lernpaket entsteht'), findsOneWidget);
-        server.ready();
-        await tester.pump(const Duration(seconds: 3));
-        await settleUi(tester);
-        expect(find.text('Dein Lernpaket ist bereit'), findsOneWidget);
         expect(server.starts, 0);
-        expect(
-          navigation.routeInformationProvider.value.uri.path,
-          '/after-school/child',
-        );
-        await tapText(tester, 'Jetzt lernen');
-        expect(server.starts, 1);
-        expect(find.text('Freiwillig gestartet'), findsOneWidget);
         expect(tester.takeException(), isNull);
       },
     );
@@ -487,13 +473,10 @@ void main() {
         MaterialApp.router(theme: appTheme(), routerConfig: navigation),
       );
       await settleUi(tester);
-      await tapText(tester, 'Stimmt, weiter');
+      expect(find.text('Stimmt, weiter'), findsNothing);
       await tapText(tester, 'Noch eine Seite hinzufügen');
       expect(find.text('Fotos auswählen'), findsOneWidget);
-      expect(server.pages.single['confirmed'], true);
-      await tapText(tester, 'Mit diesen Seiten weiter');
-      expect(find.text('Alle Seiten geprüft!'), findsOneWidget);
-      expect(find.text('Im Hintergrund vorbereiten'), findsOneWidget);
+      expect(server.pages.single['confirmed'], false);
       expect(server.submissions, 0);
       expect(server.starts, 0);
       expect(tester.takeException(), isNull);
@@ -569,7 +552,7 @@ void main() {
         tester.binding.handleAppLifecycleStateChanged(lifecycle);
       }
       await settleUi(tester);
-      expect(find.text('Seite 1 prüfen'), findsOneWidget);
+      expect(find.text('Seite 1 ansehen'), findsOneWidget);
       expect(server.submissions, 0);
       expect(server.starts, 0);
       expect(tester.takeException(), isNull);
@@ -602,7 +585,7 @@ void main() {
     delayed.complete(oldDay);
     await settleUi(tester);
     expect(server.reads, 2);
-    expect(find.text('Seite 1 prüfen'), findsOneWidget);
+    expect(find.text('Seite 1 ansehen'), findsOneWidget);
     expect(
       server.requests.where((request) => !request.startsWith('GET ')),
       isEmpty,
@@ -750,7 +733,7 @@ void main() {
     expect(server.reads, hiddenReads);
     navigation.pop();
     await settleUi(tester);
-    expect(find.text('Seite 1 prüfen'), findsOneWidget);
+    expect(find.text('Seite 1 ansehen'), findsOneWidget);
     expect(server.submissions, 0);
     expect(tester.takeException(), isNull);
   });
@@ -784,7 +767,7 @@ void main() {
   );
 
   testWidgets(
-    'Yesterday can still be confirmed and submitted without new photos',
+    'Yesterday stays saved and is reviewed by parents',
     (tester) async {
       mobile(tester);
       final server = PreparationServer(
@@ -798,18 +781,13 @@ void main() {
         MaterialApp.router(theme: appTheme(), routerConfig: navigation),
       );
       await settleUi(tester);
-      expect(find.text('Seite 1 prüfen'), findsOneWidget);
+      expect(find.text('Seite 1 ansehen'), findsOneWidget);
       expect(find.text('Noch eine Seite hinzufügen'), findsNothing);
       expect(find.byType(CheckboxListTile), findsNothing);
-      await tapText(tester, 'Stimmt, weiter');
-      await tapText(tester, 'Im Hintergrund vorbereiten');
-      expect(server.submissions, 1);
-      expect(
-        server.requests.any(
-          (r) => r.contains('/stage') || r.contains('/materials?'),
-        ),
-        false,
-      );
+      expect(find.text('Stimmt, weiter'), findsNothing);
+      expect(find.text('Diese Seite prüfen deine Eltern. Dein Foto ist gespeichert.'), findsOneWidget);
+      expect(server.submissions, 0);
+      expect(server.starts, 0);
       expect(tester.takeException(), isNull);
     },
   );
@@ -939,6 +917,78 @@ void main() {
     },
   );
   testWidgets(
+    'Explicit bulk option keeps all selected photos without another crop dialog',
+    (tester) async {
+      mobile(tester);
+      final dir = await tester.runAsync(
+        () => Directory.systemTemp.createTemp('schulpilot-gallery-bulk-'),
+      );
+      addTearDown(() => dir!.delete(recursive: true));
+      final paths = <String>[];
+      await tester.runAsync(() async {
+        for (var i = 0; i < 3; i++) {
+          final photo = image.Image(width: 30, height: 40);
+          photo.setPixelRgb(i + 1, 1, 20, 40, 60);
+          final file = File('${dir!.path}/page-$i.png');
+          await file.writeAsBytes(image.encodePng(photo));
+          paths.add(file.path);
+        }
+      });
+      const picker = MethodChannel('plugins.flutter.io/image_picker');
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        picker,
+        (call) async => paths,
+      );
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          picker,
+          null,
+        ),
+      );
+      final server = PreparationServer(pages: [])..realUploads = true;
+      final state = server.state();
+      final navigation = router(state);
+      addTearDown(navigation.dispose);
+      await tester.pumpWidget(
+        MaterialApp.router(theme: appTheme(), routerConfig: navigation),
+      );
+      await settleUi(tester);
+      await tapText(tester, 'Fotos auswählen');
+      for (
+        var wait = 0;
+        wait < 300 && find.text('Weitere unverändert').evaluate().isEmpty;
+        wait++
+      ) {
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 30)),
+        );
+        await settleUi(tester);
+      }
+      await tapText(tester, 'Weitere unverändert');
+      expect(find.textContaining('Namen bleiben sichtbar.'), findsOneWidget);
+      await tester.tap(find.text('Abbrechen').last);
+      await settleUi(tester);
+      expect(find.text('Foto übernehmen'), findsOneWidget);
+      expect(server.uploads, 0);
+      await tapText(tester, 'Weitere unverändert');
+      await tapText(tester, 'Fotos übernehmen');
+      for (var wait = 0; wait < 300 && server.uploads < 3; wait++) {
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 30)),
+        );
+        await settleUi(tester);
+      }
+      expect(server.uploads, 3);
+      final receipts = await state.pendingUploads.receipts('kid');
+      expect(receipts.where((r) => r['stage'] == 'saved'), hasLength(3));
+      expect(find.text('Foto übernehmen'), findsNothing);
+      expect(server.submissions, 0);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
+  testWidgets(
     'Ten selected files retain eight saved receipts and two clear rejections',
     (tester) async {
       mobile(tester);
@@ -979,7 +1029,7 @@ void main() {
       for (var i = 0; i < 8; i++) {
         for (
           var wait = 0;
-          wait < 300 && find.text('Zuschnitt übernehmen').evaluate().isEmpty;
+          wait < 300 && find.text('Foto übernehmen').evaluate().isEmpty;
           wait++
         ) {
           await tester.runAsync(
@@ -988,11 +1038,11 @@ void main() {
           await settleUi(tester);
         }
         expect(
-          find.text('Zuschnitt übernehmen'),
+          find.text('Foto übernehmen'),
           findsOneWidget,
           reason: 'crop ${i + 1}',
         );
-        await tester.tap(find.text('Zuschnitt übernehmen'));
+        await tester.tap(find.text('Foto übernehmen'));
         await tester.pump(const Duration(milliseconds: 80));
         await tester.runAsync(
           () => Future<void>.delayed(const Duration(milliseconds: 100)),
@@ -1084,7 +1134,7 @@ void main() {
         }
         for (
           var wait = 0;
-          wait < 100 && find.text('Zuschnitt übernehmen').evaluate().isEmpty;
+          wait < 100 && find.text('Foto übernehmen').evaluate().isEmpty;
           wait++
         ) {
           await tester.runAsync(
@@ -1092,8 +1142,8 @@ void main() {
           );
           await settleUi(tester);
         }
-        expect(find.text('Zuschnitt übernehmen'), findsOneWidget);
-        await tester.tap(find.text('Zuschnitt übernehmen'));
+        expect(find.text('Foto übernehmen'), findsOneWidget);
+        await tester.tap(find.text('Foto übernehmen'));
         for (var wait = 0; wait < 100 && !collectingRequested; wait++) {
           await tester.runAsync(
             () => Future<void>.delayed(const Duration(milliseconds: 30)),

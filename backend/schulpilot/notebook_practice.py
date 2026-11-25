@@ -53,7 +53,7 @@ def _sources(db, child, material_id, refs):
             raise HTTPException(422, "Bitte für eine Runde Heftseiten aus demselben Fach auswählen.")
         safe = learning_source(db, page, revision=ref["revision"])
         if not safe["content"].strip():
-            raise HTTPException(409, "Eine gewählte Seite enthält noch keine verwendbare Lehrgrundlage. Bitte zuerst prüfen.")
+            raise HTTPException(409, "Diese Seite ist noch nicht zum Lernen bereit. Deine Eltern können sie prüfen.")
         total += len(page.content)
         if total > 60_000:
             raise HTTPException(422, "Bitte für eine Runde höchstens 60000 Zeichen bestätigten Heftstoff auswählen.")

@@ -144,7 +144,7 @@ def test_child_background_ocr_stops_for_review_then_explicit_package_no_autostar
         assert state["confirmed_count"] == 0 and state["units"] == []
         assert step() is None and calls == ["extract"] * 3
         assert submit(kid, day)["status"] == "needs_review"
-        review(kid, day)
+        review(api, day)
         assert step() is None  # Confirmation never dispatches a package.
         prepared = submit(kid, day)
         assert prepared["phase"] == "package" and prepared["status"] == "processing"
@@ -682,7 +682,7 @@ def test_ready_push_does_not_require_daily_learning_reminders(api, household, mo
         registration = device(kid)
         submit(kid, day)
         assert step()
-        review(kid, day)
+        review(api, day)
         submit(kid, day)
         assert step()
         with DB.begin() as db:

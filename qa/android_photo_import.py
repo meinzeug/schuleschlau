@@ -401,9 +401,9 @@ def main():
         choose_two_in_system_picker()
         PHASE = "native-crop"
         for index in range(1, 3):
-            wait("Zuschnitt übernehmen", seconds=35)
+            wait("Foto übernehmen", seconds=35)
             screenshot(f"android-photo-import-crop-{index}.png")
-            press("Zuschnitt übernehmen")
+            press("Foto übernehmen")
             probe["ui_crops_confirmed"] = index
             save_probe(probe)
             time.sleep(1)

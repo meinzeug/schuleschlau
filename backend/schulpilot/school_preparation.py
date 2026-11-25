@@ -185,8 +185,8 @@ def _notify(db, day, state, status):
     from .db import Message
 
     body = {
-        "needs_review": "Deine Heftseiten sind erkannt. Bitte schau sie dir an.",
-        "needs_photo": "Bitte fotografiere eine Heftseite noch einmal.",
+        "needs_review": "Deine Fotos sind gespeichert. Deine Eltern können offene Stellen prüfen.",
+        "needs_photo": "Deine Fotos sind gespeichert. Deine Eltern können eine unlesbare Seite prüfen.",
         "ready": "Dein Lernpaket ist bereit. Starte, wenn es für dich passt.",
         "saved": "Deine Seiten sind für spätere Lerntage gespeichert.",
     }[status]
@@ -777,7 +777,7 @@ def _advance(db, day):
                    day_revision=day.revision, error=None)
             _notify(db, day, state, "saved")
             return
-        raise ProviderError("Die Heftseiten enthalten noch keine verwendbare Lehrgrundlage. Bitte unsichere oder fehlerhafte Stellen zuerst prüfen.")
+        raise ProviderError("Diese Seiten sind noch nicht zum Lernen bereit. Deine Eltern können sie prüfen.")
 
     if sum(len(m.content) for m in source_pages) > MAX_CONTENT:
         raise ProviderError("Der Text ist für ein Paket zu umfangreich. Bitte mit deinen Eltern den Stoff eingrenzen.")
@@ -785,7 +785,7 @@ def _advance(db, day):
     selected = [g for g in preview["groups"] if g["selected"]]
     if not selected:
         if any(group.get("blocked_reason") for group in preview["groups"]):
-            raise ProviderError("Die neuen Heftquellen sind noch ungeklärt. Bitte zuerst die markierten Stellen prüfen.")
+            raise ProviderError("Diese Seiten sind noch nicht zum Lernen bereit. Deine Eltern können sie prüfen.")
         _saved(db, day, state)
         return
     if state.get("review_origin") and not state.get("package_plan"):

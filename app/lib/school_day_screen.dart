@@ -666,7 +666,7 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
       return page['confirmed'] == true
           ? 'Gespeichert · erkannt · geprüft'
           : page['status'] == 'review'
-          ? 'Gespeichert · erkannt · noch zu prüfen'
+          ? 'Gespeichert · Elternprüfung offen'
           : page['status'] == 'unreadable'
           ? 'Gespeichert · Foto nicht lesbar'
           : 'Gespeichert · Erkennung noch offen';
@@ -748,6 +748,7 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
       }
       Object? firstError;
       bool canSend = true;
+      bool useRemainingUnchanged = false;
       for (var i = 0; i < files.length && i < remaining; i++) {
         if (!currentCapture()) return;
         try {
@@ -759,7 +760,21 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
           if (!mounted || !currentCapture()) return;
           CropFrame? cropFrame;
           Uint8List? bytes;
-          var again = true;
+          if (useRemainingUnchanged) {
+            if (raw.length > 10 * 1024 * 1024) {
+              throw ApiError('Das Bild darf höchstens 10 MB groß sein.');
+            }
+            bytes = await compute(encodeMaterialCrop, <String, dynamic>{
+              'bytes': raw,
+              'turns': 0,
+              'left': 0.0,
+              'top': 0.0,
+              'right': 1.0,
+              'bottom': 1.0,
+            });
+            if (!currentCapture()) return;
+          }
+          var again = !useRemainingUnchanged;
           while (again && currentCapture()) {
             if (!mounted) return;
             bytes = await cropMaterialPhoto(
@@ -770,6 +785,9 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
               onFrameChanged: (value) => cropFrame = value,
               batchIndex: i + 1,
               batchTotal: files.length.clamp(0, remaining),
+              onUseRemainingUnchanged: i + 1 < files.length.clamp(0, remaining)
+                  ? () => useRemainingUnchanged = true
+                  : null,
             );
             again = false;
             if (bytes == null && currentCapture()) {
@@ -2210,6 +2228,8 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
       ? 'Foto unlesbar'
       : page['status'] == 'uploaded'
       ? 'Erkennung offen'
+      : state.isChild
+      ? 'Elternprüfung offen'
       : 'Noch prüfen';
 
   void showReviewStart(String id) {
@@ -2355,14 +2375,14 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Seite ${selected['page_number']} prüfen',
+                          'Seite ${selected['page_number']} ansehen',
                           style: const TextStyle(
                             fontWeight: FontWeight.w700,
                             fontSize: 14,
                           ),
                         ),
                         Text(
-                          '${day!['confirmed_count']} von ${pages.length} geprüft',
+                          '${pages.length} Fotos gespeichert',
                           style: const TextStyle(fontSize: 12),
                         ),
                       ],
@@ -2385,22 +2405,15 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
           onRefresh: () => unawaited(load()),
           onDeleted: pageDeleted,
         ),
-        if (selected['status'] == 'unreadable') ...[
-          SizedBox(height: 16),
-          if (allowUploads)
-            ActionButton(
-              label: 'Ersetzen',
-              icon: Icons.camera_alt_rounded,
-              onPressed: () => run(() => replacePage(selected)),
-            ),
-          if (!allowUploads)
-            ActionButton(
-              label: 'Für später ablegen',
-              icon: Icons.inventory_2_outlined,
-              onPressed: () => run(() async {
-                await state.api.post('/school-days/${day!['id']}/postpone');
-              }),
-            ),
+        if (selected['status'] == 'unreadable' && !allowUploads) ...[
+          const SizedBox(height: 16),
+          ActionButton(
+            label: 'Für später ablegen',
+            icon: Icons.inventory_2_outlined,
+            onPressed: () => run(() async {
+              await state.api.post('/school-days/${day!['id']}/postpone');
+            }),
+          ),
         ],
         SizedBox(height: 10),
         if (allowUploads)
@@ -3068,7 +3081,9 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
                                     page['confirmed'] == true
                                         ? 'Geprüft · ${page['topic']}'
                                         : page['status'] == 'review'
-                                        ? 'Erkannt · Bitte prüfen'
+                                        ? (state.isChild
+                                              ? 'Erkannt · Elternprüfung offen'
+                                              : 'Erkannt · Bitte prüfen')
                                         : 'Foto gespeichert',
                                     style: TextStyle(
                                       color: context.palette.muted,
@@ -3077,7 +3092,9 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
                                   ),
                                   if (page['status'] == 'unreadable')
                                     Text(
-                                      'Nicht lesbar · Bitte neu aufnehmen',
+                                      state.isChild
+                                          ? 'Schwer lesbar · Eltern können helfen'
+                                          : 'Nicht lesbar · Bitte neu aufnehmen',
                                       style: TextStyle(
                                         color: Colors.brown,
                                         fontSize: 12,

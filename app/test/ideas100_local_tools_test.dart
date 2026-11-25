@@ -55,6 +55,47 @@ AppState actor(List<http.Request> calls) =>
 const source =
     '# Vorhandener Titel\n\nEin gesuchter Begriff steht hier.\n\n## Zweiter Titel\n\nNoch ein gesuchter Begriff.\n\nUnveränderter Abschluss.';
 void main() {
+  for (final view in [(390.0, 844.0, 1.0), (320.0, 720.0, 1.4)]) {
+    testWidgets('photo and rotation remain visible with open tools at $view', (
+      t,
+    ) async {
+      t.view.physicalSize = Size(view.$1, view.$2);
+      t.view.devicePixelRatio = 1;
+      addTearDown(t.view.resetPhysicalSize);
+      addTearDown(t.view.resetDevicePixelRatio);
+      CropFrame? current;
+      final bytes = Uint8List.fromList(
+        img.encodeJpg(img.Image(width: 80, height: 120)),
+      );
+      await t.pumpWidget(
+        host(
+          CropDialog(
+            bytes,
+            batchIndex: 1,
+            batchTotal: 3,
+            onFrameChanged: (v) => current = v,
+            onUseRemainingUnchanged: () {},
+          ),
+          scale: view.$3,
+        ),
+      );
+      await t.pumpAndSettle();
+      expect(find.byTooltip('Links drehen').hitTestable(), findsOneWidget);
+      expect(find.byTooltip('Rechts drehen').hitTestable(), findsOneWidget);
+      await tap(t, find.byTooltip('Links drehen'));
+      expect(current!.turns, 3);
+      await tap(t, find.byTooltip('Rechts drehen'));
+      expect(current!.turns, 0);
+      await tap(t, find.text('Weitere Werkzeuge'));
+      final photo = t.getRect(find.byKey(const ValueKey('photo-preview')));
+      final action = t.getRect(find.text('Foto übernehmen'));
+      expect(photo.height, greaterThan(100));
+      expect(photo.top, greaterThanOrEqualTo(0));
+      expect(photo.bottom, lessThan(action.top));
+      expect(find.text('Foto übernehmen').hitTestable(), findsOneWidget);
+      expect(t.takeException(), isNull);
+    });
+  }
   test('page states use reported facts without inferring recognition', () {
     expect(
       ideas100PageStatus({'confirmed': true, 'status': 'unreadable'}),
@@ -373,12 +414,12 @@ void main() {
       );
       await tap(t, find.text('Zuschnitt öffnen'));
       expect(find.text('Foto 2 von 3 prüfen'), findsOneWidget);
-      await tap(t, find.text('Foto drehen & Ansicht'));
+      await tap(t, find.text('Weitere Werkzeuge'));
       await tap(t, find.text('Original ansehen'));
       expect(find.byType(CustomPaint), findsWidgets);
       await tap(t, find.text('Ergebnis ansehen'));
       await tap(t, find.text('Zuschnitt bearbeiten'));
-      await tap(t, find.text('Um 90° drehen'));
+      await tap(t, find.byTooltip('Rechts drehen'));
       expect(
         t
             .widget<IconButton>(
@@ -392,7 +433,7 @@ void main() {
       await tap(t, find.byTooltip('Zuschnitt rückgängig'));
       await tap(t, find.byTooltip('Zuschnitt wiederholen'));
       await tap(t, find.byTooltip('Zuschnitt rückgängig'));
-      final confirm = find.text('Zuschnitt übernehmen');
+      final confirm = find.text('Foto übernehmen');
       await t.ensureVisible(confirm);
       await t.pumpAndSettle();
       await t.tap(confirm);
@@ -437,8 +478,8 @@ void main() {
         ),
       );
       await tap(t, find.text('Prüfen'));
-      await tap(t, find.text('Foto drehen & Ansicht'));
-      await tap(t, find.text('Um 90° drehen'));
+      await tap(t, find.text('Weitere Werkzeuge'));
+      await tap(t, find.byTooltip('Rechts drehen'));
       await tap(t, find.text('Abbrechen'));
       expect(frame!.turns, 1);
       await tap(t, find.text('Prüfen'));

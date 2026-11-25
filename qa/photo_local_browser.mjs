@@ -71,8 +71,8 @@ try {
     await tap(page.getByRole('button',{name:'Fotos auswählen',exact:true}));
     await (await picker).setFiles(photo);
     phase='crop-'+width;
-    await page.getByRole('button',{name:'Zuschnitt übernehmen',exact:true}).waitFor({timeout:30000});
-    await tap(page.getByRole('button',{name:'Zuschnitt übernehmen',exact:true}));
+    await page.getByRole('button',{name:'Foto übernehmen',exact:true}).waitFor({timeout:30000});
+    await tap(page.getByRole('button',{name:'Foto übernehmen',exact:true}));
     await page.getByRole('button',{name:'Fotos abgeben',exact:true}).waitFor({timeout:30000});
     const buttonBox=await page.getByRole('button',{name:'Fotos abgeben',exact:true}).boundingBox();
     assert.ok(buttonBox && buttonBox.width >= 260 && buttonBox.width <= 640);

@@ -32,7 +32,7 @@ from schulpilot.security import digest, encrypt
 from schulpilot.source_lineage import learning_source
 from schulpilot.source_lineage_models import SourceRevision
 from schulpilot.worker import claim, process
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from test_extraction import fake_transport, transcription
 from test_school_day import allow_synthetic_test_transport, image_bytes
 
@@ -127,6 +127,63 @@ def check(pipeline):
         assert db.get(Job, identifier).payload.get(review.KEY)
     process(identifier)
     return identifier
+
+
+def test_localized_auto_conflict_preserves_only_independently_safe_content(pipeline):
+    safe = dict(kind="paragraph", text="Künstliche Grundregel zum Vergleichen.",
+                image_region=dict(left=20, top=20, right=400, bottom=100))
+    old = dict(kind="formula", text="2 + 3 = 8", literal_role="student_work",
+               image_region=dict(left=20, top=300, right=400, bottom=400))
+    new = dict(kind="formula", text="2 + 3 = 5", literal_role="example",
+               image_region=dict(left=20, top=300, right=400, bottom=400))
+    pipeline["outputs"][:] = [
+        TranscriptionOutput.model_validate(transcription(blocks=[safe, old])).as_material(),
+        TranscriptionOutput.model_validate(transcription(blocks=[safe, new])).as_material(),
+    ]
+    page = upload(pipeline)
+    first(pipeline, page)
+    check(pipeline)
+    with DB() as db:
+        material = db.get(Material, page["id"])
+        source = learning_source(db, material)
+        assert source["content"] == safe["text"]
+        assert len(source["exclusions"]) == 2
+        assert all(item["reason"] == "reading_uncertain" for item in source["exclusions"])
+        assert learning_source(None, material)["content"] == ""
+        assert review.public_status(db, material)["status"] == "checked_with_gaps"
+    # Missing or altered provenance must never release a previously blocked block.
+    with DB.begin() as db:
+        row = db.scalar(select(SourceRevision).where(SourceRevision.material_id == page["id"],
+                                                     SourceRevision.cause == "auto_check_reading"))
+        db.execute(update(SourceRevision).where(SourceRevision.id == row.id).values(
+            receipt={**row.receipt, "job_id": "0" * 32}))
+    with DB() as db:
+        assert learning_source(db, db.get(Material, page["id"]))["content"] == ""
+
+
+@pytest.mark.parametrize("case", ["unlocated", "independent_page_warning"])
+def test_auto_conflict_never_bypasses_unlocalized_or_independent_warning(pipeline, case):
+    safe = dict(kind="paragraph", text="Künstliche Grundregel.",
+                image_region=dict(left=20, top=20, right=400, bottom=100))
+    old = dict(kind="formula", text="2 + 3 = 8", literal_role="student_work")
+    if case != "unlocated":
+        old["image_region"] = dict(left=20, top=300, right=400, bottom=400)
+    new = dict(kind="formula", text="2 + 3 = 5", literal_role="example",
+               image_region=dict(left=20, top=300, right=400, bottom=400))
+    first_reading = TranscriptionOutput.model_validate(transcription(blocks=[safe, old])).as_material()
+    second_reading = TranscriptionOutput.model_validate(transcription(
+        blocks=[safe, new], uncertainties=["Eine andere Stelle ist auf dem Foto unlesbar."]
+        if case == "independent_page_warning" else [],
+        legibility="partial" if case == "independent_page_warning" else "readable",
+    )).as_material()
+    pipeline["outputs"][:] = [first_reading, second_reading]
+    page = upload(pipeline)
+    first(pipeline, page)
+    check(pipeline)
+    with DB() as db:
+        result = learning_source(db, db.get(Material, page["id"]))
+        assert result["content"] == ""
+        assert result["reading_status"] == "unresolved"
 
 
 def test_policy_encrypted_admin_only_revision_cas_and_no_content(operator, api, household):

@@ -130,7 +130,7 @@ try {
       const picker=page.waitForEvent('filechooser');
       await tap(button('Fotos auswählen'));
       await (await picker).setFiles(state.image);
-      await tap(button('Zuschnitt übernehmen'),true);
+      await tap(button('Foto übernehmen'),true);
       day=await waitFor(()=>get(child,'/school-days/'+state.day_id),d=>d.pages.length===1);
     }
     if(day.pages[0].status==='uploaded') await tap(button('Fotos abgeben'));

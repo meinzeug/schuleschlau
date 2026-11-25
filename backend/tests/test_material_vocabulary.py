@@ -116,7 +116,7 @@ def test_child_can_transfer_checked_source_but_other_family_and_admin_cannot(api
     assert api.get(f"/api/materials/{material}/vocabulary").json()["confirmed_words"] == 2
     data = {"target_locale": "en-GB", "language_confirmed": True, "revision": revision + 1}
     assert api.post(f"/api/materials/{material}/vocabulary", json=data).status_code == 200
-    assert api.put(f"/api/materials/{material}/confirm", json=confirm_payload("apple = Apfel\nbook = Buch", revision)).status_code == 200
+    assert api.put(f"/api/materials/{material}/confirm", json=confirm_payload("apple = Apfel\nbook = Buch", revision)).status_code == 403
     api.post("/api/auth/logout")
     assert api.post(f"/api/materials/{material}/vocabulary", json=data).status_code == 401
     api.headers.pop("Authorization", None)
@@ -283,3 +283,20 @@ def test_source_revision_rebind_export_and_erasure_keep_the_word_history(api, ho
     assert api.delete(f"/api/materials/{material}").status_code == 200
     assert counts()[0:2] == (0, 0)
     assert api.get(f"/api/children/{child['id']}/vocabulary").json()["pagination"]["total"] == 0
+
+
+def test_child_cannot_confirm_even_unmarked_page_but_parent_can(api, household):
+    _, child = household
+    content = "apple = Apfel\nbook = Buch"
+    material_id, revision = source(child, content)
+    login = api.post("/api/auth/login", json={"username": "test-child", "password": "secure-child-pass-123"}).json()
+    api.headers["Authorization"] = "Bearer " + login["token"]
+    body = confirm_payload(content, revision)
+    assert api.put(f"/api/materials/{material_id}/confirm", json=body).status_code == 403
+    with DB() as db:
+        material = db.get(Material, material_id)
+        assert not material.confirmed and material.revision == revision
+    api.headers.pop("Authorization", None)
+    login = api.post("/api/auth/login", json={"username": "parent@example.org", "password": "secure-parent-pass-123"}).json()
+    api.headers["Authorization"] = "Bearer " + login["token"]
+    assert api.put(f"/api/materials/{material_id}/confirm", json=body).status_code == 200

@@ -253,7 +253,7 @@ void main() {
       expect(find.text('Geschichte'), findsOneWidget);
       await tap(tester, find.text('Geschichte'));
       expect(controller.text, 'Geschichte');
-    semantics.dispose();
+      semantics.dispose();
     },
   );
   testWidgets(
@@ -428,12 +428,11 @@ void main() {
       );
       await tester.pumpWidget(home(CropDialog(bytes)));
       await tester.pumpAndSettle();
-      await tap(tester, find.text('Foto drehen & Ansicht'));
-      await tap(tester, find.text('Bild zuschneiden'));
+      await tap(tester, find.text('Weitere Werkzeuge'));
       tester.widget<Slider>(find.byType(Slider).first).onChanged!(.2);
       await tester.pump();
       for (var i = 0; i < 4; i++) {
-        await tap(tester, find.text('Um 90° drehen'));
+        await tap(tester, find.byTooltip('Rechts drehen'));
       }
       expect(
         tester.widget<Slider>(find.byType(Slider).first).value,

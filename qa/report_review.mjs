@@ -31,7 +31,7 @@ try{
  phase='normal_photo_capture';
  if(!state.day_id){await open('/after-school/'+account.child_id+'?capture=1');const d=await wait(()=>get(child,'/children/'+account.child_id+'/school-day/today'),v=>v.day!=null,30);state.day_id=d.day.id;await save();}
  let day=await get(child,'/school-days/'+state.day_id);
- if(!day.pages.length){await open('/after-school/'+account.child_id+'?capture=1');const chooser=page.waitForEvent('filechooser');await tap(button('Fotos auswählen'));await(await chooser).setFiles(account.image_paths);for(const _ of account.image_paths)await tap(button('Zuschnitt übernehmen'),true);await shot('crop-import');await tap(button('Fotos abgeben'));state.phase='submitted';await save();}
+ if(!day.pages.length){await open('/after-school/'+account.child_id+'?capture=1');const chooser=page.waitForEvent('filechooser');await tap(button('Fotos auswählen'));await(await chooser).setFiles(account.image_paths);for(const _ of account.image_paths)await tap(button('Foto übernehmen'),true);await shot('crop-import');await tap(button('Fotos abgeben'));state.phase='submitted';await save();}
  day=await wait(()=>get(child,'/school-days/'+state.day_id),d=>d.pages.length===account.image_paths.length&&d.pages.every(p=>['review','confirmed'].includes(p.status)),480);
  state.materials=day.pages.map(p=>p.id);await save();
  checks.push('actual_public_photo_picker_crop_explicit_submission_and_reserved_ocr');

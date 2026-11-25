@@ -453,6 +453,8 @@ def confirm(material_id: str, data: s.MaterialConfirm, p=Depends(authenticated),
 
     material, child = get_material(db, p, material_id)
     child_access(db, p, child.id, write=p.user.role == "parent")
+    if p.user.role == "child":
+        raise HTTPException(403, "Die Überprüfung dieser Seite übernehmen deine Eltern.")
     lock_material_units(db, child.id, material_id)
     db.execute(update(Child).where(Child.id == child.id).values(grade=Child.grade))
     material = db.get(Material, material_id, populate_existing=True)
@@ -720,7 +722,7 @@ def enqueue(db, p, child, kind, payload, idempotency, *, commit=True):
         source_ids = [row["id"] for row in payload.get("sources", [])] or ([payload["material_id"]] if payload.get("material_id") else [])
         source_pages = [db.get(Material, identifier, populate_existing=True) for identifier in source_ids]
         if source_pages and not any(material and material.child_id == child.id and usable_source(db, material) for material in source_pages):
-            raise HTTPException(409, "Die gewählten Heftseiten enthalten noch keine verwendbare Lehrgrundlage. Bitte unsichere oder fehlerhafte Stellen zuerst prüfen.")
+            raise HTTPException(409, "Diese Seiten sind noch nicht zum Lernen bereit. Deine Eltern können sie prüfen.")
     if kind in ("unit", "coach_practice", "controller_check", "package"):
         from .study_authority import bind
 

@@ -11,7 +11,7 @@ import 'package:schulpilot/material_screen.dart';
 import 'child_local_tools_ux88_test.dart' as host;
 import 'child_sources_input_ux87_test.dart' as source;
 
-const warningTitle = 'Lesestellen noch prüfen';
+const warningTitle = 'Hinweise zur Seite';
 const pageWarning = 'Das letzte Wort ist auf dem Foto nicht eindeutig lesbar.';
 const blockWarning = 'Die kleine handschriftliche Ergänzung ist unsicher.';
 
@@ -155,38 +155,22 @@ void main() {
     },
   );
 
-  testWidgets(
-    '124 explicit confirmation keeps its warning and performs only one confirm write',
-    (tester) async {
-      final fixture = Fixture();
-      fixture.data['confirmed'] = false;
-      fixture.data['status'] = 'review';
-      fixture.data['uncertainties'] = [pageWarning];
-      await fixture.mount(tester);
-      expect(find.text('Hier bitte genau hinschauen:'), findsOneWidget);
-      expect(find.text(pageWarning), findsOneWidget);
-      expect(find.text(warningTitle), findsNothing);
-      expect(fixture.writes, isEmpty);
-      await host.tap(tester, find.text('Stimmt, weiter'));
-      expect(find.text('Text übernommen'), findsOneWidget);
-      expect(find.text('Stimmt, weiter'), findsNothing);
-      expect(find.text('Etwas verbessern'), findsNothing);
-      await openWarnings(tester);
-      expect(find.text(pageWarning), findsOneWidget);
-      final writes = fixture.writes.toList();
-      expect(writes, hasLength(1));
-      expect(writes.single.method, 'PUT');
-      expect(
-        writes.single.url.path,
-        '/api/materials/synthetic-reading-page/confirm',
-      );
-      final body = jsonDecode(writes.single.body) as Map;
-      expect(body['content'], fixture.data['content']);
-      expect(body['revision'], 1);
-      expect(body['uncertainties_resolved'], isTrue);
-      expect(tester.takeException(), isNull);
-    },
-  );
+  testWidgets('Offene Seite wird von Eltern geprüft statt vom Kind', (
+    tester,
+  ) async {
+    final fixture = Fixture();
+    fixture.data['confirmed'] = false;
+    fixture.data['status'] = 'review';
+    fixture.data['uncertainties'] = [pageWarning];
+    await fixture.mount(tester);
+    expect(
+      find.text('Diese Seite prüfen deine Eltern. Dein Foto ist gespeichert.'),
+      findsOneWidget,
+    );
+    expect(find.text('Stimmt, weiter'), findsNothing);
+    expect(find.text('Etwas verbessern'), findsNothing);
+    expect(fixture.writes, isEmpty);
+  });
 
   testWidgets(
     '124 compact warnings deduplicate actual messages at 320px and 200 percent and refresh with source',

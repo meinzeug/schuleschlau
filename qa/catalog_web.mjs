@@ -155,7 +155,7 @@ try {
       const chooser = page.waitForEvent('filechooser');
       await tap(button('Fotos auswählen'));
       await (await chooser).setFiles(account.image_paths);
-      for (let i = 0; i < account.image_paths.length; i++) await tap(button('Zuschnitt übernehmen'), true);
+      for (let i = 0; i < account.image_paths.length; i++) await tap(button('Foto übernehmen'), true);
       // The wizard deliberately retains photos locally until explicit submission.
       await tap(button('Fotos abgeben'));
       state.phase = 'photos_submitted'; await save();

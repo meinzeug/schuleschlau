@@ -134,6 +134,7 @@ Future<Uint8List?> cropMaterialPhoto(
   AppState? state,
   CropFrame? initialFrame,
   ValueChanged<CropFrame>? onFrameChanged,
+  VoidCallback? onUseRemainingUnchanged,
   int? batchIndex,
   int? batchTotal,
 }) async {
@@ -155,6 +156,7 @@ Future<Uint8List?> cropMaterialPhoto(
       bytes,
       initialFrame: initialFrame,
       onFrameChanged: onFrameChanged,
+      onUseRemainingUnchanged: onUseRemainingUnchanged,
       batchIndex: batchIndex,
       batchTotal: batchTotal,
       isCurrent: current,
@@ -178,6 +180,7 @@ class CropDialog extends StatefulWidget {
   final Uint8List bytes;
   final CropFrame? initialFrame;
   final ValueChanged<CropFrame>? onFrameChanged;
+  final VoidCallback? onUseRemainingUnchanged;
   final int? batchIndex, batchTotal;
   final bool Function()? isCurrent;
   const CropDialog(
@@ -185,6 +188,7 @@ class CropDialog extends StatefulWidget {
     super.key,
     this.initialFrame,
     this.onFrameChanged,
+    this.onUseRemainingUnchanged,
     this.batchIndex,
     this.batchTotal,
     this.isCurrent,
@@ -199,6 +203,7 @@ class _CropDialogState extends State<CropDialog> {
   int? dragCorner;
   bool encoding = false;
   String photoView = 'edit';
+  bool showAdvanced = false;
   final undoFrames = <CropFrame>[], redoFrames = <CropFrame>[];
   late final Uint8List originalPreview = preview;
   late final double originalAspect = image == null
@@ -234,6 +239,64 @@ class _CropDialogState extends State<CropDialog> {
     }
     photoView = 'edit';
     publishFrame();
+  }
+
+  void rotatePhoto(int direction) {
+    if (image == null || encoding || widget.isCurrent?.call() == false) return;
+    setState(() {
+      rememberFrame();
+      image = img.copyRotate(image!, angle: direction * 90);
+      quarterTurns = (quarterTurns + direction + 4) % 4;
+      preview = Uint8List.fromList(img.encodeJpg(image!, quality: 85));
+      final oldLeft = left, oldTop = top, oldRight = right, oldBottom = bottom;
+      if (direction > 0) {
+        left = 1 - oldBottom;
+        top = oldLeft;
+        right = 1 - oldTop;
+        bottom = oldRight;
+      } else {
+        left = oldTop;
+        top = 1 - oldRight;
+        right = oldBottom;
+        bottom = 1 - oldLeft;
+      }
+      photoView = 'edit';
+      publishFrame();
+    });
+  }
+
+  Future<void> acceptPhoto({bool useRemaining = false}) async {
+    final cropRoute = ModalRoute.of(context);
+    final navigator = Navigator.of(context);
+    if (!mounted ||
+        encoding ||
+        cropRoute?.isCurrent != true ||
+        widget.isCurrent?.call() == false ||
+        image == null) {
+      return;
+    }
+    publishFrame();
+    final values = <String, dynamic>{
+      'bytes': widget.bytes,
+      'turns': quarterTurns,
+      'left': left,
+      'top': top,
+      'right': right,
+      'bottom': bottom,
+    };
+    setState(() => encoding = true);
+    try {
+      await Future<void>.delayed(const Duration(milliseconds: 32));
+      final encoded = await compute(encodeMaterialCrop, values);
+      if (mounted &&
+          cropRoute?.isCurrent == true &&
+          widget.isCurrent?.call() != false) {
+        if (useRemaining) widget.onUseRemainingUnchanged?.call();
+        navigator.pop(encoded);
+      }
+    } finally {
+      if (mounted) setState(() => encoding = false);
+    }
   }
 
   Uint8List clippedPreview() {
@@ -275,6 +338,10 @@ class _CropDialogState extends State<CropDialog> {
       : Uint8List.fromList(img.encodeJpg(image!, quality: 85));
   @override
   Widget build(BuildContext context) => AlertDialog(
+    insetPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+    titlePadding: const EdgeInsets.fromLTRB(16, 14, 16, 4),
+    contentPadding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+    actionsPadding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
     title: Text(
       widget.batchIndex == null
           ? 'Passt das Foto?'
@@ -282,291 +349,307 @@ class _CropDialogState extends State<CropDialog> {
     ),
     content: SizedBox(
       width: 590,
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Namen bitte abschneiden. Der Text soll gut lesbar sein.',
-              style: TextStyle(color: context.palette.muted, fontSize: 13),
+      height: (MediaQuery.sizeOf(context).height * .64).clamp(260, 570),
+      child: Column(
+        children: [
+          Text(
+            'Drehe das Foto und schneide Namen ab.',
+            style: TextStyle(color: context.palette.muted, fontSize: 13),
+          ),
+          if (image == null)
+            Notice(
+              'Dieses Bild kann nicht gelesen werden. Wähle bitte ein anderes Foto als JPEG oder PNG.',
+              warning: true,
             ),
-            if (image == null)
-              Notice(
-                'Dieses Bild kann nicht gelesen werden. Wähle bitte ein anderes Foto als JPEG oder PNG.',
-                warning: true,
-              ),
-            if (image != null)
-              SizedBox(
-                height: (MediaQuery.sizeOf(context).height * .48).clamp(
-                  240,
-                  420,
-                ),
-                child: LayoutBuilder(
-                  builder: (context, size) => Center(
-                    child: AspectRatio(
-                      aspectRatio: photoView == 'original'
-                          ? originalAspect
-                          : photoView == 'crop' && image != null
-                          ? image!.width *
-                                (right - left) /
-                                (image!.height * (bottom - top))
-                          : image == null
-                          ? 1
-                          : image!.width / image!.height,
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          Image.memory(
-                            photoView == 'original'
-                                ? originalPreview
-                                : photoView == 'crop'
-                                ? clippedPreview()
-                                : preview,
-                            fit: BoxFit.fill,
-                          ),
-                          if (photoView == 'edit')
-                            LayoutBuilder(
-                              builder: (context, bounds) => Semantics(
-                                label: 'Zuschneiderahmen. Ziehe eine Ecke. Darunter kannst du die Ränder mit Reglern verändern.',
-                                child: GestureDetector(
-                                  behavior: HitTestBehavior.opaque,
-                                  onPanStart: image == null || encoding
-                                      ? null
-                                      : (event) {
-                                          final corners = [
-                                            Offset(left, top),
-                                            Offset(right, top),
-                                            Offset(left, bottom),
-                                            Offset(right, bottom),
-                                          ];
-                                          final point = Offset(
-                                            event.localPosition.dx /
-                                                bounds.maxWidth,
-                                            event.localPosition.dy /
-                                                bounds.maxHeight,
-                                          );
-                                          var nearest = 0;
-                                          for (
-                                            var i = 1;
-                                            i < corners.length;
-                                            i++
-                                          ) {
-                                            if ((corners[i] - point).distance <
-                                                (corners[nearest] - point)
-                                                    .distance) {
-                                              nearest = i;
-                                            }
+          if (image != null)
+            Expanded(
+              child: LayoutBuilder(
+                key: const ValueKey('photo-preview'),
+                builder: (context, size) => Center(
+                  child: AspectRatio(
+                    aspectRatio: photoView == 'original'
+                        ? originalAspect
+                        : photoView == 'crop' && image != null
+                        ? image!.width *
+                              (right - left) /
+                              (image!.height * (bottom - top))
+                        : image == null
+                        ? 1
+                        : image!.width / image!.height,
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        Image.memory(
+                          photoView == 'original'
+                              ? originalPreview
+                              : photoView == 'crop'
+                              ? clippedPreview()
+                              : preview,
+                          fit: BoxFit.fill,
+                        ),
+                        if (photoView == 'edit')
+                          LayoutBuilder(
+                            builder: (context, bounds) => Semantics(
+                              label: 'Zuschneiderahmen. Ziehe eine Ecke. Darunter kannst du die Ränder mit Reglern verändern.',
+                              child: GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onPanStart: image == null || encoding
+                                    ? null
+                                    : (event) {
+                                        final corners = [
+                                          Offset(left, top),
+                                          Offset(right, top),
+                                          Offset(left, bottom),
+                                          Offset(right, bottom),
+                                        ];
+                                        final point = Offset(
+                                          event.localPosition.dx /
+                                              bounds.maxWidth,
+                                          event.localPosition.dy /
+                                              bounds.maxHeight,
+                                        );
+                                        var nearest = 0;
+                                        for (
+                                          var i = 1;
+                                          i < corners.length;
+                                          i++
+                                        ) {
+                                          if ((corners[i] - point).distance <
+                                              (corners[nearest] - point)
+                                                  .distance) {
+                                            nearest = i;
                                           }
-                                          final offset =
-                                              corners[nearest] - point;
-                                          final pixelDistance = Offset(
-                                            offset.dx * bounds.maxWidth,
-                                            offset.dy * bounds.maxHeight,
-                                          ).distance;
-                                          if (pixelDistance <= 32) {
-                                            rememberFrame();
-                                          }
-                                          dragCorner = pixelDistance <= 32
-                                              ? nearest
-                                              : null;
-                                        },
-                                  onPanUpdate: image == null || encoding
-                                      ? null
-                                      : (event) => setState(() {
-                                          final x =
-                                              (event.localPosition.dx /
-                                                      bounds.maxWidth)
-                                                  .clamp(0.0, 1.0);
-                                          final y =
-                                              (event.localPosition.dy /
-                                                      bounds.maxHeight)
-                                                  .clamp(0.0, 1.0);
-                                          if (dragCorner == 0 ||
-                                              dragCorner == 2) {
-                                            left = x.clamp(0.0, right - .1);
-                                          }
-                                          if (dragCorner == 1 ||
-                                              dragCorner == 3) {
-                                            right = x.clamp(left + .1, 1.0);
-                                          }
-                                          if (dragCorner == 0 ||
-                                              dragCorner == 1) {
-                                            top = y.clamp(0.0, bottom - .1);
-                                          }
-                                          if (dragCorner == 2 ||
-                                              dragCorner == 3) {
-                                            bottom = y.clamp(top + .1, 1.0);
-                                          }
-                                        }),
-                                  onPanEnd: (_) {
-                                    dragCorner = null;
-                                    publishFrame();
-                                  },
-                                  onPanCancel: () {
-                                    dragCorner = null;
-                                    publishFrame();
-                                  },
-                                  child: CustomPaint(
-                                    painter: _CropPainter(
-                                      Rect.fromLTRB(left, top, right, bottom),
-                                    ),
+                                        }
+                                        final offset = corners[nearest] - point;
+                                        final pixelDistance = Offset(
+                                          offset.dx * bounds.maxWidth,
+                                          offset.dy * bounds.maxHeight,
+                                        ).distance;
+                                        if (pixelDistance <= 32) {
+                                          rememberFrame();
+                                        }
+                                        dragCorner = pixelDistance <= 32
+                                            ? nearest
+                                            : null;
+                                      },
+                                onPanUpdate: image == null || encoding
+                                    ? null
+                                    : (event) => setState(() {
+                                        final x =
+                                            (event.localPosition.dx /
+                                                    bounds.maxWidth)
+                                                .clamp(0.0, 1.0);
+                                        final y =
+                                            (event.localPosition.dy /
+                                                    bounds.maxHeight)
+                                                .clamp(0.0, 1.0);
+                                        if (dragCorner == 0 ||
+                                            dragCorner == 2) {
+                                          left = x.clamp(0.0, right - .1);
+                                        }
+                                        if (dragCorner == 1 ||
+                                            dragCorner == 3) {
+                                          right = x.clamp(left + .1, 1.0);
+                                        }
+                                        if (dragCorner == 0 ||
+                                            dragCorner == 1) {
+                                          top = y.clamp(0.0, bottom - .1);
+                                        }
+                                        if (dragCorner == 2 ||
+                                            dragCorner == 3) {
+                                          bottom = y.clamp(top + .1, 1.0);
+                                        }
+                                      }),
+                                onPanEnd: (_) {
+                                  dragCorner = null;
+                                  publishFrame();
+                                },
+                                onPanCancel: () {
+                                  dragCorner = null;
+                                  publishFrame();
+                                },
+                                child: CustomPaint(
+                                  painter: _CropPainter(
+                                    Rect.fromLTRB(left, top, right, bottom),
                                   ),
                                 ),
                               ),
                             ),
-                        ],
-                      ),
+                          ),
+                      ],
                     ),
                   ),
                 ),
               ),
-            SizedBox(height: 16),
-            ExpansionTile(
-              title: const Text('Foto drehen & Ansicht'),
+            ),
+          if (image != null)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
+                IconButton(
+                  tooltip: 'Links drehen',
+                  onPressed: encoding ? null : () => rotatePhoto(-1),
+                  icon: const Icon(Icons.rotate_left),
+                ),
+                const Text('Drehen'),
+                IconButton(
+                  tooltip: 'Rechts drehen',
+                  onPressed: encoding ? null : () => rotatePhoto(1),
+                  icon: const Icon(Icons.rotate_right),
+                ),
+              ],
+            ),
+          if (image != null)
+            TextButton.icon(
+              onPressed: encoding
+                  ? null
+                  : () => setState(() => showAdvanced = !showAdvanced),
+              icon: Icon(showAdvanced ? Icons.expand_less : Icons.tune),
+              label: Text(
+                showAdvanced ? 'Werkzeuge schließen' : 'Weitere Werkzeuge',
+              ),
+            ),
+          if (showAdvanced && image != null)
+            SizedBox(
+              height: (MediaQuery.sizeOf(context).height * .17).clamp(90, 145),
+              child: SingleChildScrollView(
+                child: Column(
                   children: [
-                    for (final (id, label) in const [
-                      ('edit', 'Zuschnitt bearbeiten'),
-                      ('original', 'Original ansehen'),
-                      ('crop', 'Ergebnis ansehen'),
-                    ])
-                      ChoiceChip(
-                        label: Text(label),
-                        selected: photoView == id,
-                        onSelected: encoding
-                            ? null
-                            : (_) => setState(() => photoView = id),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        for (final (id, label) in const [
+                          ('edit', 'Zuschnitt bearbeiten'),
+                          ('original', 'Original ansehen'),
+                          ('crop', 'Ergebnis ansehen'),
+                        ])
+                          ChoiceChip(
+                            label: Text(label),
+                            selected: photoView == id,
+                            onSelected: encoding
+                                ? null
+                                : (_) => setState(() => photoView = id),
+                          ),
+                        IconButton(
+                          tooltip: 'Zuschnitt rückgängig',
+                          onPressed: undoFrames.isEmpty || encoding
+                              ? null
+                              : () => setState(() {
+                                  redoFrames.add(frame);
+                                  restoreFrame(undoFrames.removeLast());
+                                }),
+                          icon: const Icon(Icons.undo),
+                        ),
+                        IconButton(
+                          tooltip: 'Zuschnitt wiederholen',
+                          onPressed: redoFrames.isEmpty || encoding
+                              ? null
+                              : () => setState(() {
+                                  undoFrames.add(frame);
+                                  restoreFrame(redoFrames.removeLast());
+                                }),
+                          icon: const Icon(Icons.redo),
+                        ),
+                      ],
+                    ),
+                    TextButton.icon(
+                      onPressed: image == null || encoding
+                          ? null
+                          : () => setState(() {
+                              rememberFrame();
+                              left = top = 0;
+                              right = bottom = 1;
+                              publishFrame();
+                            }),
+                      icon: Icon(Icons.crop_free_rounded),
+                      label: Text('Ganzes Foto verwenden'),
+                    ),
+                    const Text('Ränder genau einstellen'),
+                    for (final item in [
+                      (
+                        'Linker Rand',
+                        left,
+                        0.0,
+                        right - .1,
+                        (double v) => setState(() => left = v),
                       ),
-                    IconButton(
-                      tooltip: 'Zuschnitt rückgängig',
-                      onPressed: undoFrames.isEmpty || encoding
-                          ? null
-                          : () => setState(() {
-                              redoFrames.add(frame);
-                              restoreFrame(undoFrames.removeLast());
-                            }),
-                      icon: const Icon(Icons.undo),
-                    ),
-                    IconButton(
-                      tooltip: 'Zuschnitt wiederholen',
-                      onPressed: redoFrames.isEmpty || encoding
-                          ? null
-                          : () => setState(() {
-                              undoFrames.add(frame);
-                              restoreFrame(redoFrames.removeLast());
-                            }),
-                      icon: const Icon(Icons.redo),
-                    ),
+                      (
+                        'Oberer Rand',
+                        top,
+                        0.0,
+                        bottom - .1,
+                        (double v) => setState(() => top = v),
+                      ),
+                      (
+                        'Rechter Rand',
+                        right,
+                        left + .1,
+                        1.0,
+                        (double v) => setState(() => right = v),
+                      ),
+                      (
+                        'Unterer Rand',
+                        bottom,
+                        top + .1,
+                        1.0,
+                        (double v) => setState(() => bottom = v),
+                      ),
+                    ])
+                      Row(
+                        children: [
+                          SizedBox(
+                            width: 100,
+                            child: Text(
+                              item.$1,
+                              style: TextStyle(fontSize: 12),
+                            ),
+                          ),
+                          Expanded(
+                            child: Slider(
+                              label:
+                                  '${item.$1}: ${(item.$2 * 100).round()} Prozent',
+                              semanticFormatterCallback: (value) =>
+                                  '${item.$1}: ${(value * 100).round()} Prozent',
+                              value: item.$2,
+                              min: item.$3,
+                              max: item.$4,
+                              onChangeStart: encoding
+                                  ? null
+                                  : (_) => rememberFrame(),
+                              onChangeEnd: encoding
+                                  ? null
+                                  : (_) => publishFrame(),
+                              onChanged: encoding ? null : item.$5,
+                            ),
+                          ),
+                        ],
+                      ),
                   ],
                 ),
-                if (widget.batchIndex != null)
-                  const Text(
-                    'Jedes Foto hat einen eigenen Zuschnitt. Bereits übernommene Fotos bleiben erhalten.',
-                  ),
-                TextButton.icon(
-                  onPressed: image == null || encoding
-                      ? null
-                      : () => setState(() {
-                          rememberFrame();
-                          image = img.copyRotate(image!, angle: 90);
-                          quarterTurns = (quarterTurns + 1) % 4;
-                          preview = Uint8List.fromList(
-                            img.encodeJpg(image!, quality: 85),
-                          );
-                          final oldLeft = left,
-                              oldTop = top,
-                              oldRight = right,
-                              oldBottom = bottom;
-                          left = 1 - oldBottom;
-                          top = oldLeft;
-                          right = 1 - oldTop;
-                          bottom = oldRight;
-                          publishFrame();
-                        }),
-                  icon: Icon(Icons.rotate_right),
-                  label: Text('Um 90° drehen'),
-                ),
-                TextButton.icon(
-                  onPressed: image == null || encoding
-                      ? null
-                      : () => setState(() {
-                          rememberFrame();
-                          left = top = 0;
-                          right = bottom = 1;
-                          publishFrame();
-                        }),
-                  icon: Icon(Icons.crop_free_rounded),
-                  label: Text('Ganzes Foto verwenden'),
-                ),
-              ],
+              ),
             ),
-            ExpansionTile(
-              title: Text('Bild zuschneiden'),
-              children: [
-                for (final item in [
-                  (
-                    'Linker Rand',
-                    left,
-                    0.0,
-                    right - .1,
-                    (double v) => setState(() => left = v),
-                  ),
-                  (
-                    'Oberer Rand',
-                    top,
-                    0.0,
-                    bottom - .1,
-                    (double v) => setState(() => top = v),
-                  ),
-                  (
-                    'Rechter Rand',
-                    right,
-                    left + .1,
-                    1.0,
-                    (double v) => setState(() => right = v),
-                  ),
-                  (
-                    'Unterer Rand',
-                    bottom,
-                    top + .1,
-                    1.0,
-                    (double v) => setState(() => bottom = v),
-                  ),
-                ])
-                  Row(
-                    children: [
-                      SizedBox(
-                        width: 100,
-                        child: Text(item.$1, style: TextStyle(fontSize: 12)),
-                      ),
-                      Expanded(
-                        child: Slider(
-                          label:
-                              '${item.$1}: ${(item.$2 * 100).round()} Prozent',
-                          semanticFormatterCallback: (value) =>
-                              '${item.$1}: ${(value * 100).round()} Prozent',
-                          value: item.$2,
-                          min: item.$3,
-                          max: item.$4,
-                          onChangeStart: encoding
-                              ? null
-                              : (_) => rememberFrame(),
-                          onChangeEnd: encoding ? null : (_) => publishFrame(),
-                          onChanged: encoding ? null : item.$5,
-                        ),
-                      ),
-                    ],
-                  ),
-              ],
-            ),
-          ],
-        ),
+        ],
       ),
     ),
     actions: [
+      if (widget.onUseRemainingUnchanged != null && image != null)
+        TextButton(
+          onPressed: encoding
+              ? null
+              : () async {
+                  final accepted = await confirmDialog(
+                    context,
+                    'Weitere Fotos übernehmen?',
+                    'Das aktuelle Foto wird wie angezeigt übernommen. Die übrigen Fotos werden nicht gedreht oder zugeschnitten. Namen bleiben sichtbar.',
+                    confirmLabel: 'Fotos übernehmen',
+                  );
+                  if (accepted && mounted) {
+                    await acceptPhoto(useRemaining: true);
+                  }
+                },
+          child: const Text('Weitere unverändert'),
+        ),
       TextButton(
         onPressed: encoding
             ? null
@@ -579,42 +662,9 @@ class _CropDialogState extends State<CropDialog> {
         child: Text(image == null ? 'Anderes Foto wählen' : 'Abbrechen'),
       ),
       ActionButton(
-        label: 'Zuschnitt übernehmen',
+        label: 'Foto übernehmen',
         enabled: image != null && !encoding,
-        onPressed: () async {
-          final cropRoute = ModalRoute.of(context);
-          if (!mounted ||
-              encoding ||
-              cropRoute?.isCurrent != true ||
-              widget.isCurrent?.call() == false) {
-            return;
-          }
-          publishFrame();
-          if (image == null) {
-            throw ApiError(
-              'Dieses Bildformat konnte nicht gelesen werden. Bitte JPEG oder PNG auswählen.',
-            );
-          }
-          final values = <String, dynamic>{
-            'bytes': widget.bytes,
-            'turns': quarterTurns,
-            'left': left,
-            'top': top,
-            'right': right,
-            'bottom': bottom,
-          };
-          setState(() => encoding = true);
-          try {
-            // Paint feedback before the bounded local encoding operation.
-            await Future<void>.delayed(Duration(milliseconds: 32));
-            final encoded = await compute(encodeMaterialCrop, values);
-            if (context.mounted && cropRoute?.isCurrent == true) {
-              Navigator.pop(context, encoded);
-            }
-          } finally {
-            if (mounted) setState(() => encoding = false);
-          }
-        },
+        onPressed: () => acceptPhoto(),
       ),
     ],
   );
@@ -1013,7 +1063,7 @@ class _MaterialScreenState extends State<MaterialScreen>
   Widget build(BuildContext context) => PageFrame(
     state: widget.state,
     title: widget.state.isChild ? 'Dein Lernstoff' : 'Heftseite',
-    subtitle: widget.state.isChild ? 'Schau kurz, ob der Text stimmt.' : null,
+    subtitle: widget.state.isChild ? 'Deine gespeicherte Heftseite.' : null,
     child: !current
         ? SizedBox.shrink()
         : LoadView<Json>(
@@ -1128,7 +1178,11 @@ class _MaterialReviewState extends State<MaterialReview>
         'Automatisch abgeglichen · Lesestellen bleiben offen.',
       _ => 'Der automatische Abgleich hat nicht geklappt.',
     };
-    final message = review['message'];
+    final message = widget.state.isChild
+        ? (status == 'checked_with_gaps' || status == 'failed'
+              ? 'Offene Stellen können deine Eltern prüfen.'
+              : null)
+        : review['message'];
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Notice(
@@ -1991,9 +2045,7 @@ class _MaterialReviewState extends State<MaterialReview>
     final liveFixture = d['fixture_id'] != null;
     final readonly = widget.state.isParent && !widget.state.canManage;
     final canConfirm =
-        !readonly &&
-        d['status'] != 'unreadable' &&
-        !(widget.state.isChild && d['confirmed'] == true);
+        !readonly && d['status'] != 'unreadable' && !widget.state.isChild;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -2469,7 +2521,6 @@ class _MaterialReviewState extends State<MaterialReview>
       'spanisch',
     ].contains((d['subject'] ?? '').toString().trim().toLowerCase());
     final readingUncertainties = this.readingUncertainties(d);
-    final canConfirm = !confirmed && d['status'] == 'review';
     final longText =
         content.text.length > 120 || content.text.split('\n').length > 5;
     return Column(
@@ -2478,6 +2529,10 @@ class _MaterialReviewState extends State<MaterialReview>
         if (d['purpose'] == 'exam') examReturn(d),
         pageActions(maintenance: false),
         if (automaticReview != null) automaticReviewNotice(),
+        if (!confirmed && d['status'] == 'review')
+          const Notice(
+            'Diese Seite prüfen deine Eltern. Dein Foto ist gespeichert.',
+          ),
         if (dirty && !confirmedHere)
           Semantics(
             liveRegion: true,
@@ -2537,20 +2592,9 @@ class _MaterialReviewState extends State<MaterialReview>
             },
           )
         else if (d['status'] == 'unreadable')
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Notice(
-                'Das Foto ist nicht lesbar. Nimm die Seite bitte noch einmal auf.',
-                warning: true,
-              ),
-              OutlinedButton.icon(
-                onPressed: () =>
-                    openRoute(context, '/after-school/${d['child_id']}'),
-                icon: Icon(Icons.add_a_photo_outlined),
-                label: Text('Neues Foto machen'),
-              ),
-            ],
+          const Notice(
+            'Dieses Foto ist schwer zu lesen. Deine Eltern können es prüfen.',
+            warning: true,
           )
         else
           Panel(
@@ -2612,75 +2656,7 @@ class _MaterialReviewState extends State<MaterialReview>
                   ),
                   Text(homework.text),
                 ],
-                if (canConfirm && !synthetic)
-                  TextButton.icon(
-                    onPressed: changing
-                        ? null
-                        : () => setState(() => editing = !editing),
-                    icon: Icon(
-                      editing ? Icons.close_rounded : Icons.edit_outlined,
-                      size: 18,
-                    ),
-                    label: Text(
-                      editing ? 'Korrektur schließen' : 'Etwas verbessern',
-                    ),
-                  ),
-                if (editing)
-                  for (final field in [
-                    (subject, 'Fach', 1),
-                    (topic, 'Thema', 1),
-                    (content, 'Text auf der Seite', 6),
-                    (homework, 'Erkannte Aufgaben', 3),
-                  ])
-                    Padding(
-                      padding: EdgeInsets.only(bottom: 12),
-                      child: field.$1 == subject
-                          ? SubjectField(
-                              widget.state,
-                              childId: d['child_id'],
-                              controller: subject,
-                              enabled: !changing && !synthetic && canConfirm,
-                              changed: () => setState(() {}),
-                            )
-                          : TextField(
-                              controller: field.$1,
-                              maxLength: field.$1 == content
-                                  ? 24000
-                                  : field.$1 == topic
-                                  ? 160
-                                  : null,
-                              maxLengthEnforcement: MaxLengthEnforcement.none,
-                              readOnly: changing,
-                              onChanged: (_) => setState(() {}),
-                              maxLines: field.$3,
-                              decoration: InputDecoration(
-                                labelText: field.$2,
-                                alignLabelWithHint: true,
-                              ),
-                            ),
-                    ),
-                if (canConfirm) ...[
-                  SizedBox(height: 16),
-                  if (wordPreview != null) ...[
-                    wordPreviewPanel(),
-                    SizedBox(height: 16),
-                  ],
-                  if (readingUncertainties.isNotEmpty) ...[
-                    Text(
-                      'Hier bitte genau hinschauen:',
-                      style: TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                    for (final uncertainty in readingUncertainties)
-                      Notice(uncertainty, warning: true),
-                  ],
-                  SizedBox(height: 10),
-                  ActionButton(
-                    label: 'Stimmt, weiter',
-                    icon: Icons.check_rounded,
-                    onPressed: () => change(confirmPage),
-                  ),
-                  if (wordPreview != null) saveWithoutWords(),
-                ] else if (confirmed) ...[
+                if (confirmed) ...[
                   SizedBox(height: 14),
                   Tooltip(
                     message: automaticallyChecked
@@ -2695,9 +2671,13 @@ class _MaterialReviewState extends State<MaterialReview>
                   if (readingUncertainties.isNotEmpty)
                     ExpansionTile(
                       tilePadding: EdgeInsets.zero,
-                      leading: const Icon(Icons.warning_amber_rounded),
-                      title: const Text('Lesestellen noch prüfen'),
+                      leading: const Icon(Icons.info_outline_rounded),
+                      title: const Text('Hinweise zur Seite'),
                       children: [
+                        const Notice(
+                          'Einige Stellen sind noch unklar. Sie werden beim Lernen ausgelassen und können von deinen Eltern geprüft werden.',
+                          warning: true,
+                        ),
                         for (final uncertainty in readingUncertainties)
                           Notice(uncertainty, warning: true),
                       ],
@@ -2728,12 +2708,6 @@ class _MaterialReviewState extends State<MaterialReview>
             d['confirmed'] == true &&
             wordPreview != null)
           savedWordPanel(),
-        if (canConfirm && dirty && !synthetic)
-          TextButton.icon(
-            onPressed: changing ? null : discardCorrection,
-            icon: Icon(Icons.undo_rounded),
-            label: Text('Eigene Korrektur zurücknehmen'),
-          ),
         if (d['purpose'] != 'exam' && confirmed && widget.showUnitAction) ...[
           SizedBox(height: 16),
           ActionButton(
