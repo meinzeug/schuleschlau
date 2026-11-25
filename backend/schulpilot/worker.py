@@ -673,17 +673,21 @@ def _process(job_id):
 
                 validate_decimal_history(db, job.child_id, data)
                 if job.payload.get("package_partition") is not None:
-                    from .package_partitions import store_validated_part
+                    from .package_partitions import InvalidPartOutput, store_validated_part
                     from .school_preparation import _state, _write
 
                     day = db.get(SchoolDay, job.payload["school_day_id"])
                     state = _state(day)
                     plan = state["package_plan"]
-                    state = store_validated_part(state, plan, job.payload["package_partition"], data,
-                        job_id=job.id, provider=config_values["provider"], model=config_values["model"],
-                        config_revision=config_values["revision"], context={
-                            **{key: payload[key] for key in ("visual_context", "learning_entry") if key in payload},
-                            **({"catalog_assignment": result.catalog_assignment} if result and result.catalog_assignment else {})})
+                    try:
+                        state = store_validated_part(state, plan, job.payload["package_partition"], data,
+                            job_id=job.id, provider=config_values["provider"], model=config_values["model"],
+                            config_revision=config_values["revision"], context={
+                                **{key: payload[key] for key in ("visual_context", "learning_entry") if key in payload},
+                                **({"catalog_assignment": result.catalog_assignment} if result and result.catalog_assignment else {})})
+                    except InvalidPartOutput as error:
+                        raise ProviderError("Die erzeugte Teilrunde konnte nicht sicher geprüft werden.",
+                                            code="invalid_output") from error
                     _write(day, state)
                     job.result = {"school_day_id": day.id, "package_partition": job.payload["package_partition"],
                                   "completed_parts": len(state["package_outputs"]), "total_parts": len(plan["parts"])}

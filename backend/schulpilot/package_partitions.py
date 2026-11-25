@@ -14,6 +14,10 @@ MAX_PAGES = 3
 VERSION = 1
 
 
+class InvalidPartOutput(ValueError):
+    """The generated part failed its schema or its bound part contract."""
+
+
 def _digest(value):
     return hashlib.sha256(json.dumps(value, sort_keys=True, ensure_ascii=False,
         separators=(",", ":"), allow_nan=False).encode()).hexdigest()
@@ -172,7 +176,10 @@ def store_validated_part(state, plan, index, output, *, job_id, provider, model,
              and isinstance(provider, str) and 1 <= len(provider) <= 20
              and isinstance(model, str) and 1 <= len(model) <= 160, "Der KI-Auftragsbeleg ist nicht gültig.")
     part = plan["parts"][index]
-    data = _checked_output(part, output)
+    try:
+        data = _checked_output(part, output)
+    except ValueError as error:
+        raise InvalidPartOutput("Die erzeugte Teilrunde konnte nicht sicher geprüft werden.") from error
     context = {} if context is None else context
     _require(isinstance(context, dict) and set(context) <= {"visual_context", "learning_entry", "catalog_assignment"},
              "Unzulässiger privater Teilrundenkontext.")

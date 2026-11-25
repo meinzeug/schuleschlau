@@ -109,3 +109,11 @@ werden als `invalid_output` geführt. Künstliche Erfolgs-, Quellenänderungs-,
 Schema- und Belegfehler wurden über getrennte Eltern- und Kindersitzungen
 auf SQLite und isoliertem PostgreSQL geprüft. Das belegt keine allgemeine
 sprachdidaktische Qualität oder Verfügbarkeit eines echten Anbieters.
+
+Bei mehrteiligen Paketen wird jetzt ausschließlich eine Verletzung des
+Ausgabevertrags des einzelnen Teils als `invalid_output` klassifiziert;
+Fehler der gespeicherten Planung werden nicht als Modellfehler umetikettiert.
+Drei künstliche Workerfälle mit fehlenden Einheiten, falscher Fachgruppe oder
+doppelten Aufgabenkennungen prüfen auf SQLite und isoliertem PostgreSQL den
+erhaltenen vorherigen Teil, ältere Antworten, den tatsächlichen Kostenbeleg
+und eine rein lesende Elternspur. Der Transport ist simuliert.

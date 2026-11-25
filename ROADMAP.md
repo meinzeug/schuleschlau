@@ -2093,6 +2093,14 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Gesamte Verarbeitungskette durchgängig nachvollziehbar machen**
 
+  - [x] **Fehlerhafte Teilrundenausgaben nach dem Anbieteraufruf einordnen.**
+    Schemafehler, falsche Fachgruppen und doppelte Aufgabenkennungen werden
+    im Teilrundenvertrag als ungültige Ausgabe erkannt. Ein künstlicher
+    mehrteiliger Workerfall prüft je Fehler die Elternspur, den Erhalt des
+    bereits fertigen Teils, früherer Antworten und der abgerechneten Kosten.
+    Wiederholte GETs erstellen nichts. Die Fälle bestehen auf SQLite und
+    isoliertem PostgreSQL; weitere Verarbeitungsschritte bleiben offen.
+
   - [x] **Wortschatz- und Sprachaufträge mit Quellen und Fehlern prüfen.**
     Die Elternspur zeigt gespeicherte Seitenrevisionen nur bei passender
     Kind- und Auftragsbindung. Geänderte Quellen und unzulässige Modellinhalte

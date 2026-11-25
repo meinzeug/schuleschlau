@@ -122,6 +122,49 @@ def artificial_day(api, household):
     return day_id, child, identities
 
 
+@pytest.mark.parametrize("fault", ["schema", "wrong_group", "duplicate_question"])
+def test_rejected_part_output_keeps_previous_receipt_and_billing(api, household, monkeypatch, fault):
+    day_id, _, old = artificial_day(api, household)
+    calls = []
+
+    def provider(config, function, payload, image_bytes=None, *, synthetic_fixture=False):
+        calls.append(payload["package_partition"])
+        output = bounded_output(payload)
+        if payload["package_partition"] == 1:
+            if fault == "schema":
+                output["units"] = []
+            elif fault == "wrong_group":
+                output["units"][0]["group_id"] = "wrong-group"
+            else:
+                output["units"][0]["questions"][1]["id"] = output["units"][0]["questions"][0]["id"]
+        return Result(output, 20, 40, 101, cost_source="reported")
+
+    monkeypatch.setattr(worker, "request_provider", provider)
+    assert preparation(api, day_id, "part-invalid-contract-001")["status"] == "processing"
+    assert run_one()
+    first = copy.deepcopy(snapshot(day_id)["package_outputs"]["0"])
+    failed_job = run_one()
+    assert failed_job and calls == [0, 1]
+    state = snapshot(day_id)
+    assert state["status"] == "failed" and state["package_outputs"]["0"] == first
+    assert "1" not in state["package_outputs"]
+    with DB() as db:
+        assert db.get(Job, failed_job).error_code == "invalid_output"
+        usage = db.scalar(select(Usage).where(Usage.job_id == failed_job))
+        assert usage.status == "failed_billed" and usage.cost_micros == 101
+        assert db.get(Attempt, old["attempt"]).outcome == "uncertain"
+        assert db.scalar(select(func.count()).select_from(LearningUnit)) == 1
+        counts = tuple(db.scalar(select(func.count()).select_from(model)) for model in (Job, Usage, Attempt, Activity))
+    for _ in range(2):
+        trace = api.get(f"/api/jobs/{failed_job}/trace")
+        assert trace.status_code == 200
+        assert trace.json()["phase"] == "generation" and trace.json()["error_code"] == "invalid_output"
+        assert trace.json()["units"] == [] and CASE["source"] not in trace.text
+    with DB() as db:
+        assert tuple(db.scalar(select(func.count()).select_from(model)) for model in (Job, Usage, Attempt, Activity)) == counts
+    assert calls == [0, 1]
+
+
 @pytest.mark.parametrize("fault", [None, "invalid_output", "provider_busy", "provider_timeout", "provider_unavailable", "interrupted"],
     ids=["complete-path", "invalid-output", "busy", "timeout", "unavailable", "interrupted"])
 def test_normal_parts_stage_privately_then_publish_once_with_graphics_and_preserved_history(

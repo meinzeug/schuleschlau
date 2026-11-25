@@ -2,6 +2,12 @@
 
 ## Arbeitsstand 24. November 2026
 
+Die Vertragsprüfung eines erzeugten Paketteils klassifiziert dessen
+Schema-/Zuordnungsfehler nun als `invalid_output`, ohne Planungsfehler als
+Modellfehler auszugeben. Drei künstliche SQLite-/PostgreSQL-Workerfälle
+belegen den Erhalt des vorherigen Teils und der Kosten. Die gesamte
+Verarbeitungskette ist noch nicht vollständig abgenommen.
+
 Wortschatzimporte und Sprachprojekte zeigen in der Elternspur ihre passend
 gebundenen Seitenrevisionen und begrenzte Fehlerklassen. Künstliche
 Erfolgs- und Fehlerfälle mit getrennten Sitzungen bestanden auf SQLite und
