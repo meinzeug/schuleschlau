@@ -2,6 +2,11 @@
 
 ## Arbeitsstand 24. November 2026
 
+Die separate KI-Bildprüfung wurde mit künstlichem Transport für Erfolg,
+einmalige Fehlerabrechnung und rein lesende Elternspur auf SQLite und
+isoliertem PostgreSQL geprüft. Die gesamte Verarbeitungsketten-Abnahme und
+eine fachliche Beurteilung echter Bilder bleiben offen.
+
 Die Elternspur wurde um künstliche Erfolgs- und Fehlerprüfungen der separaten
 öffentlichen Bilderzeugung ergänzt. Ein ungültiges abgerechnetes Bild wird
 nicht veröffentlicht; SQLite und isoliertes PostgreSQL bestehen beide Fälle.

@@ -125,3 +125,10 @@ der Kostenbeleg erhalten und es wird kein Bild veröffentlicht. Wiederholte
 Spurabrufe erzeugen keine Aufträge oder Bilder. SQLite und isoliertes
 PostgreSQL bestanden beide Fälle. Ein echtes KI-Bild oder eine fachliche
 Bildprüfung ist damit nicht nachgewiesen.
+
+Für den separaten Bildprüfauftrag wurden mit künstlichem Transport ein
+erfolgreicher Prüfstatus samt reserviertem Prüfmodell und ein abgerechneter
+Anbieterfehler über die Elternspur geprüft. Das mehrfache Verarbeiten des
+Fehlerauftrags verbucht die Kosten nur einmal; wiederholte Spurabrufe ändern
+Aufträge, Verbrauch und Prüfungen nicht. SQLite und isoliertes PostgreSQL
+bestehen die Fälle. Daraus folgt keine fachliche Freigabe echter Bilder.

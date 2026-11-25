@@ -2093,6 +2093,15 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Gesamte Verarbeitungskette durchgängig nachvollziehbar machen**
 
+  - [x] **Separate KI-Bildprüfung in der Elternspur prüfen.**
+    Ein künstlicher erfolgreicher Prüfauftrag zeigt das tatsächlich
+    reservierte Prüfmodell und den Abschlussstatus. Ein künstlicher
+    Anbieterfehler zeigt nur eine begrenzte Fehlerklasse; die abgerechneten
+    Kosten werden bei wiederholter Verarbeitung nur einmal verbucht.
+    Wiederholtes Lesen erzeugt keine zusätzlichen Aufträge oder Prüfungen.
+    Die Fälle bestehen auf SQLite und isoliertem PostgreSQL; ein reales
+    Anbieterurteil oder fachliche Bildqualität sind dadurch nicht belegt.
+
   - [x] **Öffentliche Bildaufträge in der Elternspur prüfen.**
     Ein künstlicher erfolgreicher Bildauftrag zeigt Status und verwendetes
     Modell; ein ungültiges abgerechnetes Bild wird nicht veröffentlicht und

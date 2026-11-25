@@ -62,6 +62,11 @@ def test_auto_review_is_one_separately_reserved_public_job(api, image_case, monk
         assert db.scalar(select(Usage).where(Usage.job_id == jid)).cost_micros == 1000
         row = db.scalar(select(PublicImageReview))
         assert row.status == "approved" and row.reviewer_model == calls[0][0]
+    trace = api.get(f"/api/jobs/{jid}/trace")
+    assert trace.status_code == 200
+    assert trace.json()["phase"] == "visual_review" and trace.json()["status"] == "completed"
+    assert trace.json()["model"]["model"] == calls[0][0]
+    assert trace.json()["sources"] == [] and "Sichtbar" not in trace.text
 
 
 def test_rejected_review_hides_image_and_never_claims_mastery(api, image_case, monkeypatch):
@@ -212,6 +217,14 @@ def test_billed_provider_error_is_settled_once_with_closed_category(api, image_c
         assert "PRIVATE" not in job.error
         assert usage.cost_micros == 1000 and usage.cost_source == "reported"
         assert usage.settlement_version == 1
+        before = db.query(Job).count(), db.query(Usage).count(), db.query(PublicImageReview).count()
+    for _ in range(2):
+        trace = api.get(f"/api/jobs/{jid}/trace")
+        assert trace.status_code == 200
+        assert trace.json()["phase"] == "visual_review" and trace.json()["error_code"] == "provider_busy"
+        assert "PRIVATE" not in trace.text and trace.json()["sources"] == []
+    with DB() as db:
+        assert (db.query(Job).count(), db.query(Usage).count(), db.query(PublicImageReview).count()) == before
 
 
 def test_review_output_and_late_job_are_not_fabricated(api, image_case, monkeypatch):
