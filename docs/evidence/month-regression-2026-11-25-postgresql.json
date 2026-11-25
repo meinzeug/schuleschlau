@@ -1,0 +1,1778 @@
+{
+  "test_sha256": "ad4cbab4b6c925cc52634fc4fbc269cff04cbb6a52caae9e9ba887f07be5672d",
+  "database": "postgresql",
+  "clock": "isolated domain timestamps, learning date and rate windows; global provider month uses host date",
+  "transport": "synthetic fixture; no external OCR, model or push",
+  "days": [
+    {
+      "date": "2026-09-01",
+      "page": "1c8598e5ccee4beaa6cd3999f1f93631",
+      "revision": 2,
+      "day": "67f7e3b96b6a44a7b08e68639d0eda26",
+      "unit": "da42c98c951c4e85a04580f3058fef49",
+      "subject": "Geographie",
+      "planned_parts": 1,
+      "jobs": [
+        {
+          "id": "75eb9824916b4ad49af5e240bcd96296",
+          "kind": "extract",
+          "status": "completed",
+          "error": null,
+          "created": 1788264000,
+          "cost_micros": 17,
+          "cost_source": "reported"
+        },
+        {
+          "id": "c099b3fb2c324755b5f580d0d5d89703",
+          "kind": "extract",
+          "status": "completed",
+          "error": null,
+          "created": 1788264000,
+          "cost_micros": 17,
+          "cost_source": "reported"
+        },
+        {
+          "id": "87abd3e9e7724b579293450547e031d5",
+          "kind": "package",
+          "status": "completed",
+          "error": null,
+          "created": 1788264000,
+          "cost_micros": 23,
+          "cost_source": "reported"
+        },
+        {
+          "id": "1a45747069504a4eb38418dd8cb77a4d",
+          "kind": "coach",
+          "status": "completed",
+          "error": null,
+          "created": 1788264000,
+          "cost_micros": 0,
+          "cost_source": "reported"
+        }
+      ],
+      "attempts": [
+        {
+          "question": "prior_711430f6_1",
+          "outcome": "correct",
+          "assisted": false
+        },
+        {
+          "question": "main_711430f6_1",
+          "outcome": "correct",
+          "assisted": false
+        }
+      ]
+    },
+    {
+      "date": "2026-09-02",
+      "page": "08bef51b65b84e2ebca0aab41276ea4a",
+      "revision": 2,
+      "day": "046340559cd8442fb906bf1b87ada1b7",
+      "unit": "443ec31bf1fb497da33c76e31b2f5f86",
+      "subject": "Geschichte",
+      "planned_parts": 1,
+      "jobs": [
+        {
+          "id": "b1fa22b3a5ea426f8d6493b866e5436a",
+          "kind": "extract",
+          "status": "completed",
+          "error": null,
+          "created": 1788350400,
+          "cost_micros": 17,
+          "cost_source": "reported"
+        },
+        {
+          "id": "56295612184446bda27d5e6b1ae647aa",
+          "kind": "extract",
+          "status": "completed",
+          "error": null,
+          "created": 1788350400,
+          "cost_micros": 17,
+          "cost_source": "reported"
+        },
+        {
+          "id": "979e9ae2d91f4677a3b2d8e3f665e7ce",
+          "kind": "package",
+          "status": "completed",
+          "error": null,
+          "created": 1788350400,
+          "cost_micros": 23,
+          "cost_source": "reported"
+        },
+        {
+          "id": "f87ed016c1e547398dee48dccfa33b0c",
+          "kind": "coach",
+          "status": "completed",
+          "error": null,
+          "created": 1788350400,
+          "cost_micros": 0,
+          "cost_source": "reported"
+        }
+      ],
+      "attempts": [
+        {
+          "question": "prior_711430f6_1",
+          "outcome": "correct",
+          "assisted": true
+        },
+        {
+          "question": "main_711430f6_1",
+          "outcome": "correct",
+          "assisted": false
+        }
+      ]
+    },
+    {
+      "date": "2026-09-03",
+      "page": "a448032450db4c4f9112145df3520452",
+      "revision": 2,
+      "day": "b311f6a30f4b4957a80d6dea96ed2275",
+      "unit": "3d06a6695e554b1eb232dc1ed80280f9",
+      "subject": "Geographie",
+      "planned_parts": 1,
+      "jobs": [
+        {
+          "id": "cde9929af089494ab0c883933b37b236",
+          "kind": "extract",
+          "status": "completed",
+          "error": null,
+          "created": 1788436800,
+          "cost_micros": 17,
+          "cost_source": "reported"
+        },
+        {
+          "id": "797bdb838f51418bb7a2c911ec7b663a",
+          "kind": "extract",
+          "status": "completed",
+          "error": null,
+          "created": 1788436800,
+          "cost_micros": 17,
+          "cost_source": "reported"
+        },
+        {
+          "id": "39a74cef61cb456eb43bcf9e6594ab58",
+          "kind": "package",
+          "status": "completed",
+          "error": null,
+          "created": 1788436800,
+          "cost_micros": 23,
+          "cost_source": "reported"
+        },
+        {
+          "id": "daf1d65653c84ed6812ba09033102b6f",
+          "kind": "coach",
+          "status": "completed",
+          "error": null,
+          "created": 1788436800,
+          "cost_micros": 0,
+          "cost_source": "reported"
+        }
+      ],
+      "attempts": [
+        {
+          "question": "prior_711430f6_1",
+          "outcome": "correct",
+          "assisted": false
+        },
+        {
+          "question": "main_711430f6_1",
+          "outcome": "correct",
+          "assisted": false
+        }
+      ]
+    },
+    {
+      "date": "2026-09-04",
+      "page": "d56e4e9748de4e51a08797ee16b7c639",
+      "revision": 2,
+      "day": "174de44205c94ccea01b285feb44bb1e",
+      "unit": "e7ae099726ad4adeb2721142992b000a",
+      "subject": "Geschichte",
+      "planned_parts": 1,
+      "jobs": [
+        {
+          "id": "626d993184ef49188dbc59a7a17e527b",
+          "kind": "extract",
+          "status": "completed",
+          "error": null,
+          "created": 1788523200,
+          "cost_micros": 17,
+          "cost_source": "reported"
+        },
+        {
+          "id": "a579a3339a3647e6b78b078485b48ddf",
+          "kind": "extract",
+          "status": "completed",
+          "error": null,
+          "created": 1788523200,
+          "cost_micros": 17,
+          "cost_source": "reported"
+        },
+        {
+          "id": "23719e1b4912489bbebfe33145444d50",
+          "kind": "package",
+          "status": "completed",
+          "error": null,
+          "created": 1788523200,
+          "cost_micros": 23,
+          "cost_source": "reported"
+        },
+        {
+          "id": "12b24a97086d4f63b69ec5afdc1edba4",
+          "kind": "coach",
+          "status": "completed",
+          "error": null,
+          "created": 1788523200,
+          "cost_micros": 0,
+          "cost_source": "reported"
+        }
+      ],
+      "attempts": [
+        {
+          "question": "prior_711430f6_1",
+          "outcome": "correct",
+          "assisted": true
+        },
+        {
+          "question": "main_711430f6_1",
+          "outcome": "correct",
+          "assisted": false
+        }
+      ]
+    },
+    {
+      "date": "2026-09-07",
+      "page": "837e3442512140d8a04c59ee537b80f6",
+      "revision": 2,
+      "day": "d5fd86af4cee42a8b3277069c874b1ff",
+      "unit": "2f0d86195b5a4175b9cce110387e719a",
+      "subject": "Geographie",
+      "planned_parts": 1,
+      "jobs": [
+        {
+          "id": "cc9aae2e5db14f7ebd4bf9ea86ea5c46",
+          "kind": "extract",
+          "status": "completed",
+          "error": null,
+          "created": 1788782400,
+          "cost_micros": 17,
+          "cost_source": "reported"
+        },
+        {
+          "id": "b264f3ced89249e5b473dad28207ac2f",
+          "kind": "extract",
+          "status": "completed",
+          "error": null,
+          "created": 1788782400,
+          "cost_micros": 17,
+          "cost_source": "reported"
+        },
+        {
+          "id": "bae4774b17da4a8281ad9535c26efd23",
+          "kind": "package",
+          "status": "completed",
+          "error": null,
+          "created": 1788782400,
+          "cost_micros": 23,
+          "cost_source": "reported"
+        },
+        {
+          "id": "205cb51b5d874b40a182f7f1e1ae60bd",
+          "kind": "coach",
+          "status": "completed",
+          "error": null,
+          "created": 1788782400,
+          "cost_micros": 0,
+          "cost_source": "reported"
+        }
+      ],
+      "attempts": [
+        {
+          "question": "prior_711430f6_1",
+          "outcome": "correct",
+          "assisted": false
+        },
+        {
+          "question": "main_711430f6_1",
+          "outcome": "uncertain",
+          "assisted": false
+        }
+      ]
+    },
+    {
+      "date": "2026-09-08",
+      "page": "4bde0f4e2a2e45b79604e18c7cf243e9",
+      "revision": 2,
+      "day": "2c4aad7375bb4ea5bdf5ac25ffbe2029",
+      "unit": "cddb7c3f286f429ba890576964449b5e",
+      "subject": "Geschichte",
+      "planned_parts": 1,
+      "jobs": [
+        {
+          "id": "1166244e22154c9e9b966a060f4d5d7c",
+          "kind": "extract",
+          "status": "completed",
+          "error": null,
+          "created": 1788868800,
+          "cost_micros": 17,
+          "cost_source": "reported"
+        },
+        {
+          "id": "1fe90258f14a443e9e2638968601319b",
+          "kind": "extract",
+          "status": "completed",
+          "error": null,
+          "created": 1788868800,
+          "cost_micros": 17,
+          "cost_source": "reported"
+        },
+        {
+          "id": "4ff71141ca674e82bb80d1b7bfa9c454",
+          "kind": "package",
+          "status": "completed",
+          "error": null,
+          "created": 1788868800,
+          "cost_micros": 23,
+          "cost_source": "reported"
+        },
+        {
+          "id": "6392da0fd77e4ea885ac5b48f65f639f",
+          "kind": "coach",
+          "status": "completed",
+          "error": null,
+          "created": 1788868800,
+          "cost_micros": 0,
+          "cost_source": "reported"
+        }
+      ],
+      "attempts": [
+        {
+          "question": "prior_711430f6_1",
+          "outcome": "correct",
+          "assisted": true
+        },
+        {
+          "question": "main_711430f6_1",
+          "outcome": "correct",
+          "assisted": false
+        }
+      ]
+    },
+    {
+      "date": "2026-09-09",
+      "page": "52dfae3b64e54b38967952d7aa2399a7",
+      "revision": 2,
+      "day": "609219c36a764285a5ab931e38e723d0",
+      "unit": "479487a1daa94713990db1393673f940",
+      "subject": "Geographie",
+      "planned_parts": 1,
+      "jobs": [
+        {
+          "id": "a537924adc184f0799ec326c986dd58c",
+          "kind": "extract",
+          "status": "completed",
+          "error": null,
+          "created": 1788955200,
+          "cost_micros": 17,
+          "cost_source": "reported"
+        },
+        {
+          "id": "0bb273796e8f4e4ba72e5f027e8e4f67",
+          "kind": "extract",
+          "status": "completed",
+          "error": null,
+          "created": 1788955200,
+          "cost_micros": 17,
+          "cost_source": "reported"
+        },
+        {
+          "id": "16f5990a07d94574af30a5804d4988b2",
+          "kind": "package",
+          "status": "completed",
+          "error": null,
+          "created": 1788955200,
+          "cost_micros": 23,
+          "cost_source": "reported"
+        },
+        {
+          "id": "f03774e5d52e4e72a91052ec4ee7b45f",
+          "kind": "coach",
+          "status": "completed",
+          "error": null,
+          "created": 1788955200,
+          "cost_micros": null,
+          "cost_source": "unknown"
+        }
+      ],
+      "attempts": [
+        {
+          "question": "prior_711430f6_1",
+          "outcome": "correct",
+          "assisted": false
+        },
+        {
+          "question": "main_711430f6_1",
+          "outcome": "correct",
+          "assisted": false
+        }
+      ]
+    },
+    {
+      "date": "2026-09-10",
+      "page": "5b5620b7dc8347a781d3b3da693ef4ee",
+      "revision": 2,
+      "day": "603183f7f44446e1b9324b7000b82b04",
+      "unit": "5bd4eacf6e5944c28be7123204692849",
+      "subject": "Geschichte",
+      "planned_parts": 1,
+      "jobs": [
+        {
+          "id": "1458cfbc6fb8479d8cb2942efedd41bb",
+          "kind": "extract",
+          "status": "completed",
+          "error": null,
+          "created": 1789041600,
+          "cost_micros": 17,
+          "cost_source": "reported"
+        },
+        {
+          "id": "2367d9ea582d46738f9bd7f1e30cb183",
+          "kind": "extract",
+          "status": "completed",
+          "error": null,
+          "created": 1789041600,
+          "cost_micros": 17,
+          "cost_source": "reported"
+        },
+        {
+          "id": "479a3a3966954da687e9a862f487cb88",
+          "kind": "package",
+          "status": "completed",
+          "error": null,
+          "created": 1789041600,
+          "cost_micros": 23,
+          "cost_source": "reported"
+        },
+        {
+          "id": "9a90342f2d4844d9b87812f7b98aa5d3",
+          "kind": "coach",
+          "status": "completed",
+          "error": null,
+          "created": 1789041600,
+          "cost_micros": 0,
+          "cost_source": "reported"
+        }
+      ],
+      "attempts": [
+        {
+          "question": "prior_711430f6_1",
+          "outcome": "correct",
+          "assisted": true
+        },
+        {
+          "question": "main_711430f6_1",
+          "outcome": "correct",
+          "assisted": false
+        }
+      ]
+    },
+    {
+      "date": "2026-09-14",
+      "page": "11ca27ba24974366a185de8af2bc9255",
+      "revision": 2,
+      "day": "f915774c7def41ae922742b89fbac121",
+      "unit": "ba45aab1b19841d6b4c371f44ee53fea",
+      "subject": "Geographie",
+      "planned_parts": 1,
+      "jobs": [
+        {
+          "id": "b41491d70dac41c386a5e358af0a2cb7",
+          "kind": "extract",
+          "status": "completed",
+          "error": null,
+          "created": 1789387200,
+          "cost_micros": 17,
+          "cost_source": "reported"
+        },
+        {
+          "id": "036695bf78cd47f3980e801264105b3f",
+          "kind": "extract",
+          "status": "completed",
+          "error": null,
+          "created": 1789387200,
+          "cost_micros": 17,
+          "cost_source": "reported"
+        },
+        {
+          "id": "18e25747d5184504860ea3c86a288177",
+          "kind": "package",
+          "status": "completed",
+          "error": null,
+          "created": 1789387200,
+          "cost_micros": 23,
+          "cost_source": "reported"
+        },
+        {
+          "id": "8b28cae4ef0e433e91911142537780f8",
+          "kind": "coach",
+          "status": "completed",
+          "error": null,
+          "created": 1789387200,
+          "cost_micros": 0,
+          "cost_source": "reported"
+        }
+      ],
+      "attempts": [
+        {
+          "question": "prior_711430f6_1",
+          "outcome": "correct",
+          "assisted": false
+        },
+        {
+          "question": "main_711430f6_1",
+          "outcome": "correct",
+          "assisted": false
+        }
+      ]
+    },
+    {
+      "date": "2026-09-15",
+      "page": "134af085deb14f60bdc90da0f2a2d5ad",
+      "revision": 2,
+      "day": "986d68a85bd0448ab6985d8d2cc7ba84",
+      "unit": "321345ffbd19494da2587fc95b0937b2",
+      "subject": "Geschichte",
+      "planned_parts": 1,
+      "jobs": [
+        {
+          "id": "e12b0a35afba4ed2b5a3af930358f176",
+          "kind": "extract",
+          "status": "completed",
+          "error": null,
+          "created": 1789473600,
+          "cost_micros": 17,
+          "cost_source": "reported"
+        },
+        {
+          "id": "fccb8d7b627a413da07cea6f7191b046",
+          "kind": "extract",
+          "status": "completed",
+          "error": null,
+          "created": 1789473600,
+          "cost_micros": 17,
+          "cost_source": "reported"
+        },
+        {
+          "id": "b7d4af150ff34d819d0e62cda6a11ca6",
+          "kind": "package",
+          "status": "completed",
+          "error": null,
+          "created": 1789473600,
+          "cost_micros": 23,
+          "cost_source": "reported"
+        },
+        {
+          "id": "7bef5ad65da64039a0ab388d40cda0ba",
+          "kind": "coach",
+          "status": "completed",
+          "error": null,
+          "created": 1789473600,
+          "cost_micros": 0,
+          "cost_source": "reported"
+        }
+      ],
+      "attempts": [
+        {
+          "question": "prior_711430f6_1",
+          "outcome": "correct",
+          "assisted": true
+        },
+        {
+          "question": "main_711430f6_1",
+          "outcome": "uncertain",
+          "assisted": false
+        }
+      ]
+    },
+    {
+      "date": "2026-09-16",
+      "page": "3125fc3d9fe54f3d84219a62401f4246",
+      "revision": 2,
+      "day": "19a4d759ac71462494e5e977ff5547c2",
+      "unit": "c1f83c81ddc94c9f9df14c78da36e76a",
+      "subject": "Geographie",
+      "planned_parts": 1,
+      "jobs": [
+        {
+          "id": "acc48f06dcea47e381b9b1a4a023ea6d",
+          "kind": "extract",
+          "status": "completed",
+          "error": null,
+          "created": 1789560000,
+          "cost_micros": 17,
+          "cost_source": "reported"
+        },
+        {
+          "id": "db090ce88b774202a8bc1cf06189f3ec",
+          "kind": "extract",
+          "status": "completed",
+          "error": null,
+          "created": 1789560000,
+          "cost_micros": 17,
+          "cost_source": "reported"
+        },
+        {
+          "id": "0aa110e248ca4ba6a830ceede72681af",
+          "kind": "package",
+          "status": "completed",
+          "error": null,
+          "created": 1789560000,
+          "cost_micros": 23,
+          "cost_source": "reported"
+        },
+        {
+          "id": "fc5ed5a865204789bab950805ed7d9ed",
+          "kind": "coach",
+          "status": "completed",
+          "error": null,
+          "created": 1789560000,
+          "cost_micros": 0,
+          "cost_source": "reported"
+        }
+      ],
+      "attempts": [
+        {
+          "question": "prior_711430f6_1",
+          "outcome": "correct",
+          "assisted": false
+        },
+        {
+          "question": "main_711430f6_1",
+          "outcome": "correct",
+          "assisted": false
+        }
+      ]
+    },
+    {
+      "date": "2026-09-17",
+      "page": "3be76f1d3e434c4298a2c0939b7f9266",
+      "revision": 2,
+      "day": "738c75e16bfa49aab835847acfb249f4",
+      "unit": "541a1359885b4b29b4bbb817e4c4b0a5",
+      "subject": "Geschichte",
+      "planned_parts": 1,
+      "jobs": [
+        {
+          "id": "daff0e43c38e4b7389d292b28944ce75",
+          "kind": "extract",
+          "status": "completed",
+          "error": null,
+          "created": 1789646400,
+          "cost_micros": 17,
+          "cost_source": "reported"
+        },
+        {
+          "id": "5c40cb6f1cf548b0a2c9c13d79b6576e",
+          "kind": "extract",
+          "status": "completed",
+          "error": null,
+          "created": 1789646400,
+          "cost_micros": 17,
+          "cost_source": "reported"
+        },
+        {
+          "id": "15865b85ef404b1189914d3dc591e26f",
+          "kind": "package",
+          "status": "completed",
+          "error": null,
+          "created": 1789646400,
+          "cost_micros": 23,
+          "cost_source": "reported"
+        },
+        {
+          "id": "dac912095bb04a9baaa0f064bd4a54c9",
+          "kind": "coach",
+          "status": "completed",
+          "error": null,
+          "created": 1789646400,
+          "cost_micros": 0,
+          "cost_source": "reported"
+        }
+      ],
+      "attempts": [
+        {
+          "question": "prior_711430f6_1",
+          "outcome": "correct",
+          "assisted": true
+        },
+        {
+          "question": "main_711430f6_1",
+          "outcome": "correct",
+          "assisted": false
+        }
+      ]
+    },
+    {
+      "date": "2026-09-18",
+      "page": "58b1fe06682f4632bbdde0937fadb644",
+      "revision": 2,
+      "day": "face12258fd3405392d2c9bdebfac5e7",
+      "unit": "603c82932fc34c81ac20c9c211994f35",
+      "subject": "Geographie",
+      "planned_parts": 1,
+      "jobs": [
+        {
+          "id": "a716b48dabdb4ac7b6331ec084d6dfe8",
+          "kind": "extract",
+          "status": "completed",
+          "error": null,
+          "created": 1789732800,
+          "cost_micros": 17,
+          "cost_source": "reported"
+        },
+        {
+          "id": "bfa3bcb206054c3f89e6ec8f46cb9fbe",
+          "kind": "extract",
+          "status": "completed",
+          "error": null,
+          "created": 1789732800,
+          "cost_micros": 17,
+          "cost_source": "reported"
+        },
+        {
+          "id": "b1975bc989204399b352ec26fbeb3819",
+          "kind": "package",
+          "status": "completed",
+          "error": null,
+          "created": 1789732800,
+          "cost_micros": 23,
+          "cost_source": "reported"
+        },
+        {
+          "id": "6d1fdf6af515461d8ecdb7df91a70c91",
+          "kind": "coach",
+          "status": "completed",
+          "error": null,
+          "created": 1789732800,
+          "cost_micros": 0,
+          "cost_source": "reported"
+        }
+      ],
+      "attempts": [
+        {
+          "question": "prior_711430f6_1",
+          "outcome": "correct",
+          "assisted": false
+        },
+        {
+          "question": "main_711430f6_1",
+          "outcome": "correct",
+          "assisted": false
+        }
+      ]
+    },
+    {
+      "date": "2026-09-22",
+      "page": "8ea8205a97dd4971806f5ad195485fe6",
+      "revision": 2,
+      "day": "3739ae245756411095d91c03fdd3237b",
+      "unit": "fef3af7aaca745c59f36403cf517bd95",
+      "subject": "Geschichte",
+      "planned_parts": 1,
+      "jobs": [
+        {
+          "id": "28d38fb2bc23459d88b2a919790a9fb6",
+          "kind": "extract",
+          "status": "completed",
+          "error": null,
+          "created": 1790078400,
+          "cost_micros": 17,
+          "cost_source": "reported"
+        },
+        {
+          "id": "cbff06acfd17480e9843755faa2608ed",
+          "kind": "extract",
+          "status": "completed",
+          "error": null,
+          "created": 1790078400,
+          "cost_micros": 17,
+          "cost_source": "reported"
+        },
+        {
+          "id": "ffe1fd25fce84e6d9c8ecd13b983f3d7",
+          "kind": "package",
+          "status": "completed",
+          "error": null,
+          "created": 1790078400,
+          "cost_micros": 23,
+          "cost_source": "reported"
+        },
+        {
+          "id": "4d710b6a9dfb42f98c2dc323e55cec2d",
+          "kind": "coach",
+          "status": "completed",
+          "error": null,
+          "created": 1790078400,
+          "cost_micros": 0,
+          "cost_source": "reported"
+        }
+      ],
+      "attempts": [
+        {
+          "question": "prior_711430f6_1",
+          "outcome": "correct",
+          "assisted": true
+        },
+        {
+          "question": "main_711430f6_1",
+          "outcome": "correct",
+          "assisted": false
+        }
+      ]
+    },
+    {
+      "date": "2026-09-23",
+      "page": "8d368ff4c27342998c86e8e43e72fa85",
+      "revision": 2,
+      "day": "50a16208ade446f39ef65c674c6fe7f3",
+      "unit": "3c87893a360b4fa4bd7f800f493c8f9a",
+      "subject": "Geographie",
+      "planned_parts": 1,
+      "jobs": [
+        {
+          "id": "fbd59974cfdb468d94dca4c7144162c6",
+          "kind": "extract",
+          "status": "completed",
+          "error": null,
+          "created": 1790164800,
+          "cost_micros": 17,
+          "cost_source": "reported"
+        },
+        {
+          "id": "afa4027309c04b7dbd4112538e95c8bb",
+          "kind": "extract",
+          "status": "completed",
+          "error": null,
+          "created": 1790164800,
+          "cost_micros": 17,
+          "cost_source": "reported"
+        },
+        {
+          "id": "38ae2df8a6a947d79b9ddab1dfdeac68",
+          "kind": "package",
+          "status": "completed",
+          "error": null,
+          "created": 1790164800,
+          "cost_micros": 23,
+          "cost_source": "reported"
+        },
+        {
+          "id": "35ce7d9d591641a3b66e7147fd69a031",
+          "kind": "coach",
+          "status": "completed",
+          "error": null,
+          "created": 1790164800,
+          "cost_micros": 0,
+          "cost_source": "reported"
+        }
+      ],
+      "attempts": [
+        {
+          "question": "prior_711430f6_1",
+          "outcome": "correct",
+          "assisted": false
+        },
+        {
+          "question": "main_711430f6_1",
+          "outcome": "uncertain",
+          "assisted": false
+        }
+      ]
+    },
+    {
+      "date": "2026-09-24",
+      "page": "0a1a9dcd7260493696a4142f07c459ff",
+      "revision": 2,
+      "day": "fb3cc46dab10417fa86c362967b5c01e",
+      "unit": "e68d227f972442a78b2531ea2d90f069",
+      "subject": "Geschichte",
+      "planned_parts": 1,
+      "jobs": [
+        {
+          "id": "ec538e6c10784899a3592c0e1b4aa7bc",
+          "kind": "extract",
+          "status": "completed",
+          "error": null,
+          "created": 1790251200,
+          "cost_micros": 17,
+          "cost_source": "reported"
+        },
+        {
+          "id": "bb69615d88bb4f7a9c08c0ea7e1a8deb",
+          "kind": "extract",
+          "status": "completed",
+          "error": null,
+          "created": 1790251200,
+          "cost_micros": 17,
+          "cost_source": "reported"
+        },
+        {
+          "id": "d0e7ce37e6bf41ae803aeb4e65f953c9",
+          "kind": "package",
+          "status": "completed",
+          "error": null,
+          "created": 1790251200,
+          "cost_micros": 23,
+          "cost_source": "reported"
+        },
+        {
+          "id": "95eaee691fe141d29f9007802ba1bddd",
+          "kind": "coach",
+          "status": "completed",
+          "error": null,
+          "created": 1790251200,
+          "cost_micros": 0,
+          "cost_source": "reported"
+        }
+      ],
+      "attempts": [
+        {
+          "question": "prior_711430f6_1",
+          "outcome": "correct",
+          "assisted": true
+        },
+        {
+          "question": "main_711430f6_1",
+          "outcome": "correct",
+          "assisted": false
+        }
+      ]
+    },
+    {
+      "date": "2026-09-25",
+      "page": "ac798a8086ae484aa2fcb21d60c61e24",
+      "revision": 2,
+      "day": "8db78223db06458ab5b47bb2af858499",
+      "unit": "f25090c4ff4147e2a942da90c7abe81e",
+      "subject": "Geographie",
+      "planned_parts": 1,
+      "jobs": [
+        {
+          "id": "51639941880e4f779d8d779f8ae3c976",
+          "kind": "extract",
+          "status": "completed",
+          "error": null,
+          "created": 1790337600,
+          "cost_micros": 17,
+          "cost_source": "reported"
+        },
+        {
+          "id": "79652e8bc0974fc4ba83595c54308f6c",
+          "kind": "extract",
+          "status": "completed",
+          "error": null,
+          "created": 1790337600,
+          "cost_micros": 17,
+          "cost_source": "reported"
+        },
+        {
+          "id": "ccd547dbdecd46f8b45be1364a648a16",
+          "kind": "package",
+          "status": "completed",
+          "error": null,
+          "created": 1790337600,
+          "cost_micros": 23,
+          "cost_source": "reported"
+        },
+        {
+          "id": "7c308e38feab4fff9e25ab497fd67e5a",
+          "kind": "coach",
+          "status": "completed",
+          "error": null,
+          "created": 1790337600,
+          "cost_micros": 0,
+          "cost_source": "reported"
+        }
+      ],
+      "attempts": [
+        {
+          "question": "prior_711430f6_1",
+          "outcome": "correct",
+          "assisted": false
+        },
+        {
+          "question": "main_711430f6_1",
+          "outcome": "correct",
+          "assisted": false
+        }
+      ]
+    },
+    {
+      "date": "2026-09-28",
+      "page": "145afcb7b2a44c6d84f1b7239622746f",
+      "revision": 2,
+      "day": "8063144dc63943c48ab59b12d8263e6a",
+      "unit": "854b65546816413eadd65c1d7769fcff",
+      "subject": "Geschichte",
+      "planned_parts": 1,
+      "jobs": [
+        {
+          "id": "0953946ef2344c08bea0e193bc411628",
+          "kind": "extract",
+          "status": "completed",
+          "error": null,
+          "created": 1790596800,
+          "cost_micros": 17,
+          "cost_source": "reported"
+        },
+        {
+          "id": "93622e75e17047c2b236e948b320b9b3",
+          "kind": "extract",
+          "status": "completed",
+          "error": null,
+          "created": 1790596800,
+          "cost_micros": 17,
+          "cost_source": "reported"
+        },
+        {
+          "id": "604fa5756ed64bc892eccdcf5a3d2ed8",
+          "kind": "package",
+          "status": "completed",
+          "error": null,
+          "created": 1790596800,
+          "cost_micros": 23,
+          "cost_source": "reported"
+        },
+        {
+          "id": "27d4d5481b7c4806b0fd3b7e40aac804",
+          "kind": "coach",
+          "status": "completed",
+          "error": null,
+          "created": 1790596800,
+          "cost_micros": 0,
+          "cost_source": "reported"
+        }
+      ],
+      "attempts": [
+        {
+          "question": "prior_711430f6_1",
+          "outcome": "correct",
+          "assisted": true
+        },
+        {
+          "question": "main_711430f6_1",
+          "outcome": "correct",
+          "assisted": false
+        }
+      ]
+    },
+    {
+      "date": "2026-09-29",
+      "page": "77506164bde04828b52625998b14ef4e",
+      "revision": 2,
+      "day": "79587b71a9e14c90bb4493746c14d6c8",
+      "unit": "3c44b3dec2e44e1b9f585c702af004bc",
+      "subject": "Geographie",
+      "planned_parts": 1,
+      "jobs": [
+        {
+          "id": "490e7f99fdf34592b0fd2d1fbfd1919e",
+          "kind": "extract",
+          "status": "completed",
+          "error": null,
+          "created": 1790683200,
+          "cost_micros": 17,
+          "cost_source": "reported"
+        },
+        {
+          "id": "b9ab35340b4e4b72aa3cf27de1ab90f0",
+          "kind": "extract",
+          "status": "completed",
+          "error": null,
+          "created": 1790683200,
+          "cost_micros": 17,
+          "cost_source": "reported"
+        },
+        {
+          "id": "6e2c2280a1e24d85b77ece966856d30b",
+          "kind": "package",
+          "status": "completed",
+          "error": null,
+          "created": 1790683200,
+          "cost_micros": 23,
+          "cost_source": "reported"
+        },
+        {
+          "id": "c4cc340dce444c278511e05d3ff827e6",
+          "kind": "coach",
+          "status": "completed",
+          "error": null,
+          "created": 1790683200,
+          "cost_micros": 0,
+          "cost_source": "reported"
+        }
+      ],
+      "attempts": [
+        {
+          "question": "prior_711430f6_1",
+          "outcome": "correct",
+          "assisted": false
+        },
+        {
+          "question": "main_711430f6_1",
+          "outcome": "correct",
+          "assisted": false
+        }
+      ]
+    },
+    {
+      "date": "2026-09-30",
+      "page": "b2f98a331a6d48419a00d1ef3bd525ef",
+      "revision": 2,
+      "day": "485ea4576e664b8488c2032606d15b90",
+      "unit": "d7658c3bfdd0404aa6a78e43829f8a5d",
+      "subject": "Geschichte",
+      "planned_parts": 1,
+      "jobs": [
+        {
+          "id": "a7b84a3014744bb3aaf12e84030efac9",
+          "kind": "extract",
+          "status": "completed",
+          "error": null,
+          "created": 1790769600,
+          "cost_micros": 17,
+          "cost_source": "reported"
+        },
+        {
+          "id": "f9e9a64b4b464392b7cf81cde231ca9e",
+          "kind": "extract",
+          "status": "completed",
+          "error": null,
+          "created": 1790769600,
+          "cost_micros": 17,
+          "cost_source": "reported"
+        },
+        {
+          "id": "5b75009c691c41a493fda20ebdc3aa4d",
+          "kind": "package",
+          "status": "completed",
+          "error": null,
+          "created": 1790769600,
+          "cost_micros": 23,
+          "cost_source": "reported"
+        },
+        {
+          "id": "63de1a91f4f04ab9ac957b1674ec874e",
+          "kind": "coach",
+          "status": "completed",
+          "error": null,
+          "created": 1790769600,
+          "cost_micros": 0,
+          "cost_source": "reported"
+        }
+      ],
+      "attempts": [
+        {
+          "question": "prior_711430f6_1",
+          "outcome": "correct",
+          "assisted": true
+        },
+        {
+          "question": "main_711430f6_1",
+          "outcome": "uncertain",
+          "assisted": false
+        }
+      ]
+    },
+    {
+      "date": "2026-10-01",
+      "page": "d94e3900e5624dcbb25fcf626b17d4be",
+      "revision": 2,
+      "day": "7042635fa668413db01fd6a93aad4f28",
+      "unit": "219d25af9ce44d5ca3e284ac38c3734f",
+      "subject": "Geographie",
+      "planned_parts": 1,
+      "jobs": [
+        {
+          "id": "c1175a36da7942e6b00c3d807467ffc8",
+          "kind": "extract",
+          "status": "completed",
+          "error": null,
+          "created": 1790856000,
+          "cost_micros": 17,
+          "cost_source": "reported"
+        },
+        {
+          "id": "29e781f78113480ca68e01e51a03f9a3",
+          "kind": "extract",
+          "status": "completed",
+          "error": null,
+          "created": 1790856000,
+          "cost_micros": 17,
+          "cost_source": "reported"
+        },
+        {
+          "id": "15f21c79baa94ecc991158cc1ce4b422",
+          "kind": "package",
+          "status": "completed",
+          "error": null,
+          "created": 1790856000,
+          "cost_micros": 23,
+          "cost_source": "reported"
+        },
+        {
+          "id": "a69b40e54eed40d993faf51805ad9d9d",
+          "kind": "coach",
+          "status": "completed",
+          "error": null,
+          "created": 1790856000,
+          "cost_micros": 0,
+          "cost_source": "reported"
+        }
+      ],
+      "attempts": [
+        {
+          "question": "prior_711430f6_1",
+          "outcome": "correct",
+          "assisted": false
+        },
+        {
+          "question": "main_711430f6_1",
+          "outcome": "correct",
+          "assisted": false
+        }
+      ]
+    },
+    {
+      "date": "2026-10-02",
+      "page": "e9821a2b33c74563aa6834344f16f2fb",
+      "revision": 2,
+      "day": "25dc2d326ce2454f979516ad4ce6280d",
+      "unit": "eb75528fcc0a4e1cbdec168a9a7d8066",
+      "subject": "Geschichte",
+      "planned_parts": 1,
+      "jobs": [
+        {
+          "id": "355b8754f32e4d8e8db5c7367aa926d3",
+          "kind": "extract",
+          "status": "completed",
+          "error": null,
+          "created": 1790942400,
+          "cost_micros": 17,
+          "cost_source": "reported"
+        },
+        {
+          "id": "e7ee7a3a416f473b851c766459b77093",
+          "kind": "extract",
+          "status": "completed",
+          "error": null,
+          "created": 1790942400,
+          "cost_micros": 17,
+          "cost_source": "reported"
+        },
+        {
+          "id": "dbdab6ffcd2a4f13830a6e4091cdb037",
+          "kind": "package",
+          "status": "completed",
+          "error": null,
+          "created": 1790942400,
+          "cost_micros": 23,
+          "cost_source": "reported"
+        },
+        {
+          "id": "778ad6ce34f047eca1cbcb18cb52939b",
+          "kind": "coach",
+          "status": "completed",
+          "error": null,
+          "created": 1790942400,
+          "cost_micros": 0,
+          "cost_source": "reported"
+        }
+      ],
+      "attempts": [
+        {
+          "question": "prior_711430f6_1",
+          "outcome": "correct",
+          "assisted": true
+        },
+        {
+          "question": "main_711430f6_1",
+          "outcome": "correct",
+          "assisted": false
+        }
+      ]
+    },
+    {
+      "date": "2026-10-05",
+      "page": "ddad1871799f466ca3e2ef040c6d24c9",
+      "revision": 2,
+      "day": "d3f181aaafc246a6a8d6927e24701360",
+      "unit": "a2a2754e9003407683b0a72b93c20178",
+      "subject": "Geographie",
+      "planned_parts": 1,
+      "jobs": [
+        {
+          "id": "e0cfe540f9984304b65bbdf54ccd2aaa",
+          "kind": "extract",
+          "status": "completed",
+          "error": null,
+          "created": 1791201600,
+          "cost_micros": 17,
+          "cost_source": "reported"
+        },
+        {
+          "id": "af7abb9f029d4d3b82f863864985faff",
+          "kind": "extract",
+          "status": "completed",
+          "error": null,
+          "created": 1791201600,
+          "cost_micros": 17,
+          "cost_source": "reported"
+        },
+        {
+          "id": "7009615ab64c4a03adb41fa81bf15c8e",
+          "kind": "package",
+          "status": "completed",
+          "error": null,
+          "created": 1791201600,
+          "cost_micros": 23,
+          "cost_source": "reported"
+        },
+        {
+          "id": "2649f82be8764befb1610db2f9a0d1bb",
+          "kind": "coach",
+          "status": "completed",
+          "error": null,
+          "created": 1791201600,
+          "cost_micros": 0,
+          "cost_source": "reported"
+        }
+      ],
+      "attempts": [
+        {
+          "question": "prior_711430f6_1",
+          "outcome": "correct",
+          "assisted": false
+        },
+        {
+          "question": "main_711430f6_1",
+          "outcome": "correct",
+          "assisted": false
+        }
+      ]
+    },
+    {
+      "date": "2026-10-06",
+      "page": "71f51115ecc14808ab8f2afd46180485",
+      "revision": 2,
+      "day": "ee4d0b62d2e24bf09c64126ae02feff4",
+      "unit": "77afcdcb452144c9a688ab29f5d6fc88",
+      "subject": "Geschichte",
+      "planned_parts": 1,
+      "jobs": [
+        {
+          "id": "901f773727b648258a04cde5a4487e8e",
+          "kind": "extract",
+          "status": "completed",
+          "error": null,
+          "created": 1791288000,
+          "cost_micros": 17,
+          "cost_source": "reported"
+        },
+        {
+          "id": "b225a0fca2334334b77fa9a47a9331a4",
+          "kind": "extract",
+          "status": "completed",
+          "error": null,
+          "created": 1791288000,
+          "cost_micros": 17,
+          "cost_source": "reported"
+        },
+        {
+          "id": "c291129229c44d309c4e3e0de564a09b",
+          "kind": "package",
+          "status": "completed",
+          "error": null,
+          "created": 1791288000,
+          "cost_micros": 23,
+          "cost_source": "reported"
+        },
+        {
+          "id": "24526b13b18c4516ad1487789be06407",
+          "kind": "coach",
+          "status": "completed",
+          "error": null,
+          "created": 1791288000,
+          "cost_micros": 0,
+          "cost_source": "reported"
+        }
+      ],
+      "attempts": [
+        {
+          "question": "prior_711430f6_1",
+          "outcome": "correct",
+          "assisted": true
+        },
+        {
+          "question": "main_711430f6_1",
+          "outcome": "correct",
+          "assisted": false
+        }
+      ]
+    },
+    {
+      "date": "2026-10-07",
+      "page": "2827c9b9348240a993ab8d5630d91589",
+      "revision": 2,
+      "day": "1abb6128a70f4a259751b6fa1fdcf901",
+      "unit": "6e6f3ff77fbc498c8b6f9a79837361bd",
+      "subject": "Geographie",
+      "planned_parts": 1,
+      "jobs": [
+        {
+          "id": "c0adbc322b8c48899abf9d30d739fc01",
+          "kind": "extract",
+          "status": "completed",
+          "error": null,
+          "created": 1791374400,
+          "cost_micros": 17,
+          "cost_source": "reported"
+        },
+        {
+          "id": "eeb68b614896423e8413aa790ad46f5d",
+          "kind": "extract",
+          "status": "completed",
+          "error": null,
+          "created": 1791374400,
+          "cost_micros": 17,
+          "cost_source": "reported"
+        },
+        {
+          "id": "b3ee8643620341e98a486c37c2bf29cb",
+          "kind": "package",
+          "status": "completed",
+          "error": null,
+          "created": 1791374400,
+          "cost_micros": 23,
+          "cost_source": "reported"
+        },
+        {
+          "id": "561f3f2cceac40c29df32344a36cf653",
+          "kind": "coach",
+          "status": "completed",
+          "error": null,
+          "created": 1791374400,
+          "cost_micros": 0,
+          "cost_source": "reported"
+        }
+      ],
+      "attempts": [
+        {
+          "question": "prior_711430f6_1",
+          "outcome": "correct",
+          "assisted": false
+        },
+        {
+          "question": "main_711430f6_1",
+          "outcome": "uncertain",
+          "assisted": false
+        }
+      ]
+    },
+    {
+      "date": "2026-10-08",
+      "page": "4aa540c8a9594b138721a9c88565ef82",
+      "revision": 2,
+      "day": "22043e8f24eb4a2b9ba913dc6bb4845c",
+      "unit": "4b34ae772d644d36a6904b7f98b70222",
+      "subject": "Geschichte",
+      "planned_parts": 1,
+      "jobs": [
+        {
+          "id": "520432989e8e47029858c4c6bbb6d9c2",
+          "kind": "extract",
+          "status": "completed",
+          "error": null,
+          "created": 1791460800,
+          "cost_micros": 17,
+          "cost_source": "reported"
+        },
+        {
+          "id": "20d6877393334523ab735fdd64c50fef",
+          "kind": "extract",
+          "status": "completed",
+          "error": null,
+          "created": 1791460800,
+          "cost_micros": 17,
+          "cost_source": "reported"
+        },
+        {
+          "id": "0372a7d47fa14a898b8dfab8ab2e39d4",
+          "kind": "package",
+          "status": "completed",
+          "error": null,
+          "created": 1791460800,
+          "cost_micros": 23,
+          "cost_source": "reported"
+        },
+        {
+          "id": "2ccc396a9a7b47e683e1a745709b7688",
+          "kind": "coach",
+          "status": "completed",
+          "error": null,
+          "created": 1791460800,
+          "cost_micros": 0,
+          "cost_source": "reported"
+        }
+      ],
+      "attempts": [
+        {
+          "question": "prior_711430f6_1",
+          "outcome": "correct",
+          "assisted": true
+        },
+        {
+          "question": "main_711430f6_1",
+          "outcome": "correct",
+          "assisted": false
+        }
+      ]
+    },
+    {
+      "date": "2026-10-09",
+      "page": "4912ca69faa94a4488659eb53cc9d165",
+      "revision": 2,
+      "day": "67012dfa2e09483993ea2cc6876ead05",
+      "unit": "ce251b9a470f44cba77d52f17d9abadb",
+      "subject": "Geographie",
+      "planned_parts": 1,
+      "jobs": [
+        {
+          "id": "393ea791cbd44532b542ce6d2ed2843c",
+          "kind": "extract",
+          "status": "completed",
+          "error": null,
+          "created": 1791547200,
+          "cost_micros": 17,
+          "cost_source": "reported"
+        },
+        {
+          "id": "08390847fb654e7b85cfc576e4604268",
+          "kind": "extract",
+          "status": "completed",
+          "error": null,
+          "created": 1791547200,
+          "cost_micros": 17,
+          "cost_source": "reported"
+        },
+        {
+          "id": "5bb3f07208e14cca9eb320c1a22380a2",
+          "kind": "package",
+          "status": "completed",
+          "error": null,
+          "created": 1791547200,
+          "cost_micros": 23,
+          "cost_source": "reported"
+        },
+        {
+          "id": "b4d1f46b79af471b9fbba5fadde6c83c",
+          "kind": "coach",
+          "status": "completed",
+          "error": null,
+          "created": 1791547200,
+          "cost_micros": 0,
+          "cost_source": "reported"
+        }
+      ],
+      "attempts": [
+        {
+          "question": "prior_711430f6_1",
+          "outcome": "correct",
+          "assisted": false
+        },
+        {
+          "question": "main_711430f6_1",
+          "outcome": "correct",
+          "assisted": false
+        }
+      ]
+    },
+    {
+      "date": "2026-10-12",
+      "page": "9a160734c71240d3af72bd2f1617c1a8",
+      "revision": 2,
+      "day": "50745bf4629a4d5c8dc36c6624d57310",
+      "unit": "3ce6896afd7d41819e5d8b058e8cebdc",
+      "subject": "Geschichte",
+      "planned_parts": 1,
+      "jobs": [
+        {
+          "id": "5024ddabcc9e4ce38eb90f3ef6a5face",
+          "kind": "extract",
+          "status": "completed",
+          "error": null,
+          "created": 1791806400,
+          "cost_micros": 17,
+          "cost_source": "reported"
+        },
+        {
+          "id": "47b2ac1d54f745a781561c6dc8b79fdd",
+          "kind": "extract",
+          "status": "completed",
+          "error": null,
+          "created": 1791806400,
+          "cost_micros": 17,
+          "cost_source": "reported"
+        },
+        {
+          "id": "ba69f1a55e8b4ce89681e68b5ae14260",
+          "kind": "package",
+          "status": "completed",
+          "error": null,
+          "created": 1791806400,
+          "cost_micros": 23,
+          "cost_source": "reported"
+        },
+        {
+          "id": "d9316ea1dd20435a9315342e068db2b9",
+          "kind": "coach",
+          "status": "completed",
+          "error": null,
+          "created": 1791806400,
+          "cost_micros": 0,
+          "cost_source": "reported"
+        }
+      ],
+      "attempts": [
+        {
+          "question": "prior_711430f6_1",
+          "outcome": "correct",
+          "assisted": true
+        },
+        {
+          "question": "main_711430f6_1",
+          "outcome": "correct",
+          "assisted": false
+        }
+      ]
+    },
+    {
+      "date": "2026-10-13",
+      "page": "0103ab9323f74b8ea9a174e0dc3755f7",
+      "revision": 2,
+      "day": "355f03d4e24748d6838ffc1d3c6627e4",
+      "unit": "77b2e651dcb64f95baaf9e338f7bc305",
+      "subject": "Geographie",
+      "planned_parts": 1,
+      "jobs": [
+        {
+          "id": "072388c47fbc4ffaacaa68a26704a006",
+          "kind": "extract",
+          "status": "completed",
+          "error": null,
+          "created": 1791892800,
+          "cost_micros": 17,
+          "cost_source": "reported"
+        },
+        {
+          "id": "078a6f1543704a9e874319574d8fc50b",
+          "kind": "extract",
+          "status": "completed",
+          "error": null,
+          "created": 1791892800,
+          "cost_micros": 17,
+          "cost_source": "reported"
+        },
+        {
+          "id": "a9a38b37a7c345a78d5277005e2e5319",
+          "kind": "package",
+          "status": "completed",
+          "error": null,
+          "created": 1791892800,
+          "cost_micros": 23,
+          "cost_source": "reported"
+        },
+        {
+          "id": "dc8062e325de4990b07e7dd4031faa64",
+          "kind": "coach",
+          "status": "completed",
+          "error": null,
+          "created": 1791892800,
+          "cost_micros": 0,
+          "cost_source": "reported"
+        }
+      ],
+      "attempts": [
+        {
+          "question": "prior_711430f6_1",
+          "outcome": "correct",
+          "assisted": false
+        },
+        {
+          "question": "main_711430f6_1",
+          "outcome": "correct",
+          "assisted": false
+        }
+      ]
+    },
+    {
+      "date": "2026-10-14",
+      "page": "e67825ea4ac4415d88f5e51996aa64ad",
+      "revision": 2,
+      "day": "1fc5fc34f695485d855fc6e1ccf3d92e",
+      "unit": "93da77a7e0fb48e3b18c780ac9400fbe",
+      "subject": "Geschichte",
+      "planned_parts": 1,
+      "jobs": [
+        {
+          "id": "403826f68b9d4bba82aa0419e2f19490",
+          "kind": "extract",
+          "status": "completed",
+          "error": null,
+          "created": 1791979200,
+          "cost_micros": 17,
+          "cost_source": "reported"
+        },
+        {
+          "id": "5fc4596b9e8640fc98b5ccb64f74e086",
+          "kind": "extract",
+          "status": "completed",
+          "error": null,
+          "created": 1791979200,
+          "cost_micros": 17,
+          "cost_source": "reported"
+        },
+        {
+          "id": "a199354fc74a4411a17b565ea1dcf017",
+          "kind": "package",
+          "status": "completed",
+          "error": null,
+          "created": 1791979200,
+          "cost_micros": 23,
+          "cost_source": "reported"
+        },
+        {
+          "id": "92f70231dcfa44f58513dc610c58e409",
+          "kind": "coach",
+          "status": "completed",
+          "error": null,
+          "created": 1791979200,
+          "cost_micros": 0,
+          "cost_source": "reported"
+        }
+      ],
+      "attempts": [
+        {
+          "question": "prior_711430f6_1",
+          "outcome": "correct",
+          "assisted": true
+        },
+        {
+          "question": "main_711430f6_1",
+          "outcome": "uncertain",
+          "assisted": false
+        }
+      ]
+    }
+  ]
+}

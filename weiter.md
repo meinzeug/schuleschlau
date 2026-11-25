@@ -1,5 +1,15 @@
 # Übergabe an die nächste Coding-KI
 
+## Synthetische 30-Schultage-Regression
+
+`qa/run_month_regression.py` führt den isolierten API-/Worker-Monatslauf und
+ausgewählte Unterbrechungs-, Quellen-, Mitternachts-, Nachhol- und
+Mehrgeräteszenarien aus. Er verwirft fehlende und übersprungene Testfälle und
+validiert 30 Tagesbelege samt simulierten bekannten und unbekannten Kosten.
+Details und genaue Uhrgrenzen stehen in `docs/MONTH_REGRESSION_2026_11_25.md`.
+Der Hauptpunkt bleibt offen, insbesondere die ausdrücklich verlangte mobile
+Browserbedienung über den ganzen Monat und ein vielfältigerer Stoffbestand.
+
 ## Schulbuddy: gleichwertige Bruchwerte
 
 Der endliche Lösungsschutz erfasst bei kurzen Mathefragen mit gespeicherter

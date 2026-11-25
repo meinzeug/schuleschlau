@@ -1194,6 +1194,20 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – 30-Schultage-Test als reproduzierbaren Regressionstest fortführen**
 
+  - [x] **30 künstliche Schultage über API und Worker wiederholbar prüfen.**
+    Dreißig getrennte synthetische Fotos aus zwei Fächern durchlaufen je
+    zwei Leseläufe, einen ausdrücklich gestarteten Paketauftrag, eine
+    Lernrunde und den separaten Rückblick. Der Test prüft zwei Sitzungen,
+    Unterstützung, unklare Antworten, doppelte Uploads sowie bekannte und
+    unbekannte simulierte Kosten und schreibt 30 einzelne technische Belege.
+    Ein geprüftes Runner-Skript ergänzt Fälle für Unterbrechung, Mitternacht,
+    Quellenänderung, freiwilliges Lernen und Nachholen. Die Testuhr ist auf
+    die dokumentierten Domänenpfade beschränkt; die globale Anbieterperiode
+    bleibt an der Hostuhr. Die 30 Tage wurden nicht durchgehend im mobilen
+    Browser bedient, und echte OCR, echte KI und fachliche Lehrplanabdeckung
+    sind nicht nachgewiesen. Der Hauptpunkt bleibt deshalb offen.
+    [Testplan und Grenzen](docs/MONTH_REGRESSION_2026_11_25.md).
+
   Der in `docs/EVERYDAY_QA_2026_10_30.md` beschriebene isolierte Test dokumentiert bereits 30 Schultage und 32 künstliche Materialseiten; er belegt keine tägliche Mindestzeit, vollständige Lehrplanabdeckung oder langfristige Lernwirkung. Für den nächsten Release einen eigenen Testplan mit festem Code-/Konfigurationsstand, künstlichen Familien und Fotos, isolierter Datenbank und Testuhr erstellen. Pro Tag Quelle, Plan, ausdrücklich gestartete Runde, Antwort-/Hilfestatus, Fehler, Provideraufträge und bekannte/unbekannte Kosten erfassen; Ferien, Fehl- und Nachholtage, Mitternacht, Netzverlust, Quellrevision, Mehrgeräte und freiwillige Fortsetzung einplanen.
 
   **Abnahme:** 30 einzeln belegte Testtage sind auswertbar, alle kritischen Abweichungen behoben und erneut getestet; ausgefallene Tage und nicht geprüfte Fälle bleiben ausdrücklich offen. Keine echten Kinderantworten oder Produktionszeit manipulieren.
