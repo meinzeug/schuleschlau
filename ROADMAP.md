@@ -2093,6 +2093,14 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Gesamte Verarbeitungskette durchgängig nachvollziehbar machen**
 
+  - [x] **Öffentliche Bildaufträge in der Elternspur prüfen.**
+    Ein künstlicher erfolgreicher Bildauftrag zeigt Status und verwendetes
+    Modell; ein ungültiges abgerechnetes Bild wird nicht veröffentlicht und
+    erscheint als `invalid_output`. Wiederholte Spurabrufe erzeugen keine
+    weiteren Aufträge oder Bilder. Beide Fälle bestanden auf SQLite und
+    isoliertem PostgreSQL. Die Bilderzeugung nutzt hierbei einen simulierten
+    Transport; fachliche Bildqualität ist damit nicht nachgewiesen.
+
   - [x] **Fehlerhafte Teilrundenausgaben nach dem Anbieteraufruf einordnen.**
     Schemafehler, falsche Fachgruppen und doppelte Aufgabenkennungen werden
     im Teilrundenvertrag als ungültige Ausgabe erkannt. Ein künstlicher

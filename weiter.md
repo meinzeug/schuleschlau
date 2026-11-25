@@ -2,6 +2,11 @@
 
 ## Arbeitsstand 24. November 2026
 
+Die Elternspur wurde um künstliche Erfolgs- und Fehlerprüfungen der separaten
+öffentlichen Bilderzeugung ergänzt. Ein ungültiges abgerechnetes Bild wird
+nicht veröffentlicht; SQLite und isoliertes PostgreSQL bestehen beide Fälle.
+Die vollständige Verarbeitungsketten-Abnahme bleibt offen.
+
 Die Vertragsprüfung eines erzeugten Paketteils klassifiziert dessen
 Schema-/Zuordnungsfehler nun als `invalid_output`, ohne Planungsfehler als
 Modellfehler auszugeben. Drei künstliche SQLite-/PostgreSQL-Workerfälle

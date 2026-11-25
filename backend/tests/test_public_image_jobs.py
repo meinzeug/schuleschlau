@@ -81,6 +81,12 @@ def test_reserved_image_is_reusable_without_private_data_or_duplicate_call(api, 
         assert db.get(Job, jid).status == 'completed'
         assert db.query(PublicImage).count() == 1
         assert db.query(PublicImageBuild).count() == 1
+    trace = api.get(f'/api/jobs/{jid}/trace')
+    assert trace.status_code == 200
+    assert trace.json()['phase'] == 'visual' and trace.json()['status'] == 'completed'
+    assert trace.json()['model']['model'] == 'test/image-model'
+    assert trace.json()['sources'] == []
+    assert 'Öffentliche Tierkunde' not in trace.text and 'b64_json' not in trace.text
     assert start(api, case).json()['status'] == 'ready'
     assert len(calls) == 1
 
@@ -178,6 +184,14 @@ def test_invalid_billed_image_is_not_published_or_treated_as_free(api, image_cas
         assert db.get(Job, jid).error_code == 'invalid_output'
         assert usage.status == 'failed_billed' and usage.cost_micros == 3000
         assert db.query(PublicImage).count() == 0
+        before = db.query(Job).count(), db.query(Usage).count(), db.query(PublicImage).count()
+    for _ in range(2):
+        trace = api.get(f'/api/jobs/{jid}/trace')
+        assert trace.status_code == 200
+        assert trace.json()['phase'] == 'visual' and trace.json()['error_code'] == 'invalid_output'
+        assert trace.json()['sources'] == [] and 'b64_json' not in trace.text
+    with DB() as db:
+        assert (db.query(Job).count(), db.query(Usage).count(), db.query(PublicImage).count()) == before
 
 
 def test_missing_image_route_never_falls_back_or_books(api, image_case):

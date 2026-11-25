@@ -117,3 +117,11 @@ Drei künstliche Workerfälle mit fehlenden Einheiten, falscher Fachgruppe oder
 doppelten Aufgabenkennungen prüfen auf SQLite und isoliertem PostgreSQL den
 erhaltenen vorherigen Teil, ältere Antworten, den tatsächlichen Kostenbeleg
 und eine rein lesende Elternspur. Der Transport ist simuliert.
+
+Auch die separate Bilderzeugung wurde mit künstlichem Modelltransport über
+Auftrag und Elternspur geprüft. Ein erfolgreicher Auftrag zeigt den
+tatsächlich reservierten Modellnamen; bei einer ungültigen Bildantwort bleibt
+der Kostenbeleg erhalten und es wird kein Bild veröffentlicht. Wiederholte
+Spurabrufe erzeugen keine Aufträge oder Bilder. SQLite und isoliertes
+PostgreSQL bestanden beide Fälle. Ein echtes KI-Bild oder eine fachliche
+Bildprüfung ist damit nicht nachgewiesen.
