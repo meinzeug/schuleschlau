@@ -103,3 +103,19 @@ Zuschneiden und Drehen freiwillig pro Foto an. Erst „Fotos abgeben“ sendet s
 und startet den bestehenden Vorbereitungsauftrag. Die Speichergrenzen und
 Kontotrennung bleiben erhalten. Widgettests prüfen Mehrfachauswahl, explizites
 Abgeben und einen Kontowechsel; die Browserprüfung dieses Stands steht noch aus.
+
+## Live-Nachtest der Fotoauswahl
+
+Version 1.38.153 wurde in der sichtbaren Browseransicht bei Smartphonebreite
+geprüft. Ein weiteres freigegebenes Heftfoto wurde ausgewählt, ohne dass sich
+ein Pflichtdialog öffnete. Der freiwillige Editor ließ sich öffnen und wieder
+verlassen; das Foto blieb lokal vorgemerkt. „Fotos abgeben“ übertrug es und
+startete die reguläre Erkennung. Der Erkennungsauftrag endete erfolgreich.
+
+Die anschließende Paketvorbereitung scheiterte erneut: `invalid_output` bei
+der Grafikprüfung; dieser Paketaufruf wurde vor dem Versenden abgebrochen und
+mit null Kosten abgerechnet. Eine weitere Wiederholung wurde nicht ausgelöst.
+Die vier Seiten bleiben gespeichert. Die Vorschau des vorgemerkten Fotos liegt
+auf dem Smartphone noch unterhalb der wichtigsten Aktionen und muss sichtbarer
+werden. Die erledigte Fotoauswahl ist kein Nachweis für einen erfolgreichen
+Lernweg oder einen abgeschlossenen 30-Tage-Test.
