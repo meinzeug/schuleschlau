@@ -81,6 +81,7 @@ void main() {
           refresh: () async {},
         ),
       );
+      await f.tap(tester, find.text('Mehr zu deiner Runde'));
       await f.tap(tester, find.text('Deine Antworten'));
       expect(find.text('Versuch 1'), findsOneWidget);
       expect(find.text('Versuch 2 · zuletzt gespeichert'), findsOneWidget);

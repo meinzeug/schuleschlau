@@ -321,6 +321,7 @@ void main() {
           },
         ),
       );
+      await _tap(tester, 'Mehr zu deiner Runde');
       await _tap(tester, 'Deine Antworten');
       expect(
         find.text('Begriff: laufen\nBeschreibung: jetzt · Noch nicht richtig'),

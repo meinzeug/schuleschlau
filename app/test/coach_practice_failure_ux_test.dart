@@ -175,6 +175,13 @@ class Harness {
 
 Future<void> click(WidgetTester t, String text) async {
   final target = find.text(text);
+  if (target.evaluate().isEmpty &&
+      find.text('Mehr zu deiner Runde').evaluate().isNotEmpty) {
+    final details = find.text('Mehr zu deiner Runde');
+    await t.ensureVisible(details);
+    await t.tap(details);
+    await t.pumpAndSettle();
+  }
   await t.ensureVisible(target);
   await t.pump();
   await t.tap(target);

@@ -459,3 +459,21 @@ Normales Logo: freundlicher aufrechter violetter Roboterkopf ohne Hut, mit Cyana
 Schulbuddy behält die fliegende Buchfigur mit Flügeln und Antrieb. Dockposition im gemeinsamen Kopf, frei verschiebbarer 56-px-Einstieg oberhalb des Seiteninhalts, Rückkehr in den Header. Tipp-/Tastaturalternative und kontogebundene Sitzungsgrenzen erhalten; fremde Modale überdecken den Einstieg. Links am Dock ein subtiler 1-logical-px-Ziehhinweis, 6 px näher am Icon: 1200 ms Weißverlauf und 8800 ms Ruhe. Keine dauernde Tickerarbeit in der Ruhephase; reduzierte Bewegung und Hintergrund stoppen den Hinweis. Fachhefter behalten gemeinsamen Header und mobile Navigation; aktive Aufgabenräume dürfen ihren konzentrierten Rückweg behalten.
 
 Glocke als transparente violette Grafik ohne dauernde Knopfbox, klare Fokus-/Ungelesenzustände erhalten. Initiale als echter Text über eigenem violetten Hintergrund; alternativ privates eigenes Profilfoto. Auswahl bleibt lokal bis zum ausdrücklichen Speichern. Bildfehler lassen den Kontozugang mit Initiale bestehen. Das Kinderkonto startet mit Geräten; Fotoauswahl im eigenen Profilreiter verdrängt keine Geräte-/Mitteilungsansicht. 48-px-Trefferflächen, 320-px-Breite und 200 Prozent Text prüfen. [Umfang und tatsächliche Prüfungen](RELEASE_105_2026_10_24.md).
+
+## Lernbegleiter nach der Schule — Entwurf 2026-11-25
+
+Das Kind trifft auf eine einzige erkennbare nächste Aktion. Schulbuddy ist ein
+ruhiger visueller Anker; eingesetzte Akzentverläufe markieren echte Hauptaktionen
+und erfinden keine Punkte, Leistungen oder Fortschrittsstände. Fotografieren,
+Hintergrundverarbeitung, Lernen und Pause bleiben unterscheidbar. Offene
+Quellenprüfungen sind Aufgabe der Eltern; Kinder sehen den gespeicherten Zustand.
+
+Ein Rundenabschluss zeigt zuerst tatsächlich gespeicherte Ergebnisse und eine
+passende nächste Aktion. Der Rückweg bleibt unmittelbar erreichbar. Ausführliche
+Aufgaben, Bewertungen und Lernstände liegen hinter „Mehr zu deiner Runde“;
+sie bleiben per Tastatur und mit großen Schriften erreichbar. Fehlende Grafiken
+werden nicht als Erfolg dargestellt, und fertige Rückblicke tragen keinen
+zusätzlichen Hinweis zu einer nicht vorhandenen Grafik. Der Entwurf beginnt bei
+Startkarte, Vorbereitung und Rückblick und ist noch keine abgeschlossene
+Neugestaltung aller Seiten. Mobile Sicht- und Interaktionstests ergänzen die
+Widgetprüfungen; tatsächliche Leistungs- und Kostenbelege bleiben unverändert.

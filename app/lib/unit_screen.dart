@@ -1132,7 +1132,8 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
                         identical(unit, u),
                   ),
                 if (u['content_issue'] == null &&
-                    u['round_kind'] != 'vocabulary')
+                    u['round_kind'] != 'vocabulary' &&
+                    !(state.isChild && u['status'] == 'completed'))
                   VisualPreparationCard(
                     state: state,
                     unit: u,

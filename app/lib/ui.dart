@@ -907,6 +907,7 @@ class ActionButton extends StatefulWidget {
   final IconData? icon;
   final bool secondary;
   final bool enabled;
+  final bool vibrant;
   const ActionButton({
     super.key,
     required this.label,
@@ -914,6 +915,7 @@ class ActionButton extends StatefulWidget {
     this.icon,
     this.secondary = false,
     this.enabled = true,
+    this.vibrant = false,
   });
   @override
   State<ActionButton> createState() => _ActionButtonState();
@@ -953,15 +955,33 @@ class _ActionButtonState extends State<ActionButton> {
       excludeSemantics: true,
       child: child,
     );
-    return widget.secondary
-        ? OutlinedButton(
-            onPressed: busy || !widget.enabled ? null : pressed,
-            child: accessibleChild,
-          )
-        : FilledButton(
-            onPressed: busy || !widget.enabled ? null : pressed,
-            child: accessibleChild,
-          );
+    if (widget.secondary) {
+      return OutlinedButton(
+        onPressed: busy || !widget.enabled ? null : pressed,
+        child: accessibleChild,
+      );
+    }
+    final button = FilledButton(
+      onPressed: busy || !widget.enabled ? null : pressed,
+      style: widget.vibrant && widget.enabled
+          ? FilledButton.styleFrom(
+              backgroundColor: Colors.transparent,
+              foregroundColor: Colors.white,
+              shadowColor: Colors.transparent,
+            )
+          : null,
+      child: accessibleChild,
+    );
+    if (!widget.vibrant || !widget.enabled) return button;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        gradient: const LinearGradient(
+          colors: [Color(0xFF0755B9), Color(0xFF6635C7)],
+        ),
+      ),
+      child: button,
+    );
   }
 }
 

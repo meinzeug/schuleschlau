@@ -1572,21 +1572,21 @@ class _ChildHomeContentState extends State<_ChildHomeContent> {
         title: status == 'processing'
             ? 'Deine Fotos sind abgegeben.'
             : status == 'needs_review'
-            ? 'Deine Heftseiten sind erkannt.'
+            ? 'Deine Fotos sind gespeichert.'
             : status == 'needs_photo'
-            ? 'Ein Foto braucht dich.'
+            ? 'Deine Fotos sind gespeichert.'
             : 'Die Vorbereitung wartet.',
         subtitle: status == 'processing'
             ? 'Dein Stoff wird vorbereitet. Du kannst später zurückkommen.'
             : status == 'needs_photo'
-            ? 'Eine Seite ist noch nicht gut lesbar.'
-            : 'Schau kurz nach, ob alles stimmt.',
+            ? 'Deine Eltern können bei einem schwer lesbaren Foto helfen.'
+            : 'Deine Eltern können offene Stellen prüfen.',
         learning: false,
         action: ActionButton(
           label: status == 'needs_review'
-              ? 'Heftseiten prüfen'
+              ? 'Fotos ansehen'
               : status == 'needs_photo'
-              ? 'Foto prüfen'
+              ? 'Fotos ansehen'
               : 'Vorbereitung ansehen',
           icon: status == 'processing'
               ? Icons.hourglass_top_rounded
@@ -1615,7 +1615,7 @@ class _ChildHomeContentState extends State<_ChildHomeContent> {
             ? 'Deine Heftfotos warten.'
             : 'Was entdecken wir heute?',
         subtitle: photosWaiting
-            ? 'Schau kurz nach, ob alles stimmt.'
+            ? 'Deine Fotos sind gespeichert.'
             : 'Fotografiere eine Seite, damit du damit lernen kannst.',
         learning: false,
         action: ActionButton(
@@ -1792,7 +1792,7 @@ class _ChildHomeContentState extends State<_ChildHomeContent> {
           SizedBox(height: 14),
           ChildTodayTile(
             title: 'Dein Hausaufgabenfoto ist wieder da',
-            subtitle: 'Prüfe es, bevor du es abgibst.',
+            subtitle: 'Dein Foto ist auf diesem Gerät gespeichert.',
             icon: Icons.restore_rounded,
             onTap: () => openSaved('/homework/${child['id']}'),
           ),
@@ -1831,7 +1831,7 @@ class _ChildHomeContentState extends State<_ChildHomeContent> {
             child: TextButton.icon(
               onPressed: () => openSaved('/material/${pending.first['id']}'),
               icon: Icon(Icons.fact_check_outlined, size: 20),
-              label: Text('Heftseite prüfen'),
+              label: Text('Heftseite ansehen'),
             ),
           ),
         const SizedBox(height: 16),
@@ -2313,9 +2313,9 @@ class _ChildPreparationLink extends StatelessWidget {
   Widget build(BuildContext context) {
     final status = preparation['status'];
     final title = status == 'needs_review'
-        ? 'Heftseiten prüfen'
+        ? 'Fotos ansehen'
         : status == 'needs_photo'
-        ? 'Foto prüfen'
+        ? 'Fotos ansehen'
         : status == 'processing'
         ? 'Deine Fotos sind abgegeben.'
         : 'Vorbereitung ansehen';

@@ -1344,7 +1344,7 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
                         ),
                         SizedBox(height: 7),
                         Text(
-                          ['1 Fotos', '2 Prüfen', '3 Fertig'][i],
+                          ['1 Fotos', '2 KI liest', '3 Fertig'][i],
                           style: TextStyle(
                             fontSize: 12,
                             color: i == step
@@ -1879,7 +1879,7 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
               ),
               if (hasPhotos) ...[
                 SizedBox(height: 8),
-                Text('Danach kannst du den Text und unklare Stellen ansehen.'),
+                Text('Die KI liest deine Seiten für dich.'),
               ],
               if (allowUploads &&
                   (hasPhotos || (savedCount > 0 && remaining <= 3))) ...[

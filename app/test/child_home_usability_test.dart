@@ -252,8 +252,8 @@ void main() {
       ];
       final requests = <http.Request>[];
       await _openHome(tester, data, requests: requests);
-      await tester.ensureVisible(find.text('Heftseiten prüfen'));
-      await tester.tap(find.text('Heftseiten prüfen'));
+      await tester.ensureVisible(find.text('Fotos ansehen'));
+      await tester.tap(find.text('Fotos ansehen'));
       await tester.pumpAndSettle();
       final route = GoRouterState.of(
         tester.element(find.text('Heftfotos-Ziel')),
@@ -277,7 +277,7 @@ void main() {
       };
       state.refreshState();
       await tester.pumpAndSettle();
-      expect(find.text('Heftseiten prüfen'), findsOneWidget);
+      expect(find.text('Fotos ansehen'), findsOneWidget);
       expect(find.text('Heutige Seiten scannen'), findsNothing);
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox());
@@ -303,7 +303,7 @@ void main() {
       data['daily_capture']['preparation']['status'] = 'needs_review';
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
       await tester.pumpAndSettle();
-      expect(find.text('Heftseiten prüfen'), findsOneWidget);
+      expect(find.text('Fotos ansehen'), findsOneWidget);
       expect(requests.length, greaterThan(before));
       expect(requests.where((r) => r.method == 'POST'), isEmpty);
       await tester.pumpWidget(const SizedBox());
@@ -635,6 +635,9 @@ void main() {
         find.text('Der Nenner steht unter dem Bruchstrich.'),
         findsNothing,
       );
+      await tester.ensureVisible(find.text('Mehr zu deiner Runde'));
+      await tester.tap(find.text('Mehr zu deiner Runde'));
+      await tester.pumpAndSettle();
       await tester.ensureVisible(find.text('Mehr zur Rückmeldung'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Mehr zur Rückmeldung'));

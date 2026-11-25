@@ -21,17 +21,17 @@ class PreparationCard extends StatelessWidget {
     final title = processing
         ? 'Deine Fotos sind abgegeben.'
         : status == 'needs_review'
-        ? 'Deine Heftseiten sind erkannt.'
+        ? 'Heftseiten warten auf Prüfung.'
         : status == 'needs_photo'
-        ? 'Ein Foto braucht dich.'
+        ? 'Ein Foto ist schwer lesbar.'
         : 'Die Vorbereitung wartet.';
     final subtitle = processing
         ? 'Ich bereite deinen Stoff vor. Du kannst die App schließen.'
         : status == 'needs_review'
-        ? 'Schau kurz nach, ob alles stimmt.'
+        ? 'Du kannst offene Stellen im Elternbereich prüfen.'
         : status == 'needs_photo'
-        ? 'Eine Seite ist noch nicht gut lesbar.'
-        : 'Deine Fotos bleiben gespeichert. Schau kurz nach.';
+        ? 'Schau dir das Foto an und entscheide, ob ein neues nötig ist.'
+        : 'Deine Fotos bleiben gespeichert.';
     final action = status == 'needs_review'
         ? 'Heftseiten prüfen'
         : status == 'needs_photo'

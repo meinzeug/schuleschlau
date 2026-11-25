@@ -93,18 +93,18 @@ class _ChildTodayHeroState extends State<ChildTodayHero> {
                     children: [
                       ExcludeSemantics(
                         child: Container(
-                          width: 40,
-                          height: 40,
+                          width: 52,
+                          height: 52,
                           decoration: BoxDecoration(
                             color: palette.mint,
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(18),
                           ),
-                          child: Icon(
-                            action is ActionButton
-                                ? action.icon ?? Icons.auto_stories_outlined
-                                : Icons.auto_stories_outlined,
-                            color: palette.teal,
-                            size: 22,
+                          child: Padding(
+                            padding: const EdgeInsets.all(5),
+                            child: Image.asset(
+                              'assets/brand/schulbuddy-mark.png',
+                              fit: BoxFit.contain,
+                            ),
                           ),
                         ),
                       ),
@@ -170,6 +170,7 @@ class _ChildTodayHeroState extends State<ChildTodayHero> {
                 label: action.label,
                 icon: action.icon,
                 secondary: action.secondary,
+                vibrant: !action.secondary,
                 enabled: action.enabled && !opening,
                 onPressed: () => openHero(action),
               )
@@ -179,13 +180,23 @@ class _ChildTodayHeroState extends State<ChildTodayHero> {
           key: const ValueKey('today-primary-step'),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: palette.panelSurface,
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                palette.panelSurface,
+                Color.alphaBlend(
+                  palette.teal.withValues(alpha: .08),
+                  palette.panelSurface,
+                ),
+              ],
+            ),
             border: Border.all(
               color: widget.learning
                   ? palette.teal.withValues(alpha: .55)
                   : palette.surfaceBorder,
             ),
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(20),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,

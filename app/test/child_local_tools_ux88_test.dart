@@ -511,7 +511,7 @@ void main() {
           },
         ),
       );
-      await tap(tester, find.text('Deine Heftseiten sind erkannt.'));
+      await tap(tester, find.text('Heftseiten warten auf Prüfung.'));
       expect(find.text('Ziel /after-school/child'), findsOneWidget);
     },
   );

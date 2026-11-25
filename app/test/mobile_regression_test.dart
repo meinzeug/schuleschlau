@@ -148,6 +148,10 @@ void main() {
 
     await tester.pump(const Duration(seconds: 3));
     await tester.pumpAndSettle();
+    final details = find.text('Mehr zu deiner Runde');
+    await tester.ensureVisible(details);
+    await tester.tap(details);
+    await tester.pumpAndSettle();
     final report = find.text('Mein Rückblick');
     await tester.ensureVisible(report);
     await tester.tap(report);

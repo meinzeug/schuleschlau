@@ -1014,7 +1014,7 @@ void main() {
       expect(f.requests.every((r) => r.method == 'GET'), true);
       expect(
         t.widget<ChildTodayHero>(hero).title,
-        'Deine Heftseiten sind erkannt.',
+        'Deine Fotos sind gespeichert.',
       );
       expect(identical(t.element(hero), element), true);
     },

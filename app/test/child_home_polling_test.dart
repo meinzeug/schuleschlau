@@ -129,7 +129,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       tester.widget<ChildTodayHero>(find.byType(ChildTodayHero)).title,
-      'Deine Heftseiten sind erkannt.',
+      'Deine Fotos sind gespeichert.',
     );
     expect(home.requests.every((request) => request.method == 'GET'), isTrue);
     expect(tester.takeException(), isNull);
@@ -204,7 +204,7 @@ void main() {
     expect(find.byType(ChildTodayHero), findsOneWidget);
     expect(
       tester.widget<ChildTodayHero>(find.byType(ChildTodayHero)).title,
-      'Deine Heftseiten sind erkannt.',
+      'Deine Fotos sind gespeichert.',
     );
     expect(tester.takeException(), isNull);
   });
@@ -244,7 +244,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(
         tester.widget<ChildTodayHero>(hero).title,
-        'Deine Heftseiten sind erkannt.',
+        'Deine Fotos sind gespeichert.',
       );
       expect(identical(tester.element(hero), originalElement), isTrue);
       expect(scroll.pixels, closeTo(offset, .01));
@@ -282,7 +282,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(
         tester.widget<ChildTodayHero>(hero).title,
-        'Deine Heftseiten sind erkannt.',
+        'Deine Fotos sind gespeichert.',
       );
       expect(tester.takeException(), isNull);
     },

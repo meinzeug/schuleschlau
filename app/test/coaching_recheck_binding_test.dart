@@ -51,6 +51,9 @@ void main() {
             ),
           ),
         );
+        await tester.ensureVisible(find.text('Mehr zu deiner Runde'));
+        await tester.tap(find.text('Mehr zu deiner Runde'));
+        await tester.pumpAndSettle();
         await tester.ensureVisible(find.text('Deine Antworten'));
         await tester.tap(find.text('Deine Antworten'));
         await tester.pumpAndSettle();
@@ -114,6 +117,9 @@ void main() {
           ),
         ),
       );
+      await tester.ensureVisible(find.text('Mehr zu deiner Runde'));
+      await tester.tap(find.text('Mehr zu deiner Runde'));
+      await tester.pumpAndSettle();
       await tester.ensureVisible(find.text('Deine Antworten'));
       await tester.tap(find.text('Deine Antworten'));
       await tester.pumpAndSettle();

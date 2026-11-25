@@ -630,6 +630,7 @@ class _ChildCoachingPanel extends StatelessWidget {
                 ] else if (hasPractice)
                   if (coach?['next_unit_id'] != null)
                     ActionButton(
+                      vibrant: true,
                       label: decision == 'check'
                           ? allIndependent
                                 ? 'Weitere Übung öffnen'
@@ -687,6 +688,7 @@ class _ChildCoachingPanel extends StatelessWidget {
                     ],
                     if (practiceCanRetry)
                       ActionButton(
+                        vibrant: true,
                         label: coach?['practice_status'] == 'failed'
                             ? 'Übung erneut vorbereiten'
                             : decision == 'check'
@@ -713,11 +715,10 @@ class _ChildCoachingPanel extends StatelessWidget {
                   ],
                 if (unit['status'] == 'completed') ...[
                   const SizedBox(height: 12),
-                  OutlinedButton.icon(
+                  TextButton.icon(
                     key: const ValueKey('round-home'),
-                    style: OutlinedButton.styleFrom(
+                    style: TextButton.styleFrom(
                       minimumSize: const Size.fromHeight(48),
-                      shape: const StadiumBorder(),
                     ),
                     onPressed: () {
                       if (currentAction()) openRoute(context, '/app');
@@ -740,26 +741,6 @@ class _ChildCoachingPanel extends StatelessWidget {
             ],
           ),
         ),
-        if (ready && questions.isNotEmpty) ...[
-          const SizedBox(height: 12),
-          ExpansionTile(
-            title: const Text('Deine Aufgaben'),
-            children: [
-              _roundResultScope(
-                state,
-                unit,
-                RoundQuestionCards(
-                  questions: questions,
-                  onQuestionExplanation:
-                      unit['status'] == 'completed' &&
-                          unit['supports_question_explanation'] == true
-                      ? onQuestionExplanation
-                      : null,
-                ),
-              ),
-            ],
-          ),
-        ],
         if (!pending &&
             !practicePending &&
             !(unit['status'] == 'completed' && ready))
@@ -784,267 +765,302 @@ class _ChildCoachingPanel extends StatelessWidget {
             showGoal: false,
           ),
         ],
-        if (questions.isNotEmpty)
-          ExpansionTile(
-            title: const Text('Aufgaben nach Ergebnis ansehen'),
-            children: [
-              _roundResultScope(
-                state,
-                unit,
-                RoundAnswerExplorer(questions: questions),
-              ),
-            ],
-          ),
-        if (ready && (report['explanation'] as String? ?? '').isNotEmpty)
-          ExpansionTile(
-            tilePadding: EdgeInsets.symmetric(horizontal: 8),
-            leading: Icon(
-              Icons.lightbulb_outline_rounded,
-              color: context.palette.teal,
-            ),
-            title: Text('Mehr zur Rückmeldung'),
-            childrenPadding: EdgeInsets.fromLTRB(8, 0, 8, 18),
-            children: [
-              MathText(report['explanation']),
-              ReadAloudButton(text: report['explanation']),
-            ],
-          ),
-        if (ready)
-          ExpansionTile(
-            tilePadding: EdgeInsets.symmetric(horizontal: 8),
-            leading: Icon(
-              Icons.chat_bubble_outline_rounded,
-              color: context.palette.teal,
-            ),
-            title: Text('Mein Rückblick'),
-            childrenPadding: EdgeInsets.fromLTRB(8, 0, 8, 18),
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        const SizedBox(height: 12),
+        ExpansionTile(
+          key: const ValueKey('round-details'),
+          leading: Icon(Icons.insights_rounded, color: context.palette.teal),
+          title: const Text('Mehr zu deiner Runde'),
+          subtitle: const Text('Aufgaben und Lernstand'),
+          children: [
+            if (ready && questions.isNotEmpty) ...[
+              ExpansionTile(
+                title: const Text('Deine Aufgaben'),
                 children: [
-                  MathText(report['summary'] ?? ''),
-                  if (strengths.isNotEmpty) ...[
-                    SizedBox(height: 14),
-                    Text(
-                      'Das klappt schon',
-                      style: TextStyle(fontWeight: FontWeight.w700),
+                  _roundResultScope(
+                    state,
+                    unit,
+                    RoundQuestionCards(
+                      questions: questions,
+                      onQuestionExplanation:
+                          unit['status'] == 'completed' &&
+                              unit['supports_question_explanation'] == true
+                          ? onQuestionExplanation
+                          : null,
                     ),
-                    for (final item in strengths) MathText('• $item'),
-                  ],
-                  if (focus.isNotEmpty) ...[
-                    SizedBox(height: 14),
-                    Text(
-                      'Das üben wir weiter',
-                      style: TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                    for (final item in focus) MathText('• $item'),
-                  ],
-                  if ((coach?['reason'] as String? ?? '').isNotEmpty) ...[
-                    SizedBox(height: 14),
-                    MathText(coach!['reason']),
-                  ],
-                  if (coach?['assessment_notice'] != null) ...[
-                    SizedBox(height: 14),
-                    MathText(
-                      coach!['assessment_notice'],
-                      style: TextStyle(
-                        color: context.palette.muted,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
+                  ),
                 ],
               ),
             ],
-          ),
-        if (reviews.isNotEmpty && ready)
-          ExpansionTile(
-            tilePadding: EdgeInsets.symmetric(horizontal: 8),
-            leading: Icon(
-              Icons.fact_check_outlined,
-              color: context.palette.teal,
-            ),
-            title: Text('Rückmeldung zu jeder Aufgabe'),
-            children: [
-              for (final review in reviews)
-                Padding(
-                  padding: EdgeInsets.fromLTRB(8, 0, 8, 18),
-                  child: Column(
+            if (questions.isNotEmpty)
+              ExpansionTile(
+                title: const Text('Aufgaben nach Ergebnis ansehen'),
+                children: [
+                  _roundResultScope(
+                    state,
+                    unit,
+                    RoundAnswerExplorer(questions: questions),
+                  ),
+                ],
+              ),
+            if (ready && (report['explanation'] as String? ?? '').isNotEmpty)
+              ExpansionTile(
+                tilePadding: EdgeInsets.symmetric(horizontal: 8),
+                leading: Icon(
+                  Icons.lightbulb_outline_rounded,
+                  color: context.palette.teal,
+                ),
+                title: Text('Mehr zur Rückmeldung'),
+                childrenPadding: EdgeInsets.fromLTRB(8, 0, 8, 18),
+                children: [
+                  MathText(report['explanation']),
+                  ReadAloudButton(text: report['explanation']),
+                ],
+              ),
+            if (ready)
+              ExpansionTile(
+                tilePadding: EdgeInsets.symmetric(horizontal: 8),
+                leading: Icon(
+                  Icons.chat_bubble_outline_rounded,
+                  color: context.palette.teal,
+                ),
+                title: Text('Mein Rückblick'),
+                childrenPadding: EdgeInsets.fromLTRB(8, 0, 8, 18),
+                children: [
+                  Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      MathText(
-                        questions.firstWhere(
-                          (q) => q['id'] == review['question_id'],
-                          orElse: () => {'prompt': 'Deine Aufgabe'},
-                        )['prompt'],
-                        style: TextStyle(fontWeight: FontWeight.w700),
-                      ),
-                      SizedBox(height: 8),
-                      if (review['assessment_kind'] == 'ai_opinion') ...[
-                        Tag('KI-Vorschlag · Antwort bleibt unklar'),
-                        SizedBox(height: 8),
+                      MathText(report['summary'] ?? ''),
+                      if (strengths.isNotEmpty) ...[
+                        SizedBox(height: 14),
+                        Text(
+                          'Das klappt schon',
+                          style: TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                        for (final item in strengths) MathText('• $item'),
                       ],
-                      MathText(review['feedback']),
+                      if (focus.isNotEmpty) ...[
+                        SizedBox(height: 14),
+                        Text(
+                          'Das üben wir weiter',
+                          style: TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                        for (final item in focus) MathText('• $item'),
+                      ],
+                      if ((coach?['reason'] as String? ?? '').isNotEmpty) ...[
+                        SizedBox(height: 14),
+                        MathText(coach!['reason']),
+                      ],
+                      if (coach?['assessment_notice'] != null) ...[
+                        SizedBox(height: 14),
+                        MathText(
+                          coach!['assessment_notice'],
+                          style: TextStyle(
+                            color: context.palette.muted,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
                     ],
                   ),
-                ),
-            ],
-          ),
-        if (questions.isNotEmpty)
-          ExpansionTile(
-            tilePadding: EdgeInsets.symmetric(horizontal: 8),
-            leading: Icon(Icons.edit_note_rounded, color: context.palette.teal),
-            title: Text('Deine Antworten'),
-            childrenPadding: EdgeInsets.fromLTRB(8, 0, 8, 18),
-            children: [
-              for (final question in questions) ...[
-                MathText(
-                  question['prompt'] ?? 'Deine Aufgabe',
-                  style: TextStyle(fontWeight: FontWeight.w700),
-                ),
-                SizedBox(height: 8),
-                if ((question['attempts'] as List? ?? []).isEmpty)
-                  Text('Noch keine Antwort gespeichert.'),
-                for (final entry
-                    in (question['attempts'] as List? ?? []).indexed)
-                  Builder(
-                    builder: (context) {
-                      final attempt = entry.$2;
-                      return Padding(
-                        padding: EdgeInsets.only(bottom: 8),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Versuch ${entry.$1 + 1}${entry.$1 + 1 == (question['attempts'] as List).length ? ' · zuletzt gespeichert' : ''}',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w800,
-                                color: context.palette.muted,
-                              ),
-                            ),
-                            MathText(
-                              '${_savedAnswerText(question, attempt['answer'])} · ${outcomeLabel(attempt['outcome'])}'
-                              '${attempt['outcome'] == 'correct' && attempt['assisted'] == true ? ' · mit Hilfe oder erneut' : ''}',
-                            ),
-                            AnswerSupport(Json.from(attempt)),
-                            AssessmentTrail(
-                              attempt['assessment_history'] as List? ?? [],
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                if (unit['status'] == 'completed' &&
-                    unit['supports_question_explanation'] == true &&
-                    onQuestionExplanation != null &&
-                    (question['attempts'] as List? ?? []).isNotEmpty &&
-                    ((question['attempts'] as List).length >= 3 ||
-                        (question['attempts'] as List).any(
-                          (attempt) =>
-                              attempt is Map &&
-                              [
-                                'correct',
-                                'uncertain',
-                              ].contains(attempt['outcome']),
-                        )))
-                  Builder(
-                    builder: (context) {
-                      // Capture what was shown, never a later mutation of the
-                      // shared unit/attempt maps behind this saved callback.
-                      final saved = Json.from(
-                        jsonDecode(jsonEncode(question)) as Map,
-                      );
-                      return TextButton.icon(
-                        key: ValueKey(
-                          'completed-question-explanation-${saved['id']}',
-                        ),
-                        onPressed: () async {
-                          if (currentAction()) {
-                            await onQuestionExplanation?.call(saved);
-                          }
-                        },
-                        icon: const Icon(Icons.auto_stories_outlined),
-                        label: Text(
-                          'Erklärung zu Aufgabe ${questions.indexOf(question) + 1}',
-                        ),
-                      );
-                    },
-                  ),
-                if ((question['attempts'] as List? ?? [])
-                        .lastOrNull?['outcome'] ==
-                    'uncertain') ...[
-                  if (unit['supports_recheck'] == true &&
-                      unit['supports_recheck_attempt_id'] == true &&
-                      question['language'] is! Map &&
-                      (question['attempts'] as List).lastOrNull?['id']
-                          is String)
-                    Builder(
-                      builder: (context) {
-                        final attemptId =
-                            (question['attempts'] as List).last['id'] as String;
-                        final questionId = question['id'];
-                        final unitId = unit['id'];
-                        return ActionButton(
-                          secondary: true,
-                          label: 'Antwort erneut prüfen',
-                          onPressed: () async {
-                            final current = currentAction;
-                            if (!current()) return;
-                            try {
-                              await state.api.post(
-                                '/units/$unitId/questions/$questionId/recheck',
-                                {'attempt_id': attemptId},
-                              );
-                            } catch (error) {
-                              if (context.mounted && current()) {
-                                toast(context, error.toString());
-                              }
-                              return;
-                            }
-                            if (current()) await refresh();
-                          },
-                        );
-                      },
-                    )
-                  else if (unit['supports_recheck'] == true &&
-                      question['language'] is! Map)
-                    Text(
-                      'Diese Antwort lässt sich hier nicht sicher erneut prüfen. Du kannst die Lernhilfe fragen.',
-                    ),
-                  TextButton.icon(
-                    onPressed: () => showTutorSheet(
-                      context,
-                      state,
-                      childId: unit['child_id'],
-                      unitId: unit['id'],
-                    ),
-                    icon: Icon(Icons.chat_bubble_outline),
-                    label: Text('Mit der Lernhilfe klären'),
-                  ),
                 ],
-                SizedBox(height: 14),
-              ],
-            ],
-          ),
-        if (progress != null)
-          ExpansionTile(
-            tilePadding: EdgeInsets.symmetric(horizontal: 8),
-            leading: Icon(Icons.insights_rounded, color: context.palette.teal),
-            title: Text('Mein Lernstand'),
-            children: [LearningProgressPanel(progress!)],
-          ),
-        if (unit['child_id'] is String)
-          TextButton.icon(
-            onPressed: () {
-              if (currentAction()) {
-                openRoute(context, '/progress/${unit['child_id']}');
-              }
-            },
-            icon: Icon(Icons.insights_rounded),
-            label: Text('Lernstand aller Fächer'),
-          ),
+              ),
+            if (reviews.isNotEmpty && ready)
+              ExpansionTile(
+                tilePadding: EdgeInsets.symmetric(horizontal: 8),
+                leading: Icon(
+                  Icons.fact_check_outlined,
+                  color: context.palette.teal,
+                ),
+                title: Text('Rückmeldung zu jeder Aufgabe'),
+                children: [
+                  for (final review in reviews)
+                    Padding(
+                      padding: EdgeInsets.fromLTRB(8, 0, 8, 18),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          MathText(
+                            questions.firstWhere(
+                              (q) => q['id'] == review['question_id'],
+                              orElse: () => {'prompt': 'Deine Aufgabe'},
+                            )['prompt'],
+                            style: TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                          SizedBox(height: 8),
+                          if (review['assessment_kind'] == 'ai_opinion') ...[
+                            Tag('KI-Vorschlag · Antwort bleibt unklar'),
+                            SizedBox(height: 8),
+                          ],
+                          MathText(review['feedback']),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            if (questions.isNotEmpty)
+              ExpansionTile(
+                tilePadding: EdgeInsets.symmetric(horizontal: 8),
+                leading: Icon(
+                  Icons.edit_note_rounded,
+                  color: context.palette.teal,
+                ),
+                title: Text('Deine Antworten'),
+                childrenPadding: EdgeInsets.fromLTRB(8, 0, 8, 18),
+                children: [
+                  for (final question in questions) ...[
+                    MathText(
+                      question['prompt'] ?? 'Deine Aufgabe',
+                      style: TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    SizedBox(height: 8),
+                    if ((question['attempts'] as List? ?? []).isEmpty)
+                      Text('Noch keine Antwort gespeichert.'),
+                    for (final entry
+                        in (question['attempts'] as List? ?? []).indexed)
+                      Builder(
+                        builder: (context) {
+                          final attempt = entry.$2;
+                          return Padding(
+                            padding: EdgeInsets.only(bottom: 8),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Versuch ${entry.$1 + 1}${entry.$1 + 1 == (question['attempts'] as List).length ? ' · zuletzt gespeichert' : ''}',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w800,
+                                    color: context.palette.muted,
+                                  ),
+                                ),
+                                MathText(
+                                  '${_savedAnswerText(question, attempt['answer'])} · ${outcomeLabel(attempt['outcome'])}'
+                                  '${attempt['outcome'] == 'correct' && attempt['assisted'] == true ? ' · mit Hilfe oder erneut' : ''}',
+                                ),
+                                AnswerSupport(Json.from(attempt)),
+                                AssessmentTrail(
+                                  attempt['assessment_history'] as List? ?? [],
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    if (unit['status'] == 'completed' &&
+                        unit['supports_question_explanation'] == true &&
+                        onQuestionExplanation != null &&
+                        (question['attempts'] as List? ?? []).isNotEmpty &&
+                        ((question['attempts'] as List).length >= 3 ||
+                            (question['attempts'] as List).any(
+                              (attempt) =>
+                                  attempt is Map &&
+                                  [
+                                    'correct',
+                                    'uncertain',
+                                  ].contains(attempt['outcome']),
+                            )))
+                      Builder(
+                        builder: (context) {
+                          // Capture what was shown, never a later mutation of the
+                          // shared unit/attempt maps behind this saved callback.
+                          final saved = Json.from(
+                            jsonDecode(jsonEncode(question)) as Map,
+                          );
+                          return TextButton.icon(
+                            key: ValueKey(
+                              'completed-question-explanation-${saved['id']}',
+                            ),
+                            onPressed: () async {
+                              if (currentAction()) {
+                                await onQuestionExplanation?.call(saved);
+                              }
+                            },
+                            icon: const Icon(Icons.auto_stories_outlined),
+                            label: Text(
+                              'Erklärung zu Aufgabe ${questions.indexOf(question) + 1}',
+                            ),
+                          );
+                        },
+                      ),
+                    if ((question['attempts'] as List? ?? [])
+                            .lastOrNull?['outcome'] ==
+                        'uncertain') ...[
+                      if (unit['supports_recheck'] == true &&
+                          unit['supports_recheck_attempt_id'] == true &&
+                          question['language'] is! Map &&
+                          (question['attempts'] as List).lastOrNull?['id']
+                              is String)
+                        Builder(
+                          builder: (context) {
+                            final attemptId =
+                                (question['attempts'] as List).last['id']
+                                    as String;
+                            final questionId = question['id'];
+                            final unitId = unit['id'];
+                            return ActionButton(
+                              secondary: true,
+                              label: 'Antwort erneut prüfen',
+                              onPressed: () async {
+                                final current = currentAction;
+                                if (!current()) return;
+                                try {
+                                  await state.api.post(
+                                    '/units/$unitId/questions/$questionId/recheck',
+                                    {'attempt_id': attemptId},
+                                  );
+                                } catch (error) {
+                                  if (context.mounted && current()) {
+                                    toast(context, error.toString());
+                                  }
+                                  return;
+                                }
+                                if (current()) await refresh();
+                              },
+                            );
+                          },
+                        )
+                      else if (unit['supports_recheck'] == true &&
+                          question['language'] is! Map)
+                        Text(
+                          'Diese Antwort lässt sich hier nicht sicher erneut prüfen. Du kannst die Lernhilfe fragen.',
+                        ),
+                      TextButton.icon(
+                        onPressed: () => showTutorSheet(
+                          context,
+                          state,
+                          childId: unit['child_id'],
+                          unitId: unit['id'],
+                        ),
+                        icon: Icon(Icons.chat_bubble_outline),
+                        label: Text('Mit der Lernhilfe klären'),
+                      ),
+                    ],
+                    SizedBox(height: 14),
+                  ],
+                ],
+              ),
+            if (progress != null)
+              ExpansionTile(
+                tilePadding: EdgeInsets.symmetric(horizontal: 8),
+                leading: Icon(
+                  Icons.insights_rounded,
+                  color: context.palette.teal,
+                ),
+                title: Text('Mein Lernstand'),
+                children: [LearningProgressPanel(progress!)],
+              ),
+            if (unit['child_id'] is String)
+              TextButton.icon(
+                onPressed: () {
+                  if (currentAction()) {
+                    openRoute(context, '/progress/${unit['child_id']}');
+                  }
+                },
+                icon: Icon(Icons.insights_rounded),
+                label: Text('Lernstand aller Fächer'),
+              ),
+          ],
+        ),
       ],
     );
   }

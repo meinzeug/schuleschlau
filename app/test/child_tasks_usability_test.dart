@@ -269,6 +269,7 @@ void main() {
       await _tap(tester, 'Ergebnis ansehen');
       expect(find.text('Runde geschafft!'), findsOneWidget);
       expect(find.text('Was bedeutet cat?'), findsNothing);
+      await _tap(tester, 'Mehr zu deiner Runde');
       await _tap(tester, 'Mein Rückblick');
       expect(
         find.text('Gespeicherter Rückblick zur künstlichen Aufgabe.'),

@@ -236,14 +236,34 @@ class _LearningPreparationScreenState extends State<_LearningPreparationBody>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Icon(
-                  ready
-                      ? Icons.auto_stories_rounded
-                      : failed || error != null
-                      ? Icons.cloud_off_rounded
-                      : Icons.auto_awesome_rounded,
-                  color: context.palette.teal,
-                  size: 32,
+                Center(
+                  child: Container(
+                    width: 82,
+                    height: 82,
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: context.palette.mint,
+                      borderRadius: BorderRadius.circular(26),
+                    ),
+                    child:
+                        widget.state.isChild &&
+                            !ready &&
+                            !failed &&
+                            error == null
+                        ? Image.asset(
+                            'assets/brand/schulbuddy-mark.png',
+                            semanticLabel: 'Schulbuddy',
+                          )
+                        : Icon(
+                            ready
+                                ? Icons.auto_stories_rounded
+                                : failed || error != null
+                                ? Icons.cloud_off_rounded
+                                : Icons.auto_awesome_rounded,
+                            color: context.palette.teal,
+                            size: 32,
+                          ),
+                  ),
                 ),
                 SizedBox(height: 16),
                 Text(
@@ -287,7 +307,7 @@ class _LearningPreparationScreenState extends State<_LearningPreparationBody>
                     SizedBox(height: 16),
                     Text(
                       widget.state.isChild
-                          ? 'Die Vorbereitung geht auch ohne offene App weiter.'
+                          ? 'Deine Lernhilfe bereitet passende Aufgaben vor. Du kannst später zurückkommen.'
                           : 'Du kannst die App schließen. Wir arbeiten weiter.',
                     ),
                   ],

@@ -188,6 +188,10 @@ void main() {
           ),
         ),
       );
+      final details = find.text('Mehr zu deiner Runde');
+      await tester.ensureVisible(details);
+      await tester.tap(details);
+      await tester.pumpAndSettle();
       final expansion = find.text('Rückmeldung zu jeder Aufgabe');
       await tester.ensureVisible(expansion);
       await tester.tap(expansion);

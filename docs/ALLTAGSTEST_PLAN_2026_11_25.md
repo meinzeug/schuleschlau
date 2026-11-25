@@ -34,9 +34,13 @@ bleiben erhalten. Kein Zurücksetzen oder Verstellen der Produktionszeit.
 
 - [x] Datei-Inventar und Duplikate geprüft; keine Originale geändert.
 - [x] Erster Fotoimport und zwei regulär abgerechnete KI-Lesungen ausgeführt.
-- [ ] Lernrunde der ersten Seite: Quellenabgleich sperrt zurzeit alle
-  Abschnitte; sichere Korrektur und Nachtest erforderlich.
-- [ ] Fotoeditor vereinfachen und Sammeloption testen und veröffentlichen.
+- [x] Erste Seite: Quellenabgleich eingegrenzt; echte Runde nach Veröffentlichung
+  gestartet und beide Aufgaben im Browser bearbeitet. Ein Fehlversuch und eine
+  unterstützte Antwort sind im Kinderkonto gespeichert.
+- [ ] Gezielte Anschlussübung: fehlende geprüfte Grafikreferenz blockiert den
+  Auftrag vor dem Anbieteraufruf; Ursache beheben und regulär erneut prüfen.
+- [x] Fotoeditor vereinfacht, Sammeloption mit künstlichen Dateien getestet
+  und als Version 1.38.151 veröffentlicht; weitere echte Fotogruppen nachprüfen.
 - [ ] Übrige einzigartigen Fotos in handhabbaren Gruppen prüfen.
 - [ ] Echten Lernweg einschließlich Übungen, Hilfe, Rückmeldung und
   Wiederaufnahme prüfen.

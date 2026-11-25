@@ -80,6 +80,9 @@ Finder action(String id) =>
     find.byKey(ValueKey('completed-question-explanation-$id'));
 
 Future<void> expandAnswers(WidgetTester tester) async {
+  await tester.ensureVisible(find.text('Mehr zu deiner Runde'));
+  await tester.tap(find.text('Mehr zu deiner Runde'));
+  await tester.pumpAndSettle();
   await tester.ensureVisible(find.text('Deine Antworten'));
   await tester.pumpAndSettle();
   await tester.tap(find.text('Deine Antworten'));

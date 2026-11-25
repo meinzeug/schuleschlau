@@ -49,3 +49,31 @@ In-App-Meldung zur Vorbereitung ist auch für berechtigte Eltern sichtbar. Die
 tatsächliche Zustellung auf einem Gerät ist damit nicht nachgewiesen.
 Die Korrekturen sind noch nicht live und müssen nach Veröffentlichung im
 Browser mit der betroffenen Quelle erneut geprüft werden.
+
+## Nachtest auf 1.38.151
+
+Nach dem Deployment wurde die gleiche Quelle ohne neue Erkennung im mobilen
+Browser geöffnet. Eine ausdrücklich gestartete Heft-Runde wurde diesmal
+angenommen und durch einen echten KI-Auftrag erzeugt. Eine neue In-App-Meldung
+erschien; daraus folgt kein Nachweis einer Firebase-Zustellung. Beide Aufgaben
+bezogen sich auf den erkannten Mathematikstoff. Der erste Hinweis verriet das
+Ergebnis nicht; die richtige Antwort nach Hinweis wurde als unterstützt
+angezeigt. Eine zweite, bewusst falsche numerische Antwort wurde als unklar
+statt als falsch eingeordnet, obwohl die anschließende Erklärung die korrekte
+Zahl nannte. Der Rückblick wies die erste Antwort als unterstützt und die
+zweite als unklar aus. Diese echten Testversuche und die während der Bedienung
+erfasste Lernzeit sind im verwendeten Kinderkonto gespeichert und nicht als
+selbstständige Beherrschung zu verstehen.
+
+Die Runde zeigt zudem keinen vorbereiteten passenden Grafikinhalt. Die
+Vorbereitungsansicht ist sehr schlicht; beide Befunde bleiben für den weiteren
+Test und die Gestaltung offen. Dieser Nachtest belegt weder eine vollständige
+Fotoerkennung noch den 30-Tage-Ablauf.
+
+Beim anschließenden ausdrücklich gewählten „Gezielt weiterüben“ scheiterte
+der Auftrag bereits vor einem neuen Anbieteraufruf mit dem Fehlercode
+`visual_unavailable`: Für die gebundene Anschlussübung war keine passende
+geprüfte Referenz verfügbar. Die gespeicherten Antworten blieben erhalten.
+Eine Wiederholung wurde nicht ausgelöst. Die Ursache ist von der erfolgreichen
+Erzeugung der ersten Runde getrennt zu beheben; eine ungeprüfte Grafik darf
+nicht als vorhanden ausgegeben werden.

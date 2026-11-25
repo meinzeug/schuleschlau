@@ -325,7 +325,7 @@ void main() {
             tester.getRect(find.byKey(const ValueKey('child-home-search'))).top,
           ),
         );
-        expect(find.text('Heftseiten prüfen'), findsOneWidget);
+        expect(find.text('Fotos ansehen'), findsOneWidget);
         expect(find.text('Anderes Thema'), findsOneWidget);
         expect(find.text('Verstehen · Üben · Rückblick'), findsNothing);
         expect(requests.where((request) => request.method == 'POST'), isEmpty);
@@ -410,7 +410,7 @@ void main() {
         tester.widget<ChildTodayHero>(find.byType(ChildTodayHero)).title,
         'Brüche fortsetzen',
       );
-      await tap(tester, 'Heftseite prüfen');
+      await tap(tester, 'Heftseite ansehen');
       expect(find.text('Eigene Seite prüfen'), findsOneWidget);
       expect(requests.every((request) => request.method == 'GET'), true);
       await tester.pumpWidget(const SizedBox());

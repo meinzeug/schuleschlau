@@ -71,7 +71,7 @@ void main() {
     await tester.pump();
     expect(find.text('Deine Runde wartet.'), findsOneWidget);
     expect(
-      find.text('Die Vorbereitung geht auch ohne offene App weiter.'),
+      find.text('Deine Lernhilfe bereitet passende Aufgaben vor. Du kannst später zurückkommen.'),
       findsOneWidget,
     );
     expect(find.text('Zur Startseite'), findsOneWidget);

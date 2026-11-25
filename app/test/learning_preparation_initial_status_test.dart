@@ -48,7 +48,7 @@ void main() {
       expect(find.text('Status wird geladen …'), findsOneWidget);
       expect(find.text('Deine Runde entsteht …'), findsNothing);
       expect(
-        find.text('Die Vorbereitung geht auch ohne offene App weiter.'),
+        find.text('Deine Lernhilfe bereitet passende Aufgaben vor. Du kannst später zurückkommen.'),
         findsNothing,
       );
       expect(

@@ -191,6 +191,13 @@ Future<GoRouter> _open(
 
 Future<void> _tap(WidgetTester tester, String label) async {
   final target = find.text(label);
+  if (target.evaluate().isEmpty &&
+      find.text('Mehr zu deiner Runde').evaluate().isNotEmpty) {
+    final details = find.text('Mehr zu deiner Runde');
+    await tester.ensureVisible(details);
+    await tester.tap(details);
+    await tester.pumpAndSettle();
+  }
   await tester.ensureVisible(target);
   await tester.pump();
   await tester.tap(target);
@@ -397,6 +404,10 @@ void main() {
     await _open(tester, fixture);
     await tester.pump(const Duration(seconds: 30));
     expect(find.text('Die KI schaut deine Antworten an.'), findsOneWidget);
+    expect(find.text('Mehr zu deiner Runde'), findsOneWidget);
+    await tester.ensureVisible(find.text('Mehr zu deiner Runde'));
+    await tester.tap(find.text('Mehr zu deiner Runde'));
+    await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('Deine Antworten'), findsOneWidget);
     expect(find.byType(ActionButton), findsNothing);
     expect(fixture.requests, isEmpty);

@@ -185,7 +185,8 @@ def recent_events(db, user, current=None, *, direct_messages=False, direct_exams
 
             route = day_route(db, day, children[row.child_id]) or route
             current_status = (day.preparation or {}).get("status")
-            suffix = {"needs_review":"Bitte prüfen", "needs_photo":"Ein Foto neu aufnehmen", "processing":"Wird vorbereitet",
+            suffix = {"needs_review": "Elternprüfung offen" if user.role == "child" else "Bitte prüfen",
+                      "needs_photo": "Eltern können helfen" if user.role == "child" else "Foto prüfen", "processing":"Wird vorbereitet",
                       "ready":"Lernpaket bereit", "saved":"Für später gespeichert", "failed":"Vorbereitung noch offen", "blocked":"Vorbereitung noch offen"}.get(current_status, "Heftseiten öffnen")
             if current_status == "ready" and (ready_count := sum(r.confirmed for r in source_rows)) < count:
                 suffix = f"Lernpaket bereit · {count - ready_count} von {count} Fotos noch offen"

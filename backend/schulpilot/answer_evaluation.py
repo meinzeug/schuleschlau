@@ -517,6 +517,36 @@ def verified_divisor_set(question, answer):
                   method="divisor_set_v1")
 
 
+def next_multiple_in_explicit_sequence(question, answer):
+    """Assess only a fully specified sequence with an independently verified key."""
+    if question.get("type") != "short" or question.get("language"):
+        return None
+    prompt, key = question.get("prompt"), question.get("answer")
+    if not isinstance(prompt, str) or not isinstance(key, str) or not isinstance(answer, str):
+        return None
+    match = re.fullmatch(
+        r"(?:Übung:\s*)?Die Vielfachen von (\d{1,3}) beginnen mit\s*"
+        r"(\d{1,4}(?:\s*;\s*\d{1,4}){2,7})\.\s*Welche Zahl kommt als Nächstes\?",
+        prompt.strip(), re.IGNORECASE,
+    )
+    if not match:
+        return None
+    step = int(match[1])
+    terms = [int(value.strip()) for value in match[2].split(";")]
+    if not 1 <= step <= 120 or terms != [step * index for index in range(1, len(terms) + 1)]:
+        return result("uncertain", "Diese Zahlenreihe muss noch geprüft werden.", method="explicit_multiple_sequence_v1")
+    expected = step * (len(terms) + 1)
+    if not re.fullmatch(r"\d{1,5}", key.strip()) or int(key.strip()) != expected:
+        return result("uncertain", "Die gespeicherte Lösung muss noch geprüft werden.", method="explicit_multiple_sequence_v1")
+    if not re.fullmatch(r"\d{1,5}", answer.strip()):
+        return None
+    correct = int(answer.strip()) == expected
+    return result("correct" if correct else "incorrect",
+                  "Genau, du hast den nächsten Schritt gefunden." if correct
+                  else "Schau auf die letzte Zahl und zähle den nächsten Schritt dazu.",
+                  method="explicit_multiple_sequence_v1")
+
+
 def evaluate(question, answer):
     if (question.get("presentation") or {}).get("evidence_kind") in ("reflection", "creative", "self_report", "movement"):
         return result("uncertain", "Deine Idee ist gespeichert. Gefühle, kreative Ideen oder körperliche Ausführung werden hier nicht als richtig oder falsch gemessen.", method="open_learning_v1")
@@ -541,6 +571,8 @@ def evaluate(question, answer):
     if checked := heart_pump_direction(question, answer):
         return checked
     if checked := verified_divisor_set(question, answer):
+        return checked
+    if checked := next_multiple_in_explicit_sequence(question, answer):
         return checked
     if checked := lcm_short_answer(question, answer):
         return checked
