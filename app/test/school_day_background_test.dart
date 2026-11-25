@@ -431,31 +431,35 @@ void main() {
   });
 
   for (final width in [320.0, 1280.0]) {
-    testWidgets(
-      'Offene Seiten überlässt das Kind den Eltern auf $width px',
-      (tester) async {
-        mobile(tester, width);
-        final server = PreparationServer(
-          pages: [source(1)],
-          stage: 'review',
-          preparation: {'status': 'needs_review', 'phase': 'review'},
-        );
-        final navigation = router(server.state());
-        addTearDown(navigation.dispose);
-        await tester.pumpWidget(
-          MaterialApp.router(theme: appTheme(), routerConfig: navigation),
-        );
-        await settleUi(tester);
-        expect(server.pages.single['confirmed'], false);
-        expect(find.byType(CheckboxListTile), findsNothing);
-        expect(find.text('Stimmt, weiter'), findsNothing);
-        expect(find.text('Diese Seite prüfen deine Eltern. Dein Foto ist gespeichert.'), findsOneWidget);
-        expect(server.pages.single['confirmed'], false);
-        expect(server.submissions, 0);
-        expect(server.starts, 0);
-        expect(tester.takeException(), isNull);
-      },
-    );
+    testWidgets('Offene Seiten überlässt das Kind den Eltern auf $width px', (
+      tester,
+    ) async {
+      mobile(tester, width);
+      final server = PreparationServer(
+        pages: [source(1)],
+        stage: 'review',
+        preparation: {'status': 'needs_review', 'phase': 'review'},
+      );
+      final navigation = router(server.state());
+      addTearDown(navigation.dispose);
+      await tester.pumpWidget(
+        MaterialApp.router(theme: appTheme(), routerConfig: navigation),
+      );
+      await settleUi(tester);
+      expect(server.pages.single['confirmed'], false);
+      expect(find.byType(CheckboxListTile), findsNothing);
+      expect(find.text('Stimmt, weiter'), findsNothing);
+      expect(
+        find.text(
+          'Diese Seite prüfen deine Eltern. Dein Foto ist gespeichert.',
+        ),
+        findsOneWidget,
+      );
+      expect(server.pages.single['confirmed'], false);
+      expect(server.submissions, 0);
+      expect(server.starts, 0);
+      expect(tester.takeException(), isNull);
+    });
   }
 
   testWidgets(
@@ -766,31 +770,33 @@ void main() {
     },
   );
 
-  testWidgets(
-    'Yesterday stays saved and is reviewed by parents',
-    (tester) async {
-      mobile(tester);
-      final server = PreparationServer(
-        pages: [source(1)],
-        stage: 'review',
-        preparation: {'status': 'needs_review', 'phase': 'review'},
-      )..archived = true;
-      final navigation = router(server.state(), archived: true);
-      addTearDown(navigation.dispose);
-      await tester.pumpWidget(
-        MaterialApp.router(theme: appTheme(), routerConfig: navigation),
-      );
-      await settleUi(tester);
-      expect(find.text('Seite 1 ansehen'), findsOneWidget);
-      expect(find.text('Noch eine Seite hinzufügen'), findsNothing);
-      expect(find.byType(CheckboxListTile), findsNothing);
-      expect(find.text('Stimmt, weiter'), findsNothing);
-      expect(find.text('Diese Seite prüfen deine Eltern. Dein Foto ist gespeichert.'), findsOneWidget);
-      expect(server.submissions, 0);
-      expect(server.starts, 0);
-      expect(tester.takeException(), isNull);
-    },
-  );
+  testWidgets('Yesterday stays saved and is reviewed by parents', (
+    tester,
+  ) async {
+    mobile(tester);
+    final server = PreparationServer(
+      pages: [source(1)],
+      stage: 'review',
+      preparation: {'status': 'needs_review', 'phase': 'review'},
+    )..archived = true;
+    final navigation = router(server.state(), archived: true);
+    addTearDown(navigation.dispose);
+    await tester.pumpWidget(
+      MaterialApp.router(theme: appTheme(), routerConfig: navigation),
+    );
+    await settleUi(tester);
+    expect(find.text('Seite 1 ansehen'), findsOneWidget);
+    expect(find.text('Noch eine Seite hinzufügen'), findsNothing);
+    expect(find.byType(CheckboxListTile), findsNothing);
+    expect(find.text('Stimmt, weiter'), findsNothing);
+    expect(
+      find.text('Diese Seite prüfen deine Eltern. Dein Foto ist gespeichert.'),
+      findsOneWidget,
+    );
+    expect(server.submissions, 0);
+    expect(server.starts, 0);
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets(
     'Photo selection is available during temporary AI unavailability',
@@ -917,7 +923,7 @@ void main() {
     },
   );
   testWidgets(
-    'Explicit bulk option keeps all selected photos without another crop dialog',
+    'Photo selection stays local until explicit submission; optional editor preserves drafts',
     (tester) async {
       mobile(tester);
       final dir = await tester.runAsync(
@@ -956,7 +962,7 @@ void main() {
       await tapText(tester, 'Fotos auswählen');
       for (
         var wait = 0;
-        wait < 300 && find.text('Weitere unverändert').evaluate().isEmpty;
+        wait < 300 && (await state.pendingUploads.read('kid')).length < 3;
         wait++
       ) {
         await tester.runAsync(
@@ -964,32 +970,36 @@ void main() {
         );
         await settleUi(tester);
       }
-      await tapText(tester, 'Weitere unverändert');
-      expect(find.textContaining('Namen bleiben sichtbar.'), findsOneWidget);
-      await tester.tap(find.text('Abbrechen').last);
+      expect(await state.pendingUploads.read('kid'), hasLength(3));
+      expect(find.text('Foto übernehmen'), findsNothing);
+      expect(find.byType(AlertDialog), findsNothing);
+      expect(server.uploads, 0);
+      expect(server.submissions, 0);
+      await tester.ensureVisible(find.byTooltip('Foto 1 bearbeiten'));
+      await tester.tap(find.byTooltip('Foto 1 bearbeiten'));
       await settleUi(tester);
       expect(find.text('Foto übernehmen'), findsOneWidget);
-      expect(server.uploads, 0);
-      await tapText(tester, 'Weitere unverändert');
-      await tapText(tester, 'Fotos übernehmen');
-      for (var wait = 0; wait < 300 && server.uploads < 3; wait++) {
+      await tester.tap(find.text('Abbrechen').last);
+      await settleUi(tester);
+      expect(await state.pendingUploads.read('kid'), hasLength(3));
+      await tapText(tester, 'Fotos abgeben');
+      for (var wait = 0; wait < 300 && server.submissions < 1; wait++) {
         await tester.runAsync(
           () => Future<void>.delayed(const Duration(milliseconds: 30)),
         );
         await settleUi(tester);
       }
       expect(server.uploads, 3);
+      expect(server.submissions, 1);
       final receipts = await state.pendingUploads.receipts('kid');
       expect(receipts.where((r) => r['stage'] == 'saved'), hasLength(3));
-      expect(find.text('Foto übernehmen'), findsNothing);
-      expect(server.submissions, 0);
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox());
     },
   );
 
   testWidgets(
-    'Ten selected files retain eight saved receipts and two clear rejections',
+    'Ten selected files retain eight local drafts and two clear rejections',
     (tester) async {
       mobile(tester);
       final dir = await tester.runAsync(
@@ -1026,40 +1036,32 @@ void main() {
       );
       await settleUi(tester);
       await tapText(tester, 'Fotos auswählen');
-      for (var i = 0; i < 8; i++) {
-        for (
-          var wait = 0;
-          wait < 300 && find.text('Foto übernehmen').evaluate().isEmpty;
-          wait++
-        ) {
-          await tester.runAsync(
-            () => Future<void>.delayed(const Duration(milliseconds: 30)),
-          );
-          await settleUi(tester);
-        }
-        expect(
-          find.text('Foto übernehmen'),
-          findsOneWidget,
-          reason: 'crop ${i + 1}',
-        );
-        await tester.tap(find.text('Foto übernehmen'));
-        await tester.pump(const Duration(milliseconds: 80));
-        await tester.runAsync(
-          () => Future<void>.delayed(const Duration(milliseconds: 100)),
-        );
-        await settleUi(tester);
-      }
-      for (var wait = 0; wait < 300 && server.uploads < 8; wait++) {
+      for (
+        var wait = 0;
+        wait < 300 && (await state.pendingUploads.receipts('kid')).length < 10;
+        wait++
+      ) {
         await tester.runAsync(
           () => Future<void>.delayed(const Duration(milliseconds: 30)),
         );
         await settleUi(tester);
       }
-      expect(server.uploads, 8);
+      for (
+        var wait = 0;
+        wait < 300 && (await state.pendingUploads.read('kid')).length < 8;
+        wait++
+      ) {
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 30)),
+        );
+        await settleUi(tester);
+      }
+      expect(await state.pendingUploads.read('kid'), hasLength(8));
       final receipts = await state.pendingUploads.receipts('kid');
       expect(receipts, hasLength(10));
-      expect(receipts.where((r) => r['stage'] == 'saved'), hasLength(8));
+      expect(receipts.where((r) => r['stage'] == 'queued'), hasLength(8));
       expect(receipts.where((r) => r['stage'] == 'not_accepted'), hasLength(2));
+      expect(server.uploads, 0);
       expect(server.submissions, 0);
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox());
@@ -1132,18 +1134,6 @@ void main() {
         } else {
           await tapText(tester, 'Fotos auswählen');
         }
-        for (
-          var wait = 0;
-          wait < 100 && find.text('Foto übernehmen').evaluate().isEmpty;
-          wait++
-        ) {
-          await tester.runAsync(
-            () => Future<void>.delayed(const Duration(milliseconds: 30)),
-          );
-          await settleUi(tester);
-        }
-        expect(find.text('Foto übernehmen'), findsOneWidget);
-        await tester.tap(find.text('Foto übernehmen'));
         for (var wait = 0; wait < 100 && !collectingRequested; wait++) {
           await tester.runAsync(
             () => Future<void>.delayed(const Duration(milliseconds: 30)),

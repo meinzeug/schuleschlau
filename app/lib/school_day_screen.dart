@@ -674,8 +674,7 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
     return switch (row['stage']) {
       'selected' => 'Ausgewählt',
       'cropped' => 'Zugeschnitten',
-      'queued' =>
-        'Zugeschnitten · auf diesem Gerät gesichert · noch nicht gesendet',
+      'queued' => 'Auf diesem Gerät gespeichert · noch nicht gesendet',
       'saved' => 'Auf dem Server gespeichert',
       'not_accepted' => 'Nicht übernommen',
       _ => 'Bitte Status prüfen',
@@ -706,7 +705,10 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
     if (source == ImageSource.gallery) {
       final available =
           (day!['max_pages'] as int) - pages.length - pendingPhotos.length;
-      final remaining = available.clamp(0, PendingUploads.maxPages);
+      final remaining = available.clamp(
+        0,
+        PendingUploads.maxPages - pendingPhotos.length,
+      );
       if (remaining == 0) {
         throw ApiError(
           available <= 0
@@ -747,83 +749,26 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
         });
       }
       Object? firstError;
-      bool canSend = true;
-      bool useRemainingUnchanged = false;
       for (var i = 0; i < files.length && i < remaining; i++) {
         if (!currentCapture()) return;
         try {
           setState(
             () => progress =
-                'Foto ${i + 1} von ${files.length.clamp(0, remaining)} zuschneiden',
+                'Foto ${i + 1} von ${files.length.clamp(0, remaining)} vorbereiten',
           );
           final raw = await files[i].readAsBytes();
-          if (!mounted || !currentCapture()) return;
-          CropFrame? cropFrame;
-          Uint8List? bytes;
-          if (useRemainingUnchanged) {
-            if (raw.length > 10 * 1024 * 1024) {
-              throw ApiError('Das Bild darf höchstens 10 MB groß sein.');
-            }
-            bytes = await compute(encodeMaterialCrop, <String, dynamic>{
-              'bytes': raw,
-              'turns': 0,
-              'left': 0.0,
-              'top': 0.0,
-              'right': 1.0,
-              'bottom': 1.0,
-            });
-            if (!currentCapture()) return;
-          }
-          var again = !useRemainingUnchanged;
-          while (again && currentCapture()) {
-            if (!mounted) return;
-            bytes = await cropMaterialPhoto(
-              context,
-              raw,
-              state: state,
-              initialFrame: cropFrame,
-              onFrameChanged: (value) => cropFrame = value,
-              batchIndex: i + 1,
-              batchTotal: files.length.clamp(0, remaining),
-              onUseRemainingUnchanged: i + 1 < files.length.clamp(0, remaining)
-                  ? () => useRemainingUnchanged = true
-                  : null,
-            );
-            again = false;
-            if (bytes == null && currentCapture()) {
-              if (!mounted) return;
-              again =
-                  await showDayDialog<bool>(
-                    context: context,
-                    builder: (ctx) => AlertDialog(
-                      title: Text('Foto ${i + 1} noch einmal prüfen?'),
-                      content: const Text(
-                        'Der Zuschnitt bleibt für diesen Auswahlschritt erhalten. Bereits übernommene Fotos werden nicht verändert.',
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => closeDayDialog(ctx, false),
-                          child: const Text('Dieses Foto überspringen'),
-                        ),
-                        FilledButton(
-                          onPressed: () => closeDayDialog(ctx, true),
-                          child: const Text('Zuschnitt wieder aufnehmen'),
-                        ),
-                      ],
-                    ),
-                  ) ==
-                  true;
-            }
-          }
           if (!currentCapture()) return;
-          if (bytes == null) {
-            await receipt(keys[i], {
-              'stage': 'not_accepted',
-              'reason': 'Zuschnitt abgebrochen. Die Originaldatei ist weiterhin auf deinem Gerät.',
-            });
-            continue;
+          if (raw.length > 10 * 1024 * 1024) {
+            throw ApiError('Das Bild darf höchstens 10 MB groß sein.');
           }
-          await receipt(keys[i], {'stage': 'cropped'});
+          final bytes = await compute(encodeMaterialCrop, <String, dynamic>{
+            'bytes': raw,
+            'turns': 0,
+            'left': 0.0,
+            'top': 0.0,
+            'right': 1.0,
+            'bottom': 1.0,
+          });
           if (!currentCapture()) return;
           await ensureCollecting();
           if (!currentCapture()) return;
@@ -836,19 +781,6 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
           );
           if (!currentCapture()) return;
           await receipt(keys[i], {'stage': 'queued'});
-          if (!currentCapture()) return;
-          if (canSend) {
-            try {
-              await sendPending();
-            } catch (e) {
-              firstError ??= e;
-              canSend = false;
-              await receipt(keys[i], {
-                'stage': 'queued',
-                'reason': 'Noch nicht gesendet. Foto bleibt auf diesem Gerät.',
-              });
-            }
-          }
         } catch (e) {
           firstError ??= e;
           await receipt(keys[i], {
@@ -869,20 +801,35 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
     Uint8List? bytes;
     try {
       if (!mounted || !currentCapture()) return;
-      bytes = recovered && state.recoveredPhoto != null
-          ? await cropMaterialPhoto(
-              context,
-              state.recoveredPhoto!,
-              state: state,
-            )
-          : await pickMaterialPhoto(context, source, state: state);
+      final file = recovered
+          ? null
+          : await ImagePicker().pickImage(
+              source: source,
+              maxWidth: 3200,
+              maxHeight: 3200,
+              imageQuality: 95,
+              requestFullMetadata: false,
+            );
+      final raw = recovered ? state.recoveredPhoto : await file?.readAsBytes();
+      if (raw == null || !currentCapture()) return;
+      if (raw.length > 10 * 1024 * 1024) {
+        throw ApiError('Das Bild darf höchstens 10 MB groß sein.');
+      }
+      bytes = await compute(encodeMaterialCrop, <String, dynamic>{
+        'bytes': raw,
+        'turns': 0,
+        'left': 0.0,
+        'top': 0.0,
+        'right': 1.0,
+        'bottom': 1.0,
+      });
     } finally {
       if (nativeAndroid) await clearCameraSource(state);
     }
     if (bytes == null || !currentCapture()) return;
     final receiptId =
         'camera-${DateTime.now().microsecondsSinceEpoch}-${Random.secure().nextInt(1 << 30)}';
-    await receipt(receiptId, {'name': 'Neues Heftfoto', 'stage': 'cropped'});
+    await receipt(receiptId, {'name': 'Neues Heftfoto', 'stage': 'selected'});
     if (!currentCapture()) return;
     await ensureCollecting();
     if (!currentCapture()) return;
@@ -913,7 +860,6 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
           ? null
           : state.recoveredPhotos.removeAt(0);
     }
-    await sendPending();
   }
 
   Future<void> prepareInBackground() async {
@@ -1763,6 +1709,44 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
     }
   }
 
+  Future<void> editDraft(Json photo) async {
+    if (!active ||
+        locked ||
+        !pendingPhotos.any((p) => p['key'] == photo['key'])) {
+      return;
+    }
+    final version = generation, dayId = day?['id'], owner = actor!;
+    bool current() =>
+        sameDay(version, dayId) &&
+        actor == owner &&
+        !locked &&
+        pendingPhotos.any((p) => p['key'] == photo['key']);
+    try {
+      final result = await cropMaterialPhoto(
+        context,
+        base64Decode(photo['image']),
+        state: state,
+      );
+      if (result == null || !current()) return;
+      await state.pendingUploads.replace(
+        owner,
+        widget.childId,
+        dayId!,
+        photo['key'],
+        result,
+        isCurrent: current,
+      );
+      if (current()) await refreshPending();
+    } catch (e) {
+      if (mounted && current()) {
+        toast(
+          context,
+          e is ApiError ? e.message : 'Das Foto konnte nicht bearbeitet werden. Das Original bleibt erhalten.',
+        );
+      }
+    }
+  }
+
   Future<void> removeLocalPhoto(Json photo) async {
     if (!active ||
         locked ||
@@ -2183,12 +2167,24 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
                             Text(
                               'Bis ${DateFormat('dd.MM. HH:mm').format(DateTime.fromMillisecondsSinceEpoch((photo['created'] as num).toInt()).add(const Duration(hours: 24)).toLocal())}',
                             ),
-                          IconButton(
-                            tooltip: 'Vorgemerktes Foto ${n + 1} entfernen',
-                            onPressed: locked
-                                ? null
-                                : () => removeLocalPhoto(photo),
-                            icon: const Icon(Icons.delete_outline_rounded),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              IconButton(
+                                tooltip: 'Foto ${n + 1} bearbeiten',
+                                onPressed: locked
+                                    ? null
+                                    : () => editDraft(photo),
+                                icon: const Icon(Icons.crop_rotate_rounded),
+                              ),
+                              IconButton(
+                                tooltip: 'Vorgemerktes Foto ${n + 1} entfernen',
+                                onPressed: locked
+                                    ? null
+                                    : () => removeLocalPhoto(photo),
+                                icon: const Icon(Icons.delete_outline_rounded),
+                              ),
+                            ],
                           ),
                         ],
                       ),

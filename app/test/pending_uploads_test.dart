@@ -24,6 +24,64 @@ void main() {
   );
 
   test(
+    'Editing a draft preserves its key and never replaces another account',
+    () async {
+      final queue = PendingUploads(storage);
+      final key = await queue.add(
+        'owner',
+        'child',
+        'day',
+        Uint8List.fromList([1]),
+      );
+      await queue.replace(
+        'owner',
+        'child',
+        'day',
+        key,
+        Uint8List.fromList([2]),
+        isCurrent: () => true,
+      );
+      var pages = await queue.read('owner');
+      expect(pages.single['key'], key);
+      expect(base64Decode(pages.single['image']), [2]);
+      await expectLater(
+        queue.replace(
+          'owner',
+          'other-child',
+          'day',
+          key,
+          Uint8List.fromList([3]),
+          isCurrent: () => true,
+        ),
+        throwsA(isA<ApiError>()),
+      );
+      await queue.clear();
+      await queue.add('new-owner', 'child', 'day', Uint8List.fromList([4]));
+      await queue.replace(
+        'owner',
+        'child',
+        'day',
+        key,
+        Uint8List.fromList([5]),
+        isCurrent: () => true,
+      );
+      pages = await queue.read('new-owner');
+      expect(base64Decode(pages.single['image']), [4]);
+      await queue.replace(
+        'new-owner',
+        'child',
+        'day',
+        pages.single['key'],
+        Uint8List.fromList([6]),
+        isCurrent: () => false,
+      );
+      expect(base64Decode((await queue.read('new-owner')).single['image']), [
+        4,
+      ]);
+    },
+  );
+
+  test(
     'Another account cannot recover private photos and logout clears them',
     () async {
       final queue = PendingUploads(storage);

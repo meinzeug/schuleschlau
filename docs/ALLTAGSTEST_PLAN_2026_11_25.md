@@ -26,14 +26,16 @@ bleiben erhalten. Kein Zurücksetzen oder Verstellen der Produktionszeit.
    Nachtest festhalten. Änderungen zunächst gezielt testen und gebündelt
    veröffentlichen; während laufender Anbieteraufträge kein Deployment starten.
 5. Wiederholung, Elternsicht, Benachrichtigungen und Gerätewechsel separat
-   prüfen. Wo tatsächliche Folgetage benötigt werden, diese nicht als erledigt
-   ausgeben, bevor sie nachweislich durchlaufen wurden. Ergänzende simulierte
-   Uhr- und Fehlerfälle bleiben ausdrücklich von echten Anbietertests getrennt.
+   prüfen. Für den beauftragten 30-Tage-Test eine isolierte, nachvollziehbar
+   steuerbare Testzeit verwenden, ohne die Produktionsuhr umzustellen. Für jeden
+   simulierten Tag Browseraktionen, tatsächliche Anbieteraufrufe und Ergebnisse
+   getrennt protokollieren. Simulation und echte Kalendertage nicht verwechseln.
 
 ## Stand
 
 - [x] Datei-Inventar und Duplikate geprüft; keine Originale geändert.
-- [x] Erster Fotoimport und zwei regulär abgerechnete KI-Lesungen ausgeführt.
+- [x] Drei echte Fotos im Browser abgegeben und regulär durch die KI lesen
+  und gegenprüfen lassen; zwei davon in einer zweiten Auswahl.
 - [x] Erste Seite: Quellenabgleich eingegrenzt; echte Runde nach Veröffentlichung
   gestartet und beide Aufgaben im Browser bearbeitet. Ein Fehlversuch und eine
   unterstützte Antwort sind im Kinderkonto gespeichert.
@@ -45,9 +47,10 @@ bleiben erhalten. Kein Zurücksetzen oder Verstellen der Produktionszeit.
 - [ ] Echten Lernweg einschließlich Übungen, Hilfe, Rückmeldung und
   Wiederaufnahme prüfen.
 - [ ] Wiederholung, Elternsicht und Benachrichtigungen abnehmen.
-- [ ] Dreißig nachweisbare Tage und den Abschlussbericht erstellen. Ein
-  künstlicher Monatslauf oder mehrere Aufrufe an einem Tag ersetzen keine
-  tatsächlichen Kalendertage und belegen keine langfristige Lernwirkung.
+- [ ] Dreißig simulierte Tage mit echten Aufrufen und sichtbaren Browseraktionen
+  sowie Abschlussbericht erstellen. Ein isolierter technischer Monatslauf allein
+  ist dafür nicht ausreichend; eine Zeitsimulation belegt keine tatsächliche
+  langfristige Lernwirkung über 30 Kalendertage.
 
 Der erste anonymisierte Befund steht in
 [PHOTO_FLOW_LIVE_2026_11_25.md](PHOTO_FLOW_LIVE_2026_11_25.md). Die

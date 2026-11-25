@@ -77,3 +77,29 @@ geprüfte Referenz verfügbar. Die gespeicherten Antworten blieben erhalten.
 Eine Wiederholung wurde nicht ausgelöst. Die Ursache ist von der erfolgreichen
 Erzeugung der ersten Runde getrennt zu beheben; eine ungeprüfte Grafik darf
 nicht als vorhanden ausgegeben werden.
+
+
+## Zweite Fotoauswahl und neuer UI-Stand
+
+Zwei weitere verschiedene Fotos wurden im sichtbaren Browser ausgewählt und
+mit der Sammeloption übernommen. Die erste Erkennung und der automatische
+Gegencheck für beide Seiten waren abgeschlossen; drei Seiten waren gespeichert.
+Die anschließende Paketgenerierung scheiterte bereits vor einem weiteren
+Modellaufruf an der Grafikprüfung. Die Seiten bleiben erhalten. Für die
+Protokollierung der ersten zehn einschlägigen Aufträge meldete OpenRouter
+zusammen 143.290 Mikrodollar; die beiden vor dem Aufruf abgebrochenen
+Aufträge wurden mit null abgerechnet.
+
+Version 1.38.152 ist live. Die Heuteseite zeigt die neue Schulbuddy-Startkarte;
+der Rundenrückblick bündelt Details hinter einem bewussten Einstieg und bietet
+einen direkten Rückweg. Diese Ansichten wurden bei 390 × 844 Pixeln im Browser
+angesehen. Die fehlende Grafikreferenz und die Neuorganisation weiterer Seiten
+bleiben offen. Eine simulierte Monatsprüfung ist damit nicht abgeschlossen.
+
+## Nächster Fotoablauf (lokal geprüft)
+
+Die neue Auswahl legt Fotos zunächst auf diesem Gerät ab und bietet das
+Zuschneiden und Drehen freiwillig pro Foto an. Erst „Fotos abgeben“ sendet sie
+und startet den bestehenden Vorbereitungsauftrag. Die Speichergrenzen und
+Kontotrennung bleiben erhalten. Widgettests prüfen Mehrfachauswahl, explizites
+Abgeben und einen Kontowechsel; die Browserprüfung dieses Stands steht noch aus.

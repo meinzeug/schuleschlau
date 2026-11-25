@@ -112,6 +112,47 @@ class PendingUploads {
     await _save(owner, pages);
   });
 
+  /// Replace only the still-local, same-account draft, keeping its receipt.
+  Future<void> replace(
+    String owner,
+    String child,
+    String day,
+    String key,
+    Uint8List bytes, {
+    required bool Function() isCurrent,
+  }) => _exclusive(() async {
+    if (!isCurrent()) return;
+    final raw = await storage.read(key: storageKey);
+    if (!isCurrent() ||
+        raw == null ||
+        (jsonDecode(raw) as Map)['owner'] != owner) {
+      return;
+    }
+    final pages = await _read(owner);
+    if (!isCurrent()) return;
+    final index = pages.indexWhere(
+      (p) => p['key'] == key && p['child'] == child && p['day'] == day,
+    );
+    if (index < 0) {
+      throw ApiError('Dieses Foto ist nicht mehr auf diesem Gerät vorgemerkt.');
+    }
+    final otherSize =
+        pages.fold<int>(0, (sum, p) => sum + (p['size'] as int)) -
+        (pages[index]['size'] as int);
+    if (otherSize + bytes.length > maxBytes) {
+      throw ApiError(
+        'Der lokale Fotospeicher ist voll. Bitte Fotos zuerst abgeben.',
+      );
+    }
+    pages[index] = {
+      ...pages[index],
+      'size': bytes.length,
+      'image': base64Encode(bytes),
+    };
+    if (!isCurrent()) return;
+    await _save(owner, pages);
+  });
+
   Future<List<Json>> receipts(String owner) =>
       _exclusive(() => _receipts(owner));
 
