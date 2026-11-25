@@ -6,7 +6,7 @@ import unicodedata
 from typing import Literal
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
-from pydantic import Field
+from pydantic import Field, ValidationError
 from sqlalchemy import and_, func, or_, select, update
 
 from . import language_tasks as s
@@ -593,12 +593,15 @@ def process(job_id):
             db.commit()
         provider_requested = True
         result = request_provider(ProviderConfig(**values), "vocabulary_import", payload)
-        output = s.VocabularyOutput.model_validate(result.data)
+        try:
+            output = s.VocabularyOutput.model_validate(result.data)
+        except ValidationError as error:
+            raise ProviderError("Der Wortvorschlag konnte nicht sicher geprüft werden.", code="invalid_output") from error
         for pair in output.pairs:
             # Only literal pairs may be proposed as extracted vocabulary. A
             # missing meaning stays empty, never dictionary/web-completed.
             if not literal_present(payload["confirmed_text"], pair.word) or (pair.meaning and not literal_present(payload["confirmed_text"], pair.meaning)):
-                raise ProviderError("Der Wortvorschlag enthält Wörter oder Bedeutungen, die nicht im bestätigten Text stehen.")
+                raise ProviderError("Der Wortvorschlag enthält Wörter oder Bedeutungen, die nicht im bestätigten Text stehen.", code="invalid_output")
             missing = []
             for field, label in (("context", "Kontext"), ("part_of_speech", "Wortart")):
                 value = getattr(pair, field)
@@ -610,7 +613,7 @@ def process(job_id):
                 previous = pair.uncertainty.strip()
                 pair.uncertainty = (previous[:max(0, 500 - len(warning) - 1)] + " " + warning).strip()
             if pair.variants or pair.meaning_variants:
-                raise ProviderError("Zusätzliche Wortformen müssen ausdrücklich bestätigt werden; der Import ergänzt keine Formen.")
+                raise ProviderError("Zusätzliche Wortformen müssen ausdrücklich bestätigt werden; der Import ergänzt keine Formen.", code="invalid_output")
             if pair.meaning and not any(normalized(pair.word) in normalized(line) and normalized(pair.meaning) in normalized(line)
                                         for line in payload["confirmed_text"].splitlines() if len(line) <= 700):
                 pair.uncertainty = (pair.uncertainty + " Zuordnung auf der Heftseite bitte ausdrücklich prüfen.").strip()[:500]
@@ -639,7 +642,10 @@ def process(job_id):
             job = db.get(Job, job_id)
             if not job or job.status != "running":
                 return
+            from .job_failures import failure_code
+
             job.status, job.finished, job.error = "failed", int(now()), reason[:500]
+            job.error_code = failure_code(error)
             row = db.get(VocabularyImport, job.payload.get("import_id"))
             if row:
                 row.status, row.error = "failed", reason[:500]

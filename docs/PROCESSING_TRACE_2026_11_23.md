@@ -99,3 +99,13 @@ erhalten keine nachträglich geratene Quelle. Ein künstlicher
 Verarbeitungsweg prüft außerdem die Ablehnung einer unbekannten Frage ohne
 neuen Antwort- oder Lernstandsbeleg. Die genannten Fälle bestanden auf SQLite
 und isoliertem PostgreSQL.
+
+Wortschatzimporte und Sprachprojekte können ihre ausdrücklich gespeicherten
+Seitenrevisionen anzeigen, solange der jeweilige Datensatz noch mit genau
+diesem Auftrag und Kind verbunden ist. Frühere ersetzte Aufträge erhalten
+keine nachträglich geratene Zuordnung. Neue Fehler speichern eine begrenzte
+Klasse; unzulässige Wortvorschläge und ungültige Sprachprojekt-Ausgaben
+werden als `invalid_output` geführt. Künstliche Erfolgs-, Quellenänderungs-,
+Schema- und Belegfehler wurden über getrennte Eltern- und Kindersitzungen
+auf SQLite und isoliertem PostgreSQL geprüft. Das belegt keine allgemeine
+sprachdidaktische Qualität oder Verfügbarkeit eines echten Anbieters.

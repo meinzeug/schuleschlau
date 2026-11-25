@@ -9,7 +9,7 @@ import re
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 
-from .db import Job, LearningUnit, Material, TutorTurn, Usage, get_db
+from .db import Job, LanguageProject, LearningUnit, Material, TutorTurn, Usage, VocabularyImport, get_db
 from .job_failures import CODES
 from .security import child_access, parent
 from .source_lineage_models import SourceRevision
@@ -93,6 +93,12 @@ def processing_trace(job_id: str, p=Depends(parent), db=Depends(get_db)):
         turn = db.get(TutorTurn, payload["turn_id"])
         if turn and turn.job_id == job.id and turn.child_id == child.id and isinstance(turn.source_revisions, list):
             proposed = turn.source_revisions
+    linked = {"vocabulary_import": (VocabularyImport, "import_id"),
+              "language_project": (LanguageProject, "project_id")}.get(job.kind)
+    if not proposed and linked and safe_id(payload.get(linked[1])):
+        row = db.get(linked[0], payload[linked[1]])
+        if row and row.job_id == job.id and row.child_id == child.id and isinstance(row.source_revisions, list):
+            proposed = row.source_revisions
     if not proposed and job.kind == "exam_review" and isinstance(payload.get("material_revisions"), list):
         proposed = payload["material_revisions"]
     # Single-page extraction and unit jobs bind the source in scalar fields.

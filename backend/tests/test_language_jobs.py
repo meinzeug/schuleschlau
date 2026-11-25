@@ -86,7 +86,7 @@ def run_job(job_id):
     process(job_id)
 
 
-@pytest.mark.parametrize("effect", ["success", "source", "provider", "logout", "rights", "planning", "unquoted"])
+@pytest.mark.parametrize("effect", ["success", "source", "provider", "logout", "rights", "planning", "unquoted", "schema"])
 def test_import_worker_checks_and_single_reservation(api, notebook, monkeypatch, effect):
     parent, child, material_id = notebook
     calls = []
@@ -106,9 +106,8 @@ def test_import_worker_checks_and_single_reservation(api, notebook, monkeypatch,
                 db.scalar(select(Membership)).permission = "view"
             if effect == "planning":
                 db.get(Child, child["id"]).preferences = {"daily_minutes": 25}
-        return Result(
-            {"pairs": [{"word": "apple", "meaning": "Apfel" if effect != "unquoted" else "Orangenbaum"}]}, 10, 10, 1
-        )
+        pairs = [] if effect == "schema" else [{"word": "apple", "meaning": "Apfel" if effect != "unquoted" else "Orangenbaum"}]
+        return Result({"pairs": pairs}, 10, 10, 1)
 
     monkeypatch.setattr(vocabulary, "request_provider", transport)
     body = {"target_locale": "en-GB", "title": "Meine Wörter", "language_confirmed": True, "material_id": material_id}
@@ -129,6 +128,20 @@ def test_import_worker_checks_and_single_reservation(api, notebook, monkeypatch,
         assert row.status == ("review" if effect == "success" else "failed")
         assert db.scalar(select(func.count()).select_from(Usage)) == 1
         assert db.scalar(select(func.count()).select_from(VocabularyItem)) == 0
+    if effect in ("success", "source", "unquoted", "schema"):
+        trace = api.get(f"/api/jobs/{row.job_id}/trace")
+        assert trace.status_code == 200
+        assert trace.json()["phase"] == "vocabulary"
+        assert trace.json()["sources"] == [{"id": material_id, "revision": 1,
+                                             "current_revision": 2 if effect == "source" else 1}]
+        if effect != "success":
+            assert trace.json()["error_code"] == ("source_changed" if effect == "source" else "invalid_output")
+        assert "apple" not in trace.text and "Orangenbaum" not in trace.text
+        if effect == "success":
+            job_id = row.job_id
+            with DB.begin() as db:
+                db.get(VocabularyImport, row.id).job_id = None
+            assert api.get(f"/api/jobs/{job_id}/trace").json()["sources"] == []
     assert calls == ["vocabulary_import"]
 
 
@@ -235,6 +248,15 @@ def test_project_worker_private_keys_and_exam(api, notebook, monkeypatch):
     row = response.json()
     monkeypatch.setattr(language_projects, "request_provider", lambda *args: Result(proposal(item_id), 10, 10, 1))
     run_job(row["job_id"])
+    with TestClient(app, headers=HEADERS) as parent_api:
+        login = parent_api.post("/api/auth/login", json={"username": "parent@example.org", "password": "secure-parent-pass-123"})
+        assert login.status_code == 200
+        parent_api.headers["Authorization"] = "Bearer " + login.json()["token"]
+        trace = parent_api.get(f"/api/jobs/{row['job_id']}/trace")
+        assert trace.status_code == 200
+        assert trace.json()["phase"] == "language"
+        assert trace.json()["sources"] == [{"id": material_id, "revision": 1, "current_revision": 1}]
+        assert "apple" not in trace.text
     row = api.get(f"/api/children/{child['id']}/language-projects/{row['id']}").json()
     assert row["status"] == "ready", row
     assert "source_excerpt" not in row["result"]
@@ -299,6 +321,18 @@ def test_project_rechecks_after_provider(api, notebook, monkeypatch, effect):
     with DB() as db:
         assert db.get(LanguageProject, row["id"]).status == "failed"
         assert db.scalar(select(func.count()).select_from(LearningUnit)) == 0
+    if effect in ("source", "unquoted", "foreign_item"):
+        with TestClient(app, headers=HEADERS) as parent_api:
+            login = parent_api.post("/api/auth/login", json={"username": "parent@example.org", "password": "secure-parent-pass-123"})
+            assert login.status_code == 200
+            parent_api.headers["Authorization"] = "Bearer " + login.json()["token"]
+            trace = parent_api.get(f"/api/jobs/{row['job_id']}/trace")
+            assert trace.status_code == 200
+            assert trace.json()["phase"] == "language"
+            assert trace.json()["error_code"] == ("source_changed" if effect == "source" else "invalid_output")
+            assert trace.json()["sources"] == [{"id": material_id, "revision": 1,
+                                                 "current_revision": 2 if effect == "source" else 1}]
+            assert "apple" not in trace.text
 
 
 def test_grammar_requires_confirmed_source_and_own_work(api, notebook):

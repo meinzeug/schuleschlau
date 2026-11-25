@@ -2093,6 +2093,15 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Gesamte Verarbeitungskette durchgängig nachvollziehbar machen**
 
+  - [x] **Wortschatz- und Sprachaufträge mit Quellen und Fehlern prüfen.**
+    Die Elternspur zeigt gespeicherte Seitenrevisionen nur bei passender
+    Kind- und Auftragsbindung. Geänderte Quellen und unzulässige Modellinhalte
+    führen zu begrenzten Fehlerklassen. Künstliche Workerfälle prüfen
+    erfolgreiche und fehlgeschlagene Wortimporte und Sprachprojekte sowie
+    getrennte Eltern-/Kindersitzungen auf SQLite und PostgreSQL. Entfernte
+    Zuordnungen zeigen keine Quellen. Inhalt und Antworten bleiben privat;
+    die übrige Phasenabnahme ist noch offen.
+
   - [x] **Lernentscheidung und Anschlussübung an Quellenfassungen binden.**
     Neue Aufträge speichern die bereits geprüften Seitenkennungen und
     Revisionen für die Elternspur. Bei einem künstlichen Generator-Timeout

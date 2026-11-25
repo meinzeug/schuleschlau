@@ -2,6 +2,12 @@
 
 ## Arbeitsstand 24. November 2026
 
+Wortschatzimporte und Sprachprojekte zeigen in der Elternspur ihre passend
+gebundenen Seitenrevisionen und begrenzte Fehlerklassen. Künstliche
+Erfolgs- und Fehlerfälle mit getrennten Sitzungen bestanden auf SQLite und
+isoliertem PostgreSQL; frühere ersetzte Aufträge erhalten keine geratene
+Quellenzuordnung. Die vollständige Phasenabnahme bleibt offen.
+
 Neue Lernentscheidungen und Anschlussübungen tragen die gebundenen
 Quellenfassungen in der Elternspur. Ein künstlicher Generatorfehler sowie
 idempotente alte Anschlussaufträge wurden auf SQLite und isoliertem

@@ -313,7 +313,13 @@ def process(job_id):
             if not usage or (usage.provider, usage.model, usage.config_revision) != (config.provider, config.model, config.revision):
                 raise ProviderError("Die KI-Einstellung wurde während der Verarbeitung geändert.")
             external_allowed(config, db=db)
-            output, questions = checked_output(result.data, payload, row)
+            try:
+                output, questions = checked_output(result.data, payload, row)
+            except ProviderError as error:
+                error.code = "invalid_output"
+                raise
+            except ValueError as error:
+                raise ProviderError("Das Sprachprojekt konnte nicht sicher geprüft werden.", code="invalid_output") from error
             unit = LearningUnit(id=uid(), child_id=row.child_id, subject=s.TARGETS[row.target_locale].split(" · ")[0],
                 topic=output.title, explanation="Bearbeite die Aufgaben in Ruhe. Deine Antworten bleiben gespeichert." if row.mode == "exam" else output.explanation,
                 questions=questions, round_kind="vocabulary", estimated_minutes=min(10, len(questions) * 2),
@@ -344,7 +350,10 @@ def process(job_id):
             job = db.get(Job, job_id)
             if not job or job.status != "running":
                 return
+            from .job_failures import failure_code
+
             job.status, job.finished, job.error = "failed", int(now()), reason[:500]
+            job.error_code = failure_code(error)
             row = db.get(LanguageProject, job.payload.get("project_id"))
             if row:
                 row.status, row.error = "failed", reason[:500]
