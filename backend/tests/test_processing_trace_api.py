@@ -1,7 +1,7 @@
 """Private, read-only, bounded processing metadata; all examples artificial."""
 
 import pytest
-from conftest import HEADERS, register
+from conftest import HEADERS, create_child, register
 from fastapi.testclient import TestClient
 from schulpilot.db import DB, Activity, Attempt, Job, LearningUnit, Material, Usage, uid
 from schulpilot.main import app
@@ -202,6 +202,73 @@ def test_unknown_failure_category_is_not_echoed(api, household):
     response = api.get(f"/api/jobs/{identifier}/trace")
     assert response.status_code == 200 and response.json()["error_code"] == "unknown"
     assert CANARY not in response.text
+
+
+@pytest.mark.parametrize('kind', ['extract', 'unit'])
+def test_single_material_job_traces_explicit_revision_without_private_content(api, household, kind):
+    with DB.begin() as db:
+        material = Material(child_id=household[1]['id'], title=CANARY, content=CANARY,
+                            confirmed=True, subject='Mathematik', revision=4)
+        db.add(material)
+        db.flush()
+        job = Job(child_id=household[1]['id'], kind=kind, status='failed', idempotency=uid(),
+                  error_code='provider_timeout', payload={'material_id': material.id, 'material_revision': 3})
+        db.add(job)
+        db.flush()
+        job_id, material_id = job.id, material.id
+    response = api.get(f'/api/jobs/{job_id}/trace')
+    assert response.status_code == 200
+    assert response.json()['sources'] == [{'id': material_id, 'revision': 3, 'current_revision': 4}]
+    assert CANARY not in response.text
+
+
+@pytest.mark.parametrize('revision', [None, True, 0, -1, '1'])
+def test_single_material_job_does_not_invent_missing_or_invalid_revision(api, household, revision):
+    with DB.begin() as db:
+        material = Material(child_id=household[1]['id'], title='synthetic', subject='Mathematik', revision=4)
+        db.add(material)
+        db.flush()
+        job = Job(child_id=household[1]['id'], kind='unit', status='queued', idempotency=uid(),
+                  payload={'material_id': material.id, 'material_revision': revision})
+        db.add(job)
+        db.flush()
+        job_id = job.id
+    response = api.get(f'/api/jobs/{job_id}/trace')
+    assert response.status_code == 200 and response.json()['sources'] == []
+
+
+def test_single_material_job_cannot_attribute_a_siblings_source(api, household):
+    owner, child = household
+    sibling = create_child(api, owner, 'synthetic-trace-sibling')
+    with DB.begin() as db:
+        material = Material(child_id=sibling['id'], title=CANARY, subject='Mathematik')
+        db.add(material)
+        db.flush()
+        job = Job(child_id=child['id'], kind='unit', status='queued', idempotency=uid(),
+                  payload={'material_id': material.id, 'material_revision': 1})
+        db.add(job)
+        db.flush()
+        job_id = job.id
+    response = api.get(f'/api/jobs/{job_id}/trace')
+    assert response.status_code == 200 and response.json()['sources'] == []
+    assert CANARY not in response.text
+
+
+def test_explicit_source_list_remains_authoritative_over_single_material_field(api, household):
+    with DB.begin() as db:
+        primary = Material(child_id=household[1]['id'], title='synthetic one', subject='Mathematik')
+        other = Material(child_id=household[1]['id'], title='synthetic two', subject='Mathematik')
+        db.add_all([primary, other])
+        db.flush()
+        job = Job(child_id=household[1]['id'], kind='unit', status='queued', idempotency=uid(),
+                  payload={'material_id': primary.id, 'material_revision': 1,
+                           'sources': [{'id': other.id, 'revision': 1}]})
+        db.add(job)
+        db.flush()
+        job_id, other_id = job.id, other.id
+    response = api.get(f'/api/jobs/{job_id}/trace')
+    assert response.status_code == 200
+    assert response.json()['sources'] == [{'id': other_id, 'revision': 1, 'current_revision': 1}]
 
 
 def test_reference_inspection_has_one_global_budget_across_units(api, household):

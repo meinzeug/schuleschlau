@@ -74,6 +74,11 @@ def processing_trace(job_id: str, p=Depends(parent), db=Depends(get_db)):
                             break
 
     proposed = payload.get("sources") if isinstance(payload.get("sources"), list) else []
+    # Single-page extraction and unit jobs bind the source in scalar fields.
+    # Older or malformed jobs without an explicit revision must not acquire the
+    # current revision retroactively. The common loop still checks ownership.
+    if not proposed and safe_id(payload.get("material_id")):
+        proposed = [{"id": payload["material_id"], "revision": payload.get("material_revision")}]
     sources, seen = [], set()
     for item in proposed[:LIMIT]:
         if not isinstance(item, dict) or not safe_id(item.get("id")):

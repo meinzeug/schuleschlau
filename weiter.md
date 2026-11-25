@@ -2,6 +2,14 @@
 
 ## Arbeitsstand 24. November 2026
 
+Am 25.11. wurde die Auftragsspur für Einzelquellen ergänzt: die explizit
+gebundene Materialrevision erscheint nun auch ohne Quellenliste; fehlende
+Revisionen und Seiten anderer Kinder werden nicht zugeschrieben. Der
+zugehörige Unterpunkt ist abgehakt, der Hauptpunkt zur vollständigen
+Verarbeitungskette bleibt offen. Künstliche API- und Workerfälle bestanden auf
+SQLite und isoliertem PostgreSQL; Details stehen in
+`docs/PROCESSING_TRACE_2026_11_23.md`. Kein Deployment daraus ableiten.
+
 Die funktionale Abnahme von Benachrichtigungen und Zielnavigation ist in der
 Roadmap abgeschlossen. Ein isolierter Browserlauf prüft zusätzlich die
 Kinder-Glocke für Heftseiten und Lernrunde, getrennte Lesestände und keine

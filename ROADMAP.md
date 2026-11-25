@@ -2093,6 +2093,17 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Gesamte Verarbeitungskette durchgängig nachvollziehbar machen**
 
+  - [x] **Gebundene Einzelseiten in der Auftragsspur anzeigen.**
+    Einzelne Erkennungs- und Lernrundenaufträge speichern ihre Seite und deren
+    Fassung in zwei Feldern; bisher zeigte die Spur nur Quellenlisten an.
+    Liegt keine Quellenliste vor, wird die ausdrücklich gespeicherte Fassung
+    zusammen mit der aktuellen Fassung angezeigt. Fehlende oder ungültige
+    Revisionen werden nicht geraten, Seiten anderer Kinder ausgeschlossen.
+    Künstliche API- und Workerfälle bestanden auf SQLite und isoliertem
+    PostgreSQL, einschließlich Erkennung und Gegenprüfung. Die übrige
+    Phasen- und Fehlerabnahme bleibt offen.
+    [Vertrag](docs/PROCESSING_TRACE_2026_11_23.md).
+
   - [x] **Private Auftragsmetadaten für berechtigte Eltern bereitstellen.**
     Ein lesender, begrenzter Endpunkt zeigt Phase, Status, Fehlerklasse,
     Modellrevision und gebundene Quellen-/Grafikreferenzen. Weder Kind, fremde

@@ -12,7 +12,11 @@ benennen. Unbekannte, manipulierte oder mehrdeutige Telemetrie wird nicht
 übernommen. Die Elternansicht übersetzt diese Gründe in kurze Sätze.
 
 Für bekannte zugehörige Quellen stehen angeforderte und aktuelle Revision
-bereit. Eine Abschriftversion wird nur zugeordnet, wenn Material, Kind und die
+bereit. Seit 25.11.2026 werden bei Einzelaufträgen ohne Quellenliste auch die
+ausdrücklich gespeicherten Felder `material_id` und `material_revision`
+ausgewertet; fehlende oder ungültige Revisionen werden nicht aus dem aktuellen
+Material ergänzt. Seiten anderer Kinder bleiben ausgeschlossen. Eine
+Abschriftversion wird nur zugeordnet, wenn Material, Kind und die
 im gespeicherten Beleg vermerkte Auftrags-ID übereinstimmen. Bei abgeschlossenen
 Runden sind die tatsächlich gespeicherten, noch im Referenzkatalog vorhandenen
 Grafikreferenzen und Versionen erreichbar. Pro Anfrage sind Quellen, Runden

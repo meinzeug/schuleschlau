@@ -62,12 +62,14 @@ def test_upload_review_package_visual_answer_trace_is_private_and_read_only_on_g
         assert all(db.get(Job, identifier).status == 'completed' for identifier in extract_jobs)
         assert all(db.scalar(select(Usage).where(Usage.job_id == identifier)).status == 'completed' for identifier in extract_jobs)
         revision = material.revision
+        extract_revisions = [db.get(Job, identifier).payload['material_revision'] for identifier in extract_jobs]
 
-    for identifier, phase in zip(extract_jobs, ('recognition', 'countercheck'), strict=True):
+    for identifier, phase, bound_revision in zip(extract_jobs, ('recognition', 'countercheck'), extract_revisions, strict=True):
         trace = api.get(f'/api/jobs/{identifier}/trace')
         assert trace.status_code == 200
         assert trace.json()['phase'] == phase and trace.json()['status'] == 'completed'
         assert trace.json()['source_snapshot'] is not None
+        assert trace.json()['sources'] == [{'id': page['id'], 'revision': bound_revision, 'current_revision': revision}]
         assert trace.json()['model']['config_revision'] > 0
     assert operator.get(f'/api/jobs/{extract_jobs[0]}/trace').status_code == 403
 
