@@ -106,6 +106,12 @@ class _ProcessingTracePanelState extends State<ProcessingTracePanel> {
     final model = value?['model'];
     final sources = value?['sources'];
     final units = value?['units'];
+    final snapshot = value?['source_snapshot'];
+    final template = snapshot is Map ? snapshot['template'] : null;
+    final promptDigest = template is Map ? template['prompt_sha256'] : null;
+    final schemaDigest = template is Map ? template['schema_sha256'] : null;
+    final requestSchemaDigest = value?['request_schema_sha256'];
+    final digestFormat = RegExp(r'^[a-f0-9]{64}$');
     return ExpansionTile(
       title: const Text('Verarbeitung ansehen'),
       subtitle: const Text('Technische Informationen für Eltern'),
@@ -198,6 +204,17 @@ class _ProcessingTracePanelState extends State<ProcessingTracePanel> {
                     value['source_snapshot']['revision'] is int)
                   Text(
                     'Erkannte Quellenfassung: ${value['source_snapshot']['revision']}',
+                  ),
+                if (promptDigest is String &&
+                    digestFormat.hasMatch(promptDigest))
+                  Text('Vorlagenkennung: ${promptDigest.substring(0, 12)}'),
+                if (schemaDigest is String &&
+                    digestFormat.hasMatch(schemaDigest))
+                  Text('Schemakennung: ${schemaDigest.substring(0, 12)}'),
+                if (requestSchemaDigest is String &&
+                    digestFormat.hasMatch(requestSchemaDigest))
+                  Text(
+                    'Anfrageschema: ${requestSchemaDigest.substring(0, 12)}',
                   ),
                 if (units is List)
                   for (final unit in units)

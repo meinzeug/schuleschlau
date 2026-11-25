@@ -77,6 +77,8 @@ def test_upload_review_package_visual_answer_trace_is_private_and_read_only_on_g
         assert trace.status_code == 200
         assert trace.json()['phase'] == phase and trace.json()['status'] == 'completed'
         assert trace.json()['source_snapshot'] is not None
+        assert len(trace.json()['source_snapshot']['template']['prompt_sha256']) == 64
+        assert len(trace.json()['source_snapshot']['template']['schema_sha256']) == 64
         assert trace.json()['sources'] == [{'id': page['id'], 'revision': bound_revision, 'current_revision': revision}]
         assert trace.json()['model']['config_revision'] > 0
     assert operator.get(f'/api/jobs/{extract_jobs[0]}/trace').status_code == 403
@@ -85,7 +87,8 @@ def test_upload_review_package_visual_answer_trace_is_private_and_read_only_on_g
     def package(config, function, payload, *args, **kwargs):
         assert function == 'package'
         calls.append(copy.deepcopy(payload))
-        return Result(bounded_output(payload), 20, 50, 23, cost_source='reported')
+        return Result(bounded_output(payload), 20, 50, 23, cost_source='reported',
+                      request_receipt={'schema_sha256': 'c' * 64})
 
     monkeypatch.setattr('schulpilot.worker.request_provider', package)
     advance_one()
@@ -110,6 +113,7 @@ def test_upload_review_package_visual_answer_trace_is_private_and_read_only_on_g
             for model in (Job, Usage, Attempt, Activity, Mastery))
     trace = api.get(f'/api/jobs/{job_id}/trace')
     assert trace.status_code == 200 and trace.json()['phase'] == 'generation'
+    assert trace.json()['request_schema_sha256'] == 'c' * 64
     assert any(item['id'] == uid for item in trace.json()['units'])
     assert any(ref['id'] == 'general.source_relation.phases' and ref['version'] == 1
                for item in trace.json()['units'] for ref in item['references'])

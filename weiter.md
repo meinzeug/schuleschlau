@@ -2,6 +2,11 @@
 
 ## Arbeitsstand 24. November 2026
 
+Die Elternspur zeigt nun gespeicherte Fingerabdrücke für die Grundvorlage und
+das Grundschema der Erkennung sowie das tatsächlich angeforderte Schema, wo
+eindeutig belegt. Fehlende oder mehrdeutige Angaben werden nicht geraten.
+Die vollständige Verarbeitungsketten-Abnahme bleibt offen.
+
 Der Paketworker prüft die Grafikreferenzen zusätzlich unmittelbar vor dem
 dauerhaften Speichern eines Teils. Ein künstlicher fremder Verweis wird
 abgelehnt; frühere Teile und Kosten bleiben erhalten. Der Workerfall bestand

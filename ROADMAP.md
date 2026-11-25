@@ -2093,6 +2093,25 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Gesamte Verarbeitungskette durchgängig nachvollziehbar machen**
 
+  **Noch offen:** Fehler vor der Auftragsanlage, etwa ein abgewiesener
+  Upload, und lokal abgelehnte Antworten besitzen bisher keinen solchen
+  Auftragsbeleg. Auch für ältere oder ohne übermittelten Schemabeleg
+  verarbeitete Aufträge lässt sich die genaue Version nicht nachträglich
+  feststellen. Für den Abschluss müssen diese Fälle mit einer geeigneten,
+  datensparsamen Verknüpfung und künstlichen Fehlerläufen nachvollziehbar
+  werden; unbekannte historische Werte dürfen nicht erfunden werden.
+
+  - [x] **Vorlagen- und Schemabelege in der Elternspur anzeigen.**
+    Bei eindeutig zugeordneten Erkennungsfassungen werden vorhandene,
+    formatgeprüfte Fingerabdrücke der Grundvorlage und des Schemas gezeigt;
+    beim Gegencheck stammt der Beleg aus der zusammengeführten Fassung.
+    Ein vorhandener Fingerabdruck des tatsächlich angeforderten Schemas
+    wird nur bei genau einem zugehörigen Verbrauchsbeleg angezeigt. Fehlende,
+    manipulierte und mehrdeutige Angaben bleiben leer. Künstliche API- und
+    Workerfälle prüfen den Weg und getrennte Elternrechte; die Flutteransicht
+    zeigt kurze Kennungen. Weitere Phasen und ihre vollständige Abnahme
+    bleiben offen.
+
   - [x] **Grafikreferenz eines Paketteils vor dem Speichern erneut prüfen.**
     Die grafische Ausgabe wird nach der Teilrundenstruktur und vor dem
     dauerhaften Speichern gegen Quellen und Referenzen geprüft. Eine

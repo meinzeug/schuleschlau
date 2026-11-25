@@ -129,6 +129,14 @@ void main() {
             'phase': 'generation',
             'status': 'completed',
             'model': {'model': 'fixture/model', 'config_revision': 3},
+            'request_schema_sha256': 'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc',
+            'source_snapshot': {
+              'revision': 2,
+              'template': {
+                'prompt_sha256': 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+                'schema_sha256': 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+              },
+            },
             'sources': [
               {'id': 'synthetic', 'revision': 1, 'current_revision': 2},
             ],
@@ -160,10 +168,52 @@ void main() {
     expect(find.text('Schritt: Lernrunde'), findsOneWidget);
     expect(find.text('Modell: fixture/model'), findsOneWidget);
     expect(find.text('Konfigurationsstand: 3'), findsOneWidget);
+    expect(find.text('Vorlagenkennung: aaaaaaaaaaaa'), findsOneWidget);
+    expect(find.text('Schemakennung: bbbbbbbbbbbb'), findsOneWidget);
+    expect(find.text('Anfrageschema: cccccccccccc'), findsOneWidget);
     expect(find.text('Quellen: 1'), findsOneWidget);
     expect(find.text('Grafikvorlagen: 1'), findsOneWidget);
     expect(find.text('fixture · Version 1'), findsOneWidget);
     expect(find.text('Quellenfassung: 1 · aktuell 2'), findsOneWidget);
+  });
+
+  testWidgets('malformed template identifiers are not shown', (tester) async {
+    final state = AppState(
+      api: Api(
+        base: 'https://example.invalid/api',
+        client: MockClient(
+          (_) async => reply({
+            'job_id': jobId,
+            'phase': 'recognition',
+            'status': 'completed',
+            'request_schema_sha256': 'private text',
+            'sources': [],
+            'units': [],
+            'source_snapshot': {
+              'revision': 1,
+              'template': {
+                'prompt_sha256': 'private text',
+                'schema_sha256': true,
+              },
+            },
+          }),
+        ),
+      ),
+    )..user = {'id': 'parent', 'role': 'parent'};
+    addTearDown(state.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: ProcessingTracePanel(state: state, jobId: jobId),
+        ),
+      ),
+    );
+    await tester.tap(find.text('Verarbeitung ansehen'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Vorlagenkennung:'), findsNothing);
+    expect(find.textContaining('Schemakennung:'), findsNothing);
+    expect(find.textContaining('Anfrageschema:'), findsNothing);
+    expect(find.textContaining('private text'), findsNothing);
   });
 
   testWidgets('failed trace shows a safe retry and never retries by itself', (

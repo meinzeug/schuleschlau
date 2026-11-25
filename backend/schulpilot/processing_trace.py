@@ -17,6 +17,7 @@ from .visual_reference_models import UnitVisualSnapshot, VisualReference
 
 router = APIRouter(tags=["Materialien und KI-Aufträge"])
 ID = re.compile(r"^[a-f0-9]{32}$")
+SHA256 = re.compile(r"^[a-f0-9]{64}$")
 SAFE_LABEL = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9._/:+\-]{0,159}$")
 LIMIT = 32
 
@@ -27,6 +28,10 @@ def safe_id(value):
 
 def label(value):
     return value if isinstance(value, str) and SAFE_LABEL.fullmatch(value) else None
+
+
+def sha256(value):
+    return value if isinstance(value, str) and SHA256.fullmatch(value) else None
 
 
 @router.get("/jobs/{job_id}/trace")
@@ -67,6 +72,7 @@ def processing_trace(job_id: str, p=Depends(parent), db=Depends(get_db)):
     )
     model = None
     failure_detail = None
+    request_schema_sha256 = None
     if len(usages) == 1:
         usage = usages[0]
         model = {
@@ -75,6 +81,7 @@ def processing_trace(job_id: str, p=Depends(parent), db=Depends(get_db)):
             "config_revision": usage.config_revision if type(usage.config_revision) is int else None,
         }
         telemetry = usage.telemetry if isinstance(usage.telemetry, dict) else {}
+        request_schema_sha256 = sha256(telemetry.get("request_schema_sha256"))
         if job.status == "failed" and telemetry.get("finish_reason") == "length":
             failure_detail = "output_length"
         elif job.status == "failed":
@@ -139,6 +146,16 @@ def processing_trace(job_id: str, p=Depends(parent), db=Depends(get_db)):
                 "sequence": saved.sequence,
                 "cause": label(saved.cause),
             }
+            receipt = saved.receipt
+            # A countercheck job points to the merged snapshot; its receipt
+            # retains the same base hashes as the second literal reading.
+            expected_cause = "auto_check" if payload.get("material_check") else "extraction"
+            if (job.kind == "extract" and saved.cause == expected_cause
+                    and type(receipt.get("version")) is int and receipt["version"] == 1):
+                snapshot["template"] = {
+                    "prompt_sha256": sha256(receipt.get("base_prompt_digest")),
+                    "schema_sha256": sha256(receipt.get("base_schema_digest")),
+                }
 
     raw_units = result.get("unit_ids") if isinstance(result.get("unit_ids"), list) else [result.get("unit_id")]
     units, seen_units = [], set()
@@ -181,6 +198,7 @@ def processing_trace(job_id: str, p=Depends(parent), db=Depends(get_db)):
         "failure_detail": failure_detail,
         "model": model,
         "model_ambiguous": len(usages) > 1,
+        "request_schema_sha256": request_schema_sha256,
         "sources": sources,
         "sources_truncated": len(proposed) > LIMIT,
         "source_snapshot": snapshot,

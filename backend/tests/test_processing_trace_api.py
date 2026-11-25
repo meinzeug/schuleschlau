@@ -124,6 +124,44 @@ def test_failed_trace_exposes_controlled_category_without_error_body(api, househ
     assert CANARY not in response.text
 
 
+@pytest.mark.parametrize('value,expected', [
+    ('a' * 64, 'a' * 64), (CANARY, None), ({'secret': CANARY}, None), (True, None),
+])
+def test_only_bounded_actual_request_schema_digest_is_shown(api, household, value, expected):
+    owner, child = household
+    with DB.begin() as db:
+        job = Job(child_id=child['id'], kind='unit', payload={}, status='failed', idempotency=uid())
+        db.add(job)
+        db.flush()
+        db.add(Usage(family_id=owner['families'][0]['id'], child_id=child['id'], job_id=job.id,
+            provider='synthetic', model='fixture/model', config_revision=3, function='unit',
+            status='failed_billed', reserved_micros=0, bucket_ids=[], route_snapshot={},
+            telemetry={'request_schema_sha256': value, 'secret': CANARY}))
+        identifier = job.id
+    response = api.get(f'/api/jobs/{identifier}/trace')
+    assert response.status_code == 200
+    assert response.json()['request_schema_sha256'] == expected
+    assert CANARY not in response.text
+
+
+def test_multiple_usage_receipts_do_not_guess_a_request_schema(api, household):
+    owner, child = household
+    with DB.begin() as db:
+        job = Job(child_id=child['id'], kind='unit', payload={}, status='completed', idempotency=uid())
+        db.add(job)
+        db.flush()
+        for value in ('a' * 64, 'b' * 64):
+            db.add(Usage(family_id=owner['families'][0]['id'], child_id=child['id'], job_id=job.id,
+                provider='synthetic', model='fixture/model', config_revision=3, function='unit',
+                status='completed', reserved_micros=0, bucket_ids=[], route_snapshot={},
+                telemetry={'request_schema_sha256': value}))
+        identifier = job.id
+    response = api.get(f'/api/jobs/{identifier}/trace')
+    assert response.status_code == 200
+    assert response.json()['model_ambiguous'] is True
+    assert response.json()['request_schema_sha256'] is None
+
+
 @pytest.mark.parametrize(("telemetry", "expected"), [
     ({"finish_reason": "length", "secret": CANARY}, "output_length"),
     ({"validation": {"version": 1, "errors": [{"reason": "question_fraction_ambiguous", "input": CANARY}]}}, "question_fraction_ambiguous"),
@@ -183,6 +221,38 @@ def test_stale_or_forged_snapshot_and_foreign_references_are_not_attributed(api,
     assert response.status_code == 200
     assert response.json()["source_snapshot"] is None
     assert response.json()["sources"] == [] and response.json()["sources_truncated"] is True
+
+
+@pytest.mark.parametrize("version,prompt,schema,kind,cause,expected", [
+    (1, "a" * 64, "b" * 64, 'extract', 'extraction', {"prompt_sha256": "a" * 64, "schema_sha256": "b" * 64}),
+    (1, CANARY, {"private": CANARY}, 'extract', 'extraction', {"prompt_sha256": None, "schema_sha256": None}),
+    (True, "a" * 64, "b" * 64, 'extract', 'extraction', None),
+    (2, "a" * 64, "b" * 64, 'extract', 'extraction', None),
+    (1, "a" * 64, "b" * 64, 'unit', 'extraction', None),
+    (1, "a" * 64, "b" * 64, 'extract', 'auto_check_reading', None),
+])
+def test_ocr_template_receipt_is_bound_to_job_and_limited(api, household, version, prompt, schema, kind, cause, expected):
+    with DB.begin() as db:
+        material = Material(child_id=household[1]['id'], title=CANARY, content=CANARY,
+                            confirmed=True, subject='Mathematik')
+        db.add(material)
+        db.flush()
+        job = Job(child_id=material.child_id, kind=kind, status='completed', idempotency=uid(),
+                  payload={'material_id': material.id, 'material_revision': 1})
+        db.add(job)
+        db.flush()
+        snapshot = SourceRevision(material_id=material.id, child_id=material.child_id, revision=1,
+            sequence=1, digest='c' * 64, cause=cause, snapshot={'secret': CANARY},
+            receipt={'version': version, 'job_id': job.id, 'base_prompt_digest': prompt,
+                     'base_schema_digest': schema, 'secret': CANARY})
+        db.add(snapshot)
+        db.flush()
+        job.result = {'source_snapshot_id': snapshot.id}
+        identifier = job.id
+    response = api.get(f'/api/jobs/{identifier}/trace')
+    assert response.status_code == 200
+    assert response.json()['source_snapshot'].get('template') == expected
+    assert CANARY not in response.text
 
 
 def test_unknown_failure_category_is_not_echoed(api, household):

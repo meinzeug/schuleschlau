@@ -148,3 +148,20 @@ Referenz wurde verworfen und in der Elternspur als `invalid_output` erfasst.
 Der vorherige Teil und der gemeldete Kostenbeleg blieben erhalten; SQLite und
 isoliertes PostgreSQL bestanden den Workerfall. Dies ist keine fachliche
 Abnahme aller angebotenen Darstellungen.
+
+Die Elternspur zeigt für erfolgreich zugeordnete Erkennungs- und
+Gegencheckfassungen die vorhandenen SHA-256-Fingerabdrücke der statischen
+Grundvorlage und des Grundschemas. Beim Gegencheck liegt der Beleg in der
+zusammengeführten Fassung; eine andere Art oder Belegversion wird nicht
+zugeschrieben. Ein separater Fingerabdruck des tatsächlich angeforderten
+Schemas erscheint nur aus genau einem zugehörigen Verbrauchsbeleg. Werte
+werden streng auf 64 hexadezimale Zeichen begrenzt; fehlende und mehrdeutige
+Belege bleiben unbekannt. Die Oberfläche zeigt die ersten zwölf Zeichen;
+der autorisierte API-Endpunkt enthält den vollständigen Wert. Es werden keine
+Vorlagentexte, Quellen, Antworten oder unbeschränkte Telemetrie ausgegeben.
+
+Grenze der bisherigen Kette: Abgewiesene Uploads vor der Auftragsanlage und
+lokal zurückgewiesene Antworten haben keinen eigenen Auftragsbeleg in diesem
+Endpunkt. Bei älteren oder ohne Schemabeleg ausgeführten Aufträgen kann die
+genaue Anfrageschema-Version nicht nachträglich bestimmt werden. Diese Fälle
+sind nicht durch den Fingerabdruck-Nachweis abgeschlossen.
