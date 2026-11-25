@@ -2093,6 +2093,15 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Gesamte Verarbeitungskette durchgängig nachvollziehbar machen**
 
+  - [x] **Schulbuddy und Elternauswertung in der Auftragsspur prüfen.**
+    Schulbuddy-Seitenfassungen werden nur bei passender Kind- und
+    Auftragsbindung aus dem Chatvorgang angezeigt. Ungültige Modellbelege
+    werden begrenzt klassifiziert; Antwort und Lernnachweis entstehen nicht,
+    unbekannte Kosten bleiben reserviert. Künstliche Erfolgs- und Fehlerfälle
+    der Elternauswertung zeigen ihren Status ohne private Antworten.
+    SQLite- und PostgreSQL-Tests prüfen die regulären Worker; die
+    vollständige Verarbeitungsketten-Abnahme bleibt offen.
+
   **Noch offen:** Fehler vor der Auftragsanlage, etwa ein abgewiesener
   Upload, und lokal abgelehnte Antworten besitzen bisher keinen solchen
   Auftragsbeleg. Auch für ältere oder ohne übermittelten Schemabeleg

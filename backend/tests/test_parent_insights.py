@@ -101,6 +101,11 @@ def test_reads_are_pure_and_reports_preserve_observations(api, book, transport):
     with DB() as db:
         assert db.scalar(select(func.count()).select_from(Attempt)) == 3
         assert db.scalar(select(Usage)).cost_micros == 37
+        job_id = db.get(ParentLearningReview, start.json()["id"]).job_id
+    trace = api.get(f"/api/jobs/{job_id}/trace")
+    assert trace.status_code == 200
+    assert trace.json()["phase"] == "parent_review" and trace.json()["status"] == "completed"
+    assert "PRIVATE-SYNTHETIC-ANSWER" not in trace.text
 
 
 def test_child_cannot_read_or_configure_private_parent_analysis(api, book):
@@ -147,6 +152,13 @@ def test_rejects_unproved_or_stale_analysis_without_retries(api, book, transport
         assert row.status == "failed" and row.report is None
         assert db.get(Job, row.job_id).attempts == 1
         assert db.scalar(select(Usage)).cost_micros == 37
+        job_id = row.job_id
+    if damage in ("foreign_ref", "unsupported_error", "changed_source", "unwanted_exercises"):
+        trace = api.get(f"/api/jobs/{job_id}/trace")
+        assert trace.status_code == 200
+        assert trace.json()["phase"] == "parent_review" and trace.json()["status"] == "failed"
+        assert trace.json()["error_code"] == ("source_changed" if damage == "changed_source" else "invalid_output")
+        assert "PRIVATE-SYNTHETIC-ANSWER" not in trace.text and "foreign-topic" not in trace.text
     assert len(transport["calls"]) == 1
     with DB() as db:
         assert worker.claim(db) is None

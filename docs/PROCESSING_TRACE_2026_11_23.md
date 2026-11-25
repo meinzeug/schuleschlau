@@ -165,3 +165,12 @@ lokal zurückgewiesene Antworten haben keinen eigenen Auftragsbeleg in diesem
 Endpunkt. Bei älteren oder ohne Schemabeleg ausgeführten Aufträgen kann die
 genaue Anfrageschema-Version nicht nachträglich bestimmt werden. Diese Fälle
 sind nicht durch den Fingerabdruck-Nachweis abgeschlossen.
+
+Auch Schulbuddy verknüpft die Elternspur ausschließlich mit den gespeicherten
+Quellenrevisionen des tatsächlich zugehörigen Chatvorgangs und Kindes. Bei
+einem künstlich ungültigen Quellenmarker wird keine Antwort übernommen; der
+Auftrag erhält `invalid_output` und die unbekannte Reservierung bleibt
+erhalten. Eine entfernte Auftragsbindung zeigt keine Quellen. Künstliche
+Erfolgs- und Fehlerfälle der gesonderten Elternauswertung zeigen Status und
+Fehlerklasse ohne Antworttexte. SQLite und isoliertes PostgreSQL prüften die
+regulären Worker mit simuliertem Transport.

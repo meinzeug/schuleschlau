@@ -732,7 +732,14 @@ def process(job_id):
             db.commit()
         dispatched = True
         result = request_provider(ProviderConfig(**values), "schulbuddy", payload)
-        reply = checked_reply(result.data, payload, refs)
+        try:
+            reply = checked_reply(result.data, payload, refs)
+        except ProviderError as error:
+            error.code = "invalid_output"
+            raise
+        except ValueError as error:
+            raise ProviderError("Schulbuddy konnte die Antwort nicht sicher prüfen. Keine Antwort übernommen.",
+                                code="invalid_output") from error
         with DB.begin() as db:
             job = db.get(Job, job_id)
             if not job or job.status != "running":

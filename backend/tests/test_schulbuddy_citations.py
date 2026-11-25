@@ -3,7 +3,7 @@
 import copy
 
 import pytest
-from schulpilot.db import DB, Job, SchulbuddyTurn, Usage
+from schulpilot.db import DB, Job, Material, SchulbuddyTurn, Usage
 from schulpilot.providers import ProviderError
 from schulpilot.schulbuddy import checked_display_text, checked_reply
 from sqlalchemy import select
@@ -122,23 +122,57 @@ def test_normal_job_stores_clean_display_text_and_unchanged_checked_source_chips
     transport["output"]["answer"] = "Die Sonne ist ein Stern. " + TOKEN
     submitted = ask(book)
     assert submitted.status_code == 202
-    finish()
+    job_id = finish()
     value = book["client"].get("/api/schulbuddy/questions/" + submitted.json()["id"]).json()
     assert value["status"] == "ready" and value["answer"] == "Die Sonne ist ein Stern. "
     assert value["sources"][0]["quote"] == "Die Sonne ist ein Stern."
     assert value["sources"][0]["material_id"] == book["material_id"]
     assert len(transport["calls"]) == 1 and counts() == (1, 1, 0, 0)
+    trace = api.get(f"/api/jobs/{job_id}/trace")
+    assert trace.status_code == 200 and trace.json()["phase"] == "tutor"
+    assert trace.json()["sources"] == [{"id": book["material_id"], "revision": 1, "current_revision": 1}]
+    assert "Die Sonne" not in trace.text and "Was ist die Sonne" not in trace.text
+    with DB.begin() as db:
+        db.get(Material, book["material_id"]).revision += 1
+    assert api.get(f"/api/jobs/{job_id}/trace").json()["sources"] == [
+        {"id": book["material_id"], "revision": 1, "current_revision": 2}
+    ]
+    with DB.begin() as db:
+        db.get(SchulbuddyTurn, submitted.json()["id"]).job_id = "f" * 32
+    assert api.get(f"/api/jobs/{job_id}/trace").json()["sources"] == []
 
 
 def test_invalid_marker_keeps_unknown_account_reservation_without_saved_reply_or_hidden_retry(api, book, transport):
     transport["output"]["answer"] = "Die Sonne. \ue200cite\ue202foreign\ue201"
     submitted = ask(book)
     assert submitted.status_code == 202
-    finish()
+    job_id = finish()
     with DB() as db:
         turn = db.get(SchulbuddyTurn, submitted.json()["id"])
         assert turn.status == "failed" and not turn.reply
         assert db.get(Job, turn.job_id).status == "failed"
         usage = db.scalar(select(Usage).where(Usage.job_id == turn.job_id))
         assert usage.status == "failed_unknown" and usage.cost_micros is None and usage.reserved_micros > 0
+    for _ in range(2):
+        trace = api.get(f"/api/jobs/{job_id}/trace")
+        assert trace.status_code == 200 and trace.json()["error_code"] == "invalid_output"
+        assert trace.json()["sources"] == [{"id": book["material_id"], "revision": 1, "current_revision": 1}]
+        assert "foreign" not in trace.text and "Die Sonne" not in trace.text
+    assert len(transport["calls"]) == 1 and counts() == (1, 1, 0, 0)
+
+
+def test_invalid_schulbuddy_schema_is_not_saved_or_exposed(api, book, transport):
+    transport["output"]["sources"] = "synthetic-invalid-secret"
+    submitted = ask(book)
+    assert submitted.status_code == 202
+    job_id = finish()
+    trace = api.get(f"/api/jobs/{job_id}/trace")
+    assert trace.status_code == 200 and trace.json()["error_code"] == "invalid_output"
+    assert trace.json()["sources"] == [{"id": book["material_id"], "revision": 1, "current_revision": 1}]
+    assert "synthetic-invalid-secret" not in trace.text
+    with DB() as db:
+        turn = db.get(SchulbuddyTurn, submitted.json()["id"])
+        assert turn.status == "failed" and turn.reply is None
+        usage = db.scalar(select(Usage).where(Usage.job_id == job_id))
+        assert usage.status == "failed_unknown" and usage.cost_micros is None
     assert len(transport["calls"]) == 1 and counts() == (1, 1, 0, 0)

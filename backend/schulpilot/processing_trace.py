@@ -9,7 +9,7 @@ import re
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 
-from .db import Job, LanguageProject, LearningUnit, Material, TutorTurn, Usage, VocabularyImport, get_db
+from .db import Job, LanguageProject, LearningUnit, Material, SchulbuddyTurn, TutorTurn, Usage, VocabularyImport, get_db
 from .job_failures import CODES
 from .security import child_access, parent
 from .source_lineage_models import SourceRevision
@@ -98,6 +98,10 @@ def processing_trace(job_id: str, p=Depends(parent), db=Depends(get_db)):
     proposed = payload.get("sources") if isinstance(payload.get("sources"), list) else []
     if not proposed and job.kind == "tutor" and safe_id(payload.get("turn_id")):
         turn = db.get(TutorTurn, payload["turn_id"])
+        if turn and turn.job_id == job.id and turn.child_id == child.id and isinstance(turn.source_revisions, list):
+            proposed = turn.source_revisions
+    if not proposed and job.kind == "schulbuddy" and safe_id(payload.get("turn_id")):
+        turn = db.get(SchulbuddyTurn, payload["turn_id"])
         if turn and turn.job_id == job.id and turn.child_id == child.id and isinstance(turn.source_revisions, list):
             proposed = turn.source_revisions
     linked = {"vocabulary_import": (VocabularyImport, "import_id"),

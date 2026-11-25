@@ -2,6 +2,12 @@
 
 ## Arbeitsstand 24. November 2026
 
+Die Elternspur zeigt gebundene Schulbuddy-Seitenfassungen; unzulässige
+Quellenmarker werden als `invalid_output` abgewiesen, ohne unbekannte Kosten
+als null zu verbuchen. Elternauswertungsaufträge sind für künstlichen Erfolg
+und Fehler in der Spur geprüft. Die vollständige Verarbeitungskette bleibt
+offen.
+
 Die Elternspur zeigt nun gespeicherte Fingerabdrücke für die Grundvorlage und
 das Grundschema der Erkennung sowie das tatsächlich angeforderte Schema, wo
 eindeutig belegt. Fehlende oder mehrdeutige Angaben werden nicht geraten.
