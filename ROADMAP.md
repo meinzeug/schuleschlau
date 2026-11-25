@@ -2679,6 +2679,17 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Schulbuddy als sicheren kontextbezogenen Lernbegleiter prüfen**
 
+  - [x] **Gleichwertige Bruchlösungen in Mathehinweisen begrenzt erkennen.**
+    Bei offenen kurzen Mathematikaufgaben mit einem gespeicherten Bruch als
+    Lösung werden zusätzlich gleichwertige Brüche, Dezimalzahlen und gemischte
+    Zahlen in sichtbaren Antwortfeldern zurückgehalten. Steht derselbe Wert
+    bereits in Aufgabe oder geöffneter Erklärung, bleibt die bestehende
+    Prüfung der tatsächlich verlangten Darstellung erhalten. Die Regel bewertet
+    keine Kinderantworten und gilt nicht für andere Aufgabentypen oder Fächer.
+    Künstliche Worker- und Grenzfälle prüfen Buchung und Erhalt vorhandener
+    Antworten. Allgemeine sinngemäße Lösungsverrate und fachliche Modellprüfung
+    bleiben offen.
+
   - [x] **Exakte Lösungen in Hinweisen zu offenen Aufgaben zurückhalten.**
     Bei einfachen gespeicherten Fragen prüft der Server die sichtbare
     Modellantwort, Rückfrage, Schnellaktionen und Quellenzitate auf exakt

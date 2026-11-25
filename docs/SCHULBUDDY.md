@@ -19,8 +19,11 @@ dieselbe Aufgabe noch offen, wird ein anschließender erneuter Versuch als
 unterstützt erfasst. Der frühere Versuch wird nicht umgeschrieben.
 
 Die Prüfung ist bewusst begrenzt: Einfache Unicode- und Bruchschreibweisen
-werden normalisiert, aber sinngemäße Umschreibungen, mathematische
-Äquivalenzen, sehr kurze Wörter und andere Aufgabentypen werden nicht
+werden normalisiert. Bei kurzen Mathematikfragen mit einer Bruchlösung werden
+auch bestimmte gleichwertige Brüche, Dezimalzahlen und gemischte Zahlen
+erkannt, sofern der Wert nicht schon in der Frage oder geöffneten Erklärung
+steht. Sinngemäße Umschreibungen, andere mathematische Äquivalenzen, sehr
+kurze Wörter und andere Aufgabentypen werden nicht
 zuverlässig erkannt. Auch bei möglicher Mehrdeutigkeit kann ein passender
 Hinweis vorsorglich zurückgehalten werden. Diese Regel ist weder fachliche
 Modellprüfung noch vollständiger Schutz vor Lösungshinweisen oder Manipulation.

@@ -47,6 +47,42 @@ def test_boundaries_known_prompt_and_supported_variants():
                                 output("Wähle Stern."), visible_explanation="Es gibt Stern und Planet.")
 
 
+@pytest.mark.parametrize("leak", ["2/4", "5/10", "0,5", "0.50", r"\frac{2}{4}", "½"])
+def test_equivalent_fraction_result_is_blocked_for_supported_math(leak):
+    question = {"type": "short", "prompt": "Berechne 1/3 + 1/6.", "answer": "1/2"}
+    assert reveals_exact_answer(question, output("Das ergibt " + leak), mathematics=True)
+
+
+def test_fraction_guard_does_not_assume_equivalence_when_value_was_already_shown():
+    question = {"type": "short", "prompt": "Kürze 2/4 vollständig.", "answer": "1/2"}
+    assert not reveals_exact_answer(question, output("Ein gleich großer Bruch ist 3/6."), mathematics=True)
+    assert reveals_exact_answer(question, output("Das Ergebnis ist 1/2."), mathematics=True)
+    assert not reveals_exact_answer({"type": "choice", "prompt": "Wähle!", "answer": "1/2"},
+                                    output("Betrachte 2/4."), mathematics=True)
+    assert not reveals_exact_answer({"type": "short", "prompt": "Text 1/3 und 1/6", "answer": "1/2"},
+                                    output("Betrachte 2/4."), mathematics=False)
+    assert not reveals_exact_answer({"type": "short", "prompt": "Berechne!", "answer": "2"},
+                                    output("Betrachte 4/2."), mathematics=True)
+
+
+def test_mixed_fraction_is_mathematically_equivalent_without_partial_matches():
+    question = {"type": "gap", "prompt": "Berechne 1/2 + 3/4.", "answer": "5/4"}
+    assert reveals_exact_answer(question, output("Das sind 1 1/4."), mathematics=True)
+    assert not reveals_exact_answer(question, output("Das sind 11/4."), mathematics=True)
+    assert not reveals_exact_answer(question, output("Sieh dir 1/4 an."), mathematics=True)
+    negative = {"type": "short", "prompt": "Berechne -2/3 + 1/6.", "answer": "-1/2"}
+    assert reveals_exact_answer(negative, output("Das Ergebnis ist −2/4."), mathematics=True)
+    assert not reveals_exact_answer(negative, output("Vergleiche mit 1/2."), mathematics=True)
+
+
+def test_equivalent_fraction_in_any_visible_field_is_not_allowed():
+    question = {"type": "short", "prompt": "Berechne 1/3 + 1/6.", "answer": "1/2"}
+    assert reveals_exact_answer(question, output(next_question="Sind es 2/4?"), mathematics=True)
+    assert reveals_exact_answer(question, output(starters=["Das Ergebnis ist 0,5"]), mathematics=True)
+    assert reveals_exact_answer(question, output(sources=[{"ref": "p1", "quote": "Hier steht 2/4."}]),
+                                mathematics=True)
+
+
 def test_disclosing_model_result_is_not_published_or_counted_as_help(api, book, transport):
     with DB.begin() as db:
         unit = db.get(LearningUnit, book["unit_id"])
@@ -65,6 +101,24 @@ def test_disclosing_model_result_is_not_published_or_counted_as_help(api, book, 
         assert db.get(Job, job_id).error_code == "invalid_output"
         assert db.scalar(select(Usage).where(Usage.job_id == job_id)).status.startswith("failed")
         assert db.scalar(select(func.count()).select_from(Attempt)) == 0
+        assert db.scalar(select(func.count()).select_from(Activity).where(Activity.kind == "explanation")) == 0
+
+
+def test_equivalent_fraction_provider_output_is_not_published(book, transport):
+    with DB.begin() as db:
+        unit = db.get(LearningUnit, book["unit_id"])
+        unit.status, unit.subject = "active", "Mathematik"
+        unit.questions = [{"id": "q1", "type": "short", "prompt": "Berechne 1/3 + 1/6.", "options": [],
+                           "answer": "1/2", "accepted": [], "hints": [], "explanation": "Künstlich"}]
+    transport["output"] = {"answer": "Das Ergebnis ist 2/4.", "next_question": None, "starters": [], "sources": []}
+    turn = ask(book, question_id="q1")
+    assert turn.status_code == 202, turn.text
+    job_id = finish()
+    result = book["client"].get("/api/schulbuddy/questions/" + turn.json()["id"]).json()
+    assert result["status"] == "failed" and result["answer"] is None
+    assert "answer" not in transport["calls"][0]["current_question"]
+    with DB() as db:
+        assert db.get(Job, job_id).error_code == "invalid_output"
         assert db.scalar(select(func.count()).select_from(Activity).where(Activity.kind == "explanation")) == 0
 
 

@@ -751,7 +751,9 @@ def process(job_id):
             if guarded_question:
                 from .schulbuddy_solution_guard import reveals_exact_answer
 
-                if reveals_exact_answer(guarded_question, reply, visible_explanation=explanation.get("text", "")):
+                if reveals_exact_answer(guarded_question, reply, visible_explanation=explanation.get("text", ""),
+                                        mathematics=payload.get("unit", {}).get("subject", "").strip().casefold()
+                                        in ("mathe", "mathematik")):
                     raise ProviderError("Dieser Hinweis verrät zu viel. Bitte frage nach einem anderen Hinweis.",
                                         code="invalid_output")
         except ProviderError as error:

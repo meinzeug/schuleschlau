@@ -1,5 +1,14 @@
 # Übergabe an die nächste Coding-KI
 
+## Schulbuddy: gleichwertige Bruchwerte
+
+Der endliche Lösungsschutz erfasst bei kurzen Mathefragen mit gespeicherter
+Bruchlösung auch bestimmte gleichwertige Brüche, Dezimal- und gemischte Zahlen.
+Bereits sichtbare Werte werden berücksichtigt; die Prüfung bewertet keine
+Schülerantworten und gilt nicht für Auswahlaufgaben oder andere Fächer. Die
+allgemeine fachliche, adversariale und kinderschutzbezogene Abnahme des
+Schulbuddys bleibt offen.
+
 ## Schulbuddy: exakte Lösungstreffer
 
 Ein endlicher serverseitiger Filter hält exakte gespeicherte Lösungen bei

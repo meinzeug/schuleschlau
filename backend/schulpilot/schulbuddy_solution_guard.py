@@ -2,10 +2,21 @@
 
 import re
 import unicodedata
+from fractions import Fraction
+
+_NUMBER = re.compile(
+    r"(?<![\w/.,])(?:"
+    r"(?P<whole>[+-]?\d{1,5})\s+(?P<mixed_num>\d{1,5})/(?P<mixed_den>[1-9]\d{0,4})"
+    r"|(?P<num>[+-]?\d{1,5})/(?P<den>[1-9]\d{0,4})"
+    r"|(?P<decimal>[+-]?\d{1,5}[.,]\d{1,5})"
+    r")(?![\w/])"
+)
+_FRACTION_ANSWER = re.compile(r"[+-]?\d{1,5}/[1-9]\d{0,4}\Z")
 
 
 def normalize(text):
     text = unicodedata.normalize("NFKC", text).casefold()
+    text = text.replace("−", "-")
     text = re.sub(r"\\(?:d?frac)\s*\{\s*(\d+)\s*\}\s*\{\s*(\d+)\s*\}", r"\1/\2", text)
     text = text.replace("⁄", "/").replace("∕", "/")
     text = re.sub(r"(?<=\d)\s*/\s*(?=\d)", "/", text)
@@ -19,13 +30,30 @@ def contains(text, value):
     return bool(re.search(boundary + re.escape(value).replace(r"\ ", r"\s+") + suffix, text))
 
 
-def reveals_exact_answer(question, reply, *, visible_explanation=""):
+def fraction_values(text):
+    """Read only finite literal fraction, decimal and mixed-number forms."""
+    result = set()
+    for match in _NUMBER.finditer(text):
+        if match["whole"] is not None:
+            whole, numerator, denominator = int(match["whole"]), int(match["mixed_num"]), int(match["mixed_den"])
+            if numerator >= denominator:
+                continue
+            part = Fraction(numerator, denominator)
+            result.add(Fraction(whole) - part if match["whole"].startswith("-") else Fraction(whole) + part)
+        elif match["num"] is not None:
+            result.add(Fraction(int(match["num"]), int(match["den"])))
+        else:
+            result.add(Fraction(match["decimal"].replace(",", ".")))
+    return result
+
+
+def reveals_exact_answer(question, reply, *, visible_explanation="", mathematics=False):
     """Check displayed answer, citations and suggestions, not provider inputs.
 
     Only simple stored answer types are supported. An answer already given in
-    the prompt cannot be hidden and is skipped except in a choice question.
-    Single letters and very short words are intentionally not classified:
-    semantic variants and paraphrases are outside this finite check.
+    the prompt or opened explanation is skipped except in a choice question.
+    Numeric equivalence is limited to explicit fractions in mathematics;
+    single letters, very short words and semantic paraphrases are not covered.
     """
     if not isinstance(question, dict) or question.get("type") not in ("short", "gap", "choice"):
         return False
@@ -47,4 +75,14 @@ def reveals_exact_answer(question, reply, *, visible_explanation=""):
             continue
         if contains(displayed, value):
             return True
+        # This is disclosure prevention, not answer grading. Only a stored
+        # literal fraction in mathematics is compared; a value already in the
+        # displayed prompt/explanation is not treated as newly disclosed.
+        if (mathematics and question.get("type") in ("short", "gap") and not question.get("language")
+                and _FRACTION_ANSWER.fullmatch(value)):
+            numerator, denominator = value.split("/")
+            expected = Fraction(int(numerator), int(denominator))
+            if (expected not in fraction_values(prompt) and expected not in fraction_values(visible)
+                    and expected in fraction_values(displayed)):
+                return True
     return False
