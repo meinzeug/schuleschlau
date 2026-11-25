@@ -2093,6 +2093,32 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Gesamte Verarbeitungskette durchgängig nachvollziehbar machen**
 
+  - [x] **Quellenfassungen neuer Lernrückblicke erhalten.**
+    Neue Rückblickaufträge speichern ausschließlich die bereits geprüften
+    Quellenkennungen und Revisionen. Die Elternspur zeigt deren damaligen und
+    aktuellen Stand; alte Aufträge ohne diesen Beleg werden nicht ergänzt.
+    Ein künstlicher regulärer Rückblick wurde vor und nach Verarbeitung sowie
+    nach späterer Quellenänderung geprüft. Inhalte und Antworten bleiben aus
+    der Auftragsspur ausgeschlossen.
+
+  - [x] **Fehlerklassen von Rückblick und Anschlussübung erhalten.**
+    Beide Worker speichern bei neuen Fehlern die vorhandene begrenzte
+    Klassifizierung. Ein künstlicher Timeout ist in der Elternspur als
+    `provider_timeout` nachvollziehbar, ohne Anbietertext auszugeben; frühere
+    Antworten und der fertige Rückblick bleiben erhalten. Alte Fehler ohne
+    Klassifizierung werden nicht nachträglich als bekannt ausgegeben.
+
+  - [x] **Weitere Auftragsschritte datensparsam unterscheiden.**
+    Lernrückblick, Lernentscheidung, Grafik und Grafikprüfung,
+    Klassenarbeitsnacharbeit, Wortschatz- und Sprachaufträge, Lernhilfe und
+    Elternüberblick erhalten feste Phasenbezeichnungen; unbekannte Arten bleiben
+    allgemein. Bei Klassenarbeitsaufträgen werden ausdrücklich gespeicherte
+    Seitenrevisionen nur für das zugehörige Kind angezeigt. Ein regulär
+    angelegter künstlicher Nacharbeitsauftrag wurde vor und nach dem
+    simulierten Worker geprüft. Künstliche API- und Workerfälle bestehen auf
+    SQLite und isoliertem PostgreSQL, die Elternansicht separat in Flutter.
+    Keine fachliche Modellprüfung oder vollständige Fehlerabnahme ableiten.
+
   - [x] **Gebundene Einzelseiten in der Auftragsspur anzeigen.**
     Einzelne Erkennungs- und Lernrundenaufträge speichern ihre Seite und deren
     Fassung in zwei Feldern; bisher zeigte die Spur nur Quellenlisten an.

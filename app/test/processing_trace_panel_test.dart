@@ -19,6 +19,47 @@ http.Response reply(Object value, [int status = 200]) => http.Response(
 );
 
 void main() {
+  for (final entry in <String, String>{
+    'feedback': 'Lernrückblick',
+    'decision': 'Nächster Lernschritt',
+    'visual': 'Grafik',
+    'visual_review': 'Grafikprüfung',
+    'exam_review': 'Klassenarbeit',
+    'vocabulary': 'Wortschatzimport',
+    'language': 'Sprachübung',
+    'tutor': 'Lernhilfe',
+    'parent_review': 'Elternüberblick',
+    'unexpected': 'Verarbeitung',
+  }.entries) {
+    testWidgets('trace shows bounded phase label ${entry.key}', (tester) async {
+      final state = AppState(
+        api: Api(
+          base: 'https://example.invalid/api',
+          client: MockClient(
+            (_) async => reply({
+              'job_id': jobId,
+              'phase': entry.key,
+              'status': 'failed',
+              'sources': [],
+              'units': [],
+            }),
+          ),
+        ),
+      )..user = {'id': 'parent', 'role': 'parent'};
+      addTearDown(state.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ProcessingTracePanel(state: state, jobId: jobId),
+          ),
+        ),
+      );
+      await tester.tap(find.text('Verarbeitung ansehen'));
+      await tester.pumpAndSettle();
+      expect(find.text('Schritt: ${entry.value}'), findsOneWidget);
+    });
+  }
+
   testWidgets('parent preparation page exposes trace only after a tap', (
     tester,
   ) async {

@@ -34,3 +34,27 @@ ungültige Paketantwort mit erhaltenem Kostenbeleg. Modelltransporte sind dabei
 simuliert. Auf der Vorbereitungsseite können Eltern die Details ausdrücklich über
 „Verarbeitung ansehen“ öffnen; Kinder sehen diesen Bereich nicht. Die
 vollständige fachübergreifende Phasenabnahme bleibt offen.
+
+Am 25.11.2026 wurden zusätzlich feste Phasen für Rückblick, Entscheidung,
+Grafik und Grafikprüfung, Klassenarbeit, Wortschatz, Sprache, Lernhilfe und
+Elternüberblick ergänzt; unbekannte Auftragsarten bleiben allgemein. Ein
+Klassenarbeitsauftrag kann seine ausdrücklich gespeicherten Seitenrevisionen
+zeigen, ohne Ausschnitte oder Zuordnungen auszugeben. Ein regulär angelegter
+künstlicher Auftrag wurde vor und nach Verarbeitung mit simuliertem Transport
+geprüft. Neue Lernrückblickaufträge speichern die bereits geprüften
+Quellenkennungen und Revisionen direkt am Auftrag; alte Aufträge werden nicht
+nachträglich ergänzt. Ein künstlicher Rückblick wurde vor und nach Verarbeitung
+und nach einer späteren Quellenänderung geprüft. Die
+Phasenbezeichnung allein belegt weder fachliche Qualität noch, dass zu jedem
+Auftrag Quellen- oder Vorlagenbelege existieren.
+
+Neu fehlgeschlagene Rückblick- und Anschlussübungsaufträge speichern die
+begrenzte Fehlerklasse. Ein künstlicher Timeout-Fall prüft die Anzeige ohne
+Anbietertext und den Erhalt bereits gespeicherter Antworten. Historische
+Fehler ohne vorhandene Klasse bleiben `unknown`; aus Texten wird keine
+nachträgliche Diagnose erfunden.
+
+Die abschließende Regression für Auftragsspur und Lernrückblick bestand mit
+je 89 Fällen auf isoliertem SQLite und PostgreSQL. Die Elternansicht bestand
+18 Widgetfälle auf der Flutter-VM und im Chrome-Webrunner. Die
+Anbieterantworten und Fehler waren künstlich.

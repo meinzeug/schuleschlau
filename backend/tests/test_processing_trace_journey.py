@@ -14,9 +14,17 @@ from schulpilot.main import app
 from schulpilot.providers import ProviderError, Result
 from schulpilot.school_preparation import _advance, advance_one
 from schulpilot.source_lineage_models import SourceImageReceipt, SourceRevision
+from schulpilot.synthetic import CONTENT as PRIVATE_SOURCE_TEXT
 from schulpilot.visual_reference_models import UnitVisualSnapshot
 from schulpilot.worker import claim, process
 from sqlalchemy import func, select
+from test_coaching import finish as finish_learning_unit
+from test_coaching import mocked_review, process_next
+from test_coaching import normal_unit as normal_unit
+from test_exam_reviews import TEXT as EXAM_TEXT
+from test_exam_reviews import analyze, finish
+from test_exam_reviews import paper as paper
+from test_exam_reviews import transport as transport
 from test_material_auto_review import operator as operator
 from test_material_auto_review import pipeline as pipeline
 from test_material_auto_review import reading, upload
@@ -186,6 +194,66 @@ def test_source_revision_changed_during_generation_cannot_become_a_ready_package
         assert result.json()['preparation']['status'] in ('failed', 'blocked')
         assert result.json()['units'] == []
     assert calls == ['package']
+
+
+def test_exam_review_trace_tracks_actual_queued_and_completed_job_without_source_text(api, paper, transport):
+    job_id = analyze(paper)['id']
+    for status in ('queued', 'completed'):
+        if status == 'completed':
+            assert finish() == job_id
+        response = api.get(f'/api/jobs/{job_id}/trace')
+        assert response.status_code == 200
+        data = response.json()
+        assert data['phase'] == 'exam_review' and data['status'] == status
+        assert data['sources'] == [{'id': paper['material_id'], 'revision': 1, 'current_revision': 1}]
+        assert EXAM_TEXT not in response.text
+    assert len(transport['calls']) == 1
+
+
+def test_coach_job_trace_retains_its_bound_source_revision(api, normal_unit, monkeypatch):
+    kid, unit_id, material_id, _, _ = normal_unit
+    calls = mocked_review(monkeypatch)
+    finish_learning_unit(kid, unit_id)
+    with DB() as db:
+        job = db.scalar(select(Job).where(Job.kind == 'coach'))
+        assert job is not None
+        job_id = job.id
+    for status in ('queued', 'completed'):
+        if status == 'completed':
+            assert process_next() == job_id
+        response = api.get(f'/api/jobs/{job_id}/trace')
+        assert response.status_code == 200
+        data = response.json()
+        assert data['phase'] == 'feedback' and data['status'] == status
+        assert data['sources'] == [{'id': material_id, 'revision': 1, 'current_revision': 1}]
+        assert PRIVATE_SOURCE_TEXT not in response.text
+    assert len(calls) == 1
+    with DB.begin() as db:
+        db.get(Material, material_id).revision = 2
+    data = api.get(f'/api/jobs/{job_id}/trace').json()
+    assert data['sources'] == [{'id': material_id, 'revision': 1, 'current_revision': 2}]
+
+
+def test_failed_coach_job_trace_keeps_source_and_existing_answers(api, normal_unit, monkeypatch):
+    kid, unit_id, material_id, _, _ = normal_unit
+    def fail(*args, **kwargs):
+        raise ProviderError('synthetic private provider detail', code='provider_timeout')
+    monkeypatch.setattr('schulpilot.coaching.request_provider', fail)
+    finish_learning_unit(kid, unit_id)
+    with DB() as db:
+        job_id = db.scalar(select(Job.id).where(Job.kind == 'coach'))
+        before = tuple(db.scalar(select(func.count()).select_from(model)) for model in (Job, Usage, Attempt, Activity))
+    assert process_next() == job_id
+    for _ in range(2):
+        response = api.get(f'/api/jobs/{job_id}/trace')
+        assert response.status_code == 200
+        data = response.json()
+        assert data['phase'] == 'feedback' and data['status'] == 'failed'
+        assert data['error_code'] == 'provider_timeout'
+        assert data['sources'] == [{'id': material_id, 'revision': 1, 'current_revision': 1}]
+        assert 'synthetic private provider detail' not in response.text
+    with DB() as db:
+        assert tuple(db.scalar(select(func.count()).select_from(model)) for model in (Job, Usage, Attempt, Activity)) == before
 
 
 @pytest.mark.parametrize("stage", ["recognition", "countercheck"])

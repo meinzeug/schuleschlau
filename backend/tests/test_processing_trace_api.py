@@ -271,6 +271,49 @@ def test_explicit_source_list_remains_authoritative_over_single_material_field(a
     assert response.json()['sources'] == [{'id': other_id, 'revision': 1, 'current_revision': 1}]
 
 
+@pytest.mark.parametrize(('kind', 'phase'), [
+    ('study_block', 'generation'), ('coach_practice', 'generation'), ('controller_check', 'generation'),
+    ('coach', 'feedback'), ('decision', 'decision'), ('unit_visuals', 'visual'), ('learning_asset', 'visual'),
+    ('public_image', 'visual'), ('public_image_review', 'visual_review'), ('exam_review', 'exam_review'),
+    ('vocabulary_import', 'vocabulary'), ('language_project', 'language'), ('tutor', 'tutor'),
+    ('schulbuddy', 'tutor'), ('parent_review', 'parent_review'), ('private_unknown', 'other'),
+])
+def test_known_job_phases_use_closed_labels_without_echoing_unknown_kinds(api, household, kind, phase):
+    with DB.begin() as db:
+        job = Job(child_id=household[1]['id'], kind=kind, status='failed', idempotency=uid(),
+                  payload={'private': CANARY}, error=CANARY, error_code='provider_timeout')
+        db.add(job)
+        db.flush()
+        job_id = job.id
+    response = api.get(f'/api/jobs/{job_id}/trace')
+    assert response.status_code == 200 and response.json()['phase'] == phase
+    assert response.json()['error_code'] == 'provider_timeout'
+    assert CANARY not in response.text and 'private_unknown' not in response.text
+
+
+def test_exam_review_traces_only_own_explicit_material_revisions(api, household):
+    owner, child = household
+    sibling = create_child(api, owner, 'synthetic-exam-trace-sibling')
+    with DB.begin() as db:
+        own = Material(child_id=child['id'], title=CANARY, purpose='exam', subject='Mathematik', revision=4)
+        foreign = Material(child_id=sibling['id'], title=CANARY, purpose='exam', subject='Mathematik')
+        db.add_all([own, foreign])
+        db.flush()
+        job = Job(child_id=child['id'], kind='exam_review', status='failed', idempotency=uid(),
+                  error_code='provider_timeout', payload={'material_revisions': [
+                      {'id': own.id, 'revision': 3, 'label': CANARY},
+                      {'id': foreign.id, 'revision': 1},
+                  ]})
+        db.add(job)
+        db.flush()
+        job_id, own_id = job.id, own.id
+    response = api.get(f'/api/jobs/{job_id}/trace')
+    assert response.status_code == 200
+    assert response.json()['phase'] == 'exam_review'
+    assert response.json()['sources'] == [{'id': own_id, 'revision': 3, 'current_revision': 4}]
+    assert CANARY not in response.text
+
+
 def test_reference_inspection_has_one_global_budget_across_units(api, household):
     with DB.begin() as db:
         child = household[1]["id"]

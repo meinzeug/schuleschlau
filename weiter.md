@@ -2,6 +2,13 @@
 
 ## Arbeitsstand 24. November 2026
 
+Die Auftragsspur unterscheidet seit 25.11. zusätzlich mehrere feste
+Auftragsphasen und zeigt ausdrücklich gebundene Klassenarbeitsseitenfassungen
+ohne Inhalt. Neue Lernrückblickaufträge bewahren ihre geprüften Quellenfassungen.
+Der tatsächliche künstliche Nacharbeitsauftrag wurde vor und nach
+simulierter Verarbeitung geprüft; der Hauptpunkt zur gesamten Kette bleibt
+offen. Einzelheiten: `docs/PROCESSING_TRACE_2026_11_23.md`.
+
 Am 25.11. wurde die Auftragsspur für Einzelquellen ergänzt: die explizit
 gebundene Materialrevision erscheint nun auch ohne Quellenliste; fehlende
 Revisionen und Seiten anderer Kinder werden nicht zugeschrieben. Der

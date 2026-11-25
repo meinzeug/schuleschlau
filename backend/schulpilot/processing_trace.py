@@ -41,6 +41,21 @@ def processing_trace(job_id: str, p=Depends(parent), db=Depends(get_db)):
         "extract": "countercheck" if payload.get("material_check") else "recognition",
         "unit": "generation",
         "package": "generation",
+        "study_block": "generation",
+        "coach_practice": "generation",
+        "controller_check": "generation",
+        "coach": "feedback",
+        "decision": "decision",
+        "unit_visuals": "visual",
+        "learning_asset": "visual",
+        "public_image": "visual",
+        "public_image_review": "visual_review",
+        "exam_review": "exam_review",
+        "vocabulary_import": "vocabulary",
+        "language_project": "language",
+        "tutor": "tutor",
+        "schulbuddy": "tutor",
+        "parent_review": "parent_review",
     }
     usages = list(
         db.scalars(
@@ -74,6 +89,8 @@ def processing_trace(job_id: str, p=Depends(parent), db=Depends(get_db)):
                             break
 
     proposed = payload.get("sources") if isinstance(payload.get("sources"), list) else []
+    if not proposed and job.kind == "exam_review" and isinstance(payload.get("material_revisions"), list):
+        proposed = payload["material_revisions"]
     # Single-page extraction and unit jobs bind the source in scalar fields.
     # Older or malformed jobs without an explicit revision must not acquire the
     # current revision retroactively. The common loop still checks ownership.

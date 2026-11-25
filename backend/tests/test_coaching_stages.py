@@ -132,7 +132,7 @@ def test_failed_generator_preserves_finished_review_answers_and_usage(deferred_r
         assert function == "unit" and payload["review"] is True
         assert "completed_questions" not in payload
         calls.append(payload)
-        raise ProviderError("Künstlicher Generator ist nicht verfügbar.")
+        raise ProviderError("Künstlicher Generator ist nicht verfügbar.", code="provider_timeout")
 
     monkeypatch.setattr(coaching, "request_provider", unavailable)
     job_id = ask_practice(client, unit_id)
@@ -151,6 +151,7 @@ def test_failed_generator_preserves_finished_review_answers_and_usage(deferred_r
     assert after["questions"] == before["questions"]
     with DB() as db:
         assert db.get(Job, job_id).status == "failed"
+        assert db.get(Job, job_id).error_code == "provider_timeout"
         assert db.scalar(select(func.count()).select_from(LearningUnit)) == 1
         usage = db.scalar(select(Usage).where(Usage.job_id == job_id))
         assert usage.function == "coach_practice"

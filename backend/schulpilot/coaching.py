@@ -1371,6 +1371,9 @@ def schedule(unit_id, *, automatic=False):
                     "next_review": item.next_review,
                     "reason": item.reason,
                     "defer_practice": True,
+                    # Preserve only the already checked source identities and
+                    # revisions for the authorized, read-only job trace.
+                    "sources": copy.deepcopy(sources),
                 },
                 idempotency="coach:" + unit.id + ":" + str(item.request_count + 1),
             )
@@ -1498,7 +1501,10 @@ def process(job_id):
         with DB.begin() as db:
             job = db.get(Job, job_id)
             if job and job.status == "running":
+                from .job_failures import failure_code
+
                 job.status, job.error, job.finished = "failed", reason[:500], int(now())
+                job.error_code = failure_code(error)
                 item = db.get(UnitCoaching, job.payload["unit_id"])
                 if item and item.job_id == job.id:
                     item.status, item.reason = "failed", reason[:500]
@@ -1730,7 +1736,10 @@ def process_practice(job_id):
         with DB.begin() as db:
             job = db.get(Job, job_id)
             if job and job.status == "running":
+                from .job_failures import failure_code
+
                 job.status, job.error, job.finished = "failed", reason[:500], int(now())
+                job.error_code = failure_code(error)
                 usage = db.scalar(select(Usage).where(Usage.job_id == job.id))
                 if usage:
                     settle(db, usage, failure_billing(result, error, provider_requested=provider_requested), failed=True)
