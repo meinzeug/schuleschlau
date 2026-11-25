@@ -108,14 +108,18 @@ def prepare(unit_id: str, key: str = Header(default="", alias="Idempotency-Key")
     db.execute(update(Child).where(Child.id == child.id).values(grade=Child.grade))
     child_access(db, p, child.id, write=p.user.role == "parent")
     labs_enabled = "labs-v1" in getattr(p.session, "request_capabilities", ())
-    signature, _ = context(db, unit, labs_enabled=labs_enabled)
+    signature, visual_payload = context(db, unit, labs_enabled=labs_enabled)
     values = {"unit_id": unit.id, "signature": signature, "session_id": p.session.id,
               "user_id": p.user.id, "family_id": child.family_id}
     if labs_enabled:
         values["labs_enabled"] = True
     previous = db.scalar(select(Job).where(Job.idempotency == p.user.id + ":" + key))
     if previous:
-        if previous.kind != "unit_visuals" or previous.child_id != child.id or previous.payload != values:
+        # Older jobs predate trace source metadata; their idempotency contract
+        # remains unchanged. The context signature binds the source revisions.
+        previous_values = ({k: v for k, v in previous.payload.items() if k != "sources"}
+                           if isinstance(previous.payload, dict) else None)
+        if previous.kind != "unit_visuals" or previous.child_id != child.id or previous_values != values:
             raise HTTPException(409, "Dieser Schlüssel gehört zu einer anderen Erklärung.")
         return {"id": previous.id, "status": previous.status}
     old = existing_preparations(db, child.id, unit.id, signature)
@@ -124,6 +128,9 @@ def prepare(unit_id: str, key: str = Header(default="", alias="Idempotency-Key")
     if db.scalar(select(Job.id).where(Job.child_id == child.id, Job.status.in_(["queued", "running"]))):
         raise HTTPException(409, "Für dieses Kind wird bereits ein Auftrag verarbeitet.")
     rate_limit(db, "job:" + p.user.id, 30, 60, commit=False)
+    sources = visual_payload["visual_context"]["sources"]
+    values["sources"] = [{"id": row["material_id"], "revision": row["revision"]} for row in sources
+                         if row.get("material_id") and type(row.get("revision")) is int]
     job = Job(child_id=child.id, kind="unit_visuals", payload=values, idempotency=p.user.id + ":" + key)
     db.add(job)
     db.flush()
@@ -176,7 +183,14 @@ def process(job_id):
             if (current.revision, current.model) != (config_values["revision"], config_values["model"]):
                 raise ProviderError("Die KI-Einstellung wurde geändert.")
             guard_context(db, unit.child_id, payload["visual_context"])
-            value = checked_output(db, result.data, payload)
+            try:
+                value = checked_output(db, result.data, payload)
+            except ValueError as error:
+                # Schema and content validation reject the model response; do
+                # not classify unrelated programming or database errors here.
+                raise ProviderError(
+                    "Die Grafikerklärung konnte nicht sicher geprüft werden.", code="invalid_output"
+                ) from error
             old = db.get(UnitVisualSnapshot, unit.id)
             if old is not None:
                 db.delete(old)

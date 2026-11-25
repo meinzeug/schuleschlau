@@ -66,3 +66,12 @@ nachvollziehbar; Anbietertext und Aufgabeninhalt werden dort nicht ausgegeben.
 Wiederholte Spurabrufe erzeugen keine Aufträge oder Lernnachweise. Der Test
 wurde auch mit isoliertem PostgreSQL ausgeführt. Frühere Fehler bleiben
 unverändert; die vollständige Abnahme aller Verarbeitungsschritte ist offen.
+
+Grafikvorbereitungen speichern für neue Aufträge die im Grafikkontext
+verwendeten Materialkennungen und Revisionen. Eine ältere Anfrage ohne diese
+Metadaten bleibt mit demselben Idempotenzschlüssel wiederaufnehmbar; ihre
+Quellen werden nicht rückwirkend geraten. Wird eine Modellantwort bei der
+Schema- oder inhaltlichen Prüfung der Grafik verworfen, erhält der Auftrag die
+begrenzte Klasse `invalid_output`. Ein künstlicher Fehlerfall prüft den
+regulären Worker, die Elternspur und den Erhalt der gespeicherten Aufgabe und
+Antwort. Die Prüfung ist kein fachlicher Qualitätsnachweis für alle Grafiken.

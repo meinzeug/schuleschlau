@@ -2093,6 +2093,15 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Gesamte Verarbeitungskette durchgängig nachvollziehbar machen**
 
+  - [x] **Grafikvorbereitung bei ungültiger Antwort nachverfolgen.**
+    Neue Aufträge bewahren die tatsächlich verwendeten Seitenfassungen; alte
+    idempotente Anfragen funktionieren weiterhin. Schema- und Fachprüfungsfehler
+    erhalten eine begrenzte Fehlerklasse. Ein künstlicher ungültiger
+    Modelloutput wird im regulären Worker abgewiesen, ohne vorhandene Runde
+    oder Antwort zu verändern. Wiederholte Elternabrufe zeigen die Quelle,
+    geben keine privaten Inhalte aus und erzeugen keine neuen Lernnachweise.
+    Die Fehlerprüfung der weiteren Phasen bleibt offen.
+
   - [x] **Fehler bei der Klassenarbeitsnacharbeit nachvollziehbar machen.**
     Neue fehlgeschlagene Aufträge erhalten die begrenzte Fehlerklasse. Ein
     künstlicher Anbieter-Timeout wurde im regulären Worker ausgelöst und in

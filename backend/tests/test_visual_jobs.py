@@ -46,7 +46,7 @@ def start(api, uid, key=None):
 
 
 def test_parent_prepares_legacy_graphics_without_child_activity_or_modifying_saved_round(api, legacy):
-    uid, _, _, calls = legacy
+    uid, mid, _, calls = legacy
     with DB() as db:
         old = copy.deepcopy(db.get(LearningUnit, uid).questions)
         before = db.query(Attempt).count(), db.query(Activity).count()
@@ -55,6 +55,9 @@ def test_parent_prepares_legacy_graphics_without_child_activity_or_modifying_sav
     response = start(api, uid, key)
     assert response.status_code == 202, response.text
     jid = response.json()["id"]
+    assert api.get(f"/api/jobs/{jid}/trace").json()["sources"] == [
+        {"id": mid, "revision": 1, "current_revision": 1}
+    ]
     assert calls["reserve"][0][2] == "unit"
     assert start(api, uid, key).json() == response.json()
     assert len(calls["reserve"]) == 1
@@ -83,6 +86,66 @@ def test_parent_prepares_legacy_graphics_without_child_activity_or_modifying_sav
         assert selected["subject"] == "Mathematik"
         assert selected["digest"] == stored.digest == digest(stored.recipe)
     assert start(api, uid).status_code == 409
+    assert len(calls["reserve"]) == 1
+
+
+@pytest.mark.parametrize("fault", ["schema", "factual"])
+def test_invalid_visual_result_has_safe_trace_and_keeps_round_and_attempt(api, legacy, monkeypatch, fault):
+    from schulpilot import providers
+    from schulpilot.db import Mastery, Usage
+
+    uid, mid, _, calls = legacy
+    with DB() as db:
+        old = copy.deepcopy(db.get(LearningUnit, uid).questions)
+    response = start(api, uid)
+    assert response.status_code == 202
+    jid = response.json()["id"]
+    original = providers.request_provider
+
+    def invalid(*args, **kwargs):
+        result = original(*args, **kwargs)
+        if fault == "schema":
+            result.data["questions"] = []
+        else:
+            # Text/source describe 1/2, but the diagram claims 1/3.
+            result.data["explanation_steps"][0]["presentation"]["blocks"][0]["numbers"] = [1, 3]
+        return result
+
+    monkeypatch.setattr(providers, "request_provider", invalid)
+    with DB.begin() as db:
+        db.get(Job, jid).status = "running"
+    process(jid)
+    with DB() as db:
+        assert db.get(Job, jid).status == "failed"
+        assert db.get(Job, jid).error_code == "invalid_output"
+        assert db.get(UnitVisualSnapshot, uid) is None
+        assert db.get(LearningUnit, uid).questions == old
+        before = tuple(db.query(model).count() for model in (Job, Usage, Attempt, Activity, Mastery))
+    for _ in range(2):
+        trace = api.get(f"/api/jobs/{jid}/trace")
+        assert trace.status_code == 200
+        assert trace.json()["phase"] == "visual"
+        assert trace.json()["error_code"] == "invalid_output"
+        assert trace.json()["units"] == []
+        assert trace.json()["sources"] == [{"id": mid, "revision": 1, "current_revision": 1}]
+        assert SOURCE not in trace.text
+    with DB() as db:
+        assert tuple(db.query(model).count() for model in (Job, Usage, Attempt, Activity, Mastery)) == before
+    assert len(calls["provider"]) == 1
+    assert calls["settle"][0]["failed"] is True
+
+
+def test_legacy_visual_job_without_trace_sources_keeps_idempotency(api, legacy):
+    uid, _, _, calls = legacy
+    key = uuid4().hex
+    response = start(api, uid, key)
+    assert response.status_code == 202
+    jid = response.json()["id"]
+    with DB.begin() as db:
+        job = db.get(Job, jid)
+        job.payload = {key: value for key, value in job.payload.items() if key != "sources"}
+    assert start(api, uid, key).json() == response.json()
+    assert api.get(f"/api/jobs/{jid}/trace").json()["sources"] == []
     assert len(calls["reserve"]) == 1
 
 

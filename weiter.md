@@ -2,6 +2,12 @@
 
 ## Arbeitsstand 24. November 2026
 
+Neue Grafikvorbereitungen speichern die tatsächlich im Grafikkontext
+verwendeten Quellenrevisionen. Eine ungültige Grafikantwort erhält eine
+datensparsame Fehlerklasse, ohne gespeicherte Übungen zu verändern. Alte
+Aufträge bleiben idempotent; die vollständige Fehlerabnahme der
+Verarbeitungskette ist weiterhin offen.
+
 Am 25.11. wurde auch bei Klassenarbeitsnacharbeit die begrenzte
 Fehlerklassifizierung ergänzt und ein künstlicher Timeout im Worker samt
 Elternspur und PostgreSQL geprüft. Der Hauptpunkt zur durchgehenden
