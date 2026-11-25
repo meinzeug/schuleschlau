@@ -1953,7 +1953,16 @@ def answer(unit_id: str, question_id: str, data: s.AnswerRequest, p=Depends(chil
            capabilities: str | None = Header(None, alias="X-Schulpilot-Capabilities")):
     unit = get_unit(db, p, unit_id, True, True)
     language_capability(unit, capabilities, db)
-    q = question(unit, question_id)
+    try:
+        q = question(unit, question_id)
+    except HTTPException as error:
+        if error.status_code == 404:
+            from .local_processing_failures import record_failure
+
+            receipt = record_failure(db, p, unit.child_id, "answer", "question_missing", unit_id=unit.id)
+            if receipt:
+                error.headers = {**(error.headers or {}), "X-Processing-Receipt": receipt}
+        raise
     if q.get("type") == "grouped":
         from .grouped_questions import canonical, parse_answer
 

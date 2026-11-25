@@ -142,6 +142,13 @@ void main() {
             ],
             'units': [
               {
+                'visual_status': 'incomplete',
+                'visual_reason': 'source_changed',
+                'goal': {'revision': 1, 'current_revision': 2},
+                'competences': [
+                  {'id': 'math.fractions.reduce', 'version': 'v1'},
+                ],
+                'competences_unavailable': true,
                 'references': [
                   {'id': 'fixture', 'version': 1},
                 ],
@@ -173,6 +180,15 @@ void main() {
     expect(find.text('Anfrageschema: cccccccccccc'), findsOneWidget);
     expect(find.text('Quellen: 1'), findsOneWidget);
     expect(find.text('Grafikvorlagen: 1'), findsOneWidget);
+    expect(find.text('Grafikstatus: nicht vollständig'), findsOneWidget);
+    expect(find.text('Die Quelle wurde geändert.'), findsOneWidget);
+    expect(find.text('Auftragsfassung: 1 · aktuell 2'), findsOneWidget);
+    expect(find.text('Kompetenzzuordnungen: 1'), findsOneWidget);
+    expect(find.text('math.fractions.reduce · Version v1'), findsOneWidget);
+    expect(
+      find.text('Eine Kompetenzzuordnung ist nicht mehr aktuell.'),
+      findsOneWidget,
+    );
     expect(find.text('fixture · Version 1'), findsOneWidget);
     expect(find.text('Quellenfassung: 1 · aktuell 2'), findsOneWidget);
   });

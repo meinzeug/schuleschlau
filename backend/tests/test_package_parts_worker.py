@@ -167,6 +167,48 @@ def test_rejected_part_output_keeps_previous_receipt_and_billing(api, household,
     assert calls == [0, 1]
 
 
+def test_database_failure_rolls_back_part_but_retains_safe_error_and_billing(api, household, monkeypatch):
+    from sqlalchemy.orm import object_session
+
+    day_id, _, old = artificial_day(api, household)
+    calls = []
+
+    def provider(config, function, payload, image_bytes=None, *, synthetic_fixture=False):
+        calls.append(payload['package_partition'])
+        return Result(bounded_output(payload), 20, 40, 101, cost_source='reported')
+
+    monkeypatch.setattr(worker, 'request_provider', provider)
+    assert preparation(api, day_id, 'part-storage-failure-001')['status'] == 'processing'
+    assert run_one()
+    first = copy.deepcopy(snapshot(day_id)['package_outputs']['0'])
+    original = school_preparation._write
+
+    def failing_write(day, state, **kwargs):
+        original(day, state, **kwargs)
+        if '1' in state.get('package_outputs', {}):
+            db = object_session(day)
+            db.add(Attempt(unit_id='f' * 32, question_id='synthetic', answer='PRIVATE-SYNTHETIC',
+                           outcome='incorrect', assisted=False))
+            db.flush()  # Actual FK failure rolls back the entire staged transaction.
+
+    monkeypatch.setattr(school_preparation, '_write', failing_write)
+    job_id = run_one()
+    assert job_id and calls == [0, 1]
+    state = snapshot(day_id)
+    assert state['status'] == 'failed' and state['package_outputs']['0'] == first
+    assert '1' not in state['package_outputs']
+    with DB() as db:
+        assert db.get(Job, job_id).error_code == 'storage_failure'
+        usage = db.scalar(select(Usage).where(Usage.job_id == job_id))
+        assert usage.status == 'failed_billed' and usage.cost_micros == 101
+        assert db.get(Attempt, old['attempt']).outcome == 'uncertain'
+        assert db.scalar(select(func.count()).select_from(LearningUnit)) == 1
+        assert db.scalar(select(func.count()).select_from(Attempt)) == 1
+    trace = api.get(f'/api/jobs/{job_id}/trace')
+    assert trace.status_code == 200 and trace.json()['error_code'] == 'storage_failure'
+    assert 'PRIVATE-SYNTHETIC' not in trace.text and trace.json()['units'] == []
+
+
 @pytest.mark.parametrize("fault", [None, "invalid_output", "provider_busy", "provider_timeout", "provider_unavailable", "interrupted"],
     ids=["complete-path", "invalid-output", "busy", "timeout", "unavailable", "interrupted"])
 def test_normal_parts_stage_privately_then_publish_once_with_graphics_and_preserved_history(
@@ -247,6 +289,13 @@ def test_normal_parts_stage_privately_then_publish_once_with_graphics_and_preser
     assert ready["preparation"]["status"] == "ready" and ready["preparation"]["completed_parts"] == 3
     assert len(ready["units"]) == 3 and all(unit["status"] == "not_started" for unit in ready["units"])
     assert "package_outputs" not in snapshot(day_id)
+    trace = api.get(f'/api/jobs/{first_job}/trace')
+    assert trace.status_code == 200
+    assert len(trace.json()['units']) == 1
+    assert trace.json()['units'][0]['visual_status'] == 'ready'
+    assert any(ref['id'] == 'general.source_relation.phases' and ref['version'] == 1
+               for ref in trace.json()['units'][0]['references'])
+    assert CASE['source'] not in trace.text
     with DB() as db:
         units = list(db.scalars(select(LearningUnit).where(LearningUnit.school_day_id == day_id)))
         assert len(units) == 3 and {unit.package_version for unit in units} == {1}

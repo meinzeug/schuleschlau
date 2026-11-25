@@ -2091,7 +2091,28 @@ Bestandteil des bestehenden Buildvertrags.
 
 ## KI-Verarbeitung, Referenzen und Darstellung
 
-- [ ] **P1 – Gesamte Verarbeitungskette durchgängig nachvollziehbar machen**
+- [x] **P1 – Gesamte Verarbeitungskette durchgängig nachvollziehbar machen**
+
+  **Technische Abnahme 25.11.2026:** Die Elternspur verbindet die tatsächlich
+  vorhandenen Quellen-, Auftrags-, Schema-, Lernziel-, Kompetenz- und
+  Grafikbelege. Veröffentlichte Paketteile zeigen die jeweils daraus
+  entstandene Runde. Die Grafikbereitschaft wird gegen die aktuelle Quelle
+  und Darstellung geprüft. Für lokal abgewiesene Fotos und unbekannte Fragen
+  gibt es eigene begrenzte Fehlerbelege ohne Inhalte oder erfundene KI-Aufträge.
+  Künstliche Erfolgs- und Fehlerfälle, einschließlich eines echten ausgelösten
+  Datenbankfehlers, wurden auf SQLite und PostgreSQL geprüft; die Elternansicht
+  zusätzlich im Web bei 320 und 390 Pixeln und vergrößerter Schrift. Lesende
+  Aufrufe ändern keine Lernnachweise und starten keine KI. Details, Testmatrix
+  und Grenzen stehen im [Vertrag](docs/PROCESSING_TRACE_2026_11_23.md#technische-abnahme-am-25-november-2026).
+  Dies ist keine allgemeine Abnahme der OCR- oder Modellqualität.
+
+  - [x] **Lokale Fehler und tatsächliche Veröffentlichungen nachvollziehen.**
+    Foto- und Antwortfehler vor einem Auftrag erhalten, soweit die berechtigte
+    Aktion die Anwendung erreicht und die Datenbank verfügbar ist, einen
+    datensparsamen Beleg. Beim Veröffentlichen wird der Teilauftrag nur mit
+    seiner nachweislich daraus erzeugten Runde verbunden. Keine Kinderantwort,
+    kein Dateiname und kein Foto gelangen in die Fehlerbelege. Aufbewahrung,
+    Mengenbegrenzung, Löschung und Familienrechte sind geprüft.
 
   - [x] **Schulbuddy und Elternauswertung in der Auftragsspur prüfen.**
     Schulbuddy-Seitenfassungen werden nur bei passender Kind- und
@@ -2102,13 +2123,10 @@ Bestandteil des bestehenden Buildvertrags.
     SQLite- und PostgreSQL-Tests prüfen die regulären Worker; die
     vollständige Verarbeitungsketten-Abnahme bleibt offen.
 
-  **Noch offen:** Fehler vor der Auftragsanlage, etwa ein abgewiesener
-  Upload, und lokal abgelehnte Antworten besitzen bisher keinen solchen
-  Auftragsbeleg. Auch für ältere oder ohne übermittelten Schemabeleg
-  verarbeitete Aufträge lässt sich die genaue Version nicht nachträglich
-  feststellen. Für den Abschluss müssen diese Fälle mit einer geeigneten,
-  datensparsamen Verknüpfung und künstlichen Fehlerläufen nachvollziehbar
-  werden; unbekannte historische Werte dürfen nicht erfunden werden.
+  **Grenzen:** Anonyme oder bereits vom HTTP-Grenzfilter abgewiesene Anfragen
+  können keinem Kind zugeordnet werden. Auch bei Datenbankausfall oder
+  ausgeschöpfter Belegbegrenzung kann kein lokaler Beleg garantiert werden.
+  Historische oder mehrdeutige Schemaversionen bleiben ausdrücklich unbekannt.
 
   - [x] **Vorlagen- und Schemabelege in der Elternspur anzeigen.**
     Bei eindeutig zugeordneten Erkennungsfassungen werden vorhandene,

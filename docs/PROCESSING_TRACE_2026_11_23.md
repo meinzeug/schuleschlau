@@ -160,11 +160,9 @@ Belege bleiben unbekannt. Die Oberfläche zeigt die ersten zwölf Zeichen;
 der autorisierte API-Endpunkt enthält den vollständigen Wert. Es werden keine
 Vorlagentexte, Quellen, Antworten oder unbeschränkte Telemetrie ausgegeben.
 
-Grenze der bisherigen Kette: Abgewiesene Uploads vor der Auftragsanlage und
-lokal zurückgewiesene Antworten haben keinen eigenen Auftragsbeleg in diesem
-Endpunkt. Bei älteren oder ohne Schemabeleg ausgeführten Aufträgen kann die
-genaue Anfrageschema-Version nicht nachträglich bestimmt werden. Diese Fälle
-sind nicht durch den Fingerabdruck-Nachweis abgeschlossen.
+Historischer Stand vor dem 25. November: Abgewiesene Uploads vor der
+Auftragsanlage und lokal zurückgewiesene Antworten hatten keinen eigenen
+Beleg. Die nachfolgende Ergänzung beschreibt den jetzt getesteten Weg.
 
 Auch Schulbuddy verknüpft die Elternspur ausschließlich mit den gespeicherten
 Quellenrevisionen des tatsächlich zugehörigen Chatvorgangs und Kindes. Bei
@@ -174,3 +172,53 @@ erhalten. Eine entfernte Auftragsbindung zeigt keine Quellen. Künstliche
 Erfolgs- und Fehlerfälle der gesonderten Elternauswertung zeigen Status und
 Fehlerklasse ohne Antworttexte. SQLite und isoliertes PostgreSQL prüften die
 regulären Worker mit simuliertem Transport.
+
+## Technische Abnahme am 25. November 2026
+
+Die technische Verarbeitungsspur ist für die beschriebenen repräsentativen
+Erfolgs- und Fehlerwege mit künstlichen Daten geschlossen. Das ist keine
+fachliche Freigabe sämtlicher Aufgaben, Grafiken oder OCR-Ergebnisse und kein
+Nachweis einer aktuellen Anbieter- oder Push-Zustellung. Sämtliche hier
+beschriebenen Modellantworten wurden im Test simuliert.
+
+| Abschnitt | Nachvollziehbarer künstlicher Nachweis |
+| --- | --- |
+| Fotoannahme | Ein synthetisches Foto wird übernommen. Ein ungültiges oder zu großes Bild und ein nicht verfügbarer Decoder erhalten nach berechtigter Anfrage begrenzte lokale Fehlerklassen. |
+| Erkennung und Gegenprüfung | Zwei getrennte, quellgebundene Aufträge erzeugen Fassungen. Für beide wird ein Anbieter-Timeout im regulären Worker ausgelöst und ohne privaten Anbietertext angezeigt. |
+| Themen und Lernziele | Bei einem Paketteil wird eine falsche Fachgruppe verworfen. Die Spur zeigt gespeicherte Elternziel-Revisionen und aktuelle, zum Kind und der Aufgabe gehörende Kompetenzbindungen; veraltete oder fremde Bindungen werden ausgeschlossen. |
+| Referenz und Erstellung | Ein fremder Grafikverweis, ungültiges Schema und doppelte Aufgabenkennungen werden abgewiesen. Ein erfolgreicher mehrteiliger Auftrag wird bei Veröffentlichung ausdrücklich der daraus erzeugten Einheit zugeordnet. |
+| Speicherung | Ein künstlich ausgelöster tatsächlicher Fremdschlüsselfehler rollt den laufenden Teil zurück; vorherige Ergebnisse, alte Antworten und der gemeldete Kostenbeleg bleiben erhalten. Der Auftrag erhält `storage_failure`, sofern die Datenbank danach wieder beschreibbar ist. |
+| Darstellung | Die Elternspur prüft den aktuellen Grafikstatus erneut. Veränderte Quellen, beschädigte Parameter und eine fehlende Referenz werden nicht als bereit angezeigt. Web-Widgettests prüfen 320 und 390 Pixel sowie größere Schrift. |
+| Bewertung | Der zusammenhängende Test speichert eine Antwort nach einem Hinweis als unterstützt. Eine nicht existierende Frage erhält einen lokalen Fehlerbeleg; Antwort, Lernzeit und Lernstand bleiben unverändert. |
+
+Die erfolgreiche Quell- und Antwortkette steht in
+`backend/tests/test_processing_trace_journey.py`; lokale Fehler, Zugriff,
+Löschung, Export und parallele Begrenzung in
+`backend/tests/test_local_processing_failures.py`. Weitere Fehler und
+Versionsbindungen prüfen `test_processing_trace_api.py` und
+`test_package_parts_worker.py`; der Veröffentlichungsweg wird außerdem in
+`test_package_prefix_publication.py` geprüft. Die kombinierte lokale Prüfung
+ergab 110 erfolgreiche SQLite-Fälle mit zwei begründeten Skips und 98
+erfolgreiche PostgreSQL-Fälle. Für die beiden Elternpanels bestanden 25
+Chrome-Widgettests; statische Flutter-Analyse und migrationsbezogene Tests
+wurden ebenfalls ausgeführt.
+
+Lokale Fehler erhalten eine eigene zufällige Belegkennung statt eines
+erfundenen KI-Auftrags. Sie enthalten nur Kindbindung, gegebenenfalls
+Rundenkennung, feste Phase/Fehlerklasse und Zeitpunkt. Maximal 20 Belege je
+Phase und Kind werden in 24 Stunden gespeichert; sie sind höchstens 30 Tage
+einsehbar und werden danach regulär gelöscht. Eltern sehen sie nach
+ausdrücklichem Öffnen; Kinder, fremde Familien und Betriebsadministratoren
+erhalten keinen Zugang. Der Familienexport enthält gültige Belege; die
+Löschung von Kind oder Runde entfernt die zugehörigen Belege. Ein bestehender
+HTTP-Fehler bleibt auch bei gesperrter Sitzung, Erreichen der Obergrenze oder
+Datenbankfehler erhalten. In diesen Fällen ist ein zusätzlicher Beleg nicht
+garantiert. Vor Authentisierung beziehungsweise schon an der HTTP-Größengrenze
+abgewiesene Anfragen werden bewusst keinem Kind zugeordnet.
+
+Der tatsächliche Schemabeleg wird nur bei eindeutiger Zuordnung ausgegeben;
+fehlende und mehrdeutige ältere Belege bleiben `unavailable` beziehungsweise
+`ambiguous`. Auch ältere Paketteile ohne belegte Auftragsbindung werden nicht
+nachträglich geraten. Die Datenbankmigration `0055_local_processing_failures`
+ist beim nächsten Deployment erforderlich; sie ist vorwärtsgerichtet und wird
+in dieser Arbeitseinheit nicht produktiv ausgeführt.

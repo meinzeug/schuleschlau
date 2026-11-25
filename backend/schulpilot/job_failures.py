@@ -3,6 +3,7 @@
 import re
 
 from fastapi import HTTPException
+from sqlalchemy.exc import SQLAlchemyError
 
 CODES = {
     "quota_exhausted",
@@ -17,6 +18,7 @@ CODES = {
     "not_configured",
     "cost_preflight",
     "interrupted",
+    "storage_failure",
     "unknown",
     "decision_shape",
     "decision_refs",
@@ -65,6 +67,8 @@ def message_code(message):
 def failure_code(error):
     if getattr(error, "code", None) in CODES:
         return error.code
+    if isinstance(error, SQLAlchemyError):
+        return "storage_failure"
     if isinstance(error, HTTPException):
         if error.status_code == 429:
             return "quota_exhausted" if message_code(str(error.detail)) == "quota_exhausted" else "provider_busy"

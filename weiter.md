@@ -1,5 +1,22 @@
 # Übergabe an die nächste Coding-KI
 
+## Arbeitsstand 25. November 2026
+
+Der Hauptpunkt zur technischen Nachvollziehbarkeit der Verarbeitungskette ist
+mit künstlichen Erfolgs- und Fehlerläufen abgeschlossen. Die Elternspur zeigt
+unter anderem tatsächlich zugeordnete veröffentlichte Paketteile, gültige
+Lernziel-/Kompetenzbindungen und den aktuell geprüften Grafikstatus. Separat
+gibt es begrenzte, inhaltsfreie Belege für lokal abgewiesene Uploads und
+Antworten. Grenzen, Löschregeln und die Testmatrix stehen in
+`docs/PROCESSING_TRACE_2026_11_23.md`. SQLite, isoliertes PostgreSQL und die
+Chrome-Widgettests wurden geprüft; es fand kein echter KI-Aufruf statt.
+
+Für ein späteres Deployment wird Migration `0055_local_processing_failures`
+benötigt. In dieser Arbeitseinheit ist kein Release oder Deployment beauftragt.
+Die folgenden älteren Abschnitte dokumentieren historische Zwischenstände;
+ihre Hinweise auf die offene technische Kettenabnahme sind durch die obige
+Abnahme überholt. Andere fachliche und betriebliche Roadmappunkte bleiben offen.
+
 ## Arbeitsstand 24. November 2026
 
 Die Elternspur zeigt gebundene Schulbuddy-Seitenfassungen; unzulässige

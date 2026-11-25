@@ -1,17 +1,126 @@
 """Private, read-only, bounded processing metadata; all examples artificial."""
 
+import copy
+
 import pytest
 from conftest import HEADERS, create_child, register
 from fastapi.testclient import TestClient
-from schulpilot.db import DB, Activity, Attempt, Job, LearningUnit, Material, Usage, uid
+from schulpilot.db import DB, Activity, Assignment, Attempt, Job, LearningUnit, Material, Usage, uid
 from schulpilot.main import app
 from schulpilot.source_lineage_models import SourceRevision
 from schulpilot.synthetic import sample_unit
 from schulpilot.visual_reference_models import UnitVisualSnapshot, VisualReference
 from sqlalchemy import func, select
+from test_coaching import normal_unit as normal_unit
 from test_codex_models import operator as operator
+from test_visual_references import generated_visual_unit as generated_visual_unit
 
 CANARY = "ARTIFICIAL_PRIVATE_CONTENT_DO_NOT_EXPOSE_IN_TRACE"
+
+
+def test_only_current_child_bound_competence_is_traced_without_question_content(api, normal_unit):
+    from schulpilot import competences
+    from schulpilot.competence_models import QuestionCompetence
+
+    _, unit_id, material_id, _, child = normal_unit
+    with DB.begin() as db:
+        unit = db.get(LearningUnit, unit_id)
+        page = db.get(Material, material_id)
+        question = unit.questions[0]
+        goal = Assignment(child_id=child['id'], kind='parent', subject='Mathematik', topic='Künstlich')
+        db.add(goal)
+        db.flush()
+        unit.assignment_id, unit.goal_revision = goal.id, goal.revision
+        db.add(QuestionCompetence(unit_id=unit.id, child_id=child['id'], question_id=question['id'],
+            competence_id='math.fractions.reduce', catalog_version=competences.VERSION, role='practice',
+            question_digest=competences.question_digest(question),
+            source_refs=[competences.source_ref(db, page)], reference_ids=[]))
+        job = Job(child_id=child['id'], kind='unit', status='completed', idempotency=uid(),
+                  payload={'material_id': material_id, 'material_revision': page.revision}, result={'unit_id': unit.id})
+        db.add(job)
+        db.flush()
+        identifier = job.id
+        goal_id = goal.id
+        private_prompt = question['prompt']
+    response = api.get(f'/api/jobs/{identifier}/trace')
+    assert response.status_code == 200
+    assert response.json()['units'][0]['competences'] == [{'id': 'math.fractions.reduce', 'version': competences.VERSION}]
+    assert response.json()['units'][0]['competences_unavailable'] is False
+    assert response.json()['units'][0]['goal'] == {'id': goal_id, 'revision': 1, 'current_revision': 1}
+    assert private_prompt not in response.text
+    with DB.begin() as db:
+        binding = db.get(QuestionCompetence, (unit_id, question['id']))
+        saved_refs = copy.deepcopy(binding.source_refs)
+        binding.source_refs = saved_refs * 33
+    limited = api.get(f'/api/jobs/{identifier}/trace').json()['units'][0]
+    assert limited['competences'] == [] and limited['competences_truncated'] is True
+    with DB.begin() as db:
+        db.get(QuestionCompetence, (unit_id, question['id'])).source_refs = saved_refs
+    with DB.begin() as db:
+        db.get(Material, material_id).revision += 1
+        db.get(Assignment, goal_id).revision += 1
+    changed = api.get(f'/api/jobs/{identifier}/trace').json()['units'][0]
+    assert changed['competences'] == [] and changed['competences_unavailable'] is True
+    assert changed['goal'] == {'id': goal_id, 'revision': 1, 'current_revision': 2}
+
+
+def test_foreign_goal_and_competence_binding_are_not_attributed(api, normal_unit):
+    from schulpilot import competences
+    from schulpilot.competence_models import QuestionCompetence
+
+    _, unit_id, material_id, parent_data, child = normal_unit
+    sibling = create_child(api, parent_data, username='trace-sibling')
+    with DB.begin() as db:
+        unit = db.get(LearningUnit, unit_id)
+        goal = Assignment(child_id=sibling['id'], kind='parent', subject='Mathematik', topic='Künstlich')
+        db.add(goal)
+        db.flush()
+        unit.assignment_id, unit.goal_revision = goal.id, goal.revision
+        db.add(QuestionCompetence(unit_id=unit.id, child_id=sibling['id'], question_id=unit.questions[0]['id'],
+            competence_id='math.fractions.reduce', catalog_version=competences.VERSION, role='practice',
+            question_digest=competences.question_digest(unit.questions[0]),
+            source_refs=[competences.source_ref(db, db.get(Material, material_id))], reference_ids=[]))
+        job = Job(child_id=child['id'], kind='unit', status='completed', idempotency=uid(),
+                  payload={}, result={'unit_id': unit.id})
+        db.add(job)
+        db.flush()
+        job_id = job.id
+    data = api.get(f'/api/jobs/{job_id}/trace').json()['units'][0]
+    assert data['goal'] is None and data['competences'] == []
+
+
+@pytest.mark.parametrize('fault', ['source', 'parameters', 'missing_recipe', 'unknown_reason'])
+def test_trace_never_calls_damaged_or_stale_graphics_ready(api, generated_visual_unit, fault):
+    unit_id, material_id, child_id = generated_visual_unit
+    with DB.begin() as db:
+        job = Job(child_id=child_id, kind='unit', status='completed', idempotency=uid(),
+                  payload={'material_id': material_id, 'material_revision': 1}, result={'unit_id': unit_id})
+        db.add(job)
+        db.flush()
+        job_id = job.id
+    assert api.get(f'/api/jobs/{job_id}/trace').json()['units'][0]['visual_status'] == 'ready'
+    with DB.begin() as db:
+        if fault == 'source':
+            db.get(Material, material_id).revision += 1
+        elif fault == 'parameters':
+            visual = db.get(UnitVisualSnapshot, unit_id)
+            steps = copy.deepcopy(visual.steps)
+            steps[0]['presentation']['blocks'][0]['numbers'] = [2, 3]
+            visual.steps = steps
+        elif fault == 'missing_recipe':
+            db.delete(db.get(VisualReference, ('math.fraction.part_whole', 1)))
+        else:
+            visual = db.get(UnitVisualSnapshot, unit_id)
+            visual.status, visual.reason = 'incomplete', 'PRIVATE_CANARY'
+    response = api.get(f'/api/jobs/{job_id}/trace')
+    assert response.status_code == 200
+    assert response.json()['units'][0]['visual_status'] == 'incomplete'
+    assert response.json()['units'][0]['visual_reason'] == (
+        'source_changed' if fault == 'source' else None if fault == 'unknown_reason' else 'invalid_graphic')
+    assert CANARY not in response.text
+    assert 'PRIVATE_CANARY' not in response.text
+    with DB() as db:
+        assert db.get(UnitVisualSnapshot, unit_id).status == ('incomplete' if fault == 'unknown_reason' else 'ready')
 
 
 def test_trace_is_metadata_only_family_authorized_and_read_only(api, household, mailbox, operator):
@@ -141,6 +250,7 @@ def test_only_bounded_actual_request_schema_digest_is_shown(api, household, valu
     response = api.get(f'/api/jobs/{identifier}/trace')
     assert response.status_code == 200
     assert response.json()['request_schema_sha256'] == expected
+    assert response.json()['request_schema_status'] == ('available' if expected else 'unavailable')
     assert CANARY not in response.text
 
 
@@ -160,6 +270,7 @@ def test_multiple_usage_receipts_do_not_guess_a_request_schema(api, household):
     assert response.status_code == 200
     assert response.json()['model_ambiguous'] is True
     assert response.json()['request_schema_sha256'] is None
+    assert response.json()['request_schema_status'] == 'ambiguous'
 
 
 @pytest.mark.parametrize(("telemetry", "expected"), [

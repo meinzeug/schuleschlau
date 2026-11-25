@@ -123,9 +123,19 @@ def _upload_under_slot(child_id, file, school_day_id, purpose, idempotency_key, 
     if idempotency_key is not None and not re.fullmatch(r"[A-Za-z0-9_-]{16,80}", idempotency_key):
         raise HTTPException(422, "Bitte einen gültigen Upload-Schlüssel verwenden.")
     raw = file.file.read(10 * 1024 * 1024 + 1)
-    if len(raw) > 10 * 1024 * 1024:
-        raise HTTPException(413, "Das Bild darf höchstens 10 MB groß sein.")
-    output, upload_geometry, warnings = normalize_photo(raw)
+    try:
+        if len(raw) > 10 * 1024 * 1024:
+            raise HTTPException(413, "Das Bild darf höchstens 10 MB groß sein.")
+        output, upload_geometry, warnings = normalize_photo(raw)
+    except HTTPException as error:
+        code = {413: "photo_too_large", 422: "photo_invalid", 503: "photo_unavailable"}.get(error.status_code)
+        if code:
+            from .local_processing_failures import record_failure
+
+            receipt = record_failure(db, p, child.id, "upload", code)
+            if receipt:
+                error.headers = {**(error.headers or {}), "X-Processing-Receipt": receipt}
+        raise
     digest = hashlib.sha256(output.getvalue()).hexdigest()
     # One lock per child also serializes replay checks, day state and file ownership.
     db.execute(update(Child).where(Child.id == child.id).values(grade=Child.grade))
@@ -934,6 +944,10 @@ router.add_api_route("/children/{child_id}/materials/bulk-delete", material_acti
 router.add_api_route("/materials/{material_id}/reprocess", material_actions.reprocess, methods=["POST"], status_code=202)
 
 # Read-only metadata for the authorized family; no new jobs or provider calls.
-from . import processing_trace  # noqa: E402
+from . import (  # noqa: E402
+    local_processing_failures,
+    processing_trace,
+)
 
 router.include_router(processing_trace.router)
+router.include_router(local_processing_failures.router)

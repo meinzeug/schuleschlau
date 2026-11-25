@@ -16,6 +16,7 @@ from .db import (
     LanguageProject,
     LearningMemory,
     LearningUnit,
+    LocalProcessingFailure,
     Mastery,
     SchoolDay,
     UnitCoaching,
@@ -91,6 +92,7 @@ def snapshot(db, ids):
     digest = hashlib.sha256()
     for model, condition in (
         (LearningUnit, LearningUnit.id.in_(ids)),
+        (LocalProcessingFailure, LocalProcessingFailure.unit_id.in_(ids)),
         (Attempt, Attempt.unit_id.in_(ids)),
         (Activity, Activity.unit_id.in_(ids)),
         (UnitSource, UnitSource.unit_id.in_(ids)),

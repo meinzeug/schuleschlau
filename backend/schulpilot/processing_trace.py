@@ -9,7 +9,19 @@ import re
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 
-from .db import Job, LanguageProject, LearningUnit, Material, SchulbuddyTurn, TutorTurn, Usage, VocabularyImport, get_db
+from .competence_models import QuestionCompetence
+from .db import (
+    Assignment,
+    Job,
+    LanguageProject,
+    LearningUnit,
+    Material,
+    SchulbuddyTurn,
+    TutorTurn,
+    Usage,
+    VocabularyImport,
+    get_db,
+)
 from .job_failures import CODES
 from .security import child_access, parent
 from .source_lineage_models import SourceRevision
@@ -20,6 +32,8 @@ ID = re.compile(r"^[a-f0-9]{32}$")
 SHA256 = re.compile(r"^[a-f0-9]{64}$")
 SAFE_LABEL = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9._/:+\-]{0,159}$")
 LIMIT = 32
+VISUAL_REASONS = frozenset({"missing_steps", "invalid_graphic", "source_changed", "no_confirmed_source",
+                            "subject_unresolved", "no_reference"})
 
 
 def safe_id(value):
@@ -164,6 +178,8 @@ def processing_trace(job_id: str, p=Depends(parent), db=Depends(get_db)):
     raw_units = result.get("unit_ids") if isinstance(result.get("unit_ids"), list) else [result.get("unit_id")]
     units, seen_units = [], set()
     reference_budget = LIMIT
+    competence_budget = LIMIT
+    competence_source_budget = LIMIT
     if job.status == "completed":
         for identifier in raw_units[:LIMIT]:
             if not safe_id(identifier) or identifier in seen_units:
@@ -173,6 +189,17 @@ def processing_trace(job_id: str, p=Depends(parent), db=Depends(get_db)):
                 continue
             seen_units.add(identifier)
             visual = db.get(UnitVisualSnapshot, identifier)
+            visual_status = None
+            visual_reason = None
+            if visual:
+                from .visual_references import projection
+
+                current_visual = projection(db, unit, show_introduction=False)
+                if current_visual["explanation_visual_status"] in ("ready", "incomplete"):
+                    visual_status = current_visual["explanation_visual_status"]
+                reason = current_visual.get("explanation_visual_reason")
+                if visual_status == "incomplete" and isinstance(reason, str) and reason in VISUAL_REASONS:
+                    visual_reason = reason
             references, seen_references = [], set()
             receipts = visual.receipts if visual and isinstance(visual.receipts, list) else []
             inspected = min(len(receipts), reference_budget)
@@ -186,10 +213,49 @@ def processing_trace(job_id: str, p=Depends(parent), db=Depends(get_db)):
                     continue
                 seen_references.add(key)
                 references.append({"id": key[0], "version": key[1]})
+            assignment = db.get(Assignment, unit.assignment_id) if safe_id(unit.assignment_id) else None
+            goal = None
+            if (assignment and assignment.child_id == child.id and type(unit.goal_revision) is int
+                    and unit.goal_revision > 0 and type(assignment.revision) is int and assignment.revision > 0):
+                goal = {"id": assignment.id, "revision": unit.goal_revision, "current_revision": assignment.revision}
+            bindings = list(db.scalars(select(QuestionCompetence).where(
+                QuestionCompetence.unit_id == unit.id, QuestionCompetence.child_id == child.id
+            ).order_by(QuestionCompetence.question_id).limit(competence_budget + 1)))
+            inspected_bindings = bindings[:competence_budget]
+            competence_budget -= len(inspected_bindings)
+            competences, seen_competences = [], set()
+            invalid_binding = False
+            sources_truncated = False
+            for binding in inspected_bindings:
+                from .competences import binding_current
+
+                questions = [q for q in unit.questions if isinstance(q, dict) and q.get("id") == binding.question_id] if isinstance(unit.questions, list) else []
+                refs = binding.source_refs
+                if isinstance(refs, list) and len(refs) > competence_source_budget:
+                    sources_truncated = True
+                    continue
+                if isinstance(refs, list):
+                    competence_source_budget -= len(refs)
+                try:
+                    valid = (len(questions) == 1 and isinstance(refs, list) and 0 < len(refs) <= LIMIT
+                             and binding_current(db, binding, unit, questions[0]))
+                except (KeyError, TypeError, ValueError):
+                    valid = False
+                key = (label(binding.competence_id), label(binding.catalog_version))
+                if not valid or not all(key):
+                    invalid_binding = True
+                elif key not in seen_competences:
+                    seen_competences.add(key)
+                    competences.append({"id": key[0], "version": key[1]})
             units.append(
                 {
                     "id": unit.id,
-                    "visual_status": visual.status if visual and visual.status in ("ready", "incomplete") else None,
+                    "visual_status": visual_status,
+                    "visual_reason": visual_reason,
+                    "goal": goal,
+                    "competences": competences,
+                    "competences_unavailable": invalid_binding,
+                    "competences_truncated": sources_truncated or len(bindings) > len(inspected_bindings),
                     "references": references,
                     "references_truncated": len(receipts) > inspected,
                 }
@@ -203,6 +269,8 @@ def processing_trace(job_id: str, p=Depends(parent), db=Depends(get_db)):
         "model": model,
         "model_ambiguous": len(usages) > 1,
         "request_schema_sha256": request_schema_sha256,
+        "request_schema_status": ("ambiguous" if len(usages) > 1 else
+                                  "available" if request_schema_sha256 else "unavailable"),
         "sources": sources,
         "sources_truncated": len(proposed) > LIMIT,
         "source_snapshot": snapshot,

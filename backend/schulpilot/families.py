@@ -587,6 +587,7 @@ def export_child(db, child):
         LanguageProject,
         LearningEvent,
         LearningMemory,
+        LocalProcessingFailure,
         NotificationRead,
         SchoolGrade,
         VocabularyAction,
@@ -604,6 +605,12 @@ def export_child(db, child):
     for model in (LearningMemory, LearningEvent, ChildCostBucket):
         result[model.__tablename__] = [{c.name: getattr(row, c.name) for c in model.__table__.columns}
             for row in db.scalars(select(model).where(model.child_id == child.id))]
+    from .local_processing_failures import failure_data
+
+    result[LocalProcessingFailure.__tablename__] = [
+        data for row in db.scalars(select(LocalProcessingFailure).where(LocalProcessingFailure.child_id == child.id,
+            LocalProcessingFailure.created >= int(now()) - 30 * 86400)) if (data := failure_data(db, row)) is not None
+    ]
     for model in (LearningTipContext, LearningTipInteraction, CatalogRefresh):
         result[model.__tablename__] = [{c.name: getattr(row, c.name) for c in model.__table__.columns}
             for row in db.scalars(select(model).where(model.child_id == child.id))]

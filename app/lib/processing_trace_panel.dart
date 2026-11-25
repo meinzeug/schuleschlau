@@ -216,9 +216,54 @@ class _ProcessingTracePanelState extends State<ProcessingTracePanel> {
                   Text(
                     'Anfrageschema: ${requestSchemaDigest.substring(0, 12)}',
                   ),
+                if (value['request_schema_status'] == 'unavailable')
+                  const Text('Anfrageschema: nicht belegt'),
+                if (value['request_schema_status'] == 'ambiguous')
+                  const Text('Anfrageschema: nicht eindeutig zugeordnet'),
                 if (units is List)
                   for (final unit in units)
                     if (unit is Map && unit['references'] is List) ...[
+                      if (unit['goal'] is Map &&
+                          unit['goal']['revision'] is int &&
+                          unit['goal']['current_revision'] is int)
+                        Text(
+                          'Auftragsfassung: ${unit['goal']['revision']} · aktuell ${unit['goal']['current_revision']}',
+                        ),
+                      if (unit['competences'] is List)
+                        Text(
+                          'Kompetenzzuordnungen: ${(unit['competences'] as List).length}${unit['competences_truncated'] == true ? ' (Auswahl)' : ''}',
+                        ),
+                      if (unit['competences'] is List)
+                        for (final item in (unit['competences'] as List).take(
+                          5,
+                        ))
+                          if (item is Map &&
+                              item['id'] is String &&
+                              item['version'] is String)
+                            Text('${item['id']} · Version ${item['version']}'),
+                      if (unit['competences_unavailable'] == true)
+                        const Text(
+                          'Eine Kompetenzzuordnung ist nicht mehr aktuell.',
+                        ),
+                      if (unit['visual_status'] == 'ready')
+                        const Text('Grafikstatus: verfügbar'),
+                      if (unit['visual_status'] == 'incomplete')
+                        const Text('Grafikstatus: nicht vollständig'),
+                      if (switch (unit['visual_reason']) {
+                            'source_changed' => 'Die Quelle wurde geändert.',
+                            'invalid_graphic' =>
+                              'Die Grafik muss geprüft werden.',
+                            'missing_steps' => 'Ein Grafikschritt fehlt.',
+                            'no_confirmed_source' =>
+                              'Es fehlt eine bestätigte Quelle.',
+                            'subject_unresolved' =>
+                              'Das Fach konnte nicht zugeordnet werden.',
+                            'no_reference' =>
+                              'Keine passende Grafikvorlage gefunden.',
+                            _ => null,
+                          }
+                          case final String reason)
+                        Text(reason),
                       Text(
                         'Grafikvorlagen: ${(unit['references'] as List).length}${unit['references_truncated'] == true ? ' (Auswahl)' : ''}',
                       ),

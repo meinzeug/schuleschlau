@@ -22,6 +22,7 @@ import 'ui.dart';
 import 'page_tools.dart';
 import 'parent_view_details.dart';
 import 'learning_plan_ui.dart';
+import 'local_processing_failures_panel.dart';
 
 class DashboardScreen extends StatelessWidget {
   final AppState state;
@@ -1043,6 +1044,12 @@ class _ChildDetailBodyState extends State<_ChildDetailBody>
                         data: data,
                         state: state,
                         revision: version,
+                      ),
+                    if (tab == 0)
+                      LocalProcessingFailuresPanel(
+                        key: ValueKey(child['id']),
+                        state: state,
+                        childId: child['id'],
                       ),
                     if (tab == 4)
                       ChildPreferencesPage(

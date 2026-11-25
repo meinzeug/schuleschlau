@@ -6,7 +6,7 @@ explicit repair. This does not extend source retention or authorize a retry.
 """
 from sqlalchemy import and_, delete, exists, or_, select
 
-from .db import Job, SchoolDay, Usage
+from .db import Job, LocalProcessingFailure, SchoolDay, Usage
 
 
 def open_dependency():
@@ -26,6 +26,7 @@ def open_dependency():
 
 
 def purge(db, stamp):
+    db.execute(delete(LocalProcessingFailure).where(LocalProcessingFailure.created < stamp - 30 * 86400))
     dependency = open_dependency()
     db.execute(delete(Job).where(
         Job.status.in_(("failed", "completed")),

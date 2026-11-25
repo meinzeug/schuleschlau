@@ -935,6 +935,18 @@ class SchulbuddyTurn(Base):
     __table_args__ = (UniqueConstraint("user_id", "request_key", name="uq_schulbuddy_request"),)
 
 
+class LocalProcessingFailure(Base):
+    """Short-lived technical receipts; never store inputs, answers or filenames."""
+
+    __tablename__ = "local_processing_failures"
+    id = Column(String(32), primary_key=True, default=uid)
+    child_id = Column(ForeignKey("children.id", ondelete="CASCADE"), nullable=False, index=True)
+    unit_id = Column(ForeignKey("learning_units.id", ondelete="CASCADE"), index=True)
+    phase = Column(String(16), nullable=False)
+    code = Column(String(32), nullable=False)
+    created = Column(Integer, default=lambda: int(now()), nullable=False, index=True)
+
+
 class Job(Base):
     __tablename__ = "jobs"
     id = Column(String(32), primary_key=True, default=uid)

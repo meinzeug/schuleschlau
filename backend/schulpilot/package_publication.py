@@ -201,6 +201,12 @@ def publish_prefix(db, day, child, plan, *, complete=False):
             "receipt_sha256": stored["receipt_sha256"], "output_sha256": stored["output_sha256"],
             "context_sha256": stored["context_sha256"], "visual_required": required, "deleted": False}
         published[str(index)] = {**entry, "sha256": _digest(entry)}
+        # Record only the unit just created from this exact persisted part.
+        # Legacy job results without the matching day/index remain untouched.
+        job_result = job.result if isinstance(job.result, dict) else {}
+        if job_result.get("school_day_id") == day.id and job_result.get("package_partition") == index:
+            _require(job_result.get("unit_id") in (None, unit.id), "Der Teilauftrag ist bereits einer anderen Runde zugeordnet.")
+            job.result = {**job_result, "unit_id": unit.id}
         units.append(unit)
         record(db, child.id, "unit_created", {"subject": unit.subject, "topic": unit.topic, "synthetic": False,
             "school_day_id": day.id, "package_partition": index}, unit.id)
