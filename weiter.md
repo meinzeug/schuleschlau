@@ -1,5 +1,22 @@
 # Übergabe an die nächste Coding-KI
 
+## Schulbuddy: exakte Lösungstreffer
+
+Ein endlicher serverseitiger Filter hält exakte gespeicherte Lösungen bei
+offenen Kinderaufgaben aus Modellantwort, Rückfrage, Schnellaktionen und
+Quellenzitaten zurück. Bereits freigegebene Aufgabenlösungen und freigegebenes
+Feedback bleiben erklärbar; zurückgewiesene Antworten erzeugen keinen
+Hilfebeleg und keine automatische Wiederholung. Die Grenzen und möglichen
+Fehlalarme stehen in `docs/SCHULBUDDY.md`. Der Hauptpunkt bleibt offen:
+semantische Lösungshinweise, künstliche adversariale Modellprüfungen und
+fachliche beziehungsweise kinderschutzbezogene Sichtung sind damit nicht
+abgenommen.
+
+Bei einer Rückmeldung auf einen falschen Versuch wird eine neue erfolgreiche
+Schulbuddy-Hilfe jetzt für eine weitere Antwort derselben noch offenen Aufgabe
+angerechnet. Der alte Versuch bleibt unverändert; eine andere oder bereits
+abgeschlossene Aufgabe wird nicht pauschal markiert.
+
 ## Arbeitsstand 25. November 2026
 
 Der Hauptpunkt zur technischen Nachvollziehbarkeit der Verarbeitungskette ist

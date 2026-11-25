@@ -2679,6 +2679,25 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Schulbuddy als sicheren kontextbezogenen Lernbegleiter prüfen**
 
+  - [x] **Exakte Lösungen in Hinweisen zu offenen Aufgaben zurückhalten.**
+    Bei einfachen gespeicherten Fragen prüft der Server die sichtbare
+    Modellantwort, Rückfrage, Schnellaktionen und Quellenzitate auf exakt
+    gespeicherte Lösungen und Varianten. Ein Treffer wird nicht angezeigt
+    oder als Hilfe angerechnet; der gegebenenfalls angefallene Anbieterpreis
+    bleibt regulär verbucht. Freigegebene Rückmeldungen und ausdrücklich
+    geöffnete Lösungsschritte bleiben erklärbar. Tests verwenden künstliche
+    Inhalte und simulierten Modelltransport. Diese endliche Prüfung erkennt
+    weder beliebige Umschreibungen noch jede mathematische Äquivalenz und ist
+    keine allgemeine Sicherheits- oder Kinderschutzabnahme.
+
+  - [x] **Hilfe während einer falschen Rückmeldung beim Wiederholen anrechnen.**
+    Gilt nach einer falschen Antwort weiterhin dieselbe Aufgabe als offen,
+    kennzeichnet eine erfolgreich gegebene Schulbuddy-Hilfe einen späteren
+    neuen Versuch als unterstützt. Der frühere Versuch wird nicht verändert;
+    Rückmeldungen zu abgeschlossenen oder anderen Aufgaben zählen nicht als
+    Hilfe für eine neue Frage. Künstliche Tests prüfen die Speicherung und
+    den anschließenden Wiederholungsversuch.
+
   - [x] **Schulbuddy-Kontext öffentlicher Erkundungen wiederherstellen.**
     Die bereits durch die Referenzprüfung für die Anzeige aufbereitete Grafik
     wird dem Tutor einmalig übergeben. Eine zweite Validierung verlangte zuvor

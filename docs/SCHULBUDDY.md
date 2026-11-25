@@ -1,5 +1,30 @@
 # Schulbuddy
 
+## Schutz vor exakter Lösungsanzeige bei offenen Aufgaben
+
+Bei einem Kinderauftrag zu einer offenen kurzen, Lücken- oder Auswahlfrage
+vergleicht der Server die sichtbare Antwort, Rückfrage, Schnellaktionen und
+Quellenzitate mit dem gespeicherten Lösungsschlüssel und seinen Varianten.
+Die Schlüssel selbst werden nicht an das Modell übergeben. Erkannte exakte
+Treffer werden nicht veröffentlicht und erzeugen keinen Hilfebeleg; ein
+bereits entstandener Anbieteraufwand wird regulär abgerechnet. Die App zeigt
+eine kurze Bitte, anders nach einem Hinweis zu fragen; sie startet keinen
+automatischen Folgeauftrag. Freigegebenes Aufgabenfeedback und ein
+ausdrücklich geöffneter Lösungsschritt bleiben erklärbar. Bei Freitextfragen
+wird auch ein Ergebnis, das bereits im Aufgabenwortlaut oder im ausdrücklich
+geöffneten Erklärungstext steht, nicht erneut versteckt. Eine ungelesene
+Rückmeldung auf eine falsche Antwort gibt die Lösung nicht automatisch frei.
+Gibt Schulbuddy bei dieser Rückmeldung eine zulässige Hilfe und bleibt
+dieselbe Aufgabe noch offen, wird ein anschließender erneuter Versuch als
+unterstützt erfasst. Der frühere Versuch wird nicht umgeschrieben.
+
+Die Prüfung ist bewusst begrenzt: Einfache Unicode- und Bruchschreibweisen
+werden normalisiert, aber sinngemäße Umschreibungen, mathematische
+Äquivalenzen, sehr kurze Wörter und andere Aufgabentypen werden nicht
+zuverlässig erkannt. Auch bei möglicher Mehrdeutigkeit kann ein passender
+Hinweis vorsorglich zurückgehalten werden. Diese Regel ist weder fachliche
+Modellprüfung noch vollständiger Schutz vor Lösungshinweisen oder Manipulation.
+
 Schulbuddy ist eine ausdrücklich gestartete, kontextbezogene Hilfe. Öffnen, Starter und Statusabfragen erzeugen weder KI-Aufträge noch Lernbelege. Ein eigener Kinderzugang oder ein berechtigter Elternzugang mit ausgewähltem Kind verwendet dessen vorhandenes Familien-/Kinderbudget. Nur leseberechtigte Eltern dürfen keinen neuen kostenpflichtigen Auftrag starten. Admins erhalten keine privaten Kinderkontexte und keinen unbudgetierten Chat.
 
 ## Kompakter Gesprächsstart · 1.24.1+95

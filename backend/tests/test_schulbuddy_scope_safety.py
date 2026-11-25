@@ -18,7 +18,11 @@ def book(api, household, monkeypatch):
 
 @pytest.fixture
 def transport(monkeypatch):
-    return transport_fixture.__wrapped__(monkeypatch)
+    state = transport_fixture.__wrapped__(monkeypatch)
+    state["output"] = {"answer": "Überlege, zu welcher Art Himmelskörper die Sonne gehört.",
+                       "sources": [{"ref": "p1", "quote": "Die Erde dreht sich um die Sonne."}],
+                       "next_question": None, "starters": []}
+    return state
 
 
 def questions():
@@ -50,7 +54,7 @@ def test_read_only_parent_retains_own_history_but_form_cannot_offer_a_paid_quest
     value = context.json()
     assert value["available"] is False and "Familienberechtigung" in value["notice"]
     assert [row["id"] for row in value["history"]] == [turn.json()["id"]]
-    assert value["history"][0]["answer"] == "Die Sonne ist ein Stern."
+    assert value["history"][0]["answer"] == "Überlege, zu welcher Art Himmelskörper die Sonne gehört."
     assert ask(book, client=api).status_code == 403
     assert counts() == before and len(transport["calls"]) == 1
 

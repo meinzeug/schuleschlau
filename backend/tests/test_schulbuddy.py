@@ -211,6 +211,9 @@ def test_actual_successful_question_help_is_recorded_once_without_rewriting_answ
         unit.status = "active"
         unit.questions = [{"id": "q1", "type": "short", "prompt": "Was ist die Sonne?", "options": [],
                            "answer": "Stern", "accepted": [], "hints": [], "explanation": "Synthetisch"}]
+    transport["output"] = {"answer": "Überlege, zu welcher Art Himmelskörper die Sonne gehört.",
+                           "sources": [{"ref": "p1", "quote": "Die Erde dreht sich um die Sonne."}],
+                           "next_question": None, "starters": []}
     key = uuid.uuid4().hex
     first = ask(book, question_id="q1", key=key)
     assert first.status_code == 202, first.text

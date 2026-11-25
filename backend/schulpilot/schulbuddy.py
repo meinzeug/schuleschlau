@@ -727,6 +727,20 @@ def process(job_id):
             if not usage or (usage.provider, usage.model, usage.config_revision) != (config.provider, config.model, config.revision):
                 raise ProviderError("Die gespeicherte Schulbuddy-Reservierung passt nicht mehr zur gewählten Route.")
             payload.update(question=turn.question, history=history_for(db, turn))
+            # Keep the answer key server-side; never send it to the provider.
+            # Only feedback that actually releases an explanation, or an
+            # explicitly opened solution, is excluded from this guard.
+            guarded_question = None
+            current = payload.get("current_question")
+            explanation = payload.get("current_explanation") or {}
+            shown_solution = explanation.get("kind") == "question" and explanation.get("disclosure") == "solution"
+            released_feedback = (current and current.get("feedback_pending")
+                                 and current.get("observed_outcome") in ("correct", "uncertain"))
+            if payload["role"] == "child" and current and not released_feedback and not shown_solution:
+                unit = db.get(LearningUnit, turn.scope.get("unit_id"))
+                if unit and unit.child_id == turn.child_id:
+                    guarded_question = next((q for q in unit.questions
+                                             if isinstance(q, dict) and q.get("id") == current["id"]), None)
             turn.status = "running"
             values = {c.name: getattr(config, c.name) for c in ProviderConfig.__table__.columns}
             db.commit()
@@ -734,6 +748,12 @@ def process(job_id):
         result = request_provider(ProviderConfig(**values), "schulbuddy", payload)
         try:
             reply = checked_reply(result.data, payload, refs)
+            if guarded_question:
+                from .schulbuddy_solution_guard import reveals_exact_answer
+
+                if reveals_exact_answer(guarded_question, reply, visible_explanation=explanation.get("text", "")):
+                    raise ProviderError("Dieser Hinweis verrät zu viel. Bitte frage nach einem anderen Hinweis.",
+                                        code="invalid_output")
         except ProviderError as error:
             error.code = "invalid_output"
             raise
@@ -792,8 +812,19 @@ def process(job_id):
             if provider_snapshot(db, configured(db)) != job.payload["model_binding"]:
                 raise ProviderError("Die KI-Einstellung wurde während der Antwort geändert.")
             if p.user.role == "child":
+                current = payload.get("current_question", {})
+                feedback_only = current.get("feedback_pending", False)
+                if feedback_only and current.get("observed_outcome") == "incorrect":
+                    # Wrong-answer feedback may lead back to the same still
+                    # open question. Count new help for that retry, never for
+                    # the old attempt or a different subsequent question.
+                    from .learning_controller import facts
+
+                    focus = next((u for u in ongoing_units if u.id == turn.scope.get("unit_id")), None)
+                    open_question = facts(db, focus)["question"] if focus else None
+                    feedback_only = not (open_question and open_question.get("id") == current.get("id"))
                 record_help(db, turn, ongoing_units, refs, reply,
-                            feedback_only=payload.get("current_question", {}).get("feedback_pending", False),
+                            feedback_only=feedback_only,
                             archived_explanation=bool(payload.get("archived_question")))
             audit(db, p.user.id, "schulbuddy.answer", turn.id)
     except Exception as error:
