@@ -675,6 +675,7 @@ def _process(job_id):
                 if job.payload.get("package_partition") is not None:
                     from .package_partitions import InvalidPartOutput, store_validated_part
                     from .school_preparation import _state, _write
+                    from .visual_references import validate_output as validate_visual_output
 
                     day = db.get(SchoolDay, job.payload["school_day_id"])
                     state = _state(day)
@@ -687,6 +688,11 @@ def _process(job_id):
                                 **({"catalog_assignment": result.catalog_assignment} if result and result.catalog_assignment else {})})
                     except InvalidPartOutput as error:
                         raise ProviderError("Die erzeugte Teilrunde konnte nicht sicher geprüft werden.",
+                                            code="invalid_output") from error
+                    try:
+                        validate_visual_output(db, data, payload)
+                    except ValueError as error:
+                        raise ProviderError("Die Grafik der Teilrunde konnte nicht sicher geprüft werden.",
                                             code="invalid_output") from error
                     _write(day, state)
                     job.result = {"school_day_id": day.id, "package_partition": job.payload["package_partition"],

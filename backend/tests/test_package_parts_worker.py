@@ -122,7 +122,7 @@ def artificial_day(api, household):
     return day_id, child, identities
 
 
-@pytest.mark.parametrize("fault", ["schema", "wrong_group", "duplicate_question"])
+@pytest.mark.parametrize("fault", ["schema", "wrong_group", "duplicate_question", "foreign_reference"])
 def test_rejected_part_output_keeps_previous_receipt_and_billing(api, household, monkeypatch, fault):
     day_id, _, old = artificial_day(api, household)
     calls = []
@@ -135,8 +135,10 @@ def test_rejected_part_output_keeps_previous_receipt_and_billing(api, household,
                 output["units"] = []
             elif fault == "wrong_group":
                 output["units"][0]["group_id"] = "wrong-group"
-            else:
+            elif fault == "duplicate_question":
                 output["units"][0]["questions"][1]["id"] = output["units"][0]["questions"][0]["id"]
+            else:
+                output["units"][0]["explanation_steps"][0]["reference"]["id"] = "unknown.reference"
         return Result(output, 20, 40, 101, cost_source="reported")
 
     monkeypatch.setattr(worker, "request_provider", provider)

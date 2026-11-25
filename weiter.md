@@ -2,6 +2,18 @@
 
 ## Arbeitsstand 24. November 2026
 
+Der Paketworker prüft die Grafikreferenzen zusätzlich unmittelbar vor dem
+dauerhaften Speichern eines Teils. Ein künstlicher fremder Verweis wird
+abgelehnt; frühere Teile und Kosten bleiben erhalten. Der Workerfall bestand
+auf SQLite und isoliertem PostgreSQL. Die umfassende Verarbeitungskette
+bleibt weiterhin offen.
+
+Die Lernentscheidung weist eine unbelegte Bewertungsklärung nun mit der
+geschlossenen Klasse `decision_assessment` aus. Zwei künstliche
+Workerfehler samt abgerechneten Kosten und Elternspur bestanden auf SQLite
+und isoliertem PostgreSQL. Der Hauptpunkt zur gesamten Verarbeitungskette
+bleibt offen.
+
 Die separate KI-Bildprüfung wurde mit künstlichem Transport für Erfolg,
 einmalige Fehlerabrechnung und rein lesende Elternspur auf SQLite und
 isoliertem PostgreSQL geprüft. Die gesamte Verarbeitungsketten-Abnahme und

@@ -279,6 +279,39 @@ def test_untrusted_model_plan_ids_and_false_independent_checks_are_rejected(prof
         decisions.validate(value, payload)
 
 
+@pytest.mark.parametrize(("fault", "expected"), [("question", "decision_refs"), ("assessment", "decision_assessment")])
+def test_rejected_model_plan_has_private_billed_trace(api, profile, monkeypatch, fault, expected):
+    client, uid, mid, _, _ = profile
+    first = request(client, uid)
+    assert first.status_code == 202
+    job_id = first.json()["id"]
+
+    def model(config, function, payload):
+        value = sample_plan(payload)
+        if fault == "question":
+            value["steps"][0]["question_id"] = "foreign-question"
+        else:
+            value["steps"][0]["kind"] = "clarify_assessment"
+        return Result(value, 100, 100, 10, cost_source="reported")
+
+    monkeypatch.setattr("schulpilot.providers.request_provider", model)
+    process_next()
+    with DB() as db:
+        assert db.get(Job, job_id).status == "failed"
+        assert not db.get(LearningMemory, uid).working.get("instructional_plan")
+        usage = db.scalar(select(Usage).where(Usage.job_id == job_id))
+        assert usage.status == "failed_billed" and usage.cost_micros == 10
+        before = tuple(db.scalar(select(func.count()).select_from(model)) for model in (Job, Usage, Attempt, Activity))
+    for _ in range(2):
+        trace = api.get(f"/api/jobs/{job_id}/trace")
+        assert trace.status_code == 200
+        assert trace.json()["phase"] == "decision" and trace.json()["error_code"] == expected
+        assert trace.json()["sources"] == [{"id": mid, "revision": 1, "current_revision": 1}]
+        assert "foreign-question" not in trace.text
+    with DB() as db:
+        assert tuple(db.scalar(select(func.count()).select_from(model)) for model in (Job, Usage, Attempt, Activity)) == before
+
+
 @pytest.mark.parametrize("change", ["source", "session", "answer"])
 def test_late_model_plan_cannot_overwrite_current_sources_session_or_answers(profile, monkeypatch, change):
     client, uid, mid, _, _ = profile

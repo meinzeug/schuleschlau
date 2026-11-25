@@ -23,6 +23,7 @@ CODES = {
     "decision_closed",
     "decision_not_new",
     "decision_flow",
+    "decision_assessment",
 }
 
 

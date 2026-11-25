@@ -132,3 +132,19 @@ Anbieterfehler über die Elternspur geprüft. Das mehrfache Verarbeiten des
 Fehlerauftrags verbucht die Kosten nur einmal; wiederholte Spurabrufe ändern
 Aufträge, Verbrauch und Prüfungen nicht. SQLite und isoliertes PostgreSQL
 bestehen die Fälle. Daraus folgt keine fachliche Freigabe echter Bilder.
+
+Für Lernentscheidungen wurden zwei künstliche ungültige Modellpläne über
+den regulären Worker geprüft: eine fremde Aufgabenkennung und eine nicht
+belegte Bewertungsklärung. Beide werden ohne gespeicherten Plan abgewiesen,
+mit `decision_refs` beziehungsweise `decision_assessment` klassifiziert und
+mit dem gemeldeten Kostenbeleg abgeschlossen. Die zuvor fehlende zweite
+Klasse gehört nun zur erlaubten Fehlerliste. Eltern sehen die gebundene
+Quellenfassung, aber keinen Modelltext. SQLite und isoliertes PostgreSQL
+bestanden beide Fälle; Lesewiederholungen ändern keine Belege.
+
+Ein Paketteil durchläuft vor dem dauerhaften Speichern jetzt zusätzlich die
+Grafikprüfung mit seinem gebundenen Kontext. Eine künstlich ausgetauschte
+Referenz wurde verworfen und in der Elternspur als `invalid_output` erfasst.
+Der vorherige Teil und der gemeldete Kostenbeleg blieben erhalten; SQLite und
+isoliertes PostgreSQL bestanden den Workerfall. Dies ist keine fachliche
+Abnahme aller angebotenen Darstellungen.

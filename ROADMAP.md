@@ -2093,6 +2093,22 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Gesamte Verarbeitungskette durchgängig nachvollziehbar machen**
 
+  - [x] **Grafikreferenz eines Paketteils vor dem Speichern erneut prüfen.**
+    Die grafische Ausgabe wird nach der Teilrundenstruktur und vor dem
+    dauerhaften Speichern gegen Quellen und Referenzen geprüft. Eine
+    künstliche fremde Grafikreferenz wird als ungültige Ausgabe verworfen;
+    der vorherige Teil, Antworten und Anbieterabrechnung bleiben erhalten.
+    SQLite- und PostgreSQL-Workerfälle prüfen Fehler und Elternspur. Eine
+    allgemeine fachliche Bildabnahme ist dadurch nicht ersetzt.
+
+  - [x] **Fehlerhafte Lernentscheidungen in der Elternspur nachvollziehen.**
+    Fehlende Aufgabenbezüge und unbelegte Bewertungsklärungen wurden in
+    künstlichen regulären Workeraufträgen abgewiesen. Die Elternspur zeigt
+    gebundene Quellen und die begrenzte Fehlerklasse, ohne Modellinhalt
+    auszugeben; vorhandene Antworten bleiben erhalten und abgerechnete
+    Kosten bestehen. SQLite und isoliertes PostgreSQL bestehen beide Fälle.
+    Die übrige Phasenabnahme bleibt offen.
+
   - [x] **Separate KI-Bildprüfung in der Elternspur prüfen.**
     Ein künstlicher erfolgreicher Prüfauftrag zeigt das tatsächlich
     reservierte Prüfmodell und den Abschlussstatus. Ein künstlicher
