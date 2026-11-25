@@ -1545,7 +1545,7 @@ def request_practice(
     if not item or item.status != "ready" or not item.report.get("practice_deferred") or item.next_unit_id:
         raise HTTPException(409, "Bitte den aktuellen Rückblick öffnen.")
     try:
-        signature, _, _ = context(db, unit)
+        signature, _, sources = context(db, unit)
     except ProviderError as error:
         raise HTTPException(409, str(error)) from None
     payload = {"unit_id": unit.id, "signature": signature, "next_action": item.decision}
@@ -1554,7 +1554,7 @@ def request_practice(
         payload["practice_number"] = previous.payload.get("practice_number", 1)
         # Replay retains its original authority, including an absent legacy
         # binding. A fresh session may observe this job, never reauthorize it.
-        for key in ("session_id", "family_id"):
+        for key in ("session_id", "family_id", "sources"):
             if key in previous.payload:
                 payload[key] = previous.payload[key]
         return enqueue(db, p, db.get(Child, unit.child_id), "coach_practice", payload, idempotency)
@@ -1566,6 +1566,7 @@ def request_practice(
     if attempts >= MAX_PRACTICE_REQUESTS:
         raise HTTPException(409, PRACTICE_LIMIT_MESSAGE)
     payload["practice_number"] = attempts + 1
+    payload["sources"] = [{"id": source["id"], "revision": source["revision"]} for source in sources]
     payload.update(session_id=p.session.id, family_id=child.family_id)
     return enqueue(db, p, db.get(Child, unit.child_id), "coach_practice", payload, idempotency)
 

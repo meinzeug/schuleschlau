@@ -2,6 +2,12 @@
 
 ## Arbeitsstand 24. November 2026
 
+Neue Lernentscheidungen und Anschlussübungen tragen die gebundenen
+Quellenfassungen in der Elternspur. Ein künstlicher Generatorfehler sowie
+idempotente alte Anschlussaufträge wurden auf SQLite und isoliertem
+PostgreSQL geprüft; unbekannte Kosten bleiben unbekannt. Die gesamte
+Verarbeitungskette ist weiterhin nicht vollständig abgenommen.
+
 Die Elternspur verknüpft Heftfragen jetzt mit ihren ausdrücklich gespeicherten
 Tutor-Quellenfassungen und klassifiziert zurückgewiesene Zitate. Geprüft sind
 künstliche Tutorläufe mit SQLite und isoliertem PostgreSQL; Frage und Antwort

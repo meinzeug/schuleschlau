@@ -2093,6 +2093,15 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Gesamte Verarbeitungskette durchgängig nachvollziehbar machen**
 
+  - [x] **Lernentscheidung und Anschlussübung an Quellenfassungen binden.**
+    Neue Aufträge speichern die bereits geprüften Seitenkennungen und
+    Revisionen für die Elternspur. Bei einem künstlichen Generator-Timeout
+    bleiben der vorhandene Rückblick, Antworten und unbekannte Kosten
+    erhalten. Eine wiederholte alte Anfrage ohne Quellenliste reserviert
+    keinen weiteren Auftrag. SQLite- und PostgreSQL-Fälle prüfen zudem einen
+    ausgeführten Lernplan und eine ungültige Antwortkennung ohne Lernnachweis.
+    Die übrige vollständige Phasenabnahme bleibt offen.
+
   - [x] **Quellen und Fehler von Heftfragen nachvollziehbar machen.**
     Die Elternspur zeigt nur ausdrücklich am zugehörigen Tutorvorgang
     gespeicherte Seitenfassungen. Unpassende Zitate und ungültige Antworten

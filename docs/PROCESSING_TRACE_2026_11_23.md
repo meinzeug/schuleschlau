@@ -89,3 +89,13 @@ unpassenden Quellenbelegen und ein erfolgreicher, später geänderter
 Quellenstand wurden auf SQLite und isoliertem PostgreSQL geprüft. Entferntes
 oder unpassendes Bindeglied ergibt eine leere Quellenliste. Die Fälle
 belegen keine generelle fachliche Qualität von Tutorantworten.
+
+Neue Lernentscheidungs- und Anschlussübungsaufträge speichern die geprüften
+Quellenkennungen und Revisionen. Ein künstlicher Timeout der Anschlussübung
+erhält die bestehenden Antworten und den fertigen Rückblick; unbekannte
+Anbieterkosten bleiben unbekannt. Alte idempotente Anschlussaufträge ohne
+Quellenmetadaten erzeugen durch Wiederholung keinen weiteren Auftrag und
+erhalten keine nachträglich geratene Quelle. Ein künstlicher
+Verarbeitungsweg prüft außerdem die Ablehnung einer unbekannten Frage ohne
+neuen Antwort- oder Lernstandsbeleg. Die genannten Fälle bestanden auf SQLite
+und isoliertem PostgreSQL.

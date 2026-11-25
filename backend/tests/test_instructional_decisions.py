@@ -89,8 +89,8 @@ def execute(client, uid, kind, key):
     return result.json()
 
 
-def test_bounded_model_plan_is_reserved_once_executed_and_replanned_from_actual_answer(profile, monkeypatch):
-    client, uid, _, _, _ = profile
+def test_bounded_model_plan_is_reserved_once_executed_and_replanned_from_actual_answer(api, profile, monkeypatch):
+    client, uid, material_id, _, _ = profile
     calls = []
     reviews = []
     monkeypatch.setattr("schulpilot.coaching.schedule", lambda unit_id, **kw: reviews.append((unit_id, kw)))
@@ -105,7 +105,11 @@ def test_bounded_model_plan_is_reserved_once_executed_and_replanned_from_actual_
     first = request(client, uid)
     assert first.status_code == 202, first.text
     assert request(client, uid).json()["id"] == first.json()["id"]
+    assert api.get(f"/api/jobs/{first.json()['id']}/trace").json()["sources"] == [
+        {"id": material_id, "revision": 1, "current_revision": 1}
+    ]
     process_next()
+    assert api.get(f"/api/jobs/{first.json()['id']}/trace").json()["phase"] == "decision"
     value = client.get(f"/api/units/{uid}").json()
     assert value["learning_session"]["action"]["reason_code"] == "model_short_plan"
     assert value["learning_session"]["action"]["kind"] == "explain"

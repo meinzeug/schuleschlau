@@ -124,8 +124,8 @@ def test_old_mismatched_prerequisite_is_not_counted_as_addition_evidence(deferre
         assert coaching.observations(db, unit)[0]["attempts"]
 
 
-def test_failed_generator_preserves_finished_review_answers_and_usage(deferred_review, monkeypatch):
-    client, unit_id, _, _, _, before, _ = deferred_review
+def test_failed_generator_preserves_finished_review_answers_and_usage(api, deferred_review, monkeypatch):
+    client, unit_id, material_id, _, _, before, _ = deferred_review
     calls = []
 
     def unavailable(config, function, payload):
@@ -136,6 +136,10 @@ def test_failed_generator_preserves_finished_review_answers_and_usage(deferred_r
 
     monkeypatch.setattr(coaching, "request_provider", unavailable)
     job_id = ask_practice(client, unit_id)
+    assert ask_practice(client, unit_id) == job_id
+    assert api.get(f"/api/jobs/{job_id}/trace").json()["sources"] == [
+        {"id": material_id, "revision": 1, "current_revision": 1}
+    ]
     queued = client.get(f"/api/units/{unit_id}").json()["coaching"]
     assert queued["status"] == "ready"
     assert queued["practice_job_id"] == job_id and queued["practice_status"] == "queued"
@@ -149,6 +153,9 @@ def test_failed_generator_preserves_finished_review_answers_and_usage(deferred_r
     assert after["coaching"]["practice_status"] == "failed"
     assert after["coaching"]["practice_error"] == "Künstlicher Generator ist nicht verfügbar."
     assert after["questions"] == before["questions"]
+    trace = api.get(f"/api/jobs/{job_id}/trace").json()
+    assert trace["phase"] == "generation" and trace["error_code"] == "provider_timeout"
+    assert trace["sources"] == [{"id": material_id, "revision": 1, "current_revision": 1}]
     with DB() as db:
         assert db.get(Job, job_id).status == "failed"
         assert db.get(Job, job_id).error_code == "provider_timeout"
@@ -156,6 +163,19 @@ def test_failed_generator_preserves_finished_review_answers_and_usage(deferred_r
         usage = db.scalar(select(Usage).where(Usage.job_id == job_id))
         assert usage.function == "coach_practice"
         assert usage.cost_micros is None and usage.status == "failed_unknown"
+
+
+def test_legacy_practice_without_trace_sources_replays_without_reserving_again(api, deferred_review):
+    client, unit_id, _, _, _, _, _ = deferred_review
+    job_id = ask_practice(client, unit_id, key="legacy-practice-source")
+    with DB.begin() as db:
+        job = db.get(Job, job_id)
+        job.payload = {key: value for key, value in job.payload.items() if key != "sources"}
+        before = db.scalar(select(func.count()).select_from(Usage))
+    assert ask_practice(client, unit_id, key="legacy-practice-source") == job_id
+    assert api.get(f"/api/jobs/{job_id}/trace").json()["sources"] == []
+    with DB() as db:
+        assert db.scalar(select(func.count()).select_from(Usage)) == before
 
 
 @pytest.mark.parametrize("quota_exhausted", [False, True])

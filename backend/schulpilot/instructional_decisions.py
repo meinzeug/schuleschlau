@@ -437,6 +437,7 @@ def prepare(unit_id: str, data: ChooseAction, p=Depends(child_user), db=Depends(
     signature, _ = context(db, unit)
     result = enqueue(db, p, db.get(Child, unit.child_id), "decision", {"unit_id": unit.id,
         "signature": signature, "attempt_id": latest_attempt, "session_id": p.session.id,
+        "sources": [{"id": source.id, "revision": source.revision} for source in facts_now["sources"]],
         "family_id": db.get(Child, unit.child_id).family_id}, request.request_key, commit=False)
     memory.working = {**memory.working, "decision_job_id": result["id"]}
     db.commit()

@@ -140,6 +140,14 @@ def test_upload_review_package_visual_answer_trace_is_private_and_read_only_on_g
             assert tuple(db.scalar(select(func.count()).select_from(model))
                 for model in (Job, Usage, Attempt, Activity, Mastery)) == counts_before
         assert kid.post(f'/api/units/{uid}/start').status_code == 200
+        with DB() as db:
+            before_invalid = tuple(db.scalar(select(func.count()).select_from(model))
+                for model in (Job, Usage, Attempt, Activity, Mastery))
+        invalid = kid.post(f'/api/units/{uid}/questions/unknown-question/answer', json={'answer': 'synthetic'})
+        assert invalid.status_code == 404
+        with DB() as db:
+            assert tuple(db.scalar(select(func.count()).select_from(model))
+                for model in (Job, Usage, Attempt, Activity, Mastery)) == before_invalid
         assert kid.post(f'/api/units/{uid}/questions/{question_id}/hint').status_code == 200
         result = kid.post(f'/api/units/{uid}/questions/{question_id}/answer', json={'answer': answer})
         assert result.status_code == 200 and result.json()['outcome'] == 'correct'
@@ -188,11 +196,18 @@ def test_source_revision_changed_during_generation_cannot_become_a_ready_package
         assert usage.status == 'failed_billed' and usage.cost_micros == 23
         assert db.scalar(select(func.count()).select_from(LearningUnit)) == 0
         assert db.scalar(select(func.count()).select_from(Attempt)) == 0
+        requested_revision = next(source['revision'] for source in job.payload['sources'] if source['id'] == page['id'])
     for _ in range(3):
         result = api.get(f'/api/school-days/{day["id"]}')
         assert result.status_code == 200
         assert result.json()['preparation']['status'] in ('failed', 'blocked')
         assert result.json()['units'] == []
+        trace = api.get(f'/api/jobs/{identifier}/trace')
+        assert trace.status_code == 200
+        assert trace.json()['phase'] == 'generation'
+        assert trace.json()['error_code'] == 'source_changed'
+        assert {'id': page['id'], 'revision': requested_revision, 'current_revision': requested_revision + 1} in trace.json()['sources']
+        assert CASE['source'] not in trace.text
     assert calls == ['package']
 
 
