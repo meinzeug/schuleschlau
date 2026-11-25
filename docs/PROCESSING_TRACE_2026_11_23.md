@@ -75,3 +75,7 @@ Schema- oder inhaltlichen Prüfung der Grafik verworfen, erhält der Auftrag die
 begrenzte Klasse `invalid_output`. Ein künstlicher Fehlerfall prüft den
 regulären Worker, die Elternspur und den Erhalt der gespeicherten Aufgabe und
 Antwort. Die Prüfung ist kein fachlicher Qualitätsnachweis für alle Grafiken.
+Ein weiterer künstlicher Fall ändert die Seite während des Anbieteraufrufs:
+Das Ergebnis wird verworfen und die Elternspur zeigt die gebundene alte
+neben der aktuellen Revision sowie `source_changed`. SQLite und isoliertes
+PostgreSQL bestehen diesen und drei weitere Autoritäts-/Kontextwechsel.

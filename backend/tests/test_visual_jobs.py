@@ -184,6 +184,12 @@ def test_late_graphic_result_is_rejected_after_context_or_authority_change(api, 
         assert db.get(UnitVisualSnapshot, uid) is None
         assert db.query(Attempt).count() == 1
         assert db.query(Activity).count() == 0
+    if change == "source":
+        trace = api.get(f"/api/jobs/{jid}/trace")
+        assert trace.status_code == 200
+        assert trace.json()["error_code"] == "source_changed"
+        assert trace.json()["sources"] == [{"id": mid, "revision": 1, "current_revision": 2}]
+        assert SOURCE not in trace.text
     assert len(calls["provider"]) == 1
 
 
