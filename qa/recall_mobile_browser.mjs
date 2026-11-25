@@ -1,6 +1,6 @@
 // Isolated opt-in synthetic browser fixture only. No real child, provider or server clock.
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
+import {readFileSync,writeFileSync} from 'node:fs';
 import {chromium} from 'playwright';
 import {restrictBrowserNetwork, closeRestrictedBrowserContext} from './browser_network_guard.mjs';
 
@@ -74,13 +74,25 @@ try {
     phase='day-'+day+'-login'; await login(width);
     if(day<6) {
       phase='day-'+day+'-subject-navigation';
+      const learn=page.getByRole('button',{name:/^Lernen(?:\s+Tab \d+ of \d+)?$/})
+        .or(page.getByRole('tab',{name:/^Lernen/})).first();
       if(width>=1100) {
-        // Flutter's collapsed rail does not expose its destination as a
-        // Playwright role on this web renderer; click the visible rail icon.
-        await page.mouse.click(48,180);
+        const bounds=await learn.boundingBox();
+        assert(bounds && bounds.width>=48 && bounds.height>=48);
+        writeFileSync(`${input.screens}/recall-nav-bounds.json`,JSON.stringify(bounds));
+        await shot(`recall-nav-before-${width}`);
+        let focused=false;
+        for(let i=0;i<50 && !focused;i++) {
+          await page.keyboard.press('Tab');
+          focused=await learn.evaluate(node=>node.matches(':focus'));
+        }
+        assert(focused,'Desktop navigation must be reachable by Tab');
+        assert.equal(await learn.getAttribute('role'),'button');
+        assert.equal(await learn.getAttribute('aria-current'),'false');
+        await page.waitForTimeout(200);
+        await shot(`recall-nav-focused-${width}`);
+        await page.keyboard.press('Enter');
       } else {
-        const learn=page.getByRole('button',{name:'Lernen',exact:true})
-          .or(page.getByRole('tab',{name:/^Lernen/})).first();
         await tap(learn);
       }
       await page.waitForURL(input.base+'/learn/'+input.child,{timeout:30000});

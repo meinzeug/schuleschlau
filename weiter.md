@@ -21,8 +21,10 @@ eingetragen; keine reale Lernzeit behaupten. Der schmale Lernkopf zeigt die
 Aufgabenangabe wieder vollständig. Beim PDF-Browserfall wurde ein Rennen beim
 Lesen der Antwort über den bestehenden lokalen Netzschutz repariert.
 Nachweise und Grenzen: `docs/CHILD_PATH_ACCEPTANCE_2026_11_24.md`. Die
-Tastatur- und Screenreaderbedienung der eingeklappten Desktopleiste bleibt
-offen. Vor einem Release alle aktuellen CI- und Serverstände erneut prüfen.
+Die nachfolgende Prüfung vom 25.11. belegt Tab und Enter sowie einen sichtbaren
+Fokusrahmen für „Lernen“ in der eingeklappten Desktopleiste; die Prüfung mit
+einem tatsächlichen Screenreader bleibt offen. Vor einem Release alle aktuellen
+CI- und Serverstände erneut prüfen.
 
 Für die Web- und Geräteabnahme enthält `041d6c8` den tatsächlichen
 Fotoimport mit Zuschnitt und Blob-XHR sowie Anmeldelinks, Login und Logout

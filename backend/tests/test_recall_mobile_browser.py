@@ -6,6 +6,7 @@ import socket
 import subprocess
 import threading
 import time
+from collections import Counter
 from dataclasses import replace
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -152,6 +153,30 @@ def test_synthetic_recall_journey_across_web_widths(profile, monkeypatch, tmp_pa
                 'LANG': 'C.UTF-8', 'TMPDIR': os.environ.get('TMPDIR', '/tmp')})
         assert result.returncode == 0, result.stderr[-6000:]
         print(result.stdout, end='')
+        # Compare actual Chrome pixels inside the focused destination, not
+        # theme constants. A substantial changed edge must contrast with the
+        # surrounding rendered rail; antialiasing alone cannot satisfy it.
+        from PIL import Image
+        bounds = json.loads((tmp_path / 'recall-nav-bounds.json').read_text())
+        rect = (int(bounds['x']), int(bounds['y']), int(bounds['x'] + bounds['width']),
+                int(bounds['y'] + bounds['height']))
+        with Image.open(tmp_path / 'recall-nav-before-1280.png') as image:
+            before = list(image.convert('RGB').crop(rect).get_flattened_data())
+        with Image.open(tmp_path / 'recall-nav-focused-1280.png') as image:
+            after = list(image.convert('RGB').crop(rect).get_flattened_data())
+        assert len(before) == len(after) and len(before) >= 48 * 48
+        background = Counter(before).most_common(1)[0][0]
+        changed = Counter(b for a, b in zip(before, after) if sum(abs(x - y) for x, y in zip(a, b)) >= 45)
+        def luminance(color):
+            values = [channel / 255 for channel in color]
+            values = [value / 12.92 if value <= .04045 else ((value + .055) / 1.055) ** 2.4 for value in values]
+            return .2126 * values[0] + .7152 * values[1] + .0722 * values[2]
+        visible = [(color, count) for color, count in changed.items() if count >= 20]
+        assert visible
+        def contrast(color):
+            low, high = sorted((luminance(background), luminance(color)))
+            return (high + .05) / (low + .05)
+        assert max(contrast(color) for color, _ in visible) >= 3
         with DB() as db:
             progress = coaching.progress(db, db.get(LearningUnit, root_id))
             assert progress['secure_observation']

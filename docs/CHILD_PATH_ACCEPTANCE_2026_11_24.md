@@ -21,6 +21,12 @@ Die eingeklappte Desktop-Navigationsleiste ließ sich im Test nicht über eine
 Playwright-Rollenabfrage lokalisieren; ihr sichtbares Symbol wurde an der
 festen Testviewport-Position angeklickt. Dies belegt keine vollständige
 Tastatur- oder Screenreader-Bedienung dieser Leiste.
+
+**Nachprüfung 25.11.2026:** Die Rolle ist vorhanden; die frühere exakte
+Abfrage berücksichtigte die Positionsangabe nicht. Der nachfolgende Test
+bedient das Ziel per Tab und Enter und prüft den sichtbaren Fokusrahmen.
+Eine echte Screenreaderprüfung bleibt offen.
+[Nachweis](DESKTOP_KEYBOARD_NAVIGATION_2026_11_25.md).
 Nach der ersten Antwort jedes der ersten drei Tage wird die Seite neu geladen:
 Die Rückmeldung bleibt sichtbar und der gespeicherte Versuch bleibt einmalig.
 Am ersten Tag öffnet ein zweiter separat angemeldeter Browser dieselbe offene

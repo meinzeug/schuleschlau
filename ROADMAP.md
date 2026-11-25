@@ -1145,13 +1145,17 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – Barrierearme mobile Führung nachweisen**
 
-  - [ ] **Desktop-Seitenleiste mit Tastatur und Screenreader prüfen.**
-    Im Chrome-Test ließ sich das sichtbare Ziel „Lernen“ der eingeklappten
-    NavigationRail bei 1280 Pixeln nicht über die verwendete Rollenabfrage
-    lokalisieren; ein Klick auf das sichtbare Symbol führte zum richtigen
-    Ziel. Die Ursache und die Ausgabe durch tatsächliche Bedienhilfen sind
-    gesondert zu prüfen. Daraus folgt für sich allein weder eine vollständige
-    Barrierefreiheitsabnahme noch ein nachgewiesener Bedienhilfefehler.
+  - [x] **Desktop-Ziel „Lernen“ per Tastatur und Web-Semantik prüfen.**
+    Das Ziel „Lernen“ ist bei 1280 Pixeln als fokussierbare Schaltfläche
+    vorhanden, per Tab erreichbar und mit Enter bedienbar. Die frühere
+    Rollenabfrage übersah die ergänzte Positionsangabe „Tab 2 of 6“.
+    Ein künstlicher Chrome-Fall prüft den tatsächlich gerenderten Fokusrahmen
+    und seinen Kontrast. [Nachweis](docs/DESKTOP_KEYBOARD_NAVIGATION_2026_11_25.md).
+
+  - [ ] **Desktop-Seitenleiste mit tatsächlichem Screenreader prüfen.**
+    Die Ausgabe durch konkrete Bedienhilfen, einschließlich der englischen
+    Positionsangabe, und weitere Ziele sind noch nicht beobachtet. Der
+    Chrome-Semantiktest ersetzt keine vollständige Screenreaderprüfung.
 
   - [x] **Ziffernwahl über den Nummernblock ermöglichen.** Bei sichtbarer
     Auswahl akzeptiert die Tastaturhilfe auch die Zifferntasten des
@@ -2595,7 +2599,8 @@ Bestandteil des bestehenden Buildvertrags.
   Die Aufgabenangabe im schmalen Kopf ist nun vollständig sichtbar.
   Fachliche KI-Qualität, echte Kinderbeobachtung und vollständige
   Barrierefreiheit bleiben eigene offene Punkte; die Desktopleiste wurde
-  sichtbar angeklickt, nicht per Rollenabfrage lokalisiert.
+  damals sichtbar angeklickt. Die ergänzende Rollen- und Tastaturprüfung vom
+  25.11. ist beim offenen Barrierefreiheitspunkt dokumentiert.
   [Prüfbericht und Screenshots](docs/CHILD_PATH_ACCEPTANCE_2026_11_24.md).
 
   - [x] **Begonnene Zuordnung beim Hintergrundwechsel verwerfen.** Eine
