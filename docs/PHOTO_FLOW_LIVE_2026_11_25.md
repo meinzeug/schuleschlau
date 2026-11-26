@@ -590,6 +590,25 @@ lokale Oberfläche bei eindeutiger Erwähnung von Balken zunächst das
 Balkenmodell; eine explizite frühere oder neue Auswahl bleibt erhalten.
 Beides ist automatisiert geprüft, aber noch nicht live nachgetestet.
 
+## Geplanter direkter Heftvergleich
+
+Der direkte Heftseitenweg erhält eine eigene Planung für Bruchvergleiche.
+Sie benötigt eine explizite, geprüfte Regel mit kgV, Gleichnamigmachen und
+Zählervergleich. Nummerierte, einzeln lesbare OCR-Blöcke werden als getrennte
+wörtliche Quellenstellen erhalten; ausgeschlossene Blöcke werden nicht als
+Beleg verwendet. Die Aufgaben und Lösungsgrafiken werden rechnerisch vor dem
+Anbieteraufruf gebunden; frühere Fragen und Originalbrüche bleiben ausgeschlossen.
+Ein eigenes Kompetenzziel unterscheidet den Vergleich vom Erweitern. Die
+interaktive Grafik zeigt vor und nach dem Gleichnamigmachen zwei gleich lange
+Balken. Ihre erkundete Ansicht ist gespeicherte Leseposition, kein Lernbeleg.
+
+Ein künstlicher Auftrag wurde über API, Worker, Anbietertransport und
+Antwortbewertung geprüft. Eine lesende Prüfung mit der im Test freigegebenen
+Heftseite und ihrem Aufgabenverlauf ergab eine belegte Regel, einen verfügbaren
+Einstiegsplatz, eine neue Vergleichsaufgabe und einen passenden Grafikvertrag.
+Dabei wurden weder Daten geschrieben noch Anbieter aufgerufen. Ein echter
+Provider- und mobiler Browsertest der neuen Version steht noch aus.
+
 Im Fotoalbum wurde das seitlich angezeigte Bild durch lokales Drehen sichtbar;
 die Drehung verändert das Original und die bereits gespeicherte Erkennung
 nicht. Zuvor konnte das Bild nur nach rechts gedreht werden. Im Live-Nachtest

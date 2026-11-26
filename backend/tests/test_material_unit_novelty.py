@@ -114,6 +114,22 @@ def add_round(db, book, prompts, *, material=None, day_id=None, subject="Mathema
     return unit
 
 
+def test_local_history_contains_only_prompts_and_options_not_answer_keys_or_attempts(book):
+    from schulpilot.unit_novelty import previous_prompts, previous_questions
+
+    with DB.begin() as db:
+        material = db.get(Material, book.material_id)
+        added = add_round(db, book, ["Welcher Bruch ist größer?"], material=material)
+        question = {**added.questions[0], "type": "choice", "options": ["1/2", "2/3"],
+            "answer": "PRIVATE_ANSWER_MARKER", "hints": ["PRIVATE_HINT_MARKER"]}
+        added.questions = [question]
+        db.flush()
+        values = previous_questions(db, book.child["id"], [material])
+        assert {"prompt": "Welcher Bruch ist größer?", "options": ["1/2", "2/3"]} in values
+        assert "PRIVATE_ANSWER_MARKER" not in str(values) and "PRIVATE_HINT_MARKER" not in str(values)
+        assert [row["prompt"] for row in values] == previous_prompts(db, book.child["id"], [material])
+
+
 def test_new_questions_publish_once_and_get_or_post_replay_never_generates(book, monkeypatch):
     before_attempts, before_counts = saved_attempts(), generated_counts()
     output = fresh_output(book)

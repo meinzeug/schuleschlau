@@ -19,6 +19,17 @@
       "variant": null
     },
     {
+      "id": "math.fraction.comparison",
+      "version": 1,
+      "subjects": ["Mathematik"],
+      "kind": "fraction",
+      "purpose": "Zwei echte Brüche mit rechnerisch geprüftem gemeinsamen Nenner und Vergleich darstellen. Ausschließlich serverseitig geplante Aufgaben mit belegtem Verfahren und geschlossener Lösung.",
+      "terms": [],
+      "interaction": "fraction_parts",
+      "variant": null,
+      "scope": "unit_composition_only"
+    },
+    {
       "id": "math.triangle.height",
       "version": 1,
       "subjects": [

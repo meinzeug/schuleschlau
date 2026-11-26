@@ -228,7 +228,7 @@ def source_goals(materials, subject, topic):
         (r"kürz", "Brüche kürzen"),
         (r"erweit", "Brüche erweitern"),
         (r"gleichwert", "Gleichwertige Brüche erkennen"),
-        (r"brüche\s+vergleich", "Brüche vergleichen"),
+        (r"brüche[^.!?\n]{0,80}vergleich|vergleich[^.!?\n]{0,80}brüche", "Brüche vergleichen"),
     ):
         for material in materials:
             match = re.search(pattern, material["content"], re.I)

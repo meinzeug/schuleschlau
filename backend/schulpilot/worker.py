@@ -502,6 +502,19 @@ def _process(job_id):
                                 raise
                             raise ProviderError(error.args[0], code="invalid_output") from None
                 if job.kind == "unit" and job.payload.get("notebook_practice"):
+                    from .notebook_fraction_comparison import ERROR as COMPARISON_ERROR
+                    from .notebook_fraction_comparison import EXHAUSTED as COMPARISON_EXHAUSTED
+                    from .notebook_fraction_comparison import prepare as prepare_comparison
+                    from .notebook_fraction_comparison import with_history as with_comparison_history
+
+                    try:
+                        local_comparison_history = (unit_novelty.previous_questions(db, child.id, source_pages)
+                            if unit_novelty.applies(job, material) else [])
+                        payload = prepare_comparison(with_comparison_history(payload, local_comparison_history))
+                    except ValueError as error:
+                        if error.args not in ((COMPARISON_ERROR,), (COMPARISON_EXHAUSTED,)):
+                            raise
+                        raise ProviderError(error.args[0], code="invalid_output") from None
                     from .notebook_fraction_expansions import with_history
 
                     payload = with_history(payload, novelty_prompts)
@@ -766,6 +779,18 @@ def _process(job_id):
                                 unit_novelty.previous_prompts(db, job.child_id, source_pages))
                         except ValueError as error:
                             if error.args != (EXPANSION_HISTORY_CHANGED,):
+                                raise
+                            raise ProviderError(error.args[0], code="source_changed") from None
+                    from .notebook_fraction_comparison import CURRENT_ERROR as COMPARISON_HISTORY_CHANGED
+                    from .notebook_fraction_comparison import KEY as COMPARISON_PLAN
+                    from .notebook_fraction_comparison import validate_history as validate_comparison_history
+
+                    if COMPARISON_PLAN in payload:
+                        try:
+                            validate_comparison_history(payload, data,
+                                unit_novelty.previous_questions(db, job.child_id, source_pages))
+                        except ValueError as error:
+                            if error.args != (COMPARISON_HISTORY_CHANGED,):
                                 raise
                             raise ProviderError(error.args[0], code="source_changed") from None
                     from .notebook_fraction_compositions import CURRENT_ERROR as COMPOSITION_HISTORY_CHANGED

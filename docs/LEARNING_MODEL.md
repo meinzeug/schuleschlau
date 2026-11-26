@@ -221,6 +221,40 @@ Quellenänderungen und gleichzeitig veröffentlichte gleiche Aufgaben führen zu
 einem begrenzten Abbruch; daraus folgt kein automatischer neuer Modellaufruf.
 Andere Bruchbinder behalten Vorrang, andere Fächer und Auftragsarten ihren Pfad.
 
+### Gebundene Bruchvergleiche aus Heftseiten
+
+`fraction_comparison_rule.py` und `notebook_fraction_comparison.py` ergänzen
+ausdrücklich angeforderte Mathematik-Heftübungen, wenn die ausgewählten
+Seiten das Vergleichen ungleichnamiger Brüche und das Verfahren mit kgV,
+Gleichnamigmachen und Zählervergleich eindeutig belegen. Einzelne nummerierte
+OCR-Blöcke dürfen als getrennte wörtliche Belege verwendet werden;
+ausgeschlossene Bereiche gehören nicht zu den Belegen. Ein isoliertes
+Themenwort, eine unvollständige Regel, sichtbare Widersprüche oder eine
+vermischte Schrittfolge reichen nicht. Andere Inhalte behalten ihren
+vorhandenen Generatorweg.
+
+Die Praxisplätze der bestehenden Einstiegsrunde werden vor dem Anbieteraufruf
+mit neuen, rechnerisch geprüften Bruchpaaren und eindeutigen Hauptlösungen
+belegt. Originalbrüche und die vollständige frühere Vergleichshistorie bleiben
+ausgeschlossen. Ältere Vergleichsauswahlen mit Bruchoptionen werden nur lokal
+berücksichtigt; gespeicherte Antwortschlüssel und Antworten gehen dabei nicht
+an den Anbieter. Die Historie und Quelle werden vor Veröffentlichung erneut
+geprüft; unbekannte mehrdeutige Altfälle werden nicht erraten.
+
+`math.fraction.comparison@1` ist ausschließlich für den geschlossenen,
+revisionsgebundenen Beweisbinder vorgesehen. Die separate Einführung zeigt
+keinen anstehenden Aufgabenbruch oder Ergebnisbruch; die vier Teilmodelle der Lösungsdarstellung
+stammen aus denselben berechneten Brüchen und bleiben bis zur Offenlegung
+geschlossen. Die Ansicht wechselt ausdrücklich zwischen Ausgangsbrüchen und
+gemeinsamem Nenner. Ihre Position ist nur Lesestand, kein Versuch oder
+Kompetenzbeleg. Schulbuddy erhält bei geöffneter Darstellung die gewählte
+Phase und ausschließlich die dazu tatsächlich sichtbaren Werte.
+
+Das additive Katalogziel `math.fractions.compare` unterscheidet einen
+rechnerisch geprüften Vergleich von der Voraussetzung „Brüche erweitern“.
+Erst gespeicherte Antworten zählen; Hilfen und erneute Versuche bleiben
+unterstützt. Eine richtige Antwort allein behauptet keine sichere Beherrschung.
+
 `lcm_numeric_v1` bewertet ausschließlich eine vollständige kurze kgV-Zahlenfrage
 mit zwei ausdrücklich genannten positiven ganzen Zahlen. Zuerst muss die
 gespeicherte Hauptlösung mit dem unabhängig berechneten kgV übereinstimmen.

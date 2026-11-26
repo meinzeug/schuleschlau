@@ -53,8 +53,8 @@ def _current_sources(db, child_id, sources):
     return current
 
 
-def previous_prompts(db, child_id, sources):
-    """All relevant saved prompts, ordered oldest first; no Attempt values.
+def previous_questions(db, child_id, sources):
+    """Relevant prompts and options, ordered oldest first; no saved answers.
 
     Exact source revisions include standalone rounds. Related day stages also
     qualify through their day pointer or current same-subject source links.
@@ -85,8 +85,14 @@ def previous_prompts(db, child_id, sources):
         selection.append(and_(LearningUnit.material_id.in_(day_materials), LearningUnit.id.not_in(linked)))
     rows = db.execute(select(LearningUnit.questions).where(LearningUnit.child_id == child_id,
         or_(*selection)).order_by(LearningUnit.created, LearningUnit.id))
-    return [question["prompt"] for (questions,) in rows for question in questions
+    return [{"prompt": question["prompt"], "options": question.get("options", [])}
+        for (questions,) in rows for question in questions
         if isinstance(question.get("prompt"), str) and question["prompt"].strip()]
+
+
+def previous_prompts(db, child_id, sources):
+    """Provider-safe prompts only; option-bearing history remains local."""
+    return [question["prompt"] for question in previous_questions(db, child_id, sources)]
 
 
 def provider_context(prompts):

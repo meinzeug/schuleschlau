@@ -15,7 +15,8 @@ from .db import LearningMemory, LearningUnit, Material
 
 CORE = ("id", "type", "prompt", "answer", "options", "accepted")
 LABELS = {"Brüche erweitern": "math.fractions.expand", "Brüche kürzen": "math.fractions.reduce",
-    "Zähler und Nenner benennen": "math.fractions.components", "Gleichwertige Brüche erkennen": "math.fractions.equivalence"}
+    "Zähler und Nenner benennen": "math.fractions.components", "Gleichwertige Brüche erkennen": "math.fractions.equivalence",
+    "Brüche vergleichen": "math.fractions.compare"}
 RULES = """
 learning_entry ist der verbindliche serverseitige Einstieg, keine Modell-Diagnose.
 Alle vorgegebenen Frage-IDs und festen Kernfelder unverändert übernehmen. Die
@@ -31,12 +32,18 @@ def verified_math_identity(question, goals):
     from .schemas import Question
 
     signature = fraction_task_signature(question["prompt"])
-    if not signature or signature[0] not in ("expand", "reduce", "add"):
+    if not signature or signature[0] not in ("expand", "reduce", "add", "compare"):
         return None
     try:
         Question.model_validate({key: value for key, value in question.items() if key in Question.model_fields})
     except ValueError:
         return None
+    if signature[0] == "compare":
+        from .answer_evaluation import fraction_comparison
+
+        result = fraction_comparison(question, question.get("answer", ""))
+        if not result or result.get("outcome") != "correct":
+            return None
     goal = fraction_task_goal(question["prompt"], goals)
     label = next((item["label"] for item in goals if item["id"] == goal), None)
     if signature[0] == "add" and label == "Brüche addieren":

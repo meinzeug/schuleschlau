@@ -1198,6 +1198,17 @@ def request_provider(config, function, payload, image_bytes=None, *, synthetic_f
     tasks = practice_tasks(payload) if model_type is s.PracticeUnitOutput and payload.get("focus_goal_ids") else None
     if tasks:
         payload = {**payload, "practice_tasks": tasks}
+    from .notebook_fraction_comparison import ERROR as NOTEBOOK_COMPARISON_ERROR
+    from .notebook_fraction_comparison import EXHAUSTED as NOTEBOOK_COMPARISON_EXHAUSTED
+    from .notebook_fraction_comparison import prepare as prepare_notebook_comparison
+
+    try:
+        payload = prepare_notebook_comparison(payload) if function == "unit" else payload
+    except ValueError as error:
+        if error.args not in ((NOTEBOOK_COMPARISON_ERROR,), (NOTEBOOK_COMPARISON_EXHAUSTED,)):
+            raise
+        raise ProviderError(error.args[0], code="invalid_output", billing_result=Result({}, 0, 0, 0,
+            telemetry={"pre_dispatch": True}, cost_source="cancelled")) from None
     from .notebook_fraction_expansions import ERROR as NOTEBOOK_EXPANSION_ERROR
     from .notebook_fraction_expansions import EXHAUSTED as NOTEBOOK_EXPANSION_EXHAUSTED
     from .notebook_fraction_expansions import UNCLEAR as NOTEBOOK_EXPANSION_UNCLEAR
@@ -1875,6 +1886,7 @@ def request_provider(config, function, payload, image_bytes=None, *, synthetic_f
         from .unit_fraction_compositions import bind_schema as bind_unit_composition
 
         try:
+            from .notebook_fraction_comparison import bind_schema as bind_notebook_comparison
             from .notebook_fraction_expansions import bind_schema as bind_notebook_expansion
             from .review_divisibility_plan import bind_schema as bind_review_divisibility_plan
             from .review_fraction_plan import bind_schema as bind_review_fraction_plan
@@ -1882,6 +1894,8 @@ def request_provider(config, function, payload, image_bytes=None, *, synthetic_f
             unit_composition = bind_review_divisibility_plan(schema, payload)
             if unit_composition is None:
                 unit_composition = bind_review_fraction_plan(schema, payload)
+            if unit_composition is None:
+                unit_composition = bind_notebook_comparison(schema, payload)
             if unit_composition is None:
                 unit_composition = bind_notebook_expansion(schema, payload)
             if unit_composition is None:
@@ -1894,7 +1908,7 @@ def request_provider(config, function, payload, image_bytes=None, *, synthetic_f
             from .fraction_practice_plan import ERROR as PRACTICE_POOL_ERROR
             from .fraction_practice_plan import INVALID as PRACTICE_PLAN_ERROR
 
-            if error.args not in ((PRACTICE_POOL_ERROR,), (PRACTICE_PLAN_ERROR,), (NOTEBOOK_EXPANSION_ERROR,), (NOTEBOOK_EXPANSION_EXHAUSTED,), (NOTEBOOK_EXPANSION_UNCLEAR,),
+            if error.args not in ((PRACTICE_POOL_ERROR,), (PRACTICE_PLAN_ERROR,), (NOTEBOOK_COMPARISON_ERROR,), (NOTEBOOK_COMPARISON_EXHAUSTED,), (NOTEBOOK_EXPANSION_ERROR,), (NOTEBOOK_EXPANSION_EXHAUSTED,), (NOTEBOOK_EXPANSION_UNCLEAR,),
                     (NOTEBOOK_COMPOSITION_ERROR,), (NOTEBOOK_COMPOSITION_EXHAUSTED,),
                     (MATERIAL_EXPANSION_ERROR,), (MATERIAL_EXPANSION_EXHAUSTED,)):
                 raise
@@ -2155,6 +2169,7 @@ def request_provider(config, function, payload, image_bytes=None, *, synthetic_f
     if function in ("unit", "package"):
         from .coach_fraction_expansions import HISTORY as COACH_EXPANSION_HISTORY
         from .material_fraction_expansions import HISTORY as MATERIAL_EXPANSION_HISTORY
+        from .notebook_fraction_comparison import HISTORY as NOTEBOOK_COMPARISON_HISTORY
         from .notebook_fraction_compositions import HISTORY_KEY as NOTEBOOK_COMPOSITION_HISTORY
         from .notebook_fraction_expansions import HISTORY_KEY as NOTEBOOK_EXPANSION_HISTORY
         from .package_decimal_addition import HISTORY as DECIMAL_HISTORY
@@ -2164,7 +2179,7 @@ def request_provider(config, function, payload, image_bytes=None, *, synthetic_f
 
         outgoing_payload = {key: value for key, value in outgoing_payload.items()
             if key not in (REVIEW_DIVISIBILITY_HISTORY, REVIEW_FRACTION_HISTORY, COACH_EXPANSION_HISTORY, MATERIAL_EXPANSION_HISTORY, NOTEBOOK_COMPOSITION_HISTORY,
-                NOTEBOOK_EXPANSION_HISTORY, MULTIPLES_HISTORY, DECIMAL_HISTORY)}
+                NOTEBOOK_EXPANSION_HISTORY, NOTEBOOK_COMPARISON_HISTORY, MULTIPLES_HISTORY, DECIMAL_HISTORY)}
     from .explanation_guidance import rules as explanation_rules
 
     instructions += explanation_rules(function, payload)
@@ -2668,9 +2683,11 @@ def request_provider(config, function, payload, image_bytes=None, *, synthetic_f
                 if review["question_id"] in assigned_goals:
                     review["learning_goal_id"] = assigned_goals[review["question_id"]]
         if function == "unit":
+            from .notebook_fraction_comparison import validate_output as validate_notebook_comparison
             from .notebook_fraction_expansions import validate_output as validate_notebook_expansion
 
             validation_phase = "practice"
+            validate_notebook_comparison(payload, data)
             validate_notebook_expansion(payload, data)
             from .notebook_fraction_compositions import validate_output as validate_notebook_composition
 

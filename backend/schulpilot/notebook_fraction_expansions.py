@@ -28,12 +28,14 @@ CORE = learning_entry.CORE
 
 
 def eligible(payload):
+    from .notebook_fraction_comparison import KEY as COMPARISON_PLAN
     from .notebook_practice import requested_count
 
     return (requested_count(payload) is not None and payload.get("required_subject") == "Mathematik"
         and (payload.get("visual_context") or {}).get("required") is True
         and not any(payload.get(key) for key in ("review", "study_block", "selected_groups", "homework_practice",
             "exam_preparation", "exam_review_practice"))
+        and COMPARISON_PLAN not in payload
         and bool(_procedure_quote(expansion._sources(payload.get("visual_context") or {}), "Brüche erweitern")))
 
 

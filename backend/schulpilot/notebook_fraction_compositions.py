@@ -57,6 +57,7 @@ def applies(payload):
                 "math_tasks",
                 "notebook_expansion_plan",
                 "notebook_multiples_plan",
+                "notebook_comparison_plan",
             )
         )
     )

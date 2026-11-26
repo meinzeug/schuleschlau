@@ -69,7 +69,7 @@ def candidates(db, subject, text="", *, package_prepared=False, decimal_prepared
 
             if not (package_prepared or decimal_prepared) or evidence(text) is None:
                 continue
-        if row.id in ("math.fraction.wholes_remainder", "math.fraction.expansion", "math.fraction.reduction", "math.multiples.common", "math.divisibility.verified_product", "math.divisibility.verified_set"):
+        if row.id in ("math.fraction.wholes_remainder", "math.fraction.expansion", "math.fraction.reduction", "math.fraction.comparison", "math.multiples.common", "math.divisibility.verified_product", "math.divisibility.verified_set"):
             continue  # Only the dedicated Unit proof binder may offer this recipe.
         # AI exploration templates are NEVER a vetted source-bound recipe.
         if recipe.get("scope") == "exploration_only":
@@ -220,7 +220,10 @@ def with_visual_context(db, child, payload, sources, *, groups=None):
     value = add_coach_expansion(db, value)
     from .unit_multiples_common import add_reference as add_multiples_reference
 
-    return add_multiples_reference(db, value)
+    value = add_multiples_reference(db, value)
+    from .notebook_fraction_comparison import add_reference as add_comparison_reference
+
+    return add_comparison_reference(db, value)
 
 
 
@@ -444,6 +447,14 @@ def validate_steps(db, steps, subject, context, *, question=None, group_id=None,
                 validate_coach_expansion(step, context, question)
             else:
                 validate_question_step(step, context, question)
+            checked.append(step.model_dump())
+            continue
+        if stored.id == "math.fraction.comparison":
+            from .notebook_fraction_comparison import validate_question_step
+
+            if introduction or subject != "Mathematik" or group_id is not None:
+                raise ValueError("Ungültiger vorabgeprüfter Bruchvergleich.")
+            validate_question_step(step, context, question)
             checked.append(step.model_dump())
             continue
         if stored.id == "math.fraction.wholes_remainder":

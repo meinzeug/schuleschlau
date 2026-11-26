@@ -21,7 +21,7 @@ class Position(BaseModel):
     question_id: str | None = Field(default=None, min_length=1, max_length=60)
     explanation_step_id: str = Field(min_length=1, max_length=32, pattern=r"^[A-Za-z0-9_-]+$")
     graphic_index: int = Field(default=0, ge=0, le=5)
-    graphic_phase: str = Field(default="initial", pattern=r"^(initial|fraction-(circle|bar)-(whole|denominator|numerator)|scene-[0-7]|science-[0-9]{1,2})$")
+    graphic_phase: str = Field(default="initial", pattern=r"^(initial|fraction-(circle|bar)-(whole|denominator|numerator)|comparison-(original|common)|scene-[0-7]|science-[0-9]{1,2})$")
 
     lab_view: ForceLabView | SentenceLabView | None = None
 
@@ -71,7 +71,12 @@ def checked(db, unit, user, value):
         raise HTTPException(422, "Diese Grafik gehört nicht zum Erklärungsschritt.")
     block, phase = blocks[value.graphic_index], value.graphic_phase
     valid = phase == "initial"
-    if phase.startswith("fraction-"):
+    if phase.startswith("comparison-"):
+        valid = (value.graphic_index == 0 and step.get("reference", {}).get("id") == "math.fraction.comparison"
+            and type(step.get("reference", {}).get("version")) is int
+            and step.get("reference", {}).get("version") == 1 and len(blocks) == 4
+            and all(item.get("kind") == "fraction" for item in blocks))
+    elif phase.startswith("fraction-"):
         valid = block.get("kind") == "fraction"
     elif phase.startswith("scene-"):
         index = int(phase[6:])

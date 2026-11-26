@@ -12,10 +12,19 @@ def _unavailable():
     raise HTTPException(409, "Dieser Erklärschritt ist nicht mehr geöffnet. Bitte die aktuelle Erklärung wählen.")
 
 
-def _phase(block, phase):
+def _phase(block, phase, *, step=None, index=None):
     kind = block["kind"]
     if phase == "initial":
         return {"phase": "initial"}
+    if phase in ("comparison-original", "comparison-common"):
+        blocks = (step or {}).get("presentation", {}).get("blocks", [])
+        reference = (step or {}).get("reference", {})
+        if (index != 0 or reference.get("id") != "math.fraction.comparison"
+                or type(reference.get("version")) is not int or reference.get("version") != 1
+                or len(blocks) != 4 or any(row.get("kind") != "fraction" or len(row.get("numbers", [])) != 2 for row in blocks)):
+            raise HTTPException(422, "Diese Vergleichsansicht gehört nicht zum geöffneten Rezept.")
+        shown = blocks[0:2] if phase == "comparison-original" else blocks[2:4]
+        return {"phase": phase, "fractions": [row["numbers"] for row in shown], "derived_locally": True}
     if phase.startswith("decimal-"):
         index = int(phase.split("-")[1])
         numbers = block.get("numbers", [])
@@ -158,6 +167,6 @@ def bind(db, p, scope, unit, payload):
             except ValueError:
                 raise HTTPException(422, "Die Laboransicht gehört nicht zum geöffneten Rezept.") from None
         else:
-            resolved["graphic_state"] = _phase(block, scope.graphic_phase or "initial")
+            resolved["graphic_state"] = _phase(block, scope.graphic_phase or "initial", step=step, index=scope.graphic_index)
     payload["current_explanation"] = resolved
     return resolved
