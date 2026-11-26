@@ -12,12 +12,14 @@ class FractionExplorer extends StatefulWidget {
   final int numerator, denominator;
   final AppState? state;
   final bool initialBars;
+  final bool compact;
   const FractionExplorer({
     super.key,
     required this.numerator,
     required this.denominator,
     this.state,
     this.initialBars = false,
+    this.compact = false,
   });
   @override
   State<FractionExplorer> createState() => _FractionExplorerState();
@@ -197,7 +199,9 @@ class _FractionExplorerState extends State<FractionExplorer>
             child: AnimatedBuilder(
               animation: motion,
               builder: (context, _) => SizedBox(
-                height: bars ? 160 : 250,
+                height: widget.compact
+                    ? (bars ? 112 : 170)
+                    : (bars ? 160 : 250),
                 child: CustomPaint(
                   painter: FractionModelPainter(
                     n,
@@ -271,7 +275,10 @@ class FractionModelPainter extends CustomPainter {
       ..strokeWidth = 2
       ..color = palette.ink;
     final fill = Paint()..style = PaintingStyle.fill;
-    final radius = math.min(110.0, size.width * .40);
+    final radius = math.min(
+      110.0,
+      math.min(size.width * .40, math.max(0.0, size.height / 2 - 8)),
+    );
     final center = Offset(size.width / 2, size.height / 2);
     for (var i = 0; i < denominator; i++) {
       final marked = i < numerator;

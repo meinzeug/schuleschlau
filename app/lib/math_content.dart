@@ -258,6 +258,15 @@ bool expectsFraction(Map<String, dynamic> question) {
     return false;
   }
   final prompt = question['prompt'] as String;
+  final asksComponent = RegExp(
+    r'(?:wie\s+(?:lautet|heißt|heisst|ist)|was\s+ist|welch\w*|nenne|bestimme|gib)\s+(?:(?:der|den|das)\s+)?(?:zähler|nenner)\b',
+    caseSensitive: false,
+  ).hasMatch(prompt);
+  final explicitFractionForm = RegExp(
+    r'\b(?:form\s+zähler\s*/\s*nenner|als\s+(?:(?:vollständig|vollstaendig)\s+)?(?:(?:gekürzten|gekuerzten)\s+)?bruch)\b',
+    caseSensitive: false,
+  ).hasMatch(prompt);
+  if (explicitFractionForm && !asksComponent) return true;
   if (RegExp(
         r'zähler|nenner|faktor|teiler',
         caseSensitive: false,

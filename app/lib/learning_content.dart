@@ -36,6 +36,7 @@ class LearningContent extends StatelessWidget {
   final List<dynamic>? blocks;
   final bool compact;
   final bool interactive;
+  final bool separatePreviousReading;
   final TextStyle? style;
   final Widget? Function(int index, Map<String, dynamic> block)? figureBuilder;
   const LearningContent(
@@ -44,6 +45,7 @@ class LearningContent extends StatelessWidget {
     this.blocks,
     this.compact = false,
     this.interactive = false,
+    this.separatePreviousReading = false,
     this.style,
     this.figureBuilder,
   });
@@ -80,10 +82,8 @@ class LearningContent extends StatelessWidget {
                   ? 0
                   : 16,
             ),
-            child: _Section(
+            child: _readingSection(
               block.$2,
-              style: style,
-              interactive: interactive,
               figure:
                   (block.$2['kind'] == 'diagram_text' ||
                           _sourceMarks(block.$2).isNotEmpty) &&
@@ -107,6 +107,28 @@ class LearningContent extends StatelessWidget {
             style: TextStyle(color: context.palette.muted, fontSize: 13),
           ),
       ],
+    );
+  }
+
+  Widget _readingSection(Map<String, dynamic> block, {Widget? figure}) {
+    final child = _Section(
+      block,
+      style: style,
+      interactive: interactive,
+      figure: figure,
+    );
+    const preservedReading =
+        'Die beiden Abschriften dieses Schüler-/Korrekturbereichs unterscheiden sich; Original erhalten.';
+    final notices = block['reading_uncertainties'];
+    if (!separatePreviousReading ||
+        notices is! List ||
+        !notices.contains(preservedReading)) {
+      return child;
+    }
+    return ExpansionTile(
+      title: const Text('Text mit Lesehinweis'),
+      subtitle: const Text('Bei Bedarf können deine Eltern nachsehen.'),
+      children: [child],
     );
   }
 }

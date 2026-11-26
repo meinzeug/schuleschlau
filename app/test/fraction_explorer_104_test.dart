@@ -36,6 +36,69 @@ void main() {
     },
   );
 
+  testWidgets(
+    'Multiple disclosed fractions use compact independently controllable diagrams',
+    (tester) async {
+      s.size(tester, const Size(390, 844));
+      await tester.pumpWidget(
+        s.host(
+          SubjectPresentation({
+            'version': 1,
+            'blocks': [
+              {
+                'kind': 'fraction',
+                'title': 'Erster Bruch',
+                'numbers': [3, 11],
+                'labels': <String>[],
+                'disclosure': 'given',
+              },
+              {
+                'kind': 'fraction',
+                'title': 'Zweiter Bruch',
+                'numbers': [6, 11],
+                'labels': <String>[],
+                'disclosure': 'given',
+              },
+            ],
+          }),
+          size: const Size(390, 844),
+          reduced: true,
+        ),
+      );
+      await tester.pumpAndSettle();
+      final explorers = tester
+          .widgetList<FractionExplorer>(find.byType(FractionExplorer))
+          .toList();
+      expect(explorers, hasLength(2));
+      expect(explorers.every((explorer) => explorer.compact), isTrue);
+      final paints = tester
+          .widgetList<CustomPaint>(find.byType(CustomPaint))
+          .where((p) => p.painter is FractionModelPainter)
+          .toList();
+      expect(paints, hasLength(2));
+      expect(tester.getSize(find.byWidget(paints.first)).height, 170);
+      await s.tapVisible(
+        tester,
+        find.descendant(
+          of: find.byType(FractionExplorer).first,
+          matching: find.byTooltip('Balkenmodell'),
+        ),
+      );
+      final updated = tester
+          .widgetList<CustomPaint>(find.byType(CustomPaint))
+          .map((p) => p.painter)
+          .whereType<FractionModelPainter>()
+          .toList();
+      expect(updated.first.bars, isTrue);
+      expect(updated.last.bars, isFalse);
+      expect(updated.map((p) => (p.numerator, p.denominator)).toList(), [
+        (3, 11),
+        (6, 11),
+      ]);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   for (final width in [320.0, 390.0, 1280.0]) {
     testWidgets(
       'Fraction model at $width keeps both representations and 200% controls usable',

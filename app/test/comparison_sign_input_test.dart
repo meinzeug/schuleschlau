@@ -37,6 +37,48 @@ void main() {
     );
   });
 
+  test('A requested numerator/denominator form uses a fraction input', () {
+    expect(
+      expectsFraction({
+        'type': 'short',
+        'prompt': 'Berechne 2 mal 3/4. Gib das Ergebnis als vollständig gekürzten Bruch in der Form Zähler/Nenner an.',
+      }),
+      isTrue,
+    );
+    expect(
+      expectsFraction({
+        'type': 'short',
+        'prompt': 'Wie lautet der Zähler des Bruchs in der Form Zähler/Nenner?',
+      }),
+      isFalse,
+    );
+    expect(
+      expectsFraction({
+        'type': 'short',
+        'prompt': 'Berechne 2 mal 3/8. Gib das Ergebnis als vollständig gekürzten Bruch an.',
+      }),
+      isTrue,
+    );
+  });
+
+  testWidgets('Explicit fraction form can be answered in the learning round', (
+    t,
+  ) async {
+    final question = room.question('fraction', type: 'short')
+      ..['prompt'] = 'Berechne 2 mal 3/4. Gib das Ergebnis als vollständig gekürzten Bruch in der Form Zähler/Nenner an.'
+      ..['options'] = <String>[];
+    final server = room.SavedRound(questions: [question]);
+    server.expected['fraction'] = '3/2';
+    final harness = await room.openRound(t, server);
+    expect(find.byType(FractionAnswerInput), findsOneWidget);
+    await t.enterText(find.widgetWithText(TextField, 'Zähler'), '3');
+    await t.enterText(find.widgetWithText(TextField, 'Nenner'), '2');
+    await room.tapText(t, 'Antwort prüfen');
+    expect(server.answers, 1);
+    expect(find.text('Richtig!'), findsOneWidget);
+    await harness.close();
+  });
+
   for (final scale in [1.0, 2.0]) {
     testWidgets('A sign answer can be selected and submitted at $scale', (
       t,

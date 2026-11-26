@@ -150,6 +150,38 @@ class Fixture {
 }
 
 void main() {
+  testWidgets(
+    'A retained conflicting reading is labelled and remains accessible',
+    (t) async {
+      final fixture = Fixture();
+      const old = 'Eine frühere Lesung mit einem unklaren Schülerergebnis.';
+      const current =
+          'Die zweite Lesung enthält den eigentlichen Aufgabenblock.';
+      const notice =
+          'Die beiden Abschriften dieses Schüler-/Korrekturbereichs unterscheiden sich; Original erhalten.';
+      fixture.data['content'] = 'Künstlicher Titel\n\n$old\n\n$current';
+      fixture.data['source_blocks'] = [
+        {'kind': 'heading', 'text': 'Künstlicher Titel'},
+        {
+          'kind': 'paragraph',
+          'text': old,
+          'reading_uncertainties': [notice],
+        },
+        {'kind': 'paragraph', 'text': current},
+      ];
+      await fixture.mount(t);
+      expect(find.text('Text mit Lesehinweis'), findsOneWidget);
+      expect(find.text(old), findsNothing);
+      expect(find.text(current), findsOneWidget);
+      await tap(t, find.text('Text mit Lesehinweis'));
+      expect(find.text(old), findsOneWidget);
+      expect(
+        fixture.requests.every((request) => request.method == 'GET'),
+        isTrue,
+      );
+    },
+  );
+
   for (final view in [(320.0, 568.0, 2.0), (390.0, 844.0, 1.0)]) {
     testWidgets('A long source is displayed only once at $view', (t) async {
       final fixture = Fixture();

@@ -652,6 +652,47 @@ die Anschlussübung wurden ebenfalls als abgeschlossene Anbieteraufrufe
 verbucht. Diese Werte sind Einzelmessungen und keine Laufzeit- oder
 Preisgarantie. Der vollständige 30-Tage-Test bleibt offen.
 
+## Weiteres Arbeitsblatt: Multiplikation und Division
+
+Eine weitere freigegebene, seitlich fotografierte Mathematikseite wurde im
+mobilen Browser ausgewählt, einmal manuell gedreht und abgegeben. Beide
+OpenRouter-Lesungen und das Tagespaket wurden abgeschlossen; die beiden
+Lesungen dauerten laut gespeicherten Auftragszeiten 49 und 60 Sekunden, das
+Paket 28 Sekunden. Eine geprüfte automatische Bildausrichtung ist damit nicht
+nachgewiesen. Die Dateiauswahl enthielt zuvor einen älteren fehlgeschlagenen
+Auswahlversuch, der im Fotoverlauf sichtbar blieb.
+
+Der automatische Abgleich ließ offene Stellen stehen. Beim Vergleich mit dem
+Foto fiel eine doppelte Passage auf; eine gemischte Zahl stand in den beiden
+Fassungen unterschiedlich. Die auditierte Quellenprojektion enthielt 14
+nutzbare und 13 wegen Leseunsicherheit ausgeschlossene Abschnitte. Der
+konkret abweichende Bruch und der fragliche handschriftliche Schülerwert waren
+nicht in der Lernbasis. Das ist eine punktuelle Prüfung, kein Nachweis, dass
+alle 14 nutzbaren Abschnitte fehlerfrei sind. Die ältere, widersprüchliche
+Lesung wird aus Schutzgründen erhalten. Lokal kennzeichnet die Kinderansicht
+solche ausdrücklich markierten Textbereiche gesondert und hält sie zum
+bewussten Öffnen bereit; der gespeicherte Text bleibt unverändert.
+
+Eine ausdrücklich zur neuen Seite gestartete Runde wurde mit echtem Anbieter
+erstellt und abgeschlossen. Eine absichtlich falsche Antwort erhielt einen
+fachlich passenden Tipp; die spätere richtige Antwort wurde mit Tipp und als
+erneuter Versuch gewertet. Nach der Einführung wurde auch die zweite Antwort
+als unterstützt gezählt. Die anschließende gezielte Übung enthielt zwei neue
+Multiplikationsaufgaben, die im Test ohne Hilfe gelöst wurden. Diese Antworten
+und die dabei erfasste Zeit liegen im echten Konto und belegen nicht das
+tatsächliche Können des Kindes. Die Einführung zeigte zwei große Einzelgrafiken
+untereinander; Text und zweite Grafik lagen zunächst unter dem sichtbaren
+Bereich. Für Erklärungen mit mehreren Bruchmodellen verwendet die lokale Oberfläche nun kompaktere Einzelgrafiken; die Modelle bleiben getrennt bedienbar und zeigen unveränderte Werte. Die Änderung ist automatisiert geprüft; der Live-Nachtest steht noch aus.
+
+Bei zwei frei einzugebenden Aufgaben wurde eine ausdrücklich verlangte
+Bruchdarstellung zunächst als allgemeines Textfeld angeboten. Lokal erkennt
+die Oberfläche nun eng gefasste Formulierungen für einen vollständigen Bruch
+und bietet Zähler/Nenner-Eingabe an; reine Zählerfragen bleiben Zahlfragen.
+Diese Anpassung und die Kennzeichnung der Lesung sind künstlich getestet,
+aber noch nicht live veröffentlicht oder nachgetestet. Zwei Fotoaufträge,
+Paket, Runde, Rückblick und Anschlussübung kosteten laut gebuchter
+OpenRouter-Nutzung zusammen 219.913 Mikrodollar; dies ist eine Einzelmessung.
+
 Im Fotoalbum wurde das seitlich angezeigte Bild durch lokales Drehen sichtbar;
 die Drehung verändert das Original und die bereits gespeicherte Erkennung
 nicht. Zuvor konnte das Bild nur nach rechts gedreht werden. Im Live-Nachtest

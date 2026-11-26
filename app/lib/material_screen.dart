@@ -2638,6 +2638,7 @@ class _MaterialReviewState extends State<MaterialReview>
                         ? d['source_blocks'] as List?
                         : null,
                     compact: longText,
+                    separatePreviousReading: true,
                   ),
                 ),
                 if (longText)
@@ -2656,6 +2657,7 @@ class _MaterialReviewState extends State<MaterialReview>
                         blocks: content.text == d['content']
                             ? d['source_blocks'] as List?
                             : null,
+                        separatePreviousReading: true,
                       ),
                     ],
                   ),

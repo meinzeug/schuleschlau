@@ -44,6 +44,8 @@ class SubjectPresentation extends StatelessWidget {
         .where((b) => stages == null || stages!.contains(b['disclosure']))
         .toList();
     final scope = LearningGraphicScope.maybeOf(context);
+    final compactFractions =
+        blocks.where((block) => block['kind'] == 'fraction').length > 1;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -60,6 +62,7 @@ class SubjectPresentation extends StatelessWidget {
                 Json.from(entry.$2),
                 state: state,
                 fractionInitialBars: fractionInitialBars,
+                compactFraction: compactFractions,
                 action: state == null
                     ? null
                     : GraphicZoom(
@@ -81,6 +84,7 @@ class SubjectPresentation extends StatelessWidget {
               Json.from(entry.$2),
               state: state,
               fractionInitialBars: fractionInitialBars,
+              compactFraction: compactFractions,
               action: state == null
                   ? null
                   : GraphicZoom(
@@ -111,12 +115,14 @@ class SubjectGraphic extends StatelessWidget {
   final Widget? action;
   final AppState? state;
   final bool fractionInitialBars;
+  final bool compactFraction;
   const SubjectGraphic(
     this.block, {
     super.key,
     this.action,
     this.state,
     this.fractionInitialBars = false,
+    this.compactFraction = false,
   });
   List<String> get labels => (block['labels'] as List? ?? []).cast<String>();
   List<num> get numbers => (block['numbers'] as List? ?? []).cast<num>();
@@ -335,6 +341,7 @@ class SubjectGraphic extends StatelessWidget {
               denominator: numbers[1].toInt(),
               state: state,
               initialBars: fractionInitialBars,
+              compact: compactFraction,
             )
           else if (vectorKinds.contains(kind))
             Column(
