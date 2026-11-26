@@ -42,6 +42,43 @@ void main() {
     },
   );
 
+  test(
+    'session assertion follows the displayed session without authorizing it',
+    () async {
+      final requests = <http.Request>[];
+      final api = Api(
+        base: 'https://example.invalid/api',
+        client: MockClient((request) async {
+          requests.add(request);
+          return http.Response(
+            jsonEncode({'ok': true}),
+            200,
+            headers: {'content-type': 'application/json'},
+          );
+        }),
+      );
+      final state = AppState(api: api);
+      const first =
+          'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+      const second =
+          'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
+      state.user = {'id': 'same-account', 'session_assertion': first};
+      await api.get('/auth/me');
+      expect(requests.last.headers['X-Schulpilot-Session'], first);
+      expect(requests.last.headers['Authorization'], isNull);
+      state.user = {'id': 'same-account', 'session_assertion': second};
+      await api.get('/auth/me');
+      expect(requests.last.headers['X-Schulpilot-Session'], second);
+      state.user = {'id': 'same-account', 'session_assertion': 'invalid'};
+      await api.get('/auth/me');
+      expect(requests.last.headers['X-Schulpilot-Session'], isNull);
+      state.user = null;
+      await api.get('/auth/me');
+      expect(requests.last.headers['X-Schulpilot-Session'], isNull);
+      state.dispose();
+    },
+  );
+
   test('successful login replaces the assertion for later requests', () async {
     final requests = <http.Request>[];
     final api = Api(
@@ -56,6 +93,7 @@ void main() {
                       'id': 'synthetic-new',
                       'role': 'parent',
                       'families': [],
+                      'session_assertion': 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
                     },
                     'token': 'synthetic-token',
                   }
@@ -70,6 +108,10 @@ void main() {
     await state.login('synthetic-new', 'synthetic-password');
     await api.get('/auth/me');
     expect(requests.last.headers['X-Schulpilot-Account'], 'synthetic-new');
+    expect(
+      requests.last.headers['X-Schulpilot-Session'],
+      'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+    );
     state.dispose();
   });
 

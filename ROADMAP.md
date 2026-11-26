@@ -3630,6 +3630,18 @@ Bestandteil des bestehenden Buildvertrags.
     ohne unklare Schreibvorgänge automatisch zu wiederholen. Der separate
     Cookie-Wettlauf bleibt ebenfalls offen.
 
+  - [x] **Andere Sitzung desselben Kontos bei markierten API-Zugriffen ablehnen.**
+    Die gemeinsame App erhält bei Login und Wiederaufnahme einen nicht
+    autorisierenden Sitzungsvergleichswert und sendet ihn bei gemeinsamen
+    API-Aufrufen. Ein anderer noch gültiger Cookie desselben Kontos führt zu
+    409 vor dem Lesezugriff oder Logout. Ein isolierter Chrome-Test vertauscht
+    zwei erfolgreiche Loginantworten desselben künstlichen Kontos; der alte
+    Cookie überschreibt den neuen weiterhin, die markierten Zugriffe werden
+    aber abgewiesen. 72 künstliche Konto-, Google- und Adminfälle bestanden
+    auf isoliertem PostgreSQL. Ältere Clients, direkte Ressourcen und die
+    eigentliche Cookie-Ursache bleiben offen. Die Änderung ist noch nicht
+    produktiv veröffentlicht. [Prüfung](docs/ACCOUNT_ASSERTION_2026_11_06.md).
+
   - [ ] **Verspätete Login-Cookies kontenübergreifend absichern.** Ein echter
     künstlicher Chrome-/SQLite-Test belegt, dass eine ältere erfolgreiche
     Loginantwort den Cookie einer neueren Anmeldung überschreiben kann. Eine

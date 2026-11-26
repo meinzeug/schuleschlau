@@ -8,7 +8,7 @@ from . import schemas as s
 from .config import runtime_settings, settings
 from .db import Child, Family, GoogleFlow, Membership, Session, Token, User, get_db, now
 from .mail import require_mail, send_link
-from .security import audit, authenticated, digest, password_hash, rate_limit, verify_password
+from .security import audit, authenticated, digest, password_hash, rate_limit, session_assertion, verify_password
 
 router = APIRouter(prefix="/auth", tags=["Accounts"])
 
@@ -119,14 +119,13 @@ def create_session(db, user, response, request, device):
 
         clear_user_drafts(db, user.id, old.id)
     token = secrets.token_urlsafe(48)
-    db.add(
-        Session(
-            user_id=user.id,
-            token_hash=digest(token),
-            device=device,
-            expires=int(now()) + (86400 if user.role == "admin" else 30 * 86400),
-        )
+    session = Session(
+        user_id=user.id,
+        token_hash=digest(token),
+        device=device,
+        expires=int(now()) + (86400 if user.role == "admin" else 30 * 86400),
     )
+    db.add(session)
     db.commit()
     response.set_cookie(
         "sp_session",
@@ -137,7 +136,7 @@ def create_session(db, user, response, request, device):
         path="/api",
         max_age=86400 if user.role == "admin" else 30 * 86400,
     )
-    result = {"user": user_data(db, user)}
+    result = {"user": {**user_data(db, user), "session_assertion": session_assertion(session)}}
     if request.headers.get("x-client-platform") == "native":
         result["token"] = token
     return result
@@ -269,7 +268,7 @@ def login(data: s.Login, request: Request, response: Response, db=Depends(get_db
 
 @router.get("/me")
 def me(p=Depends(authenticated), db=Depends(get_db)):
-    return user_data(db, p.user)
+    return {**user_data(db, p.user), "session_assertion": session_assertion(p.session)}
 
 
 @router.post("/logout")

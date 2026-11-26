@@ -25,6 +25,11 @@ def digest(value):
     return hashlib.sha256(value.encode()).hexdigest()
 
 
+def session_assertion(session):
+    """An unprivileged equality marker; it never authenticates a request."""
+    return digest("session-assertion-v1:" + session.id)
+
+
 def password_hash(value):
     if len(value.strip()) < 12 or len(value) > 128:
         raise HTTPException(422, "Passwort muss 12 bis 128 Zeichen lang sein.")
@@ -99,6 +104,16 @@ def authenticated(request: Request, db=Depends(get_db)):
         raise HTTPException(
             409,
             "Das Konto auf diesem Gerät hat sich geändert. Bitte melde dich erneut an.",
+            headers={"X-Schulpilot-Account-Changed": "1"},
+        )
+    expected_session = request.headers.get("X-Schulpilot-Session")
+    if expected_session is not None and (
+        len(expected_session) != 64 or not expected_session.isascii()
+        or not secrets.compare_digest(expected_session, session_assertion(session))
+    ):
+        raise HTTPException(
+            409,
+            "Die Sitzung auf diesem Gerät hat sich geändert. Bitte melde dich erneut an.",
             headers={"X-Schulpilot-Account-Changed": "1"},
         )
     if session.seen < int(now()) - 300:

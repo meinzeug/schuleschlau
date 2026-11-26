@@ -53,3 +53,43 @@ Kontomenü bietet anschließend einen erreichbaren Abmeldeweg. Das ist kein
 kontenübergreifend gespeicherter Entwurf: Beim ausdrücklichen Abmelden gelten
 weiterhin die bestehenden Datenschutzregeln zum Löschen lokaler Daten. Andere
 Editoren sind durch diesen einzelnen Test nicht auf Eingabenerhalt geprüft.
+
+## Zusätzliche Sitzungsprüfung vom 26.11.2026
+
+Eine erfolgreiche Anmeldung und `/auth/me` liefern zusätzlich einen aus der
+internen Sitzungskennung abgeleiteten, nicht authentifizierenden Vergleichswert.
+Die gemeinsame Flutter-API sendet ihn, solange sie eine gültige aktuelle
+Sitzung kennt, als `X-Schulpilot-Session`. Die API vergleicht ihn erst nach der
+regulären Authentifizierung mit der tatsächlich gewählten Sitzung; eine
+Abweichung wird vor privaten Daten oder Aktionen mit 409 zurückgewiesen.
+Der Vergleichswert kann keine Sitzung auswählen, verlängern oder ersetzen.
+Fehlt er bei älteren Clients oder direkter Browsernavigation, gilt weiterhin
+die bisherige Sitzungskontrolle.
+
+Ein isolierter Chrome-Test mit künstlichem Konto hielt eine erfolgreiche alte
+Loginantwort zurück, ließ eine neuere Anmeldung **desselben Kontos** eintreffen
+und gab anschließend die alte Antwort frei. Der Browser übernahm weiterhin den
+alten Cookie. Mit dem Vergleichswert der neueren Sitzung wurden der folgende
+Lesezugriff und Logout jedoch abgewiesen; ein unmarkierter Zugriff belegte,
+dass die ältere Sitzung dadurch nicht widerrufen wurde. Der bestehende Test
+für verschiedene Konten blieb ebenfalls bestehen. Künstliche API-Tests prüfen
+korrekte, fehlende und ungültige Vergleichswerte sowie die Nicht-Autorisierung.
+
+Dies ist eine begrenzte zusätzliche Ablehnung, keine Lösung der Cookie-Ursache:
+Der alte Cookie kann die neue Sitzung weiterhin verdrängen und eine erneute
+bewusste Anmeldung erfordern. Nicht markierte Zugriffe, Altclients, direkte
+Browserressourcen, getrennte Transporte und Bootstrap-/Google-/Demo-Rennen
+sind damit nicht vollständig abgesichert. Kein Produktions-Release wurde für
+diese Ergänzung ausgeführt.
+
+Die zugehörigen künstlichen Konto-, Google- und Adminfälle bestanden mit 72
+Fällen auf isoliertem PostgreSQL. Ein zusätzlicher SQLite-Lauf bestand 14
+Konto- und Sitzungsfälle. Flutteranalyse und 51 VM-Widgetfälle zu den
+vorhandenen Authentisierungsabläufen bestanden; die ergänzte Headerprüfung
+bestand danach separat. Alte und neue Browser-Cookiefälle bestanden mit zwei
+tatsächlichen lokalen Chrome-Instanzen und künstlichen Daten. Diese Prüfungen
+belegen keinen geschützten Zugriff ohne den neuen Header und keine vollständige
+Endgeräteabnahme.
+Auch der Flutter-Webrunner bestand 44 künstliche Konto-/401-Clientfälle in
+Chrome; er verwendet Mocktransporte und ersetzt den getrennten Cookie-Test
+nicht.

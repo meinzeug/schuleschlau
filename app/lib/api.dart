@@ -48,6 +48,9 @@ class Api {
   Map<String, String> get headers {
     final account = currentAccount?.call();
     final accountId = account is Map ? account['id'] : null;
+    final sessionAssertion = account is Map
+        ? account['session_assertion']
+        : null;
     return {
       'X-Schulpilot-Request': '1',
       'X-Schulpilot-Capabilities': 'language-v1,grade-pdf-v1,visual-v1,messages-v1,exams-v1,adaptive_controller_v2,grouped-v1,learning-entry-v1,labs-v1',
@@ -57,6 +60,9 @@ class Api {
       // The server still derives all rights from the actual session.
       if (accountId is String && accountId.isNotEmpty)
         'X-Schulpilot-Account': accountId,
+      if (sessionAssertion is String &&
+          RegExp(r'^[a-f0-9]{64}$').hasMatch(sessionAssertion))
+        'X-Schulpilot-Session': sessionAssertion,
     };
   }
 
