@@ -358,3 +358,22 @@ Leistungsnachweise des Kindes. Der anschließend fertige KI-Rückblick empfahl
 erneutes Üben ohne Tipp, nannte die ungeklärte Frage aber nicht ausdrücklich
 als Formulierungsproblem. Der vollständige 30-Tage-Test und die fachliche
 Prüfung aller Inhalte bleiben offen.
+
+Die offene Antwort wurde anschließend über „Mit der Lernhilfe klären“ mit
+einer ausdrücklich formulierten Frage und einem echten Anbieterauftrag
+besprochen. Die Lernhilfe bestätigte, dass die Testantwort ebenfalls zum
+bestätigten Stoff passt, und kennzeichnete den konkreten Grund der offenen
+Bewertung als für sie nicht sicher erkennbar. Die ursprüngliche Antwort und
+Bewertung wurden dadurch nicht geändert. Das bisherige Chatfenster öffnete
+sich ohne Bezug zur ausgewählten Aufgabe; der Bezug musste manuell formuliert
+werden.
+
+Lokal zeigt der Rückblick eine offene Bewertung nun auch dann ausdrücklich
+an, wenn andere Antworten mit Hilfe gelöst wurden. Die Lernhilfe kann bei
+diesem Einstieg einen bearbeitbaren Entwurf aus Frage und Antwort vorbereiten;
+ein bereits vorhandener Entwurf bleibt vorrangig, und die Frage wird erst
+nach ausdrücklichem Absenden übertragen. Neue KI-Aufgaben erhalten zusätzlich
+die Anweisung, den notwendigen Kontext in der Frage verständlich zu nennen
+und mehrere passende Antworten zu vermeiden. Dies ist eine Vorgabe an das
+Modell, kein automatischer Nachweis fachlicher Eindeutigkeit. Eine echte
+Neuerzeugung und der Browser-Nachtest dieser Änderungen stehen noch aus.

@@ -580,6 +580,14 @@ class _ChildCoachingPanel extends StatelessWidget {
                   ),
                   SizedBox(height: 12),
                 ],
+                if (facts.uncertain > 0) ...[
+                  Text(
+                    facts.uncertain == 1
+                        ? 'Eine Bewertung ist noch offen. Das ist kein Fehler.'
+                        : 'Einige Bewertungen sind noch offen. Das sind keine Fehler.',
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 if (hasPractice && !practicePending && !practiceFailed) ...[
                   Text(
                     facts.practice > 0
@@ -587,12 +595,9 @@ class _ChildCoachingPanel extends StatelessWidget {
                         : facts.assisted > 0
                         ? 'Probiere den Schritt noch einmal ohne Tipp.'
                         : facts.uncertain > 0
-                        ? 'Zeig bei einer neuen Aufgabe, was du allein weißt.'
+                        ? 'Du kannst eine neue Aufgabe ausprobieren.'
                         : 'Mit einer neuen Aufgabe kannst du weiterüben.',
                   ),
-                  const SizedBox(height: 18),
-                ] else if (facts.uncertain > 0) ...[
-                  const Text('Bei manchen Antworten ist noch etwas unklar.'),
                   const SizedBox(height: 18),
                 ],
                 if (decision == 'parent_help' && childId != null) ...[
@@ -1030,6 +1035,13 @@ class _ChildCoachingPanel extends StatelessWidget {
                           state,
                           childId: unit['child_id'],
                           unitId: unit['id'],
+                          initialQuestion: tutorQuestionForUnclearAnswer(
+                            question['prompt']?.toString() ?? '',
+                            _savedAnswerText(
+                              question,
+                              (question['attempts'] as List).last['answer'],
+                            ),
+                          ),
                         ),
                         icon: Icon(Icons.chat_bubble_outline),
                         label: Text('Mit der Lernhilfe klären'),

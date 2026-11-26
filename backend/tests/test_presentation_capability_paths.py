@@ -134,6 +134,7 @@ def test_normal_material_unit_receives_its_profile_without_required_subject(monk
     result = providers.request_provider(config, "unit", payload)
     assert payload == original and len(calls) == 1
     submitted, schema, instructions = _submitted(provider, calls[0])
+    assert providers.QUESTION_CLARITY_RULES in instructions
     context = submitted["content_context"]
     assert context["graphic_kinds"] == sorted(PROFILES["Geographie"])
     assert [item["subject"] for item in context["subject_profiles"]] == ["Geographie"]
@@ -174,6 +175,7 @@ def test_package_profiles_keep_group_boundaries_and_codex_question_limits(monkey
         assert len(result.data["units"]) == 2
     assert len(calls) == 1
     submitted, schema, instructions = _submitted(provider, calls[0])
+    assert providers.QUESTION_CLARITY_RULES in instructions
     context = submitted["content_context"]
     profiles = {item["subject"]: item for item in context["subject_profiles"]}
     assert set(profiles) == {"Geographie", "Informatik"}

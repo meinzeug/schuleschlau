@@ -88,6 +88,13 @@ class _Fixture {
             client: MockClient((request) async {
               requests.add(request);
               if (request.method == 'GET') {
+                if (request.url.path.endsWith('/tutor/questions')) {
+                  return http.Response(
+                    jsonEncode({'questions': [], 'next_cursor': null}),
+                    200,
+                    headers: {'content-type': 'application/json'},
+                  );
+                }
                 expect(request.url.path, '/api/children/child/overview');
                 expect(request.url.queryParameters, {'compact': 'true'});
                 return http.Response(
@@ -244,6 +251,11 @@ void main() {
         ]) {
           expect(find.text(fact), findsOneWidget);
         }
+        expect(
+          find.text('Eine Bewertung ist noch offen. Das ist kein Fehler.'),
+          findsOneWidget,
+          reason: 'An open result remains visible even alongside supported and incorrect answers.',
+        );
         expect(find.text('4 richtig gelöst'), findsNothing);
         expect(fixture.requests, isEmpty);
         expect(find.byType(ActionButton), findsOneWidget);
@@ -258,6 +270,57 @@ void main() {
       },
     );
   }
+
+  testWidgets('Open results remain open when a new practice is offered', (
+    tester,
+  ) async {
+    final unit = _unit(
+      questions: [
+        _question('one', [_attempt('uncertain')]),
+        _question('two', [_attempt('uncertain')]),
+      ],
+    );
+    final before = jsonEncode(unit);
+    final fixture = _Fixture(unit);
+    await _open(tester, fixture);
+    expect(
+      find.text('Einige Bewertungen sind noch offen. Das sind keine Fehler.'),
+      findsOneWidget,
+    );
+    expect(
+      find.text('Du kannst eine neue Aufgabe ausprobieren.'),
+      findsOneWidget,
+    );
+    expect(fixture.requests, isEmpty);
+    expect(jsonEncode(unit), before);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets(
+    'clarifying an open saved answer opens an editable contextual draft',
+    (tester) async {
+      final unit = _unit(
+        questions: [
+          _question('open', [_attempt('uncertain')]),
+        ],
+      );
+      final fixture = _Fixture(unit);
+      await _open(tester, fixture);
+      await _tap(tester, 'Deine Antworten');
+      await _tap(tester, 'Mit der Lernhilfe klären');
+      final field = tester.widget<TextField>(find.byType(TextField).last);
+      expect(field.controller!.text, contains('Künstliche Aufgabe open'));
+      expect(
+        field.controller!.text,
+        contains('Gespeicherte künstliche Antwort'),
+      );
+      expect(
+        fixture.requests.where((request) => request.method == 'POST'),
+        isEmpty,
+      );
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
 
   testWidgets('A missing support flag never becomes an independent success', (
     tester,

@@ -160,6 +160,16 @@ Ohne vorgegebenen Teiler verlange die vollständig gekürzte Form, keinen unbest
 Unterscheide die Frage nach dem Teiler von der Frage nach dem daraus entstehenden vollständigen Bruch.
 Diese Rechenbeispiele gehören niemals in Aufgaben anderer Fächer."""
 
+QUESTION_CLARITY_RULES = (
+    "\nJede neu formulierte Frage muss ohne unsichtbare Heftseite und ohne Erinnerung an eine "
+    "vorherige Aufgabe verständlich sein. Nenne den nötigen Zusammenhang kurz im Fragetext, "
+    "ohne die Antwort zu verraten. Verweise wie 'in den Notizen', 'gemeinsames Merkmal' oder "
+    "'welcher Körperteil' reichen nicht, wenn mehrere Antworten passen könnten. "
+    "Grenze die gesuchte Eigenschaft eindeutig ein oder wähle eine andere belegte Frage. "
+    "Eine begrifflich richtige andere Antwort darf nicht durch einen willkürlich engen "
+    "Antwortschlüssel als falsch erscheinen. Bereits serverseitig festgelegte Aufgaben bleiben unverändert."
+)
+
 
 def is_mathematics(subject):
     return isinstance(subject, str) and bool(
@@ -1600,6 +1610,8 @@ def request_provider(config, function, payload, image_bytes=None, *, synthetic_f
             "Wenn die Aufgaben nur Erweitern prüfen, beginne: 'Für das Addieren prüfen wir zuerst das Erweitern.' "
             "Behaupte dann keine vollständige Prüfung oder Beherrschung des Addierens."
         )
+    if function in ("unit", "package"):
+        instructions += QUESTION_CLARITY_RULES
     if function in ("unit", "package") and not payload.get("review"):
         instructions += (
             "\nPädagogischer Ablauf: Erkläre genau den bestätigten Stoff in kleinen, altersgerechten Schritten. "
@@ -2053,7 +2065,7 @@ def request_provider(config, function, payload, image_bytes=None, *, synthetic_f
                     code="invalid_output", billing_result=Result({}, 0, 0, 0,
                         telemetry={"pre_dispatch": True}, cost_source="cancelled"),
                 )
-        instructions = package_rules(payload, indexed_choices=indexed_choices) + package_output.rules
+        instructions = package_rules(payload, indexed_choices=indexed_choices) + package_output.rules + QUESTION_CLARITY_RULES
         if package_part_output.enabled(payload):
             instructions += package_part_output.RULES
         if prepared_graphics is not None:

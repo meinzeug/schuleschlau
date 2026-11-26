@@ -3823,6 +3823,10 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
                           state,
                           childId: u['child_id'],
                           unitId: u['id'],
+                          initialQuestion: tutorQuestionForUnclearAnswer(
+                            q['prompt']?.toString() ?? '',
+                            answer,
+                          ),
                         ),
                   icon: Icon(Icons.chat_bubble_outline_rounded),
                   label: Text('Mit der Lernhilfe klären'),

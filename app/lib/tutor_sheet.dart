@@ -18,6 +18,7 @@ Future<void> showTutorSheet(
   String? dayId,
   String? materialId,
   String? unitId,
+  String? initialQuestion,
 }) async {
   final scope = <String, String>{
     if (dayId != null && dayId.isNotEmpty) 'day_id': dayId,
@@ -35,8 +36,25 @@ Future<void> showTutorSheet(
     showDragHandle: true,
     backgroundColor: context.palette.panelSurface,
     constraints: BoxConstraints(maxWidth: 760),
-    builder: (_) => _TutorSheet(state, childId: childId, scope: scope),
+    builder: (_) => _TutorSheet(
+      state,
+      childId: childId,
+      scope: scope,
+      initialQuestion: unitId == null ? null : initialQuestion,
+    ),
   );
+}
+
+/// A draft only: the child may edit it and must explicitly send it.
+String tutorQuestionForUnclearAnswer(String prompt, String answer) {
+  String excerpt(String text) {
+    final value = text.trim();
+    final shortened = value.characters.take(350).toString();
+    return shortened == value ? value : '$shortened …';
+  }
+
+  return 'Warum ist meine Antwort nicht sicher bewertet? '
+      'Aufgabe: ${excerpt(prompt)} Meine Antwort: ${excerpt(answer)}';
 }
 
 final _tutorDrafts = Expando<_TutorDraftMemory>();
@@ -117,7 +135,13 @@ class _TutorSheet extends StatefulWidget {
   final AppState state;
   final String childId;
   final Map<String, String> scope;
-  const _TutorSheet(this.state, {required this.childId, required this.scope});
+  final String? initialQuestion;
+  const _TutorSheet(
+    this.state, {
+    required this.childId,
+    required this.scope,
+    this.initialQuestion,
+  });
   @override
   State<_TutorSheet> createState() => _TutorSheetState();
 }
@@ -202,6 +226,11 @@ class _TutorSheetState extends State<_TutorSheet> with WidgetsBindingObserver {
       replyTo = saved.replyTo;
       newQuestionMode = saved.newQuestion;
       unconfirmed = saved.submission;
+    } else if (state.isChild &&
+        ownerMatches &&
+        widget.initialQuestion != null) {
+      question.text = widget.initialQuestion!.characters.take(1000).toString();
+      newQuestionMode = true;
     }
     question.addListener(draftChanged);
     unawaited(load());

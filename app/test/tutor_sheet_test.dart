@@ -55,15 +55,26 @@ void _viewport(WidgetTester tester) {
   addTearDown(tester.view.resetDevicePixelRatio);
 }
 
-Future<void> _open(WidgetTester tester, AppState state) async {
+Future<void> _open(
+  WidgetTester tester,
+  AppState state, {
+  String? initialQuestion,
+  bool forUnit = false,
+}) async {
   await tester.pumpWidget(
     MaterialApp(
       theme: appTheme(),
       home: Scaffold(
         body: Builder(
           builder: (context) => FilledButton(
-            onPressed: () =>
-                showTutorSheet(context, state, childId: 'child', dayId: 'day'),
+            onPressed: () => showTutorSheet(
+              context,
+              state,
+              childId: 'child',
+              dayId: forUnit ? null : 'day',
+              unitId: forUnit ? 'unit' : null,
+              initialQuestion: initialQuestion,
+            ),
             child: const Text('Fragen öffnen'),
           ),
         ),
@@ -104,6 +115,45 @@ void _pause(WidgetTester tester) {
 }
 
 void main() {
+  testWidgets(
+    'clarification prepares editable context without sending or replacing a draft',
+    (tester) async {
+      _viewport(tester);
+      final requests = <http.Request>[];
+      final state = _state(
+        MockClient((request) async {
+          requests.add(request);
+          return _json({'questions': [], 'next_cursor': null});
+        }),
+      );
+      final prompt = tutorQuestionForUnclearAnswer(
+        'Welche Struktur?',
+        'Hinterleib',
+      );
+      await _open(tester, state, forUnit: true, initialQuestion: prompt);
+      expect(
+        tester.widget<TextField>(find.byType(TextField)).controller!.text,
+        prompt,
+      );
+      expect(requests.map((r) => r.method), everyElement('GET'));
+      await tester.enterText(find.byType(TextField), 'Mein eigener Entwurf');
+      await tester.pump();
+      await tester.pumpWidget(const SizedBox());
+      await _open(tester, state, forUnit: true, initialQuestion: prompt);
+      expect(
+        tester.widget<TextField>(find.byType(TextField)).controller!.text,
+        'Mein eigener Entwurf',
+      );
+      expect(requests.map((r) => r.method), everyElement('GET'));
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
+  test('long clarification context is explicitly shortened and bounded', () {
+    final result = tutorQuestionForUnclearAnswer('a' * 500, 'b' * 500);
+    expect(result.length, lessThan(1000));
+    expect('…'.allMatches(result).length, 2);
+  });
   for (final success in [true, false]) {
     testWidgets(
       'new login intent hides a late tutor ${success ? 'history' : 'error'}',
