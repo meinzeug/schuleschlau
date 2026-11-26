@@ -236,8 +236,11 @@ Future<bool> reprocessNotebookPage(
     owner,
     family,
     'Seite neu einlesen?',
-    'Die KI liest dein Foto erneut. Danach prüfst du den Text. '
-        'Deine Seite und Antworten bleiben erhalten. Dabei können KI-Kosten entstehen.',
+    state.isChild
+        ? 'Die KI liest dein Foto erneut. Falls etwas unklar ist, können deine Eltern den Text prüfen. '
+              'Deine Seite und Antworten bleiben erhalten. Dabei können KI-Kosten entstehen.'
+        : 'Die KI liest das Foto erneut. Danach kannst du den Text prüfen. '
+              'Die Seite und Antworten bleiben erhalten. Dabei können KI-Kosten entstehen.',
     confirmLabel: 'Mit KI neu einlesen',
   )) {
     return false;
@@ -494,15 +497,16 @@ class _MaterialProcessingScreenState extends State<MaterialProcessingScreen>
                 'Deine Seite: ${material!['topic'] ?? material!['title'] ?? material!['subject'] ?? 'Heftfoto'}',
                 style: TextStyle(fontWeight: FontWeight.w700),
               ),
-              TextButton.icon(
-                onPressed: () {
-                  if (current) {
-                    openRoute(context, '/material/${widget.materialId}');
-                  }
-                },
-                icon: Icon(Icons.description_outlined),
-                label: Text('Gespeicherte Seite ansehen'),
-              ),
+              if (!ready)
+                TextButton.icon(
+                  onPressed: () {
+                    if (current) {
+                      openRoute(context, '/material/${widget.materialId}');
+                    }
+                  },
+                  icon: Icon(Icons.description_outlined),
+                  label: Text('Gespeicherte Seite ansehen'),
+                ),
             ],
             if (material?['created'] is num &&
                 (material!['created'] as num).isFinite &&
@@ -531,7 +535,9 @@ class _MaterialProcessingScreenState extends State<MaterialProcessingScreen>
                 onPressed: () =>
                     openRoute(context, '/material/${widget.materialId}'),
                 icon: Icon(Icons.fact_check_outlined),
-                label: Text('Seite prüfen'),
+                label: Text(
+                  widget.state.isChild ? 'Seite ansehen' : 'Seite prüfen',
+                ),
               ),
             if (error != null)
               OutlinedButton.icon(

@@ -1,5 +1,27 @@
 # Fotoeinstieg: erster Alltagstest am 25.11.2026
 
+## Quellenabgleich am 26.11.2026
+
+Im freigegebenen Konto wurde eine bereits bestätigte Biologieseite im mobilen
+Browser mit ihrem Originalfoto verglichen. Eine Überschrift und ein Begriff
+waren in der übernommenen Abschrift anders als auf dem Foto. Ein ausdrücklich
+ausgelöstes erneutes KI-Lesen erzeugte eine getrennte Seitenkopie und las diese
+konkret geprüften Stellen zutreffender; das belegt keine vollständige oder
+fachlich fehlerfreie Erkennung. Das Original und bestehende Lernantworten
+blieben unverändert. Die Kopie wartete anschließend auf Elternprüfung, weil
+der automatische zweite Abgleich für diesen Neuleseweg nicht angestoßen wurde.
+
+Der lokale Fix bindet die getrennte Kopie an den vorhandenen automatischen
+Gegencheck, sofern dieser für die Installation aktiviert ist. Originalrevision,
+Konto und Familienrechte werden dabei erneut geprüft. Eine Änderung oder
+Löschung der Ausgangsseite sperrt den Gegencheck. Eine Neulesung innerhalb
+einer laufenden Fotoabgabe bleibt unverändert. Der Kinderbereich fordert nicht
+mehr zur eigenen Textprüfung auf. Die bereits zuvor erzeugte Kopie und ihre
+alte erste Lesung werden durch diese Änderung nicht nachträglich automatisch
+abgeglichen. Die Bestätigung der ursprünglichen Seite ist keine Garantie für
+die inhaltliche Richtigkeit. Der Nachweis des neuen Ablaufs mit echtem
+Anbieter und im Browser steht noch aus.
+
 Im ausdrücklich freigegebenen Kinderkonto wurde eine reale Mathematikseite
 über die mobile Weboberfläche bei 390 × 844 Pixeln ausgewählt, ausgerichtet und
 abgegeben. Die Originaldatei und weitere private Heftinhalte liegen außerhalb

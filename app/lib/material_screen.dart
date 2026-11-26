@@ -2661,7 +2661,7 @@ class _MaterialReviewState extends State<MaterialReview>
                   Tooltip(
                     message: automaticallyChecked
                         ? 'Ein zweiter KI-Durchgang hat Foto und Abschrift abgeglichen. Das ist keine fachliche Richtigkeitsgarantie.'
-                        : 'Du hast die Abschrift übernommen. Das bestätigt den Wortlaut, nicht die fachliche Richtigkeit jeder Aussage.',
+                        : 'Die Abschrift wurde übernommen. Das ist keine Garantie für die fachliche Richtigkeit jeder Aussage.',
                     child: Tag(
                       automaticallyChecked
                           ? 'Automatisch abgeglichen'

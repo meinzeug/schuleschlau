@@ -44,16 +44,18 @@ void main() {
   testWidgets('a local correction survives the arriving countercheck', (
     tester,
   ) async {
-    final fixture = f.Fixture();
+    final fixture = f.Fixture(role: 'parent');
     fixture.pages[1]['material_review'] = {
       'mode': 'automatic',
       'status': 'checking',
     };
     fixture.pages[1]['synthetic'] = false;
     await fixture.open(tester);
-    await f.tap(tester, 'Etwas verbessern');
+    await f.tap(tester, 'Erkannten Text verbessern');
     final field = find.byWidgetPredicate(
-      (w) => w is TextField && w.decoration?.labelText == 'Text auf der Seite',
+      (w) =>
+          w is TextField &&
+          w.decoration?.labelText == 'Erkannter Unterrichtsstoff',
     );
     await tester.ensureVisible(field);
     await tester.enterText(

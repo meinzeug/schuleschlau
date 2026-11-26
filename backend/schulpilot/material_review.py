@@ -114,13 +114,28 @@ def authority(db, child_id, value):
     return child, family
 
 
+def _validate_reprocessed_copy(db, job, value):
+    """Rechecks use a separate copy and retain the original authority/revision."""
+    original = job.payload.get("reprocess_guard")
+    if original is None:
+        return
+    if (not isinstance(original, dict) or original.get("in_place")
+            or original.get("source_id") == job.payload.get("material_id")
+            or any(original.get(key) != value.get(key) for key in ("user_id", "session_id", "family_id"))):
+        raise ProviderError("Die erneute Fotoerkennung ist nicht an eine gültige Kopie gebunden.")
+    source = db.get(Material, original.get("source_id"), populate_existing=True)
+    if not source or source.child_id != job.child_id or source.revision != original.get("source_revision"):
+        raise ProviderError("Die ursprüngliche Heftseite wurde geändert oder gelöscht. Bitte neu starten.")
+
+
 def validate_first(db, job):
     value = job.payload.get("auto_review_origin")
     if value is None:
         return
-    if job.kind != "extract" or job.payload.get(KEY) or job.payload.get("reprocess_guard"):
+    if job.kind != "extract" or job.payload.get(KEY):
         raise ProviderError("Die automatische Seitenprüfung ist nicht an eine erste Fotoerkennung gebunden.")
     authority(db, job.child_id, value)
+    _validate_reprocessed_copy(db, job, value)
     material = db.get(Material, job.payload.get("material_id"))
     if (
         not material
@@ -206,6 +221,7 @@ def guard(db, job, *, reserved=True):
         or job.idempotency != "material-check:" + material.id + ":" + str(material.revision)
     ):
         raise ProviderError("Foto oder Abschrift wurden seit der zweiten Prüfanforderung geändert.")
+    _validate_reprocessed_copy(db, first, value["origin"])
     if job.payload.get("preparation_id"):
         from .school_preparation import _check_sources, _state
         from .school_preparation import authority as day_authority

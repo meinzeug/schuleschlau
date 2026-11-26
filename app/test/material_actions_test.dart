@@ -191,11 +191,38 @@ void main() {
         find.textContaining('Deine Seite und Antworten bleiben erhalten'),
         findsOneWidget,
       );
+      expect(
+        find.textContaining('können deine Eltern den Text prüfen'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('Danach prüfst du den Text'), findsNothing);
       await tap(tester, 'Abbrechen');
       expect(harness.requests, isEmpty);
       expect(harness.result, isFalse);
       expect(harness.refreshed, 0);
       expect(harness.router.routeInformationProvider.value.uri.path, '/test');
+    },
+  );
+
+  testWidgets(
+    'A managing parent sees their own review option before rereading',
+    (tester) async {
+      final harness = await mount(tester, (_) async => reply({}));
+      harness.state.familyId = 'family';
+      harness.state.user = {
+        'id': 'parent',
+        'role': 'parent',
+        'families': [
+          {'id': 'family', 'permission': 'manage'},
+        ],
+      };
+      await tap(tester, 'Aktion öffnen');
+      expect(
+        find.textContaining('Danach kannst du den Text prüfen'),
+        findsOneWidget,
+      );
+      await tap(tester, 'Abbrechen');
+      expect(harness.requests, isEmpty);
     },
   );
 
@@ -275,7 +302,7 @@ void main() {
   );
 
   testWidgets(
-    'A completed extraction opens only its new source for explicit confirmation',
+    'A completed extraction lets the child view the new source without confirmation',
     (tester) async {
       final harness = await mount(tester, (request) async {
         expect(request.method, 'GET');
@@ -290,7 +317,7 @@ void main() {
               });
       }, processing: true);
       expect(find.text('Der Text ist bereit.'), findsOneWidget);
-      await tap(tester, 'Seite prüfen');
+      await tap(tester, 'Seite ansehen');
       expect(find.text('Prüfen new-photo'), findsOneWidget);
       expect(harness.requests, hasLength(2));
       expect(
@@ -400,7 +427,7 @@ void main() {
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
-    expect(find.text('Seite prüfen'), findsOneWidget);
+    expect(find.text('Seite ansehen'), findsOneWidget);
     expect(jobReads, 2);
     expect(
       harness.requests.every((request) => request.method == 'GET'),
@@ -439,7 +466,7 @@ void main() {
       }),
     );
     await tester.pump();
-    expect(find.text('Seite prüfen'), findsNothing);
+    expect(find.text('Seite ansehen'), findsNothing);
     expect(find.text('Die KI liest dein Foto …'), findsOneWidget);
     expect(reads, 2);
     expect(
@@ -516,7 +543,7 @@ void main() {
       }),
     );
     await tester.pump();
-    expect(find.text('Seite prüfen'), findsNothing);
+    expect(find.text('Seite ansehen'), findsNothing);
     expect(find.text('Die KI liest dein Foto …'), findsOneWidget);
     expect(reads, 2);
     await tester.pumpWidget(const SizedBox());
@@ -564,15 +591,15 @@ void main() {
           'result': {'material_id': 'new-photo'},
         });
       }, processing: true);
-      expect(find.text('Seite prüfen'), findsOneWidget);
+      expect(find.text('Seite ansehen'), findsOneWidget);
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
       await tester.pump();
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
       await tester.pump();
-      expect(find.text('Seite prüfen'), findsNothing);
+      expect(find.text('Seite ansehen'), findsNothing);
       delayed.complete(reply({'detail': 'offline'}, status: 503));
       await tester.pump();
-      expect(find.text('Seite prüfen'), findsNothing);
+      expect(find.text('Seite ansehen'), findsNothing);
       expect(find.text('Status neu laden'), findsOneWidget);
       await tester.pumpWidget(const SizedBox());
     },
@@ -600,7 +627,7 @@ void main() {
           'result': {'material_id': 'new-photo'},
         });
       }, processing: true);
-      expect(find.text('Seite prüfen'), findsOneWidget);
+      expect(find.text('Seite ansehen'), findsOneWidget);
       final navigator =
           harness.router.routerDelegate.navigatorKey.currentState!;
       unawaited(
@@ -618,12 +645,12 @@ void main() {
       expect(pages, 1);
       navigator.pop();
       await tester.pumpAndSettle();
-      expect(find.text('Seite prüfen'), findsNothing);
+      expect(find.text('Seite ansehen'), findsNothing);
       await tester.pump(const Duration(seconds: 3));
       await tester.pump();
       expect(pages, 2);
       expect(find.text('Deine Seite: Privates Thema'), findsNothing);
-      expect(find.text('Seite prüfen'), findsNothing);
+      expect(find.text('Seite ansehen'), findsNothing);
       expect(
         harness.requests.every((request) => request.method == 'GET'),
         isTrue,
@@ -653,7 +680,7 @@ void main() {
                 }),
           processing: true,
         );
-        expect(find.text('Seite prüfen'), findsNothing);
+        expect(find.text('Seite ansehen'), findsNothing);
         expect(find.text('Status neu laden'), findsOneWidget);
         expect(
           harness.requests.every((request) => request.method == 'GET'),
@@ -680,7 +707,7 @@ void main() {
                 }),
           processing: true,
         );
-        expect(find.text('Seite prüfen'), findsNothing);
+        expect(find.text('Seite ansehen'), findsNothing);
         expect(find.text('Status neu laden'), findsOneWidget);
         expect(
           harness.requests.every((request) => request.method == 'GET'),
@@ -705,7 +732,7 @@ void main() {
             : reply({'id': 'job', 'kind': 'extract', 'status': 'queued'}),
         processing: true,
       );
-      expect(find.text('Seite prüfen'), findsNothing);
+      expect(find.text('Seite ansehen'), findsNothing);
       expect(find.text('Status neu laden'), findsOneWidget);
       await tester.pumpWidget(const SizedBox());
     },
@@ -736,7 +763,7 @@ void main() {
       );
       await tester.pump();
       await tester.pump(const Duration(seconds: 4));
-      expect(find.text('Seite prüfen'), findsNothing);
+      expect(find.text('Seite ansehen'), findsNothing);
       expect(find.text('Der Text ist bereit.'), findsNothing);
       expect(harness.requests, hasLength(2));
       await tester.pumpWidget(const SizedBox());
@@ -852,9 +879,9 @@ void main() {
         width: 320,
         textScale: 2,
       );
-      await tester.ensureVisible(find.text('Seite prüfen'));
+      await tester.ensureVisible(find.text('Seite ansehen'));
       expect(tester.takeException(), isNull);
-      await tap(tester, 'Seite prüfen');
+      await tap(tester, 'Seite ansehen');
       expect(find.text('Prüfen new-photo'), findsOneWidget);
     },
   );

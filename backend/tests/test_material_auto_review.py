@@ -129,6 +129,105 @@ def check(pipeline):
     return identifier
 
 
+def test_confirmed_page_reread_gets_independent_automatic_check(pipeline):
+    page = upload(pipeline)
+    first(pipeline, page)
+    check(pipeline)
+    with DB() as db:
+        source = db.get(Material, page['id'])
+        assert source.confirmed
+        original_revision, original_content = source.revision, source.content
+    headers = {'Idempotency-Key': 'synthetic-reread-with-check'}
+    response = pipeline['api'].post(
+        f"/api/materials/{page['id']}/reprocess", json={'revision': original_revision}, headers=headers
+    )
+    assert response.status_code == 202, response.text
+    result = response.json()
+    assert result['material_id'] != page['id']
+    assert pipeline['api'].post(
+        f"/api/materials/{page['id']}/reprocess", json={'revision': original_revision}, headers=headers
+    ).json() == result
+    with DB() as db:
+        job = db.get(Job, result['id'])
+        assert job.payload['auto_review_origin']['version'] == review.VERSION
+        assert claim(db) == job.id
+    process(result['id'])
+    with DB() as db:
+        assert db.get(Job, result['id']).status == 'completed'
+    check(pipeline)
+    with DB() as db:
+        source, copy_page = db.get(Material, page['id']), db.get(Material, result['material_id'])
+        assert (source.revision, source.content) == (original_revision, original_content)
+        assert copy_page.confirmed
+        assert review.public_status(db, copy_page)['status'] == 'checked'
+    assert len(pipeline['calls']) == 4
+
+
+def test_reread_automatic_check_rejects_changed_original(pipeline):
+    page = upload(pipeline)
+    first(pipeline, page)
+    check(pipeline)
+    with DB() as db:
+        revision = db.get(Material, page['id']).revision
+    result = pipeline['api'].post(
+        f"/api/materials/{page['id']}/reprocess", json={'revision': revision},
+        headers={'Idempotency-Key': 'synthetic-reread-original-changed'},
+    ).json()
+    with DB() as db:
+        assert claim(db) == result['id']
+    process(result['id'])
+    with DB.begin() as db:
+        db.get(Material, page['id']).revision += 1
+    review.advance_one()
+    with DB() as db:
+        job = db.get(Job, result['id'])
+        assert job.result['material_check_done'] == 'blocked'
+        assert not db.get(Material, result['material_id']).confirmed
+    assert len(pipeline['calls']) == 3
+
+
+@pytest.mark.parametrize('change', ['source', 'session', 'policy'])
+def test_reread_check_revalidates_authority_before_transport(pipeline, change):
+    page = upload(pipeline)
+    first(pipeline, page)
+    check(pipeline)
+    with DB() as db:
+        revision = db.get(Material, page['id']).revision
+    response = pipeline['api'].post(
+        f"/api/materials/{page['id']}/reprocess", json={'revision': revision},
+        headers={'Idempotency-Key': 'synthetic-reread-recheck-authority'},
+    )
+    assert response.status_code == 202, response.text
+    result = response.json()
+    with DB() as db:
+        assert claim(db) == result['id']
+    process(result['id'])
+    review.advance_one()
+    with DB.begin() as db:
+        first_job = db.get(Job, result['id'])
+        assert first_job.result['material_check_done'] == 'queued'
+        check_job = db.scalar(select(Job).where(
+            Job.child_id == first_job.child_id, Job.status == 'queued', Job.id != first_job.id
+        ))
+        assert check_job and check_job.payload.get(review.KEY)
+        check_id = check_job.id
+        if change == 'source':
+            db.get(Material, page['id']).revision += 1
+        elif change == 'session':
+            db.get(Session, first_job.payload['reprocess_guard']['session_id']).revoked = True
+        else:
+            installation = db.get(Installation, 1)
+            installation.encrypted_settings = encrypt(json.dumps({'material_review_mode': 'manual'}))
+            installation.revision += 1
+    with DB() as db:
+        assert claim(db) == check_id
+    process(check_id)
+    with DB() as db:
+        assert db.get(Job, check_id).status == 'failed'
+        assert not db.get(Material, result['material_id']).confirmed
+    assert len(pipeline['calls']) == 3
+
+
 def test_localized_auto_conflict_preserves_only_independently_safe_content(pipeline):
     safe = dict(kind="paragraph", text="Künstliche Grundregel zum Vergleichen.",
                 image_region=dict(left=20, top=20, right=400, bottom=100))

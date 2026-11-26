@@ -68,7 +68,13 @@ class Fixture {
   final String role;
   Fixture({this.role = 'child'}) {
     if (role == 'parent') {
-      state.user = {'id': 'synthetic-parent-user', 'role': 'parent'};
+      state.user = {
+        'id': 'synthetic-parent-user',
+        'role': 'parent',
+        'families': [
+          {'id': 'synthetic-family', 'permission': 'manage'},
+        ],
+      };
     }
   }
   Future<void> open(
@@ -170,13 +176,21 @@ void main() {
           await f.open(tester);
           expect(
             find.textContaining('Künstliche Statusmeldung:'),
-            findsOneWidget,
+            role == 'parent' ? findsOneWidget : findsNothing,
           );
+          if (role == 'child' &&
+              (status == 'checked_with_gaps' || status == 'failed')) {
+            expect(
+              find.textContaining('Offene Stellen können deine Eltern prüfen.'),
+              findsOneWidget,
+            );
+          }
           expect(
             find.byWidgetPredicate(
               (w) =>
                   w is Tooltip &&
-                  (w.message?.startsWith('Du hast die Abschrift') ?? false),
+                  (w.message?.startsWith('Die Abschrift wurde übernommen') ??
+                      false),
             ),
             findsNothing,
           );
@@ -216,35 +230,39 @@ void main() {
       );
     }
   }
-  testWidgets(
-    '142 manual confirmed provenance remains explicitly human and no automatic claim is invented',
-    (tester) async {
-      final f = Fixture();
-      addTearDown(f.dispose);
-      f.data.value = page()..addAll({'confirmed': true, 'status': 'confirmed'});
-      await f.open(tester);
-      expect(find.text('Text übernommen'), findsOneWidget);
-      expect(
-        find.byWidgetPredicate(
-          (w) =>
-              w is Tooltip &&
-              (w.message?.startsWith('Du hast die Abschrift') ?? false),
-        ),
-        findsOneWidget,
-      );
-      expect(find.text('Automatisch abgeglichen'), findsNothing);
-      expect(f.calls, isEmpty);
-      await f.close(tester);
-    },
-  );
+  for (final role in ['child']) {
+    testWidgets(
+      '142 $role sees neutral confirmed provenance without an invented automatic review',
+      (tester) async {
+        final f = Fixture(role: role);
+        addTearDown(f.dispose);
+        f.data.value = page()
+          ..addAll({'confirmed': true, 'status': 'confirmed'});
+        await f.open(tester);
+        expect(find.text('Text übernommen'), findsOneWidget);
+        expect(
+          find.byWidgetPredicate(
+            (w) =>
+                w is Tooltip &&
+                (w.message?.startsWith('Die Abschrift wurde übernommen') ??
+                    false),
+          ),
+          findsOneWidget,
+        );
+        expect(find.text('Automatisch abgeglichen'), findsNothing);
+        expect(f.calls, isEmpty);
+        await f.close(tester);
+      },
+    );
+  }
   testWidgets(
     '142 a confirmed automatic revision preserves the older correction through close and reopen',
     (tester) async {
-      final f = Fixture();
+      final f = Fixture(role: 'parent');
       addTearDown(f.dispose);
       await f.open(tester);
-      await tap(tester, find.text('Etwas verbessern'));
-      await tester.enterText(textField('Text auf der Seite'), oldDraft);
+      await tap(tester, find.text('Erkannten Text verbessern'));
+      await tester.enterText(textField('Erkannter Unterrichtsstoff'), oldDraft);
       f.data.value = page(revision: 2, automatic: 'checked');
       await tester.pumpAndSettle();
       expect(
@@ -273,11 +291,11 @@ void main() {
   testWidgets(
     '142 replacing an old automatic-conflict draft needs the existing explicit discard confirmation',
     (tester) async {
-      final f = Fixture();
+      final f = Fixture(role: 'parent');
       addTearDown(f.dispose);
       await f.open(tester);
-      await tap(tester, find.text('Etwas verbessern'));
-      await tester.enterText(textField('Text auf der Seite'), oldDraft);
+      await tap(tester, find.text('Erkannten Text verbessern'));
+      await tester.enterText(textField('Erkannter Unterrichtsstoff'), oldDraft);
       f.data.value = page(revision: 2, automatic: 'checked_with_gaps');
       await tester.pumpAndSettle();
       await tap(tester, find.text('Gespeicherte Seite laden'));
@@ -288,7 +306,8 @@ void main() {
       await tap(tester, find.text('Gespeicherte Seite laden'));
       await tap(tester, find.text('Gespeicherten Text wiederherstellen'));
       expect(literal(oldDraft), findsNothing);
-      expect(literal('Gespeicherte künstliche Abschrift 2.'), findsWidgets);
+      // This fixture deliberately has an empty saved transcription.
+      expect(literal('Gespeicherte künstliche Abschrift 2.'), findsNothing);
       expect(find.text('Automatisch abgeglichen'), findsOneWidget);
       expect(f.calls, isEmpty);
       await f.close(tester);
@@ -303,11 +322,11 @@ void main() {
   testWidgets(
     '142 automatic-conflict drafts are not rebound to a replacement account',
     (tester) async {
-      final f = Fixture();
+      final f = Fixture(role: 'parent');
       addTearDown(f.dispose);
       await f.open(tester);
-      await tap(tester, find.text('Etwas verbessern'));
-      await tester.enterText(textField('Text auf der Seite'), oldDraft);
+      await tap(tester, find.text('Erkannten Text verbessern'));
+      await tester.enterText(textField('Erkannter Unterrichtsstoff'), oldDraft);
       f.data.value = page(revision: 2, automatic: 'checked');
       await tester.pumpAndSettle();
       await f.close(tester);

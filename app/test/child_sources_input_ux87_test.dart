@@ -55,7 +55,7 @@ Json preview() => {
 };
 void main() {
   testWidgets(
-    'K105 confirming a corrected source visibly freezes the submitted fields until completion',
+    'K105 parent confirmation visibly freezes the submitted fields until completion',
     (t) async {
       final pending = Completer<http.Response>();
       Json? sent;
@@ -72,6 +72,14 @@ void main() {
         }
         return reply({});
       });
+      s.familyId = 'family';
+      s.user = {
+        'id': 'parent',
+        'role': 'parent',
+        'families': [
+          {'id': 'family', 'permission': 'manage'},
+        ],
+      };
       final data = page('a')..['synthetic'] = false;
       await t.pumpWidget(
         home(
@@ -80,13 +88,13 @@ void main() {
             data,
             onRefresh: () {},
             showUnitAction: false,
-            simpleChild: true,
+            simpleChild: false,
           ),
         ),
       );
       await t.pumpAndSettle();
-      await tap(t, find.text('Etwas verbessern'));
-      final text = find.widgetWithText(TextField, 'Text auf der Seite');
+      await tap(t, find.text('Erkannten Text verbessern'));
+      final text = find.widgetWithText(TextField, 'Erkannter Unterrichtsstoff');
       await t.enterText(text, 'Korrigierter künstlicher Text');
       await t.ensureVisible(find.text('Stimmt, weiter'));
       await t.tap(find.text('Stimmt, weiter'));
@@ -97,14 +105,14 @@ void main() {
       }
       final edit = t.widget<TextButton>(
         find.ancestor(
-          of: find.text('Korrektur schließen'),
+          of: find.text('Leseansicht'),
           matching: find.byType(TextButton),
         ),
       );
       expect(edit.onPressed, isNull);
       pending.complete(reply({...data, 'confirmed': true}));
       await t.pumpAndSettle();
-      expect(find.text('Text übernommen'), findsOneWidget);
+      expect(t.widget<TextField>(text).readOnly, isFalse);
       await t.pumpWidget(const SizedBox());
     },
   );

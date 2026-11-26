@@ -729,7 +729,8 @@ def enqueue(db, p, child, kind, payload, idempotency, *, commit=True):
         from .study_authority import bind
 
         payload["completion_origin"] = bind(db, p, child)
-    if (kind == "extract" and not payload.get("reprocess_guard")
+    reprocess = payload.get("reprocess_guard")
+    if (kind == "extract" and (reprocess is None or (isinstance(reprocess, dict) and not reprocess.get("in_place")))
             and db.get(Material, payload["material_id"]).purpose == "notebook"):
         from .material_review import origin
 
