@@ -632,6 +632,26 @@ Eine lokale Korrektur bietet für explizit verlangte Zeichen `<`, `=` und `>`
 direkte Auswahlfelder und stellt die Formel mit verständlicher Lücke dar.
 Dies ist künstlich geprüft; der Live-Nachtest der Korrektur steht noch aus.
 
+Der Nachtest erfolgte anschließend mit Version 1.38.165 in derselben mobilen
+Browserrunde, ohne sie neu zu erzeugen. Die nicht abgesendete Zeichenauswahl
+war nach dem Neuladen erhalten; drei große Zeichenknöpfe und eine lesbare
+Formellücke ersetzten die ungeeigneten Bruchfelder. Die richtige Antwort ließ
+sich absenden, und der Rückblick zeigte beide Aufgaben der Anschlussrunde als
+selbstständig. Die Testantworten bleiben im echten Kinderkonto gespeichert
+und sind kein Nachweis über das Können des Kindes.
+
+Auch auf der Heftseite wurde der Volltext nach Aufklappen einmal statt doppelt
+angezeigt. Der Dialog zum Anfragen einer Heftübung ist niedriger; zusätzliche
+Seiten und die Aufgabenanzahl bleiben erreichbar. Ein gespeicherter Auftrag
+benötigt dort weiterhin erklärenden Text. Das Öffnen und Schließen dieses
+Dialogs hat keinen neuen Auftrag gestartet.
+
+Für den neuen Vergleichsauftrag erfasste die reguläre OpenRouter-Buchung eine
+Dauer von 29 Sekunden und 45.172 Mikrodollar. Der nachfolgende Rückblick und
+die Anschlussübung wurden ebenfalls als abgeschlossene Anbieteraufrufe
+verbucht. Diese Werte sind Einzelmessungen und keine Laufzeit- oder
+Preisgarantie. Der vollständige 30-Tage-Test bleibt offen.
+
 Im Fotoalbum wurde das seitlich angezeigte Bild durch lokales Drehen sichtbar;
 die Drehung verändert das Original und die bereits gespeicherte Erkennung
 nicht. Zuvor konnte das Bild nur nach rechts gedreht werden. Im Live-Nachtest
