@@ -312,7 +312,12 @@ void main() {
         'reason': 'Bitte noch einmal auswählen.',
       });
       await showDay(tester, state);
-      expect(find.text('1 Auswahlversuch fehlgeschlagen'), findsOneWidget);
+      expect(find.text('Fotoverlauf · 1 nicht übernommen'), findsOneWidget);
+      expect(
+        find.text('Dieser Auswahlversuch wurde nicht übernommen'),
+        findsNothing,
+      );
+      await old.tap(tester, 'Fotoverlauf · 1 nicht übernommen');
       expect(
         find.text('Dieser Auswahlversuch wurde nicht übernommen'),
         findsOneWidget,
@@ -320,6 +325,37 @@ void main() {
       await old.tap(tester, 'Nur fehlgeschlagene Versuche');
       expect(find.text('Unlesbares Foto'), findsOneWidget);
       expect(find.text('Gutes Foto'), findsNothing);
+      expect(server.requests.every((r) => r.startsWith('GET ')), isTrue);
+    },
+  );
+  testWidgets(
+    'A later same-name photo does not silently resolve an earlier failed selection',
+    (tester) async {
+      final server = d.PreparationServer();
+      final state = server.state();
+      await state.pendingUploads.receipt('kid', 'first', {
+        'child': 'child',
+        'day': 'day',
+        'name': 'Gleicher Name.jpg',
+        'stage': 'not_accepted',
+        'reason': 'Bitte erneut auswählen.',
+      });
+      await state.pendingUploads.receipt('kid', 'second', {
+        'child': 'child',
+        'day': 'day',
+        'name': 'Gleicher Name.jpg',
+        'stage': 'saved',
+        'material_id': 'page1',
+      });
+      await showDay(tester, state);
+      expect(find.text('Fotoverlauf · 1 nicht übernommen'), findsOneWidget);
+      expect(find.text('Gleicher Name.jpg'), findsNothing);
+      await old.tap(tester, 'Fotoverlauf · 1 nicht übernommen');
+      expect(find.text('Gleicher Name.jpg'), findsNWidgets(2));
+      expect(
+        find.text('Dieser Auswahlversuch wurde nicht übernommen'),
+        findsOneWidget,
+      );
       expect(server.requests.every((r) => r.startsWith('GET ')), isTrue);
     },
   );

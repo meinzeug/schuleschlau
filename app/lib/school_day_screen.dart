@@ -596,10 +596,10 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
       child: Panel(
         child: ExpansionTile(
           key: ValueKey('import-${importReceipts.length}-$missing'),
-          initiallyExpanded: missing > 0,
+          initiallyExpanded: false,
           title: Text(
             missing > 0
-                ? '$missing ${missing == 1 ? 'Auswahlversuch fehlgeschlagen' : 'Auswahlversuche fehlgeschlagen'}'
+                ? 'Fotoverlauf · $missing nicht übernommen'
                 : 'Deine Fotoauswahl',
           ),
           children: [
