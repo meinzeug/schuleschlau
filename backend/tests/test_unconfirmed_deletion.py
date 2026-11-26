@@ -329,13 +329,10 @@ def test_deleting_last_unconfirmed_page_allows_explicit_package_for_confirmed_re
     day, ids, _ = review_day(api, child, monkeypatch)
     with child_client() as kid:
         page = kid.get(f"/api/materials/{ids[0]}").json()
-        confirmed = kid.put(
-            f"/api/materials/{ids[0]}/confirm",
-            json={
-                **{key: page[key] for key in ("subject", "topic", "content", "homework")},
-                "uncertainties_resolved": True,
-            },
-        )
+        correction = {**{key: page[key] for key in ("subject", "topic", "content", "homework")},
+                      "uncertainties_resolved": True}
+        assert kid.put(f"/api/materials/{ids[0]}/confirm", json=correction).status_code == 403
+        confirmed = api.put(f"/api/materials/{ids[0]}/confirm", json=correction)
         assert confirmed.status_code == 200, confirmed.text
         removed = kid.delete(f"/api/school-days/{day['id']}/pages/{ids[1]}")
         assert removed.status_code == 200, removed.text

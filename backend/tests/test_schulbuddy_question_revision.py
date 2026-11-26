@@ -21,7 +21,13 @@ def book(api, household, monkeypatch):
 
 @pytest.fixture
 def transport(monkeypatch):
-    return transport_fixture.__wrapped__(monkeypatch)
+    state = transport_fixture.__wrapped__(monkeypatch)
+    # These tests keep the sample question open. Its answer must not appear
+    # in either the tutor's visible reply or the displayed source quotation.
+    state["output"] = {"answer": "Überlege, welcher Himmelskörper selbst leuchtet.",
+                       "sources": [{"ref": "p1", "quote": "Die Sonne"}],
+                       "next_question": None, "starters": []}
+    return state
 
 
 @pytest.mark.parametrize("field,value", [("prompt", "Eine andere Frage?"),
@@ -97,10 +103,12 @@ def test_unchanged_question_keeps_same_context_for_followup(book, transport):
     sent = ask(book)
     assert sent.status_code == 202, sent.text
     finish()
+    saved = book["client"].get("/api/schulbuddy/questions/" + sent.json()["id"]).json()
+    assert saved["status"] == "ready", saved.get("error")
     followup = ask(book, reply_to=sent.json()["id"])
     assert followup.status_code == 202, followup.text
     finish()
-    assert transport["calls"][-1]["history"][0]["answer"] == "Die Sonne ist ein Stern."
+    assert transport["calls"][-1]["history"][0]["answer"] == transport["output"]["answer"]
 
 
 def test_legacy_answer_without_question_fingerprint_cannot_be_reused(book, transport):

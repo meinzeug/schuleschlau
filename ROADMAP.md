@@ -2768,6 +2768,15 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Schulbuddy als sicheren kontextbezogenen Lernbegleiter prüfen**
 
+  - [x] **Regressionstests für offene Tutorfragen an Lösungsschutz anpassen.**
+    Bei künstlichen Folgefragen enthalten weder Antwort noch sichtbares Zitat
+    die Lösung; die Tests prüfen weiterhin alte und geänderte Aufgabenfassung
+    sowie frühere Belege. Zwei weitere alte Bestätigungstests verlangen nun
+    die ausdrückliche Elternentscheidung. Die 15 betroffenen SQLite- und 31
+    PostgreSQL-Fälle bestanden. Der historische Gesamtlauf hatte sechs Fehler;
+    ein vollständiger erneuter Lauf bleibt offen.
+    [Testbericht](docs/BACKEND_SUITE_2026_11_26.md).
+
   - [x] **Ganzzahlige Entsprechung einer Bruchlösung in Hinweisen erkennen.**
     Für unterstützte kurze Mathefragen werden eigenständige ganze Zahlen
     zurückgehalten, wenn sie einer gespeicherten Bruchlösung entsprechen und
