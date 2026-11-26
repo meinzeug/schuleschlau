@@ -181,12 +181,12 @@ void main() {
   testWidgets(
     'OCR confirmation preserves text and never transfers vocabulary or classroom tasks',
     (tester) async {
-      final value = PaperFixture(confirmed: false);
+      final value = PaperFixture(role: 'parent', confirmed: false);
       await value.mount(tester);
       expect(find.text('Hier bitte genau hinschauen:'), findsNothing);
-      await tap(tester, 'Etwas verbessern');
+      await tap(tester, 'Erkannten Text verbessern');
       await tester.enterText(
-        find.widgetWithText(TextField, 'Text auf der Seite'),
+        find.widgetWithText(TextField, 'Erkannter Unterrichtsstoff'),
         'Eigene wörtliche OCR-Korrektur, weiterhin keine Musterlösung.',
       );
       FocusManager.instance.primaryFocus?.unfocus();

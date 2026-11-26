@@ -26,6 +26,16 @@ http.Response reply(Object v) => http.Response(
 AppState account(Future<http.Response> Function(http.Request) h) => AppState(
   api: Api(base: 'https://example.invalid/api', client: MockClient(h)),
 )..user = {'id': 'own', 'role': 'child', 'child_id': 'child'};
+AppState parentAccount(Future<http.Response> Function(http.Request) h) =>
+    account(h)
+      ..familyId = 'family'
+      ..user = {
+        'id': 'parent',
+        'role': 'parent',
+        'families': [
+          {'id': 'family', 'permission': 'owner'},
+        ],
+      };
 Future<void> tap(WidgetTester t, Finder f) async {
   await t.pumpAndSettle();
   await t.ensureVisible(f);
@@ -55,14 +65,14 @@ void main() {
   testWidgets(
     'K065 a local correction resumes only for the same session and source',
     (t) async {
-      final s = account(photoResponse);
+      final s = parentAccount(photoResponse);
       await t.pumpWidget(
         form.home(SingleChildScrollView(child: material(s, notebook()))),
       );
       await t.pumpAndSettle();
-      await tap(t, find.text('Etwas verbessern'));
+      await tap(t, find.text('Erkannten Text verbessern'));
       await t.enterText(
-        form.field('Text auf der Seite'),
+        form.field('Erkannter Unterrichtsstoff'),
         'Eigene unbestätigte Korrektur',
       );
       await t.pumpWidget(const SizedBox());
@@ -72,7 +82,10 @@ void main() {
       );
       await t.pumpAndSettle();
       expect(
-        t.widget<TextField>(form.field('Text auf der Seite')).controller!.text,
+        t
+            .widget<TextField>(form.field('Erkannter Unterrichtsstoff'))
+            .controller!
+            .text,
         'Eigene unbestätigte Korrektur',
       );
       expect(find.textContaining('wieder aufgenommen'), findsOneWidget);
@@ -90,7 +103,7 @@ void main() {
   testWidgets(
     'K065 a revision conflict remains a conflict after closing and reopening the correction',
     (t) async {
-      final s = account(photoResponse);
+      final s = parentAccount(photoResponse);
       final data = ValueNotifier<Json>(notebook());
       addTearDown(data.dispose);
       Widget page() => form.home(
@@ -102,9 +115,9 @@ void main() {
       );
       await t.pumpWidget(page());
       await t.pumpAndSettle();
-      await tap(t, find.text('Etwas verbessern'));
+      await tap(t, find.text('Erkannten Text verbessern'));
       await t.enterText(
-        form.field('Text auf der Seite'),
+        form.field('Erkannter Unterrichtsstoff'),
         'Alte eigene Korrektur',
       );
       data.value = notebook(revision: 2);
@@ -122,7 +135,7 @@ void main() {
     'K066 an oversized correction is preserved with a local limit error and sends no confirmation',
     (t) async {
       final calls = <http.Request>[];
-      final s = account((r) async {
+      final s = parentAccount((r) async {
         calls.add(r);
         return photoResponse(r);
       });
@@ -130,15 +143,18 @@ void main() {
         form.home(SingleChildScrollView(child: material(s, notebook()))),
       );
       await t.pumpAndSettle();
-      await tap(t, find.text('Etwas verbessern'));
+      await tap(t, find.text('Erkannten Text verbessern'));
       final long = List.filled(24001, 'a').join();
-      await t.enterText(form.field('Text auf der Seite'), long);
+      await t.enterText(form.field('Erkannter Unterrichtsstoff'), long);
       FocusManager.instance.primaryFocus?.unfocus();
       await t.pumpAndSettle();
       await tap(t, find.text('Stimmt, weiter'));
       expect(find.textContaining('24.000 Zeichen'), findsOneWidget);
       expect(
-        t.widget<TextField>(form.field('Text auf der Seite')).controller!.text,
+        t
+            .widget<TextField>(form.field('Erkannter Unterrichtsstoff'))
+            .controller!
+            .text,
         long,
       );
       expect(calls.where((r) => r.method != 'GET'), isEmpty);
@@ -149,7 +165,7 @@ void main() {
     'K105 switching accounts closes a private task-preview route without confirming',
     (t) async {
       final requests = <http.Request>[];
-      final s = account((r) async {
+      final s = parentAccount((r) async {
         requests.add(r);
         if (r.url.path.endsWith('/task-preview')) {
           return reply({
@@ -513,14 +529,14 @@ void main() {
   testWidgets(
     'K065 closing a correction then logging out clears its private RAM entry immediately',
     (t) async {
-      final s = account(photoResponse);
+      final s = parentAccount(photoResponse);
       await t.pumpWidget(
         form.home(SingleChildScrollView(child: material(s, notebook()))),
       );
       await t.pumpAndSettle();
-      await tap(t, find.text('Etwas verbessern'));
+      await tap(t, find.text('Erkannten Text verbessern'));
       await t.enterText(
-        form.field('Text auf der Seite'),
+        form.field('Erkannter Unterrichtsstoff'),
         'Private lokale Korrektur',
       );
       await t.pumpWidget(const SizedBox());
@@ -537,7 +553,7 @@ void main() {
   testWidgets(
     'K105 a newer source revision closes only the old private task-preview route',
     (t) async {
-      final s = account((r) async {
+      final s = parentAccount((r) async {
         if (r.url.path.endsWith('/task-preview')) {
           return reply({
             'items': [

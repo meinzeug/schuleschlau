@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
 import 'package:schulpilot/language_workshop.dart';
 
 import 'vocabulary_test.dart' as words;
@@ -478,7 +479,13 @@ void main() {
       t,
       LanguageWorkshop(state, childId: 'child', projectId: 'project'),
     );
-    expect(find.text('Gespeichert am 22.10.2026 10:00'), findsOneWidget);
+    final localTime = DateTime.utc(2026, 10, 22, 10).toLocal();
+    expect(
+      find.text(
+        'Gespeichert am ${DateFormat('dd.MM.yyyy HH:mm').format(localTime)}',
+      ),
+      findsOneWidget,
+    );
     expect(calls.every((q) => q.method == 'GET'), isTrue);
   });
 }
