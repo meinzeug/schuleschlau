@@ -1145,6 +1145,9 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
     Geplante und bearbeitete Schritte bleiben unterscheidbar. Im Fehlerfall
     wird derselbe Erklärungstext nicht ein zweites Mal aufgeklappt; die jeweils
     tatsächlich verfügbaren nächsten Schritte bleiben sichtbar.
+    Die vollständige Beispielseite wurde bei 320 und 390 Pixeln mit einfacher
+    und doppelter Schriftgröße im Chrome-Web-Runner und lokal geprüft; das
+    Öffnen der Beispielrunde löst ausschließlich lesende Anfragen aus.
     Bei ungeklärten Fotos wird das Kind nicht zur Seitenprüfung aufgefordert;
     berechtigte Eltern können die Prüfung öffnen. 86 Widgetfälle bestanden;
     eine getrennte 390-Pixel-Browservorschau mit Beispieldaten bestätigte
