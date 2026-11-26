@@ -38,3 +38,14 @@ geändert und kein KI-Aufruf gestartet. Ein synthetischer Anbietertest prüft
 den realen Transport mit Mock; ein echter Anbieteraufruf und eine neue
 produktive Runde sind damit noch nicht nachgewiesen. Flutter-Widgettests
 prüfen 390 und 320 Pixel sowie vergrößerte Schrift und reduzierte Bewegung.
+
+Ein zusätzlicher künstlicher Ablauf verwendet den regulären Paket-Worker,
+seine Reservierung und den echten Schema-/Codec-Weg mit simuliertem HTTP.
+Nach erfolgreichem Abschluss sind die gespeicherte Runde und ihre geprüfte
+Darstellung vorhanden; der Kinderzugang erhält vor einer Antwort weder
+Lösung noch Lösungsschritt. Änderungen an Quelle oder Sitzung sowie eine
+zwischenzeitlich gespeicherte gleiche Aufgabe verhindern die Veröffentlichung.
+Fehlerhafte Antworten werden nicht übernommen; ein gemeldeter Verbrauch bleibt
+auch bei Ablehnung erhalten. Die fünf Workerfälle bestanden auf isoliertem
+SQLite; zusammen mit der Grafik- und Schemaregression bestanden 41 Fälle auf
+isoliertem PostgreSQL. Dies ist weiterhin kein echter Modellaufruf.
