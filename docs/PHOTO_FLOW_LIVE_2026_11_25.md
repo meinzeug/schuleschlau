@@ -334,3 +334,27 @@ bestätigten Material orientierten Planung; es belegt keine Beherrschung durch
 das Kind. Die technische Formulierung „Neues Übungsbeispiel zum Verstehen“
 wurde für dieses fest bekannte Aufgabenformat in der lokalen Kinderanzeige
 entfernt; Aufgabenstellung und gespeicherter Originaltext bleiben erhalten.
+Für den Erklärdialog zeigt die lokale Oberfläche bei überlangem Inhalt nun
+eine dauerhaft sichtbare Scrollmarkierung. Widgettests bei 320 Pixeln Breite
+und normaler sowie doppelter Schrift prüfen Scrollbarkeit, getrennte Position
+der Schaltfläche und den Rückweg zur Aufgabe. Ein mobiler Live-Nachtest der
+neuen Darstellung steht bis zu ihrer Veröffentlichung noch aus.
+
+## Biologie-Lernschritt am 26.11.
+
+Auf der Heute-Seite wurde ein weiterer vorgeschlagener Biologie-Lernschritt
+ausdrücklich gestartet. Die echte Vorbereitung war erfolgreich und öffnete eine
+Runde mit vier Aufgaben. Ein allgemeines KI-Bienenbild war sichtbar, eine
+passende fachliche Erklärgrafik fehlte laut App; die Erklärung war als Text in
+vier Schritten erreichbar. Die Fragen behandelten mehrere Aspekte aus den
+Notizen, darunter einen Längenvergleich und Gemeinsamkeiten. Ein Hinweis zum
+Wort „mindestens“ war sprachlich unnötig kompliziert. Eine freie Frage nach
+einem weiteren Körpermerkmal war ohne konkreteren Bezug mehrdeutig; eine im
+vorherigen Erklärungstext genannte Antwort wurde nicht als falsch markiert,
+sondern als ungeklärt gespeichert. Die Hilfen wurden als Unterstützung
+vermerkt. Nach vier Testantworten zeigte der Rückblick eine selbstständige,
+zwei unterstützte und eine ungeklärte Antwort. Diese Testdaten sind keine
+Leistungsnachweise des Kindes. Der anschließend fertige KI-Rückblick empfahl
+erneutes Üben ohne Tipp, nannte die ungeklärte Frage aber nicht ausdrücklich
+als Formulierungsproblem. Der vollständige 30-Tage-Test und die fachliche
+Prüfung aller Inhalte bleiben offen.

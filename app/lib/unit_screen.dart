@@ -54,6 +54,38 @@ class UnitScreen extends StatefulWidget {
   State<UnitScreen> createState() => _UnitScreenState();
 }
 
+/// A persistent thumb makes a long explanation discoverable on touch screens.
+class _ExplanationScroll extends StatefulWidget {
+  final Widget child;
+  const _ExplanationScroll({required this.child});
+
+  @override
+  State<_ExplanationScroll> createState() => _ExplanationScrollState();
+}
+
+class _ExplanationScrollState extends State<_ExplanationScroll> {
+  final controller = ScrollController();
+
+  @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => Scrollbar(
+    controller: controller,
+    thumbVisibility: true,
+    interactive: true,
+    child: SingleChildScrollView(
+      key: const ValueKey('explanation-scroll'),
+      controller: controller,
+      padding: const EdgeInsets.only(right: 8),
+      child: widget.child,
+    ),
+  );
+}
+
 class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
   Json? unit;
   Object? error;
@@ -4644,7 +4676,7 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
             ),
             closeRouteOnInvalid: true,
             isCurrent: currentExplanation,
-            builder: (_) => SingleChildScrollView(
+            builder: (_) => _ExplanationScroll(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
