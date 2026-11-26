@@ -2529,7 +2529,9 @@ class _MaterialReviewState extends State<MaterialReview>
         if (d['purpose'] == 'exam') examReturn(d),
         pageActions(maintenance: false),
         if (automaticReview != null) automaticReviewNotice(),
-        if (!confirmed && d['status'] == 'review')
+        if (!confirmed &&
+            d['status'] == 'review' &&
+            automaticReview?['status'] != 'checking')
           const Notice(
             'Diese Seite prüfen deine Eltern. Dein Foto ist gespeichert.',
           ),

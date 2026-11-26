@@ -316,7 +316,7 @@ void main() {
                 'result': {'material_id': 'new-photo'},
               });
       }, processing: true);
-      expect(find.text('Der Text ist bereit.'), findsOneWidget);
+      expect(find.text('Deine Abschrift ist da.'), findsOneWidget);
       await tap(tester, 'Seite ansehen');
       expect(find.text('Prüfen new-photo'), findsOneWidget);
       expect(harness.requests, hasLength(2));
@@ -332,6 +332,31 @@ void main() {
       );
     },
   );
+
+  testWidgets('Empty page labels fall back to the subject while reading', (
+    tester,
+  ) async {
+    await mount(
+      tester,
+      (request) async => request.url.path.endsWith('/materials/new-photo')
+          ? reply({
+              'id': 'new-photo',
+              'child_id': 'child',
+              'topic': '',
+              'title': ' ',
+              'subject': 'Biologie',
+            })
+          : reply({
+              'id': 'job',
+              'kind': 'extract',
+              'material_id': 'new-photo',
+              'status': 'running',
+            }),
+      processing: true,
+    );
+    expect(find.text('Deine Seite: Biologie'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
 
   testWidgets('Pending polling and a route reload only read the existing job', (
     tester,
@@ -764,7 +789,7 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(seconds: 4));
       expect(find.text('Seite ansehen'), findsNothing);
-      expect(find.text('Der Text ist bereit.'), findsNothing);
+      expect(find.text('Deine Abschrift ist da.'), findsNothing);
       expect(harness.requests, hasLength(2));
       await tester.pumpWidget(const SizedBox());
     },

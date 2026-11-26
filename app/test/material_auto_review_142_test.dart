@@ -185,6 +185,16 @@ void main() {
               findsOneWidget,
             );
           }
+          if (role == 'child' && status == 'checking') {
+            expect(
+              find.textContaining('Diese Seite prüfen deine Eltern.'),
+              findsNothing,
+            );
+            expect(
+              find.textContaining('Die KI gleicht Foto und Abschrift ab.'),
+              findsOneWidget,
+            );
+          }
           expect(
             find.byWidgetPredicate(
               (w) =>

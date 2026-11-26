@@ -20,7 +20,16 @@ mehr zur eigenen Textprüfung auf. Die bereits zuvor erzeugte Kopie und ihre
 alte erste Lesung werden durch diese Änderung nicht nachträglich automatisch
 abgeglichen. Die Bestätigung der ursprünglichen Seite ist keine Garantie für
 die inhaltliche Richtigkeit. Der Nachweis des neuen Ablaufs mit echtem
-Anbieter und im Browser steht noch aus.
+Anbieter und im Browser wurde anschließend mit Version 1.38.160 geprüft:
+Ein bewusst gestarteter Neuleseauftrag erzeugte eine neue Kopie, nach der
+ersten Lesung erschien „Die KI gleicht Foto und Abschrift ab“. Anschließend
+meldete die App „Automatisch abgeglichen · Lesestellen bleiben offen“ und
+verwies für diese Stellen auf die Eltern. Ein zweiter KI-Durchgang ist damit
+im regulären Ablauf belegt; die Qualität aller übrigen Stellen und eine
+Fachprüfung sind dadurch nicht belegt. Auf der ersten Statusseite waren ein
+leerer Seitentitel und eine voreilige Bereitschaftsmeldung sichtbar; während
+des laufenden Gegenchecks erschien zusätzlich ein verfrühter Elternhinweis.
+Diese UI-Befunde werden separat korrigiert.
 
 Im ausdrücklich freigegebenen Kinderkonto wurde eine reale Mathematikseite
 über die mobile Weboberfläche bei 390 × 844 Pixeln ausgewählt, ausgerichtet und

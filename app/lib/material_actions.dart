@@ -464,6 +464,13 @@ class _MaterialProcessingScreenState extends State<MaterialProcessingScreen>
     if (!current) return SizedBox.shrink();
     final ready = job?['status'] == 'completed';
     final failed = job != null && !waiting && !ready;
+    final pageLabel =
+        [material?['topic'], material?['title'], material?['subject']]
+            .whereType<String>()
+            .map((value) => value.trim())
+            .where((value) => value.isNotEmpty)
+            .firstOrNull ??
+        'Heftfoto';
     return PageFrame(
       state: widget.state,
       title: 'Seite neu einlesen',
@@ -481,7 +488,7 @@ class _MaterialProcessingScreenState extends State<MaterialProcessingScreen>
             SizedBox(height: 16),
             Text(
               ready
-                  ? 'Der Text ist bereit.'
+                  ? 'Deine Abschrift ist da.'
                   : failed
                   ? 'Das Einlesen hat nicht geklappt.'
                   : error != null
@@ -494,7 +501,7 @@ class _MaterialProcessingScreenState extends State<MaterialProcessingScreen>
             SizedBox(height: 16),
             if (material != null) ...[
               Text(
-                'Deine Seite: ${material!['topic'] ?? material!['title'] ?? material!['subject'] ?? 'Heftfoto'}',
+                'Deine Seite: $pageLabel',
                 style: TextStyle(fontWeight: FontWeight.w700),
               ),
               if (!ready)
