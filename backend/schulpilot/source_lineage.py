@@ -21,7 +21,7 @@ from .db import Job, LearningUnit, UnitSource, Usage
 from .source_lineage_models import SourceImageReceipt, SourceInvalidation, SourceRevision
 from .subject_content import SourceBlock
 
-POLICY_VERSION = "literal-safety-4"
+POLICY_VERSION = "literal-safety-5"
 PREPROCESS_VERSION = "exif-rgb-max3200-jpeg95-1"
 AUTO_CONFLICT_SUMMARY = "Abweichender Schüler-/Korrekturbereich bleibt ungeklärt."
 AUTO_CONFLICT_LOCAL = "Die beiden Abschriften dieses Schüler-/Korrekturbereichs unterscheiden sich; Original erhalten."
@@ -34,6 +34,7 @@ REASONS = {
     "student_work": "Die Schülerrechnung ist noch keine geprüfte fachliche Regel.",
     "visible_annotation": "Eine sichtbare Korrektur, Einfügung oder Streichung muss getrennt geprüft werden.",
     "false_equality": "Diese wörtliche rationale Gleichung ist rechnerisch falsch; sie bleibt im Original erhalten.",
+    "false_divisibility": "Diese wörtliche Teilbarkeitsaussage ist rechnerisch falsch; sie bleibt im Original erhalten.",
     "unstructured_annotations": "Die Abschrift enthält nicht mehr zuordenbare Quellenmarkierungen.",
 }
 
@@ -157,6 +158,31 @@ def false_equality(text, *, include_embedded=False):
                 if any(left != right for left, right in zip(values, values[1:])):
                     return True
         if include_embedded and _embedded_false_equality(line):
+            return True
+    return False
+
+
+def false_divisibility(text):
+    """Check only complete, literal integer divisibility statements.
+
+    A bare ASCII bar can be a table separator, so only the explicit German
+    wording or mathematical divisibility symbols are recognized. Zero as
+    divisor and all other notation remain unassessed.
+    """
+    for line in text.splitlines():
+        if len(line) > 80:
+            continue
+        word = re.fullmatch(r"\s*([0-9]{1,9})\s+teilt\s+([0-9]{1,9})(?:\s+(nicht))?\s*[.!]?\s*", line, re.IGNORECASE)
+        symbol = re.fullmatch(r"\s*([0-9]{1,9})\s*([∣∤])\s*([0-9]{1,9})\s*[.!]?\s*", line)
+        if word:
+            divisor, dividend = int(word[1]), int(word[2])
+            says_divides = word[3] is None
+        elif symbol:
+            divisor, dividend = int(symbol[1]), int(symbol[3])
+            says_divides = symbol[2] == "∣"
+        else:
+            continue
+        if divisor and (dividend % divisor == 0) != says_divides:
             return True
     return False
 
@@ -388,6 +414,8 @@ def learning_source(db, material, revision=None):
             blocked = "reading_uncertain"
         if not blocked and false_equality(block["text"], include_embedded=True):
             blocked = "false_equality"
+        if not blocked and false_divisibility(block["text"]):
+            blocked = "false_divisibility"
         if not blocked and block.get("literal_role") == "student_work":
             blocked = "student_work"
         if not blocked and (

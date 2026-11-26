@@ -757,6 +757,15 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – OCR anhand vollständig referenzierter künstlicher Seiten prüfen**
 
+  - [x] **Eindeutige falsche Teilbarkeitsaussagen aus Lernquellen halten.**
+    Die begrenzte lokale Regel erkennt isolierte ganzzahlige Aussagen mit
+    „teilt“, „teilt … nicht“, `∣` und `∤`. Falsche Originale bleiben als
+    Abschrift erhalten, werden aber nicht an die KI als Lernstoff übergeben;
+    ältere Gegencheckbelege bleiben versionsgebunden. 157 künstliche Fälle
+    bestanden auf SQLite (zwei übersprungen) und 159 auf PostgreSQL. Nicht
+    unterstützte und mehrdeutige Formen bleiben ungeprüft. Dies ist keine vollständige
+    Foto- oder Fachabnahme. [Grenzen](docs/DIVISIBILITY_SOURCE_SAFETY_2026_11_26.md).
+
   - [x] **Eindeutig falsche eingebettete Rechnungen aus Lernquellen halten.**
     Ein begrenzter rationaler Check erfasst nun auch unmissverständliche
     Gleichungen in Absätzen mit mehreren Aufgaben. Originaltexte bleiben

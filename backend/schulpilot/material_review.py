@@ -403,13 +403,15 @@ def _protected_readings(data, snapshot):
     """
     import re
 
-    from .source_lineage import false_equality
+    from .source_lineage import false_divisibility, false_equality
 
     # Reconstruct historical counterchecks with the policy recorded at the
     # first reading. New extraction receipts opt into the new bounded check;
     # an absent or older receipt keeps the old merge reproducible.
     receipt = getattr(snapshot, "receipt", None)
-    embedded_check = isinstance(receipt, dict) and receipt.get("policy_version") in {"literal-safety-4"}
+    policy = receipt.get("policy_version") if isinstance(receipt, dict) else None
+    embedded_check = policy in {"literal-safety-4", "literal-safety-5"}
+    divisibility_check = policy == "literal-safety-5"
     result = copy.deepcopy(data)
     result["visual_observations"] = _merged_visual_observations(data, snapshot)[0][:20]
     blocks = result["source_blocks"]
@@ -444,7 +446,8 @@ def _protected_readings(data, snapshot):
     def protected(block):
         return (block.get("literal_role") in ("student_work", "annotation")
             or any(mark.get("kind") != "ink" for mark in block.get("annotations", []))
-            or false_equality(block["text"], include_embedded=embedded_check))
+            or false_equality(block["text"], include_embedded=embedded_check)
+            or (divisibility_check and false_divisibility(block["text"])))
 
     # Identical text does not identify an occurrence on a photographed page.
     # In particular a correction on one of two identical answers cannot safely
