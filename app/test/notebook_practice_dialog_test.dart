@@ -127,6 +127,13 @@ void main() {
     final primary = page('base')
       ..['source_learning'] = {'content': 'Künstlicher, verwendbarer Stoff.'};
     await openDialog(tester, primaryPage: primary);
+    final panel = find.descendant(
+      of: find.byType(Dialog),
+      matching: find.byWidgetPredicate(
+        (widget) => widget is Material && widget.type == MaterialType.card,
+      ),
+    );
+    expect(tester.getSize(panel).height, lessThan(430));
     expect(
       find.textContaining('noch keinen sicher lesbaren Lernstoff'),
       findsNothing,
@@ -168,7 +175,6 @@ void main() {
           });
         },
       );
-      expect(find.text('Diese Heftseite'), findsOneWidget);
       expect(find.text('Gemischte Zahlen'), findsOneWidget);
       expect(find.text('Heftseite 9'), findsNothing);
       expect(requests, isEmpty);

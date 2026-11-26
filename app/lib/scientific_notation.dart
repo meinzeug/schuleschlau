@@ -161,9 +161,16 @@ String spokenNumberNotation(String value) {
   );
 }
 
+// A run of underscores inside a TeX text block is a blank, not nested
+// subscripts. Keep the stored source unchanged and render a simple question
+// mark, which the local TeX renderer understands.
+String _visibleFormula(String expression) =>
+    expression.replaceAll(RegExp(r'\\text\s*\{\s*_{2,}\s*\}'), r'\text{?}');
+
 String spokenFormula(String expression) =>
     spokenNumberNotation(
           expression
+              .replaceAll(RegExp(r'\\text\s*\{\s*_{2,}\s*\}'), ' Lücke ')
               .replaceAll(RegExp(r'\\(?:left|right)\s*(?=[()\[\]{}|.\\])'), '')
               .replaceAll(RegExp(r'\\(?:qquad|quad|enspace)\b'), ' ')
               .replaceAll(RegExp(r'\\[,;:]'), ' ')
@@ -261,7 +268,7 @@ class FormulaNotation extends StatelessWidget {
                 vertical: display ? 12 : 3,
               ),
               child: tex.Math.tex(
-                expression,
+                _visibleFormula(expression),
                 mathStyle: spacious
                     ? tex.MathStyle.display
                     : tex.MathStyle.text,

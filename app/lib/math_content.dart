@@ -232,9 +232,29 @@ class FractionNotation extends StatelessWidget {
   );
 }
 
+/// Only use sign buttons when the question explicitly asks for one of them.
+/// The answer itself is never needed to choose an input control.
+bool expectsComparisonSign(Map<String, dynamic> question) {
+  if (!['short', 'gap'].contains(question['type']) ||
+      question['language'] != null ||
+      question['prompt'] is! String) {
+    return false;
+  }
+  final prompt = question['prompt'] as String;
+  return RegExp(r'vergleichszeichen', caseSensitive: false).hasMatch(prompt) &&
+      RegExp(
+        r'(?:wähle|waehle|ergänze|ergaenze|setze|welch)',
+        caseSensitive: false,
+      ).hasMatch(prompt) &&
+      prompt.contains('<') &&
+      prompt.contains('>') &&
+      prompt.contains('=');
+}
+
 bool expectsFraction(Map<String, dynamic> question) {
   if (!['short', 'gap'].contains(question['type']) ||
-      question['language'] != null) {
+      question['language'] != null ||
+      expectsComparisonSign(question)) {
     return false;
   }
   final prompt = question['prompt'] as String;
@@ -254,6 +274,46 @@ bool expectsFraction(Map<String, dynamic> question) {
             caseSensitive: false,
           ).hasMatch(prompt) &&
           MathText.fraction.hasMatch(prompt);
+}
+
+/// Select a literal relation without revealing which answer is correct.
+class ComparisonSignAnswerInput extends StatelessWidget {
+  final TextEditingController controller;
+  final bool readOnly;
+  const ComparisonSignAnswerInput({
+    super.key,
+    required this.controller,
+    this.readOnly = false,
+  });
+
+  @override
+  Widget build(BuildContext context) =>
+      ValueListenableBuilder<TextEditingValue>(
+        valueListenable: controller,
+        builder: (context, value, _) => Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final (sign, meaning) in [
+              ('<', 'kleiner als'),
+              ('=', 'gleich'),
+              ('>', 'größer als'),
+            ])
+              Semantics(
+                label: meaning,
+                child: ChoiceChip(
+                  label: Text(sign),
+                  labelPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  selected: value.text == sign,
+                  onSelected: readOnly ? null : (_) => controller.text = sign,
+                ),
+              ),
+          ],
+        ),
+      );
 }
 
 /// Both entry methods write to the same persisted answer controller.

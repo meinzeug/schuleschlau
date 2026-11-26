@@ -143,7 +143,7 @@ void main() {
               ? 'Jetzt lernen'
               : 'Lerneinheit für das Kind vorbereiten',
         );
-        expect(find.text('1 Heftseite ausgewählt'), findsOneWidget);
+        expect(find.byType(NotebookPracticeDialog), findsOneWidget);
         expect(requests, isEmpty);
         await tap(tester, 'Runde vorbereiten');
         expect(requests.length, 1);

@@ -12,12 +12,23 @@ Future<AppState> open(
   WidgetTester tester,
   List<http.Request> calls, {
   bool saved = false,
+  bool parent = false,
   double scale = 1,
 }) async {
   final state = f.account((r) async {
     calls.add(r);
     return f.reply({});
   });
+  if (parent) {
+    state.familyId = 'family';
+    state.user = {
+      'id': 'parent-user',
+      'role': 'parent',
+      'families': [
+        {'id': 'family', 'permission': 'owner'},
+      ],
+    };
+  }
   final page = source.page('page', saved: saved)
     ..['synthetic'] = false
     ..['has_image'] = false
@@ -55,13 +66,13 @@ void main() {
     },
   );
   testWidgets(
-    'KK087 own source correction can be cancelled or reverted without changing stored content',
+    'KK087 parent correction can be cancelled or reverted without changing stored content',
     (tester) async {
       final calls = <http.Request>[];
-      await open(tester, calls);
-      await f.tap(tester, find.text('Etwas verbessern'));
+      await open(tester, calls, parent: true);
+      await f.tap(tester, find.text('Erkannten Text verbessern'));
       await tester.enterText(
-        find.widgetWithText(TextField, 'Text auf der Seite'),
+        find.widgetWithText(TextField, 'Erkannter Unterrichtsstoff'),
         'Meine falsche Korrektur',
       );
       FocusManager.instance.primaryFocus?.unfocus();
@@ -71,7 +82,7 @@ void main() {
       expect(
         tester
             .widget<TextField>(
-              find.widgetWithText(TextField, 'Text auf der Seite'),
+              find.widgetWithText(TextField, 'Erkannter Unterrichtsstoff'),
             )
             .controller!
             .text,
@@ -82,7 +93,7 @@ void main() {
       expect(
         tester
             .widget<TextField>(
-              find.widgetWithText(TextField, 'Text auf der Seite'),
+              find.widgetWithText(TextField, 'Erkannter Unterrichtsstoff'),
             )
             .controller!
             .text,
@@ -91,6 +102,13 @@ void main() {
       expect(calls.where((r) => r.method != 'GET'), isEmpty);
     },
   );
+  testWidgets('A child is not asked to correct the source', (tester) async {
+    final calls = <http.Request>[];
+    await open(tester, calls);
+    expect(find.text('Erkannten Text verbessern'), findsNothing);
+    expect(find.text('Etwas verbessern'), findsNothing);
+    expect(calls.where((r) => r.method != 'GET'), isEmpty);
+  });
   testWidgets(
     'KK088 source lookup finds whole verified lines and has a clear zero result at 200 percent',
     (tester) async {

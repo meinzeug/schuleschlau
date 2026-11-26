@@ -84,6 +84,16 @@ class Fixture {
     ..['uncertainties'] = ['wörtlicher Anfang'];
   late StateSetter update;
   late GoRouter router;
+  void useParent() {
+    state.user = {
+      'id': 'synthetic-parent',
+      'role': 'parent',
+      'families': [
+        {'id': 'synthetic-family', 'permission': 'owner'},
+      ],
+    };
+  }
+
   Future<void> mount(
     WidgetTester t, {
     double width = 390,
@@ -112,13 +122,16 @@ class Fixture {
 
   Future<void> open(WidgetTester t, String kind) async {
     if (kind == 'reader') {
-      await tap(t, find.text('Text öffnen'));
+      await tap(
+        t,
+        find.text(state.isParent ? 'Im Seitentext nachsehen' : 'Text öffnen'),
+      );
       return;
     }
     if (kind == 'correction') {
-      await tap(t, find.text('Etwas verbessern'));
+      await tap(t, find.text('Erkannten Text verbessern'));
       await t.enterText(
-        input('Text auf der Seite'),
+        input('Erkannter Unterrichtsstoff'),
         'Mein eigener Korrekturentwurf bleibt unverändert.',
       );
       FocusManager.instance.primaryFocus?.unfocus();
@@ -137,6 +150,30 @@ class Fixture {
 }
 
 void main() {
+  for (final view in [(320.0, 568.0, 2.0), (390.0, 844.0, 1.0)]) {
+    testWidgets('A long source is displayed only once at $view', (t) async {
+      final fixture = Fixture();
+      await fixture.mount(t, width: view.$1, height: view.$2, scale: view.$3);
+      final source = find.byWidgetPredicate(
+        (widget) => widget is LearningContent && widget.text == sourceText,
+      );
+      expect(source, findsOneWidget);
+      expect(t.widget<LearningContent>(source).compact, isTrue);
+
+      await tap(t, find.text('Ganzen Text lesen'));
+      expect(source, findsOneWidget);
+      expect(t.widget<LearningContent>(source).compact, isFalse);
+
+      await tap(t, find.text('Ganzen Text lesen'));
+      expect(source, findsOneWidget);
+      expect(t.widget<LearningContent>(source).compact, isTrue);
+      expect(
+        fixture.requests.every((request) => request.method == 'GET'),
+        isTrue,
+      );
+    });
+  }
+
   for (final view in [
     (320.0, 568.0, 1.0),
     (320.0, 568.0, 2.0),
@@ -247,6 +284,7 @@ void main() {
         '101 $kind comparison has fixed close and real labelled panes at $view',
         (t) async {
           final fixture = Fixture();
+          if (kind == 'correction') fixture.useParent();
           await fixture.mount(
             t,
             width: view.$1,
@@ -285,7 +323,10 @@ void main() {
           await t.pumpAndSettle();
           if (kind == 'correction') {
             expect(
-              t.widget<TextField>(input('Text auf der Seite')).controller!.text,
+              t
+                  .widget<TextField>(input('Erkannter Unterrichtsstoff'))
+                  .controller!
+                  .text,
               'Mein eigener Korrekturentwurf bleibt unverändert.',
             );
           }
@@ -308,6 +349,7 @@ void main() {
         '101 $kind is discarded on $change and old close cannot pop a new dialog',
         (t) async {
           final fixture = Fixture();
+          if (kind == 'correction') fixture.useParent();
           await fixture.mount(t);
           await fixture.open(t, kind);
           final close = t
@@ -426,15 +468,16 @@ void main() {
     '101 a corrected draft never inherits the original OCR block structure',
     (t) async {
       final fixture = Fixture();
+      fixture.useParent();
       fixture.data['content'] = 'Originale Überschrift\n\nOriginaler Absatz.';
       fixture.data['source_blocks'] = [
         {'kind': 'heading', 'text': 'Originale Überschrift'},
         {'kind': 'paragraph', 'text': 'Originaler Absatz.'},
       ];
       await fixture.mount(t);
-      await tap(t, find.text('Etwas verbessern'));
+      await tap(t, find.text('Erkannten Text verbessern'));
       await t.enterText(
-        input('Text auf der Seite'),
+        input('Erkannter Unterrichtsstoff'),
         'Mein eigener neuer Entwurf.',
       );
       FocusManager.instance.primaryFocus?.unfocus();
@@ -450,7 +493,10 @@ void main() {
       await t.tap(closeReader());
       await t.pumpAndSettle();
       expect(
-        t.widget<TextField>(input('Text auf der Seite')).controller!.text,
+        t
+            .widget<TextField>(input('Erkannter Unterrichtsstoff'))
+            .controller!
+            .text,
         'Mein eigener neuer Entwurf.',
       );
       expect(fixture.requests.every((r) => r.method == 'GET'), isTrue);

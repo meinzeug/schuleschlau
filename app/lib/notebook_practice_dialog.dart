@@ -347,6 +347,9 @@ class _NotebookPracticeDialogState extends State<NotebookPracticeDialog>
     if (!current) return const SizedBox.shrink();
     return AlertDialog(
       title: const Text('Übungen zu deinem Heft'),
+      titlePadding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+      contentPadding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+      actionsPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
       scrollable: true,
       content: SizedBox(
         width: 520,
@@ -356,16 +359,14 @@ class _NotebookPracticeDialogState extends State<NotebookPracticeDialog>
             crossAxisAlignment: CrossAxisAlignment.stretch,
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
-                'Diese Heftseite',
-                style: TextStyle(fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 4),
-              Text(title(widget.page)),
-              const SizedBox(height: 6),
               Text(
-                '${pages.length} ${pages.length == 1 ? 'Heftseite ausgewählt' : 'Heftseiten ausgewählt'}',
+                title(widget.page),
+                style: const TextStyle(fontWeight: FontWeight.w700),
               ),
+              if (pages.length > 1) ...[
+                const SizedBox(height: 4),
+                Text('${pages.length} Heftseiten ausgewählt'),
+              ],
               if (onlyUnusableSource) ...[
                 const SizedBox(height: 12),
                 Notice(
@@ -375,7 +376,7 @@ class _NotebookPracticeDialogState extends State<NotebookPracticeDialog>
                   warning: true,
                 ),
               ],
-              const SizedBox(height: 16),
+              const SizedBox(height: 8),
               if (!onlyUnusableSource)
                 TextFormField(
                   controller: count,
@@ -385,6 +386,7 @@ class _NotebookPracticeDialogState extends State<NotebookPracticeDialog>
                   decoration: const InputDecoration(
                     labelText: 'Anzahl der Aufgaben',
                     helperText: '2 bis 5 Aufgaben pro Runde',
+                    isDense: true,
                   ),
                   validator: (value) {
                     final n = int.tryParse(value ?? '');
@@ -513,10 +515,6 @@ class _NotebookPracticeDialogState extends State<NotebookPracticeDialog>
                   onPressed: sending ? null : newRound,
                   child: const Text('Neue Runde auswählen'),
                 ),
-              if (!onlyUnusableSource)
-                const Text(
-                  'Du bekommst neue Aufgaben mit Erklärungen zu diesen Seiten. Dein bisheriger Lernstand bleibt erhalten.',
-                ),
               if (error != null)
                 Padding(
                   padding: const EdgeInsets.only(top: 12),
@@ -532,28 +530,46 @@ class _NotebookPracticeDialogState extends State<NotebookPracticeDialog>
         ),
       ),
       actions: [
-        TextButton(
-          onPressed: sending ? null : () => Navigator.of(context).pop(),
-          child: const Text('Zurück'),
-        ),
-        if (!onlyUnusableSource)
-          FilledButton(
-            onPressed: sending || restoring || onlyUnusableSource
-                ? null
-                : prepare,
-            child: Text(
-              restoring
-                  ? 'Gespeicherten Auftrag prüfen …'
-                  : sending
-                  ? 'Wird angefragt …'
-                  : jobId != null
-                  ? 'Vorbereitung öffnen'
-                  : sentBody != null
-                  ? 'Vorbereitung abgleichen'
-                  : 'Runde vorbereiten',
-              textAlign: TextAlign.center,
+        Row(
+          children: [
+            Expanded(
+              flex: 2,
+              child: TextButton(
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                ),
+                onPressed: sending ? null : () => Navigator.of(context).pop(),
+                child: const Text('Zurück'),
+              ),
             ),
-          ),
+            if (!onlyUnusableSource) ...[
+              const SizedBox(width: 8),
+              Expanded(
+                flex: 4,
+                child: FilledButton(
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                  ),
+                  onPressed: sending || restoring || onlyUnusableSource
+                      ? null
+                      : prepare,
+                  child: Text(
+                    restoring
+                        ? 'Gespeicherten Auftrag prüfen …'
+                        : sending
+                        ? 'Wird angefragt …'
+                        : jobId != null
+                        ? 'Vorbereitung öffnen'
+                        : sentBody != null
+                        ? 'Vorbereitung abgleichen'
+                        : 'Runde vorbereiten',
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
       ],
     );
   }

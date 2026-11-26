@@ -1143,6 +1143,7 @@ class _MaterialReviewState extends State<MaterialReview>
     text: (widget.data['homework'] as List).join('\n'),
   );
   bool editing = false, confirmedHere = false;
+  bool fullSourceVisible = false;
   bool changing = false, sourceConflict = false, restoredCorrection = false;
   int? correctionRevision;
   String get correctionKey =>
@@ -1632,6 +1633,7 @@ class _MaterialReviewState extends State<MaterialReview>
     reverseWords = false;
     confirmedHere = false;
     sourceConflict = false;
+    fullSourceVisible = false;
   }
 
   @override
@@ -1644,6 +1646,7 @@ class _MaterialReviewState extends State<MaterialReview>
     }
     if (oldWidget.data['id'] != widget.data['id'] ||
         oldWidget.data['revision'] != widget.data['revision']) {
+      fullSourceVisible = false;
       closeSourceTools();
       final route = taskPreviewRoute;
       taskPreviewRoute = null;
@@ -2624,19 +2627,25 @@ class _MaterialReviewState extends State<MaterialReview>
                   data: d,
                   onRefresh: widget.onRefresh,
                 ),
-                LearningContent(
-                  content.text,
-                  figureBuilder: !longText && d['has_image'] == true
-                      ? (index, _) => NotebookFigure(widget.state, d, index)
-                      : null,
-                  blocks: content.text == d['content']
-                      ? d['source_blocks'] as List?
-                      : null,
-                  compact: longText,
+                Visibility(
+                  visible: !longText || !fullSourceVisible,
+                  child: LearningContent(
+                    content.text,
+                    figureBuilder: !longText && d['has_image'] == true
+                        ? (index, _) => NotebookFigure(widget.state, d, index)
+                        : null,
+                    blocks: content.text == d['content']
+                        ? d['source_blocks'] as List?
+                        : null,
+                    compact: longText,
+                  ),
                 ),
                 if (longText)
                   ExpansionTile(
+                    key: ValueKey('full-source-${d['id']}-${d['revision']}'),
                     title: Text('Ganzen Text lesen'),
+                    onExpansionChanged: (visible) =>
+                        setState(() => fullSourceVisible = visible),
                     children: [
                       LearningContent(
                         content.text,

@@ -609,6 +609,29 @@ Einstiegsplatz, eine neue Vergleichsaufgabe und einen passenden Grafikvertrag.
 Dabei wurden weder Daten geschrieben noch Anbieter aufgerufen. Ein echter
 Provider- und mobiler Browsertest der neuen Version steht noch aus.
 
+Version 1.38.164 wurde anschließend mit einem ausdrücklich gestarteten echten
+Auftrag auf derselben freigegebenen Quelle mobil geprüft. Die Runde war fertig,
+und die Zahl ungelesener In-App-Meldungen stieg um eins; eine konkrete
+Pushzustellung ist damit nicht nachgewiesen. Die erste Aufgabe prüfte eine
+Grundvorstellung, die zweite verglich zwei ungleichnamige Brüche. Der erste
+Vergleichshinweis nannte den nächsten Rechenschritt, aber nicht die Lösung.
+Die richtige Vergleichsantwort wurde nach Hinweis und geöffneter Erklärung
+als unterstützt eingeordnet. Der Rückblick zeigte eine selbstständige und
+eine unterstützte Aufgabe. Die freigegebene Lösungsgrafik zeigte die beiden
+Brüche und nach Umschalten die korrekt gleichnamigen Brüche; die gewählte
+Ansicht wurde nach erneutem Öffnen asynchron wiederhergestellt.
+
+Eine bewusst gestartete Anschlussrunde wurde ebenfalls durch einen echten
+Auftrag erstellt. Ihre erste Aufgabe prüfte den Bruchvergleich mit vorgegebenen
+gleichnamigen Brüchen und wurde im Test selbstständig gelöst. Bei der zweiten
+Aufgabe verlangte der Text ein Vergleichszeichen. Das Web zeigte dafür
+fälschlich Zähler- und Nennerfelder und ließ selbst ein im alternativen
+Textmodus eingegebenes Zeichen nicht absenden; außerdem wurde die TeX-Lücke
+teilweise als Rohtext angezeigt. Die Runde blieb bei dieser Aufgabe offen.
+Eine lokale Korrektur bietet für explizit verlangte Zeichen `<`, `=` und `>`
+direkte Auswahlfelder und stellt die Formel mit verständlicher Lücke dar.
+Dies ist künstlich geprüft; der Live-Nachtest der Korrektur steht noch aus.
+
 Im Fotoalbum wurde das seitlich angezeigte Bild durch lokales Drehen sichtbar;
 die Drehung verändert das Original und die bereits gespeicherte Erkennung
 nicht. Zuvor konnte das Bild nur nach rechts gedreht werden. Im Live-Nachtest

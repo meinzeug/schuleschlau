@@ -2606,7 +2606,16 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
                   ],
                 ),
               if (q['type'] == 'short' || q['type'] == 'gap') ...[
-                if (expectsFraction(q))
+                if (expectsComparisonSign(q))
+                  Focus(
+                    focusNode: answerAreaFocus,
+                    child: ComparisonSignAnswerInput(
+                      key: ValueKey('comparison-sign-${q['id']}'),
+                      controller: text,
+                      readOnly: actionBusy,
+                    ),
+                  )
+                else if (expectsFraction(q))
                   Focus(
                     focusNode: answerAreaFocus,
                     child: FractionAnswerInput(
@@ -2635,7 +2644,7 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
                     scrollPadding: EdgeInsets.all(20),
                     decoration: InputDecoration(labelText: 'Deine Antwort'),
                   ),
-                if (!expectsFraction(q))
+                if (!expectsFraction(q) && !expectsComparisonSign(q))
                   Builder(
                     builder: (_) {
                       final token = state.api.token;
@@ -2653,18 +2662,19 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
                       );
                     },
                   ),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: VoiceInputButton(
-                    controller: text,
-                    locale: q['language']?['answer_locale'] ?? 'de-DE',
-                    onRecognized: () {
-                      if (mounted) setState(() => speechAnswer = true);
-                    },
-                    enabled: !actionBusy,
-                    maxLength: q['type'] == 'short' ? 500 : 200,
+                if (!expectsComparisonSign(q))
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: VoiceInputButton(
+                      controller: text,
+                      locale: q['language']?['answer_locale'] ?? 'de-DE',
+                      onRecognized: () {
+                        if (mounted) setState(() => speechAnswer = true);
+                      },
+                      enabled: !actionBusy,
+                      maxLength: q['type'] == 'short' ? 500 : 200,
+                    ),
                   ),
-                ),
               ],
             ],
           ),
@@ -3092,7 +3102,8 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
       );
     }
     if (['short', 'gap'].contains(question['type']) &&
-        !expectsFraction(question)) {
+        !expectsFraction(question) &&
+        !expectsComparisonSign(question)) {
       answerFocus.requestFocus();
     } else {
       answerAreaFocus.requestFocus();
