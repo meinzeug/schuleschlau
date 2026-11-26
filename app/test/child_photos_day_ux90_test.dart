@@ -362,6 +362,7 @@ void main() {
         },
       };
       await showDay(tester, server.state());
+      expect(find.text('3 Fertig'), findsNothing);
       expect(
         find.textContaining('Deine Fotos sind gespeichert.'),
         findsOneWidget,

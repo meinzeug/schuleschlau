@@ -18,15 +18,34 @@ void main() {
         );
         server.archived = true;
         await parts.openParts(tester, server);
-        final selected = tester.widget<Text>(
-          find.text(confirmed ? '3 Fertig' : '2 Vorbereitung'),
-        );
-        expect(selected.style?.fontWeight, FontWeight.w700);
+        if (confirmed) {
+          expect(find.text('3 Fertig'), findsNothing);
+          expect(find.text('1 Fotos'), findsNothing);
+        } else {
+          final selected = tester.widget<Text>(find.text('2 Vorbereitung'));
+          expect(selected.style?.fontWeight, FontWeight.w700);
+        }
         parts.expectNoWrites(server);
         expect(tester.takeException(), isNull);
       },
     );
   }
+
+  testWidgets(
+    'A ready status without loaded pages does not assert finished photos',
+    (tester) async {
+      final server = background.PreparationServer(stage: 'ready', pages: []);
+      server.archived = true;
+      await parts.openParts(tester, server);
+      expect(find.text('3 Fertig'), findsOneWidget);
+      expect(
+        tester.widget<Text>(find.text('2 Vorbereitung')).style?.fontWeight,
+        FontWeight.w700,
+      );
+      parts.expectNoWrites(server);
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   for (final changed in [false, true]) {
     testWidgets('Six old parts have honest currentness: $changed', (

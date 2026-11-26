@@ -1132,7 +1132,9 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
   - [x] **Lernweg für Kinder auf den nächsten Schritt ausrichten.** Nach der
     Sichtprüfung der schmalen produktiven Ansicht zeigt der lokale Stand eine
     klare Schaltfläche „Weiterlernen“, das aktuelle Thema und den tatsächlichen
-    Aufgabenfortschritt. Mehrdeutige Rundenbezeichnungen und ein zusätzlicher
+    Aufgabenfortschritt. Bei fertig verarbeiteten, bestätigten Fotos entfällt
+    beim Kind die nicht mehr benötigte Foto-Statusleiste; offene oder noch
+    unbekannte Quellenprüfungen bleiben sichtbar. Mehrdeutige Rundenbezeichnungen und ein zusätzlicher
     Bereitschaftszähler stehen nicht mehr im Vordergrund. Weitere Lernschritte
     bleiben aufklappbar; Suche und Filter folgen erst nach einer weiteren
     bewussten Auswahl. Geplante und bearbeitete Schritte bleiben unterscheidbar.

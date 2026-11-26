@@ -1259,10 +1259,17 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
         failed && !technicalFailure && preparation?['can_retry'] != true;
     final step = stage == 'collecting'
         ? 0
-        : stage == 'ready' && pages.every((page) => page['confirmed'] == true)
+        : stage == 'ready' &&
+              pages.isNotEmpty &&
+              pages.every((page) => page['confirmed'] == true)
         ? 2
         : 1;
     final largeText = MediaQuery.textScalerOf(context).scale(1) >= 1.5;
+    final showPhotoStages =
+        !(state.isChild &&
+            stage == 'ready' &&
+            pages.isNotEmpty &&
+            pages.every((page) => page['confirmed'] == true));
     return PageFrame(
       state: state,
       title: 'Nach der Schule',
@@ -1324,7 +1331,7 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
               ),
             SizedBox(height: largeText ? 8 : 16),
           ],
-          if (largeText) ...[
+          if (showPhotoStages && largeText) ...[
             ExcludeSemantics(
               child: LinearProgressIndicator(value: (step + 1) / 3),
             ),
@@ -1339,7 +1346,7 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
                 fontWeight: FontWeight.w700,
               ),
             ),
-          ] else
+          ] else if (showPhotoStages)
             Row(
               children: [
                 for (var i = 0; i < 3; i++)
@@ -1377,7 +1384,7 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
                   ),
               ],
             ),
-          SizedBox(height: largeText ? 8 : 16),
+          if (showPhotoStages) SizedBox(height: largeText ? 8 : 16),
           if (loading)
             Center(child: CircularProgressIndicator())
           else if (day == null) ...[
