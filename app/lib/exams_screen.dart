@@ -9,6 +9,7 @@ import 'exam_plan_editor.dart';
 import 'exam_review_panel.dart';
 import 'exams_scope.dart';
 import 'learning_plan_ui.dart';
+import 'learning_start_illustration.dart';
 import 'page_tools.dart';
 import 'parent_child_navigation.dart';
 import 'ui.dart';
@@ -312,10 +313,16 @@ class _ExamsBodyState extends State<_ExamsBody> {
         search.text.trim().toLowerCase(),
       );
     }).toList();
+    final childEmpty =
+        state.isChild &&
+        rows.isEmpty &&
+        search.text.isEmpty &&
+        !includeArchived &&
+        listing?['has_more'] != true;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (canManage)
+        if (canManage && !childEmpty)
           Align(
             alignment: Alignment.centerLeft,
             child: FilledButton.icon(
@@ -388,10 +395,45 @@ class _ExamsBodyState extends State<_ExamsBody> {
               ],
             ),
           ),
-        if (rows.isEmpty)
+        if (childEmpty) ...[
+          const LearningStartIllustration(),
+          const SizedBox(height: 12),
+          Text(
+            tab == 'review'
+                ? 'Eine Arbeit nacharbeiten'
+                : 'Bereit für deine nächste Arbeit?',
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            !canManage
+                ? (tab == 'review'
+                      ? 'Hier erscheinen deine geschriebenen Arbeiten.'
+                      : 'Hier erscheinen deine geplanten Arbeiten.')
+                : tab == 'review'
+                ? 'Füge deine geschriebene Arbeit hinzu. Danach kannst du sie Schritt für Schritt nacharbeiten.'
+                : 'Plane, wann du üben möchtest. Deine Heftthemen helfen dir dabei.',
+            textAlign: TextAlign.center,
+          ),
+          if (canManage) ...[
+            const SizedBox(height: 16),
+            Center(
+              child: FilledButton.icon(
+                onPressed: loading ? null : () => edit(),
+                icon: const Icon(Icons.add),
+                label: Text(
+                  tab == 'review' ? 'Arbeit hinzufügen' : 'Arbeit planen',
+                ),
+              ),
+            ),
+          ],
+        ] else if (rows.isEmpty)
           Notice(
             search.text.isNotEmpty || includeArchived
-                ? 'Keine Arbeit passt zu dieser Ansicht.'
+                ? 'Keine der geladenen Arbeiten passt zu dieser Ansicht.'
+                : listing?['has_more'] == true
+                ? 'Hier sind noch keine passenden Arbeiten geladen. Lade weitere Arbeiten.'
                 : tab == 'review'
                 ? 'Hier kannst du eine geschriebene Arbeit mit ihren Korrekturen nacharbeiten.'
                 : 'Plane eine Arbeit mit deinen bestätigten Heftthemen und konkreten Lerntagen.',

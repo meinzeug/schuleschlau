@@ -1086,6 +1086,15 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – Alle Kinderansichten sprachlich und in ihrer Bedienung entrümpeln**
 
+  - [x] **Leere Klassenarbeiten-Ansicht für Kinder verständlich gestalten.**
+    Auf kleinen Bildschirmen erklären eine Illustration und ein kurzer Text
+    den nächsten Schritt; je nach Reiter führt ein Knopf zur Planung oder zum
+    Hinzufügen einer geschriebenen Arbeit. Ohne Änderungsrecht fehlt die
+    Aktion. Bei weiteren verfügbaren Seiten wird kein leerer Bestand behauptet.
+    Künstliche Widgettests prüfen 320 und 390 Pixel, doppelte Schrift, beide
+    Reiter, Berechtigungen und Seitennachladung. Die umfassende Abnahme aller
+    Kinderansichten und das Ausrollen bleiben offen.
+
   - [x] **Lernrundenkopf mit allen Aktionen bei 390 Pixeln lesbar halten.**
     In der geöffneten mobilen Lernrunde sprang die letzte Ziffer des
     Fortschritts allein in eine zweite Zeile. Bei wenig Platz und allen vier

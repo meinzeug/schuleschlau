@@ -630,7 +630,7 @@ void main() {
         'has_more': false,
       };
       await fixture.mount(tester, tab: 'review');
-      await tap(tester, find.text('Geschriebene Arbeit hinzufügen'));
+      await tap(tester, find.text('Arbeit hinzufügen'));
       await tester.enterText(
         find.widgetWithText(TextField, 'Titel der Arbeit'),
         'Meine Beispielarbeit',

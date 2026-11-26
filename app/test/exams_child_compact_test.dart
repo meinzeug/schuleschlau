@@ -2,12 +2,88 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:schulpilot/ui.dart';
+import 'package:schulpilot/learning_start_illustration.dart';
 
 import 'exams_screen_test.dart' as fixtures;
 import 'page_tools_test_helpers.dart' as tools;
 
 void main() {
   setUp(() => FlutterSecureStorage.setMockInitialValues({}));
+
+  for (final size in [const Size(320, 600), const Size(390, 844)]) {
+    for (final scale in [1.0, 2.0]) {
+      testWidgets(
+        'Leere Arbeiten führen bei $size/$scale zur nächsten Aktion',
+        (tester) async {
+          final fixture = fixtures.Fixture();
+          fixture.listOverride = {
+            'child_id': 'child',
+            'can_manage': true,
+            'exams': [],
+            'sources': [],
+            'has_more': false,
+          };
+          await fixture.mount(tester, size: size, scale: scale);
+          expect(find.byType(LearningStartIllustration), findsOneWidget);
+          expect(find.text('Bereit für deine nächste Arbeit?'), findsOneWidget);
+          expect(find.text('Arbeit planen'), findsOneWidget);
+          expect(fixture.writes, isEmpty);
+          await fixtures.tap(tester, find.text('Nacharbeiten'));
+          expect(find.text('Eine Arbeit nacharbeiten'), findsOneWidget);
+          expect(find.text('Arbeit hinzufügen'), findsOneWidget);
+          expect(fixture.writes, isEmpty);
+          await fixtures.tap(tester, find.text('Arbeit hinzufügen'));
+          expect(
+            find.widgetWithText(TextField, 'Titel der Arbeit'),
+            findsOneWidget,
+          );
+          expect(fixture.writes, isEmpty);
+          expect(tester.takeException(), isNull);
+        },
+      );
+    }
+  }
+
+  testWidgets('Ohne Änderungsrecht bleibt der leere Zustand ehrlich', (
+    tester,
+  ) async {
+    final fixture = fixtures.Fixture();
+    fixture.listOverride = {
+      'child_id': 'child',
+      'can_manage': false,
+      'exams': [],
+      'sources': [],
+      'has_more': false,
+    };
+    await fixture.mount(tester);
+    expect(find.text('Bereit für deine nächste Arbeit?'), findsOneWidget);
+    expect(find.text('Arbeit planen'), findsNothing);
+    expect(fixture.writes, isEmpty);
+  });
+
+  testWidgets(
+    'Weitere geladene Arbeiten werden nicht als leerer Bestand ausgegeben',
+    (tester) async {
+      final fixture = fixtures.Fixture();
+      fixture.listOverride = {
+        'child_id': 'child',
+        'can_manage': true,
+        'exams': [],
+        'sources': [],
+        'has_more': true,
+      };
+      await fixture.mount(tester);
+      expect(find.text('Bereit für deine nächste Arbeit?'), findsNothing);
+      expect(
+        find.text(
+          'Hier sind noch keine passenden Arbeiten geladen. Lade weitere Arbeiten.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Weitere Arbeiten laden'), findsOneWidget);
+      expect(fixture.writes, isEmpty);
+    },
+  );
 
   testWidgets('Kind sieht den nächsten Schritt vor zusätzlichen Plandetails', (
     tester,

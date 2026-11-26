@@ -36,13 +36,12 @@ void main() {
       await view.showDay(tester, state);
 
       expect(find.text('Fotos abgeben'), findsOneWidget);
+      expect(find.text('2 neue Seiten · 22 Plätze frei'), findsOneWidget);
+      expect(find.text('Deine Fotos'), findsOneWidget);
       expect(
-        find.text('Danach kannst du den Text und unklare Stellen ansehen.'),
+        find.text('Nur auf diesem Gerät – noch nicht abgegeben.'),
         findsOneWidget,
       );
-      expect(find.text('2 neue Seiten · 22 Plätze frei'), findsOneWidget);
-      expect(find.text('Deine neuen Fotos'), findsOneWidget);
-      expect(find.textContaining('noch auf diesem Gerät'), findsOneWidget);
       expect(server.submissions, 0);
       expect(
         server.requests.every((request) => request.startsWith('GET ')),
