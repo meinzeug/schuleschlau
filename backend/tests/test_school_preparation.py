@@ -665,6 +665,32 @@ def test_explicit_save_clears_pending_review_without_calling_ai(api, household, 
         )
 
 
+@pytest.mark.parametrize('needs_review', [False, True])
+def test_deferred_preparation_notifies_about_unusable_new_source(api, household, monkeypatch, needs_review):
+    from schulpilot.school_preparation import _saved
+
+    _, child = household
+    day, calls = capture(api, child, monkeypatch, 1)
+    monkeypatch.setattr('schulpilot.study_path.ensure_plan', lambda *_: None)
+    monkeypatch.setattr('schulpilot.school_day.package_plan', lambda *_: {
+        'groups': [{'new_material_ids': ['new'], 'excluded_sources': [
+            {'material_id': 'new', 'usable': not needs_review}
+        ]}]
+    })
+    with DB.begin() as db:
+        saved = db.get(SchoolDay, day['id'])
+        state = {}
+        _saved(db, saved, state)
+        _saved(db, saved, state)  # An identical completion does not send twice.
+        assert saved.preparation['status'] == 'saved'
+        assert saved.preparation['notice_status'] == ('needs_review' if needs_review else 'saved')
+    with DB() as db:
+        notices = list(db.scalars(select(Message).where(Message.child_id == child['id'], Message.kind == 'preparation')))
+        assert len(notices) == 1
+        assert ('Eltern' in notices[0].body) is needs_review
+    assert calls == []
+
+
 def test_ready_push_does_not_require_daily_learning_reminders(api, household, monkeypatch, tmp_path):
     from schulpilot import notifications as n
     from schulpilot.db import PushDelivery, PushDevice

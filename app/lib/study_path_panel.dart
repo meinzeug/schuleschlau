@@ -886,7 +886,7 @@ class _StudyPathPanelState extends State<StudyPathPanel>
                 ),
               ] else if (current == null && blocks.isNotEmpty && allCompleted)
                 Text(
-                  'Alle Etappen sind bearbeitet. Gut gemacht!',
+                  'Deine bisherigen Etappen sind bearbeitet. Gut gemacht!',
                   style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
                 )
               else if (current == null && blocks.isNotEmpty)

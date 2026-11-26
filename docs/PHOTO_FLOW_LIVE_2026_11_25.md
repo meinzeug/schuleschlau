@@ -49,6 +49,31 @@ erhalten sind. Eine Wiederholung wurde nicht ausgelöst. Die verständlichere
 Meldung ersetzt keine fachlich geprüfte Grafik und behebt die fehlende
 Anschlussübung noch nicht. Der 30-Tage-Test ist weiterhin nicht vollständig.
 
+## Weiterer Foto-Durchlauf am 26.11.2026
+
+Eine weitere freigegebene Mathematikseite wurde im mobilen Browser über
+„Fotos auswählen und abgeben“ ergänzt. Die erste Erkennung und der zweite
+KI-Abgleich schlossen regulär ab (56 beziehungsweise 46 Sekunden laut
+Auftragszeiten). Die App zeigte eine neue ungelesene In-App-Benachrichtigung;
+eine tatsächliche Firebase-Zustellung ist dadurch nicht nachgewiesen.
+
+Der Abgleich kennzeichnete die Seite mit offenen Lesestellen. Die Seite ist
+gespeichert, aber ihr derzeit freigegebener Quelltext reicht für eine neue
+Aufgabe nicht aus. Für die Tagesplanung waren vier neue Seiten dieses Fachs
+nicht verwendbar; ältere, bereits genutzte Seiten desselben Fachs waren
+dagegen verwendbar. Es wurde keine zusätzliche Lernrunde generiert. Die
+Oberfläche zeigte trotzdem nur den vollständig erledigten alten Lernweg.
+
+Die lokale Korrektur erkennt die noch nicht verwendbaren neuen Quellen auch
+dann, wenn ältere Quellen desselben Fachs nutzbar sind. Sie zeigt einen kurzen
+Hinweis auf gespeicherte Fotos und mögliche Elternprüfung; bisherige Etappen
+werden ausdrücklich als bisherige Etappen bezeichnet. Auch die neutrale
+Vorbereitungsnachricht weist in diesem Fall auf offene Stellen hin, statt die
+Seiten nur für spätere Tage anzukündigen. Der Fotoverlauf bleibt zugeklappt,
+und ein laufender KI-Abgleich wird nicht als bereits offene Elternprüfung
+dargestellt. Gleichnamige Dateien werden nicht als identisch angenommen.
+Diese Nachbesserungen sind lokal getestet; ein Live-Nachtest steht noch aus.
+
 Im ausdrücklich freigegebenen Kinderkonto wurde eine reale Mathematikseite
 über die mobile Weboberfläche bei 390 × 844 Pixeln ausgewählt, ausgerichtet und
 abgegeben. Die Originaldatei und weitere private Heftinhalte liegen außerhalb

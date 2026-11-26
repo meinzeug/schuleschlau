@@ -273,7 +273,7 @@ void main() {
     expect(find.text('Etappe öffnen'), findsNothing);
     expect(find.text('Erste Etappe starten'), findsNothing);
     expect(
-      find.text('Alle Etappen sind bearbeitet. Gut gemacht!'),
+      find.text('Deine bisherigen Etappen sind bearbeitet. Gut gemacht!'),
       findsNothing,
     );
     expect(requests, ['GET']);
@@ -420,7 +420,7 @@ void main() {
     );
     final router = await _open(tester, state);
     expect(
-      find.text('Alle Etappen sind bearbeitet. Gut gemacht!'),
+      find.text('Deine bisherigen Etappen sind bearbeitet. Gut gemacht!'),
       findsNothing,
     );
     expect(find.text('Mit dem Thema weiter'), findsOneWidget);

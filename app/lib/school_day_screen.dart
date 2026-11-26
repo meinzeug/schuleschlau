@@ -661,6 +661,15 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
   String receiptStatus(Json row) {
     final page = pages.where((p) => p['id'] == row['material_id']).firstOrNull;
     if (page != null) {
+      final review = page['material_review'];
+      if (page['confirmed'] != true &&
+          review is Map &&
+          review['status'] == 'checking') {
+        return 'Gespeichert · KI gleicht ab';
+      }
+      if (review is Map && review['status'] == 'checked_with_gaps') {
+        return 'Gespeichert · offene Lesestellen';
+      }
       return page['confirmed'] == true
           ? 'Gespeichert · erkannt · geprüft'
           : page['status'] == 'review'
@@ -2673,10 +2682,29 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
     final canStart = newPackage || remaining.isNotEmpty;
     final allDone =
         units.isNotEmpty && remaining.isEmpty && day!['stage'] == 'ready';
+    final hasUnusableNewSources = (preview?['groups'] as List? ?? []).any((
+      raw,
+    ) {
+      if (raw is! Map) return false;
+      final newIds = (raw['new_material_ids'] as List? ?? []).toSet();
+      return (raw['excluded_sources'] as List? ?? []).any(
+        (entry) =>
+            entry is Map &&
+            entry['usable'] == false &&
+            newIds.contains(entry['material_id']),
+      );
+    });
     if (day!['stage'] == 'ready' && day!['synthetic'] != true) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          if (hasUnusableNewSources) ...[
+            const Notice(
+              'Deine neuen Fotos sind gespeichert. Offene Stellen können deine Eltern prüfen, bevor du damit übst.',
+              warning: true,
+            ),
+            const SizedBox(height: 12),
+          ],
           StudyPathPanel(state, widget.childId, day!['id'], onChanged: load),
           SizedBox(height: 14),
           TextButton.icon(

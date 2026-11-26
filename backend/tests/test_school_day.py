@@ -142,6 +142,38 @@ def prepare_day(api, child, monkeypatch, *, subjects=("Mathematik", "Mathematik"
     return api.get(f"/api/school-days/{day['id']}").json(), calls
 
 
+@pytest.mark.parametrize('new_usable', [False, True])
+def test_existing_covered_source_does_not_hide_unusable_new_page(api, household, monkeypatch, new_usable):
+    from schulpilot import source_lineage
+    from schulpilot.school_day import package_plan
+
+    _, child = household
+    day, _ = prepare_day(api, child, monkeypatch, subjects=('Mathematik',))
+    response = api.post(f"/api/school-days/{day['id']}/package", headers={'Idempotency-Key': 'synthetic-existing-package'})
+    assert finish_job(api, response)['status'] == 'completed'
+    with DB.begin() as db:
+        material = Material(child_id=child['id'], school_day_id=day['id'], title='Neue künstliche Seite',
+                            page_number=2, subject='Mathematik', topic='Beispiel', content='Künstlicher Inhalt',
+                            status='confirmed', confirmed=True)
+        db.add(material)
+        db.flush()
+        new_id = material.id
+    original = source_lineage.learning_source
+    def source(db, material, **kwargs):
+        if material.id == new_id:
+            return {'content': 'Künstlich bestätigter Inhalt' if new_usable else '',
+                    'exclusions': [] if new_usable else [{'reason': 'reading_uncertain'}]}
+        return original(db, material, **kwargs)
+    monkeypatch.setattr(source_lineage, 'learning_source', source)
+    with DB() as db:
+        plan = package_plan(db, db.get(SchoolDay, day['id']), db.get(Child, child['id']))
+    group = next(g for g in plan['groups'] if g['subject'] == 'Mathematik')
+    assert group['new_material_ids'] == [new_id]
+    assert bool(group['eligible_new_material_ids']) is new_usable
+    assert bool(group['selected']) is new_usable
+    assert bool(group['blocked_reason']) is (not new_usable)
+
+
 def test_multipage_package_resume_sources_answers_export_and_deletion(api, household, monkeypatch):
     user, child = household
     day, calls = prepare_day(api, child, monkeypatch)

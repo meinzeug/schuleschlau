@@ -162,7 +162,7 @@ def package_plan(db, day, child, *, ignore_unit_ids=()):
     for group in groups:
         group["selected"] = group in selected
         group["covered"] = not bool(group["new_material_ids"])
-        group["blocked_reason"] = "Für dieses Fach sind die neuen Heftquellen noch ungeklärt. Es werden daraus keine Aufgaben vorbereitet." if group["new_material_ids"] and not group["eligible_material_ids"] else None
+        group["blocked_reason"] = "Für dieses Fach sind die neuen Heftquellen noch ungeklärt. Es werden daraus keine Aufgaben vorbereitet." if group["new_material_ids"] and not group["eligible_new_material_ids"] else None
     notices = []
     if reserved:
         notices.append("Deine eingeplanten Aufträge bleiben im Tagesplan. Du kannst zusätzlich freiwillig üben.")

@@ -131,13 +131,19 @@ def validate_job(db, job):
 
 
 def _saved(db, day, state, *, job=None):
+    from .school_day import package_plan
     from .study_path import ensure_plan
 
     ensure_plan(db, day)
     if day.stage != "ready":
         day.stage = "ready"
         day.revision += 1
-    _notify(db, day, state, "saved")
+    plan = package_plan(db, day, db.get(Child, day.child_id))
+    review_needed = any(
+        item.get("usable") is False and item.get("material_id") in group["new_material_ids"]
+        for group in plan["groups"] for item in group["excluded_sources"]
+    )
+    _notify(db, day, state, "needs_review" if review_needed else "saved")
     _write(
         day,
         state,

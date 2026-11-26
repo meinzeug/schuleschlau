@@ -293,6 +293,86 @@ void main() {
     await old.tap(tester, 'Gespeicherte Seite ansehen');
     expect(find.text('Ziel /material/page1'), findsOneWidget);
   });
+  testWidgets('A running countercheck is not presented as a parent task', (
+    tester,
+  ) async {
+    final page = d.source(1)
+      ..['material_review'] = {'mode': 'automatic', 'status': 'checking'};
+    final server = d.PreparationServer(pages: [page]);
+    final state = server.state();
+    await state.pendingUploads.receipt('kid', 'receipt', {
+      'child': 'child',
+      'day': 'day',
+      'name': 'Künstliches Foto',
+      'stage': 'saved',
+      'material_id': 'page1',
+    });
+    await showDay(tester, state);
+    await old.tap(tester, 'Deine Fotoauswahl');
+    expect(find.text('Gespeichert · KI gleicht ab'), findsOneWidget);
+    expect(find.text('Gespeichert · Elternprüfung offen'), findsNothing);
+    expect(server.requests.every((r) => r.startsWith('GET ')), isTrue);
+  });
+  testWidgets(
+    'A completed countercheck with gaps does not hide the open reading issues',
+    (tester) async {
+      final page = d.source(1, confirmed: true)
+        ..['material_review'] = {
+          'mode': 'automatic',
+          'status': 'checked_with_gaps',
+        };
+      final server = d.PreparationServer(pages: [page]);
+      final state = server.state();
+      await state.pendingUploads.receipt('kid', 'receipt', {
+        'child': 'child',
+        'day': 'day',
+        'name': 'Künstliches Foto',
+        'stage': 'saved',
+        'material_id': 'page1',
+      });
+      await showDay(tester, state);
+      await old.tap(tester, 'Deine Fotoauswahl');
+      expect(find.text('Gespeichert · offene Lesestellen'), findsOneWidget);
+      expect(find.text('Gespeichert · erkannt · geprüft'), findsNothing);
+    },
+  );
+  testWidgets(
+    'New unusable sources remain visible beside an older completed learning path',
+    (tester) async {
+      final server = d.PreparationServer(
+        stage: 'ready',
+        pages: [d.source(1, confirmed: true), d.source(2, confirmed: true)],
+      );
+      server.realUploads = true;
+      server.todayOverride = {
+        ...server.day,
+        'plan': {
+          'groups': [
+            {
+              'subject': 'Mathematik',
+              'new_material_ids': ['page2'],
+              'eligible_new_material_ids': <String>[],
+              'excluded_sources': [
+                {'material_id': 'page2', 'usable': false},
+              ],
+            },
+          ],
+          'notices': <String>[],
+          'estimated_minutes': 0,
+        },
+      };
+      await showDay(tester, server.state());
+      expect(
+        find.textContaining('Deine neuen Fotos sind gespeichert.'),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining('Offene Stellen können deine Eltern prüfen'),
+        findsOneWidget,
+      );
+      expect(server.requests.every((r) => r.startsWith('GET ')), isTrue);
+    },
+  );
   testWidgets(
     'CK020 receipt problem filter hides successes without retrying them',
     (tester) async {
