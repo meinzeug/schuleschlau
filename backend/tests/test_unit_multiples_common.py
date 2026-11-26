@@ -21,6 +21,34 @@ notebook = shared_notebook
 RULE = "Das kleinste gemeinsame Vielfache zweier Zahlen ist die kleinste positive Zahl, die durch beide Zahlen ohne Rest teilbar ist."
 
 
+def test_fraction_comparison_topic_does_not_route_to_kgv_for_an_intermediate_step(household):
+    _, payload = prepared(household, content="Finde das kgV der Nenner und vergleiche die Brüche.")
+    source = payload["visual_context"]["sources"][0]
+    source["topic"] = "Ungleichnamige Brüche gleichnamig machen und vergleichen"
+    payload.pop(multiples.HISTORY_KEY, None)  # No kgV plan was selected for this request.
+    assert not multiples.applies(payload)
+    assert multiples.prepare(payload) == payload
+
+
+@pytest.mark.parametrize("topic", ["kgV", "kgV beim Brüche vergleichen", "Mathematik"])
+def test_kgv_gate_remains_for_kgv_or_ambiguous_topics(household, topic):
+    _, payload = prepared(household, content="Finde das kgV der Nenner.")
+    payload["visual_context"]["sources"][0]["topic"] = topic
+    assert multiples.applies(payload)
+    with pytest.raises(ValueError, match="eindeutig bestätigte kgV-Regel"):
+        multiples.prepare(payload)
+
+
+def test_mixed_sources_keep_kgv_gate(household):
+    _, payload = prepared(household, content="Finde das kgV der Nenner.")
+    source = payload["visual_context"]["sources"][0]
+    source["topic"] = "Brüche vergleichen"
+    other = copy.deepcopy(source)
+    other["topic"] = "kgV"
+    payload["visual_context"]["sources"].append(other)
+    assert multiples.applies(payload)
+
+
 def binding_and_wire(payload):
     planned = multiples.prepare(payload)
     schema = providers.strict_schema(schemas.UnitOutput, preserve_limits=True)

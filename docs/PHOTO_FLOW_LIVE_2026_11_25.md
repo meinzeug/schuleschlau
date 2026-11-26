@@ -542,3 +542,36 @@ Auf der mobilen Heute-Seite wurde auch das Benachrichtigungsmenü geöffnet:
 Es zeigt mehrere geladene Einträge in einem scrollbar begrenzten Bereich.
 Beim Öffnen wurden sichtbare Einträge als gelesen markiert. Daraus lässt sich
 keine Android-Pushzustellung oder eine Zustellung für jede Lernrunde ableiten.
+
+## Erneutes Lesen und Bruchvergleich am 26. November
+
+Ein im mobilen Browser eingereichtes echtes Heftfoto wurde regulär erkannt
+und ein zweites Mal durch die KI gegengeprüft. Die erste Fassung hatte zehn
+Textblöcke; zwei Unsicherheiten waren keinem Abschnitt zugeordnet, weshalb
+vorsorglich alle zehn Blöcke von der Lernbasis ausgeschlossen wurden. Nach
+der Änderung der Erkennungsvorgabe wurde das Foto auf ausdrückliche Aktion
+als neue Version gelesen und gegengeprüft: Von 13 Blöcken waren elf für die
+Lernbasis nutzbar, zwei blieben wegen zugeordneter Unsicherheit ausgeschlossen.
+Die ursprüngliche Fassung blieb erhalten. Ein exemplarischer Vergleich von
+zwei Rechenbeispielen mit dem Foto war plausibel; eine kurze Seitenkennung
+wurde jedoch abweichend und ohne Unsicherheitsmarkierung übertragen. Eine
+vollständige oder fehlerfreie Erkennung ist damit nicht nachgewiesen.
+
+Der anschließend ausdrücklich gestartete Rundenauftrag scheiterte vor dem
+KI-Aufruf: Eine kgV-Erwähnung als Zwischenschritt für den Bruchvergleich
+aktivierte irrtümlich den Spezialplan für reine kgV-Aufgaben. Für diesen
+fehlte dessen eigene, ausdrücklich belegte Definition. Die lokale Änderung
+grenzt eindeutig als Bruchvergleich bezeichnete Quellen von diesem
+Spezialplan ab; gemischte und unklare Themen behalten die bisherige Prüfung.
+Die Generierung und die erforderlichen Grafiken müssen weiterhin gesondert
+validiert werden. Ein erfolgreicher Live-Nachtest dieser Änderung steht aus.
+
+Im Fotoalbum wurde das seitlich angezeigte Bild durch lokales Drehen sichtbar;
+die Drehung verändert das Original und die bereits gespeicherte Erkennung
+nicht. In der aktuellen Oberfläche konnte das Bild nur nach rechts gedreht
+werden. Lokal sind nun beide Drehrichtungen vorgesehen. Für Seiten ohne
+verwertbaren Lerntext blendet der Vorbereitungsdialog außerdem die wirkungslose
+Aufgabenanzahl und Startaktion aus. Diese Bedienungsänderungen sind noch nicht
+live nachgeprüft. Die beiden KI-Verarbeitungsschritte des erneuten Lesens
+dauerten ungefähr 39 und 41 Sekunden; die In-App-Glocke zeigte eine neue
+Meldung. Eine tatsächliche Firebase-Zustellung wurde dabei nicht nachgewiesen.

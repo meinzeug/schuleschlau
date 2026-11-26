@@ -278,7 +278,15 @@ class _NotebookPhotoState extends State<NotebookPhoto> {
                       icon: const Icon(Icons.zoom_in),
                     ),
                     IconButton(
-                      tooltip: 'Foto drehen',
+                      tooltip: 'Foto nach links drehen',
+                      onPressed: guarded(() {
+                        setState(() => quarterTurns = (quarterTurns + 3) % 4);
+                        zoom.value = Matrix4.identity();
+                      }),
+                      icon: const Icon(Icons.rotate_left_rounded),
+                    ),
+                    IconButton(
+                      tooltip: 'Foto nach rechts drehen',
                       onPressed: guarded(() {
                         setState(() => quarterTurns = (quarterTurns + 1) % 4);
                         zoom.value = Matrix4.identity();

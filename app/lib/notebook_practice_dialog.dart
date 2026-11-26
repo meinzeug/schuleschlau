@@ -376,22 +376,23 @@ class _NotebookPracticeDialogState extends State<NotebookPracticeDialog>
                 ),
               ],
               const SizedBox(height: 16),
-              TextFormField(
-                controller: count,
-                enabled: !locked,
-                keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                decoration: const InputDecoration(
-                  labelText: 'Anzahl der Aufgaben',
-                  helperText: '2 bis 5 Aufgaben pro Runde',
+              if (!onlyUnusableSource)
+                TextFormField(
+                  controller: count,
+                  enabled: !locked,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  decoration: const InputDecoration(
+                    labelText: 'Anzahl der Aufgaben',
+                    helperText: '2 bis 5 Aufgaben pro Runde',
+                  ),
+                  validator: (value) {
+                    final n = int.tryParse(value ?? '');
+                    return n == null || n < 2 || n > 5
+                        ? 'Bitte eine Zahl von 2 bis 5 eingeben.'
+                        : null;
+                  },
                 ),
-                validator: (value) {
-                  final n = int.tryParse(value ?? '');
-                  return n == null || n < 2 || n > 5
-                      ? 'Bitte eine Zahl von 2 bis 5 eingeben.'
-                      : null;
-                },
-              ),
               const SizedBox(height: 8),
               if (!onlyUnusableSource)
                 ExpansionTile(
@@ -535,23 +536,24 @@ class _NotebookPracticeDialogState extends State<NotebookPracticeDialog>
           onPressed: sending ? null : () => Navigator.of(context).pop(),
           child: const Text('Zurück'),
         ),
-        FilledButton(
-          onPressed: sending || restoring || onlyUnusableSource
-              ? null
-              : prepare,
-          child: Text(
-            restoring
-                ? 'Gespeicherten Auftrag prüfen …'
-                : sending
-                ? 'Wird angefragt …'
-                : jobId != null
-                ? 'Vorbereitung öffnen'
-                : sentBody != null
-                ? 'Vorbereitung abgleichen'
-                : 'Runde vorbereiten',
-            textAlign: TextAlign.center,
+        if (!onlyUnusableSource)
+          FilledButton(
+            onPressed: sending || restoring || onlyUnusableSource
+                ? null
+                : prepare,
+            child: Text(
+              restoring
+                  ? 'Gespeicherten Auftrag prüfen …'
+                  : sending
+                  ? 'Wird angefragt …'
+                  : jobId != null
+                  ? 'Vorbereitung öffnen'
+                  : sentBody != null
+                  ? 'Vorbereitung abgleichen'
+                  : 'Runde vorbereiten',
+              textAlign: TextAlign.center,
+            ),
           ),
-        ),
       ],
     );
   }

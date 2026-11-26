@@ -115,8 +115,8 @@ void main() {
         find.textContaining('noch keinen sicher lesbaren Lernstoff'),
         findsOneWidget,
       );
-      final prepare = find.widgetWithText(FilledButton, 'Runde vorbereiten');
-      expect(tester.widget<FilledButton>(prepare).onPressed, isNull);
+      expect(find.text('Runde vorbereiten'), findsNothing);
+      expect(find.text('Anzahl der Aufgaben'), findsNothing);
       expect(requests, isEmpty);
       expect(find.text('Weitere Heftseiten hinzufügen'), findsNothing);
       expect(find.textContaining('andere Heftseite'), findsOneWidget);

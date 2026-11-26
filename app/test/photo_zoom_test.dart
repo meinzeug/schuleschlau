@@ -62,11 +62,11 @@ void main() {
       await tester.tap(find.byTooltip('Foto verkleinern'));
       await tester.pump();
       expect(find.text('400 %'), findsOneWidget);
-      await tester.tap(find.byTooltip('Foto drehen'));
+      await tester.tap(find.byTooltip('Foto nach links drehen'));
       await tester.pump();
       expect(
         tester.widget<RotatedBox>(find.byType(RotatedBox)).quarterTurns,
-        1,
+        3,
       );
       expect(find.text('100 %'), findsOneWidget);
       await tester.tap(find.byTooltip('Fotoansicht zurücksetzen'));
@@ -76,7 +76,7 @@ void main() {
         tester.widget<RotatedBox>(find.byType(RotatedBox)).quarterTurns,
         0,
       );
-      await tester.tap(find.byTooltip('Foto drehen'));
+      await tester.tap(find.byTooltip('Foto nach rechts drehen'));
       await tester.pump();
       await tester.tap(find.byTooltip('Foto vergrößern'));
       await tester.pump();
