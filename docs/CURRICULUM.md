@@ -43,15 +43,15 @@ Die Unterstützung weiterer Länder, ihrer Jahrgangssysteme und eigenständiger
 Hochschulprofile ist weiterhin offen.
 
 Die versionierten Dateien `reference/curriculum-sources-v1.json`,
-`reference/curriculum-topics-v1.json` und die fünf ergänzenden Pakete für
-die Sekundarschule Sachsen-Anhalt enthalten 66 Dokumente und 908 Zuordnungen
+`reference/curriculum-topics-v1.json` und die sechs ergänzenden Pakete für
+die Sekundarschule Sachsen-Anhalt enthalten 67 Dokumente und 929 Zuordnungen
 mit23Fachschlüsseln aus16Bundesländern. Dokumente behalten amtlichen Verweis,
 Fassung, Status und Digest; Themen behalten Abschnitt, gegebenenfalls Seite,
 Klassenband oder Originalphase. Ein Band wird nicht als amtlich festgelegte
 Einzelklasse ausgegeben. Vorgeschlagene kanonische Themenkennungen sind noch
 keine geprüften Kompetenzzuordnungen.
 
-Der Bestand ist ausdrücklich unvollständig: 28 Dokumente/451 Zuordnungen sind als
+Der Bestand ist ausdrücklich unvollständig: 29 Dokumente/472 Zuordnungen sind als
 aktuell geprüft markiert, 38 Dokumente/457 Zuordnungen als Fassung ungeprüft.
 Enthalten sind auch amtliche Indizes, Handreichungen und historische Dokumente.
 48schulformübergreifende Zuordnungen besitzen derzeit keine konkret nutzbare
@@ -77,6 +77,15 @@ ergänzen je elf Kompetenzschwerpunkte der Sekundarschule. Die in den
 markiert; die übrigen Doppeljahrgänge werden nicht auf ein bestimmtes Jahr
 verteilt. Reihenfolge und tatsächliche Behandlung an der Schule bleiben offen.
 
+Der [Fachlehrplan Ethikunterricht der Sekundarschule](https://www.bildung-lsa.de/files/164f3f97e3adf65ff6f44685dd9e1ced/lp_sks_ethik_01_08_2019.pdf)
+war am 26.11.2026 im amtlichen Landesindex verlinkt. Seine Übersicht auf
+gedruckter Seite 8 nennt sieben Schwerpunkte für jedes der Bänder 5/6, 7/8
+und 9/10. Das Paket enthält 21 eigene Kurzbezeichnungen mit dieser Fundstelle
+und dem SHA-256 des geprüften PDFs. Einzelkompetenzen mit Stern für Jahrgang 9
+sind darin nicht einzeln erfasst; aus dem Doppeljahrgang wird deshalb keine
+konkrete Klassenreihenfolge abgeleitet. Die Übersicht belegt keine tatsächliche
+Teilnahme, keine fachliche Bewertung und keine vollständigen Materialien.
+
 Der Import prüft erlaubte amtliche Hosts, Schema, eindeutige Kennungen,
 Fachstamm und echte Geltungsbereiche. Wiederholtes Einspielen desselben
 Bestands ist idempotent. Neue geprüfte Dokumente und Zuordnungen können über
@@ -99,3 +108,9 @@ Migration0042 ergänzt anschließend die zwei Tabellen der Benutzerverwaltung.
 Die tatsächliche additive Kette wurde in isoliertem PostgreSQL16 und SQLite
 mit erhaltenen Altantworten, Unicode, Lernzeit und gemeinsamen Bausteinen
 geprüft. Das ersetzt keine fachliche Abnahme der fehlenden Lehrplanbereiche.
+Migration 0056 ergänzt ausschließlich das versionierte Ethikpaket; bestehende
+Antworten und Lernzeiten bleiben erhalten. Ein Downgrade veröffentlichten
+Quellenmaterials erfolgt nicht automatisch, sondern als Vorwärtskorrektur.
+Katalog-, Rechte-, Filter- und Migrationstests bestanden auf isoliertem
+SQLite (34 bestanden, zwei PostgreSQL-Fälle übersprungen) und PostgreSQL
+(36 bestanden). Die Ergänzung ist noch nicht produktiv ausgerollt.

@@ -1,3 +1,14 @@
+## 26.11.2026 · Ethik Sekundarschule Sachsen-Anhalt
+
+Der [amtliche Landesindex](https://www.bildung-lsa.de/informationsportal/unterricht/sekundarschule/schulformbezogene_informationen/lehrplan.html)
+verlinkt den [Fachlehrplan Ethikunterricht, Stand 01.08.2019](https://www.bildung-lsa.de/files/164f3f97e3adf65ff6f44685dd9e1ced/lp_sks_ethik_01_08_2019.pdf).
+Die Übersicht auf gedruckter Seite 8 benennt jeweils sieben Schwerpunkte für
+5/6, 7/8 und 9/10. Der Dokumentfuß nennt Landesportal Sachsen-Anhalt und
+CC BY-SA 3.0. SHA-256 des am 26.11.2026 geprüften PDFs:
+`27de7a705c3df422292adf8176408b3ecf2cfde097f0a39ddaa5f5d809a2e487`.
+Das Paket verwendet eigene kurze Titel und keine erfundene Klassenreihenfolge;
+es erfasst weder alle Einzelkompetenzen noch die tatsächliche Unterrichtsfolge.
+
 ## 03.11.2026 · Backend-CI
 
 Die Backend-CI überträgt Ergebnisse der Testpartitionen mit den fest auf

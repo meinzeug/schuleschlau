@@ -1,0 +1,408 @@
+{
+  "version": 1,
+  "retrieved": "2026-11-26",
+  "documents": [
+    {
+      "id": "st-sek-ethik-2019",
+      "state_code": "DE-ST",
+      "title": "Fachlehrplan Sekundarschule Ethikunterricht",
+      "official_url": "https://www.bildung-lsa.de/files/164f3f97e3adf65ff6f44685dd9e1ced/lp_sks_ethik_01_08_2019.pdf",
+      "edition": "01.08.2019",
+      "effective_from": null,
+      "school_form_label": "Sekundarschule",
+      "school_form_id": "de-st.sekundarschule",
+      "school_form_scope": "specific",
+      "applies_to_school_forms": [],
+      "source_status": "current_verified",
+      "retrieved": "2026-11-26",
+      "applicability_note": "Am 26.11.2026 im amtlichen Lehrplanindex der Sekundarschule verlinkt. Die Kompetenzschwerpunkte sind als Doppeljahrgänge angegeben; für Jahrgang 9 gelten zusätzlich markierte Einzelkompetenzen. Schulinterne Reihenfolge, konkrete Beispiele und individuelle Teilnahme sind nicht bekannt.",
+      "document_kind": "curriculum",
+      "source_notes": "Ministerium für Bildung Sachsen-Anhalt; Quelle: Landesportal Sachsen-Anhalt (lisa.sachsen-anhalt.de), CC BY-SA 3.0; eigene Kurzlabels. Index: https://www.bildung-lsa.de/informationsportal/unterricht/sekundarschule/schulformbezogene_informationen/lehrplan.html ; Übersicht Kapitel 3.1, gedruckte Seite 8. PDF-SHA256 27de7a705c3df422292adf8176408b3ecf2cfde097f0a39ddaa5f5d809a2e487."
+    }
+  ],
+  "topics": [
+    {
+      "id": "st-sek-ethik-2019.56-glueck",
+      "document_id": "st-sek-ethik-2019",
+      "subject_key": "ethik",
+      "title": "Unterschiedliche Vorstellungen von Glück",
+      "grade_kind": "band",
+      "grades": [
+        5,
+        6
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 8,
+      "quote": "Glück",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-ethik-2019.56-freiheit",
+      "document_id": "st-sek-ethik-2019",
+      "subject_key": "ethik",
+      "title": "Freiheit und vernünftige Entscheidungen",
+      "grade_kind": "band",
+      "grades": [
+        5,
+        6
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 8,
+      "quote": "Freiheit",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-ethik-2019.56-verantwortung",
+      "document_id": "st-sek-ethik-2019",
+      "subject_key": "ethik",
+      "title": "Verantwortung übernehmen",
+      "grade_kind": "band",
+      "grades": [
+        5,
+        6
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 8,
+      "quote": "Verantwortung",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-ethik-2019.56-gerechtigkeit",
+      "document_id": "st-sek-ethik-2019",
+      "subject_key": "ethik",
+      "title": "Faire Verteilung",
+      "grade_kind": "band",
+      "grades": [
+        5,
+        6
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 8,
+      "quote": "Gerechtigkeit",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-ethik-2019.56-glaube",
+      "document_id": "st-sek-ethik-2019",
+      "subject_key": "ethik",
+      "title": "Bedeutung von Religiosität",
+      "grade_kind": "band",
+      "grades": [
+        5,
+        6
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 8,
+      "quote": "Glaube",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-ethik-2019.56-lebensgestaltung",
+      "document_id": "st-sek-ethik-2019",
+      "subject_key": "ethik",
+      "title": "Wert sozialer Beziehungen",
+      "grade_kind": "band",
+      "grades": [
+        5,
+        6
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 8,
+      "quote": "Lebensgestaltung",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-ethik-2019.56-natur-mensch-technik",
+      "document_id": "st-sek-ethik-2019",
+      "subject_key": "ethik",
+      "title": "Mensch und Natur",
+      "grade_kind": "band",
+      "grades": [
+        5,
+        6
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 8,
+      "quote": "Natur",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-ethik-2019.78-glueck",
+      "document_id": "st-sek-ethik-2019",
+      "subject_key": "ethik",
+      "title": "Glücksversprechen hinterfragen",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 8,
+      "quote": "Glück",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-ethik-2019.78-freiheit",
+      "document_id": "st-sek-ethik-2019",
+      "subject_key": "ethik",
+      "title": "Eigene Freiheit und Freiheit anderer",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 8,
+      "quote": "Freiheit",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-ethik-2019.78-verantwortung",
+      "document_id": "st-sek-ethik-2019",
+      "subject_key": "ethik",
+      "title": "Eigenverantwortung in der Gesellschaft",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 8,
+      "quote": "Verantwortung",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-ethik-2019.78-gerechtigkeit",
+      "document_id": "st-sek-ethik-2019",
+      "subject_key": "ethik",
+      "title": "Verschiedene Vorstellungen von Gerechtigkeit",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 8,
+      "quote": "Gerechtigkeit",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-ethik-2019.78-glaube",
+      "document_id": "st-sek-ethik-2019",
+      "subject_key": "ethik",
+      "title": "Religionen und Deutungen des Lebens",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 8,
+      "quote": "Glaube",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-ethik-2019.78-lebensgestaltung",
+      "document_id": "st-sek-ethik-2019",
+      "subject_key": "ethik",
+      "title": "Liebe und Sexualität",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 8,
+      "quote": "Lebensgestaltung",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-ethik-2019.78-natur-mensch-technik",
+      "document_id": "st-sek-ethik-2019",
+      "subject_key": "ethik",
+      "title": "Chancen und Grenzen von Medien",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 8,
+      "quote": "Natur",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-ethik-2019.910-glueck",
+      "document_id": "st-sek-ethik-2019",
+      "subject_key": "ethik",
+      "title": "Glück und moralisches Handeln",
+      "grade_kind": "band",
+      "grades": [
+        9,
+        10
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 8,
+      "quote": "Glück",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-ethik-2019.910-freiheit",
+      "document_id": "st-sek-ethik-2019",
+      "subject_key": "ethik",
+      "title": "Freiheit und Menschenwürde",
+      "grade_kind": "band",
+      "grades": [
+        9,
+        10
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 8,
+      "quote": "Freiheit",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-ethik-2019.910-verantwortung",
+      "document_id": "st-sek-ethik-2019",
+      "subject_key": "ethik",
+      "title": "Verantwortung im Zusammenleben",
+      "grade_kind": "band",
+      "grades": [
+        9,
+        10
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 8,
+      "quote": "Verantwortung",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-ethik-2019.910-gerechtigkeit",
+      "document_id": "st-sek-ethik-2019",
+      "subject_key": "ethik",
+      "title": "Gerechtigkeit in gesellschaftlichen Fragen",
+      "grade_kind": "band",
+      "grades": [
+        9,
+        10
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 8,
+      "quote": "Gerechtigkeit",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-ethik-2019.910-glaube",
+      "document_id": "st-sek-ethik-2019",
+      "subject_key": "ethik",
+      "title": "Religion, Sinn und Fremdbestimmung",
+      "grade_kind": "band",
+      "grades": [
+        9,
+        10
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 8,
+      "quote": "Glaube",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-ethik-2019.910-lebensgestaltung",
+      "document_id": "st-sek-ethik-2019",
+      "subject_key": "ethik",
+      "title": "Endlichkeit des Lebens",
+      "grade_kind": "band",
+      "grades": [
+        9,
+        10
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 8,
+      "quote": "Lebensgestaltung",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-ethik-2019.910-natur-mensch-technik",
+      "document_id": "st-sek-ethik-2019",
+      "subject_key": "ethik",
+      "title": "Medizinische Entwicklungen und menschliche Natur",
+      "grade_kind": "band",
+      "grades": [
+        9,
+        10
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 8,
+      "quote": "Natur",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    }
+  ],
+  "coverage": {
+    "complete": false,
+    "note": "Nur die Übersicht der sieben Kompetenzschwerpunkte für Ethik an der Sekundarschule Sachsen-Anhalt; keine Einzelkompetenzen, Jahresplanung, Aufgabensammlung oder individuelle Unterrichtsbestätigung."
+  },
+  "coverage_gaps": []
+}

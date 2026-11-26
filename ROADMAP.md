@@ -900,7 +900,7 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
   deutschen Schulprofil kann ein Klassenwechsel vorgeschlagen und bewusst
   gespeichert werden; ein automatischer Übergang ist nicht implementiert.
   Als erste fachlich belegte Erweiterung wurden Mathematik, Deutsch, Englisch,
-  Geschichte, Biologie, Physik, Chemie und Geographie der Sekundarschule Sachsen-Anhalt für die genannten
+  Geschichte, Biologie, Physik, Chemie, Geographie und die Ethikübersicht der Sekundarschule Sachsen-Anhalt für die genannten
   Jahrgangsbänder bzw. Abschlussphasen ergänzt. Andere Fächer, Österreich,
   die Schweiz und Hochschulen bleiben offen; keine Vollständigkeit behaupten.
 
@@ -911,6 +911,15 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
   Clients getestet.
 
 - [ ] **P1 – Lehrplanabdeckung fachlich kuratieren und offen ausweisen**
+
+  - [x] **Ethikübersicht der Sekundarschule Sachsen-Anhalt ergänzen.** Die
+    sieben Schwerpunkte je Doppeljahrgang 5/6, 7/8 und 9/10 sind mit amtlicher
+    Quelle, Fundstelle, Fassung und Prüfsumme in 21 kurzen Themenbezeichnungen
+    erfasst. Einzelkompetenzen und tatsächliche Unterrichtsreihenfolgen sind
+    nicht daraus abgeleitet. Import, Filter und Migration bestanden zusammen
+    mit vorhandenen Katalogfällen auf SQLite (34 bestanden, zwei übersprungen)
+    und isoliertem PostgreSQL (36 bestanden). Die vollständige
+    Lehrplanabdeckung bleibt offen; die Ergänzung ist noch nicht ausgerollt.
 
   - [x] **Chemie und Geographie für die Sekundarschule Sachsen-Anhalt ergänzen.**
     Je elf amtlich belegte Kompetenzschwerpunkte sind mit Quelle, Version,
