@@ -22,7 +22,7 @@ def legacy(db, items, policy):
         for m in items], sort_keys=True).encode()).hexdigest()
 
 
-@pytest.mark.parametrize('policy', ['literal-safety-1', 'literal-safety-2'])
+@pytest.mark.parametrize('policy', ['literal-safety-1', 'literal-safety-2', 'literal-safety-3'])
 def test_metadata_compatible_plan_is_readable_without_writes_and_keeps_block_ids(study, policy):
     create(study)
     with DB.begin() as db:

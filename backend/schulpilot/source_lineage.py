@@ -21,7 +21,7 @@ from .db import Job, LearningUnit, UnitSource, Usage
 from .source_lineage_models import SourceImageReceipt, SourceInvalidation, SourceRevision
 from .subject_content import SourceBlock
 
-POLICY_VERSION = "literal-safety-3"
+POLICY_VERSION = "literal-safety-4"
 PREPROCESS_VERSION = "exif-rgb-max3200-jpeg95-1"
 AUTO_CONFLICT_SUMMARY = "Abweichender Schüler-/Korrekturbereich bleibt ungeklärt."
 AUTO_CONFLICT_LOCAL = "Die beiden Abschriften dieses Schüler-/Korrekturbereichs unterscheiden sich; Original erhalten."
@@ -88,17 +88,75 @@ def _number(expression):
     return value(tree.body)
 
 
-def false_equality(text):
-    """Only self-contained numeric equations; never repair or infer variables."""
-    for line in text.splitlines():
-        terms = line.strip().split("=")
-        if not 2 <= len(terms) <= 8:
+# Deliberately small arithmetic grammar for equations embedded in prose.  It
+# does not interpret words, units, variables, mixed fractions, or parentheses.
+# The complete-line parser below retains support for richer bounded notation.
+_EMBEDDED_NUMBER = r"\d{1,9}(?:[.,]\d{1,9})?"
+_EMBEDDED_EXPR = rf"[+-]?\s*{_EMBEDDED_NUMBER}(?:\s*(?:[+*/·×−-]|\bmal\b)\s*{_EMBEDDED_NUMBER}){{0,20}}"
+_EMBEDDED_EQUATION = re.compile(
+    rf"(?<![\w./])({_EMBEDDED_EXPR}(?:\s*=\s*{_EMBEDDED_EXPR}){{1,7}})(?![\w/=])",
+    flags=re.IGNORECASE,
+)
+
+
+def _embedded_false_equality(line):
+    """Check isolated numeric spans only; never parse a fragment of algebra."""
+    if '=' not in line or len(line) > 12000:
+        return False
+    # The bounded input and term count avoid pathological scans; normalization
+    # leaves all numeric characters and token order intact.
+    line = re.sub(r'\s+', ' ', line)
+    for match in _EMBEDDED_EQUATION.finditer(line):
+        before, after = line[:match.start()].rstrip(), line[match.end():].lstrip()
+        # A candidate after an operator or another equality is only a suffix
+        # of a larger expression (e.g. x + 2 = 3). A leading signed value can
+        # similarly be the end of x-2. Reject both without guessing x.
+        if before and (before[-1] in '+-−*/·×÷^%=([{\\' or
+                       (before[-1] == ':' and re.search(r'(?:\d|\))\s*:$', before)) or
+                       (match.group(0).lstrip().startswith(('+', '-', '−')) and
+                        (before[-1].isalnum() or before[-1] in ')]}'))):
+            continue
+        # A bare integer immediately before the candidate can be the whole
+        # part of a mixed number, not a separate problem.
+        if re.search(r'(?<![\w./])\d+\s+$', line[:match.start()]):
+            continue
+        # Likewise an expression ending immediately before a continued
+        # operation, identifier, or unit is not self-contained.
+        if after and (after[0] in '+-−*/·×÷:^%=)]}\\' or after[0].isalpha()):
+            continue
+        expression = re.sub(r'\bmal\b', '*', match.group(1), flags=re.IGNORECASE)
+        # A separator followed by three digits can be a thousands separator
+        # or a decimal mark; OCR alone cannot choose the intended locale.
+        if re.search(r'(?<![\d.,])\d{1,3}[.,]\d{3}(?!\d)', expression):
+            continue
+        terms = expression.split('=')
+        # A*b/c*d is often an OCR-flattened stacked fraction; interpreting
+        # operator order as the photographed grouping would be speculation.
+        if any('/' in term and term.count('*') + term.count('·') + term.count('×') > 1
+               for term in terms):
             continue
         try:
             values = [_number(term) for term in terms]
         except (ValueError, SyntaxError, ZeroDivisionError, OverflowError):
             continue
         if any(left != right for left, right in zip(values, values[1:])):
+            return True
+    return False
+
+
+def false_equality(text, *, include_embedded=False):
+    """Only self-contained numeric equations; never repair or infer variables."""
+    for line in text.splitlines():
+        terms = line.strip().split("=")
+        if 2 <= len(terms) <= 8:
+            try:
+                values = [_number(term) for term in terms]
+            except (ValueError, SyntaxError, ZeroDivisionError, OverflowError):
+                pass
+            else:
+                if any(left != right for left, right in zip(values, values[1:])):
+                    return True
+        if include_embedded and _embedded_false_equality(line):
             return True
     return False
 
@@ -328,7 +386,7 @@ def learning_source(db, material, revision=None):
             or page_warning
         ):
             blocked = "reading_uncertain"
-        if not blocked and false_equality(block["text"]):
+        if not blocked and false_equality(block["text"], include_embedded=True):
             blocked = "false_equality"
         if not blocked and block.get("literal_role") == "student_work":
             blocked = "student_work"

@@ -757,6 +757,18 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – OCR anhand vollständig referenzierter künstlicher Seiten prüfen**
 
+  - [x] **Eindeutig falsche eingebettete Rechnungen aus Lernquellen halten.**
+    Ein begrenzter rationaler Check erfasst nun auch unmissverständliche
+    Gleichungen in Absätzen mit mehreren Aufgaben. Originaltexte bleiben
+    erhalten; die Lernprojektion schließt den betroffenen Abschnitt aus.
+    Historische Gegenchecks bleiben mit ihrer gespeicherten Regelversion
+    reproduzierbar; geänderte Lernquellen werden nicht über alte Fingerabdrücke
+    freigegeben. Künstliche Fälle prüfen die Erkennung und mehrdeutige
+    Gegenbeispiele. Auf isoliertem SQLite bestanden 147 Fälle (zwei
+    übersprungen), auf getrenntem PostgreSQL 149. Der neue Stand ist noch
+    nicht produktiv veröffentlicht. Die vollständige OCR- und Fachabnahme
+    bleibt offen. [Umfang und Grenzen](docs/EMBEDDED_ARITHMETIC_SOURCE_SAFETY_2026_11_26.md).
+
   - [x] **Wiederholte Abschriften mit Korrektur konservativ behandeln.**
     Enthalten die beiden Lesungen denselben Text mehrfach und ist mindestens
     ein Vorkommen als Schülerarbeit, Korrektur oder rechnerisch falsch

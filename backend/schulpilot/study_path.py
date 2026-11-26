@@ -174,7 +174,7 @@ def compatible_fingerprints(items, db):
     return {fingerprint(items, db), *(
         hashlib.sha256(json.dumps([(mid, revision, {**value, "policy_version": policy})
             for mid, revision, value in rows], sort_keys=True).encode()).hexdigest()
-        for policy in ("literal-safety-1", "literal-safety-2"))}
+        for policy in ("literal-safety-1", "literal-safety-2", "literal-safety-3"))}
 
 
 def page_extent(material, *, content=None):

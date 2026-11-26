@@ -1,7 +1,6 @@
 """A narrow numeric sequence is checked independently of a model's answer key."""
 
 import pytest
-
 from schulpilot.answer_evaluation import evaluate
 
 

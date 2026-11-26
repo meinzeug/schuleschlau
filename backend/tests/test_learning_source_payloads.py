@@ -75,6 +75,23 @@ def test_actual_tutor_payload_omits_wrong_original_and_keeps_public_citation(tut
         assert db.scalar(select(func.count()).select_from(Attempt)) == 0
 
 
+def test_tutor_payload_excludes_embedded_false_calculation_without_changing_source(tutor_notebook, transport):
+    good = "Ein Bruch beschreibt Teile eines Ganzen."
+    unsafe = "Berechne: 3/10 mal 5/12 = 30/58"
+    with DB.begin() as db:
+        material = db.get(Material, tutor_notebook["material_id"])
+        set_blocks(material, [{"kind": "paragraph", "text": good}, {"kind": "paragraph", "text": unsafe}])
+        original = material.content
+    assert ask(tutor_notebook).status_code == 202
+    finish()
+    payload = transport["calls"][0]
+    assert payload["sources"][0]["content"] == good
+    assert payload["sources"][0]["source_policy"]["excluded_reasons"] == ["false_equality"]
+    with DB() as db:
+        assert db.get(Material, tutor_notebook["material_id"]).content == original
+        assert db.scalar(select(func.count()).select_from(Attempt)) == 0
+
+
 def test_tutor_all_blocked_stops_before_job_reservation(tutor_notebook, transport):
     with DB.begin() as db:
         set_blocks(db.get(Material, tutor_notebook["material_id"]), [blocked()])
