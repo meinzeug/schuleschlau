@@ -195,7 +195,7 @@ def test_supervisor_loss_stops_further_remote_calls_and_never_prunes(tmp_path, m
         elif command.endswith("export_ledger.py"):
             kind = "ledger"
             kwargs["stdout"].write(b"SPB1" + b"x" * 28)
-            result = SimpleNamespace()
+            result = SimpleNamespace(stderr=b"offsite_ledger_receipt_v1:" + b"a" * 64 + b"\n")
         elif " --ack " in command:
             kind = "ack"
             result = SimpleNamespace()
@@ -296,7 +296,9 @@ def fake_run(args, **kwargs):
         now=int(datetime(2026,11,1,12,tzinfo=timezone.utc).timestamp())
         return SimpleNamespace(stdout=json.dumps({'server_now':now,'backups':[{'name':name,'size':len(archive),'sha256':hashlib.sha256(archive).hexdigest()}]}))
     if ' read ' in cmd: kwargs['stdout'].write(archive)
-    elif cmd.endswith('export_ledger.py'): kwargs['stdout'].write(b'SPB1'+b'x'*28)
+    elif cmd.endswith('export_ledger.py'):
+        kwargs['stdout'].write(b'SPB1'+b'x'*28)
+        return SimpleNamespace(stderr=b'offsite_ledger_receipt_v1:'+b'a'*64+b'\n')
     elif ' --ack ' in cmd: pass
     else: raise RuntimeError('unexpected synthetic transport')
     return SimpleNamespace()

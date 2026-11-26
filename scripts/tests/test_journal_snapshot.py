@@ -316,30 +316,75 @@ def test_ack_never_records_success_for_missing_journal_or_changed_backup(tmp_pat
     lock.touch()
     marker = monitor / "offsite-last-success.json"
     with pytest.raises(FileNotFoundError):
-        export_ledger.acknowledge(archive.name, digest)
+        export_ledger.acknowledge(archive.name, digest, "0" * 64, "0" * 64)
     assert not marker.exists()
     (data / "erasure-ledger.jsonl").touch()
-    export_ledger.acknowledge(archive.name, digest)
+    (etc / "backup.key").write_bytes(b"synthetic-key")
+    encrypted = io.BytesIO()
+    receipt = export_ledger.export(data / "erasure-ledger.jsonl", etc / "backup.key", encrypted)
+    ciphertext_hash = hashlib.sha256(encrypted.getvalue()).hexdigest()
+    export_ledger.acknowledge(archive.name, digest, ciphertext_hash, receipt)
     previous = marker.read_bytes()
+
+    # The receipt authenticates both actual ciphertext and current plaintext.
+    with pytest.raises(export_ledger.JournalChanged):
+        export_ledger.acknowledge(archive.name, digest, "f" * 64, receipt)
+    (data / "erasure-ledger.jsonl").write_bytes(b"new-synthetic-deletion\n")
+    with pytest.raises(export_ledger.JournalChanged):
+        export_ledger.acknowledge(archive.name, digest, ciphertext_hash, receipt)
+    assert marker.read_bytes() == previous
+    monkeypatch.setattr(export_ledger, "guarded_operation", nullcontext)
+    monkeypatch.setattr(export_ledger.os, "geteuid", lambda: 0)
+    monkeypatch.setattr(sys, "argv", ["export_ledger.py", "--ack", archive.name, digest, ciphertext_hash, receipt])
+    capsys.readouterr()
+    with pytest.raises(SystemExit) as changed:
+        export_ledger.main()
+    assert changed.value.code == 76
+    response = capsys.readouterr()
+    assert response.out == ""
+    assert response.err == "offsite_ack_rejected_ledger_changed_v1\n"
+    assert marker.read_bytes() == previous
+    (data / "erasure-ledger.jsonl").write_bytes(b"")
 
     newer = directory / "20261031T120001Z.tar.enc"
     newer.write_bytes(b"synthetic-newer-archive")
     backup.write_status(newer, "present")
     with pytest.raises(export_ledger.NewerBackupAvailable, match="changed"):
-        export_ledger.acknowledge(archive.name, digest)
+        export_ledger.acknowledge(archive.name, digest, ciphertext_hash, receipt)
     assert marker.read_bytes() == previous
 
     # The command emits its narrowly scoped rejection only before modifying
     # the acknowledgement. Generic errors retain their ordinary failure mode.
     monkeypatch.setattr(export_ledger, "guarded_operation", nullcontext)
     monkeypatch.setattr(export_ledger.os, "geteuid", lambda: 0)
-    monkeypatch.setattr(sys, "argv", ["export_ledger.py", "--ack", archive.name, digest])
+    monkeypatch.setattr(sys, "argv", ["export_ledger.py", "--ack", archive.name, digest, ciphertext_hash, receipt])
     with pytest.raises(SystemExit) as rejected:
         export_ledger.main()
     assert rejected.value.code == 75
     assert capsys.readouterr().err == "offsite_ack_rejected_backup_changed_v1\n"
     assert marker.read_bytes() == previous
 
+
+def test_old_ack_protocol_is_not_accepted(monkeypatch):
+    monkeypatch.setattr(export_ledger, "guarded_operation", nullcontext)
+    monkeypatch.setattr(export_ledger.os, "geteuid", lambda: 0)
+    monkeypatch.setattr(sys, "argv", ["export_ledger.py", "--ack", "20261031T120000Z.tar.enc", "a" * 64])
+    with pytest.raises(SystemExit, match="Unsupported export action"):
+        export_ledger.main()
+
+
+def test_export_rejects_partial_writes(tmp_path):
+    ledger, key = tmp_path / "erasure-ledger.jsonl", tmp_path / "key"
+    (tmp_path / ".erasure-ledger.lock").touch()
+    ledger.write_bytes(b"synthetic\n")
+    key.write_bytes(b"synthetic-key")
+
+    class ShortWriter(io.BytesIO):
+        def write(self, data):
+            return max(0, len(data) - 1)
+
+    with pytest.raises(RuntimeError, match="Incomplete"):
+        export_ledger.export(ledger, key, ShortWriter())
 
 def test_offsite_failed_journal_export_keeps_previous_copy_and_success_marker(tmp_path, monkeypatch):
     source = Path(__file__).resolve().parents[1] / "offsite_backup.py"
@@ -397,8 +442,8 @@ def test_offsite_ack_race_restores_previous_journal_and_does_not_record_success(
             return SimpleNamespace(stdout=json.dumps(inventory))
         if command.endswith("/export_ledger.py"):
             kwargs["stdout"].write(new_journal)
-            return SimpleNamespace()
-        assert command.endswith("--ack " + name + " " + digest)
+            return SimpleNamespace(stderr=b"offsite_ledger_receipt_v1:" + b"a" * 64 + b"\n")
+        assert "--ack " + name + " " + digest + " " in command
         assert prior.read_bytes() == new_journal
         raise subprocess.CalledProcessError(1, args)  # a newer backup appeared during transfer
 
@@ -562,7 +607,7 @@ def test_ack_does_not_publish_success_with_unpublished_outbox(tmp_path, monkeypa
         return True
 
     with pytest.raises(RuntimeError, match='not verified'):
-        export_ledger.acknowledge(archive.name, digest, check_pending=pending)
+        export_ledger.acknowledge(archive.name, digest, "0" * 64, "0" * 64, check_pending=pending)
     assert marker.read_text() == 'previous success\n'
     assert not (etc / 'offsite-enabled').exists()
 

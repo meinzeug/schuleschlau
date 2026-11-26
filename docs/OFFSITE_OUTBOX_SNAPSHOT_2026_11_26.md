@@ -23,9 +23,9 @@ geprüft; die Abfrage scheiterte begrenzt und funktionierte nach Freigabe wieder
 100 künstliche Sicherungs-/Restore-/Offsitefälle und 34 Unterfälle bestanden.
 
 Dies ist **keine Freigabe einer Wiederherstellung** und kein Nachweis für eine
-vollständige Löschhistorie. Der noch vorhandene ACK-Vertrag bindet die
-Bestätigung nicht an die Bytes des konkret zuvor exportierten Journals: Ein
-nach dem Export neu veröffentlichter Löschbeleg kann vor dem ACK liegen.
+vollständige Löschhistorie. Die damals noch fehlende Bindung des ACK an das
+exportierte Journal wurde nachfolgend ergänzt; Einzelheiten und weiterhin
+offene Grenzen stehen in [OFFSITE_RECEIPT_2026_11_26.md](OFFSITE_RECEIPT_2026_11_26.md).
 Roh-SQL/alte Prozesse ohne Journalsperre, zwei Hosts, unterbrochene Pulls und
 ältere Versionen bleiben gesondert zu behandeln. Die Änderung ist lokal
 geprüft und noch nicht produktiv ausgerollt.

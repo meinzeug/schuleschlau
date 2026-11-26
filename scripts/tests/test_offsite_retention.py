@@ -40,6 +40,7 @@ def transport(monkeypatch, data, *, fail_ack=False, ack_error=None):
             kwargs["stdout"].write(ARCHIVE)
         elif command.endswith("export_ledger.py"):
             kwargs["stdout"].write(b"SPB1" + b"x" * 28)
+            return SimpleNamespace(stderr=b"offsite_ledger_receipt_v1:" + b"a" * 64 + b"\n")
         elif "export_ledger.py --ack " in command:
             if ack_error is not None:
                 raise ack_error
@@ -77,6 +78,8 @@ def test_explicit_stale_backup_rejection_preserves_old_state_and_allows_next_pul
     subprocess.CalledProcessError(75, "ssh", output=b"", stderr=b"offsite_ack_rejected_backup_changed_v1\nextra"),
     subprocess.CalledProcessError(75, "ssh", output=b"untrusted", stderr=b"offsite_ack_rejected_backup_changed_v1\n"),
     subprocess.CalledProcessError(75, "ssh", output=None, stderr=b"offsite_ack_rejected_backup_changed_v1\n"),
+    subprocess.CalledProcessError(76, "ssh", output=b"", stderr=b"offsite_ack_rejected_ledger_changed_v1\nextra"),
+    subprocess.CalledProcessError(76, "ssh", output=b"untrusted", stderr=b"offsite_ack_rejected_ledger_changed_v1\n"),
     subprocess.CalledProcessError(255, "ssh", output=b"", stderr=b""),
 ])
 def test_ambiguous_ssh_results_always_keep_reconciliation_marker(tmp_path, monkeypatch, error):
@@ -89,6 +92,24 @@ def test_ambiguous_ssh_results_always_keep_reconciliation_marker(tmp_path, monke
     assert (tmp_path / ".erasure-ledger.pending").exists()
     with pytest.raises(offsite.InterruptedTransfer):
         offsite.pull(tmp_path)
+
+
+def test_ciphertext_changed_after_verification_never_reaches_server_ack(tmp_path, monkeypatch):
+    ledger = tmp_path / "erasure-ledger.enc"
+    ledger.write_bytes(b"prior-journal")
+    calls = transport(monkeypatch, inventory([LATEST]))
+    original_commit = offsite.commit_ledger
+
+    def modify_before_commit(destination, partial, *args, **kwargs):
+        partial.write_bytes(b"SPB1" + b"y" * 28)
+        return original_commit(destination, partial, *args, **kwargs)
+
+    monkeypatch.setattr(offsite, "commit_ledger", modify_before_commit)
+    with pytest.raises(offsite.AcknowledgementRejected, match="Local journal changed"):
+        offsite.pull(tmp_path)
+    assert ledger.read_bytes() == b"prior-journal"
+    assert not (tmp_path / ".erasure-ledger.pending").exists()
+    assert not any(" --ack " in call for call in calls)
 
 
 def test_expired_remote_backup_is_never_retransferred_and_only_removed_after_success(tmp_path, monkeypatch):

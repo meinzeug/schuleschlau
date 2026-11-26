@@ -380,7 +380,7 @@ def pull(destination, *, _supervised=False, _check=lambda: None):
     try:
         _check()
         with partial.open("wb") as output:
-            guarded_run(
+            export_result = guarded_run(
                 [*ssh, "/opt/schulpilot/current/venv/bin/python /opt/schulpilot/current/deploy/export_ledger.py"],
                 stdout=output,
                 stderr=subprocess.PIPE,
@@ -390,6 +390,12 @@ def pull(destination, *, _supervised=False, _check=lambda: None):
         with partial.open("rb") as source:
             if source.read(4) != b"SPB1" or partial.stat().st_size < 32:
                 raise RuntimeError("Invalid encrypted ledger")
+            source.seek(0)
+            ciphertext_hash = hashlib.file_digest(source, "sha256").hexdigest()
+        receipt_match = re.fullmatch(rb"offsite_ledger_receipt_v1:([a-f0-9]{64})\n", export_result.stderr or b"")
+        if not receipt_match:
+            raise RuntimeError("Missing or invalid offsite journal receipt")
+        receipt = receipt_match.group(1).decode("ascii")
         backups = list(destination.glob("*.tar.enc"))
         if any(backup_time(p.name) > inventory["server_now"] for p in backups):
             raise RuntimeError("Offsite backup timestamp is in the future")
@@ -400,10 +406,13 @@ def pull(destination, *, _supervised=False, _check=lambda: None):
         latest_item = max(retained, key=lambda item: item["name"])
 
         def acknowledge():
+            with (destination / "erasure-ledger.enc").open("rb") as source:
+                if hashlib.file_digest(source, "sha256").hexdigest() != ciphertext_hash:
+                    raise AcknowledgementRejected("Local journal changed before acknowledgement")
             try:
                 guarded_run(
                     [*ssh, "/opt/schulpilot/current/venv/bin/python /opt/schulpilot/current/deploy/export_ledger.py --ack "
-                     + latest_item["name"] + " " + latest_item["sha256"]],
+                     + latest_item["name"] + " " + latest_item["sha256"] + " " + ciphertext_hash + " " + receipt],
                     capture_output=True,
                 )
             except subprocess.CalledProcessError as error:
@@ -413,6 +422,10 @@ def pull(destination, *, _supervised=False, _check=lambda: None):
                         and error.stderr == b"offsite_ack_rejected_backup_changed_v1\n"
                         and error.stdout == b""):
                     raise AcknowledgementRejected("A newer backup appeared before acknowledgement") from None
+                if (error.returncode == 76
+                        and error.stderr == b"offsite_ack_rejected_ledger_changed_v1\n"
+                        and error.stdout == b""):
+                    raise AcknowledgementRejected("The deletion journal changed before acknowledgement") from None
                 raise
 
         commit_ledger(destination, partial, acknowledge, {
