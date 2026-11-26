@@ -31,6 +31,24 @@ leerer Seitentitel und eine voreilige Bereitschaftsmeldung sichtbar; während
 des laufenden Gegenchecks erschien zusätzlich ein verfrühter Elternhinweis.
 Diese UI-Befunde werden separat korrigiert.
 
+Aus der neu abgeglichenen Kopie wurde im Kinderkonto eine echte Lernrunde
+ausdrücklich angefordert und vom Anbieter erstellt. Sie enthielt zwei
+Auswahlaufgaben über Gemeinsamkeiten beziehungsweise die Sortierung von
+Größenbegriffen. Inhaltlich waren sie nahe an der erkannten Seite, prüften
+aber nur oberflächliches Vergleichen; die fachliche Tiefe bleibt offen. Es
+fehlte eine passende fachliche Erklärgrafik. Die geöffnete Erklärung wurde bei
+der ersten Antwort als Unterstützung berücksichtigt. Die zweite Aufgabe
+wurde absichtlich zunächst falsch und danach richtig beantwortet; der
+Rückblick zeigte beide Aufgaben als unterstützt beziehungsweise erneut
+gelöst. Diese Testantworten und Lernzeit sind im echten Konto gespeichert.
+
+Das einmalig ausdrücklich ausgelöste „Gezielt weiterüben“ scheiterte erneut
+vor einer Anschlussübung wegen fehlender passender Erklärgrafik. Die
+Oberfläche benannte das Problem und bestätigte, dass Antworten und Rückblick
+erhalten sind. Eine Wiederholung wurde nicht ausgelöst. Die verständlichere
+Meldung ersetzt keine fachlich geprüfte Grafik und behebt die fehlende
+Anschlussübung noch nicht. Der 30-Tage-Test ist weiterhin nicht vollständig.
+
 Im ausdrücklich freigegebenen Kinderkonto wurde eine reale Mathematikseite
 über die mobile Weboberfläche bei 390 × 844 Pixeln ausgewählt, ausgerichtet und
 abgegeben. Die Originaldatei und weitere private Heftinhalte liegen außerhalb
