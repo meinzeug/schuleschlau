@@ -209,3 +209,45 @@ def test_hint_on_wrong_feedback_marks_only_later_retry_as_assisted(book, transpo
     with DB() as db:
         saved = db.get(Attempt, attempt_id)
         assert saved.answer == "Planet" and saved.outcome == "incorrect" and saved.assisted is False
+
+
+def test_whole_number_equivalent_of_fraction_is_not_disclosed():
+    question = {'type': 'short', 'prompt': 'Berechne 1/2 + 1/2.', 'answer': '2/2'}
+    assert reveals_exact_answer(question, output('Das Ergebnis ist 1.'), mathematics=True)
+    assert reveals_exact_answer(question, output(next_question='Sind es +1?'), mathematics=True)
+    assert not reveals_exact_answer(question, output('Schau dir 1/4 an.'), mathematics=True)
+    assert not reveals_exact_answer(question, output('Schau dir 10 an.'), mathematics=True)
+    assert not reveals_exact_answer(question, output('Das Ergebnis ist -1.'), mathematics=True)
+    assert not reveals_exact_answer(question, output('Das Ergebnis ist 1,5.'), mathematics=True)
+    assert not reveals_exact_answer(question, output('Das Ergebnis ist 1.'), mathematics=False)
+    assert not reveals_exact_answer(question, output('Das Ergebnis ist 1.'),
+                                    visible_explanation='Hier ist bereits ein Ganzes: 1.', mathematics=True)
+
+
+def test_negative_and_zero_whole_equivalents_keep_sign_boundaries():
+    negative = {'type': 'short', 'prompt': 'Rechne -1/2 - 1/2.', 'answer': '-2/2'}
+    zero = {'type': 'short', 'prompt': 'Rechne 1/2 - 1/2.', 'answer': '0/2'}
+    assert reveals_exact_answer(negative, output('Das ergibt -1.'), mathematics=True)
+    assert not reveals_exact_answer(negative, output('Betrachte 1 und -10.'), mathematics=True)
+    assert reveals_exact_answer(zero, output('Das ergibt 0.'), mathematics=True)
+    assert not reveals_exact_answer(zero, output('Betrachte 10.'), mathematics=True)
+
+
+def test_integer_equivalent_model_output_is_not_published(book, transport):
+    with DB.begin() as db:
+        unit = db.get(LearningUnit, book['unit_id'])
+        unit.status, unit.subject = 'active', 'Mathematik'
+        unit.questions = [{'id': 'q1', 'type': 'short', 'prompt': 'Berechne 1/2 + 1/2.', 'options': [],
+                           'answer': '2/2', 'accepted': [], 'hints': [], 'explanation': 'Künstlich'}]
+    transport['output'] = {'answer': 'Das Ergebnis ist 1.', 'next_question': None, 'starters': [], 'sources': []}
+    turn = ask(book, question_id='q1')
+    assert turn.status_code == 202, turn.text
+    job_id = finish()
+    result = book['client'].get('/api/schulbuddy/questions/' + turn.json()['id']).json()
+    assert result['status'] == 'failed' and result['answer'] is None
+    assert 'answer' not in transport['calls'][0]['current_question']
+    with DB() as db:
+        assert db.get(Job, job_id).error_code == 'invalid_output'
+        assert db.scalar(select(Usage).where(Usage.job_id == job_id)).status.startswith('failed')
+        assert db.scalar(select(func.count()).select_from(Activity).where(Activity.kind == 'explanation')) == 0
+        assert db.scalar(select(func.count()).select_from(Attempt)) == 0

@@ -30,6 +30,17 @@ def contains(text, value):
     return bool(re.search(boundary + re.escape(value).replace(r"\ ", r"\s+") + suffix, text))
 
 
+def contains_whole_number(text, value):
+    """A signed standalone integer, never part of a decimal or fraction."""
+    if value == 0:
+        literal = r"[+-]?0"
+    elif value > 0:
+        literal = r"\+?" + re.escape(str(value))
+    else:
+        literal = re.escape(str(value))
+    return bool(re.search(r"(?<![\w/.,+\-])" + literal + r"(?![\w/]|[.,]\d)", text))
+
+
 def fraction_values(text):
     """Read only finite literal fraction, decimal and mixed-number forms."""
     result = set()
@@ -84,5 +95,12 @@ def reveals_exact_answer(question, reply, *, visible_explanation="", mathematics
             expected = Fraction(int(numerator), int(denominator))
             if (expected not in fraction_values(prompt) and expected not in fraction_values(visible)
                     and expected in fraction_values(displayed)):
+                return True
+            # A fraction can simplify to an integer (2/2 → 1). Only compare
+            # standalone signed integer tokens, never digits inside another
+            # fraction or decimal, and do not hide a number already shown.
+            if expected.denominator == 1 and not contains_whole_number(prompt, expected.numerator) \
+                    and not contains_whole_number(visible, expected.numerator) \
+                    and contains_whole_number(displayed, expected.numerator):
                 return True
     return False

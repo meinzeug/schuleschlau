@@ -28,6 +28,16 @@ zuverlässig erkannt. Auch bei möglicher Mehrdeutigkeit kann ein passender
 Hinweis vorsorglich zurückgehalten werden. Diese Regel ist weder fachliche
 Modellprüfung noch vollständiger Schutz vor Lösungshinweisen oder Manipulation.
 
+Ergänzend wird bei den unterstützten kurzen Mathematikfragen eine ganzzahlige
+Entsprechung einer gespeicherten Bruchlösung als eigenständige Zahl erkannt,
+beispielsweise `2/2` und `1`. Vorzeichen und Grenzen zu anderen Zahlen,
+Brüchen und Dezimalzahlen werden beachtet. War die ganze Zahl bereits in der
+Frage oder geöffneten Erklärung sichtbar, wird sie nicht als neue Offenlegung
+ausgegeben. Auch diese Regel kann harmlose Erwähnungen vorsorglich zurückhalten
+und erkennt keine ausgeschriebenen oder sinngemäß umschriebenen Ergebnisse.
+Ein zurückgehaltener Providertext wird nicht veröffentlicht und zählt nicht
+als Hilfe; angefallene Kosten bleiben im regulären Auftrag berücksichtigt.
+
 Schulbuddy ist eine ausdrücklich gestartete, kontextbezogene Hilfe. Öffnen, Starter und Statusabfragen erzeugen weder KI-Aufträge noch Lernbelege. Ein eigener Kinderzugang oder ein berechtigter Elternzugang mit ausgewähltem Kind verwendet dessen vorhandenes Familien-/Kinderbudget. Nur leseberechtigte Eltern dürfen keinen neuen kostenpflichtigen Auftrag starten. Admins erhalten keine privaten Kinderkontexte und keinen unbudgetierten Chat.
 
 ## Kompakter Gesprächsstart · 1.24.1+95
