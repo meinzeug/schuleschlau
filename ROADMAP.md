@@ -2636,6 +2636,16 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Erklärgrafiken und Animationen fachlich und technisch abnehmen**
 
+  - [x] **Belegte Vielfachenreihen für Paketabschnitte vorbereiten.** Ein
+    eigenes versioniertes Rezept prüft die wörtliche Reihe rechnerisch, plant
+    unterschiedliche Aufgaben und zeigt Quelle und Lösung in passenden
+    steuerbaren Schritten. Ausgeschlossene Lesestellen und fremde Gruppen
+    bleiben ausgeschlossen; frühere Aufgaben und sichtbare Zahlen werden
+    berücksichtigt. Der konkrete fehlgeschlagene Auftrag wurde nur lesend
+    gegen die neue Planung geprüft. Ein produktiver KI-Aufruf und die
+    allgemeine Fachabnahme bleiben offen.
+    [Prüfung und Grenzen](docs/MULTIPLES_PACKAGE_2026_11_26.md).
+
   - [ ] **Echte KI-Bilddateien sicher über OpenRouter anbinden.**
     **Historischer Teilfortschritt:** Der damals noch nicht in Aufträge oder Oberflächen integrierte
     Bildadapter löst ausschließlich geprüfte öffentliche Kataloginhalte auf,

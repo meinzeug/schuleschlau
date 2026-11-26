@@ -2173,13 +2173,14 @@ def request_provider(config, function, payload, image_bytes=None, *, synthetic_f
         from .notebook_fraction_compositions import HISTORY_KEY as NOTEBOOK_COMPOSITION_HISTORY
         from .notebook_fraction_expansions import HISTORY_KEY as NOTEBOOK_EXPANSION_HISTORY
         from .package_decimal_addition import HISTORY as DECIMAL_HISTORY
+        from .package_multiples_sequence import HISTORY as SEQUENCE_HISTORY
         from .review_divisibility_plan import HISTORY as REVIEW_DIVISIBILITY_HISTORY
         from .review_fraction_plan import HISTORY as REVIEW_FRACTION_HISTORY
         from .unit_multiples_common import HISTORY_KEY as MULTIPLES_HISTORY
 
         outgoing_payload = {key: value for key, value in outgoing_payload.items()
             if key not in (REVIEW_DIVISIBILITY_HISTORY, REVIEW_FRACTION_HISTORY, COACH_EXPANSION_HISTORY, MATERIAL_EXPANSION_HISTORY, NOTEBOOK_COMPOSITION_HISTORY,
-                NOTEBOOK_EXPANSION_HISTORY, NOTEBOOK_COMPARISON_HISTORY, MULTIPLES_HISTORY, DECIMAL_HISTORY)}
+                NOTEBOOK_EXPANSION_HISTORY, NOTEBOOK_COMPARISON_HISTORY, MULTIPLES_HISTORY, DECIMAL_HISTORY, SEQUENCE_HISTORY)}
     from .explanation_guidance import rules as explanation_rules
 
     instructions += explanation_rules(function, payload)

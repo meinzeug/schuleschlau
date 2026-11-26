@@ -69,7 +69,7 @@ def candidates(db, subject, text="", *, package_prepared=False, decimal_prepared
 
             if not (package_prepared or decimal_prepared) or evidence(text) is None:
                 continue
-        if row.id in ("math.fraction.wholes_remainder", "math.fraction.expansion", "math.fraction.reduction", "math.fraction.comparison", "math.multiples.common", "math.divisibility.verified_product", "math.divisibility.verified_set"):
+        if row.id in ("math.fraction.wholes_remainder", "math.fraction.expansion", "math.fraction.reduction", "math.fraction.comparison", "math.multiples.common", "math.multiples.verified_sequence", "math.divisibility.verified_product", "math.divisibility.verified_set"):
             continue  # Only the dedicated Unit proof binder may offer this recipe.
         # AI exploration templates are NEVER a vetted source-bound recipe.
         if recipe.get("scope") == "exploration_only":
@@ -221,6 +221,9 @@ def with_visual_context(db, child, payload, sources, *, groups=None):
     from .unit_multiples_common import add_reference as add_multiples_reference
 
     value = add_multiples_reference(db, value)
+    from .package_multiples_sequence import add_reference as add_multiples_sequence
+
+    value = add_multiples_sequence(db, value)
     from .notebook_fraction_comparison import add_reference as add_comparison_reference
 
     return add_comparison_reference(db, value)
@@ -464,6 +467,14 @@ def validate_steps(db, steps, subject, context, *, question=None, group_id=None,
                     and r.get("digest") == stored.digest == digest(stored.recipe) for r in context.get("references", [])):
                 raise ValueError("Ungültige vorabgeprüfte Ganzes-Rest-Komposition.")
             validate_step(step, compile_candidates(context), introduction=introduction, question=question)
+            checked.append(step.model_dump())
+            continue
+        if stored.id == "math.multiples.verified_sequence":
+            from .package_multiples_sequence import validate_step as validate_multiples_sequence
+
+            if subject != "Mathematik" or group_id is None:
+                raise ValueError("Ungültige vorabgeprüfte Vielfachenreihe.")
+            validate_multiples_sequence(step, texts, None if introduction else question)
             checked.append(step.model_dump())
             continue
         if stored.id == "math.divisibility.verified_set":

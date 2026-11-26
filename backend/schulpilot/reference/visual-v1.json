@@ -536,6 +536,16 @@
       "variant": null
     },
     {
+      "id": "math.multiples.verified_sequence",
+      "version": 1,
+      "subjects": ["Mathematik"],
+      "kind": "scene",
+      "purpose": "Eine wörtlich belegte und rechnerisch geprüfte Vielfachenreihe sowie daraus abgeleitete neue Aufgaben darstellen.",
+      "terms": ["vielfache"],
+      "interaction": "Geprüfte Zahlenschritte nacheinander hervorheben.",
+      "variant": null
+    },
+    {
       "id": "math.divisibility.verified_product",
       "version": 1,
       "subjects": ["Mathematik"],

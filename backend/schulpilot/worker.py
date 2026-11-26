@@ -435,6 +435,12 @@ def _process(job_id):
 
                 if any(m.subject == "Mathematik" and decimal_evidence(safe_contents[m.id]) for m in source_pages):
                     payload[HISTORY] = decimal_history(db, child.id)
+                from .package_multiples_sequence import HISTORY as SEQUENCE_HISTORY
+                from .package_multiples_sequence import evidence as sequence_evidence
+                from .package_multiples_sequence import history as sequence_history
+
+                if job.kind == "package" and any(m.subject == "Mathematik" and sequence_evidence(safe_contents[m.id]) for m in source_pages):
+                    payload[SEQUENCE_HISTORY] = sequence_history(db, child.id)
             if unit_novelty.applies(job, material):
                 novelty_prompts = unit_novelty.previous_prompts(db, child.id, source_pages)
                 payload["previous_prompts"] = unit_novelty.provider_context(novelty_prompts)
@@ -685,6 +691,9 @@ def _process(job_id):
                 from .package_decimal_addition import validate_history as validate_decimal_history
 
                 validate_decimal_history(db, job.child_id, data)
+                from .package_multiples_sequence import validate_history as validate_sequence_history
+
+                validate_sequence_history(db, job.child_id, data, ignore_job_ids=(job.id,))
                 if job.payload.get("package_partition") is not None:
                     from .package_partitions import InvalidPartOutput, store_validated_part
                     from .school_preparation import _state, _write

@@ -83,6 +83,11 @@ def bind_schema(schema, payload=None, *, question_count=2):
             if not isinstance(fraction_plan, dict) or not isinstance(fraction_plan.get("slots"), list):
                 raise ValueError("Der Bruchplan oder seine Quellen sind nicht mehr gültig.")
             return bind_fraction(schema, payload)
+        from .package_multiples_sequence import bind_schema as bind_multiples_sequence
+
+        binding = bind_multiples_sequence(schema, payload)
+        if binding is not None:
+            return binding
         _bind_references(schema, payload)
         from .package_decimal_addition import bind_schema as bind_decimal_addition
 
