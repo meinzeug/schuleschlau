@@ -106,6 +106,27 @@ Future<GoRouter> _openHome(
 }
 
 void main() {
+  testWidgets('A due review identifies itself on the main action', (
+    tester,
+  ) async {
+    final data = _overview();
+    data['plan']['today'] = [
+      {
+        'kind': 'review',
+        'id': 'review-unit',
+        'topic': 'Künstliches Thema',
+        'subject': 'Biologie',
+        'mandatory': false,
+        'status': 'not_started',
+      },
+    ];
+    data['plan']['voluntary'] = [];
+    await _openHome(tester, data, width: 390);
+    final hero = tester.widget<ChildTodayHero>(find.byType(ChildTodayHero));
+    expect(hero.subtitle, 'Biologie · Wiederholung');
+    expect(find.text('Biologie · Wiederholung'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
   testWidgets(
     'Child sees one learning action and opens a separate private library',
     (tester) async {

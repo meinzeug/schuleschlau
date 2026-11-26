@@ -1478,7 +1478,7 @@ class _ChildHomeContentState extends State<_ChildHomeContent> {
             ? 'Deine letzte Antwort'
             : guidance?['title'] ?? next['topic'] ?? 'Mit deinem Stoff weiter',
         subtitle:
-            '$obligation${next['subject']}${guidance != null && next['topic'] != null ? ' · ${next['topic']}' : ''}',
+            '$obligation${next['subject']}${origin == 'Wiederholung' ? ' · Wiederholung' : ''}${guidance != null && next['topic'] != null ? ' · ${next['topic']}' : ''}',
         details:
             origin != null ||
                 originDate != null ||
@@ -1489,7 +1489,7 @@ class _ChildHomeContentState extends State<_ChildHomeContent> {
             ? Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (origin != null) Text(origin),
+                  if (origin != null && origin != 'Wiederholung') Text(origin),
                   if (originDate != null)
                     Text(
                       'Heftpaket vom ${DateFormat('dd.MM.').format(originDate)}',

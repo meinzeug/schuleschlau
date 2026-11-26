@@ -190,3 +190,13 @@ Die bestehende Quellenbindung, Lösungskontrolle und Ausschlüsse bleiben aktiv.
 Künstliche Regressionsfälle für Variation und erschöpfte Auswahl sowie die
 bestehenden Anschlussgrafiktests waren erfolgreich. Der echte Anbieter-Nachtest
 für diese Änderung steht bis zur nächsten Veröffentlichung noch aus.
+
+## Startseite nach der Anschlussrunde
+
+Die Startseite bot anschließend ein anderes Fach zum Weiterlernen an. Der
+auditiert geprüfte serverseitige Tagesplan wählte eine fällige Wiederholung;
+die Bezeichnung dieser Herkunft war aber nur in den eingeklappten Details
+sichtbar. Die vorbereitete Startkartenänderung nennt „Wiederholung“ unmittelbar
+neben dem Fach, ohne Reihenfolge, Fälligkeit oder Elternaufträge zu ändern.
+Künstliche Startseitentests einschließlich großer Schrift und verschiedener
+Bildschirmbreiten sind erfolgreich. Die Änderung ist noch nicht live geprüft.
