@@ -520,7 +520,12 @@ void main() {
     expect(find.text('Mit diesen Seiten weiter'), findsOneWidget);
     await tapText(tester, 'Mit diesen Seiten weiter');
     expect(find.text('Zeig mir deine Heftseiten'), findsNothing);
+    expect(find.text('Foto hinzufügen'), findsOneWidget);
+    expect(find.text('Heftseiten und bisherige Runden'), findsNothing);
+    expect(find.text('Fragen zu meinen Heftseiten'), findsNothing);
+    await tapText(tester, 'Meine Heftseiten');
     expect(find.text('Heftseiten und bisherige Runden'), findsOneWidget);
+    expect(find.text('Fragen zu meinen Heftseiten'), findsOneWidget);
     expect(server.stage, 'ready');
     expect(server.requests.where((r) => r.startsWith('PUT ')), isEmpty);
     expect(server.submissions, 0);

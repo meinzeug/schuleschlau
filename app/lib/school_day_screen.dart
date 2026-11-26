@@ -2748,24 +2748,32 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
             ),
           ],
           SizedBox(height: 14),
-          TextButton.icon(
-            icon: Icon(Icons.chat_bubble_outline_rounded),
-            label: Text('Fragen zu meinen Heftseiten'),
-            onPressed: () => showTutorSheet(
-              context,
-              state,
-              childId: widget.childId,
-              dayId: day!['id'],
-            ),
+          ExpansionTile(
+            title: const Text('Meine Heftseiten'),
+            onExpansionChanged: (expanded) {
+              if (!expanded) FocusManager.instance.primaryFocus?.unfocus();
+            },
+            children: [
+              TextButton.icon(
+                icon: Icon(Icons.chat_bubble_outline_rounded),
+                label: Text('Fragen zu meinen Heftseiten'),
+                onPressed: () => showTutorSheet(
+                  context,
+                  state,
+                  childId: widget.childId,
+                  dayId: day!['id'],
+                ),
+              ),
+              packageOverview('Heftseiten und bisherige Runden', units),
+            ],
           ),
-          packageOverview('Heftseiten und bisherige Runden', units),
           if (allowUploads)
             TextButton.icon(
               onPressed: () => run(() async {
                 await state.api.post('/school-days/${day!['id']}/extend');
               }),
               icon: Icon(Icons.add_photo_alternate_outlined),
-              label: Text('Eine Seite nachreichen'),
+              label: Text('Foto hinzufügen'),
             ),
         ],
       );
@@ -2866,7 +2874,7 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
               await state.api.post('/school-days/${day!['id']}/extend');
             }),
             icon: Icon(Icons.add_photo_alternate_outlined, size: 18),
-            label: Text('Eine Seite nachreichen'),
+            label: Text('Foto hinzufügen'),
           ),
       ],
     );

@@ -1138,8 +1138,10 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
     Bereitschaftszähler stehen nicht mehr im Vordergrund. Weitere Lernschritte
     bleiben aufklappbar; Suche und Filter folgen erst nach einer weiteren
     bewussten Auswahl. Das gilt auch für die Heftseiten- und Rundenübersicht;
-    deren Anzahlen verwenden die passende Einzahl oder Mehrzahl. Geplante und
-    bearbeitete Schritte bleiben unterscheidbar.
+    deren Anzahlen verwenden die passende Einzahl oder Mehrzahl. Fragen zu
+    Heftseiten und die Inhaltsübersicht stehen gesammelt unter „Meine
+    Heftseiten“; weitere Fotos lassen sich weiterhin direkt hinzufügen.
+    Geplante und bearbeitete Schritte bleiben unterscheidbar.
     Bei ungeklärten Fotos wird das Kind nicht zur Seitenprüfung aufgefordert;
     berechtigte Eltern können die Prüfung öffnen. 86 Widgetfälle bestanden;
     eine getrennte 390-Pixel-Browservorschau mit Beispieldaten bestätigte
