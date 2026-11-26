@@ -152,6 +152,7 @@ def seed_additional(db):
         "curriculum-st-sekundarschule-chemie-geographie-2019.json",
         "curriculum-st-sekundarschule-ethik-2019.json",
         "curriculum-st-sekundarschule-informatik-2026.json",
+        "curriculum-st-sekundarschule-musik-2019.json",
     ):
         path = REFERENCE / filename
         if not path.is_file():
@@ -381,7 +382,7 @@ def planning_context(db, child, subjects):
                 continue
             actual = topic_data(topic, document)
             metadata = {key: actual[key] for key in ("id", "title", "subject_key", "grade_kind", "grades", "phase_label")}
-            metadata["source"] = {key: actual["source"][key] for key in ("document_id", "url", "edition", "status", "digest", "section", "page", "document_kind")}
+            metadata["source"] = {key: actual["source"][key] for key in ("document_id", "url", "edition", "status", "digest", "section", "page", "document_kind", "applicability_note")}
             by_subject.setdefault(topic.subject_id, []).append(metadata)
         # Fair, finite metadata allocation across selected subjects; no union of
         # a biology curriculum silently presented as physics learning content.

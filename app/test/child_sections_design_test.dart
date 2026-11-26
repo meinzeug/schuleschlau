@@ -250,9 +250,7 @@ void main() {
     await words.tap(tester, find.text('Prüfen'));
     expect(find.text('Apfel'), findsNothing);
     expect(
-      find.text(
-        'In dieser Vorschau ist nichts mehr zu prüfen. Deine bestätigten Wörter findest du im Wortschatz.',
-      ),
+      find.text('In dieser Vorschau gibt es keine offenen Vorschläge.'),
       findsOneWidget,
     );
     await words.tap(tester, find.text('Zum Wortschatz'));

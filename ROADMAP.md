@@ -934,6 +934,16 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – Lehrplanabdeckung fachlich kuratieren und offen ausweisen**
 
+  - [x] **Musikübersicht der Sekundarschule Sachsen-Anhalt ergänzen.** Die
+    fünf Schwerpunkte je Doppeljahrgang 5/6, 7/8 und 9/10 sind mit amtlicher
+    Quelle, Fassung, Lizenz und Fundstelle erfasst. Die Einschränkung für
+    Jahrgang 9 bleibt ausdrücklich erhalten; die tatsächliche Schulreihenfolge
+    ist unbekannt. Gültigkeitshinweise werden nun auch im KI-Planungskontext
+    mitgegeben. Katalog, Rechte, KI-Kontext und Migration bestanden mit
+    SQLite (84 bestanden, drei übersprungen) und isoliertem PostgreSQL
+    (87 bestanden). Die vollständige Lehrplanabdeckung bleibt offen; die
+    Ergänzung ist noch nicht ausgerollt.
+
   - [x] **Informatik-Erprobungsübersicht für Sachsen-Anhalts Sekundarschule ergänzen.**
     Elf amtlich belegte Schwerpunkte sind den Bändern 5/6 und 7/8 sowie den
     ausdrücklich getrennten Jahrgängen 9 und 10 zugeordnet. Die ab August 2026
@@ -1098,6 +1108,14 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 ## Kindgerechte Bedienung und Alltagstest
 
 - [ ] **P1 – Alle Kinderansichten sprachlich und in ihrer Bedienung entrümpeln**
+
+  - [x] **Leere Wortvorschläge zutreffend beschreiben.** Der Wortschatzbereich
+    behauptet bei fehlenden Vorschlägen keine vorherige Prüfung und keine
+    gespeicherten Wörter. Bei einem älteren Backend ohne Gesamtzahl bleibt
+    kenntlich, dass sich die Aussage nur auf die Vorschau bezieht; offene
+    ältere Listen sind weiterhin erreichbar. Widgettests prüfen Kinder- und
+    Elternansicht, große Schrift, fehlende und bekannte Gesamtzahl sowie reine
+    Lesezugriffe. Die vollständige Kinderabnahme bleibt offen.
 
   - [x] **Wartende Seiten nicht als laufendes KI-Lesen ausgeben.** Der
     mittlere Schritt im Fotoablauf heißt „Vorbereitung“, auch wenn eine
@@ -1324,6 +1342,10 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
     Browser bedient, und echte OCR, echte KI und fachliche Lehrplanabdeckung
     sind nicht nachgewiesen. Der Hauptpunkt bleibt deshalb offen.
     [Testplan und Grenzen](docs/MONTH_REGRESSION_2026_11_25.md).
+
+    Wiederholung am 26.11.2026 auf isoliertem PostgreSQL: elf Fälle bestanden,
+    darunter die 30-tägige Folge mit künstlichem Provider. Das ist kein Ersatz
+    für den weiterhin offenen Browsermonat mit echten Anbieteraufrufen.
 
   Der in `docs/EVERYDAY_QA_2026_10_30.md` beschriebene isolierte Test dokumentiert bereits 30 Schultage und 32 künstliche Materialseiten; er belegt keine tägliche Mindestzeit, vollständige Lehrplanabdeckung oder langfristige Lernwirkung. Für den nächsten Release einen eigenen Testplan mit festem Code-/Konfigurationsstand, künstlichen Familien und Fotos, isolierter Datenbank und Testuhr erstellen. Pro Tag Quelle, Plan, ausdrücklich gestartete Runde, Antwort-/Hilfestatus, Fehler, Provideraufträge und bekannte/unbekannte Kosten erfassen; Ferien, Fehl- und Nachholtage, Mitternacht, Netzverlust, Quellrevision, Mehrgeräte und freiwillige Fortsetzung einplanen.
 

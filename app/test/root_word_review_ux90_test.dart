@@ -66,6 +66,54 @@ Finder correction(String label) => find.byWidgetPredicate(
   (w) => w is TextField && w.decoration?.labelText == label,
 );
 void main() {
+  for (final parent in [false, true]) {
+    for (final totalKnown in [false, true]) {
+      testWidgets(
+        'Empty word review is factual for parent=$parent totalKnown=$totalKnown',
+        (t) async {
+          final calls = <http.Request>[];
+          await f.open(
+            t,
+            calls,
+            parent: parent,
+            manage: true,
+            width: 320,
+            textScale: 2,
+            respond: (q) async => q.url.path.endsWith('/imports')
+                ? f.reply({'imports': [], if (totalKnown) 'open_total': 0})
+                : f.reply({
+                    ...f.listing(),
+                    'items': [],
+                    'pagination': {'page': 1, 'page_size': 15, 'total': 0},
+                    'summary': {
+                      'confirmed_words': 0,
+                      'due_words': 0,
+                      'new_words': 0,
+                      'skills': [],
+                    },
+                    'supports_import_browser': true,
+                  }),
+          );
+          await f.tap(t, find.textContaining('Prüfen'));
+          expect(
+            find.text(
+              totalKnown
+                  ? 'Gerade gibt es keine neuen Wortvorschläge.'
+                  : 'In dieser Vorschau gibt es keine offenen Vorschläge.',
+            ),
+            findsOneWidget,
+          );
+          expect(find.textContaining('Alles geprüft'), findsNothing);
+          expect(calls.every((q) => q.method == 'GET'), isTrue);
+          if (!parent) {
+            await f.tap(t, find.text('Zum Wortschatz'));
+            expect(find.text('apple'), findsNothing);
+          }
+          expect(t.takeException(), isNull);
+        },
+      );
+    }
+  }
   testWidgets(
     'RQ020 review counters track explicit choices without importing them early',
     (t) async {

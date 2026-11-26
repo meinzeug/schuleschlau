@@ -383,9 +383,7 @@ void main() {
       expect(request.url.queryParameters, containsPair('due', 'true'));
       expect(request.url.queryParameters, containsPair('page', '2'));
       expect(
-        find.text(
-          'In dieser Vorschau ist nichts mehr zu prüfen. Deine bestätigten Wörter findest du im Wortschatz.',
-        ),
+        find.text('In dieser Vorschau gibt es keine offenen Vorschläge.'),
         findsOneWidget,
       );
       await _tap(tester, find.text('Zum Wortschatz'));

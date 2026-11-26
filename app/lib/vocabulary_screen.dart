@@ -3387,7 +3387,7 @@ class _VocabularyScreenState extends State<_VocabularyBody>
                     ),
                   heading(
                     'Wörter prüfen',
-                    subtitle: 'Deine bestätigten Wörter bleiben im Wortschatz. Hier prüfst du neue Vorschläge.',
+                    subtitle: 'Hier findest du neue Wortvorschläge.',
                   ),
                   if (imports.every((row) => row['status'] == 'confirmed') &&
                       (pendingImports ?? 0) > 0)
@@ -3411,16 +3411,16 @@ class _VocabularyScreenState extends State<_VocabularyBody>
                             },
                             child: Text(
                               pendingImports == null
-                                  ? 'In dieser Vorschau ist nichts mehr zu prüfen. Deine bestätigten Wörter findest du im Wortschatz.'
-                                  : 'Alles geprüft. Deine bestätigten Wörter findest du im Wortschatz.',
+                                  ? 'In dieser Vorschau gibt es keine offenen Vorschläge.'
+                                  : 'Gerade gibt es keine neuen Wortvorschläge.',
                             ),
                           )
                         : Panel(
                             tone: PanelTone.subtle,
                             child: Text(
                               pendingImports == null
-                                  ? 'In dieser Vorschau ist nichts mehr zu prüfen. Neue Wortpaare kannst du im Wortschatz hinzufügen.'
-                                  : 'Alles geprüft. Neue Wortpaare kannst du im Wortschatz hinzufügen.',
+                                  ? 'In dieser Vorschau gibt es keine offenen Vorschläge.'
+                                  : 'Gerade gibt es keine neuen Wortvorschläge.',
                             ),
                           ),
                   for (final row in imports.where(

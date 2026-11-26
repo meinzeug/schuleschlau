@@ -43,15 +43,15 @@ Die Unterstützung weiterer Länder, ihrer Jahrgangssysteme und eigenständiger
 Hochschulprofile ist weiterhin offen.
 
 Die versionierten Dateien `reference/curriculum-sources-v1.json`,
-`reference/curriculum-topics-v1.json` und die sieben ergänzenden Pakete für
-die Sekundarschule Sachsen-Anhalt enthalten 68 Dokumente und 940 Zuordnungen
+`reference/curriculum-topics-v1.json` und die acht ergänzenden Pakete für
+die Sekundarschule Sachsen-Anhalt enthalten 69 Dokumente und 955 Zuordnungen
 mit23Fachschlüsseln aus16Bundesländern. Dokumente behalten amtlichen Verweis,
 Fassung, Status und Digest; Themen behalten Abschnitt, gegebenenfalls Seite,
 Klassenband oder Originalphase. Ein Band wird nicht als amtlich festgelegte
 Einzelklasse ausgegeben. Vorgeschlagene kanonische Themenkennungen sind noch
 keine geprüften Kompetenzzuordnungen.
 
-Der Bestand ist ausdrücklich unvollständig: 30 Dokumente/483 Zuordnungen sind als
+Der Bestand ist ausdrücklich unvollständig: 31 Dokumente/498 Zuordnungen sind als
 aktuell geprüft markiert, 38 Dokumente/457 Zuordnungen als Fassung ungeprüft.
 Enthalten sind auch amtliche Indizes, Handreichungen und historische Dokumente.
 48schulformübergreifende Zuordnungen besitzen derzeit keine konkret nutzbare
@@ -95,6 +95,15 @@ Prüfsumme. `current_verified` bedeutet hier, dass die aktuell verlinkte
 Fassung geprüft wurde; die Edition enthält ausdrücklich „Erprobungsfassung“
 und behauptet keinen endgültigen Lehrplan. Die Reihenfolge und tatsächliche
 Behandlung an einer Schule bleiben unbekannt.
+
+Der [Musiklehrplan der Sekundarschule Sachsen-Anhalt](https://www.bildung-lsa.de/files/164f3f97e3adf65ff6f44685dd9e1ced/lp_sks_musik_01_08_2019.pdf)
+enthält auf gedruckter Seite 9 fünf Schwerpunkte für jedes der Bänder 5/6,
+7/8 und 9/10. Die 15 erfassten Kurzbezeichnungen sind eigene Formulierungen
+mit amtlicher Fundstelle und Prüfsumme. Für Jahrgang 9 gilt laut Seite 8 nur
+der in den Einzelkompetenzen markierte Teil; die Übersicht liefert dafür keine
+vollständige Zuordnung einzelner Inhalte. Schule und Unterrichtsreihenfolge
+bleiben offen. Die Gültigkeitshinweise der Dokumente werden auch an den
+begrenzten KI-Planungskontext weitergegeben.
 
 Der Import prüft erlaubte amtliche Hosts, Schema, eindeutige Kennungen,
 Fachstamm und echte Geltungsbereiche. Wiederholtes Einspielen desselben

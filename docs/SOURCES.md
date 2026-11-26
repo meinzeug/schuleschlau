@@ -1,3 +1,15 @@
+## 26.11.2026 · Musiklehrplan Sachsen-Anhalt
+
+Der [amtliche Landesindex](https://www.bildung-lsa.de/informationsportal/unterricht/sekundarschule/schulformbezogene_informationen/lehrplan.html)
+verlinkt den [Fachlehrplan Musik der Sekundarschule](https://www.bildung-lsa.de/files/164f3f97e3adf65ff6f44685dd9e1ced/lp_sks_musik_01_08_2019.pdf),
+Stand 01.08.2019. Kapitel 3.1, gedruckte Seite 9, bietet fünf Schwerpunkte
+für jedes der drei Doppeljahrgangsbänder. Seite 8 nennt eine zusätzliche
+Einschränkung für Jahrgang 9; die Einzelkompetenzen sind hier nicht vollständig
+erfasst. Quelle: Ministerium für Bildung Sachsen-Anhalt, Landesportal
+Sachsen-Anhalt, [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/de/).
+Die Katalogtitel sind eigene Kurzbezeichnungen. Abruf am 26.11.2026,
+PDF-SHA-256 `039a3dfd181d56a5b77e7cd5c5e0b3c50e932ace06f0ea4393a5ac60105c54ed`.
+
 ## 26.11.2026 · Informatik-Erprobungslehrplan Sachsen-Anhalt
 
 Der [amtliche Landesindex](https://www.bildung-lsa.de/informationsportal/unterricht/sekundarschule/schulformbezogene_informationen/lehrplan.html)

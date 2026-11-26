@@ -331,9 +331,17 @@ def test_buddy_intro_cannot_bypass_pending_entry_probe_redaction(api, household)
 
 def test_late_curriculum_profile_change_rejects_new_unit_but_preserves_existing_history(api, household, monkeypatch):
     from schulpilot import worker
+    from schulpilot import curriculum
+    from test_curriculum import package as synthetic_curriculum
     from test_curriculum import save as save_curriculum
     from test_providers import configured
 
+    synthetic = synthetic_curriculum()
+    synthetic['documents'][0]['applicability_note'] = 'SYNTHETIC band scope: no individual year inferred.'
+    for topic in synthetic['topics']:
+        topic['subject_key'] = 'physik'
+    with DB.begin() as db:
+        curriculum.import_catalogue(db, synthetic)
     save_curriculum(api, household)
     _, mid, _, output = make_unit(household)
     _config("openai")
@@ -356,6 +364,11 @@ def test_late_curriculum_profile_change_rejects_new_unit_but_preserves_existing_
     submitted, _, _ = _submitted("openai", calls[0])
     assert submitted["curriculum_context"]["state_code"] == "DE-BY"
     assert submitted["curriculum_context"]["grade"] == 6
+    synthetic_topics = [row for row in submitted["curriculum_context"]["topics"]
+                        if row["source"]["document_id"] == 'synthetic.contract.doc.v1']
+    assert synthetic_topics and all(row["source"]["applicability_note"] ==
+                                    'SYNTHETIC band scope: no individual year inferred.'
+                                    for row in synthetic_topics)
     with DB() as db:
         assert db.get(Job, job_id).status == "failed"
         assert db.query(LearningUnit).count() == 1
