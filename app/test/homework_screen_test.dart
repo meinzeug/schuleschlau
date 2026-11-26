@@ -498,7 +498,7 @@ void main() {
           await page_tools.openPageTools(tester, 'homework-photo-tools');
           expect(find.text('Aufgabenfotos aktualisieren'), findsOneWidget);
           expect(find.text('Foto suchen'), findsNothing);
-          expect(find.text('Foto noch prüfen'), findsNothing);
+          expect(find.text('Offene Fotos'), findsNothing);
           await tap(tester, 'Aufgabenfotos aktualisieren');
           expect(methods.every((m) => m == 'GET'), isTrue);
           expect(tester.takeException(), isNull);

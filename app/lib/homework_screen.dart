@@ -701,7 +701,12 @@ class _HomeworkScreenState extends State<HomeworkScreen> {
                     children: [
                       for (final filter in [
                         ('all', 'Alle Fotos'),
-                        ('review', 'Foto noch prüfen'),
+                        (
+                          'review',
+                          widget.state.isChild
+                              ? 'Offene Fotos'
+                              : 'Foto noch prüfen',
+                        ),
                         ('ready', 'Text geprüft'),
                         ('marked', 'Mit Häkchen'),
                       ])
@@ -826,7 +831,10 @@ class _HomeworkScreenState extends State<HomeworkScreen> {
                 if (photoFilter != 'all')
                   Chip(
                     label: Text(switch (photoFilter) {
-                      'review' => 'Foto noch prüfen',
+                      'review' =>
+                        widget.state.isChild
+                            ? 'Offene Fotos'
+                            : 'Foto noch prüfen',
                       'ready' => 'Text geprüft',
                       _ => 'Mit Häkchen',
                     }),

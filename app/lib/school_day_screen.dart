@@ -1340,7 +1340,7 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
                         ),
                         SizedBox(height: 7),
                         Text(
-                          ['1 Fotos', '2 KI liest', '3 Fertig'][i],
+                          ['1 Fotos', '2 Vorbereitung', '3 Fertig'][i],
                           style: TextStyle(
                             fontSize: 12,
                             color: i == step

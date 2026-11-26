@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:ui' show SemanticsRole;
-
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -31,6 +31,12 @@ AppState account([Future<http.Response> Function(http.Request)? handle]) =>
       ),
     );
 void main() {
+  setUpAll(() async {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    await (FontLoader(
+      'Nunito',
+    )..addFont(rootBundle.load('assets/fonts/Nunito.ttf'))).load();
+  });
   setUp(() => FlutterSecureStorage.setMockInitialValues({}));
   testWidgets('RQ040 an old confirmation action cannot close a newer modal', (
     t,
@@ -68,38 +74,51 @@ void main() {
     await t.pumpAndSettle();
     expect(find.text('Neuer eigener Dialog'), findsOneWidget);
   });
-  testWidgets(
-    'RQ041 mobile homework label wraps as words and preserves native tab role',
-    (t) async {
-      final sem = t.ensureSemantics();
-      try {
-        await w.workspace(t, (state, router, focus) async {
-          expect(find.text('Haus\naufgaben'), findsOneWidget);
-          final node = t.getSemantics(find.bySemanticsLabel('Hausaufgaben'));
-          expect(node.getSemanticsData().role, SemanticsRole.tab);
-          final destination = find.byWidgetPredicate(
-            (widget) =>
-                widget is NavigationDestination &&
-                widget.tooltip == 'Hausaufgaben',
-          );
-          expect(destination.hitTestable(), findsOneWidget);
-          await t.tap(destination);
-          await t.pumpAndSettle();
-          expect(
-            t.getRect(find.text('Haus\naufgaben')).bottom,
-            lessThanOrEqualTo(650),
-          );
-          expect(
-            router.routeInformationProvider.value.uri.path,
-            '/homework/synthetic-child',
-          );
-          expect(t.takeException(), isNull);
-        }, scale: 2);
-      } finally {
-        sem.dispose();
-      }
-    },
-  );
+  for (final scale in [1.0, 2.0]) {
+    testWidgets(
+      'RQ041 mobile homework label preserves its full accessible name at $scale',
+      (t) async {
+        final sem = t.ensureSemantics();
+        try {
+          await w.workspace(t, (state, router, focus) async {
+            expect(find.text('Aufgaben'), findsOneWidget);
+            expect(find.text('Haus\naufgaben'), findsNothing);
+            final node = t.getSemantics(find.bySemanticsLabel('Hausaufgaben'));
+            expect(node.getSemanticsData().role, SemanticsRole.tab);
+            final destination = find.byWidgetPredicate(
+              (widget) =>
+                  widget is NavigationDestination &&
+                  widget.tooltip == 'Hausaufgaben',
+            );
+            expect(destination.hitTestable(), findsOneWidget);
+            await t.tap(destination);
+            await t.pumpAndSettle();
+            if (scale == 1) {
+              expect(
+                t
+                    .renderObject<RenderParagraph>(find.text('Aufgaben'))
+                    .getBoxesForSelection(
+                      const TextSelection(baseOffset: 0, extentOffset: 8),
+                    ),
+                hasLength(1),
+              );
+            }
+            expect(
+              t.getRect(find.text('Aufgaben')).bottom,
+              lessThanOrEqualTo(650),
+            );
+            expect(
+              router.routeInformationProvider.value.uri.path,
+              '/homework/synthetic-child',
+            );
+            expect(t.takeException(), isNull);
+          }, scale: scale);
+        } finally {
+          sem.dispose();
+        }
+      },
+    );
+  }
   test('RQ042 a late login cannot replace a newer accepted account', () async {
     final old = Completer<http.Response>();
     final state = account(

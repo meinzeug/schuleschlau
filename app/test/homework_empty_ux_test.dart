@@ -48,10 +48,10 @@ void main() {
     await homework.tap(tester, 'Aufgabenfotos aktualisieren');
     expect(find.text('Rechteck'), findsOneWidget);
     await tools.openPageTools(tester, 'homework-photo-tools');
-    await homework.tap(tester, 'Foto noch prüfen');
+    await homework.tap(tester, 'Offene Fotos');
     await homework.tap(tester, 'Aufgabenfotos aktualisieren');
     expect(find.text('Alle geladenen Fotos zeigen'), findsOneWidget);
-    expect(find.text('Foto noch prüfen'), findsWidgets);
+    expect(find.text('Offene Fotos'), findsWidgets);
     await homework.tap(tester, 'Alle geladenen Fotos zeigen');
     expect(find.text('Noch keine Aufgabenfotos.'), findsOneWidget);
     expect(methods.every((method) => method == 'GET'), isTrue);

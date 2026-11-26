@@ -1099,10 +1099,18 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – Alle Kinderansichten sprachlich und in ihrer Bedienung entrümpeln**
 
+  - [x] **Wartende Seiten nicht als laufendes KI-Lesen ausgeben.** Der
+    mittlere Schritt im Fotoablauf heißt „Vorbereitung“, auch wenn eine
+    Elternprüfung aussteht; er behauptet damit keinen aktuell laufenden
+    Anbieterauftrag. Widgettests prüfen alte und aktuelle Stände sowie
+    schmale Anzeigen. Die umfassende Bedienungsabnahme bleibt offen.
+
   - [x] **Hausaufgabenfoto dem Kind ohne Prüfauftrag erklären.** Die mobile
     Übersicht fordert das Kind nicht mehr auf, den erkannten Text zu prüfen;
     der Hinweis verweist bei Bedarf auf die Eltern. Ein noch offenes Foto
-    und seine Detailansicht benennen dieselbe Zuständigkeit. Eltern behalten
+    und seine Detailansicht benennen dieselbe Zuständigkeit; der Filter heißt
+    beim Kind „Offene Fotos“. Die mobile Navigation zeigt „Aufgaben“ ohne
+    Worttrennung, während der Screenreader „Hausaufgaben“ erhält. Eltern behalten
     ihre Prüfhinweise. Künstliche Widgettests prüfen die Zustände und dass
     deren bloßes Öffnen keine Verarbeitung startet; 320 und 390 Pixel sowie
     große Schrift sind eingeschlossen. Die vollständige Kinder- und

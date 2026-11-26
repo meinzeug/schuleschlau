@@ -403,7 +403,7 @@ void main() {
         });
       });
       await homework.open(tester, state, overview: true);
-      await tap(tester, find.text('Foto noch prüfen'));
+      await tap(tester, find.text('Offene Fotos'));
       expect(find.text('Tiere'), findsOneWidget);
       expect(find.text('Brüche'), findsNothing);
       await tap(tester, find.text('Alle Fotos'));
@@ -436,7 +436,7 @@ void main() {
       );
       await show(tester, HomeworkScreen(state, childId: 'child'));
       await page_tools.togglePageTools(tester);
-      await tap(tester, find.text('Foto noch prüfen'));
+      await tap(tester, find.text('Offene Fotos'));
       await tap(tester, find.text('Foto suchen'));
       await tester.enterText(input('In geladenen Fotos suchen'), 'Brü');
       await tester.pumpAndSettle();

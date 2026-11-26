@@ -1799,7 +1799,7 @@ class _WorkspaceShellState extends State<WorkspaceShell>
                                   onTap: () => selectDestination(i),
                                   child: NavigationDestination(
                                     icon: LearningNavIcon(mobileEntries[i].$1),
-                                    label: 'Haus\naufgaben',
+                                    label: 'Aufgaben',
                                     tooltip: 'Hausaufgaben',
                                   ),
                                 )

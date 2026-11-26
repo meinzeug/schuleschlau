@@ -19,7 +19,7 @@ void main() {
         server.archived = true;
         await parts.openParts(tester, server);
         final selected = tester.widget<Text>(
-          find.text(confirmed ? '3 Fertig' : '2 Prüfen'),
+          find.text(confirmed ? '3 Fertig' : '2 Vorbereitung'),
         );
         expect(selected.style?.fontWeight, FontWeight.w700);
         parts.expectNoWrites(server);
