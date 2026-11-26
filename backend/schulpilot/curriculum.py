@@ -8,8 +8,10 @@ import hashlib
 import json
 import re
 import unicodedata
+from datetime import date, datetime
 from pathlib import Path
 from urllib.parse import urlsplit
+from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from sqlalchemy import func, select, update
@@ -149,6 +151,7 @@ def seed_additional(db):
         "curriculum-st-sekundarschule-physik-2019.json",
         "curriculum-st-sekundarschule-chemie-geographie-2019.json",
         "curriculum-st-sekundarschule-ethik-2019.json",
+        "curriculum-st-sekundarschule-informatik-2026.json",
     ):
         path = REFERENCE / filename
         if not path.is_file():
@@ -355,6 +358,7 @@ def planning_context(db, child, subjects):
     # A deliberately unresolved school form does not inherit every school path
     # in this state. Phase-only or unclassified topics never gain invented years.
     rows = []
+    today = datetime.fromtimestamp(now(), ZoneInfo("Europe/Berlin")).date()
     if binding["school_form_id"]:
         subject_ids = list(db.scalars(select(Subject.id).where(Subject.owner_family_id.is_(None),
             Subject.active.is_(True), Subject.title.in_(list(dict.fromkeys(subjects))[:24]))))
@@ -364,6 +368,13 @@ def planning_context(db, child, subjects):
         by_subject = {}
         for topic, document in candidates:
             scope, value = document.data, topic.data
+            effective = scope.get("effective_from")
+            if effective is not None:
+                try:
+                    if date.fromisoformat(effective) > today:
+                        continue
+                except (TypeError, ValueError):
+                    continue  # Corrupt metadata cannot become planning authority.
             if (topic.school_form_id != binding["school_form_id"] and binding["school_form_id"] not in scope.get("applies_to_school_forms", [])):
                 continue
             if binding["grade"] not in (value["grades"] or []):

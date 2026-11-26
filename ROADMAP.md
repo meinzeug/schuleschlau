@@ -921,6 +921,18 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – Lehrplanabdeckung fachlich kuratieren und offen ausweisen**
 
+  - [x] **Informatik-Erprobungsübersicht für Sachsen-Anhalts Sekundarschule ergänzen.**
+    Elf amtlich belegte Schwerpunkte sind den Bändern 5/6 und 7/8 sowie den
+    ausdrücklich getrennten Jahrgängen 9 und 10 zugeordnet. Die ab August 2026
+    gültige schulpraktische Erprobungsfassung bleibt in Quellen- und
+    Planungsmetadaten ausdrücklich erkennbar; schulische Reihenfolge und
+    individuelles Können werden nicht daraus abgeleitet. Import und additive
+    Migration erhalten vorhandene Lernnachweise. Die Planung berücksichtigt
+    datierte Quellen erst ab dem Berliner Gültigkeitstag. 36 SQLite-Fälle
+    bestanden (zwei PostgreSQL-Fälle übersprungen), ebenso 38 Fälle mit
+    isoliertem PostgreSQL. Die vollständige
+    Lehrplanabdeckung bleibt offen; der Stand ist nicht ausgerollt.
+
   - [x] **Ethikübersicht der Sekundarschule Sachsen-Anhalt ergänzen.** Die
     sieben Schwerpunkte je Doppeljahrgang 5/6, 7/8 und 9/10 sind mit amtlicher
     Quelle, Fundstelle, Fassung und Prüfsumme in 21 kurzen Themenbezeichnungen

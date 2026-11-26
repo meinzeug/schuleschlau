@@ -43,15 +43,15 @@ Die Unterstützung weiterer Länder, ihrer Jahrgangssysteme und eigenständiger
 Hochschulprofile ist weiterhin offen.
 
 Die versionierten Dateien `reference/curriculum-sources-v1.json`,
-`reference/curriculum-topics-v1.json` und die sechs ergänzenden Pakete für
-die Sekundarschule Sachsen-Anhalt enthalten 67 Dokumente und 929 Zuordnungen
+`reference/curriculum-topics-v1.json` und die sieben ergänzenden Pakete für
+die Sekundarschule Sachsen-Anhalt enthalten 68 Dokumente und 940 Zuordnungen
 mit23Fachschlüsseln aus16Bundesländern. Dokumente behalten amtlichen Verweis,
 Fassung, Status und Digest; Themen behalten Abschnitt, gegebenenfalls Seite,
 Klassenband oder Originalphase. Ein Band wird nicht als amtlich festgelegte
 Einzelklasse ausgegeben. Vorgeschlagene kanonische Themenkennungen sind noch
 keine geprüften Kompetenzzuordnungen.
 
-Der Bestand ist ausdrücklich unvollständig: 29 Dokumente/472 Zuordnungen sind als
+Der Bestand ist ausdrücklich unvollständig: 30 Dokumente/483 Zuordnungen sind als
 aktuell geprüft markiert, 38 Dokumente/457 Zuordnungen als Fassung ungeprüft.
 Enthalten sind auch amtliche Indizes, Handreichungen und historische Dokumente.
 48schulformübergreifende Zuordnungen besitzen derzeit keine konkret nutzbare
@@ -86,6 +86,16 @@ sind darin nicht einzeln erfasst; aus dem Doppeljahrgang wird deshalb keine
 konkrete Klassenreihenfolge abgeleitet. Die Übersicht belegt keine tatsächliche
 Teilnahme, keine fachliche Bewertung und keine vollständigen Materialien.
 
+Der [Erprobungslehrplan Informatik der Sekundarschule](https://www.bildung-lsa.de/files/164f3f97e3adf65ff6f44685dd9e1ced/LP_SKS_Informatik_SpE_01082026n.pdf)
+ist laut amtlichem Landesindex die Fassung zur schulpraktischen Erprobung ab
+01.08.2026. Die Übersicht auf gedruckter Seite 9 nennt drei Schwerpunkte für
+5/6, vier für 7/8 und je zwei für 9 beziehungsweise 10. Die elf erfassten
+Kurzbezeichnungen behalten diese Bänder und Einzeljahrgänge sowie Quelle und
+Prüfsumme. `current_verified` bedeutet hier, dass die aktuell verlinkte
+Fassung geprüft wurde; die Edition enthält ausdrücklich „Erprobungsfassung“
+und behauptet keinen endgültigen Lehrplan. Die Reihenfolge und tatsächliche
+Behandlung an einer Schule bleiben unbekannt.
+
 Der Import prüft erlaubte amtliche Hosts, Schema, eindeutige Kennungen,
 Fachstamm und echte Geltungsbereiche. Wiederholtes Einspielen desselben
 Bestands ist idempotent. Neue geprüfte Dokumente und Zuordnungen können über
@@ -100,7 +110,10 @@ Klassenbezug und ausgewählten Fächern. Das ist Planungsorientierung; bestätig
 Heftstoff, Elternziele und Quellenbelege bleiben maßgeblich. Lehrplanüberschriften
 sind keine Antwortquelle, kein zusätzlicher Lernstoff und kein Leistungsbeleg.
 Die bestehende Reservierung und Anbieterzahl ändern sich nicht. Quellen und
-Profilbindung werden nach der Vorbereitung erneut geprüft.
+Profilbindung werden nach der Vorbereitung erneut geprüft. Ist ein amtliches
+Inkrafttretensdatum angegeben, verwendet die Planung den Eintrag erst ab diesem
+Tag in der Berliner Zeitzone; unlesbare Datumsangaben werden ausgeschlossen.
+Der Katalog selbst zeigt die Quellenmetadaten weiterhin lesend an.
 
 Migration0041 ergänzt vier Tabellen nach0040, ohne bestehende Quellen,
 Antworten, Erinnerungen oder gemeinsame Grafikbausteine umzuschreiben.
@@ -114,3 +127,8 @@ Quellenmaterials erfolgt nicht automatisch, sondern als Vorwärtskorrektur.
 Katalog-, Rechte-, Filter- und Migrationstests bestanden auf isoliertem
 SQLite (34 bestanden, zwei PostgreSQL-Fälle übersprungen) und PostgreSQL
 (36 bestanden). Die Ergänzung ist noch nicht produktiv ausgerollt.
+Migration 0057 ergänzt entsprechend die Informatik-Erprobungsübersicht und
+erhält vorhandene Lernnachweise. Die zugehörigen Katalog-, Datums-, Profil-
+und Migrationstests bestanden auf SQLite (36 bestanden, zwei übersprungen)
+und isoliertem PostgreSQL (38 bestanden). Die Ergänzung ist noch nicht
+produktiv ausgerollt.

@@ -1,3 +1,15 @@
+## 26.11.2026 · Informatik-Erprobungslehrplan Sachsen-Anhalt
+
+Der [amtliche Landesindex](https://www.bildung-lsa.de/informationsportal/unterricht/sekundarschule/schulformbezogene_informationen/lehrplan.html)
+verlinkt den [Erprobungslehrplan Informatik](https://www.bildung-lsa.de/files/164f3f97e3adf65ff6f44685dd9e1ced/LP_SKS_Informatik_SpE_01082026n.pdf)
+für Sekundarschulen ausdrücklich als Fassung zur schulpraktischen Erprobung ab
+01.08.2026. Gedruckte Seite 9 zeigt elf Schwerpunkte für die Bänder 5/6 und
+7/8 sowie die Einzeljahrgänge 9 und 10. Quelle: Landesinstitut für
+Schulqualität und Lehrerbildung Sachsen-Anhalt (LISA), CC BY-SA 4.0.
+PDF-SHA256 `320030ded3a3b512de057da344ee4080f97cfe1a0cf895c84883471936b885a1`.
+Eigene Kurzbezeichnungen; schulische Reihenfolge und individuelle Teilnahme
+sind unbekannt. Die Fassung ist als Erprobung kenntlich zu halten.
+
 ## 26.11.2026 · Ethik Sekundarschule Sachsen-Anhalt
 
 Der [amtliche Landesindex](https://www.bildung-lsa.de/informationsportal/unterricht/sekundarschule/schulformbezogene_informationen/lehrplan.html)
