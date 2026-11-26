@@ -2705,6 +2705,18 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Schulbuddy als sicheren kontextbezogenen Lernbegleiter prüfen**
 
+  - [x] **Ganzzahlige Entsprechung einer Bruchlösung in Hinweisen erkennen.**
+    Für unterstützte kurze Mathefragen werden eigenständige ganze Zahlen
+    zurückgehalten, wenn sie einer gespeicherten Bruchlösung entsprechen und
+    noch nicht in der Frage oder geöffneten Erklärung stehen. Vorzeichen,
+    andere Brüche und Dezimalzahlen bleiben unterscheidbar. Zurückgehaltene
+    Providerantworten erzeugen keinen Hilfebeleg; Kosten bleiben verbucht.
+    53 künstliche Fälle bestanden jeweils auf SQLite und isoliertem PostgreSQL;
+    die ergänzte Kostenprüfung und Grenzfälle bestanden nochmals auf
+    PostgreSQL. Dies erkennt keine ausgeschriebenen oder sinngemäßen Lösungen
+    und ersetzt keine fachliche Prüfung echter Modellantworten. Der Stand ist
+    noch nicht produktiv veröffentlicht. [Grenzen](docs/SCHULBUDDY.md).
+
   - [x] **Gleichwertige Bruchlösungen in Mathehinweisen begrenzt erkennen.**
     Bei offenen kurzen Mathematikaufgaben mit einem gespeicherten Bruch als
     Lösung werden zusätzlich gleichwertige Brüche, Dezimalzahlen und gemischte
