@@ -363,11 +363,11 @@ void main() {
       };
       await showDay(tester, server.state());
       expect(
-        find.textContaining('Deine neuen Fotos sind gespeichert.'),
+        find.textContaining('Deine Fotos sind gespeichert.'),
         findsOneWidget,
       );
       expect(
-        find.textContaining('Offene Stellen können deine Eltern prüfen'),
+        find.textContaining('Deine Eltern können offene Stellen prüfen'),
         findsOneWidget,
       );
       expect(server.requests.every((r) => r.startsWith('GET ')), isTrue);

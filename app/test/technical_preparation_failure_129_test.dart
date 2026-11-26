@@ -377,11 +377,11 @@ void main() {
         expect(find.text('Deine Fotos sind gespeichert.'), findsOneWidget);
         expect(find.text('Hefte öffnen'), findsOneWidget);
         expect(
-          find.widgetWithText(OutlinedButton, 'Nächste Etappe'),
+          find.widgetWithText(OutlinedButton, 'Runde vorbereiten'),
           findsOneWidget,
         );
         expect(
-          find.widgetWithText(FilledButton, 'Nächste Etappe'),
+          find.widgetWithText(FilledButton, 'Runde vorbereiten'),
           findsNothing,
         );
         expect(find.text('2 von 6 Aufgaben bearbeitet'), findsOneWidget);
@@ -453,10 +453,10 @@ void main() {
       await mountStudy(tester, server);
       await tester.pump(const Duration(seconds: 12));
       expect(server.calls.every((call) => call.method == 'GET'), isTrue);
-      await click(tester, 'Nächste Etappe', settle: false);
+      await click(tester, 'Runde vorbereiten', settle: false);
       expect(server.calls.where((call) => call.method == 'POST'), hasLength(1));
       expect(
-        find.text('Deine nächste Etappe wird vorbereitet.'),
+        find.text('Deine nächste Runde wird vorbereitet.'),
         findsOneWidget,
       );
     },
@@ -505,7 +505,7 @@ void main() {
         find.widgetWithText(FilledButton, 'Gespeicherte Runden ansehen'),
         findsOneWidget,
       );
-      expect(find.text('Nächste Etappe'), findsNothing);
+      expect(find.text('Runde vorbereiten'), findsNothing);
       expect(find.text('Erneut vorbereiten'), findsNothing);
       await tester.pump(const Duration(seconds: 9));
       expect(server.calls.every((call) => call.method == 'GET'), isTrue);
@@ -523,7 +523,7 @@ void main() {
       findsNothing,
     );
     expect(find.text('Hefte öffnen'), findsNothing);
-    expect(find.text('Nächste Etappe'), findsNothing);
+    expect(find.text('Runde vorbereiten'), findsNothing);
     await tester.pump(const Duration(seconds: 9));
     expect(server.calls.every((call) => call.method == 'GET'), isTrue);
   });

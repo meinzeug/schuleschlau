@@ -2718,7 +2718,7 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (hasUnusableNewSources) ...[
+          if (hasUnusableNewSources && !state.isChild) ...[
             const Notice(
               'Deine neuen Fotos sind gespeichert. Offene Stellen können deine Eltern prüfen, bevor du damit übst.',
               warning: true,
@@ -2726,6 +2726,12 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
             const SizedBox(height: 12),
           ],
           StudyPathPanel(state, widget.childId, day!['id'], onChanged: load),
+          if (hasUnusableNewSources && state.isChild) ...[
+            const SizedBox(height: 12),
+            const Notice(
+              'Deine Fotos sind gespeichert. Deine Eltern können offene Stellen prüfen.',
+            ),
+          ],
           SizedBox(height: 14),
           TextButton.icon(
             icon: Icon(Icons.chat_bubble_outline_rounded),

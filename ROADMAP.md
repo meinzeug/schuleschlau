@@ -1129,6 +1129,19 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – Alle Kinderansichten sprachlich und in ihrer Bedienung entrümpeln**
 
+  - [x] **Lernweg für Kinder auf den nächsten Schritt ausrichten.** Nach der
+    Sichtprüfung der schmalen produktiven Ansicht zeigt der lokale Stand eine
+    klare Schaltfläche „Weiterlernen“, das aktuelle Thema und den tatsächlichen
+    Aufgabenfortschritt. Mehrdeutige Rundenbezeichnungen und ein zusätzlicher
+    Bereitschaftszähler stehen nicht mehr im Vordergrund. Weitere Lernschritte
+    bleiben aufklappbar; Suche und Filter folgen erst nach einer weiteren
+    bewussten Auswahl. Geplante und bearbeitete Schritte bleiben unterscheidbar.
+    Bei ungeklärten Fotos wird das Kind nicht zur Seitenprüfung aufgefordert;
+    berechtigte Eltern können die Prüfung öffnen. 86 Widgetfälle bestanden;
+    eine getrennte 390-Pixel-Browservorschau mit Beispieldaten bestätigte
+    Hauptaktion und Detailanzeige. Die vollständige Abnahme aller
+    Kinderansichten und das Ausrollen bleiben offen.
+
   - [x] **Fachauswahl bei Sitzungswechsel schließen.** Die allgemeine
     Heft-Fachauswahl bindet sich zusätzlich an das Sitzungstoken. Nach einem
     Tokenwechsel bleiben alte Auswahleinträge und deren Rückrufe nicht für die

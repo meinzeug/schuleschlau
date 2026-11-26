@@ -33,6 +33,44 @@ Json path(List<Json> blocks) => {
 Future<void> open(WidgetTester tester, AppState state) =>
     f.show(tester, StudyPathPanel(state, 'child', 'day'));
 void main() {
+  for (final size in [const Size(320, 600), const Size(390, 844)]) {
+    for (final scale in [1.0, 2.0]) {
+      testWidgets(
+        'Der nächste Lernschritt ist bei $size und Schrift $scale direkt verständlich',
+        (tester) async {
+          final requests = <http.Request>[];
+          final done = block('A', 'completed');
+          final ready = block('B', 'ready')..['label'] = 'Erste Runde';
+          final state = f.account((request) async {
+            requests.add(request);
+            return f.reply(path([done, ready]));
+          });
+          await f.show(
+            tester,
+            StudyPathPanel(state, 'child', 'day'),
+            size: size,
+            scale: scale,
+          );
+          expect(find.text('Weiterlernen').hitTestable(), findsOneWidget);
+          expect(
+            find.widgetWithText(FilledButton, 'Weiterlernen'),
+            findsOneWidget,
+          );
+          expect(find.text('Erste Runde'), findsNothing);
+          expect(find.textContaining('bereit · verteilt'), findsNothing);
+          expect(find.text('Suchen und filtern'), findsNothing);
+          expect(find.byType(ChoiceChip), findsNothing);
+          await f.tap(tester, find.text('Alle Lernschritte'));
+          expect(find.text('Suchen und filtern'), findsOneWidget);
+          expect(find.byType(ChoiceChip), findsNothing);
+          expect(find.text('Bearbeitet'), findsOneWidget);
+          expect(find.text('Bereit'), findsOneWidget);
+          expect(requests.every((request) => request.method == 'GET'), isTrue);
+          expect(tester.takeException(), isNull);
+        },
+      );
+    }
+  }
   testWidgets(
     'CK033 planned stage opens useful stored details without preparing a round',
     (tester) async {
@@ -42,11 +80,11 @@ void main() {
         return f.reply(path([block('Brüche', 'planned')]));
       });
       await open(tester, state);
-      await f.tap(tester, find.text('Alle Etappen'));
+      await f.tap(tester, find.text('Alle Lernschritte'));
       await f.tap(tester, find.widgetWithText(PlanRow, 'Thema Brüche'));
       expect(find.text('4 geplante Aufgaben'), findsOneWidget);
       expect(
-        find.textContaining('Hier werden keine neuen Aufgaben vorbereitet.'),
+        find.textContaining('Hier werden noch keine Aufgaben erstellt.'),
         findsOneWidget,
       );
       expect(requests.every((r) => r.method == 'GET'), isTrue);
@@ -61,15 +99,18 @@ void main() {
         ),
       );
       await open(tester, state);
-      await f.tap(tester, find.text('Alle Etappen'));
-      await tester.enterText(f.input('Etappen durchsuchen'), 'Flächen');
+      await f.tap(tester, find.text('Alle Lernschritte'));
+      await f.tap(tester, find.text('Suchen und filtern'));
+      await tester.enterText(f.input('Lernschritte suchen'), 'Flächen');
       await tester.pump();
       expect(find.widgetWithText(PlanRow, 'Thema Flächen'), findsOneWidget);
       expect(find.widgetWithText(PlanRow, 'Thema Brüche'), findsNothing);
-      await tester.enterText(f.input('Etappen durchsuchen'), 'Leer');
+      await tester.enterText(f.input('Lernschritte suchen'), 'Leer');
       await tester.pump();
-      await f.tap(tester, find.text('Alle Etappen zeigen'));
-      expect(find.text('2 von 2 Etappen in dieser Ansicht'), findsOneWidget);
+      await f.tap(tester, find.text('Alle Lernschritte zeigen'));
+      expect(tester.testTextInput.isVisible, isFalse);
+      expect(find.widgetWithText(PlanRow, 'Thema Brüche'), findsOneWidget);
+      expect(find.widgetWithText(PlanRow, 'Thema Flächen'), findsOneWidget);
     },
   );
   testWidgets(
@@ -87,7 +128,8 @@ void main() {
         );
       });
       await open(tester, state);
-      await f.tap(tester, find.text('Alle Etappen'));
+      await f.tap(tester, find.text('Alle Lernschritte'));
+      await f.tap(tester, find.text('Suchen und filtern'));
       await f.tap(tester, find.widgetWithText(ChoiceChip, 'Bereit'));
       expect(find.widgetWithText(PlanRow, 'Thema B'), findsOneWidget);
       expect(find.widgetWithText(PlanRow, 'Thema A'), findsNothing);
@@ -112,12 +154,12 @@ void main() {
         return f.reply(path([block('A', ready ? 'ready' : 'planned')]));
       });
       await open(tester, state);
-      await f.tap(tester, find.text('Erste Etappe starten'));
+      await f.tap(tester, find.text('Runde vorbereiten'));
       expect(find.text('Unklare Übertragung'), findsOneWidget);
       ready = true;
       await f.tap(tester, find.text('Stand prüfen'));
       expect(find.text('Unklare Übertragung'), findsNothing);
-      expect(find.text('Etappe öffnen'), findsOneWidget);
+      expect(find.text('Weiterlernen'), findsOneWidget);
       expect(posts, 1);
     },
   );
@@ -152,14 +194,13 @@ void main() {
       expect(find.text('4 von 12 Aufgaben bearbeitet'), findsOneWidget);
       expect(
         find.text('4 bereit · verteilt auf mehrere Lerntage'),
-        findsOneWidget,
+        findsNothing,
       );
       expect(find.textContaining('Insgesamt geplant:'), findsNothing);
-      await f.tap(tester, find.text('Alle Etappen'));
+      await f.tap(tester, find.text('Alle Lernschritte'));
+      await f.tap(tester, find.text('Suchen und filtern'));
       expect(
-        find.text(
-          'Insgesamt geplant: 12 · offen und vorbereitet: 4 · bearbeitet: 4. Noch geplante Aufgaben sind keine fertigen Übungen.',
-        ),
+        find.text('4 bearbeitet · 4 Aufgaben bereit · 12 insgesamt'),
         findsOneWidget,
       );
     },

@@ -463,7 +463,9 @@ class _StudyPathPanelState extends State<StudyPathPanel>
               Padding(
                 padding: EdgeInsets.only(top: 12),
                 child: Text(
-                  'Dies ist nur dein Plan. Hier werden keine neuen Aufgaben vorbereitet. Starte die nächste passende Etappe oben im Lernweg.',
+                  state.isChild
+                      ? 'Dieser Lernschritt ist geplant. Hier werden noch keine Aufgaben erstellt.'
+                      : 'Dies ist nur dein Plan. Hier werden keine neuen Aufgaben vorbereitet. Starte die nächste passende Etappe oben im Lernweg.',
                 ),
               ),
             if ((block['error'] ?? '').toString().isNotEmpty)
@@ -523,9 +525,11 @@ class _StudyPathPanelState extends State<StudyPathPanel>
   }) {
     final current = capturedPreparationNavigation();
     final label = block['unit_id'] != null
-        ? 'Etappe öffnen'
+        ? (state.isChild ? 'Weiterlernen' : 'Etappe öffnen')
         : actionError != null
         ? 'Erneut vorbereiten'
+        : state.isChild
+        ? 'Runde vorbereiten'
         : completed > 0
         ? 'Nächste Etappe'
         : 'Erste Etappe starten';
@@ -559,6 +563,57 @@ class _StudyPathPanelState extends State<StudyPathPanel>
         )
         .toList();
   }
+
+  Widget blockFilterControls(int total, int ready, int completed) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      if (state.isChild)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Text(
+            '$completed bearbeitet · $ready Aufgaben bereit · $total insgesamt',
+            style: TextStyle(color: context.palette.muted),
+          ),
+        ),
+      TextField(
+        controller: blockSearch,
+        textInputAction: TextInputAction.search,
+        decoration: InputDecoration(
+          labelText: state.isChild
+              ? 'Lernschritte suchen'
+              : 'Etappen durchsuchen',
+          prefixIcon: Icon(Icons.search_rounded),
+        ),
+        onChanged: (_) {
+          if (ownerMatches) setState(() {});
+        },
+        onSubmitted: (_) => FocusManager.instance.primaryFocus?.unfocus(),
+      ),
+      SizedBox(height: 8),
+      Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          for (final item in [
+            ('all', 'Alle'),
+            ('planned', 'Geplant'),
+            ('ready', 'Bereit'),
+            ('completed', 'Bearbeitet'),
+          ])
+            ChoiceChip(
+              label: Text(item.$2),
+              selected: blockFilter == item.$1,
+              onSelected: (_) {
+                if (ownerMatches) {
+                  FocusManager.instance.primaryFocus?.unfocus();
+                  setState(() => blockFilter = item.$1);
+                }
+              },
+            ),
+        ],
+      ),
+    ],
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -640,19 +695,23 @@ class _StudyPathPanelState extends State<StudyPathPanel>
             if (needsReview) ...[
               const SizedBox(height: 12),
               Text(
-                reviewCount == 1
-                    ? 'Eine Heftseite noch prüfen'
-                    : '$reviewCount Heftseiten noch prüfen',
+                state.isChild
+                    ? (reviewCount == 1
+                          ? 'Ein Foto wartet auf Prüfung'
+                          : 'Fotos warten auf Prüfung')
+                    : (reviewCount == 1
+                          ? 'Eine Heftseite noch prüfen'
+                          : '$reviewCount Heftseiten noch prüfen'),
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
                 ),
               ),
               const SizedBox(height: 8),
-              const Text(
-                'Prüfe die erkannten Texte. Deine bisherigen Antworten bleiben erhalten.',
+              Text(
+                state.isChild ? 'Deine Eltern können offene Stellen prüfen.' : 'Prüfe die erkannten Texte. Bisherige Antworten bleiben erhalten.',
               ),
-              if (editable &&
+              if (state.canManage &&
                   reviewMaterial != null &&
                   RegExp(r'^[a-f0-9]{32}$').hasMatch(reviewMaterial)) ...[
                 const SizedBox(height: 12),
@@ -704,7 +763,7 @@ class _StudyPathPanelState extends State<StudyPathPanel>
               SizedBox(height: 12),
               Text(
                 editable
-                    ? 'Dein Stoff wird zu mehreren kleinen Etappen.'
+                    ? 'Aus deinen Heftseiten entsteht dein Lernweg.'
                     : 'Für diesen Tag ist noch kein Lernweg geplant.',
               ),
               if (editable && !needsReview) ...[
@@ -742,8 +801,8 @@ class _StudyPathPanelState extends State<StudyPathPanel>
                   ),
                 ),
               ],
-              SizedBox(height: 14),
-              if (total > 0) ...[
+              SizedBox(height: state.isChild ? 6 : 14),
+              if (total > 0 && !state.isChild) ...[
                 LinearProgressIndicator(value: (completed / total).clamp(0, 1)),
                 SizedBox(height: 10),
                 Text(
@@ -751,11 +810,13 @@ class _StudyPathPanelState extends State<StudyPathPanel>
                   style: TextStyle(fontWeight: FontWeight.w600),
                 ),
               ],
-              SizedBox(height: 7),
-              Text(
-                '$ready bereit · verteilt auf mehrere Lerntage',
-                style: TextStyle(color: context.palette.muted, fontSize: 12),
-              ),
+              if (!state.isChild) ...[
+                SizedBox(height: 7),
+                Text(
+                  '$ready Aufgaben bereit',
+                  style: TextStyle(color: context.palette.muted, fontSize: 12),
+                ),
+              ],
               if (!state.isChild) ...[
                 SizedBox(height: 8),
                 Text(
@@ -763,28 +824,26 @@ class _StudyPathPanelState extends State<StudyPathPanel>
                   style: TextStyle(color: context.palette.muted),
                 ),
               ],
-              SizedBox(height: 20),
+              SizedBox(height: state.isChild ? 8 : 20),
               if (current != null && !needsReview) ...[
                 if (current['unit_id'] != null &&
                     !waiting &&
                     !posting &&
                     editable &&
                     data?['can_continue'] == true)
-                  ActionPanel(
-                    actionLabel: 'Etappe öffnen',
-                    onPressed: () {
-                      if (active &&
-                          blocks.any(
-                            (block) =>
-                                block['id'] == current['id'] &&
-                                block['unit_id'] == current['unit_id'],
-                          )) {
-                        openRoute(context, '/unit/${current['unit_id']}');
-                      }
-                    },
+                  Panel(
+                    tone: PanelTone.subtle,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
+                        Text(
+                          'Dein nächster Schritt',
+                          style: TextStyle(
+                            color: context.palette.muted,
+                            fontSize: 12,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
                         Text(
                           current['title'] ?? _phaseLabel(current['phase']),
                           style: TextStyle(
@@ -792,10 +851,21 @@ class _StudyPathPanelState extends State<StudyPathPanel>
                             fontWeight: FontWeight.w700,
                           ),
                         ),
-                        SizedBox(height: 8),
-                        Text(
-                          current['label'] ?? _phaseLabel(current['phase']),
-                          style: TextStyle(color: context.palette.muted),
+                        const SizedBox(height: 12),
+                        ActionButton(
+                          label: 'Weiterlernen',
+                          icon: Icons.play_arrow_rounded,
+                          vibrant: true,
+                          onPressed: () async {
+                            if (navigationCurrent() &&
+                                blocks.any(
+                                  (block) =>
+                                      block['id'] == current['id'] &&
+                                      block['unit_id'] == current['unit_id'],
+                                )) {
+                              openRoute(context, '/unit/${current['unit_id']}');
+                            }
+                          },
                         ),
                       ],
                     ),
@@ -805,11 +875,13 @@ class _StudyPathPanelState extends State<StudyPathPanel>
                     current['title'] ?? _phaseLabel(current['phase']),
                     style: TextStyle(fontSize: 19, fontWeight: FontWeight.w700),
                   ),
-                  SizedBox(height: 8),
-                  Text(
-                    current['label'] ?? _phaseLabel(current['phase']),
-                    style: TextStyle(color: context.palette.muted),
-                  ),
+                  if (!state.isChild) ...[
+                    SizedBox(height: 8),
+                    Text(
+                      current['label'] ?? _phaseLabel(current['phase']),
+                      style: TextStyle(color: context.palette.muted),
+                    ),
+                  ],
                   SizedBox(height: 16),
                 ],
                 if ((current['error'] ?? '').toString().isNotEmpty &&
@@ -828,7 +900,11 @@ class _StudyPathPanelState extends State<StudyPathPanel>
                 if (waiting || posting) ...[
                   LinearProgressIndicator(),
                   SizedBox(height: 10),
-                  Text('Deine nächste Etappe wird vorbereitet.'),
+                  Text(
+                    state.isChild
+                        ? 'Deine nächste Runde wird vorbereitet.'
+                        : 'Deine nächste Etappe wird vorbereitet.',
+                  ),
                   SizedBox(height: 6),
                   Text(
                     'Du kannst später weitermachen.',
@@ -852,7 +928,8 @@ class _StudyPathPanelState extends State<StudyPathPanel>
                     !retryExhausted &&
                     editable &&
                     data?['can_continue'] == true &&
-                    completed > 0) ...[
+                    completed > 0 &&
+                    !state.isChild) ...[
                   SizedBox(height: 8),
                   Text(
                     'Die nächste Runde beginnt, wenn du sie auswählst.',
@@ -886,7 +963,7 @@ class _StudyPathPanelState extends State<StudyPathPanel>
                 ),
               ] else if (current == null && blocks.isNotEmpty && allCompleted)
                 Text(
-                  'Deine bisherigen Etappen sind bearbeitet. Gut gemacht!',
+                  state.isChild ? 'Deine Lernschritte sind bearbeitet.' : 'Deine bisherigen Etappen sind bearbeitet. Gut gemacht!',
                   style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
                 )
               else if (current == null && blocks.isNotEmpty)
@@ -912,71 +989,70 @@ class _StudyPathPanelState extends State<StudyPathPanel>
                   ),
                 ),
               ],
+              if (total > 0 && state.isChild) ...[
+                const SizedBox(height: 16),
+                LinearProgressIndicator(value: (completed / total).clamp(0, 1)),
+                const SizedBox(height: 8),
+                Text(
+                  '$completed von $total Aufgaben bearbeitet',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ],
               SizedBox(height: 10),
               ExpansionTile(
-                title: Text('Alle Etappen'),
+                title: Text(
+                  state.isChild ? 'Alle Lernschritte' : 'Alle Etappen',
+                ),
+                onExpansionChanged: (open) {
+                  if (!open) {
+                    FocusManager.instance.primaryFocus?.unfocus();
+                  }
+                },
                 children: [
                   if (state.isChild)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
+                    ExpansionTile(
+                      title: Text(
+                        blockFilter != 'all' ||
+                                blockSearch.text.trim().isNotEmpty
+                            ? 'Suchen und filtern · aktiv'
+                            : 'Suchen und filtern',
+                      ),
+                      onExpansionChanged: (open) {
+                        if (!open) {
+                          FocusManager.instance.primaryFocus?.unfocus();
+                        }
+                      },
+                      children: [blockFilterControls(total, ready, completed)],
+                    )
+                  else
+                    blockFilterControls(total, ready, completed),
+                  if (!state.isChild ||
+                      blockFilter != 'all' ||
+                      blockSearch.text.trim().isNotEmpty)
+                    Semantics(
+                      liveRegion: true,
                       child: Text(
-                        'Insgesamt geplant: $total · offen und vorbereitet: $ready · bearbeitet: $completed. Noch geplante Aufgaben sind keine fertigen Übungen.',
-                        style: TextStyle(color: context.palette.muted),
+                        state.isChild
+                            ? '${visibleBlocks.length} von ${blocks.length} Lernschritten'
+                            : '${visibleBlocks.length} von ${blocks.length} Etappen in dieser Ansicht',
                       ),
                     ),
-                  TextField(
-                    controller: blockSearch,
-                    textInputAction: TextInputAction.search,
-                    decoration: InputDecoration(
-                      labelText: 'Etappen durchsuchen',
-                      prefixIcon: Icon(Icons.search_rounded),
-                    ),
-                    onChanged: (_) {
-                      if (ownerMatches) setState(() {});
-                    },
-                    onSubmitted: (_) =>
-                        FocusManager.instance.primaryFocus?.unfocus(),
-                  ),
-                  SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      for (final item in [
-                        ('all', 'Alle'),
-                        ('planned', 'Geplant'),
-                        ('ready', 'Bereit'),
-                        ('completed', 'Bearbeitet'),
-                      ])
-                        ChoiceChip(
-                          label: Text(item.$2),
-                          selected: blockFilter == item.$1,
-                          onSelected: (_) {
-                            if (ownerMatches) {
-                              FocusManager.instance.primaryFocus?.unfocus();
-                              setState(() => blockFilter = item.$1);
-                            }
-                          },
-                        ),
-                    ],
-                  ),
-                  Semantics(
-                    liveRegion: true,
-                    child: Text(
-                      '${visibleBlocks.length} von ${blocks.length} Etappen in dieser Ansicht',
-                    ),
-                  ),
                   if (visibleBlocks.isEmpty)
                     TextButton(
                       onPressed: () {
                         if (ownerMatches) {
+                          FocusManager.instance.primaryFocus?.unfocus();
                           setState(() {
                             blockSearch.clear();
                             blockFilter = 'all';
                           });
                         }
                       },
-                      child: Text('Alle Etappen zeigen'),
+                      child: Text(
+                        state.isChild
+                            ? 'Alle Lernschritte zeigen'
+                            : 'Alle Etappen zeigen',
+                      ),
                     ),
                   for (final block in visibleBlocks)
                     PlanRow(
@@ -994,7 +1070,11 @@ class _StudyPathPanelState extends State<StudyPathPanel>
                         runSpacing: 6,
                         children: [
                           PlanPill(
-                            '${block['label'] ?? _phaseLabel(block['phase'])} · ${block['question_count'] ?? 0} Aufgaben · ${block['round_deferred'] == true ? 'Zur Seite gelegt' : _blockLabel(block['status'])}',
+                            state.isChild
+                                ? (block['round_deferred'] == true
+                                      ? 'Zur Seite gelegt'
+                                      : _blockLabel(block['status']))
+                                : '${block['label'] ?? _phaseLabel(block['phase'])} · ${block['question_count'] ?? 0} Aufgaben · ${block['round_deferred'] == true ? 'Zur Seite gelegt' : _blockLabel(block['status'])}',
                             tone: block['round_deferred'] == true
                                 ? PlanPillTone.neutral
                                 : block['status'] == 'completed'

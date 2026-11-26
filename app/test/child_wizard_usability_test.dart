@@ -326,14 +326,14 @@ void main() {
         MaterialApp.router(theme: appTheme(), routerConfig: router),
       );
       await tester.pumpAndSettle();
-      expect(find.text('Etappe öffnen'), findsOneWidget);
+      expect(find.text('Weiterlernen'), findsOneWidget);
       expect(pathReads, 1);
       expect(posts, isEmpty);
       await page_tools.openPageTools(tester, 'school-day-tools');
       await tester.tap(find.text('Neu laden'));
       await tester.pumpAndSettle();
       expect(posts, isEmpty);
-      final learn = find.text('Etappe öffnen');
+      final learn = find.text('Weiterlernen');
       await tester.ensureVisible(learn);
       await tester.tap(learn);
       await tester.pumpAndSettle();

@@ -270,12 +270,9 @@ void main() {
     );
     final router = await _open(tester, state);
     expect(find.textContaining('Eine Runde liegt zur Seite'), findsOneWidget);
-    expect(find.text('Etappe öffnen'), findsNothing);
-    expect(find.text('Erste Etappe starten'), findsNothing);
-    expect(
-      find.text('Deine bisherigen Etappen sind bearbeitet. Gut gemacht!'),
-      findsNothing,
-    );
+    expect(find.text('Weiterlernen'), findsNothing);
+    expect(find.text('Runde vorbereiten'), findsNothing);
+    expect(find.text('Deine Lernschritte sind bearbeitet.'), findsNothing);
     expect(requests, ['GET']);
     await _dispose(tester, router);
     state.dispose();
@@ -288,7 +285,7 @@ void main() {
       final state = _state(MockClient((_) async => _json(data)));
       final router = await _open(tester, state);
       expect(find.text('Brüche first'), findsOneWidget);
-      expect(find.text('Erste Etappe starten'), findsOneWidget);
+      expect(find.text('Runde vorbereiten'), findsOneWidget);
       await _dispose(tester, router);
       state.dispose();
     },
@@ -419,10 +416,7 @@ void main() {
       }),
     );
     final router = await _open(tester, state);
-    expect(
-      find.text('Deine bisherigen Etappen sind bearbeitet. Gut gemacht!'),
-      findsNothing,
-    );
+    expect(find.text('Deine Lernschritte sind bearbeitet.'), findsNothing);
     expect(find.text('Mit dem Thema weiter'), findsOneWidget);
     expect(requests.where((method) => method == 'POST'), isEmpty);
     await _tap(tester, 'Mit dem Thema weiter');
@@ -454,7 +448,11 @@ void main() {
           }),
         );
         final router = await _open(tester, state);
-        expect(find.text('6 Heftseiten noch prüfen'), findsOneWidget);
+        expect(find.text('Fotos warten auf Prüfung'), findsOneWidget);
+        expect(
+          find.text('Deine Eltern können offene Stellen prüfen.'),
+          findsOneWidget,
+        );
         expect(find.text('Lernweg neu planen'), findsNothing);
         expect(find.text('Lernweg planen'), findsNothing);
         expect(
@@ -466,9 +464,48 @@ void main() {
         expect(find.text('Gespeicherte Runden ansehen'), findsOneWidget);
         await tester.pump(const Duration(seconds: 12));
         expect(posts, 0);
-        await _tap(tester, 'Seiten prüfen');
-        expect(find.text('Seitenprüfung $material'), findsOneWidget);
+        expect(find.text('Seiten prüfen'), findsNothing);
         expect(posts, 0);
+        expect(tester.takeException(), isNull);
+        await _dispose(tester, router);
+      },
+    );
+  }
+  for (final permission in ['owner', 'view']) {
+    testWidgets(
+      'Parents with $permission access see the correct source-review action',
+      (tester) async {
+        _viewport(tester);
+        const material = '11111111111111111111111111111111';
+        final data = _path(available: false)
+          ..addAll({
+            'pending_review_count': 1,
+            'next_review_material_id': material,
+          });
+        final methods = <String>[];
+        final state = _state(
+          MockClient((request) async {
+            methods.add(request.method);
+            return _json(data);
+          }),
+          role: 'parent',
+        );
+        state.familyId = 'family';
+        state.user = {
+          ...state.user!,
+          'families': [
+            {'id': 'family', 'permission': permission},
+          ],
+        };
+        final router = await _open(tester, state);
+        expect(find.text('Eine Heftseite noch prüfen'), findsOneWidget);
+        if (permission == 'owner') {
+          await _tap(tester, 'Seiten prüfen');
+          expect(find.text('Seitenprüfung $material'), findsOneWidget);
+        } else {
+          expect(find.text('Seiten prüfen'), findsNothing);
+        }
+        expect(methods.every((method) => method == 'GET'), isTrue);
         expect(tester.takeException(), isNull);
         await _dispose(tester, router);
       },
@@ -547,15 +584,15 @@ void main() {
       expect(find.text('0 von 12 Aufgaben bearbeitet'), findsOneWidget);
       expect(
         find.text('0 bereit · verteilt auf mehrere Lerntage'),
-        findsOneWidget,
+        findsNothing,
       );
-      await _tap(tester, 'Alle Etappen');
-      expect(find.textContaining('4 Aufgaben · Geplant'), findsNWidgets(3));
+      await _tap(tester, 'Alle Lernschritte');
+      expect(find.text('Geplant'), findsNWidgets(3));
       expect(find.text('Brüche second'), findsOneWidget);
-      await _tap(tester, 'Erste Etappe starten');
+      await _tap(tester, 'Runde vorbereiten');
       expect(posts.length, 2);
       expect(
-        find.text('Deine nächste Etappe wird vorbereitet.'),
+        find.text('Deine nächste Runde wird vorbereitet.'),
         findsOneWidget,
       );
       await tester.pump(const Duration(seconds: 2));
@@ -597,13 +634,10 @@ void main() {
       );
       final router = await _open(tester, state);
       expect(find.text('4 von 12 Aufgaben bearbeitet'), findsOneWidget);
-      expect(
-        find.text('4 bereit · verteilt auf mehrere Lerntage'),
-        findsOneWidget,
-      );
+      expect(find.text('4 Aufgaben bereit'), findsOneWidget);
       expect(find.text('Lernweg planen'), findsNothing);
-      expect(find.text('Erste Etappe starten'), findsNothing);
-      expect(find.text('Etappe öffnen'), findsNothing);
+      expect(find.text('Runde vorbereiten'), findsNothing);
+      expect(find.text('Weiterlernen'), findsNothing);
       await _tap(tester, 'Alle Etappen');
       expect(find.textContaining('4 Aufgaben · Bearbeitet'), findsOneWidget);
       expect(find.textContaining('4 Aufgaben · Bereit'), findsOneWidget);
@@ -652,10 +686,10 @@ void main() {
       await tester.pump();
       expect(reads, 3);
       expect(router.routeInformationProvider.value.uri.path, '/');
-      expect(find.text('Etappe öffnen'), findsOneWidget);
+      expect(find.text('Weiterlernen'), findsOneWidget);
       expect(
         find.text('4 bereit · verteilt auf mehrere Lerntage'),
-        findsOneWidget,
+        findsNothing,
       );
       await tester.pump(const Duration(seconds: 9));
       expect(reads, 3);
@@ -733,7 +767,7 @@ void main() {
         }),
       );
       final router = await _open(tester, state);
-      await _tap(tester, 'Erste Etappe starten');
+      await _tap(tester, 'Runde vorbereiten');
       expect(posts.length, 1);
       await tester.pump(const Duration(seconds: 9));
       expect(posts.length, 1);
@@ -792,18 +826,18 @@ void main() {
       final router = await _open(tester, state, onChanged: () => changed++);
       expect(posts, 0);
       expect(find.text('Lernweg neu planen'), findsOneWidget);
-      expect(find.text('Nächste Etappe'), findsNothing);
+      expect(find.text('Runde vorbereiten'), findsNothing);
       expect(find.text('4 von 8 Aufgaben bearbeitet'), findsOneWidget);
       await _tap(tester, 'Lernweg neu planen');
       expect(posts, 1);
       expect(changed, 1);
       expect(find.text('Lernweg neu planen'), findsNothing);
       expect(find.text('4 von 8 Aufgaben bearbeitet'), findsOneWidget);
-      expect(find.text('Nächste Etappe'), findsOneWidget);
-      await _tap(tester, 'Alle Etappen');
+      expect(find.text('Runde vorbereiten'), findsOneWidget);
+      await _tap(tester, 'Alle Lernschritte');
       expect(find.text('Brüche new'), findsNWidgets(2));
       expect(find.text('Brüche old'), findsNothing);
-      expect(find.textContaining('4 Aufgaben · Bearbeitet'), findsOneWidget);
+      expect(find.text('Bearbeitet'), findsOneWidget);
       expect(tester.takeException(), isNull);
       await _dispose(tester, router);
     },
@@ -837,9 +871,9 @@ void main() {
         expect(find.text('4 von 12 Aufgaben bearbeitet'), findsOneWidget);
         expect(
           find.text('4 bereit · verteilt auf mehrere Lerntage'),
-          findsOneWidget,
+          findsNothing,
         );
-        await _tap(tester, 'Alle Etappen');
+        await _tap(tester, 'Alle Lernschritte');
         final details = find.widgetWithText(TextButton, 'Brüche failed');
         await tester.ensureVisible(details);
         await tester.tap(details);
@@ -928,7 +962,7 @@ void main() {
         expect(posts, hasLength(1));
         expect(posts.single.headers['Idempotency-Key'], isNotEmpty);
         expect(
-          find.text('Deine nächste Etappe wird vorbereitet.'),
+          find.text('Deine nächste Runde wird vorbereitet.'),
           findsOneWidget,
         );
         expect(tester.takeException(), isNull);
@@ -957,7 +991,7 @@ void main() {
           }),
         );
         final router = await _open(tester, state);
-        await _tap(tester, 'Erste Etappe starten');
+        await _tap(tester, 'Runde vorbereiten');
         expect(find.text(failure.$2), findsNothing);
         expect(
           find.text(
@@ -1042,7 +1076,7 @@ void main() {
         ),
         findsNothing,
       );
-      expect(find.text('Erste Etappe starten'), findsNothing);
+      expect(find.text('Runde vorbereiten'), findsNothing);
       await tester.pump(const Duration(seconds: 9));
       expect(requests.every((r) => r.method == 'GET'), isTrue);
       expect(tester.takeException(), isNull);
@@ -1090,9 +1124,9 @@ void main() {
         ),
         findsOneWidget,
       );
-      await _tap(tester, 'Erste Etappe starten');
+      await _tap(tester, 'Runde vorbereiten');
       expect(
-        find.text('Deine nächste Etappe wird vorbereitet.'),
+        find.text('Deine nächste Runde wird vorbereitet.'),
         findsOneWidget,
       );
       expect(
@@ -1105,7 +1139,7 @@ void main() {
       await tester.pump(const Duration(seconds: 3));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 400));
-      expect(find.text('Deine nächste Etappe wird vorbereitet.'), findsNothing);
+      expect(find.text('Deine nächste Runde wird vorbereitet.'), findsNothing);
       expect(
         find.textContaining(
           'Diese Etappe konnte gerade nicht vorbereitet werden.',
@@ -1140,7 +1174,7 @@ void main() {
           }),
         );
         final router = await _open(tester, state);
-        await _tap(tester, 'Erste Etappe starten');
+        await _tap(tester, 'Runde vorbereiten');
         expect(
           find.text(
             'Diese Etappe braucht eine technische Prüfung. Deine gespeicherten Runden kannst du weiter nutzen.',
@@ -1149,13 +1183,13 @@ void main() {
         );
         expect(find.textContaining('Eltern um Hilfe'), findsNothing);
         expect(find.text('Erneut vorbereiten'), findsNothing);
-        expect(find.text('Erste Etappe starten'), findsNothing);
+        expect(find.text('Runde vorbereiten'), findsNothing);
         expect(
-          find.text('Deine nächste Etappe wird vorbereitet.'),
+          find.text('Deine nächste Runde wird vorbereitet.'),
           findsNothing,
         );
         await _tap(tester, 'Stand prüfen');
-        expect(find.text('Erste Etappe starten'), findsNothing);
+        expect(find.text('Runde vorbereiten'), findsNothing);
         expect(posts, 1);
         await _tap(tester, 'Gespeicherte Runden ansehen');
         expect(
@@ -1207,13 +1241,13 @@ void main() {
         }),
       );
       final router = await _open(tester, state);
-      await _tap(tester, 'Erste Etappe starten');
+      await _tap(tester, 'Runde vorbereiten');
       current = _path(
         blocks: [_block('first', status: 'generating', job: 'new-allowed-job')],
       );
       await _tap(tester, 'Stand prüfen');
       expect(
-        find.text('Deine nächste Etappe wird vorbereitet.'),
+        find.text('Deine nächste Runde wird vorbereitet.'),
         findsOneWidget,
       );
       expect(
@@ -1223,8 +1257,8 @@ void main() {
       await tester.pump(const Duration(seconds: 3));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 400));
-      expect(find.text('Etappe öffnen'), findsOneWidget);
-      await _tap(tester, 'Etappe öffnen');
+      expect(find.text('Weiterlernen'), findsOneWidget);
+      await _tap(tester, 'Weiterlernen');
       expect(
         GoRouterState.of(tester.element(find.text('Einheit existing')))
             .uri
@@ -1252,7 +1286,7 @@ void main() {
         }),
       );
       final router = await _open(tester, state);
-      expect(find.text('Erste Etappe starten'), findsNothing);
+      expect(find.text('Runde vorbereiten'), findsNothing);
       expect(find.text('Erneut vorbereiten'), findsNothing);
       expect(find.text('Gespeicherte Runden ansehen'), findsOneWidget);
       expect(find.textContaining('Eltern um Hilfe'), findsNothing);
