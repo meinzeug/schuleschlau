@@ -1,7 +1,7 @@
 """Literal source provenance and conservative, non-generative learning filters.
 
 A readable/confirmed transcript is not a factual certificate. Original text is
-never rewritten. Only a finite exact rational check makes a mathematical claim;
+never rewritten. Only finite exact rational and unit checks make mathematical claims;
 unknown notation remains unknown. All helpers are local and do not call AI.
 """
 
@@ -21,7 +21,7 @@ from .db import Job, LearningUnit, UnitSource, Usage
 from .source_lineage_models import SourceImageReceipt, SourceInvalidation, SourceRevision
 from .subject_content import SourceBlock
 
-POLICY_VERSION = "literal-safety-5"
+POLICY_VERSION = "literal-safety-6"
 PREPROCESS_VERSION = "exif-rgb-max3200-jpeg95-1"
 AUTO_CONFLICT_SUMMARY = "Abweichender Schüler-/Korrekturbereich bleibt ungeklärt."
 AUTO_CONFLICT_LOCAL = "Die beiden Abschriften dieses Schüler-/Korrekturbereichs unterscheiden sich; Original erhalten."
@@ -35,6 +35,7 @@ REASONS = {
     "visible_annotation": "Eine sichtbare Korrektur, Einfügung oder Streichung muss getrennt geprüft werden.",
     "false_equality": "Diese wörtliche rationale Gleichung ist rechnerisch falsch; sie bleibt im Original erhalten.",
     "false_divisibility": "Diese wörtliche Teilbarkeitsaussage ist rechnerisch falsch; sie bleibt im Original erhalten.",
+    "false_unit_conversion": "Diese wörtliche Einheitenumrechnung ist rechnerisch falsch; sie bleibt im Original erhalten.",
     "unstructured_annotations": "Die Abschrift enthält nicht mehr zuordenbare Quellenmarkierungen.",
 }
 
@@ -184,6 +185,78 @@ def false_divisibility(text):
             continue
         if divisor and (dividend % divisor == 0) != says_divides:
             return True
+    return False
+
+
+# Restrict conversion checks to complete, independently interpretable lines.
+# Unknown symbols, dimensions and ambiguous decimal/thousands notation are
+# intentionally not interpreted as evidence for or against the transcription.
+_UNIT_VALUES = {
+    **{unit: ("time", factor) for factor, units in (
+        (1, ("s", "Sekunde", "Sekunden")),
+        (60, ("min", "Minute", "Minuten")),
+        (3600, ("h", "Stunde", "Stunden")),
+    ) for unit in units},
+    **{unit: ("length", factor) for factor, units in (
+        (1, ("mm", "Millimeter")), (10, ("cm", "Zentimeter")),
+        (1000, ("m", "Meter")), (1000000, ("km", "Kilometer")),
+    ) for unit in units},
+    **{unit: ("mass", factor) for factor, units in (
+        (1, ("mg", "Milligramm")), (1000, ("g", "Gramm")),
+        (1000000, ("kg", "Kilogramm")), (1000000000, ("t", "Tonne", "Tonnen")),
+    ) for unit in units},
+    **{unit: ("volume", factor) for factor, units in (
+        (1, ("ml", "mL", "Milliliter")), (1000, ("l", "L", "Liter")),
+    ) for unit in units},
+}
+_VULGAR_FRACTIONS = {
+    "½": Fraction(1, 2), "¼": Fraction(1, 4), "¾": Fraction(3, 4),
+    "⅓": Fraction(1, 3), "⅔": Fraction(2, 3), "⅛": Fraction(1, 8),
+    "⅜": Fraction(3, 8), "⅝": Fraction(5, 8), "⅞": Fraction(7, 8),
+}
+_UNIT_NUMBER = r"(?:[0-9]{1,9}(?:[.,][0-9]{1,2})?|[0-9]{1,9}\s*/\s*[0-9]{1,9}|\\(?:d?frac)\{[0-9]{1,9}\}\{[0-9]{1,9}\}|[½¼¾⅓⅔⅛⅜⅝⅞])"
+_UNIT_NAMES = "|".join(map(re.escape, sorted(_UNIT_VALUES, key=len, reverse=True)))
+_CONVERSION = re.compile(
+    rf"\s*({_UNIT_NUMBER})\s*({_UNIT_NAMES})\s*=\s*({_UNIT_NUMBER})\s*({_UNIT_NAMES})\s*[.!]?\s*"
+)
+
+
+def false_unit_conversion(text):
+    """Flag only a complete, unambiguous false same-dimension conversion.
+
+    An unflagged line is not proof of transcription or factual correctness.
+    The function never infers source text or changes a pupil's calculation.
+    """
+    for raw in text.splitlines():
+        line = raw.strip()
+        if len(line) > 160:
+            continue
+        if line.startswith(r"\(") and line.endswith(r"\)"):
+            line = line[2:-2].strip()
+        elif line.startswith("$") and line.endswith("$") and len(line) >= 2:
+            line = line[1:-1].strip()
+        match = _CONVERSION.fullmatch(line)
+        if not match:
+            continue
+        left, left_unit, right, right_unit = match.groups()
+        left_dimension, left_factor = _UNIT_VALUES[left_unit]
+        right_dimension, right_factor = _UNIT_VALUES[right_unit]
+        if left_dimension != right_dimension:
+            continue
+
+        def number(value):
+            if value in _VULGAR_FRACTIONS:
+                return _VULGAR_FRACTIONS[value]
+            latex = re.fullmatch(r"\\(?:d?frac)\{([0-9]{1,9})\}\{([0-9]{1,9})\}", value)
+            if latex:
+                return Fraction(int(latex[1]), int(latex[2]))
+            return Fraction(value.replace(" ", "").replace(",", "."))
+
+        try:
+            if number(left) * left_factor != number(right) * right_factor:
+                return True
+        except (ValueError, ZeroDivisionError):
+            continue
     return False
 
 
@@ -416,6 +489,8 @@ def learning_source(db, material, revision=None):
             blocked = "false_equality"
         if not blocked and false_divisibility(block["text"]):
             blocked = "false_divisibility"
+        if not blocked and false_unit_conversion(block["text"]):
+            blocked = "false_unit_conversion"
         if not blocked and block.get("literal_role") == "student_work":
             blocked = "student_work"
         if not blocked and (

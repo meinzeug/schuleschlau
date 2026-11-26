@@ -757,6 +757,19 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – OCR anhand vollständig referenzierter künstlicher Seiten prüfen**
 
+  - [x] **Eindeutig falsche Einheitenumrechnungen von Lernquellen trennen.**
+    Der lokale Check erkennt vollständige, eindeutig falsche Aussagen wie
+    `⅔ Minute = 60 Sekunden` für unterstützte Zeit-, Längen-, Masse- und
+    Volumeneinheiten. Der Originaltext bleibt erhalten; betroffene Abschnitte
+    werden nicht als gesicherter Lernstoff an Schulbuddy gegeben. Historische
+    Gegenprüfungen und Quellfingerabdrücke bleiben versionsgebunden. Künstliche
+    Regressionen decken gültige und mehrdeutige Gegenfälle ab; zusammen mit
+    Quellen-, Gegenprüfungs- und Tutorprüfungen bestanden 174 Fälle auf SQLite
+    (zwei übersprungen) und 176 auf isoliertem PostgreSQL. Eine korrekte,
+    aber nicht zum Foto passende Ersatzgleichung kann der Check nicht erkennen;
+    die vollständige Fotoabnahme und das Ausrollen bleiben offen.
+    [Umfang und Grenzen](docs/UNIT_CONVERSION_SOURCE_SAFETY_2026_11_26.md).
+
   - [x] **Eindeutige falsche Teilbarkeitsaussagen aus Lernquellen halten.**
     Die begrenzte lokale Regel erkennt isolierte ganzzahlige Aussagen mit
     „teilt“, „teilt … nicht“, `∣` und `∤`. Falsche Originale bleiben als
@@ -1085,6 +1098,15 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 ## Kindgerechte Bedienung und Alltagstest
 
 - [ ] **P1 – Alle Kinderansichten sprachlich und in ihrer Bedienung entrümpeln**
+
+  - [x] **Hausaufgabenfoto dem Kind ohne Prüfauftrag erklären.** Die mobile
+    Übersicht fordert das Kind nicht mehr auf, den erkannten Text zu prüfen;
+    der Hinweis verweist bei Bedarf auf die Eltern. Ein noch offenes Foto
+    und seine Detailansicht benennen dieselbe Zuständigkeit. Eltern behalten
+    ihre Prüfhinweise. Künstliche Widgettests prüfen die Zustände und dass
+    deren bloßes Öffnen keine Verarbeitung startet; 320 und 390 Pixel sowie
+    große Schrift sind eingeschlossen. Die vollständige Kinder- und
+    Elternabnahme und das Ausrollen bleiben offen.
 
   - [x] **Leere Klassenarbeiten-Ansicht für Kinder verständlich gestalten.**
     Auf kleinen Bildschirmen erklären eine Illustration und ein kurzer Text
