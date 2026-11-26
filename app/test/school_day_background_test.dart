@@ -973,6 +973,12 @@ void main() {
       expect(await state.pendingUploads.read('kid'), hasLength(3));
       expect(find.text('Foto übernehmen'), findsNothing);
       expect(find.byType(AlertDialog), findsNothing);
+      expect(find.text('Noch eine Seite fotografieren'), findsOneWidget);
+      expect(find.text('Erste Seite fotografieren'), findsNothing);
+      expect(
+        tester.getTopLeft(find.text('Foto 1 ansehen')).dy,
+        lessThan(tester.getTopLeft(find.text('Fotos abgeben')).dy),
+      );
       expect(server.uploads, 0);
       expect(server.submissions, 0);
       await tester.ensureVisible(find.byTooltip('Foto 1 bearbeiten'));

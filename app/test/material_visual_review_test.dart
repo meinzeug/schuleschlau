@@ -50,7 +50,13 @@ void main() {
             )..token = 'token',
           )
           ..familyId = 'family'
-          ..user = {'id': 'child', 'role': 'child', 'child_id': 'child'};
+          ..user = {
+            'id': 'parent',
+            'role': 'parent',
+            'families': [
+              {'id': 'family', 'permission': 'owner'},
+            ],
+          };
   });
   Future<void> mount(WidgetTester tester) async {
     await tester.pumpWidget(

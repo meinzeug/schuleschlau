@@ -143,6 +143,29 @@ def test_explicit_review_is_separate_revision_bound_exported_and_deleted(api, ho
         assert not db.scalars(select(VisualObservationReview).where(VisualObservationReview.material_id == mid)).all()
 
 
+def test_child_cannot_review_visual_observation(api, household):
+    from schulpilot.source_lineage import digest
+    from schulpilot.source_lineage_models import VisualObservationReview
+
+    _, child = household
+    observations = [obs('Künstlicher Bildbefund')]
+    with DB.begin() as db:
+        material = Material(child_id=child['id'], title='Test', content='Text', status='review',
+                            image_digest='a' * 64, visual_observations=observations)
+        db.add(material)
+        db.flush()
+        mid, revision = material.id, material.revision
+    login = api.post('/api/auth/login', json={'username': 'test-child', 'password': 'secure-child-pass-123'})
+    assert login.status_code == 200
+    api.headers['Authorization'] = 'Bearer ' + login.json()['token']
+    api.headers['X-Schulpilot-Account'] = login.json()['user']['id']
+    body = {'revision': revision, 'image_digest': 'a' * 64, 'observations_digest': digest(observations),
+            'review_version': 0, 'decision': 'confirmed', 'observation': observations[0]}
+    assert api.put(f'/api/materials/{mid}/visual-observations/0/review', json=body).status_code == 403
+    with DB() as db:
+        assert not db.scalars(select(VisualObservationReview).where(VisualObservationReview.material_id == mid)).all()
+
+
 def test_revoked_session_after_wait_cannot_write_review(api, household, monkeypatch):
     from schulpilot import materials
     from schulpilot.source_lineage import digest

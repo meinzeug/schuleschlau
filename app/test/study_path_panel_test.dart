@@ -184,6 +184,38 @@ void _pause(WidgetTester tester) {
 }
 
 void main() {
+  testWidgets('Unclear photo is routed to parents rather than child review', (
+    tester,
+  ) async {
+    _viewport(tester);
+    final state = _state(
+      MockClient((request) async {
+        if (request.method == 'POST') {
+          return http.Response(
+            jsonEncode({
+              'detail': 'Die ausgewählten Seiten enthalten nur ungeklärte Lesestellen, Schülerantworten oder Korrekturen. Bitte zuerst das Original fachlich prüfen; daraus wurden keine neuen Aufgaben erzeugt.',
+            }),
+            409,
+            headers: {'content-type': 'application/json'},
+          );
+        }
+        return _json(_path(available: false));
+      }),
+    );
+    final router = await _open(tester, state);
+    await _tap(tester, 'Lernweg planen');
+    expect(
+      find.text(
+        'Dein Foto ist gespeichert. Deine Eltern können die Seite noch einmal ansehen.',
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining('Bitte zuerst das Original fachlich prüfen'),
+      findsNothing,
+    );
+    await _dispose(tester, router);
+  });
   for (final deferred in [true, false]) {
     testWidgets('related round labels deferral=$deferred without starting it', (
       tester,

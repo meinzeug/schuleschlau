@@ -1876,6 +1876,87 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
                 Notice(
                   'Alle $maxPages Plätze für heute sind belegt. Du kannst die vorgemerkten Fotos noch abgeben. Deine Seiten bleiben gespeichert.',
                 ),
+              if (pendingPhotos.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Text(
+                  'Deine Fotos',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 8),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      for (final (n, photo) in pendingPhotos.indexed)
+                        Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: SizedBox(
+                            width: 112,
+                            child: Panel(
+                              padding: const EdgeInsets.all(4),
+                              child: Column(
+                                children: [
+                                  TextButton(
+                                    onPressed: () => viewDraft(photo),
+                                    child: Column(
+                                      children: [
+                                        SizedBox(
+                                          height: 55,
+                                          child: Image.memory(
+                                            base64Decode(photo['image']),
+                                            cacheWidth: 200,
+                                            fit: BoxFit.contain,
+                                            errorBuilder: (_, _, _) =>
+                                                const Icon(
+                                                  Icons.broken_image_outlined,
+                                                ),
+                                          ),
+                                        ),
+                                        Text(
+                                          'Foto ${n + 1} ansehen',
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      IconButton(
+                                        tooltip: 'Foto ${n + 1} bearbeiten',
+                                        onPressed: locked
+                                            ? null
+                                            : () => editDraft(photo),
+                                        icon: const Icon(
+                                          Icons.crop_rotate_rounded,
+                                        ),
+                                      ),
+                                      IconButton(
+                                        tooltip:
+                                            'Vorgemerktes Foto ${n + 1} entfernen',
+                                        onPressed: locked
+                                            ? null
+                                            : () => removeLocalPhoto(photo),
+                                        icon: const Icon(
+                                          Icons.delete_outline_rounded,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Nur auf diesem Gerät – noch nicht abgegeben.',
+                  style: TextStyle(color: context.palette.muted),
+                ),
+              ],
               if (hasPhotos) ...[
                 const SizedBox(height: 12),
                 ActionButton(
@@ -1897,7 +1978,7 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
                 )
               else if (canAdd && day!['synthetic'] != true) ...[
                 ActionButton(
-                  label: pages.isEmpty
+                  label: pages.isEmpty && pendingPhotos.isEmpty
                       ? 'Erste Seite fotografieren'
                       : 'Noch eine Seite fotografieren',
                   secondary: hasPhotos,
@@ -1999,10 +2080,11 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
           ),
         if (hasPhotos) ...[
           SizedBox(height: 16),
-          Text(
-            'Deine neuen Fotos',
-            style: TextStyle(fontWeight: FontWeight.w700),
-          ),
+          if (freshPages.isNotEmpty)
+            Text(
+              'Deine neuen Fotos',
+              style: TextStyle(fontWeight: FontWeight.w700),
+            ),
           SizedBox(height: 10),
           if (freshPages.isNotEmpty)
             SizedBox(
@@ -2132,66 +2214,6 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
               ),
             ),
           if (pendingPhotos.isNotEmpty) ...[
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: [
-                for (final (n, photo) in pendingPhotos.indexed)
-                  SizedBox(
-                    width: 156,
-                    child: Panel(
-                      padding: const EdgeInsets.all(8),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          TextButton(
-                            onPressed: () => viewDraft(photo),
-                            child: Column(
-                              children: [
-                                SizedBox(
-                                  height: 100,
-                                  child: Image.memory(
-                                    base64Decode(photo['image']),
-                                    cacheWidth: 200,
-                                    fit: BoxFit.contain,
-                                    errorBuilder: (_, _, _) =>
-                                        const Icon(Icons.broken_image_outlined),
-                                  ),
-                                ),
-                                Text('Vorgemerktes Foto ${n + 1} ansehen'),
-                              ],
-                            ),
-                          ),
-                          const Text('Nur lokal · noch nicht abgegeben'),
-                          if (photo['created'] is num)
-                            Text(
-                              'Bis ${DateFormat('dd.MM. HH:mm').format(DateTime.fromMillisecondsSinceEpoch((photo['created'] as num).toInt()).add(const Duration(hours: 24)).toLocal())}',
-                            ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              IconButton(
-                                tooltip: 'Foto ${n + 1} bearbeiten',
-                                onPressed: locked
-                                    ? null
-                                    : () => editDraft(photo),
-                                icon: const Icon(Icons.crop_rotate_rounded),
-                              ),
-                              IconButton(
-                                tooltip: 'Vorgemerktes Foto ${n + 1} entfernen',
-                                onPressed: locked
-                                    ? null
-                                    : () => removeLocalPhoto(photo),
-                                icon: const Icon(Icons.delete_outline_rounded),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-              ],
-            ),
             SizedBox(height: 10),
             if (pendingPhotos.every((photo) => photo['created'] is num))
               Text(

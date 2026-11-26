@@ -277,6 +277,8 @@ def review_visual_observation(material_id: str, index: int, data: s.VisualObserv
     from .source_lineage import digest
     from .source_lineage_models import VisualObservationReview
 
+    if p.user.role != "parent":
+        raise HTTPException(403, "Bildhinweise können nur Eltern prüfen.")
     session_id, user_id = p.session.id, p.user.id
     material, child = get_material(db, p, material_id, write=True)
     child_id = child.id
@@ -285,9 +287,9 @@ def review_visual_observation(material_id: str, index: int, data: s.VisualObserv
     user = db.get(User, user_id, populate_existing=True)
     if (not session or session.user_id != user_id or session.revoked or session.expires <= now()
             or now() - session.seen > 7 * 86400 or not user or user.disabled or not user.verified
-            or user.role not in ("child", "parent")):
+            or user.role != "parent"):
         raise HTTPException(401, "Bitte erneut anmelden.")
-    child = child_access(db, p, child_id, write=p.user.role == "parent")
+    child = child_access(db, p, child_id, write=True)
     material = db.scalar(select(Material).where(Material.id == material_id).with_for_update())
     if not material or material.child_id != child.id:
         raise HTTPException(404, "Heftseite nicht mehr vorhanden.")
@@ -296,9 +298,9 @@ def review_visual_observation(material_id: str, index: int, data: s.VisualObserv
     user = db.get(User, user_id, populate_existing=True)
     if (not session or session.user_id != user_id or session.revoked or session.expires <= now()
             or now() - session.seen > 7 * 86400 or not user or user.disabled or not user.verified
-            or user.role not in ("child", "parent")):
+            or user.role != "parent"):
         raise HTTPException(401, "Bitte erneut anmelden.")
-    child_access(db, p, child_id, write=p.user.role == "parent")
+    child_access(db, p, child_id, write=True)
     if material.synthetic or material.fixture_id:
         raise HTTPException(403, "Feste Testseiten erlauben keine freien Bildbefunde.")
     if material.status not in ("review", "confirmed"):

@@ -119,3 +119,29 @@ Die vier Seiten bleiben gespeichert. Die Vorschau des vorgemerkten Fotos liegt
 auf dem Smartphone noch unterhalb der wichtigsten Aktionen und muss sichtbarer
 werden. Die erledigte Fotoauswahl ist kein Nachweis für einen erfolgreichen
 Lernweg oder einen abgeschlossenen 30-Tage-Test.
+
+## Fortsetzung am 26.11.2026
+
+Eine weitere freigegebene Heftseite wurde im 390 × 844 großen Browser
+abgegeben. Die beiden tatsächlichen Erkennungsaufträge waren erfolgreich;
+laut Abrechnung dauerten sie 50 beziehungsweise 34 Sekunden und kosteten
+zusammen 30.320 Mikrodollar. Eine In-App-Benachrichtigung erschien und öffnete
+per Klick den richtigen Schultag. Eine Android-Pushzustellung wurde hierbei
+nicht beobachtet.
+
+Der explizite Versuch, den Lernweg zu planen, wurde vor einem weiteren
+KI-Aufruf zurückgewiesen: Die Quellenprojektion lieferte wegen eines nicht
+zugeordneten Lesewarnhinweises keine verwendbaren Abschnitte. Fünf von 15
+Abschnitten hatten lokale Hinweise; ein zusätzlicher Warnhinweis war nicht
+lokal zugeordnet. Ohne geeigneten Nachweis darf er nicht einfach ignoriert
+werden. Der Zugriff zur Zählung wurde auditiert; keine privaten Texte wurden
+für diesen Bericht ausgegeben. Die Seite bleibt gespeichert.
+
+Im Kindermodus waren die Fehlermeldung und die Bildbefund-Prüfung weiterhin
+an das Kind gerichtet. Die jetzt vorbereiteten Korrekturen verweisen bei der
+Quellenwarnung auf die Eltern und beschränken Bildbefund-Entscheidungen auch
+serverseitig auf berechtigte Eltern. Die Fotoauswahl zeigt ihre Vorschau vor
+dem Abgeben und benennt weitere Aufnahmen korrekt. Diese Änderungen sind erst
+nach Test und Veröffentlichung live zu prüfen. Der zweite reale Kalendertag
+ersetzt keine 30 simulierten Tage; ein erzeugter Lernweg für diese Seite wurde
+noch nicht nachgewiesen.

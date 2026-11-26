@@ -10,6 +10,7 @@ void main() {
     'Bildbefunde stehen getrennt und erkennbar vorläufig neben der Abschrift',
     (tester) async {
       final page = fixture.Fixture();
+      page.state.user = {'id': 'parent', 'role': 'parent'};
       page.data['confirmed'] = false;
       page.data['status'] = 'review';
       page.data['visual_observations'] = [
@@ -43,6 +44,24 @@ void main() {
       );
       final review = tester.widget<MaterialReview>(find.byType(MaterialReview));
       expect(review.data['content'], page.data['content']);
+      expect(page.writes, isEmpty);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'Children are not asked to review provisional image observations',
+    (tester) async {
+      final page = fixture.Fixture();
+      page.data['visual_observations'] = [
+        {
+          'description': 'Ein künstlicher Bildbefund.',
+          'uncertainty': 'Unklar.',
+        },
+      ];
+      await page.mount(tester, size: const Size(390, 844));
+      expect(find.text('Bilder auf der Seite'), findsNothing);
+      expect(find.textContaining('Prüfe die Bildhinweise'), findsNothing);
       expect(page.writes, isEmpty);
       expect(tester.takeException(), isNull);
     },

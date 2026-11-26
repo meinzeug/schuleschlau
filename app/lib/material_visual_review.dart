@@ -129,7 +129,7 @@ class _MaterialVisualReviewState extends State<MaterialVisualReview> {
 
   @override
   Widget build(BuildContext context) {
-    if (!current) return const SizedBox.shrink();
+    if (!current || widget.state.isChild) return const SizedBox.shrink();
     const overflowWarning =
         'Nicht alle Bildbefunde werden angezeigt. Schau dir das Foto an.';
     final warnings = widget.data['quality_warnings'];
@@ -149,7 +149,8 @@ class _MaterialVisualReviewState extends State<MaterialVisualReview> {
         widget.data['image_digest'] is String &&
         widget.data['fixture_id'] == null &&
         widget.data['synthetic'] != true &&
-        (!widget.state.isParent || widget.state.canManage);
+        widget.state.isParent &&
+        widget.state.canManage;
     final entries = <int, Widget>{};
     for (var i = 0; i < observations.length; i++) {
       final value = observations[i];

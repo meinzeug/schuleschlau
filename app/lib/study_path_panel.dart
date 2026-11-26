@@ -1089,6 +1089,11 @@ String _studyError(Object error, {bool child = false}) {
       : error is String
       ? error
       : null;
+  if (child &&
+      message ==
+          'Die ausgewählten Seiten enthalten nur ungeklärte Lesestellen, Schülerantworten oder Korrekturen. Bitte zuerst das Original fachlich prüfen; daraus wurden keine neuen Aufgaben erzeugt.') {
+    return 'Dein Foto ist gespeichert. Deine Eltern können die Seite noch einmal ansehen.';
+  }
   if (child && _studyPreparationLimits.contains(message)) {
     return 'Diese Etappe braucht eine technische Prüfung. Deine gespeicherten Runden kannst du weiter nutzen.';
   }
