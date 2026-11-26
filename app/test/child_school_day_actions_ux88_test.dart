@@ -188,7 +188,10 @@ void main() {
         Uint8List.fromList(image.encodePng(image.Image(width: 3, height: 3))),
       );
       final router = await open(tester, state);
-      await tap(tester, 'Vorgemerktes Foto 1 ansehen');
+      final preview = find.byTooltip('Foto 1 ansehen');
+      await tester.ensureVisible(preview);
+      await tester.tap(preview);
+      await tester.pumpAndSettle();
       final close = tester
           .widget<IconButton>(
             find.byWidgetPredicate(
@@ -199,7 +202,7 @@ void main() {
       state.user = {...state.user!};
       state.notifyListeners();
       await fixture.settleUi(tester);
-      expect(find.text('Dein vorgemerktes Foto'), findsNothing);
+      expect(find.byTooltip('Zurück zu deinen Fotos'), findsNothing);
       router.push('/new');
       await tester.pumpAndSettle();
       close();

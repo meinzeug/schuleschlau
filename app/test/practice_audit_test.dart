@@ -389,7 +389,7 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.text('3 neue Seiten · 0 Plätze frei'), findsOneWidget);
-      final preview = find.text('Vorgemerktes Foto 1 ansehen');
+      final preview = find.byTooltip('Foto 1 ansehen');
       await tester.ensureVisible(preview);
       await tester.tap(preview);
       await tester.pumpAndSettle();
