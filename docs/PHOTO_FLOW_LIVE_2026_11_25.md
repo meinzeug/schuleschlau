@@ -248,5 +248,10 @@ diese Ursache. Die lokale Korrektur berücksichtigt die Musterlösung nur bei
 einem eng bestimmten Teil-Ganzes-Aufgabentyp mit genau zwei passenden Zahlen,
 ohne Abbildung oder Rechenoperation; mehrdeutige Fälle bleiben gesperrt. Ein
 serverseitiger Trockenabgleich erkannte einen zuvor blockierenden Altfall und
-enthielt keine Ausgabe privater Inhalte. Ein erneuter regulärer Paketerstellungs-
-versuch steht nach Veröffentlichung der Korrektur noch aus.
+enthielt keine Ausgabe privater Inhalte. Nach Veröffentlichung von Version
+1.38.156 wurde der fehlende Paket-Teil einmal regulär im Kinderbrowser erneut
+gestartet und erfolgreich erstellt. Die neue Runde ließ sich öffnen und beide
+Aufgaben ließen sich beantworten: Die erste Antwort wurde selbstständig, die
+zweite nach geöffneter Erklärung als unterstützt gewertet. Der erzeugte
+Auftrag und die Testantworten sind im echten Konto gespeichert; sie sind keine
+Aussage über die tatsächliche Leistung des Kindes.
