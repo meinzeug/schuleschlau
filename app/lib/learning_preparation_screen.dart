@@ -315,7 +315,7 @@ class _LearningPreparationScreenState extends State<_LearningPreparationBody>
                 if (failed || error != null) ...[
                   Text(
                     missingVisual
-                        ? 'Für diese Runde fehlt noch eine passende Darstellung. Deine Heftseiten bleiben gespeichert.'
+                        ? 'Die Erklärung für diese Runde ist noch nicht fertig. Deine Heftseiten bleiben gespeichert.'
                         : technicalFailure
                         ? failed
                               ? 'Deine Hefte und gespeicherten Runden bleiben erhalten.'
@@ -392,18 +392,11 @@ class _LearningPreparationScreenState extends State<_LearningPreparationBody>
                   )
                 else if (missingVisual)
                   ActionButton(
-                    label: validMaterial
-                        ? 'Heftseite ansehen'
-                        : 'Zu meinen Heften',
-                    icon: Icons.menu_book_outlined,
+                    label: 'Zum Lernen',
+                    icon: Icons.auto_stories_outlined,
                     onPressed: () async {
                       if (!sameOwner) return;
-                      openRoute(
-                        context,
-                        validMaterial
-                            ? '/material/$reviewMaterial'
-                            : '/library/${widget.childId}',
-                      );
+                      openRoute(context, '/learn/${widget.childId}');
                     },
                   )
                 else if (missingJob)
@@ -422,9 +415,26 @@ class _LearningPreparationScreenState extends State<_LearningPreparationBody>
                     icon: Icons.refresh_rounded,
                     onPressed: load,
                   ),
+                if (missingVisual)
+                  TextButton.icon(
+                    onPressed: () {
+                      if (!sameOwner) return;
+                      openRoute(
+                        context,
+                        validMaterial
+                            ? '/material/$reviewMaterial'
+                            : '/library/${widget.childId}',
+                      );
+                    },
+                    icon: const Icon(Icons.menu_book_outlined),
+                    label: Text(
+                      validMaterial ? 'Heftseite ansehen' : 'Zu meinen Heften',
+                    ),
+                  ),
                 if ((failed || error != null) &&
                     widget.state.isChild &&
-                    !missingJob) ...[
+                    !missingJob &&
+                    !missingVisual) ...[
                   SizedBox(height: 12),
                   OutlinedButton.icon(
                     onPressed: () {

@@ -150,7 +150,7 @@ void main() {
       await fixture.mount(tester);
       expect(
         find.text(
-          'Für diese Runde fehlt noch eine passende Darstellung. Deine Heftseiten bleiben gespeichert.',
+          'Die Erklärung für diese Runde ist noch nicht fertig. Deine Heftseiten bleiben gespeichert.',
         ),
         findsOneWidget,
       );
@@ -163,6 +163,19 @@ void main() {
       expect(fixture.reads, hasLength(1));
     },
   );
+
+  testWidgets('missing graphic offers saved learning as the main action', (
+    tester,
+  ) async {
+    final fixture = PreparationFixture(
+      'ignored',
+      code: 'visual_unavailable',
+      reviewMaterial: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+    );
+    await fixture.mount(tester);
+    expect(find.widgetWithText(ActionButton, 'Zum Lernen'), findsOneWidget);
+    await fixture.assertSavedExitWithoutRetry(tester);
+  });
 
   testWidgets(
     'missing or malformed source uses notebooks rather than untrusted route',
