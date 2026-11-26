@@ -2039,6 +2039,16 @@ Bestandteil des bestehenden Buildvertrags.
     Verbindung kann den Platz weiterhin bis zur Gesamtfrist belegen; dies
     ist kein Nachweis allgemeiner Fairness oder produktiver Kapazität.
 
+  - [x] **Isolierten Foto-Lasttest wieder ausführbar und überprüfbar machen.**
+    Der Test akzeptiert das private Temporärverzeichnis des PostgreSQL-Runners
+    und verifiziert vor der Fixture zusätzlich die tatsächliche lokale
+    Datenbank und ihr Datenverzeichnis. Fünf künstliche Negativ-/Positivfälle
+    bestanden. Ein 15,9-MP-JPEG und ein stark komprimierbares PNG bestanden
+    je einen isolierten Mischlastlauf mit vier Familien und ohne OOM; je fünf
+    Überlastwiederholungen waren im Test nötig. Produktiver Rückweg, längere
+    Last und allgemeine Kapazitätsgrenzen bleiben offen.
+    [Messung](docs/CAPACITY_PROCESS_FAILURE_2026_11_06.md#erneute-isolierte-messung-und-reparatur-des-test-runners-26112026).
+
   - [ ] **API-Speicherschutz beim gleichzeitigen Fotoimport beheben.**
     Die getrennte Prozessprüfung auf PostgreSQL und Loopback reproduzierte bei
     acht künstlichen Familien einen OOM-Kill am produktiven 350-MiB-API-Limit.

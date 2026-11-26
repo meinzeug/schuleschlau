@@ -8,30 +8,9 @@ import threading
 import time
 from pathlib import Path
 
-from sqlalchemy.engine import make_url
+from capacity_guard import require_private_profile_database
 
-
-def require_isolated_database():
-    url_text = os.environ.get('TEST_DATABASE_URL', '')
-    if not url_text or os.environ.get('DATABASE_URL') != url_text or os.environ.get('ENVIRONMENT') != 'test':
-        raise RuntimeError('Missing explicit synthetic database and test environment')
-    url = make_url(url_text)
-    sock = Path(url.query.get('host', ''))
-    root = sock.parent
-    if (url.drivername != 'postgresql+psycopg' or url.database != 'schulpilot_isolated_test'
-            or url.host is not None or str(url.query.get('port')) != '55440'
-            or sock.name != 'socket' or root.parent != Path(tempfile.gettempdir())
-            or not root.name.startswith('schulpilot-isolated-pg-') or root.is_symlink() or sock.is_symlink()):
-        raise RuntimeError('Requires the private isolated PostgreSQL runner')
-    for path in (root, sock):
-        meta = path.stat()
-        if not stat.S_ISDIR(meta.st_mode) or meta.st_uid != os.getuid() or stat.S_IMODE(meta.st_mode) != 0o700:
-            raise RuntimeError('Insecure synthetic database directory')
-    if not stat.S_ISSOCK((sock / '.s.PGSQL.55440').stat().st_mode):
-        raise RuntimeError('Synthetic database socket missing')
-
-
-require_isolated_database()
+require_private_profile_database(helper=True)
 
 # After the private database check, deny any external Internet access in both
 # test processes; PostgreSQL uses a Unix socket and the API only loopback.

@@ -11,8 +11,6 @@ import os
 import queue
 import random
 import resource
-import stat
-import tempfile
 import threading
 import time
 from collections import Counter
@@ -21,6 +19,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 import httpx
+from capacity_guard import require_private_profile_database
 from conftest import HEADERS, create_child, register
 from fastapi.testclient import TestClient
 from PIL import Image
@@ -31,32 +30,6 @@ from schulpilot.providers import Result
 from sqlalchemy import func, select
 from sqlalchemy.engine import make_url
 from test_school_day import allow_synthetic_test_transport
-
-
-def require_private_profile_database():
-    """Check at collection, before the shared fixture can drop any tables."""
-    database_url = os.environ.get('TEST_DATABASE_URL')
-    if not database_url:
-        raise RuntimeError('Run this profile only through scripts/test_postgres.py')
-    url = make_url(database_url)
-    socket_dir = Path(url.query.get('host', ''))
-    root = socket_dir.parent
-    if (url.drivername != 'postgresql+psycopg' or url.database != 'schulpilot_isolated_test'
-            or url.host is not None or str(url.query.get('port')) != '55440'
-            or socket_dir.name != 'socket' or root.parent != Path(tempfile.gettempdir())
-            or not root.name.startswith('schulpilot-isolated-pg-')
-            or root.is_symlink() or socket_dir.is_symlink()):
-        raise RuntimeError('Capacity profile requires the private local PostgreSQL runner')
-    try:
-        for path in (root, socket_dir):
-            meta = path.stat()
-            if not stat.S_ISDIR(meta.st_mode) or meta.st_uid != os.getuid() or stat.S_IMODE(meta.st_mode) != 0o700:
-                raise RuntimeError('Capacity profile socket directory is not private')
-        if not stat.S_ISSOCK((socket_dir / '.s.PGSQL.55440').stat().st_mode):
-            raise RuntimeError('Capacity profile requires the runner socket')
-    except FileNotFoundError as exc:
-        raise RuntimeError('Capacity profile requires a running isolated PostgreSQL runner') from exc
-
 
 require_private_profile_database()
 

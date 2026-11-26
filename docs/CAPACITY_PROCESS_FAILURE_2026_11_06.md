@@ -130,3 +130,44 @@ Rückrollkette müssen auf dem Zielsystem nachgewiesen werden. Die Mischlasten
 und weitere parallele API-Wege müssen mit längerer Laufdauer und unter den
 tatsächlichen Prozessgrenzen geprüft werden. Der große Roadmap-Punkt für
 Kapazität bleibt offen.
+
+## Erneute isolierte Messung und Reparatur des Test-Runners, 26.11.2026
+
+Der erneute Lauf auf Basis `01ee17c` scheiterte zunächst bereits bei der
+Sammlung: Der PostgreSQL-Runner setzt `TMPDIR` auf sein eigenes privates
+Clusterdirectory, während beide Kapazitätshilfen dessen **Elternverzeichnis**
+erwarteten. Dieser abgebrochene Lauf ist kein Lastnachweis. Die gemeinsame
+Prüfung akzeptiert nun die beiden ausdrücklich geprüften Verzeichnisformen,
+verlangt weiterhin private lokale Socket-/Clusterpfade und fragt vor der
+Testfixture die tatsächliche Datenbank, Unix-Verbindung und das PostgreSQL-
+Datenverzeichnis mit einem begrenzten, passwortlosen `psql`-Aufruf in einer
+bereinigten Umgebung ab. Fehler oder Abweichungen brechen ab. Fünf künstliche
+Schutzfälle decken falsche Datenbankidentität, unsichere Pfade und abweichende
+Hilfsprozessumgebung ab. Dieselbe UID oder privilegierte lokale Prozesse sind
+dadurch nicht gegen absichtliche Manipulation isoliert.
+
+Der anschließende Test lief ausschließlich lokal mit isoliertem PostgreSQL,
+einem CPU-Kern, vier künstlichen Familien, je zwei idempotenten Uploadversuchen,
+weiteren lesenden Requests und einem simulierten Anbieter von zwei Sekunden.
+Es fanden keine externen Anbieteraufrufe statt. Die Produktivinstallation war
+weder Datenbank noch Ziel und wurde nicht verändert. Währenddessen lief eine
+weitere lokale Backendtestserie; die VM war nicht exklusiv reserviert.
+
+- JPEG: 3.990 × 3.990 Pixel, 8.136.284 Byte. Acht Antworten `201`, fünf im
+  Test simulierte Wiederholungen nach Überlast, 45 parallele Übersichts-GETs
+  mit `200`. Upload-p95 einschließlich Wiederholungen: 7.041 ms. API-Spitze
+  216.215.552/367.001.600 Byte, Fotodienst-Spitze 224.735.232/268.435.456
+  Byte; beide ohne OOM-Ereignis.
+- PNG: dieselbe Pixelzahl, stark komprimierbarer künstlicher RGBA-Inhalt,
+  71.098 Byte. Acht Antworten `201`, fünf simulierte Überlastwiederholungen,
+  46 parallele Übersichts-GETs mit `200`; Upload-p95 7.750 ms. API-Spitze
+  140.955.648/367.001.600 Byte, Fotodienst-Spitze 174.792.704/268.435.456
+  Byte; beide ohne OOM-Ereignis.
+
+In beiden Läufen wurden vier simulierte Workeraufträge abgeschlossen und die
+Wiederholungen jeweils auf die bestehende Seite beziehungsweise Reservierung
+gebunden. Die Messwerte gelten nur für diese einzelnen Abläufe und ergeben
+keine Aussage über reale Mobilnetze, andere Fotoformate, Hostlast oder eine
+belastbare Anzahl gleichzeitig nutzbarer Familien. Ein produktiver
+Rollbacknachweis und eine längere Mischlast unter tatsächlichen Betriebsgrenzen
+bleiben offen; der übergeordnete Roadmap-Punkt bleibt daher offen.
