@@ -377,3 +377,38 @@ die Anweisung, den notwendigen Kontext in der Frage verständlich zu nennen
 und mehrere passende Antworten zu vermeiden. Dies ist eine Vorgabe an das
 Modell, kein automatischer Nachweis fachlicher Eindeutigkeit. Eine echte
 Neuerzeugung und der Browser-Nachtest dieser Änderungen stehen noch aus.
+
+## Live-Nachtest nach Version 1.38.159
+
+Nach dem Deployment zeigte der mobile Rückblick bei der gespeicherten Runde
+die offene Bewertung ausdrücklich als keinen Fehler. Beim Öffnen der
+Lernhilfe für diese Antwort war ein editierbarer Entwurf mit Aufgaben- und
+Antwortbezug sichtbar; es wurde dadurch keine neue Frage automatisch
+gesendet. Ein bereits vorhandener Entwurf würde erhalten bleiben.
+
+Die anschließend ausdrücklich angeforderte Biologie-Anschlussübung schlug
+fehl. Der konkrete Auftragsstatus lautet `visual_unavailable`; die reguläre
+Nutzungsbuchung weist `cancelled` sowie null Ein- und Ausgabetokens aus. Der
+Fehler trat also vor dem Anbieteraufruf auf. Der vorhandene allgemeine
+KI-Bildkatalogeintrag ersetzt den fachlich gebundenen Grafikvertrag nicht.
+Für diese Anschlussübung fehlt weiterhin eine passende geprüfte Darstellung;
+die Grafikprüfung wurde nicht umgangen. Die neue Anweisung für klarere Fragen
+konnte bei diesem fehlgeschlagenen Auftrag nicht live beurteilt werden.
+
+Ein danach bewusst auf der Heute-Seite gestarteter anderer Biologie-Schritt
+wurde durch einen echten Anbieterauftrag erstellt und mit vier Testaufgaben
+im mobilen Browser bearbeitet. Die Aufgaben enthielten ihren benötigten
+Zahlenkontext. Ein absichtlich falscher Testversuch konnte erneut beantwortet
+werden; die anschließende richtige Antwort wurde als weiterer Versuch erfasst.
+Der Rückblick zeigte eine selbstständige und drei unterstützte beziehungsweise
+erneute Antworten. Die Erklärung machte Unsicherheit bei der Zuordnung zu
+einzelnen Bienen deutlich. Fachlich beschränkte sich diese Runde jedoch
+überwiegend auf das Lesen von Zahlenbereichen; eine geeignete Erklärgrafik und
+eine tiefere Auseinandersetzung mit biologischen Zusammenhängen fehlen hier.
+Ein einzelner erfolgreicher Auftrag beweist keine allgemeine Eindeutigkeit
+zukünftiger KI-Aufgaben und keinen 30-Tage-Test.
+
+Die Offsite-Prüfung nach dem Runtime-Wechsel authentifizierte den übertragenen
+Stand und stellte ihn isoliert wieder her; die Testdatenbank wurde entfernt.
+Die Prüfung belegt keine vollständige Löschjournal-Abdeckung oder
+Aktivierungsfreigabe.
