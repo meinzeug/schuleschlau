@@ -72,7 +72,18 @@ Vorbereitungsnachricht weist in diesem Fall auf offene Stellen hin, statt die
 Seiten nur für spätere Tage anzukündigen. Der Fotoverlauf bleibt zugeklappt,
 und ein laufender KI-Abgleich wird nicht als bereits offene Elternprüfung
 dargestellt. Gleichnamige Dateien werden nicht als identisch angenommen.
-Diese Nachbesserungen sind lokal getestet; ein Live-Nachtest steht noch aus.
+Diese Nachbesserungen sind lokal getestet und auf Version 1.38.161 live.
+
+Der Nachtest auf Version 1.38.161 zeigt den Elternhinweis über dem Lernweg,
+bezeichnet dessen abgeschlossene Aufgaben als bisherige Etappen und hält den
+Fotoverlauf zunächst geschlossen. Das Öffnen des Lernwegs startete keine
+neue Verarbeitung. Der auf der einzelnen neuen Seite angebotene Lernstart
+führte dagegen erst nach einem weiteren Dialog zu der Meldung, dass noch
+kein verwendbarer Stoff vorliegt. Der Server lehnte die Anfrage vor einem
+neuen KI-Auftrag ab. Auch zusätzliche ausgewählte Seiten beheben das nicht,
+weil jede ausgewählte Seite einzeln verwendbar sein muss. Eine weitere
+lokale Dialogkorrektur erklärt diesen Zustand vor dem Absenden; sie bewahrt
+bereits angefragte Vorbereitungen und das Verhalten älterer Server.
 
 Im ausdrücklich freigegebenen Kinderkonto wurde eine reale Mathematikseite
 über die mobile Weboberfläche bei 390 × 844 Pixeln ausgewählt, ausgerichtet und

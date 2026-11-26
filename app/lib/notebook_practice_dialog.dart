@@ -58,6 +58,13 @@ class _NotebookPracticeDialogState extends State<NotebookPracticeDialog>
               AppLifecycleState.resumed) &&
       ModalRoute.of(context)?.isCurrent == true;
   bool get locked => restoring || sending || sentBody != null;
+  bool get onlyUnusableSource {
+    final source = widget.page['source_learning'];
+    return sentBody == null &&
+        source is Map &&
+        source['content'] is String &&
+        (source['content'] as String).trim().isEmpty;
+  }
 
   @override
   void initState() {
@@ -238,6 +245,7 @@ class _NotebookPracticeDialogState extends State<NotebookPracticeDialog>
     if (!active ||
         restoring ||
         sending ||
+        onlyUnusableSource ||
         !(form.currentState?.validate() ?? false)) {
       return;
     }
@@ -358,6 +366,15 @@ class _NotebookPracticeDialogState extends State<NotebookPracticeDialog>
               Text(
                 '${pages.length} ${pages.length == 1 ? 'Heftseite ausgewählt' : 'Heftseiten ausgewählt'}',
               ),
+              if (onlyUnusableSource) ...[
+                const SizedBox(height: 12),
+                Notice(
+                  widget.state.isChild
+                      ? 'Diese Seite hat noch keinen sicher lesbaren Lernstoff. Deine Eltern können offene Stellen prüfen. Wähle zum Lernen eine andere Heftseite.'
+                      : 'Diese Seite hat noch keinen sicher lesbaren Lernstoff. Prüfe offene Stellen oder wähle eine andere Heftseite.',
+                  warning: true,
+                ),
+              ],
               const SizedBox(height: 16),
               TextFormField(
                 controller: count,
@@ -376,110 +393,113 @@ class _NotebookPracticeDialogState extends State<NotebookPracticeDialog>
                 },
               ),
               const SizedBox(height: 8),
-              ExpansionTile(
-                initiallyExpanded: expanded,
-                title: const Text('Weitere Heftseiten hinzufügen'),
-                onExpansionChanged: locked
-                    ? null
-                    : (value) {
-                        setState(() => expanded = value);
-                        if (value && candidates.isEmpty) loadPages(1);
-                      },
-                children: [
-                  if (pages.length > 1)
-                    Wrap(
-                      spacing: 4,
-                      children: [
-                        for (final row in pages.values)
-                          if (row['id'] != widget.page['id'])
-                            InputChip(
-                              label: Text(
-                                title(row),
-                                overflow: TextOverflow.ellipsis,
+              if (!onlyUnusableSource)
+                ExpansionTile(
+                  initiallyExpanded: expanded,
+                  title: const Text('Weitere Heftseiten hinzufügen'),
+                  onExpansionChanged: locked
+                      ? null
+                      : (value) {
+                          setState(() => expanded = value);
+                          if (value && candidates.isEmpty) loadPages(1);
+                        },
+                  children: [
+                    if (pages.length > 1)
+                      Wrap(
+                        spacing: 4,
+                        children: [
+                          for (final row in pages.values)
+                            if (row['id'] != widget.page['id'])
+                              InputChip(
+                                label: Text(
+                                  title(row),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                onDeleted: locked
+                                    ? null
+                                    : () => setState(
+                                        () => pages.remove(row['id']),
+                                      ),
                               ),
-                              onDeleted: locked
-                                  ? null
-                                  : () =>
-                                        setState(() => pages.remove(row['id'])),
-                            ),
-                      ],
-                    ),
-                  if (loading) const LinearProgressIndicator(),
-                  if (listError != null) ...[
-                    Text(listError!),
-                    TextButton(
-                      onPressed: locked ? null : () => loadPages(pageNumber),
-                      child: const Text('Seiten erneut laden'),
-                    ),
-                  ],
-                  for (final row in candidates)
-                    CheckboxListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(title(row)),
-                      secondary: row['has_image'] == true
-                          ? SizedBox(
-                              width: 48,
-                              height: 64,
-                              child: NotebookPhoto(
-                                widget.state,
-                                materialId: row['id'] as String,
-                                revision: row['revision'] as int,
-                                thumbnail: true,
-                              ),
-                            )
-                          : null,
-                      value: pages.containsKey(row['id']),
-                      onChanged: locked || row['id'] == widget.page['id']
-                          ? null
-                          : (value) {
-                              if (!active) return;
-                              if (value == true && pages.length >= 12) {
-                                toast(
-                                  context,
-                                  'Wähle höchstens 12 Heftseiten für eine Runde.',
-                                );
-                                return;
-                              }
-                              setState(() {
-                                if (value == true) {
-                                  pages[row['id']] = row;
-                                } else {
-                                  pages.remove(row['id']);
-                                }
-                              });
-                            },
-                    ),
-                  if (!loading && listError == null && candidates.isEmpty)
-                    const Text(
-                      'Hier gibt es keine weiteren bestätigten Heftseiten.',
-                    ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      IconButton(
-                        tooltip: 'Vorherige Heftseiten',
-                        onPressed: locked || loading || pageNumber <= 1
-                            ? null
-                            : () => loadPages(pageNumber - 1),
-                        icon: const Icon(Icons.chevron_left),
+                        ],
                       ),
-                      Flexible(
-                        child: Text(
-                          'Seite $pageNumber',
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                      IconButton(
-                        tooltip: 'Nächste Heftseiten',
-                        onPressed: locked || loading || pageNumber * 20 >= total
-                            ? null
-                            : () => loadPages(pageNumber + 1),
-                        icon: const Icon(Icons.chevron_right),
+                    if (loading) const LinearProgressIndicator(),
+                    if (listError != null) ...[
+                      Text(listError!),
+                      TextButton(
+                        onPressed: locked ? null : () => loadPages(pageNumber),
+                        child: const Text('Seiten erneut laden'),
                       ),
                     ],
-                  ),
-                ],
-              ),
+                    for (final row in candidates)
+                      CheckboxListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(title(row)),
+                        secondary: row['has_image'] == true
+                            ? SizedBox(
+                                width: 48,
+                                height: 64,
+                                child: NotebookPhoto(
+                                  widget.state,
+                                  materialId: row['id'] as String,
+                                  revision: row['revision'] as int,
+                                  thumbnail: true,
+                                ),
+                              )
+                            : null,
+                        value: pages.containsKey(row['id']),
+                        onChanged: locked || row['id'] == widget.page['id']
+                            ? null
+                            : (value) {
+                                if (!active) return;
+                                if (value == true && pages.length >= 12) {
+                                  toast(
+                                    context,
+                                    'Wähle höchstens 12 Heftseiten für eine Runde.',
+                                  );
+                                  return;
+                                }
+                                setState(() {
+                                  if (value == true) {
+                                    pages[row['id']] = row;
+                                  } else {
+                                    pages.remove(row['id']);
+                                  }
+                                });
+                              },
+                      ),
+                    if (!loading && listError == null && candidates.isEmpty)
+                      const Text(
+                        'Hier gibt es keine weiteren bestätigten Heftseiten.',
+                      ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        IconButton(
+                          tooltip: 'Vorherige Heftseiten',
+                          onPressed: locked || loading || pageNumber <= 1
+                              ? null
+                              : () => loadPages(pageNumber - 1),
+                          icon: const Icon(Icons.chevron_left),
+                        ),
+                        Flexible(
+                          child: Text(
+                            'Seite $pageNumber',
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: 'Nächste Heftseiten',
+                          onPressed:
+                              locked || loading || pageNumber * 20 >= total
+                              ? null
+                              : () => loadPages(pageNumber + 1),
+                          icon: const Icon(Icons.chevron_right),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               const SizedBox(height: 8),
               if (sentBody != null)
                 Text(
@@ -492,9 +512,10 @@ class _NotebookPracticeDialogState extends State<NotebookPracticeDialog>
                   onPressed: sending ? null : newRound,
                   child: const Text('Neue Runde auswählen'),
                 ),
-              const Text(
-                'Du bekommst neue Aufgaben mit Erklärungen zu diesen Seiten. Dein bisheriger Lernstand bleibt erhalten.',
-              ),
+              if (!onlyUnusableSource)
+                const Text(
+                  'Du bekommst neue Aufgaben mit Erklärungen zu diesen Seiten. Dein bisheriger Lernstand bleibt erhalten.',
+                ),
               if (error != null)
                 Padding(
                   padding: const EdgeInsets.only(top: 12),
@@ -515,7 +536,9 @@ class _NotebookPracticeDialogState extends State<NotebookPracticeDialog>
           child: const Text('Zurück'),
         ),
         FilledButton(
-          onPressed: sending || restoring ? null : prepare,
+          onPressed: sending || restoring || onlyUnusableSource
+              ? null
+              : prepare,
           child: Text(
             restoring
                 ? 'Gespeicherten Auftrag prüfen …'

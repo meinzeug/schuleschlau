@@ -101,6 +101,46 @@ Future<void> tapText(WidgetTester tester, String text) async {
 void main() {
   setUp(() => FlutterSecureStorage.setMockInitialValues({}));
   testWidgets(
+    'An unusable primary source explains why without posting or offering an ineffective extra selection',
+    (tester) async {
+      final primary = page('base')
+        ..['source_learning'] = {
+          'content': '   ',
+          'exclusions': [
+            {'reason': 'reading_uncertain'},
+          ],
+        };
+      final (_, requests) = await openDialog(tester, primaryPage: primary);
+      expect(
+        find.textContaining('noch keinen sicher lesbaren Lernstoff'),
+        findsOneWidget,
+      );
+      final prepare = find.widgetWithText(FilledButton, 'Runde vorbereiten');
+      expect(tester.widget<FilledButton>(prepare).onPressed, isNull);
+      expect(requests, isEmpty);
+      expect(find.text('Weitere Heftseiten hinzufügen'), findsNothing);
+      expect(find.textContaining('andere Heftseite'), findsOneWidget);
+      expect(requests, isEmpty);
+    },
+  );
+  testWidgets('A usable or legacy source remains preparable', (tester) async {
+    final primary = page('base')
+      ..['source_learning'] = {'content': 'Künstlicher, verwendbarer Stoff.'};
+    await openDialog(tester, primaryPage: primary);
+    expect(
+      find.textContaining('noch keinen sicher lesbaren Lernstoff'),
+      findsNothing,
+    );
+    expect(
+      tester
+          .widget<FilledButton>(
+            find.widgetWithText(FilledButton, 'Runde vorbereiten'),
+          )
+          .onPressed,
+      isNotNull,
+    );
+  });
+  testWidgets(
     '125 notebook practice names the actual page and topic rather than its upload-day ordinal',
     (tester) async {
       final primary = page('base')
