@@ -257,7 +257,7 @@ void main() {
         home(LearningPreparationScreen(state, childId: 'child', jobId: 'job')),
       );
       await tester.pumpAndSettle();
-      expect(find.text('Gespeicherte Runden ansehen'), findsOneWidget);
+      expect(find.text('Zum Lernen'), findsOneWidget);
       expect(requests.every((r) => r.method == 'GET'), isTrue);
     },
   );
@@ -531,6 +531,14 @@ void main() {
               : reply({});
         }),
       );
+      state.familyId = 'family';
+      state.user = {
+        'id': 'parent-user',
+        'role': 'parent',
+        'families': [
+          {'id': 'family', 'permission': 'owner'},
+        ],
+      };
       await tester.pumpWidget(
         home(
           ValueListenableBuilder<Json>(
@@ -548,9 +556,9 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await tap(tester, find.text('Etwas verbessern'));
+      await tap(tester, find.text('Erkannten Text verbessern'));
       await tester.enterText(
-        field('Text auf der Seite'),
+        field('Erkannter Unterrichtsstoff'),
         'Meine eigene OCR-Korrektur',
       );
       await tester.pump();

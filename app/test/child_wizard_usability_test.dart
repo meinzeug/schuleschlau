@@ -219,47 +219,30 @@ void main() {
       await tester.pumpAndSettle();
       expect(extracted, ['page1', 'page2']);
       expect(submissions, 1);
-      expect(find.text('Seite 1 prüfen'), findsOneWidget);
+      expect(find.text('Seite 1 ansehen'), findsOneWidget);
       expect(find.byType(TextField), findsNothing);
       expect(find.byType(CheckboxListTile), findsNothing);
-      expect(find.text('Bitte die obere Zahl prüfen.'), findsOneWidget);
-      expect(find.text('Bitte die untere Zahl prüfen.'), findsOneWidget);
+      expect(
+        find.text(
+          'Diese Seite prüfen deine Eltern. Dein Foto ist gespeichert.',
+        ),
+        findsOneWidget,
+      );
+      expect(pages[0]['uncertainties'], [
+        'Bitte die obere Zahl prüfen.',
+        'Bitte die untere Zahl prüfen.',
+      ]);
       expect(find.text('Seite löschen'), findsOneWidget);
       expect(packageCalls, 0);
       expect(confirmed, isEmpty);
-      final confirm = find.text('Stimmt, weiter');
-      await tester.ensureVisible(confirm);
-      await tester.tap(confirm);
-      await tester.pumpAndSettle();
-      expect(confirmed, ['page1']);
-      expect(find.text('Seite 2 prüfen'), findsOneWidget);
-      expect(find.text('Jetzt lernen'), findsNothing);
-      expect(find.byType(CheckboxListTile), findsNothing);
-      await tester.ensureVisible(confirm);
-      await tester.tap(confirm);
-      await tester.pumpAndSettle();
-      expect(confirmed, ['page1', 'page2']);
-      expect(find.text('Im Hintergrund vorbereiten'), findsOneWidget);
-      expect(packageCalls, 0);
-      expect(starts, isEmpty);
-      final learn = find.text('Im Hintergrund vorbereiten');
-      await tester.ensureVisible(learn);
-      await tester.tap(learn);
-      await tester.pumpAndSettle();
-      expect(packageCalls, 1);
-      expect(submissions, 2);
-      expect(starts, isEmpty);
+      expect(find.text('Stimmt, weiter'), findsNothing);
+      expect(submissions, 1);
       expect(
         router.routeInformationProvider.value.uri.path,
         '/after-school/child',
       );
       expect(find.text('Die erste Lernrunde ist geöffnet.'), findsNothing);
-      final open = find.text('Etappe öffnen');
-      await tester.ensureVisible(open);
-      await tester.tap(open);
-      await tester.pumpAndSettle();
       expect(starts, isEmpty);
-      expect(find.text('Die erste Lernrunde ist geöffnet.'), findsOneWidget);
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox());
       router.dispose();

@@ -53,7 +53,7 @@ Widget app(AppState state) => MaterialApp.router(
 void main() {
   setUp(() => FlutterSecureStorage.setMockInitialValues({}));
   for (final width in [390.0, 1280.0]) {
-    testWidgets('Saved wizard reviews every page on $width px', (tester) async {
+    testWidgets('Child sees saved pages at $width px', (tester) async {
       tester.view.physicalSize = Size(width, width == 390 ? 600 : 1000);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.resetPhysicalSize);
@@ -121,29 +121,25 @@ void main() {
             };
       await tester.pumpWidget(app(state));
       await tester.pumpAndSettle();
-      expect(find.text('Seite 1 prüfen'), findsOneWidget);
-      for (final number in [1, 2]) {
-        expect(find.byType(CheckboxListTile), findsNothing);
-        expect(find.text('Seite löschen'), findsOneWidget);
-        final button = find.text('Stimmt, weiter');
-        await tester.ensureVisible(button);
-        await tester.tap(button);
-        await tester.pumpAndSettle();
-        if (number == 1) {
-          expect(find.text('Seite 2 prüfen'), findsOneWidget);
-          if (width == 390) {
-            expect(find.text('Seite 2 prüfen').hitTestable(), findsOneWidget);
-          }
-        }
-      }
-      expect(confirmations, ['page1', 'page2']);
-      expect(find.text('Im Hintergrund vorbereiten'), findsOneWidget);
-      expect(find.text('Jetzt lernen'), findsNothing);
-      final details = find.text('Mehr zu diesem Tag');
-      await tester.ensureVisible(details);
-      await tester.tap(details);
+      expect(find.text('Seite 1 ansehen'), findsOneWidget);
+      expect(find.byType(CheckboxListTile), findsNothing);
+      expect(find.text('Stimmt, weiter'), findsNothing);
+      expect(
+        find.text(
+          'Diese Seite prüfen deine Eltern. Dein Foto ist gespeichert.',
+        ),
+        findsOneWidget,
+      );
+      final pagePicker = find.byKey(const ValueKey('school-day-page-picker'));
+      await tester.ensureVisible(pagePicker);
+      await tester.tap(pagePicker);
       await tester.pumpAndSettle();
-      expect(find.textContaining('2 geprüft'), findsOneWidget);
+      await tester.tap(find.text('Seite 2').last);
+      await tester.pumpAndSettle();
+      expect(find.text('Seite 2 ansehen'), findsOneWidget);
+      expect(find.text('Stimmt, weiter'), findsNothing);
+      expect(confirmations, isEmpty);
+      expect(find.text('Jetzt lernen'), findsNothing);
       expect(tester.takeException(), isNull);
     });
   }
