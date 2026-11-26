@@ -237,6 +237,9 @@ def test_child_cannot_rewrite_confirmed_material_or_its_homework(api):
     confirmation = {k: material[k] for k in ("subject", "topic", "content", "homework")}
     confirmation["uncertainties_resolved"] = True
     assert api.put("/api/materials/" + material["id"] + "/confirm", json=confirmation).status_code == 200
+    parent_before = api.get("/api/materials/" + material["id"]).json()
+    assert api.put("/api/materials/" + material["id"] + "/confirm", json=confirmation).status_code == 200
+    assert api.get("/api/materials/" + material["id"]).json()["revision"] == parent_before["revision"]
     with TestClient(app, headers=HEADERS) as kid:
         credentials = demo["credentials"]
         logged = kid.post(
@@ -244,9 +247,9 @@ def test_child_cannot_rewrite_confirmed_material_or_its_homework(api):
             json={"username": credentials["child_username"], "password": credentials["child_password"]},
         ).json()
         kid.headers["Authorization"] = "Bearer " + logged["token"]
-        # An identical retry is a no-op, even after the response was lost.
+        # Source confirmation belongs to the parents even for an identical retry.
         before = kid.get("/api/materials/" + material["id"]).json()
-        assert kid.put("/api/materials/" + material["id"] + "/confirm", json=confirmation).status_code == 200
+        assert kid.put("/api/materials/" + material["id"] + "/confirm", json=confirmation).status_code == 403
         assert kid.put("/api/materials/" + material["id"] + "/confirm",
                        json={**confirmation, "homework": ["Changed binding task"]}).status_code == 403
         assert kid.put("/api/materials/" + material["id"] + "/confirm",
