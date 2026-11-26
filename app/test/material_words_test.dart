@@ -158,7 +158,7 @@ void main() {
       'Checked photo saves visible word pairs with explicit locale at $width',
       (tester) async {
         final requests = <http.Request>[];
-        await open(tester, requests, width: width);
+        await open(tester, requests, width: width, parent: true);
         expect(find.text('0 Wörter ausgewählt'), findsOneWidget);
         expect(find.text('Lernsprache bestätigen'), findsOneWidget);
         expect(find.byType(Checkbox), findsNWidgets(2));
@@ -202,10 +202,10 @@ void main() {
     'OCR correction previews the changed pairs before source and words are saved',
     (tester) async {
       final requests = <http.Request>[];
-      await open(tester, requests);
-      await tap(tester, 'Etwas verbessern');
+      await open(tester, requests, parent: true);
+      await tap(tester, 'Erkannten Text verbessern');
       await tester.enterText(
-        find.widgetWithText(TextField, 'Text auf der Seite'),
+        find.widgetWithText(TextField, 'Erkannter Unterrichtsstoff'),
         'apple = Apfel\nbook = Buch\nhouse = Haus',
       );
       await tester.pumpAndSettle();
@@ -230,7 +230,7 @@ void main() {
   );
   testWidgets('Save page only never submits unchecked words', (tester) async {
     final requests = <http.Request>[];
-    await open(tester, requests);
+    await open(tester, requests, parent: true);
     await tap(tester, 'Nur Heftseite speichern');
     final body = jsonDecode(
       requests.where((r) => r.method == 'PUT').single.body,
