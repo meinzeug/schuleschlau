@@ -404,6 +404,95 @@ void main() {
       expect(controller.text, isEmpty);
     },
   );
+  testWidgets(
+    'subject dialog closes on session token replacement and stale taps are inert',
+    (tester) async {
+      final controller = TextEditingController();
+      addTearDown(controller.dispose);
+      var changes = 0;
+      final state = account(
+        MockClient(
+          (_) async => reply({
+            'items': [
+              {'id': 'math', 'title': 'Privates Fach'},
+            ],
+          }),
+        ),
+      );
+      state.api.token = 'synthetic-session-one';
+      await tester.pumpWidget(
+        home(
+          SubjectField(
+            state,
+            childId: 'child',
+            controller: controller,
+            enabled: true,
+            changed: () => changes++,
+          ),
+        ),
+      );
+      await tap(tester, find.text('Fach auswählen'));
+      final stale = tester
+          .widget<ListTile>(find.widgetWithText(ListTile, 'Privates Fach'))
+          .onTap!;
+      state.api.token = 'synthetic-session-two';
+      state.notifyListeners();
+      await tester.pumpAndSettle();
+      expect(find.text('Privates Fach'), findsNothing);
+      final ctx = tester.element(find.byType(SubjectField));
+      unawaited(
+        showDialog<void>(
+          context: ctx,
+          builder: (_) => const AlertDialog(title: Text('Neuer Dialog')),
+        ),
+      );
+      await tester.pumpAndSettle();
+      stale();
+      await tester.pumpAndSettle();
+      expect(find.text('Neuer Dialog'), findsOneWidget);
+      expect(controller.text, isEmpty);
+      expect(changes, 0);
+      expect(tester.takeException(), isNull);
+    },
+  );
+  testWidgets('late subject response is discarded after token replacement', (
+    tester,
+  ) async {
+    final controller = TextEditingController();
+    addTearDown(controller.dispose);
+    final pending = Completer<http.Response>();
+    final state = account(MockClient((_) => pending.future));
+    state.api.token = 'synthetic-session-one';
+    var changes = 0;
+    await tester.pumpWidget(
+      home(
+        SubjectField(
+          state,
+          childId: 'child',
+          controller: controller,
+          enabled: true,
+          changed: () => changes++,
+        ),
+      ),
+    );
+    await tester.tap(find.text('Fach auswählen'));
+    await tester.pump();
+    state.api.token = 'synthetic-session-two';
+    state.notifyListeners();
+    await tester.pumpAndSettle();
+    pending.complete(
+      reply({
+        'items': [
+          {'id': 'math', 'title': 'Privates Fach'},
+        ],
+      }),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Privates Fach'), findsNothing);
+    expect(controller.text, isEmpty);
+    expect(changes, 0);
+    expect(tester.takeException(), isNull);
+  });
   testWidgets('K057 an unreadable crop is explained before submission', (
     tester,
   ) async {

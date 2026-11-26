@@ -23,6 +23,7 @@ class SubjectField extends StatelessWidget {
     if (!enabled) return;
     final account = state.user;
     final family = state.familyId;
+    final token = state.api.token;
     if (account == null) return;
     FocusManager.instance.primaryFocus?.unfocus();
     final navigator = Navigator.of(context);
@@ -30,7 +31,8 @@ class SubjectField extends StatelessWidget {
     bool current() =>
         context.mounted &&
         identical(account, state.user) &&
-        family == state.familyId;
+        family == state.familyId &&
+        token == state.api.token;
     void accountChanged() {
       if (!current() && route.isActive) {
         navigator.removeRoute(route);

@@ -10,6 +10,7 @@ from schulpilot.source_lineage import false_gcd_lcm, learning_source
 @pytest.mark.parametrize('text', [
     'kgV(20,80)=160', 'kgV(8,12)=96', 'ggT(24,36)=6',
     'KGV ( 8 ; 12 ) = 96.', 'Überschrift\nkgV(8,12)=96\nWeitere Zeile',
+    'kgV(8,12)=96\n' + 'x' * 10000 + ' = 1',
 ])
 def test_false_complete_integer_statements(text):
     assert false_gcd_lcm(text)
@@ -21,13 +22,9 @@ def test_false_complete_integer_statements(text):
     'Ist kgV(8,12)=96 richtig?', 'kgV(8,12)=96 ist falsch',
     'kgV(8,12)=96+1', 'kgV(8,12)=9/6', 'kgV(a,12)=96',
     'kgV(1,000,12)=96', 'kgV(10000000,12)=96',
-    'kgV(8,12)=96\n' + 'x' * 10000 + ' = 1',
 ])
 def test_valid_or_ambiguous_syntax_is_not_inferred(text):
-    if text.startswith('kgV(8,12)=96\n'):
-        assert false_gcd_lcm(text)  # The other complete line is independently false.
-    else:
-        assert not false_gcd_lcm(text)
+    assert not false_gcd_lcm(text)
 
 
 def test_source_preserves_original_and_quarantines_only_the_false_block():

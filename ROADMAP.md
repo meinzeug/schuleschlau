@@ -944,6 +944,16 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – Lehrplanabdeckung fachlich kuratieren und offen ausweisen**
 
+  - [x] **Kunstübersicht der Sekundarschule Sachsen-Anhalt ergänzen.** Die
+    fünf übergreifenden Bereiche sind je Doppeljahrgang 5/6, 7/8 und 9/10 mit
+    amtlicher Quelle, Fassung, Lizenz und Fundstelle erfasst. Der besondere
+    Bezug zu Jahrgang 9 bleibt als Quellenhinweis auch im KI-Planungskontext
+    erhalten. Die Übersicht legt weder Unterrichtsreihenfolge noch individuelle
+    Kompetenz fest. Katalog-, Filter- und Migrationstests bestanden auf SQLite
+    (36 bestanden, zwei PostgreSQL-Fälle übersprungen) und isoliertem
+    PostgreSQL (38 bestanden). Die vollständige Abdeckung bleibt offen; die
+    Ergänzung ist noch nicht ausgerollt.
+
   - [x] **Musikübersicht der Sekundarschule Sachsen-Anhalt ergänzen.** Die
     fünf Schwerpunkte je Doppeljahrgang 5/6, 7/8 und 9/10 sind mit amtlicher
     Quelle, Fassung, Lizenz und Fundstelle erfasst. Die Einschränkung für
@@ -1118,6 +1128,14 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 ## Kindgerechte Bedienung und Alltagstest
 
 - [ ] **P1 – Alle Kinderansichten sprachlich und in ihrer Bedienung entrümpeln**
+
+  - [x] **Fachauswahl bei Sitzungswechsel schließen.** Die allgemeine
+    Heft-Fachauswahl bindet sich zusätzlich an das Sitzungstoken. Nach einem
+    Tokenwechsel bleiben alte Auswahleinträge und deren Rückrufe nicht für die
+    neue Sitzung aktiv; ein zwischenzeitlich geöffneter anderer Dialog bleibt
+    erhalten. Künstliche Widgettests prüfen unter anderem denselben Account
+    mit neuem Token und verzögerte Katalogantworten. Geräteabnahme und
+    Ausrollen bleiben offen.
 
   - [x] **Fächer bei Klassenarbeiten direkt finden.** In der mobilen
     Liveansicht füllte die lange alphabetische Auswahl fast den Bildschirm.

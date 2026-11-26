@@ -1,0 +1,300 @@
+{
+  "version": 1,
+  "retrieved": "2026-11-26",
+  "documents": [
+    {
+      "id": "st-sek-kunst-2019",
+      "state_code": "DE-ST",
+      "title": "Fachlehrplan Sekundarschule Kunsterziehung",
+      "official_url": "https://www.bildung-lsa.de/files/164f3f97e3adf65ff6f44685dd9e1ced/lp_sks_kunst_01_08_2019.pdf",
+      "edition": "Stand 01.08.2019",
+      "effective_from": null,
+      "school_form_label": "Sekundarschule",
+      "school_form_id": "de-st.sekundarschule",
+      "school_form_scope": "specific",
+      "applies_to_school_forms": [],
+      "source_status": "current_verified",
+      "retrieved": "2026-11-26",
+      "applicability_note": "Die fünf Kompetenzschwerpunkte gelten in den Doppeljahrgängen 5/6, 7/8 und 9/10. In 9/10 sind einzelne Teilkompetenzen für Jahrgang 9 mit Stern markiert; der Schwerpunkt Bilderwelten ist insgesamt für Jahrgang 9 verbindlich. Einzelkompetenzen und tatsächliche schulische Reihenfolge werden hier nicht vollständig zugeordnet.",
+      "document_kind": "curriculum",
+      "source_notes": "Ministerium für Bildung Sachsen-Anhalt; Landesportal Sachsen-Anhalt, CC BY-SA 3.0 (https://creativecommons.org/licenses/by-sa/3.0/); Überblick Kapitel 3.1, gedruckte Seite 9; Jahrgangsangaben Kapitel 3.2–3.4. PDF-SHA256 c53bb42f138002923544bee231c7fea300fc488e26e0fa6f04ccf5d8dc93d79d; Index https://www.bildung-lsa.de/informationsportal/unterricht/sekundarschule/schulformbezogene_informationen/lehrplan.html."
+    }
+  ],
+  "topics": [
+    {
+      "id": "st-sek-kunst-2019.56-kultur",
+      "document_id": "st-sek-kunst-2019",
+      "subject_key": "kunst",
+      "title": "Kultur",
+      "grade_kind": "band",
+      "grades": [
+        5,
+        6
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 9,
+      "quote": "Kultur",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-kunst-2019.56-mensch-natur",
+      "document_id": "st-sek-kunst-2019",
+      "subject_key": "kunst",
+      "title": "Mensch und Natur",
+      "grade_kind": "band",
+      "grades": [
+        5,
+        6
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 9,
+      "quote": "Mensch und Natur",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-kunst-2019.56-raum",
+      "document_id": "st-sek-kunst-2019",
+      "subject_key": "kunst",
+      "title": "Raum gestalten",
+      "grade_kind": "band",
+      "grades": [
+        5,
+        6
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 9,
+      "quote": "Raum",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-kunst-2019.56-design",
+      "document_id": "st-sek-kunst-2019",
+      "subject_key": "kunst",
+      "title": "Design",
+      "grade_kind": "band",
+      "grades": [
+        5,
+        6
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 9,
+      "quote": "Design",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-kunst-2019.56-bilderwelten",
+      "document_id": "st-sek-kunst-2019",
+      "subject_key": "kunst",
+      "title": "Analoge und digitale Bilderwelten",
+      "grade_kind": "band",
+      "grades": [
+        5,
+        6
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 9,
+      "quote": "Bilderwelten",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-kunst-2019.78-kultur",
+      "document_id": "st-sek-kunst-2019",
+      "subject_key": "kunst",
+      "title": "Kultur",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 9,
+      "quote": "Kultur",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-kunst-2019.78-mensch-natur",
+      "document_id": "st-sek-kunst-2019",
+      "subject_key": "kunst",
+      "title": "Mensch und Natur",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 9,
+      "quote": "Mensch und Natur",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-kunst-2019.78-raum",
+      "document_id": "st-sek-kunst-2019",
+      "subject_key": "kunst",
+      "title": "Raum gestalten",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 9,
+      "quote": "Raum",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-kunst-2019.78-design",
+      "document_id": "st-sek-kunst-2019",
+      "subject_key": "kunst",
+      "title": "Design",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 9,
+      "quote": "Design",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-kunst-2019.78-bilderwelten",
+      "document_id": "st-sek-kunst-2019",
+      "subject_key": "kunst",
+      "title": "Analoge und digitale Bilderwelten",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 9,
+      "quote": "Bilderwelten",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-kunst-2019.910-kultur",
+      "document_id": "st-sek-kunst-2019",
+      "subject_key": "kunst",
+      "title": "Kultur",
+      "grade_kind": "band",
+      "grades": [
+        9,
+        10
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 9,
+      "quote": "Kultur",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-kunst-2019.910-mensch-natur",
+      "document_id": "st-sek-kunst-2019",
+      "subject_key": "kunst",
+      "title": "Mensch und Natur",
+      "grade_kind": "band",
+      "grades": [
+        9,
+        10
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 9,
+      "quote": "Mensch und Natur",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-kunst-2019.910-raum",
+      "document_id": "st-sek-kunst-2019",
+      "subject_key": "kunst",
+      "title": "Raum gestalten",
+      "grade_kind": "band",
+      "grades": [
+        9,
+        10
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 9,
+      "quote": "Raum",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-kunst-2019.910-design",
+      "document_id": "st-sek-kunst-2019",
+      "subject_key": "kunst",
+      "title": "Design",
+      "grade_kind": "band",
+      "grades": [
+        9,
+        10
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 9,
+      "quote": "Design",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-kunst-2019.910-bilderwelten",
+      "document_id": "st-sek-kunst-2019",
+      "subject_key": "kunst",
+      "title": "Analoge und digitale Bilderwelten",
+      "grade_kind": "band",
+      "grades": [
+        9,
+        10
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 9,
+      "quote": "Bilderwelten",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    }
+  ],
+  "coverage": {
+    "complete": false,
+    "note": "Nur die fünf allgemeinen Schwerpunkte für jede Doppeljahrgangsstufe der Sekundarschule Sachsen-Anhalt; keine vollständigen Einzelkompetenzen, keine schulinterne Reihenfolge und kein Leistungsbeleg."
+  },
+  "coverage_gaps": []
+}

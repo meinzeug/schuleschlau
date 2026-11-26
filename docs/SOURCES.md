@@ -1,3 +1,14 @@
+## 26.11.2026 · Kunstlehrplan Sachsen-Anhalt
+
+Der [amtliche Landesindex](https://www.bildung-lsa.de/informationsportal/unterricht/sekundarschule/schulformbezogene_informationen/lehrplan.html)
+verlinkt den [Fachlehrplan Kunsterziehung der Sekundarschule](https://www.bildung-lsa.de/files/164f3f97e3adf65ff6f44685dd9e1ced/lp_sks_kunst_01_08_2019.pdf),
+Stand 01.08.2019. Gedruckte Seite 9 erläutert fünf allgemeine Schwerpunkte
+und den besonderen Bezug zu Jahrgang 9; die Abschnitte 3.2–3.4 führen diese
+für drei Doppeljahrgänge aus. Quelle: Ministerium für Bildung Sachsen-Anhalt,
+Landesportal Sachsen-Anhalt, [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/).
+Die Katalogübersicht ist keine vollständige Kompetenzliste. Abruf am 26.11.2026,
+PDF-SHA-256 `c53bb42f138002923544bee231c7fea300fc488e26e0fa6f04ccf5d8dc93d79d`.
+
 ## 26.11.2026 · Musiklehrplan Sachsen-Anhalt
 
 Der [amtliche Landesindex](https://www.bildung-lsa.de/informationsportal/unterricht/sekundarschule/schulformbezogene_informationen/lehrplan.html)
