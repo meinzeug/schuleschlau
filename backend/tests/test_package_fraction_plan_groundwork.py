@@ -231,6 +231,33 @@ def test_equivalent_historical_values_and_unknown_questions_are_conservative():
         planner.prepare(payload(), slots("practice"), old)
 
 
+def test_part_whole_question_answer_key_excludes_exact_fraction_without_attempts():
+    question = {
+        'type': 'short',
+        'prompt': 'In einer Schachtel liegen 10 Stifte. 4 sind rot. Welcher Bruch ist rot? Schreibe Zähler/Nenner.',
+        'answer': '4/10',
+    }
+    assert planner.history_exclusions([planner._history_question_prompt(question)]) == ['2/5']
+    assert question['prompt'].endswith('Zähler/Nenner.')  # persisted question stays untouched
+
+
+@pytest.mark.parametrize('changes', [
+    {'type': 'choice'},
+    {'presentation': {'type': 'fraction_grid'}},
+    {'answer': '2/5'},  # does not match the two numbers in the question
+    {'answer': '4/10 oder 2/5'},
+    {'prompt': 'Die Grafik zeigt 10 Kreise, 4 rot. Welcher Bruch? Schreibe Zähler/Nenner.'},
+    {'prompt': 'Es gibt 10 und 4 sowie 2. Welcher Bruch? Schreibe Zähler/Nenner.'},
+    {'prompt': 'Vergleiche 10 und 4. Welcher Bruch? Schreibe Zähler/Nenner.'},
+    {'prompt': 'Aus 10,4 und 4. Welcher Bruch? Schreibe Zähler/Nenner.'},
+])
+def test_part_whole_history_rejects_ambiguous_or_unrelated_answer_keys(changes):
+    question = {'type': 'short', 'prompt': 'Von 10 sind 4 rot. Welcher Bruch? Schreibe Zähler/Nenner.', 'answer': '4/10'}
+    question.update(changes)
+    with pytest.raises(ValueError, match='nicht sicher'):
+        planner.history_exclusions([planner._history_question_prompt(question)])
+
+
 def test_digest_binds_source_revision_and_finite_task_plan():
     initial = planner.prepare(payload(), slots("practice"), [])
     assert initial["revision"] == planner.REVISION
@@ -271,7 +298,10 @@ def test_private_history_excludes_only_own_sources_questions_and_active_plan(api
                 topic="Brüche",
                 explanation="",
                 provider="synthetic-test",
-                questions=[{"prompt": "Erweitere 2/6 mit 2."}],
+                questions=[
+                    {"prompt": "Erweitere 2/6 mit 2."},
+                    {"type": "short", "prompt": "Von 10 sind 4 rot. Welcher Bruch? Schreibe Zähler/Nenner.", "answer": "4/10"},
+                ],
             )
         )
         db.add(
@@ -309,7 +339,7 @@ def test_private_history_excludes_only_own_sources_questions_and_active_plan(api
         db.flush()
         job_id = job.id
         found = planner.history(db, first["id"])
-        assert "1/3" in found and "3/8" in found and str(Fraction(*pending["slots"][0]["input"])) in found
+        assert "1/3" in found and "3/8" in found and "2/5" in found and str(Fraction(*pending["slots"][0]["input"])) in found
         assert "1/5" not in found and "1/7" not in found
         assert str(Fraction(*pending["slots"][0]["input"])) not in planner.history(
             db, first["id"], ignore_job_ids={job_id}

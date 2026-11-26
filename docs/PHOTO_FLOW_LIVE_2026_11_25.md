@@ -238,3 +238,15 @@ korrektes Bruchmodell, aber die Verfeinerung beim Erweitern nicht unmittelbar.
 Die Testantworten und Testlernzeit sind im echten Konto gespeichert; daraus
 folgt kein Nachweis über das tatsächliche Können des Kindes. Der Test umfasst
 weiterhin zwei tatsächliche Kalendertage, nicht 30 abgeschlossene Tage.
+
+Die anschließende Paketerstellung scheiterte an der konservativen Prüfung alter
+Bruchfragen, nicht am Foto-Upload oder nachgewiesen an einer fehlenden Grafik.
+Eine ältere Sachfrage schrieb zwei Zahlen als Text und verlangte eine Antwort
+als Bruch. Die Frage enthielt keinen ausgeschriebenen Bruch, ihre gespeicherte
+Musterlösung jedoch schon. Die Meldung über „Aufgaben oder Grafiken“ verdeckt
+diese Ursache. Die lokale Korrektur berücksichtigt die Musterlösung nur bei
+einem eng bestimmten Teil-Ganzes-Aufgabentyp mit genau zwei passenden Zahlen,
+ohne Abbildung oder Rechenoperation; mehrdeutige Fälle bleiben gesperrt. Ein
+serverseitiger Trockenabgleich erkannte einen zuvor blockierenden Altfall und
+enthielt keine Ausgabe privater Inhalte. Ein erneuter regulärer Paketerstellungs-
+versuch steht nach Veröffentlichung der Korrektur noch aus.

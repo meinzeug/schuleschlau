@@ -48,10 +48,37 @@ def history_exclusions(prompts):
     return sorted(result)
 
 
+def _history_question_prompt(question):
+    """Include a stored model solution only for an unambiguous part/whole question.
+
+    This is the authored answer key, never a child's attempt. Old questions
+    with a diagram, a calculation, additional numbers or non-fraction answers
+    remain subject to the normal conservative history check.
+    """
+    prompt = question['prompt']
+    answer = question.get('answer')
+    if (question.get('type') != 'short' or not isinstance(answer, str)
+            or question.get('presentation') not in (None, {}, [])
+            or not re.search(r'\bwelch\w*\s+bruch\b', prompt, re.I)
+            or not re.search(r'\bz(?:ä|ae)hler\s*/\s*nenner\b', prompt, re.I)
+            or re.search(r'abbild|grafik|bild|darstell|zeichn|illustr|erweiter|kürz|kuerz|addier|subtrah|multipliz|dividier|vergleich', prompt, re.I)
+            or re.search(r'(?<!\w)(?:\d+[.,]\d+|[-−+]\s*\d+)', prompt)
+            or _MIXED.search(prompt) or _VULGAR.search(prompt)
+            or _LITERAL.search(prompt) or _LATEX.search(prompt)):
+        return prompt
+    result = re.fullmatch(r'\s*(\d{1,3})\s*(?:/|durch)\s*([1-9]\d{0,2})\s*', answer, re.I)
+    numbers = re.findall(r'(?<![\d/])\d+(?![\d/])', prompt)
+    if (result is None or len(numbers) != 2
+            or sorted(map(int, numbers)) != sorted((int(result[1]), int(result[2])))
+            or int(result[1]) > int(result[2])):
+        return prompt
+    return f'{prompt} {result[1]}/{result[2]}'
+
+
 def history(db, child_id, *, ignore_job_ids=()):
     """Read only this child's numerical exclusions; caller must lock Child.
 
-    Saved answers are never read. A pending private plan can only exclude a
+    Saved child attempts are never read. A pending private plan can only exclude a
     value, never prove mastery. This helper alone does not reserve or publish.
     """
     from sqlalchemy import select
@@ -71,7 +98,7 @@ def history(db, child_id, *, ignore_job_ids=()):
         for question in questions:
             if not isinstance(question, dict) or not isinstance(question.get('prompt'), str):
                 raise ValueError(INVALID)
-            prompts.append(question['prompt'])
+            prompts.append(_history_question_prompt(question))
     prompts.extend(unpublished_prompts_for_exclusion(db, child_id, 'Mathematik', ignore_job_ids=ignore_job_ids))
     found.update(history_exclusions(prompts))
     for subject, content in db.execute(select(Material.subject, Material.content)
