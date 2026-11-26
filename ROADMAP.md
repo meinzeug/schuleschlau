@@ -1086,6 +1086,15 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – Alle Kinderansichten sprachlich und in ihrer Bedienung entrümpeln**
 
+  - [x] **Lernrundenkopf mit allen Aktionen bei 390 Pixeln lesbar halten.**
+    In der geöffneten mobilen Lernrunde sprang die letzte Ziffer des
+    Fortschritts allein in eine zweite Zeile. Bei wenig Platz und allen vier
+    Aktionen steht der vollständige Phasen-/Aufgabentext nun auf einer eigenen
+    Zeile; die Schaltflächen bleiben groß und bedienbar. 41 künstliche Flutter-
+    und 16 Chrome-Widgetfälle decken 320/390 Pixel, große Schrift und die
+    übrige Lernrundennavigation ab.
+    Die breite Abnahme aller Kinderansichten und das Ausrollen bleiben offen.
+
   - [x] **Heftfoto auf der Materialseite besser erkennbar machen.** Die
     bisher 150 Pixel hohe Vorschau nutzt abhängig von der Bildschirmhöhe mehr
     Platz, zeigt das ganze Foto und beschriftet die Vergrößerung sichtbar.

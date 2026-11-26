@@ -50,7 +50,16 @@ class LearningRoom extends StatelessWidget {
     final enlarged = MediaQuery.textScalerOf(context).scale(1) > 1.4;
     final width = MediaQuery.sizeOf(context).width;
     final desktop = width >= 720;
-    final separateContext = width < 360 && !enlarged;
+    // With all four actions the title column is too narrow even at 390 px:
+    // the final digit of "Aufgabe 1 von 2" used to wrap onto its own line.
+    // Give the complete context its own line rather than shrinking touch targets.
+    final fullHeader =
+        onPause != null &&
+        overview != null &&
+        options != null &&
+        assistant != null;
+    final separateContext =
+        !enlarged && (width < 360 || (width < 440 && fullHeader));
     final total = questionTotal ?? 0;
     final completed = (questionCompleted ?? 0).clamp(0, total > 0 ? total : 0);
     final contextLabel = [phases[phase], ?progress].join(' · ');

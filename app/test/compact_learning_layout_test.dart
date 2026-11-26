@@ -84,46 +84,49 @@ Widget room({
 );
 
 void main() {
-  testWidgets('320px progress stays readable with every header action', (
-    tester,
-  ) async {
-    viewport(tester, const Size(320, 844));
-    final controller = ScrollController();
-    Widget button(String tooltip) => IconButton(
-      tooltip: tooltip,
-      constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-      onPressed: () {},
-      icon: const Icon(Icons.more_horiz),
-    );
-    await tester.pumpWidget(
-      host(
-        room(
-          controller: controller,
-          overview: button('Aufgabenübersicht'),
-          options: button('Weitere Optionen'),
+  for (final width in [320.0, 390.0]) {
+    testWidgets('$width px progress stays readable with every header action', (
+      tester,
+    ) async {
+      viewport(tester, Size(width, 844));
+      final controller = ScrollController();
+      Widget button(String tooltip) => IconButton(
+        tooltip: tooltip,
+        constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+        onPressed: () {},
+        icon: const Icon(Icons.more_horiz),
+      );
+      await tester.pumpWidget(
+        host(
+          room(
+            controller: controller,
+            overview: button('Aufgabenübersicht'),
+            options: button('Weitere Optionen'),
+          ),
+          1,
         ),
-        1,
-      ),
-    );
-    await tester.pumpAndSettle();
-    final progress = find.text('Üben · Aufgabe 3 von 4');
-    expect(progress, findsOneWidget);
-    expect(tester.getSize(progress).width, greaterThan(200));
-    for (final tooltip in [
-      'Lernrunde verlassen',
-      'Pause machen',
-      'Aufgabenübersicht',
-      'Weitere Optionen',
-      'Beispielassistent öffnen',
-    ]) {
-      final control = find.byTooltip(tooltip);
-      expect(control.hitTestable(), findsOneWidget);
-      expect(tester.getSize(control).width, greaterThanOrEqualTo(48));
-    }
-    expect(tester.takeException(), isNull);
-    await tester.pumpWidget(const SizedBox.shrink());
-    controller.dispose();
-  });
+      );
+      await tester.pumpAndSettle();
+      final progress = find.text('Üben · Aufgabe 3 von 4');
+      expect(progress, findsOneWidget);
+      expect(tester.getSize(progress).width, greaterThan(200));
+      expect(tester.getSize(progress).height, lessThan(18));
+      for (final tooltip in [
+        'Lernrunde verlassen',
+        'Pause machen',
+        'Aufgabenübersicht',
+        'Weitere Optionen',
+        'Beispielassistent öffnen',
+      ]) {
+        final control = find.byTooltip(tooltip);
+        expect(control.hitTestable(), findsOneWidget);
+        expect(tester.getSize(control).width, greaterThanOrEqualTo(48));
+      }
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+      controller.dispose();
+    });
+  }
 
   for (final width in [320.0, 390.0, 1440.0]) {
     for (final scale in [1.0, 2.0]) {
