@@ -33,6 +33,7 @@ class _NotebookPhotoState extends State<NotebookPhoto> {
   int generation = 0;
   final zoom = TransformationController();
   Size photoViewport = Size.zero;
+  int quarterTurns = 0;
   bool get current =>
       mounted &&
       owner != null &&
@@ -55,6 +56,7 @@ class _NotebookPhotoState extends State<NotebookPhoto> {
     if (image != null) unawaited(image!.evict());
     image = null;
     zoom.value = Matrix4.identity();
+    quarterTurns = 0;
   }
 
   void identityChanged() {
@@ -208,7 +210,9 @@ class _NotebookPhotoState extends State<NotebookPhoto> {
                 transformationController: zoom,
                 minScale: 1,
                 maxScale: 8,
-                child: Center(child: photo),
+                child: Center(
+                  child: RotatedBox(quarterTurns: quarterTurns, child: photo),
+                ),
               );
             },
           ),
@@ -274,10 +278,23 @@ class _NotebookPhotoState extends State<NotebookPhoto> {
                       icon: const Icon(Icons.zoom_in),
                     ),
                     IconButton(
+                      tooltip: 'Foto drehen',
+                      onPressed: guarded(() {
+                        setState(() => quarterTurns = (quarterTurns + 1) % 4);
+                        zoom.value = Matrix4.identity();
+                      }),
+                      icon: const Icon(Icons.rotate_right_rounded),
+                    ),
+                    IconButton(
                       tooltip: 'Fotoansicht zurücksetzen',
                       onPressed:
-                          scale > 1.01 || matrix.getTranslation().length > 0.1
-                          ? guarded(() => change(1))
+                          scale > 1.01 ||
+                              matrix.getTranslation().length > 0.1 ||
+                              quarterTurns != 0
+                          ? guarded(() {
+                              setState(() => quarterTurns = 0);
+                              change(1);
+                            })
                           : null,
                       icon: const Icon(Icons.fit_screen_rounded),
                     ),

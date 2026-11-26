@@ -85,6 +85,14 @@ weil jede ausgewählte Seite einzeln verwendbar sein muss. Eine weitere
 lokale Dialogkorrektur erklärt diesen Zustand vor dem Absenden; sie bewahrt
 bereits angefragte Vorbereitungen und das Verhalten älterer Server.
 
+Beim Öffnen des Originalfotos im mobilen Vollbild lag die Aufnahme seitlich.
+Die lokale Nachbesserung bietet in der vergrößerten Ansicht eine bewusste
+Drehung und setzt sie beim Seiten- beziehungsweise Kontowechsel zurück. Sie
+verändert weder das gespeicherte Originalfoto noch bereits erzeugte
+Abschriften oder Aufgabenantworten und verbessert die Bildausrichtung für
+die KI-Erkennung nicht automatisch. Eine verlässliche automatische
+Ausrichtung für Fotos mit seitlichem Text bleibt ein eigener offener Punkt.
+
 Im ausdrücklich freigegebenen Kinderkonto wurde eine reale Mathematikseite
 über die mobile Weboberfläche bei 390 × 844 Pixeln ausgewählt, ausgerichtet und
 abgegeben. Die Originaldatei und weitere private Heftinhalte liegen außerhalb

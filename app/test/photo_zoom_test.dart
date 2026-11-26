@@ -62,14 +62,31 @@ void main() {
       await tester.tap(find.byTooltip('Foto verkleinern'));
       await tester.pump();
       expect(find.text('400 %'), findsOneWidget);
+      await tester.tap(find.byTooltip('Foto drehen'));
+      await tester.pump();
+      expect(
+        tester.widget<RotatedBox>(find.byType(RotatedBox)).quarterTurns,
+        1,
+      );
+      expect(find.text('100 %'), findsOneWidget);
       await tester.tap(find.byTooltip('Fotoansicht zurücksetzen'));
       await tester.pump();
       expect(viewer.transformationController!.value.isIdentity(), isTrue);
+      expect(
+        tester.widget<RotatedBox>(find.byType(RotatedBox)).quarterTurns,
+        0,
+      );
+      await tester.tap(find.byTooltip('Foto drehen'));
+      await tester.pump();
       await tester.tap(find.byTooltip('Foto vergrößern'));
       await tester.pump();
       await tester.pumpWidget(screen('second'));
       await tester.pumpAndSettle();
       expect(find.text('100 %'), findsOneWidget);
+      expect(
+        tester.widget<RotatedBox>(find.byType(RotatedBox)).quarterTurns,
+        0,
+      );
       expect(requests.map((r) => r.url.path), [
         '/api/materials/first/image',
         '/api/materials/second/image',
