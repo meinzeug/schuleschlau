@@ -1109,6 +1109,15 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – Alle Kinderansichten sprachlich und in ihrer Bedienung entrümpeln**
 
+  - [x] **Fächer bei Klassenarbeiten direkt finden.** In der mobilen
+    Liveansicht füllte die lange alphabetische Auswahl fast den Bildschirm.
+    Die lokale Überarbeitung ergänzt eine Suche und eine begrenzt scrollbare,
+    an Tastatur und Fensterhöhe angepasste Auswahl. Verfügbare Fächer bleiben
+    unverändert; Suchen, Schließen und Sitzungswechsel speichern keinen Plan.
+    Widgettests prüfen schmale Anzeigen, doppelte Schrift, geöffnete Tastatur,
+    leere Suchergebnisse und Konto-/Sitzungswechsel. Die vollständige mobile
+    Abnahme und das Ausrollen bleiben offen.
+
   - [x] **Leere Wortvorschläge zutreffend beschreiben.** Der Wortschatzbereich
     behauptet bei fehlenden Vorschlägen keine vorherige Prüfung und keine
     gespeicherten Wörter. Bei einem älteren Backend ohne Gesamtzahl bleibt

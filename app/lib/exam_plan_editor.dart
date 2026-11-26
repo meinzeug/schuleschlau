@@ -143,39 +143,94 @@ class _ExamPlanEditorState extends State<ExamPlanEditor> {
               .toSet()
               .toList()
             ..sort();
+      var query = '';
       final chosen = await scope.dialog<String>(
         context,
-        (ctx) => AlertDialog(
-          scrollable: true,
-          title: const Text('Fach auswählen'),
-          content: SizedBox(
-            width: 520,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                for (final name in names)
-                  ListTile(
-                    title: Text(name),
-                    onTap: () {
-                      if (scope.active &&
-                          ModalRoute.of(ctx)?.isCurrent == true) {
-                        Navigator.pop(ctx, name);
-                      }
-                    },
-                  ),
-              ],
+        (ctx) => StatefulBuilder(
+          builder: (ctx, refresh) => Dialog(
+            insetPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 12,
+            ),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 520, maxHeight: 460),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Fach auswählen',
+                            style: Theme.of(ctx).textTheme.titleLarge,
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: 'Fachauswahl schließen',
+                          onPressed: () {
+                            if (scope.active &&
+                                ModalRoute.of(ctx)?.isCurrent == true) {
+                              FocusManager.instance.primaryFocus?.unfocus();
+                              Navigator.pop(ctx);
+                            }
+                          },
+                          icon: const Icon(Icons.close),
+                        ),
+                      ],
+                    ),
+                    TextField(
+                      decoration: const InputDecoration(
+                        labelText: 'Fach suchen',
+                        prefixIcon: Icon(Icons.search),
+                        isDense: true,
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                      ),
+                      textInputAction: TextInputAction.search,
+                      onChanged: (value) =>
+                          refresh(() => query = value.trim().toLowerCase()),
+                      onSubmitted: (_) =>
+                          FocusManager.instance.primaryFocus?.unfocus(),
+                    ),
+                    const SizedBox(height: 8),
+                    Expanded(
+                      child: Builder(
+                        builder: (ctx) {
+                          final matches = names
+                              .where(
+                                (name) => name.toLowerCase().contains(query),
+                              )
+                              .toList();
+                          if (matches.isEmpty) {
+                            return const Notice('Kein Fach gefunden.');
+                          }
+                          return ListView.builder(
+                            itemCount: matches.length,
+                            itemBuilder: (ctx, index) => ListTile(
+                              title: Text(matches[index]),
+                              dense: true,
+                              onTap: () {
+                                if (scope.active &&
+                                    ModalRoute.of(ctx)?.isCurrent == true) {
+                                  FocusManager.instance.primaryFocus?.unfocus();
+                                  Navigator.pop(ctx, matches[index]);
+                                }
+                              },
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                if (scope.active && ModalRoute.of(ctx)?.isCurrent == true) {
-                  Navigator.pop(ctx);
-                }
-              },
-              child: const Text('Abbrechen'),
-            ),
-          ],
         ),
       );
       if (chosen != null && scope.valid(stamp)) {

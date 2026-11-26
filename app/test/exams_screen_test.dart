@@ -142,6 +142,7 @@ class Fixture {
   late final GoRouter router;
   late Json details, report;
   Json? listOverride;
+  List<Json>? subjectOverride;
   Completer<http.Response>? listWait;
   String prepareKind = 'job';
   final String role;
@@ -195,9 +196,11 @@ class Fixture {
     }
     if (request.method == 'GET' && path.endsWith('/children/child/subjects')) {
       return reply({
-        'items': [
-          {'id': 'math', 'title': 'Mathematik'},
-        ],
+        'items':
+            subjectOverride ??
+            [
+              {'id': 'math', 'title': 'Mathematik'},
+            ],
       });
     }
     if (request.method == 'GET' && path.endsWith('/exams/exam/review')) {
