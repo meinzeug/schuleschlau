@@ -57,7 +57,7 @@ void main() {
         }),
       );
       await tester.pumpAndSettle();
-      expect(find.text('Seite prüfen'), findsOneWidget);
+      expect(find.text('Seite ansehen'), findsOneWidget);
     },
   );
   testWidgets(
