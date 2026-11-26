@@ -86,9 +86,12 @@ class _HomeworkScreenState extends State<HomeworkScreen> {
     } else {
       details.add(switch (photo['status']) {
         'uploaded' => 'Foto öffnen',
-        'review' => 'Foto und Text prüfen',
+        'review' =>
+          widget.state.isChild
+              ? 'Deine Eltern können den Text prüfen'
+              : 'Foto und Text prüfen',
         'unreadable' => 'Text unleserlich · Foto öffnen',
-        _ => 'Foto öffnen und prüfen',
+        _ => widget.state.isChild ? 'Foto öffnen' : 'Foto öffnen und prüfen',
       });
     }
     if (photo['created'] != null) details.add(photoDateLabel(photo));
@@ -596,7 +599,9 @@ class _HomeworkScreenState extends State<HomeworkScreen> {
           ],
           SizedBox(height: 8),
           Text(
-            'KI erkennt dein Foto. Prüfe danach den Text.',
+            widget.state.isChild
+                ? 'Dein Foto wird gelesen. Falls nötig, prüfen deine Eltern den Text.'
+                : 'KI erkennt dein Foto. Prüfe danach den Text.',
             style: TextStyle(color: context.palette.muted, height: 1.5),
           ),
         ],
@@ -2802,7 +2807,9 @@ class _HomeworkDetailScreenState extends State<_HomeworkDetailBody>
               ),
             if (photo!['confirmed'] != true) ...[
               Text(
-                '1 · Foto und Text prüfen',
+                widget.state.isChild
+                    ? '1 · Dein Aufgabenfoto'
+                    : '1 · Foto und Text prüfen',
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               SizedBox(height: 12),

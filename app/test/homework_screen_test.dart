@@ -490,7 +490,9 @@ void main() {
           expect(find.text('Noch keine Aufgabenfotos.'), findsOneWidget);
           expect(find.text('0 von 0 geladenen Fotos'), findsNothing);
           expect(
-            find.text('KI erkennt dein Foto. Prüfe danach den Text.'),
+            find.text(
+              'Dein Foto wird gelesen. Falls nötig, prüfen deine Eltern den Text.',
+            ),
             findsOneWidget,
           );
           await page_tools.openPageTools(tester, 'homework-photo-tools');

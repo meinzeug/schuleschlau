@@ -5,6 +5,38 @@ import 'package:http/testing.dart';
 import 'homework_screen_test.dart' as homework;
 
 void main() {
+  testWidgets('an unconfirmed homework photo assigns review to the parents', (
+    tester,
+  ) async {
+    final calls = <String>[];
+    final data = homework.fixture();
+    data['material'] = {
+      ...data['material'] as Map,
+      'confirmed': false,
+      'status': 'review',
+      'content': 'Künstliche Aufgabenstellung.',
+      'homework': <String>[],
+      'uncertainties': <String>[],
+      'has_image': false,
+      'synthetic': false,
+    };
+    final state = homework.account(
+      MockClient((request) async {
+        calls.add(request.method);
+        return homework.reply(data);
+      }),
+    );
+    await homework.open(tester, state);
+    expect(find.text('1 · Dein Aufgabenfoto'), findsOneWidget);
+    expect(
+      find.text('Diese Seite prüfen deine Eltern. Dein Foto ist gespeichert.'),
+      findsOneWidget,
+    );
+    expect(find.text('Stimmt, weiter'), findsNothing);
+    expect(calls.every((method) => method == 'GET'), isTrue);
+    expect(tester.takeException(), isNull);
+  });
+
   for (final width in [320.0, 390.0]) {
     testWidgets('homework entry stays legible at $width and 200 percent text', (
       tester,
@@ -89,7 +121,7 @@ void main() {
       );
       expect(find.text('Aufgabe öffnen'), findsOneWidget);
       expect(find.text('Foto öffnen'), findsOneWidget);
-      expect(find.text('Foto und Text prüfen'), findsOneWidget);
+      expect(find.text('Deine Eltern können den Text prüfen'), findsOneWidget);
       expect(find.text('Text unleserlich · Foto öffnen'), findsOneWidget);
       expect(find.text(' · 0 selbst abgehakt'), findsNothing);
       await tester.ensureVisible(find.text('Aufgabe D'));
