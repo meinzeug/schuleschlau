@@ -24,6 +24,14 @@ import export_ledger  # noqa: E402
 import restore_check  # noqa: E402
 from ledger_snapshot import backup_lock  # noqa: E402
 
+_real_outbox_pending = export_ledger.outbox_pending
+
+
+@pytest.fixture(autouse=True)
+def no_production_outbox(monkeypatch):
+    # Existing file/lock unit tests never contact any live application DB.
+    monkeypatch.setattr(export_ledger, "outbox_pending", lambda: False)
+
 
 def test_restore_interpreter_and_backend_use_the_same_immutable_runtime(tmp_path, monkeypatch):
     runtime = tmp_path / 'recovery-release'
@@ -501,3 +509,71 @@ def test_restore_journal_rejects_pending_outbox_while_holding_journal_lock(tmp_p
     with pytest.raises(RuntimeError, match='Unpublished'):
         restore_check.current_journal(ledger, pending)
     assert restore_check.current_journal(ledger, lambda: False) == 'synthetic\n'
+
+
+def test_export_checks_outbox_before_ciphertext_while_journal_is_locked(tmp_path):
+    ledger = tmp_path / 'erasure-ledger.jsonl'
+    ledger.write_text('synthetic journal\n')
+    lock = tmp_path / '.erasure-ledger.lock'
+    lock.touch()
+    key = tmp_path / 'key'
+    key.write_bytes(b'synthetic-key')
+    output = io.BytesIO()
+
+    def pending():
+        with lock.open('rb') as contender:
+            with pytest.raises(BlockingIOError):
+                fcntl.flock(contender, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        return True
+
+    with pytest.raises(RuntimeError, match='not verified'):
+        export_ledger.export(ledger, key, output, check_pending=pending)
+    assert output.getvalue() == b''
+    for unknown in (None, 0, '', 'clean'):
+        with pytest.raises(RuntimeError, match='not verified'):
+            export_ledger.require_published_outbox(lambda: unknown)
+    export_ledger.require_published_outbox(lambda: False)
+
+
+def test_ack_does_not_publish_success_with_unpublished_outbox(tmp_path, monkeypatch):
+    def mapped(value):
+        path = Path(value)
+        return path if path.is_relative_to(tmp_path) else tmp_path / str(path).lstrip('/')
+
+    monkeypatch.setattr(export_ledger, 'Path', mapped)
+    directory, data, monitor, etc = [mapped(path) for path in (
+        '/var/backups/schulpilot', '/var/lib/schulpilot', '/var/backups/schulpilot-monitor', '/etc/schulpilot')]
+    for path in (directory, data, monitor, etc):
+        path.mkdir(parents=True)
+    (directory / '.backup.lock').touch()
+    (data / '.erasure-ledger.lock').touch()
+    (data / 'erasure-ledger.jsonl').write_text('synthetic\n')
+    archive = directory / '20261126T120000Z.tar.enc'
+    archive.write_bytes(b'synthetic')
+    backup.write_status(archive, 'present')
+    digest = hashlib.sha256(archive.read_bytes()).hexdigest()
+    marker = monitor / 'offsite-last-success.json'
+    marker.write_text('previous success\n')
+
+    def pending():
+        with (data / '.erasure-ledger.lock').open('rb') as contender:
+            with pytest.raises(BlockingIOError):
+                fcntl.flock(contender, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        return True
+
+    with pytest.raises(RuntimeError, match='not verified'):
+        export_ledger.acknowledge(archive.name, digest, check_pending=pending)
+    assert marker.read_text() == 'previous success\n'
+    assert not (etc / 'offsite-enabled').exists()
+
+
+def test_outbox_lookup_failure_does_not_leak_diagnostics(monkeypatch):
+    import monitor
+
+    monkeypatch.setattr(monitor, 'environment', lambda _: {'synthetic': 'secret-value'})
+    def fail(*args, **kwargs):
+        raise RuntimeError('synthetic-sensitive-detail')
+    monkeypatch.setattr(restore_check, 'live_outbox_pending', fail)
+    with pytest.raises(RuntimeError, match='Unable to check the deletion outbox') as error:
+        _real_outbox_pending()
+    assert 'synthetic-sensitive-detail' not in str(error.value)

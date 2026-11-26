@@ -43,10 +43,30 @@ def require_backup_journal(directory, expected_name, expected_hash):
             raise RuntimeError("Backup changed during offsite transfer")
 
 
-def export(ledger, key_path, output):
+def outbox_pending():
+    # Independent read of the application outbox while the journal lock is
+    # held by the caller. Never print database errors or record contents.
+    from monitor import environment
+    from restore_check import live_outbox_pending
+
+    try:
+        return live_outbox_pending(environment("/etc/schulpilot/environment"), timeout=10)
+    except Exception:
+        raise RuntimeError("Unable to check the deletion outbox") from None
+
+
+def require_published_outbox(check):
+    state = check()
+    if state is not False:
+        # Unknown/non-boolean results are not evidence of an empty outbox.
+        raise RuntimeError("Deletion outbox is not verified as published")
+
+
+def export(ledger, key_path, output, *, check_pending=None):
     # Open both the stable lock and journal before writing even the header.
     # A missing source must never become a valid encrypted empty snapshot.
     with locked_journal(ledger) as source:
+        require_published_outbox(outbox_pending if check_pending is None else check_pending)
         key = hashlib.sha256(key_path.read_bytes()).digest()
         nonce = os.urandom(12)
         encryptor = Cipher(algorithms.AES(key), modes.GCM(nonce)).encryptor()
@@ -58,12 +78,13 @@ def export(ledger, key_path, output):
         output.write(encryptor.tag)
 
 
-def acknowledge(expected_name, expected_hash):
+def acknowledge(expected_name, expected_hash, *, check_pending=None):
     backup_directory = Path("/var/backups/schulpilot")
     # Recheck that an extant current journal can be read under the same lock;
     # a prior export is not evidence that it still exists at acknowledgement.
     with backup_lock(backup_directory, exclusive=False), locked_journal(Path("/var/lib/schulpilot/erasure-ledger.jsonl")):
         require_backup_journal(backup_directory, expected_name, expected_hash)
+        require_published_outbox(outbox_pending if check_pending is None else check_pending)
         directory = Path("/var/backups/schulpilot-monitor")
         directory.mkdir(exist_ok=True, mode=0o700)
         with tempfile.NamedTemporaryFile(mode="w", dir=directory, delete=False) as output:

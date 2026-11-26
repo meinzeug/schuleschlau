@@ -28,7 +28,8 @@ RUNTIME_ROOT = Path(__file__).resolve().parent.parent
 
 
 def command(args, **kwargs):
-    return subprocess.run(args, check=True, timeout=120, capture_output=True, **kwargs)
+    kwargs.setdefault("timeout", 120)
+    return subprocess.run(args, check=True, capture_output=True, **kwargs)
 
 
 def runtime_command(code):
@@ -92,17 +93,22 @@ def current_journal(path, check_pending=None):
         return contents
 
 
-def live_outbox_pending(config):
+def live_outbox_pending(config, *, timeout=120):
     """Read live outbox under the journal lock, without exposing its records."""
-    code = """from sqlalchemy import select
+    code = """from sqlalchemy import select,text
 from schulpilot.db import DB, ErasureRequest
 with DB() as db:
+ if db.bind.dialect.name == 'postgresql':
+  db.execute(text('SET TRANSACTION READ ONLY'))
+  db.execute(text("SET LOCAL statement_timeout = '5000ms'"))
+  db.execute(text("SET LOCAL lock_timeout = '1000ms'"))
  print('pending' if db.scalar(select(ErasureRequest.id).where(ErasureRequest.published.is_(False)).limit(1)) else 'clean')
 """
     result = command(
         runtime_command(code),
         cwd=RUNTIME_ROOT / 'backend',
         env={**config, 'PATH': '/usr/sbin:/usr/bin:/sbin:/bin'},
+        timeout=timeout,
     )
     state = result.stdout.decode().strip()
     if state not in ('clean', 'pending'):

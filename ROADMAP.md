@@ -1357,6 +1357,16 @@ Die folgenden Punkte beschreiben ausstehende, wiederholbare Betriebs- und Freiga
   ungeprüften externen Aufbewahrungsfristen nicht.
 - [ ] **P0 – Wiederherstellung praktisch üben**
 
+  - [x] **Ausstehende Löschbelege vor Offsite-Export und ACK erkennen.**
+    Unter der Journalsperre verhindert ein ausstehender oder nicht prüfbarer
+    Outboxstatus den Export beziehungsweise den ACK-Erfolgsmarker. Die
+    lesende PostgreSQL-Abfrage ist zeitlich begrenzt. 100 künstliche
+    Sicherungs- und Offsitefälle sowie ein isolierter PostgreSQL-Test mit
+    echtem Sperrkonflikt bestanden. Die bisherige ACK-Bindung an das konkret
+    exportierte Journal und die vollständige Historie bleiben offen; der
+    lokale Stand ist noch nicht ausgerollt.
+    [Prüfung](docs/OFFSITE_OUTBOX_SNAPSHOT_2026_11_26.md).
+
   - [x] **Journal und Outbox begrenzt und ohne Schreibzugriff vergleichen.**
     Ein Diagnosewerkzeug prüft Signaturen und gleicht aktuelle Belege beider
     Bestände mit begrenzten Datenbank-, Sperr- und Mengengrenzen ab. Es gibt
