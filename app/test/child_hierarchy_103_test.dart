@@ -316,16 +316,20 @@ void main() {
   }
 
   testWidgets(
-    '103 source and explicit confirmation precede secondary page maintenance',
+    '103 source review is assigned to parents before secondary page maintenance',
     (tester) async {
       final calls = <http.Request>[];
       await source.open(tester, calls);
       final confirm = find.widgetWithText(ActionButton, 'Stimmt, weiter');
       final remove = find.widgetWithText(ActionButton, 'Seite löschen');
-      expect(confirm, findsOneWidget);
+      final parentNotice = find.text(
+        'Diese Seite prüfen deine Eltern. Dein Foto ist gespeichert.',
+      );
+      expect(confirm, findsNothing);
+      expect(parentNotice, findsOneWidget);
       expect(remove, findsOneWidget);
       expect(
-        tester.getTopLeft(confirm).dy,
+        tester.getTopLeft(parentNotice).dy,
         lessThan(tester.getTopLeft(remove).dy),
       );
       expect(calls.every((r) => r.method == 'GET'), isTrue);
