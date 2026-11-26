@@ -560,18 +560,33 @@ vollständige oder fehlerfreie Erkennung ist damit nicht nachgewiesen.
 Der anschließend ausdrücklich gestartete Rundenauftrag scheiterte vor dem
 KI-Aufruf: Eine kgV-Erwähnung als Zwischenschritt für den Bruchvergleich
 aktivierte irrtümlich den Spezialplan für reine kgV-Aufgaben. Für diesen
-fehlte dessen eigene, ausdrücklich belegte Definition. Die lokale Änderung
-grenzt eindeutig als Bruchvergleich bezeichnete Quellen von diesem
-Spezialplan ab; gemischte und unklare Themen behalten die bisherige Prüfung.
-Die Generierung und die erforderlichen Grafiken müssen weiterhin gesondert
-validiert werden. Ein erfolgreicher Live-Nachtest dieser Änderung steht aus.
+fehlte dessen eigene, ausdrücklich belegte Definition. Version 1.38.163 grenzt
+eindeutig als Bruchvergleich bezeichnete Quellen von diesem Spezialplan ab;
+gemischte und unklare Themen behalten die bisherige Prüfung. Im anschließend
+bewusst gestarteten Live-Auftrag wurde die Runde erstellt und mobil geöffnet.
+Die Erklärung zeigte drei Schritte mit erkundbaren Grafiken, die zu den
+sichtbaren Beispielbrüchen passten. Ein Darstellungsfehler bleibt: Der Text
+spricht von Balken, obwohl die Grafik zunächst Kreise zeigt. Beide Formen
+können gewählt werden.
+
+Die zwei erzeugten Aufgaben prüften Bruchteil und Erweiterung, aber keinen
+vollständigen Bruchvergleich. Die Runde erfüllt das ausgewählte Thema damit
+nicht vollständig; eine geeignete, quellgebundene Aufgabenplanung für den
+konkreten Vergleich bleibt offen. Beide Testantworten wurden richtig bewertet
+und wegen der vorher geöffneten Erklärung als unterstützt gezählt. Der
+Rückblick empfahl gezieltes Weiterüben, das einmal bewusst angefordert wurde.
+Der Folgeauftrag wurde ebenfalls erstellt. Seine zwei Aufgaben prüften das
+Erweitern und den Erweiterungsfaktor; beide wurden im Test ohne Erklärung
+korrekt beantwortet und im Rückblick als selbstständig angezeigt. Auch diese
+Folgerunde enthielt noch keinen vollständigen Vergleich zweier Brüche.
 
 Im Fotoalbum wurde das seitlich angezeigte Bild durch lokales Drehen sichtbar;
 die Drehung verändert das Original und die bereits gespeicherte Erkennung
-nicht. In der aktuellen Oberfläche konnte das Bild nur nach rechts gedreht
-werden. Lokal sind nun beide Drehrichtungen vorgesehen. Für Seiten ohne
+nicht. Zuvor konnte das Bild nur nach rechts gedreht werden. Im Live-Nachtest
+ließ es sich nun mit einem Druck nach links aufrecht anzeigen. Für Seiten ohne
 verwertbaren Lerntext blendet der Vorbereitungsdialog außerdem die wirkungslose
-Aufgabenanzahl und Startaktion aus. Diese Bedienungsänderungen sind noch nicht
-live nachgeprüft. Die beiden KI-Verarbeitungsschritte des erneuten Lesens
+Aufgabenanzahl und Startaktion aus; auch das war im Live-Nachtest sichtbar.
+Der verbleibende Dialog verdeckt weiterhin einen großen Teil der mobilen Ansicht
+und sollte weiter vereinfacht werden. Die beiden KI-Verarbeitungsschritte des erneuten Lesens
 dauerten ungefähr 39 und 41 Sekunden; die In-App-Glocke zeigte eine neue
 Meldung. Eine tatsächliche Firebase-Zustellung wurde dabei nicht nachgewiesen.
