@@ -12,7 +12,7 @@ from math import gcd, lcm
 
 from .checks import expanded_fraction, fraction_instruction, fraction_parts, fraction_result
 
-VERSION = "subject_rules_v8"
+VERSION = "subject_rules_v9"
 FRACTION_COMPONENT_VERSION = "fraction_components_v1"
 FRACTION_MEANING_VERSION = "fraction_meaning_v1"
 FRACTION_COMPARISON_VERSION = "fraction_comparison_v1"
@@ -524,10 +524,16 @@ def next_multiple_in_explicit_sequence(question, answer):
     prompt, key = question.get("prompt"), question.get("answer")
     if not isinstance(prompt, str) or not isinstance(key, str) or not isinstance(answer, str):
         return None
+    # Math formatting may wrap a literal number or the semicolon-separated
+    # series in LaTeX inline delimiters. Unwrap only this finite, numeric form;
+    # arbitrary TeX, mismatched delimiters and expressions remain unrecognized.
+    plain_prompt = re.sub(
+        r"\\\(\s*(\d{1,4}(?:\s*;\s*\d{1,4}){0,7})\s*\\\)", r"\1", prompt
+    )
     match = re.fullmatch(
         r"(?:Übung:\s*)?Die Vielfachen von (\d{1,3}) beginnen mit\s*"
         r"(\d{1,4}(?:\s*;\s*\d{1,4}){2,7})\.\s*Welche Zahl kommt als Nächstes\?",
-        prompt.strip(), re.IGNORECASE,
+        plain_prompt.strip(), re.IGNORECASE,
     )
     if not match:
         return None

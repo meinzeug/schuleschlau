@@ -79,7 +79,9 @@ def test_subject_alias_still_deduplicates_an_existing_learning_path(api, househo
 
 def test_failed_visual_review_is_voluntary_but_not_the_automatic_today_step(api, household):
     from conftest import create_child
+    from schulpilot.daily_planner import period_starts
     from schulpilot.learning_origins import next_item
+    from schulpilot.schemas import Preferences
 
     parent, kid = household
     other = create_child(api, parent, username='other-review-failure')
@@ -98,8 +100,11 @@ def test_failed_visual_review_is_voluntary_but_not_the_automatic_today_step(api,
         before = learning.plan(db, child, learning_paths=[path])
         assert 'automatic_unavailable' not in next(item for item in before['voluntary'] if item['kind'] == 'review')
         db.add(Assignment(child_id=child.id, kind='parent', subject='Deutsch', topic='Lesen', mandatory=True))
+        day_start, _ = period_starts(learning.local_day(child), Preferences(**child.preferences).timezone)
+        # A job started before midnight but failing today is still today's failure.
         db.add(Job(child_id=child.id, kind='unit', status='failed', error_code='visual_unavailable',
-                   payload={'review_of': unit.id}, idempotency='visual-review-failed', created=int(now())))
+                   payload={'review_of': unit.id}, idempotency='visual-review-failed',
+                   created=day_start - 1, finished=int(now())))
         db.flush()
         result = learning.plan(db, child, learning_paths=[path])
         review = next(item for item in result['voluntary'] if item['kind'] == 'review')
@@ -115,3 +120,31 @@ def test_failed_visual_review_is_voluntary_but_not_the_automatic_today_step(api,
         recovered = learning.plan(db, child, learning_paths=[path])
         review = next(item for item in recovered['voluntary'] if item['kind'] == 'review')
         assert 'automatic_unavailable' not in review
+
+
+def test_duplicate_material_failure_is_scoped_to_child_source_revision_and_today(api, household):
+    from schulpilot.learning_origins import next_item
+    from schulpilot.unit_novelty import DUPLICATE_ERROR
+
+    _, kid = household
+    with DB.begin() as db:
+        child = db.get(Child, kid['id'])
+        child.preferences = {'weekdays': list(range(7)), 'daily_minutes': 30}
+        page = Material(child_id=child.id, title='Künstliches Blatt', subject='Biologie', topic='Bienen',
+                        content='Bienen sind Insekten.', confirmed=True, status='confirmed')
+        db.add(page)
+        db.flush()
+        db.add(Job(child_id=child.id, kind='unit', status='failed', error_code='unknown', error=DUPLICATE_ERROR,
+                   payload={'material_id': page.id, 'material_revision': page.revision},
+                   idempotency='duplicate-material-failed', created=int(now()), finished=int(now())))
+        db.flush()
+        result = learning.plan(db, child, learning_paths=[])
+        item = next(item for item in result['voluntary'] if item['kind'] == 'material' and item['id'] == page.id)
+        assert item['automatic_unavailable'] is True
+        assert all(item['id'] != page.id for item in result['today'])
+        assert next_item(result) is None or next_item(result)['id'] != page.id
+        page.revision += 1
+        db.flush()
+        refreshed = learning.plan(db, child, learning_paths=[])
+        item = next(item for item in refreshed['voluntary'] if item['kind'] == 'material' and item['id'] == page.id)
+        assert 'automatic_unavailable' not in item

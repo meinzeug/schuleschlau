@@ -894,21 +894,29 @@ def plan(db, child, *, learning_paths=None, include_language=True):
         )
     if learning_paths is None:
         learning_paths = paths(db, child.id)
-    # A missing checked visual is deterministic for the current attempt. Do
-    # not offer that review as the automatic next step repeatedly today. Keep
-    # it in voluntary choices, and never suppress a parent's mandatory task.
-    latest_reviews = {}
-    for payload, status, code in db.execute(
-        select(Job.payload, Job.status, Job.error_code)
-        .where(Job.child_id == child.id, Job.kind == "unit", Job.created >= start)
+    # After a checked-visual or duplicate-output failure, avoid automatically
+    # offering the same source/review again today. Voluntary choices and
+    # mandatory parent tasks remain available; source revisions stay distinct.
+    from .unit_novelty import DUPLICATE_ERROR
+
+    latest_reviews, latest_materials = {}, {}
+    for payload, status, code, failure in db.execute(
+        select(Job.payload, Job.status, Job.error_code, Job.error)
+        .where(Job.child_id == child.id, Job.kind == "unit",
+               or_(Job.created >= start, Job.finished >= start, Job.status.in_(("queued", "running"))))
         # Timestamps have one-second precision. In the unlikely tie, a
         # completed or active retry takes precedence over an older failure.
-        .order_by(Job.created, case((Job.status.in_(("queued", "running", "completed")), 1), else_=0), Job.id)
+        .order_by(func.coalesce(Job.finished, Job.created),
+                  case((Job.status.in_(("queued", "running", "completed")), 1), else_=0), Job.id)
     ):
         if isinstance(payload, dict) and isinstance(payload.get("review_of"), str):
             latest_reviews[payload["review_of"]] = (status, code)
+        elif (isinstance(payload, dict) and isinstance(payload.get("material_id"), str)
+              and type(payload.get("material_revision")) is int and not payload.get("assignment_id")):
+            latest_materials[(payload["material_id"], payload["material_revision"])] = (status, failure)
     unavailable_reviews = {unit_id for unit_id, result in latest_reviews.items()
                            if result == ("failed", "visual_unavailable")}
+    unavailable_materials = {key for key, result in latest_materials.items() if result == ("failed", DUPLICATE_ERROR)}
     for path in learning_paths:
         if path["next_unit_id"] or not path["next_review"]:
             continue
@@ -975,6 +983,7 @@ def plan(db, child, *, learning_paths=None, include_language=True):
                     "mandatory": False,
                     "status": "not_started",
                     "estimated_minutes": min(8, prefs.session_minutes, prefs.daily_minutes),
+                    **({"automatic_unavailable": True} if (m.id, m.revision) in unavailable_materials else {}),
                 }
             )
     blocked_study_paths = []
@@ -1028,7 +1037,8 @@ def plan(db, child, *, learning_paths=None, include_language=True):
             if material and not any(u.status != "completed" and u.material_id == material.id for u in units):
                 candidates.append({"kind": "material", "id": material.id, "topic": material.topic,
                                    "subject": material.subject, "mandatory": False, "status": "ready",
-                                   "estimated_minutes": min(8, prefs.session_minutes, prefs.daily_minutes)})
+                                   "estimated_minutes": min(8, prefs.session_minutes, prefs.daily_minutes),
+                                   **({"automatic_unavailable": True} if (material.id, material.revision) in unavailable_materials else {})})
     from .vocabulary import summary as vocabulary_summary
 
     words = vocabulary_summary(db, child)
@@ -1118,6 +1128,7 @@ def plan(db, child, *, learning_paths=None, include_language=True):
                 "status": "ready",
                 "estimated_minutes": min(8, prefs.session_minutes),
                 "reason": "material",
+                **({"automatic_unavailable": True} if (material.id, material.revision) in unavailable_materials else {}),
             }
         )
     optional.sort(key=lambda item: (

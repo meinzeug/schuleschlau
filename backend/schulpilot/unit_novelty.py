@@ -14,6 +14,7 @@ from .providers import ProviderError
 
 CONTEXT_QUESTIONS = 80
 CONTEXT_CHARACTERS = 12_000
+DUPLICATE_ERROR = "Die neue Heft-Runde wiederholt eine bereits gestellte Frage. Deine bisherigen Antworten bleiben erhalten."
 _SPECIAL = ("review_of", "homework_practice", "exam_round_id", "exam_review_practice")
 
 
@@ -123,7 +124,7 @@ def validate_output(db, child_id, sources, data):
         signature = normalized_prompt(prompt)
         arithmetic = fraction_task_signature(prompt) if mathematical else None
         if signature in seen or (arithmetic is not None and arithmetic in numbers):
-            raise ProviderError("Die neue Heft-Runde wiederholt eine bereits gestellte Frage. Deine bisherigen Antworten bleiben erhalten.")
+            raise ProviderError(DUPLICATE_ERROR)
         seen.add(signature)
         if arithmetic is not None:
             numbers.add(arithmetic)

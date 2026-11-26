@@ -280,5 +280,31 @@ freiwillige Auswahl bleibt erhalten; andere Themen und verbindliche
 Elternaufträge bleiben wählbar. Ein später erfolgreicher Auftrag hebt die
 Markierung auf. Außerdem heißen der Weg zur Fachauswahl nun „Zum Lernen“ und
 die technische Metadatenansicht „Details ansehen“ mit einem kurzen Hinweis zum
-gespeicherten Stand. Diese Änderungen sind vor dem nächsten Release lokal und
-mit künstlichen Tests geprüft; der Live-Nachtest steht noch aus.
+gespeicherten Stand. Diese Änderungen wurden mit künstlichen Tests geprüft und
+als Version 1.38.157 veröffentlicht. Im mobilen Live-Browser erschien nach dem
+Fehler zunächst eine andere Biologie-Wiederholung; auch diese scheiterte vor
+einem Anbieteraufruf an einer fehlenden Grafik. Danach wurde ein anderer
+Biologie-Lernschritt vorgeschlagen. Sein echter KI-Auftrag scheiterte an der
+bestehenden Wiederholungsprüfung, weil eine Frage bereits gestellt worden war.
+Die Aufgabe wurde nicht als neue Übung gespeichert. Es wurde kein automatischer
+Wiederholungsversuch ausgelöst. Die Ursachen sind noch offen.
+
+Die frühere absichtlich falsche Testantwort zur Vielfachenreihe wurde über den
+vorgesehenen Knopf explizit nachgeprüft, blieb aber zunächst „unklar“. Die
+Prüfregel erkannte das gleiche Zahlenformat nicht, wenn die KI es mit
+LaTeX-Inline-Klammern speichert. Eine lokale Korrektur berücksichtigt nur
+vollständige Zahlen und Semikolonreihen innerhalb solcher Klammern und prüft
+Reihe und Musterlösung weiterhin rechnerisch. Sie erhöht die Regelversion,
+damit eine ausdrückliche erneute Bewertung frühere Einschätzungen als Historie
+erhält. Eine rein lesende Trockenprüfung anhand der freigegebenen Testfrage
+und Testantwort erkennt damit die Antwort als falsch; sie ändert keine
+gespeicherten Bewertungen. Der reale Nachtest dieser neuen Regel steht bis zu
+ihrer nächsten Veröffentlichung aus.
+
+Eine weitere lokale Änderung berücksichtigt beim Tageswechsel auch Aufträge,
+die vor Mitternacht gestartet und danach fehlgeschlagen sind. Zudem wird bei
+einem exakt erkannten Fehler wegen einer wiederholten KI-Frage dieselbe
+Materialrevision für den laufenden Tag nicht erneut automatisch vorgeschlagen;
+die bewusste Auswahl und neue Quellenrevisionen bleiben möglich. Künstliche
+Regressionen prüfen diese Grenzen. Die KI-Generierung der Biologie-Runde und
+die fehlenden Fachgrafiken sind damit noch nicht repariert.
