@@ -341,6 +341,9 @@ def test_standalone_two_separate_saved_reserved_passes_and_idempotent_restart(pi
             )
         )
         assert [v.cause for v in versions] == ["extraction", "auto_check_reading", "auto_check"]
+        for version in versions[:2]:
+            assert version.receipt["factual_validation"] == "not_assessed"
+            assert version.receipt["literal_checks"] == "applied_when_projecting_learning_source"
         assert versions[2].receipt["first_snapshot_id"] == versions[0].id
         assert versions[2].receipt["second_snapshot_id"] == versions[1].id
         assert versions[2].receipt["base_prompt_digest"] == hashlib.sha256(review.CHECK_SYSTEM.encode()).hexdigest()

@@ -108,6 +108,23 @@ def test_tutor_payload_omits_false_unit_conversion_without_rewriting_source(tuto
         assert db.scalar(select(func.count()).select_from(Attempt)) == 0
 
 
+def test_tutor_payload_omits_false_lcm_without_rewriting_source(tutor_notebook, transport):
+    good = "Das kleinste gemeinsame Vielfache ist ein gemeinsames Vielfaches."
+    with DB.begin() as db:
+        material = db.get(Material, tutor_notebook["material_id"])
+        set_blocks(material, [{"kind": "paragraph", "text": good},
+                              {"kind": "paragraph", "text": "kgV(20,80)=160"}])
+        original = material.content
+    assert ask(tutor_notebook).status_code == 202
+    finish()
+    payload = transport["calls"][0]
+    assert payload["sources"][0]["content"] == good
+    assert payload["sources"][0]["source_policy"]["excluded_reasons"] == ["false_gcd_lcm"]
+    with DB() as db:
+        assert db.get(Material, tutor_notebook["material_id"]).content == original
+        assert db.scalar(select(func.count()).select_from(Attempt)) == 0
+
+
 def test_tutor_payload_excludes_embedded_false_calculation_without_changing_source(tutor_notebook, transport):
     good = "Ein Bruch beschreibt Teile eines Ganzen."
     unsafe = "Berechne: 3/10 mal 5/12 = 30/58"

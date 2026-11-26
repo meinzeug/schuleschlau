@@ -10,6 +10,7 @@ import copy
 import hashlib
 import io
 import json
+import math
 import re
 from fractions import Fraction
 from types import SimpleNamespace
@@ -21,7 +22,7 @@ from .db import Job, LearningUnit, UnitSource, Usage
 from .source_lineage_models import SourceImageReceipt, SourceInvalidation, SourceRevision
 from .subject_content import SourceBlock
 
-POLICY_VERSION = "literal-safety-6"
+POLICY_VERSION = "literal-safety-7"
 PREPROCESS_VERSION = "exif-rgb-max3200-jpeg95-1"
 AUTO_CONFLICT_SUMMARY = "Abweichender Schüler-/Korrekturbereich bleibt ungeklärt."
 AUTO_CONFLICT_LOCAL = "Die beiden Abschriften dieses Schüler-/Korrekturbereichs unterscheiden sich; Original erhalten."
@@ -36,6 +37,7 @@ REASONS = {
     "false_equality": "Diese wörtliche rationale Gleichung ist rechnerisch falsch; sie bleibt im Original erhalten.",
     "false_divisibility": "Diese wörtliche Teilbarkeitsaussage ist rechnerisch falsch; sie bleibt im Original erhalten.",
     "false_unit_conversion": "Diese wörtliche Einheitenumrechnung ist rechnerisch falsch; sie bleibt im Original erhalten.",
+    "false_gcd_lcm": "Diese wörtliche ggT-/kgV-Angabe ist rechnerisch falsch; sie bleibt im Original erhalten.",
     "unstructured_annotations": "Die Abschrift enthält nicht mehr zuordenbare Quellenmarkierungen.",
 }
 
@@ -184,6 +186,35 @@ def false_divisibility(text):
         else:
             continue
         if divisor and (dividend % divisor == 0) != says_divides:
+            return True
+    return False
+
+
+_GCD_LCM = re.compile(
+    r"\s*(ggT|kgV)\s*\(\s*([0-9]{1,7})\s*[,;]\s*([0-9]{1,7})\s*\)\s*=\s*([0-9]{1,14})\s*[.!]?\s*",
+    re.IGNORECASE,
+)
+
+
+def false_gcd_lcm(text):
+    """Recognize complete, explicit positive-integer ggT/kgV equations only.
+
+    Notation with variables, calculations, zero or surrounding explanation is
+    unassessed. A positive result quarantines the literal block; it never
+    rewrites a pupil's work or proves that its transcription is faithful.
+    """
+    for line in text.splitlines():
+        if len(line) > 160:
+            continue
+        match = _GCD_LCM.fullmatch(line)
+        if not match:
+            continue
+        operation, first, second, claimed = match.groups()
+        first, second, claimed = int(first), int(second), int(claimed)
+        if not first or not second:
+            continue
+        actual = math.gcd(first, second) if operation.casefold() == "ggt" else math.lcm(first, second)
+        if actual != claimed:
             return True
     return False
 
@@ -491,6 +522,8 @@ def learning_source(db, material, revision=None):
             blocked = "false_divisibility"
         if not blocked and false_unit_conversion(block["text"]):
             blocked = "false_unit_conversion"
+        if not blocked and false_gcd_lcm(block["text"]):
+            blocked = "false_gcd_lcm"
         if not blocked and block.get("literal_role") == "student_work":
             blocked = "student_work"
         if not blocked and (
@@ -581,7 +614,8 @@ def extraction_receipt(db, job, config, image_bytes, result=None):
         "effective_request": getattr(result, "request_receipt", None) or {"status": "not_reported"},
         "configured_max_output_tokens": config.get("max_output_tokens"),
         "metrics": metrics,
-        "factual_validation": "finite_exact_rationals_only",
+        "factual_validation": "not_assessed",
+        "literal_checks": "applied_when_projecting_learning_source",
         "policy_version": POLICY_VERSION,
     }
 

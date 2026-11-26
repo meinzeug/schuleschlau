@@ -757,6 +757,16 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – OCR anhand vollständig referenzierter künstlicher Seiten prüfen**
 
+  - [x] **Eindeutig falsche ggT-/kgV-Angaben als Lernstoff ausschließen.**
+    Der begrenzte lokale Check erkennt vollständige Gleichungen wie
+    `kgV(20,80)=160` und bewahrt den ursprünglichen Text. Gegenlesungen bleiben
+    an ihre gespeicherte Regelversion gebunden; unklare Schreibweisen werden
+    nicht geraten. Schulbuddy und Lernwege erhalten nur die weiterhin sichere
+    Quellenprojektion. Neue Lesebelege behaupten keine vollständige fachliche
+    Prüfung. Je 150 künstliche SQLite- und PostgreSQL-Fälle bestanden; die
+    vollständige OCR-Abnahme und das Ausrollen bleiben offen.
+    [Grenzen](docs/GCD_LCM_SOURCE_SAFETY_2026_11_26.md).
+
   - [x] **Eindeutig falsche Einheitenumrechnungen von Lernquellen trennen.**
     Der lokale Check erkennt vollständige, eindeutig falsche Aussagen wie
     `⅔ Minute = 60 Sekunden` für unterstützte Zeit-, Längen-, Masse- und

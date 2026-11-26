@@ -61,9 +61,9 @@ def test_read_and_import_do_not_change_learning_or_start_ai(api, household):
 
 
 def test_ai_planning_retains_source_and_band_scope(api, household):
-    from test_curriculum import save
     from schulpilot.db import Material
     from schulpilot.visual_references import with_visual_context
+    from test_curriculum import save
     child_id = household[1]['id']
     save(api, household, state_code='DE-ST', school_form_id='de-st.sekundarschule', grade=9)
     with DB.begin() as db:

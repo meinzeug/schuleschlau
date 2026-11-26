@@ -330,8 +330,7 @@ def test_buddy_intro_cannot_bypass_pending_entry_probe_redaction(api, household)
 
 
 def test_late_curriculum_profile_change_rejects_new_unit_but_preserves_existing_history(api, household, monkeypatch):
-    from schulpilot import worker
-    from schulpilot import curriculum
+    from schulpilot import curriculum, worker
     from test_curriculum import package as synthetic_curriculum
     from test_curriculum import save as save_curriculum
     from test_providers import configured
