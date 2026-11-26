@@ -53,7 +53,8 @@ with engine.connect() as connection:
 try:
     command.downgrade(config, '0046')
 except RuntimeError as error:
-    assert 'Private diagnostic retention requires an explicit forward correction' in str(error)
+    # Current curriculum guard stops this downgrade before older revisions.
+    assert 'Published curriculum evidence requires a forward correction' in str(error)
 else:
     raise AssertionError('published curriculum downgrade must fail closed')
 with engine.connect() as connection:
