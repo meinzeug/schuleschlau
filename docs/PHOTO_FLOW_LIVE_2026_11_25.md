@@ -93,6 +93,18 @@ Abschriften oder Aufgabenantworten und verbessert die Bildausrichtung für
 die KI-Erkennung nicht automatisch. Eine verlässliche automatische
 Ausrichtung für Fotos mit seitlichem Text bleibt ein eigener offener Punkt.
 
+Bei der konkreten neuen Seite enthielt die Abschrift zehn Blöcke. Zwei der
+vier Seitenhinweise waren keinem Block wortgleich zugeordnet; deshalb wurden
+konservativ alle zehn Blöcke vom Lernen ausgeschlossen. Im sichtbaren
+Hinweis ging es unter anderem um ein Seitenkennzeichen und ein Satzzeichen;
+die Anzeige allein belegt jedoch nicht, dass die unzugeordneten Warnungen
+ausschließlich diese Stellen betreffen. Die bestehende Seite wurde daher
+nicht automatisch freigegeben. Der KI-Abschreibauftrag wurde lokal präzisiert:
+eindeutig zuordenbare Lesestellen sollen am jeweiligen Block und gegebenenfalls
+wortgleich in der Seitenliste stehen; nicht sicher zuordenbare Hinweise bleiben
+seitenweit. Das ist eine Modellanweisung, keine Garantie. Ein echter Nachtest
+mit der geänderten Version und dieser Quelle steht noch aus.
+
 Im ausdrücklich freigegebenen Kinderkonto wurde eine reale Mathematikseite
 über die mobile Weboberfläche bei 390 × 844 Pixeln ausgewählt, ausgerichtet und
 abgegeben. Die Originaldatei und weitere private Heftinhalte liegen außerhalb

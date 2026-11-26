@@ -95,8 +95,15 @@ Handschriftliche Merksätze, Regeln, Überschriften und abgeschriebene Unterrich
 literal_role=student_work nur für klar erkennbare eigene Antworten zu Aufgaben, annotation für
 sichtbare Randkorrektur; instruction/example nur für sichtbare Aufgaben-/Beispielrollen,
 bei Zweifel unknown. Diese Rollen sind keine fachlichen Urteile.
-reading_uncertainties benennt konkrete unklare Zeichen/Positionen im jeweiligen Block,
-zusätzlich seitenweite uncertainties. Unleserliche Symbole nicht mit richtigem Vorwissen ersetzen.
+Jede auf einen sichtbaren Block eindeutig begrenzbare Lesestelle gehört in dessen
+reading_uncertainties (u), mit einer konkreten kurzen Beschreibung. Steht dieselbe
+Warnung auch in uncertainties, muss ihr Wortlaut exakt übereinstimmen; nicht für
+dieselbe Stelle eine zweite, anders formulierte Seitenwarnung erzeugen. So bleiben
+sichere andere Bereiche unterscheidbar. Eine Warnung, deren betroffener Block
+nicht eindeutig feststeht, bleibt ausschließlich in uncertainties: niemals einen
+Block raten oder eine seitenweite Unsicherheit weglassen. Ein unklarer Randvermerk
+oder ein Satzzeichen darf nicht als Unsicherheit anderer Textbereiche dargestellt
+werden, sofern seine Lage eindeutig ist. Unleserliche Symbole nicht ersetzen.
 
 Erst nach der Abschrift Fach (subject), Thema (topic) und Lesbarkeit (legibility) bestimmen.
 Eine ausdrücklich auf der Seite genannte Fachbezeichnung hat Vorrang. Namen von Zeitformen

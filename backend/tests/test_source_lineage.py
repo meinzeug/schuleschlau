@@ -112,6 +112,25 @@ def test_global_unknowns_and_detached_annotations_cannot_become_groundtruth():
     assert block_data(page(good, revision=2))[0]["block_id"] != block_data(page(good))[0]["block_id"]
 
 
+def test_local_transcription_warning_preserves_other_blocks_but_unknown_page_warning_does_not():
+    blocks = [
+        dict(kind='heading', text='Seitenkennzeichen A1', reading_uncertainties=['Zeichen im Kennzeichen unklar.']),
+        dict(kind='paragraph', text='Künstliche Regel: Zwei Mengen lassen sich vergleichen.'),
+    ]
+    value = TranscriptionOutput(blocks=blocks, legibility='partial', subject='Mathematik',
+        topic='Künstlicher Test', uncertainties=[], homework=[]).as_material()
+    saved = page(value['source_blocks'], content=value['content'], uncertainties=value['uncertainties'])
+    safe = learning_source(None, saved)
+    assert safe['content'] == blocks[1]['text']
+    assert [entry['reason'] for entry in safe['exclusions']] == ['reading_uncertain']
+    assert saved.content == value['content']
+    # A separate, unassigned warning is not inferred to describe that heading.
+    saved.uncertainties = [*value['uncertainties'], 'Eine weitere Stelle auf der Seite ist unklar.']
+    blocked = learning_source(None, saved)
+    assert blocked['content'] == ''
+    assert len(blocked['exclusions']) == 2
+
+
 def test_transcription_keeps_wrong_answer_red_correction_and_all_roles_separate():
     blocks = [
         dict(
