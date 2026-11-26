@@ -204,7 +204,7 @@ void main() {
       parent: true,
     );
     await tap(tester, find.byTooltip('Weitere Rundenaktionen'));
-    expect(find.text('Details ohne Start'), findsOneWidget);
+    expect(find.text('Details ansehen'), findsOneWidget);
     expect(find.text('Lernrunde löschen'), findsNothing);
     await tester.pumpWidget(const SizedBox());
   });

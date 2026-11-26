@@ -408,7 +408,7 @@ class _LearningPreparationScreenState extends State<_LearningPreparationBody>
                   )
                 else if (missingJob)
                   ActionButton(
-                    label: 'Gespeicherte Runden ansehen',
+                    label: 'Zum Lernen',
                     icon: Icons.auto_stories_outlined,
                     onPressed: () async {
                       if (sameOwner) {
@@ -433,7 +433,7 @@ class _LearningPreparationScreenState extends State<_LearningPreparationBody>
                       }
                     },
                     icon: Icon(Icons.auto_stories_outlined),
-                    label: Text('Gespeicherte Runden ansehen'),
+                    label: Text('Zum Lernen'),
                   ),
                 ],
                 if (widget.state.isParent && job?['id'] is String)

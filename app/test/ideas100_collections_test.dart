@@ -124,9 +124,12 @@ void main() {
     t,
   ) async {
     final (state, calls) = await collection(t);
-    await roundAction(t, 'm0', 'Details ohne Start');
+    await roundAction(t, 'm0', 'Details ansehen');
     expect(find.text('Gespeicherte Rundendetails'), findsOneWidget);
-    expect(find.textContaining('Metadatenansicht'), findsOneWidget);
+    expect(
+      find.text('Hier siehst du den gespeicherten Stand.'),
+      findsOneWidget,
+    );
     expect(calls.every((r) => r.method == 'GET'), isTrue);
     expect(calls.any((r) => r.url.path.contains('/start')), isFalse);
     state.api.token = 'changed';

@@ -62,7 +62,7 @@ void main() {
         await t.pump(const Duration(seconds: 9));
         expect(calls.where((q) => q.url.path == '/api/jobs/job'), hasLength(1));
         expect(calls.every((q) => q.method == 'GET'), isTrue);
-        await f.tap(t, find.text('Gespeicherte Runden ansehen'));
+        await f.tap(t, find.text('Zum Lernen'));
         expect(router.state.uri.path, '/learn/child');
         expect(find.text('Gespeicherte Runden'), findsOneWidget);
         expect(calls.where((q) => q.url.path == '/api/jobs/job'), hasLength(1));

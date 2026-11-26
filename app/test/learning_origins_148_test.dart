@@ -3,6 +3,35 @@ import 'package:schulpilot/learning_navigation.dart';
 
 void main() {
   test(
+    'a failed review remains voluntary but is not automatically selected',
+    () {
+      final unavailable = {
+        'kind': 'review',
+        'id': 'failed',
+        'status': 'not_started',
+        'automatic_unavailable': true,
+      };
+      final alternative = {
+        'kind': 'material',
+        'id': 'next',
+        'status': 'not_started',
+      };
+      final data = <String, dynamic>{
+        'next_learning_item': unavailable,
+        'plan': {
+          'date': '2026-10-27',
+          'today': [alternative],
+          'voluntary': [unavailable, alternative],
+        },
+      };
+      expect(nextLearningItem(data)?['id'], 'next');
+      data['plan']['today'] = [];
+      data['plan']['voluntary'] = [unavailable];
+      expect(nextLearningItem(data), isNull);
+    },
+  );
+
+  test(
     'saved follow-up wins over a new review; active and mandatory stay first',
     () {
       final review = {'kind': 'review', 'id': 'old', 'status': 'not_started'};

@@ -109,6 +109,22 @@ def test_voluntary_steps_keep_source_order_and_real_future_dates():
     assert not any(key.startswith("_") for item in ready for key in item)
 
 
+def test_unavailable_review_is_not_automatic_today_but_remains_a_voluntary_choice():
+    from schulpilot.learning_origins import next_item
+
+    today = date(2026, 10, 12)
+    prefs = Preferences(weekdays=list(range(7)), daily_minutes=20, weekly_minutes=100)
+    blocked = step(1, kind="review", automatic_unavailable=True)
+    alternative = step(2, kind="material")
+    plan = distribute([blocked, alternative], prefs, today)
+    assert [item['id'] for item in plan['today']] == ['2']
+    voluntary = voluntary_steps([blocked, alternative], today)
+    assert [item['id'] for item in voluntary] == ['1', '2']
+    assert next_item({'date': today.isoformat(), 'today': plan['today'], 'voluntary': voluntary})['id'] == '2'
+    assert next_item({'date': today.isoformat(), 'today': [], 'voluntary': voluntary[:1]}) is None
+    assert any(item['id'] == '1' for day in plan['week'][1:] for item in day['items'])
+
+
 def test_completed_material_offers_normal_optional_practice_without_early_review(api):
     from test_learning import child_client, prepared
 

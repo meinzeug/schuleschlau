@@ -262,3 +262,23 @@ Erweiterungsaufgaben wurden ohne weitere Hinweise richtig beantwortet und als
 selbstständig gezählt. Der folgende KI-Rückblick empfahl eine spätere
 Wiederholung. Das ist ein einzelner getesteter Ablauf und kein Beleg für einen
 vollständigen 30-Tage-Test oder langfristigen Lernerfolg.
+
+## Fortsetzung: vorgeschlagene Wiederholung
+
+Im mobilen Live-Browser wurde die auf „Heute“ vorgeschlagene Wiederholung zu
+einfachen Vielfachen gestartet. Der reguläre Auftrag scheiterte vor einem
+Anbieteraufruf mit `visual_unavailable`: Die vorhandene geprüfte kgV-Grafik
+ist für das kleinste gemeinsame Vielfache ausgelegt, nicht für diese einzelne
+Vielfachenreihe. Bereits vorhandene Runden und Heftseiten blieben verfügbar.
+Ein fachlich geprüfter Darstellungsweg für diese Wiederholung fehlt weiterhin;
+die Grafikprüfung wurde nicht abgeschaltet und ein erfolgreicher KI-Aufruf
+nicht behauptet.
+
+Der lokale Tagesplan blendet nach diesem belegten Fehler nur die automatische
+Empfehlung derselben Wiederholung für den restlichen lokalen Tag aus. Die
+freiwillige Auswahl bleibt erhalten; andere Themen und verbindliche
+Elternaufträge bleiben wählbar. Ein später erfolgreicher Auftrag hebt die
+Markierung auf. Außerdem heißen der Weg zur Fachauswahl nun „Zum Lernen“ und
+die technische Metadatenansicht „Details ansehen“ mit einem kurzen Hinweis zum
+gespeicherten Stand. Diese Änderungen sind vor dem nächsten Release lokal und
+mit künstlichen Tests geprüft; der Live-Nachtest steht noch aus.

@@ -31,7 +31,8 @@ Json? nextLearningItem(Json data, {String? excludeUnitId}) {
   ]) {
     if (raw is! Map) continue;
     final item = Json.from(raw);
-    if (!planItemDue(plan, item) ||
+    if (item['automatic_unavailable'] == true ||
+        !planItemDue(plan, item) ||
         item['kind'] == 'unit' && item['id'] == excludeUnitId ||
         item['status'] == 'completed' ||
         !seen.add('${item['kind']}:${item['id']}')) {

@@ -690,7 +690,7 @@ class _PagedCollectionState extends State<_PagedCollectionBody> {
       ),
       const SizedBox(height: 12),
       Text(
-        'Gespeicherter Zustand: ${item['status'] == null ? 'nicht gemeldet' : statusLabel(item['status'])}',
+        'Stand: ${item['status'] == null ? 'nicht gemeldet' : statusLabel(item['status'])}',
       ),
       if (item['question_count'] is num)
         Text(
@@ -703,9 +703,7 @@ class _PagedCollectionState extends State<_PagedCollectionBody> {
           'Gespeichert am ${DateFormat('dd.MM.yyyy HH:mm').format(DateTime.fromMillisecondsSinceEpoch((item['created'] as num).toInt() * 1000).toLocal())}',
         ),
       const SizedBox(height: 12),
-      const Text(
-        'Metadatenansicht · startet keine Runde und erzeugt keine Lernbelege.',
-      ),
+      const Text('Hier siehst du den gespeicherten Stand.'),
     ],
   );
   Future<void> roundDetails(Json item) async {
@@ -1639,7 +1637,7 @@ class _PagedCollectionState extends State<_PagedCollectionBody> {
               ),
             ]
           : [
-              entry('details', 'Details ohne Start', Icons.info_outline),
+              entry('details', 'Details ansehen', Icons.info_outline),
               if (shown['kind'] == 'unit') ...[
                 entry(
                   'bookmark',

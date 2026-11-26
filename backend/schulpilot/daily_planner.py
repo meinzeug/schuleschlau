@@ -102,6 +102,11 @@ def distribute(candidates, prefs, today, *, daily_seconds=0, weekly_seconds=0, c
             for item in pending:
                 if item.get("_deferred"):
                     continue
+                # Do not immediately send the child back into the same known
+                # unavailable review today. It remains a voluntary choice and
+                # is eligible again on a later day.
+                if offset == 0 and item.get("automatic_unavailable"):
+                    continue
                 if item.get("scheduled_for") and item["scheduled_for"] > day.isoformat():
                     continue
                 if item.get("not_before") and item["not_before"] > day.isoformat():

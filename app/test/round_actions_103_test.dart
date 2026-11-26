@@ -134,7 +134,7 @@ void main() {
       );
       expect(tiles, hasLength(3));
       expect(tiles.every((tile) => tile.dense == true), isTrue);
-      expect(find.text('Details ohne Start'), findsNothing);
+      expect(find.text('Details ansehen'), findsNothing);
       expect(find.byTooltip('Lernrunde löschen'), findsNothing);
       expect(find.byTooltip('Für diesen Besuch merken'), findsNothing);
       expect(find.text('0 von 4 Aufgaben · Nicht begonnen'), findsWidgets);
@@ -164,7 +164,10 @@ void main() {
       expect(discover, findsOneWidget);
       expect(calls, hasLength(1));
       await c.tap(tester, discover);
-      expect(find.text('Öffentliche Lernideen /discover/child'), findsOneWidget);
+      expect(
+        find.text('Öffentliche Lernideen /discover/child'),
+        findsOneWidget,
+      );
       expect(calls, hasLength(1));
       expect(tester.takeException(), isNull);
     },
@@ -175,7 +178,7 @@ void main() {
   ) async {
     final (_, _, calls) = await openRounds(tester);
     await c.tap(tester, roundMenu('m0'));
-    expect(find.text('Details ohne Start'), findsOneWidget);
+    expect(find.text('Details ansehen'), findsOneWidget);
     expect(find.text('Für diesen Besuch merken'), findsOneWidget);
     expect(find.text('Runde für Themenvergleich auswählen'), findsOneWidget);
     expect(find.text('Lernrunde löschen'), findsOneWidget);
@@ -187,7 +190,7 @@ void main() {
     expect(find.text('1 von 2 Runden im Themenvergleich'), findsNothing);
     expect(calls, hasLength(1));
     await c.tap(tester, roundMenu('m0'));
-    await c.tap(tester, find.text('Details ohne Start'));
+    await c.tap(tester, find.text('Details ansehen'));
     expect(find.text('Gespeicherte Rundendetails'), findsOneWidget);
     expect(find.text('0 von 4 Aufgaben abgeschlossen'), findsOneWidget);
     expect(calls, hasLength(1));
@@ -198,7 +201,7 @@ void main() {
   ) async {
     final (_, _, calls) = await openRounds(tester, grouped: true);
     await c.tap(tester, roundMenu('m0'));
-    await c.tap(tester, find.text('Details ohne Start'));
+    await c.tap(tester, find.text('Details ansehen'));
     expect(find.text('Deutsch · Runde 1'), findsOneWidget);
     expect(calls, hasLength(1));
   });
@@ -266,7 +269,7 @@ void main() {
         router.pop();
         await tester.pumpAndSettle();
       }
-      expect(find.text('Details ohne Start'), findsNothing);
+      expect(find.text('Details ansehen'), findsNothing);
       expect(find.text('Gespeicherte Rundendetails'), findsNothing);
       expect(find.text('Für diesen Besuch gemerkt (1/12)'), findsNothing);
       expect(find.text('1 von 2 Runden im Themenvergleich'), findsNothing);

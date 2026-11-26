@@ -30,10 +30,7 @@ void main() {
       if (response.$1 == 404) {
         expect(find.text('Vorbereitung nicht gefunden.'), findsOneWidget);
         expect(find.text('Status neu laden'), findsNothing);
-        expect(
-          find.widgetWithText(FilledButton, 'Gespeicherte Runden ansehen'),
-          findsOneWidget,
-        );
+        expect(find.widgetWithText(FilledButton, 'Zum Lernen'), findsOneWidget);
         expect(find.text('Zur Startseite'), findsOneWidget);
       } else {
         expect(find.text('Status neu laden'), findsOneWidget);
@@ -71,12 +68,14 @@ void main() {
     await tester.pump();
     expect(find.text('Deine Runde wartet.'), findsOneWidget);
     expect(
-      find.text('Deine Lernhilfe bereitet passende Aufgaben vor. Du kannst später zurückkommen.'),
+      find.text(
+        'Deine Lernhilfe bereitet passende Aufgaben vor. Du kannst später zurückkommen.',
+      ),
       findsOneWidget,
     );
     expect(find.text('Zur Startseite'), findsOneWidget);
     expect(find.text('Status neu laden'), findsNothing);
-    expect(find.text('Gespeicherte Runden ansehen'), findsNothing);
+    expect(find.text('Zum Lernen'), findsNothing);
     expect(requests, hasLength(1));
     expect(requests.single.method, 'GET');
   });
@@ -116,8 +115,8 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.text('Status neu laden'), findsOneWidget);
-      await tester.ensureVisible(find.text('Gespeicherte Runden ansehen'));
-      await tester.tap(find.text('Gespeicherte Runden ansehen'));
+      await tester.ensureVisible(find.text('Zum Lernen'));
+      await tester.tap(find.text('Zum Lernen'));
       await tester.pumpAndSettle();
       expect(find.text('Gespeicherte künstliche Runden'), findsOneWidget);
       expect(requests, hasLength(1));

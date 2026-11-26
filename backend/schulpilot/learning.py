@@ -894,6 +894,21 @@ def plan(db, child, *, learning_paths=None, include_language=True):
         )
     if learning_paths is None:
         learning_paths = paths(db, child.id)
+    # A missing checked visual is deterministic for the current attempt. Do
+    # not offer that review as the automatic next step repeatedly today. Keep
+    # it in voluntary choices, and never suppress a parent's mandatory task.
+    latest_reviews = {}
+    for payload, status, code in db.execute(
+        select(Job.payload, Job.status, Job.error_code)
+        .where(Job.child_id == child.id, Job.kind == "unit", Job.created >= start)
+        # Timestamps have one-second precision. In the unlikely tie, a
+        # completed or active retry takes precedence over an older failure.
+        .order_by(Job.created, case((Job.status.in_(("queued", "running", "completed")), 1), else_=0), Job.id)
+    ):
+        if isinstance(payload, dict) and isinstance(payload.get("review_of"), str):
+            latest_reviews[payload["review_of"]] = (status, code)
+    unavailable_reviews = {unit_id for unit_id, result in latest_reviews.items()
+                           if result == ("failed", "visual_unavailable")}
     for path in learning_paths:
         if path["next_unit_id"] or not path["next_review"]:
             continue
@@ -909,6 +924,7 @@ def plan(db, child, *, learning_paths=None, include_language=True):
                 "due": path["next_review"],
                 "not_before": path["next_review"],
                 "estimated_minutes": min(8, prefs.session_minutes, prefs.daily_minutes),
+                **({"automatic_unavailable": True} if path["latest_unit_id"] in unavailable_reviews else {}),
             }
         )
     for mastery in reviews:
@@ -934,6 +950,7 @@ def plan(db, child, *, learning_paths=None, include_language=True):
                     "due": mastery.next_review,
                     "not_before": mastery.next_review,
                     "estimated_minutes": min(8, prefs.session_minutes, prefs.daily_minutes),
+                    **({"automatic_unavailable": True} if old.id in unavailable_reviews else {}),
                 }
             )
     confirmed_materials = list(

@@ -183,7 +183,7 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('Vorbereitung nicht gefunden.'), findsNothing);
-      expect(find.text('Gespeicherte Runden ansehen'), findsOneWidget);
+      expect(find.text('Zum Lernen'), findsOneWidget);
       expect(t.takeException(), isNull);
     });
   }

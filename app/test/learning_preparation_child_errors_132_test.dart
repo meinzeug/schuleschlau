@@ -122,12 +122,12 @@ class PreparationFixture {
   }
 
   Future<void> assertSavedExitWithoutRetry(WidgetTester tester) async {
-    expect(find.text('Gespeicherte Runden ansehen'), findsOneWidget);
+    expect(find.text('Zum Lernen'), findsOneWidget);
     expect(find.text('Erneut vorbereiten'), findsNothing);
     await tester.pump(const Duration(seconds: 9));
     expect(reads, hasLength(1));
-    await tester.ensureVisible(find.text('Gespeicherte Runden ansehen'));
-    await tester.tap(find.text('Gespeicherte Runden ansehen'));
+    await tester.ensureVisible(find.text('Zum Lernen'));
+    await tester.tap(find.text('Zum Lernen'));
     await tester.pumpAndSettle();
     expect(router.state.uri.path, '/learn/child');
     expect(find.text('Gespeicherte künstliche Runden'), findsOneWidget);
@@ -229,7 +229,7 @@ void main() {
         await fixture.mount(tester);
         expect(find.text(sample.$2), findsOneWidget);
         expect(find.text(childCopy), findsNothing);
-        expect(find.text('Gespeicherte Runden ansehen'), findsNothing);
+        expect(find.text('Zum Lernen'), findsNothing);
         await tester.pump(const Duration(seconds: 9));
         expect(fixture.reads, hasLength(1));
         expect(fixture.calls.every((r) => r.method == 'GET'), isTrue);
@@ -264,7 +264,7 @@ void main() {
       expect(find.text(childCopy), findsNothing);
       expect(find.text(providerHttp), findsNothing);
       expect(find.text('Status neu laden'), findsOneWidget);
-      expect(find.text('Gespeicherte Runden ansehen'), findsOneWidget);
+      expect(find.text('Zum Lernen'), findsOneWidget);
       await tester.pump(const Duration(seconds: 9));
       expect(fixture.reads, hasLength(1));
       await tester.ensureVisible(find.text('Status neu laden'));
@@ -272,8 +272,8 @@ void main() {
       await tester.pumpAndSettle();
       expect(fixture.reads, hasLength(2));
       expect(find.text(readCopy), findsOneWidget);
-      await tester.ensureVisible(find.text('Gespeicherte Runden ansehen'));
-      await tester.tap(find.text('Gespeicherte Runden ansehen'));
+      await tester.ensureVisible(find.text('Zum Lernen'));
+      await tester.tap(find.text('Zum Lernen'));
       await tester.pumpAndSettle();
       expect(fixture.router.state.uri.path, '/learn/child');
       expect(fixture.reads, hasLength(2));

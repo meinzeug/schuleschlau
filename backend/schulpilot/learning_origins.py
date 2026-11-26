@@ -34,7 +34,7 @@ def open_rounds(db, child_id, day_id):
 
 def next_item(plan):
     items = [item for item in [*plan.get("today", []), *plan.get("voluntary", [])]
-             if item.get("status") != "completed" and
+             if item.get("status") != "completed" and not item.get("automatic_unavailable") and
              (not item.get("scheduled_for") or item["scheduled_for"] <= plan["date"])]
     return next((item for item in items if item["kind"] == "unit" and item.get("status") in ("active", "paused")), None) or \
         next((item for item in items if item.get("mandatory")), None) or \
