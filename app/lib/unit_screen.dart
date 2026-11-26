@@ -35,6 +35,7 @@ import 'adaptive_learning_step.dart';
 import 'knowledge_sheet.dart';
 import 'schulbuddy.dart';
 import 'feedback_recovery_sheet.dart';
+import 'child_question_text.dart';
 
 class UnitScreen extends StatefulWidget {
   final AppState state;
@@ -2933,7 +2934,7 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
     children: [
       Expanded(
         child: LearningContent(
-          q['prompt'],
+          childQuestionText(q['prompt'].toString()),
           style: TextStyle(
             fontFamily: 'Nunito',
             fontSize: 20,
@@ -2942,7 +2943,10 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
           ),
         ),
       ),
-      ReadAloudButton(text: MathText.spoken(q['prompt']), iconOnly: true),
+      ReadAloudButton(
+        text: MathText.spoken(childQuestionText(q['prompt'].toString())),
+        iconOnly: true,
+      ),
     ],
   );
 

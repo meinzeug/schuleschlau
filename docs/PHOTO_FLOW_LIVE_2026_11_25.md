@@ -298,13 +298,39 @@ Reihe und Musterlösung weiterhin rechnerisch. Sie erhöht die Regelversion,
 damit eine ausdrückliche erneute Bewertung frühere Einschätzungen als Historie
 erhält. Eine rein lesende Trockenprüfung anhand der freigegebenen Testfrage
 und Testantwort erkennt damit die Antwort als falsch; sie ändert keine
-gespeicherten Bewertungen. Der reale Nachtest dieser neuen Regel steht bis zu
-ihrer nächsten Veröffentlichung aus.
+gespeicherten Bewertungen. Nach Veröffentlichung von Version 1.38.158 wurde die
+Testantwort im Browser erneut ausdrücklich nachgeprüft und als falsch
+angezeigt. Die frühere unklare und die neue falsche Einschätzung sind unter
+getrennten Regelversionen erhalten; die ursprüngliche Antwort bleibt bestehen.
 
 Eine weitere lokale Änderung berücksichtigt beim Tageswechsel auch Aufträge,
 die vor Mitternacht gestartet und danach fehlgeschlagen sind. Zudem wird bei
 einem exakt erkannten Fehler wegen einer wiederholten KI-Frage dieselbe
 Materialrevision für den laufenden Tag nicht erneut automatisch vorgeschlagen;
 die bewusste Auswahl und neue Quellenrevisionen bleiben möglich. Künstliche
-Regressionen prüfen diese Grenzen. Die KI-Generierung der Biologie-Runde und
-die fehlenden Fachgrafiken sind damit noch nicht repariert.
+Regressionen prüfen diese Grenzen. Nach dem Release zeigte die Heute-Seite
+einen anderen Lernschritt statt des zuvor fehlgeschlagenen Biologie-Materials.
+Die KI-Generierung der Biologie-Runde und die fehlenden Fachgrafiken sind damit
+noch nicht repariert.
+
+Anschließend wurde ein vorgeschlagener Mathe-Schritt über einen tatsächlichen
+Anbieterauftrag erzeugt und im mobilen Browser abgeschlossen. Eine Antwort
+wurde selbstständig und eine nach einem nicht lösungsverratenden Tipp als
+unterstützt gezählt. Beide Aufgaben fragten allerdings mit derselben Form nach
+dem Zähler und änderten nur die Zahlen, obwohl das Rundenthema auch gemischte
+Zahlen nennt. Das ist kein ausreichender Nachweis für abwechslungsreiche oder
+zielgerechte Aufgabenplanung. Testantworten und Testlernzeit liegen weiterhin
+im ausdrücklich freigegebenen echten Kinderkonto.
+
+Die anschließend ausdrücklich gestartete gezielte Anschlussübung wurde mit
+einem weiteren echten KI-Auftrag vorbereitet. Die Erklärung zeigte ein
+interaktives Bruchmodell; auf dem schmalen Bildschirm ist nicht unmittelbar
+ersichtlich, dass der abgeschnittene Erklärungstext innerhalb des Dialogs
+weitergescrollt werden kann. Beide folgenden Aufgaben fragten erneut nach dem
+Zähler. Die zuvor geöffnete Erklärung wurde bei beiden Testantworten als
+Unterstützung berücksichtigt. Auch der neue Rückblick empfahl erneutes Üben
+ohne Tipp. Das bestätigt den Bedarf an einer abwechslungsreicheren, am
+bestätigten Material orientierten Planung; es belegt keine Beherrschung durch
+das Kind. Die technische Formulierung „Neues Übungsbeispiel zum Verstehen“
+wurde für dieses fest bekannte Aufgabenformat in der lokalen Kinderanzeige
+entfernt; Aufgabenstellung und gespeicherter Originaltext bleiben erhalten.
