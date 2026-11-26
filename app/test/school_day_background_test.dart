@@ -667,6 +667,7 @@ void main() {
       await settleUi(tester);
       await reload(tester);
       expect(server.submissions, 1);
+      expect(find.text('Was ist passiert?'), findsNothing);
       await tapText(tester, 'Lesen fortsetzen');
       expect(server.submissions, 2);
       expect(server.keys.toSet(), hasLength(2));
@@ -710,6 +711,13 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('Hefte öffnen'), findsOneWidget);
+      expect(find.text('Was ist passiert?'), findsNothing);
+      expect(
+        find.text(
+          'Das Vorbereiten hat nicht geklappt. Deine Fotos und bisherigen Runden bleiben gespeichert.',
+        ),
+        findsOneWidget,
+      );
       expect(find.textContaining('Deine Fotos'), findsWidgets);
       expect(find.textContaining('Bitte deine Eltern um Hilfe.'), findsNothing);
       expect(find.text('Erneut vorbereiten'), findsNothing);

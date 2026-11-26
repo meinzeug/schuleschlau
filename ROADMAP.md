@@ -1142,7 +1142,9 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
     Filter bleiben auch im zugeklappten Zustand kenntlich. Fragen zu
     Heftseiten und die Inhaltsübersicht stehen gesammelt unter „Meine
     Heftseiten“; weitere Fotos lassen sich weiterhin direkt hinzufügen.
-    Geplante und bearbeitete Schritte bleiben unterscheidbar.
+    Geplante und bearbeitete Schritte bleiben unterscheidbar. Im Fehlerfall
+    wird derselbe Erklärungstext nicht ein zweites Mal aufgeklappt; die jeweils
+    tatsächlich verfügbaren nächsten Schritte bleiben sichtbar.
     Bei ungeklärten Fotos wird das Kind nicht zur Seitenprüfung aufgefordert;
     berechtigte Eltern können die Prüfung öffnen. 86 Widgetfälle bestanden;
     eine getrennte 390-Pixel-Browservorschau mit Beispieldaten bestätigte

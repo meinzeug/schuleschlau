@@ -1632,7 +1632,7 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
           code: code is String ? code : null,
         );
     const technicalMessage =
-        'Neue Aufgaben oder Grafiken konnten gerade nicht vorbereitet werden. Deine Fotos und gespeicherten Runden bleiben erhalten.';
+        'Das Vorbereiten hat nicht geklappt. Deine Fotos und bisherigen Runden bleiben gespeichert.';
     final visibleBlocker = blockerMessage != null && technicalFailure
         ? technicalMessage
         : blockerMessage;
@@ -1734,11 +1734,6 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
               label: Text(retryLabel),
             ),
         ],
-        if (message != null && message.isNotEmpty)
-          ExpansionTile(
-            title: Text('Was ist passiert?'),
-            children: [Notice(explanation, warning: true)],
-          ),
       ],
     );
   }
