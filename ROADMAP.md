@@ -1145,9 +1145,11 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
     Geplante und bearbeitete Schritte bleiben unterscheidbar. Im Fehlerfall
     wird derselbe Erklärungstext nicht ein zweites Mal aufgeklappt; die jeweils
     tatsächlich verfügbaren nächsten Schritte bleiben sichtbar.
-    Die vollständige Beispielseite wurde bei 320 und 390 Pixeln mit einfacher
-    und doppelter Schriftgröße im Chrome-Web-Runner und lokal geprüft; das
-    Öffnen der Beispielrunde löst ausschließlich lesende Anfragen aus.
+    Die vollständige Beispielseite wurde bei 320, 390, 768 und 1200 Pixeln mit
+    einfacher und doppelter Schriftgröße im Chrome-Web-Runner und lokal geprüft;
+    die Hauptaktion bleibt auf größeren Flächen kompakt und mindestens 48
+    logische Pixel hoch. Das Öffnen der
+    Beispielrunde löst ausschließlich lesende Anfragen aus.
     Bei einer nicht verfügbaren Erklärgrafik führt die Hauptaktion zu den
     gespeicherten Lernmöglichkeiten; die Heftseite bleibt optional erreichbar,
     und die Statusansicht startet keinen neuen KI-Auftrag.

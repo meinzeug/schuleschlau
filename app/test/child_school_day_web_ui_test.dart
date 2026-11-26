@@ -13,7 +13,12 @@ import 'package:schulpilot/ui.dart';
 
 void main() {
   setUp(() => FlutterSecureStorage.setMockInitialValues({}));
-  for (final size in [const Size(320, 600), const Size(390, 844)]) {
+  for (final size in [
+    const Size(320, 600),
+    const Size(390, 844),
+    const Size(768, 1024),
+    const Size(1200, 800),
+  ]) {
     for (final scale in [1.0, 2.0]) {
       testWidgets('Child school day is clear and usable at $size/$scale', (
         tester,
@@ -141,6 +146,18 @@ void main() {
         );
         await tester.pumpAndSettle();
         expect(find.text('Brüche erweitern'), findsOneWidget);
+        expect(
+          tester
+              .getSize(find.widgetWithText(ActionButton, 'Weiterlernen'))
+              .width,
+          lessThanOrEqualTo(320),
+        );
+        expect(
+          tester
+              .getSize(find.widgetWithText(ActionButton, 'Weiterlernen'))
+              .height,
+          greaterThanOrEqualTo(48),
+        );
         expect(find.text('3 Fertig'), findsNothing);
         expect(find.text('Fragen zu meinen Heftseiten'), findsNothing);
         expect(find.text('Heftseiten und bisherige Runden'), findsNothing);

@@ -852,20 +852,33 @@ class _StudyPathPanelState extends State<StudyPathPanel>
                           ),
                         ),
                         const SizedBox(height: 12),
-                        ActionButton(
-                          label: 'Weiterlernen',
-                          icon: Icons.play_arrow_rounded,
-                          vibrant: true,
-                          onPressed: () async {
-                            if (navigationCurrent() &&
-                                blocks.any(
-                                  (block) =>
-                                      block['id'] == current['id'] &&
-                                      block['unit_id'] == current['unit_id'],
-                                )) {
-                              openRoute(context, '/unit/${current['unit_id']}');
-                            }
-                          },
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 320),
+                            child: SizedBox(
+                              width: double.infinity,
+                              child: ActionButton(
+                                label: 'Weiterlernen',
+                                icon: Icons.play_arrow_rounded,
+                                vibrant: true,
+                                onPressed: () async {
+                                  if (navigationCurrent() &&
+                                      blocks.any(
+                                        (block) =>
+                                            block['id'] == current['id'] &&
+                                            block['unit_id'] ==
+                                                current['unit_id'],
+                                      )) {
+                                    openRoute(
+                                      context,
+                                      '/unit/${current['unit_id']}',
+                                    );
+                                  }
+                                },
+                              ),
+                            ),
+                          ),
                         ),
                       ],
                     ),
