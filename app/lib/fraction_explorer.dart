@@ -11,11 +11,13 @@ import 'learning_graphic_scope.dart';
 class FractionExplorer extends StatefulWidget {
   final int numerator, denominator;
   final AppState? state;
+  final bool initialBars;
   const FractionExplorer({
     super.key,
     required this.numerator,
     required this.denominator,
     this.state,
+    this.initialBars = false,
   });
   @override
   State<FractionExplorer> createState() => _FractionExplorerState();
@@ -60,7 +62,7 @@ class _FractionExplorerState extends State<FractionExplorer>
     family = widget.state?.familyId;
     invalidated = false;
     focus = 'whole';
-    bars = false;
+    bars = widget.initialBars;
   }
 
   void identityChanged() {
@@ -100,7 +102,8 @@ class _FractionExplorerState extends State<FractionExplorer>
     }
     if (!identical(oldWidget.state, widget.state) ||
         oldWidget.numerator != widget.numerator ||
-        oldWidget.denominator != widget.denominator) {
+        oldWidget.denominator != widget.denominator ||
+        oldWidget.initialBars != widget.initialBars) {
       motion.stop();
       motion.value = 1;
       bind();

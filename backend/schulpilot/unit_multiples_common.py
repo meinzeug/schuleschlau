@@ -28,8 +28,6 @@ ERROR = "Die kgV-Runde lässt sich nicht vollständig an ihre geprüfte Regel, A
 RULE_ERROR = "Auf den ausgewählten Seiten fehlt eine eindeutig bestätigte kgV-Regel. Bitte prüfe zuerst die Lehrgrundlage. Es wurde keine KI-Anfrage gesendet."
 EXHAUSTED = "Für diese kgV-Regel sind keine neuen passenden kleinen Aufgaben mehr verfügbar. Wähle eine andere bestätigte Heftseite. Es wurde keine KI-Anfrage gesendet."
 _TOPIC = re.compile(r"(?<!\w)kgv(?!\w)|\bkleinst(?:e|es|en)\s+gemeinsam(?:e|es|en)\s+vielfache[ns]?\b", re.I)
-_FRACTION_TOPIC = re.compile(r"\bbr(?:uch|üch\w*|uech\w*)\b", re.I)
-_COMPARISON_TOPIC = re.compile(r"\bvergleich\w*\b", re.I)
 _PROMPT_PAIR = re.compile(r"(?:\bkgv\b|\bkleinste(?:s)?\s+gemeinsame(?:s)?\s+vielfache(?:s)?)\s*(?:\(kgv\)\s*)?(?:von|für)\s+([1-9][0-9]{0,3})\s+(?:und|,)\s*([1-9][0-9]{0,3})(?![\w/,]|\.[0-9])", re.I)
 _ANCHOR_PAIR = re.compile(r"(?<!\w)kgv\s*(?:\}\s*)?(?:\\left\s*)?\(\s*([1-9][0-9]{0,3})\s*[;,]\s*([1-9][0-9]{0,3})\s*(?:\\right\s*)?\)", re.I)
 
@@ -59,7 +57,7 @@ def requested_count(payload):
 
 def applies(payload):
     """A topic selects this gate, never by itself a mathematical teaching rule."""
-    from .math_tasks import _procedure_quote
+    from .math_tasks import _procedure_quote, is_fraction_comparison_topic
     from .unit_fraction_compositions import eligible as composition_source
 
     context = payload.get("visual_context") or {}
@@ -69,8 +67,7 @@ def applies(payload):
     # planner when *all* selected source topics identify that different goal;
     # mixed or ambiguous sources retain the conservative kgV rule gate.
     comparison_only = bool(sources) and all(
-        _FRACTION_TOPIC.search(source.get("topic", ""))
-        and _COMPARISON_TOPIC.search(source.get("topic", ""))
+        is_fraction_comparison_topic(source.get("topic", ""))
         and not _TOPIC.search(source.get("topic", ""))
         for source in sources
     )

@@ -27,12 +27,14 @@ class SubjectPresentation extends StatelessWidget {
   final Set<String>? stages;
   final AppState? state;
   final SchulbuddyContext? buddyContext;
+  final bool fractionInitialBars;
   const SubjectPresentation(
     this.data, {
     super.key,
     this.stages,
     this.state,
     this.buddyContext,
+    this.fractionInitialBars = false,
   });
 
   @override
@@ -57,6 +59,7 @@ class SubjectPresentation extends StatelessWidget {
               child: SubjectGraphic(
                 Json.from(entry.$2),
                 state: state,
+                fractionInitialBars: fractionInitialBars,
                 action: state == null
                     ? null
                     : GraphicZoom(
@@ -68,6 +71,7 @@ class SubjectPresentation extends StatelessWidget {
                           state: state!,
                           scope: scope,
                           index: entry.$1,
+                          fractionInitialBars: fractionInitialBars,
                         ),
                       ),
               ),
@@ -76,6 +80,7 @@ class SubjectPresentation extends StatelessWidget {
             SubjectGraphic(
               Json.from(entry.$2),
               state: state,
+              fractionInitialBars: fractionInitialBars,
               action: state == null
                   ? null
                   : GraphicZoom(
@@ -88,7 +93,11 @@ class SubjectPresentation extends StatelessWidget {
                               contextValue: buddyContext!,
                               child: const SchulbuddyButton(),
                             ),
-                      render: (value) => SubjectGraphic(value, state: state),
+                      render: (value) => SubjectGraphic(
+                        value,
+                        state: state,
+                        fractionInitialBars: fractionInitialBars,
+                      ),
                     ),
             ),
         ],
@@ -101,7 +110,14 @@ class SubjectGraphic extends StatelessWidget {
   final Json block;
   final Widget? action;
   final AppState? state;
-  const SubjectGraphic(this.block, {super.key, this.action, this.state});
+  final bool fractionInitialBars;
+  const SubjectGraphic(
+    this.block, {
+    super.key,
+    this.action,
+    this.state,
+    this.fractionInitialBars = false,
+  });
   List<String> get labels => (block['labels'] as List? ?? []).cast<String>();
   List<num> get numbers => (block['numbers'] as List? ?? []).cast<num>();
   String number(num v) =>
@@ -318,6 +334,7 @@ class SubjectGraphic extends StatelessWidget {
               numerator: numbers[0].toInt(),
               denominator: numbers[1].toInt(),
               state: state,
+              initialBars: fractionInitialBars,
             )
           else if (vectorKinds.contains(kind))
             Column(
@@ -1325,11 +1342,13 @@ class _ExplanationZoomGraphic extends StatefulWidget {
   final AppState state;
   final LearningGraphicScope scope;
   final int index;
+  final bool fractionInitialBars;
   const _ExplanationZoomGraphic({
     required this.block,
     required this.state,
     required this.scope,
     required this.index,
+    required this.fractionInitialBars,
   });
   @override
   State<_ExplanationZoomGraphic> createState() =>
@@ -1404,7 +1423,11 @@ class _ExplanationZoomGraphicState extends State<_ExplanationZoomGraphic> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          SubjectGraphic(widget.block, state: widget.state),
+          SubjectGraphic(
+            widget.block,
+            state: widget.state,
+            fractionInitialBars: widget.fractionInitialBars,
+          ),
           if (refs?['unit_id'] != null)
             Align(
               alignment: Alignment.centerRight,

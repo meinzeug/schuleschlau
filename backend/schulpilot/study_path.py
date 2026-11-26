@@ -108,9 +108,9 @@ def validate_fraction_comparison_application(subject, topic, phase, contents, qu
     from fractions import Fraction
 
     from .coaching import fraction_task_signature
-    from .math_tasks import _comparison_examples
+    from .math_tasks import _comparison_examples, is_fraction_comparison_topic
 
-    if subject != "Mathematik" or phase != "apply" or not re.search(r"brüche\s+vergleich", topic, re.I):
+    if subject != "Mathematik" or phase != "apply" or not is_fraction_comparison_topic(topic):
         return
     examples = _comparison_examples([{"content": text} for text in contents])
     if not examples:

@@ -505,7 +505,7 @@ class _LearningExplanationState extends State<LearningExplanation>
           const Padding(
             padding: EdgeInsets.only(bottom: 8),
             child: Text(
-              'Zusatzwissen · eigene kuratierte Grundlagenregel',
+              'Zusatzwissen · ergänzend zum Heft',
               style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
             ),
           ),
@@ -589,6 +589,18 @@ class _LearningExplanationState extends State<LearningExplanation>
                   Json.from(selected['presentation']),
                   key: ValueKey((widget.sourceKey, selected['id'])),
                   state: widget.state,
+                  // A saved explanation can explicitly describe bars. Start
+                  // with that representation unless it also names circles;
+                  // a child's saved or selected display state still wins.
+                  fractionInitialBars:
+                      RegExp(
+                        r'\bBalken\w*',
+                        caseSensitive: false,
+                      ).hasMatch(selected['text']) &&
+                      !RegExp(
+                        r'\bKreis\w*',
+                        caseSensitive: false,
+                      ).hasMatch(selected['text']),
                 ),
         ),
         const SizedBox(height: 8),

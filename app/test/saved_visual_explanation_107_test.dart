@@ -181,10 +181,64 @@ void main() {
         tester,
         LearningExplanation(text: 'Legacy', steps: [own], sourceKey: 'own'),
       );
+      expect(find.text('Zusatzwissen · ergänzend zum Heft'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'The explanation starts with the fraction model named in its text',
+    (tester) async {
+      final example = explanationStep('bars', 1, 3)
+        ..['text'] = 'Die Balken zeigen einen von drei Teilen.';
+      await mount(
+        tester,
+        LearningExplanation(
+          text: 'Legacy',
+          steps: [example],
+          sourceKey: 'bars',
+        ),
+      );
+      FractionModelPainter painter() => tester
+          .widgetList<CustomPaint>(find.byType(CustomPaint))
+          .map((value) => value.painter)
+          .whereType<FractionModelPainter>()
+          .single;
+      expect(painter().bars, isTrue);
+      await tester.ensureVisible(find.byTooltip('Kreismodell'));
+      await tester.tap(find.byTooltip('Kreismodell'));
+      await tester.pumpAndSettle();
+      expect(painter().bars, isFalse);
       expect(
-        find.text('Zusatzwissen · eigene kuratierte Grundlagenregel'),
+        find.text('Die Balken zeigen einen von drei Teilen.'),
         findsOneWidget,
       );
+    },
+  );
+
+  testWidgets(
+    'Saved fraction choice takes precedence over the suggested model',
+    (tester) async {
+      final example = explanationStep('bars', 1, 3)
+        ..['text'] = 'Die Balken zeigen einen von drei Teilen.';
+      await mount(
+        tester,
+        LearningExplanation(
+          text: 'Legacy',
+          steps: [example],
+          sourceKey: 'bars',
+          initialPosition: {
+            'explanation_step_id': 'bars',
+            'graphic_index': 0,
+            'graphic_phase': 'fraction-circle-whole',
+          },
+        ),
+      );
+      final painter = tester
+          .widgetList<CustomPaint>(find.byType(CustomPaint))
+          .map((value) => value.painter)
+          .whereType<FractionModelPainter>()
+          .single;
+      expect(painter.bars, isFalse);
     },
   );
 

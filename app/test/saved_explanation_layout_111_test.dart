@@ -100,9 +100,7 @@ void main() {
         );
         final frame = find.byType(LearningGraphicFrame);
         final reader = find.byType(LearningReader);
-        final source = find.text(
-          'Zusatzwissen · eigene kuratierte Grundlagenregel',
-        );
+        final source = find.text('Zusatzwissen · ergänzend zum Heft');
         expect(frame, findsOneWidget);
         expect(tester.widget<LearningReader>(reader).text, explanation);
         expect(

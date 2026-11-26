@@ -34,13 +34,14 @@ def tasks(*, materials=None, previous=(), phase="understand", count=4, seed="syn
     )
 
 
+@pytest.mark.parametrize("topic", ["Brüche vergleichen", "Ungleichnamige Brüche gleichnamig machen und vergleichen", "Vergleiche zwei Brüche"])
 @pytest.mark.parametrize("examples", [
     "Gleicher Nenner: 2/7 < 5/7\nGleicher Zähler: 3/8 < 3/5",
     r"Gleicher Nenner: \(\frac{2}{7} < \frac{5}{7}\)" + "\n" + r"Gleicher Zähler: \(\frac{3}{8} < \frac{3}{5}\)",
 ])
-def test_comparison_topic_uses_only_correct_literal_source_comparisons(examples):
+def test_comparison_topic_uses_only_correct_literal_source_comparisons(examples, topic):
     materials = [{"content": "Brüche vergleichen\n" + examples}]
-    planned = fraction_tasks(materials, "Mathematik", "Brüche vergleichen", [], "apply", 2, "synthetic")
+    planned = fraction_tasks(materials, "Mathematik", topic, [], "apply", 2, "synthetic")
     assert len(planned) == 2
     goals = source_goals(materials, "Mathematik", "Brüche vergleichen")
     for task in planned:
@@ -72,6 +73,20 @@ def test_comparison_stage_rejects_component_questions_and_wrong_answers():
     wrong[0]["prompt"] = "Welche Zahl ist der Zähler von 5/7?"
     with pytest.raises(ProviderError):
         validate_fraction_comparison_application("Mathematik", "Brüche vergleichen", "apply", [content], wrong)
+
+
+def test_long_comparison_topic_checks_each_task_without_expanding_source_evidence():
+    from schulpilot.study_path import validate_fraction_comparison_application
+
+    content = "Brüche vergleichen\n1/3 > 2/9\n3/4 < 4/5"
+    topic = "Ungleichnamige Brüche gleichnamig machen und vergleichen"
+    planned = fraction_tasks([{"content": content}], "Mathematik", topic, [], "apply", 2, "synthetic")
+    assert len(planned) == 2
+    validate_fraction_comparison_application("Mathematik", topic, "apply", [content], planned)
+    wrong = copy.deepcopy(planned)
+    wrong[0]["prompt"] = "Welche Zahl ist der Zähler von 5/7?"
+    with pytest.raises(ProviderError):
+        validate_fraction_comparison_application("Mathematik", topic, "apply", [content], wrong)
 
 
 def test_fixed_comparison_distinguishes_correct_wrong_and_unknown_answers():

@@ -20,6 +20,15 @@ PHASE_TEXT = {
 }
 
 
+def is_fraction_comparison_topic(topic):
+    """Recognize a comparison objective, not a kgV mention in the content."""
+    if not isinstance(topic, str):
+        return False
+    fraction = r"\bbr(?:uch|üche|ueche)(?:n|s|e|en)?\b"
+    comparison = r"\bvergleich\w*\b"
+    return bool(re.search(fraction, topic, re.I) and re.search(comparison, topic, re.I))
+
+
 def _excerpt(content, match):
     start = max(content.rfind("\n", 0, match.start()) + 1, content.rfind(".", 0, match.start()) + 1)
     return content[max(start, match.start() - 100) : max(start, match.start() - 100) + 350].strip()
@@ -247,7 +256,7 @@ def _catalog(materials, subject, topic):
             if quote:
                 operation = {"Brüche addieren": "add", "Brüche kürzen": "reduce", "Brüche erweitern": "expand"}[label]
                 catalog[label] = {operation: quote}
-    if re.search(r"brüche\s+vergleich", topic, re.I):
+    if is_fraction_comparison_topic(topic):
         examples = _comparison_examples(sources)
         # A requested comparison must not silently become another lesson on
         # naming components just because the page mentions 'Nenner:'. If no

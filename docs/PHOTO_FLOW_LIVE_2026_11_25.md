@@ -580,6 +580,16 @@ Erweitern und den Erweiterungsfaktor; beide wurden im Test ohne Erklärung
 korrekt beantwortet und im Rückblick als selbstständig angezeigt. Auch diese
 Folgerunde enthielt noch keinen vollständigen Vergleich zweier Brüche.
 
+Nach diesem Live-Test wurde die Themenzuordnung für bestehende
+Anwendungsetappen lokal erweitert: Auch längere Bezeichnungen wie
+„Ungleichnamige Brüche gleichnamig machen und vergleichen“ verwenden dort
+die vorhandene rechnerische Prüfung von Vergleichsbeispielen. Diese Änderung
+bindet den gesonderten Weg „Übungen zu deinem Heft“ noch nicht an eine
+vollständige Vergleichsplanung an. Für gespeicherte Erklärungen zeigt die
+lokale Oberfläche bei eindeutiger Erwähnung von Balken zunächst das
+Balkenmodell; eine explizite frühere oder neue Auswahl bleibt erhalten.
+Beides ist automatisiert geprüft, aber noch nicht live nachgetestet.
+
 Im Fotoalbum wurde das seitlich angezeigte Bild durch lokales Drehen sichtbar;
 die Drehung verändert das Original und die bereits gespeicherte Erkennung
 nicht. Zuvor konnte das Bild nur nach rechts gedreht werden. Im Live-Nachtest
