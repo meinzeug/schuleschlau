@@ -145,3 +145,48 @@ dem Abgeben und benennt weitere Aufnahmen korrekt. Diese Änderungen sind erst
 nach Test und Veröffentlichung live zu prüfen. Der zweite reale Kalendertag
 ersetzt keine 30 simulierten Tage; ein erzeugter Lernweg für diese Seite wurde
 noch nicht nachgewiesen.
+
+## Zweite Seite und Bruchrunde am 26.11.2026
+
+Nach Version 1.38.154 wurde eine weitere freigegebene Seite über den sichtbaren
+mobilen Browser abgegeben. Die Vorbereitung zeigte danach einen Lernweg mit
+zwei vorbereiteten Aufgaben. Die angebotene Einführung zeigte einen Bruch als
+Kreis und Balken; die Auswahl von Zähler und Modell änderte die Darstellung.
+Das Erkunden wurde ausdrücklich ohne Bewertung angeboten.
+
+Im ausdrücklich freigegebenen Kinderkonto wurde eine richtige Antwort nach
+Tipp als unterstützt erfasst. Eine absichtlich gleichwertige, aber nicht mit
+dem geforderten Faktor erweiterte Bruchantwort wurde abgelehnt; die korrekte
+Darstellung wurde im zweiten Versuch als unterstützt/erneut erfasst. Der
+Rückblick zeigte zwei unterstützte Aufgaben und bot eine gezielte neue Übung
+an. Die Testantworten und erfasste Lernzeit bleiben im Konto bestehen. Eine
+Prüfung der langfristigen Lernwirkung oder der übrigen simulierten Tage ist
+daraus nicht ableitbar.
+
+Bei 390 × 844 schob die erste Version der hochgerückten Fotovorschau den
+Abgabeknopf unter den sichtbaren Bereich. Ein kompakterer Entwurf mit der
+Statuskarte nach der Hauptaktion wurde lokal geprüft; seine echte
+Browseransicht steht bis zur nächsten gebündelten Veröffentlichung noch aus.
+
+Die angebotene Anschlussübung wurde ausdrücklich gestartet und tatsächlich
+vorbereitet. Beide Aufgaben übten die zuvor nicht selbstständig gelöste
+Brucherweiterung; sie benutzten denselben Ausgangsbruch mit verschiedenen
+Faktoren. Die zwei korrekten Antworten ohne Hinweise wurden als selbstständig
+angezeigt. Die enge Aufgabenähnlichkeit ist als Qualitätsbefund offen. Auch
+diese künstlich eingegebenen Versuche und die dabei erfasste Lernzeit liegen im
+echten Kinderkonto; sie belegen keine längerfristige Beherrschung des Kindes.
+
+Für die zweite Seite und die beiden abgeschlossenen Runden wurden sechs
+zugehörige Aufträge mit zusammen 96.432 Mikrodollar abgerechnet: zwei
+Erkennungen, ein Paket, zwei Rückblicke und eine Anschlussübung. Zusammen mit
+den beiden Erkennungen der ersten Seite dieses Tages sind es 126.752
+Mikrodollar. Der letzte Rückblick bot eine weitere Übung und eine Wiederholung
+für den Folgetag an; eine automatische Endlosschleife wurde nicht gestartet.
+
+Die lokale Aufgabenplanung bevorzugt für mehrere Erweiterungsaufgaben nun
+verschiedene Ausgangsbrüche; wenn im begrenzten erlaubten Pool nur ein
+Ausgangsbruch übrig bleibt, sind unterschiedliche Faktoren weiterhin möglich.
+Die bestehende Quellenbindung, Lösungskontrolle und Ausschlüsse bleiben aktiv.
+Künstliche Regressionsfälle für Variation und erschöpfte Auswahl sowie die
+bestehenden Anschlussgrafiktests waren erfolgreich. Der echte Anbieter-Nachtest
+für diese Änderung steht bis zur nächsten Veröffentlichung noch aus.

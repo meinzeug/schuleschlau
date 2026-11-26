@@ -426,6 +426,7 @@ def fraction_tasks(materials, subject, topic, previous_prompts, phase, count, se
             if component:
                 component_counts[component] += 1
     tasks = []
+    expansion_bases = set()
     for index, label in enumerate(labels):
         available = list(catalog[label])
         operation = min(available, key=lambda kind: component_counts.get(kind, 0))
@@ -436,6 +437,11 @@ def fraction_tasks(materials, subject, topic, previous_prompts, phase, count, se
             if operation != "expand" or expansion_denominator_limit is None
             or numbers[1] * numbers[2] <= expansion_denominator_limit][:MAX_CANDIDATES]
         candidates.sort(key=lambda numbers: hashlib.sha256(f"{seed}|{phase}|{operation}|{numbers}".encode()).digest())
+        if operation == "expand":
+            # Prefer a different starting fraction within this round, while
+            # retaining the deterministic order and the existing finite pool.
+            # If only one base remains, a different factor is still usable.
+            candidates.sort(key=lambda numbers: (numbers[0], numbers[1]) in expansion_bases)
         for numbers in candidates:
             prompt, answer = _task(operation, numbers, phase)
             signature = fraction_task_signature(prompt)
@@ -455,6 +461,8 @@ def fraction_tasks(materials, subject, topic, previous_prompts, phase, count, se
             )
             used_prompts.add(normalized)
             used_signatures.add(signature)
+            if operation == "expand":
+                expansion_bases.add((numbers[0], numbers[1]))
             break
         else:
             raise ProviderError("Für diese Bruchverfahren sind keine neuen kleinen Zahlenaufgaben mehr verfügbar.")

@@ -1316,7 +1316,6 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
           ] else ...[
             if (error != null && !isTechnicalPreparationFailure(error))
               Notice(error!, warning: true),
-            importStatus(),
             if (day!['synthetic'] == true)
               Padding(
                 padding: EdgeInsets.only(bottom: 12),
@@ -1371,6 +1370,7 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
               childChecking(context)
             else
               childPackage(context),
+            importStatus(),
             readyParts(),
             if ((stage != 'collecting' || failed) &&
                 !waiting &&
@@ -1891,57 +1891,40 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
                         Padding(
                           padding: const EdgeInsets.only(right: 8),
                           child: SizedBox(
-                            width: 112,
+                            width: 160,
                             child: Panel(
                               padding: const EdgeInsets.all(4),
-                              child: Column(
+                              child: Row(
                                 children: [
-                                  TextButton(
+                                  IconButton(
+                                    tooltip: 'Foto ${n + 1} ansehen',
+                                    iconSize: 40,
                                     onPressed: () => viewDraft(photo),
-                                    child: Column(
-                                      children: [
-                                        SizedBox(
-                                          height: 55,
-                                          child: Image.memory(
-                                            base64Decode(photo['image']),
-                                            cacheWidth: 200,
-                                            fit: BoxFit.contain,
-                                            errorBuilder: (_, _, _) =>
-                                                const Icon(
-                                                  Icons.broken_image_outlined,
-                                                ),
-                                          ),
-                                        ),
-                                        Text(
-                                          'Foto ${n + 1} ansehen',
-                                          textAlign: TextAlign.center,
-                                        ),
-                                      ],
+                                    icon: Image.memory(
+                                      base64Decode(photo['image']),
+                                      cacheWidth: 160,
+                                      fit: BoxFit.contain,
+                                      errorBuilder: (_, _, _) => const Icon(
+                                        Icons.broken_image_outlined,
+                                      ),
                                     ),
                                   ),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      IconButton(
-                                        tooltip: 'Foto ${n + 1} bearbeiten',
-                                        onPressed: locked
-                                            ? null
-                                            : () => editDraft(photo),
-                                        icon: const Icon(
-                                          Icons.crop_rotate_rounded,
-                                        ),
-                                      ),
-                                      IconButton(
-                                        tooltip:
-                                            'Vorgemerktes Foto ${n + 1} entfernen',
-                                        onPressed: locked
-                                            ? null
-                                            : () => removeLocalPhoto(photo),
-                                        icon: const Icon(
-                                          Icons.delete_outline_rounded,
-                                        ),
-                                      ),
-                                    ],
+                                  IconButton(
+                                    tooltip: 'Foto ${n + 1} bearbeiten',
+                                    onPressed: locked
+                                        ? null
+                                        : () => editDraft(photo),
+                                    icon: const Icon(Icons.crop_rotate_rounded),
+                                  ),
+                                  IconButton(
+                                    tooltip:
+                                        'Vorgemerktes Foto ${n + 1} entfernen',
+                                    onPressed: locked
+                                        ? null
+                                        : () => removeLocalPhoto(photo),
+                                    icon: const Icon(
+                                      Icons.delete_outline_rounded,
+                                    ),
                                   ),
                                 ],
                               ),

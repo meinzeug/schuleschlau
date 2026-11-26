@@ -976,8 +976,12 @@ void main() {
       expect(find.text('Noch eine Seite fotografieren'), findsOneWidget);
       expect(find.text('Erste Seite fotografieren'), findsNothing);
       expect(
-        tester.getTopLeft(find.text('Foto 1 ansehen')).dy,
+        tester.getTopLeft(find.byTooltip('Foto 1 ansehen')).dy,
         lessThan(tester.getTopLeft(find.text('Fotos abgeben')).dy),
+      );
+      expect(
+        tester.getBottomRight(find.text('Fotos abgeben')).dy,
+        lessThan(844),
       );
       expect(server.uploads, 0);
       expect(server.submissions, 0);

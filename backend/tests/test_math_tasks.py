@@ -310,6 +310,28 @@ def test_excluded_examples_are_not_counted_as_practice_when_balancing_goals():
         assert_mathematically_correct(task)
 
 
+@pytest.mark.parametrize('seed', [str(value) for value in range(20)])
+def test_expansion_questions_prefer_distinct_starting_fractions(seed):
+    planned = tasks(materials=[MATERIALS[3]], count=2, seed=seed,
+                    labels=['Brüche erweitern', 'Brüche erweitern'])
+    signatures = [fraction_task_signature(task['prompt']) for task in planned]
+    assert all(signature[0] == 'expand' for signature in signatures)
+    assert signatures[0][1] != signatures[1][1]
+    for task in planned:
+        assert_mathematically_correct(task)
+
+
+def test_expansion_can_still_use_distinct_factors_when_only_one_fraction_remains(monkeypatch):
+    from schulpilot import math_tasks
+
+    monkeypatch.setattr(math_tasks, '_numbers', lambda operation: [(1, 3, 2), (1, 3, 3)])
+    planned = tasks(materials=[MATERIALS[3]], count=2,
+                    labels=['Brüche erweitern', 'Brüche erweitern'])
+    signatures = [fraction_task_signature(task['prompt']) for task in planned]
+    assert signatures[0][1] == signatures[1][1]
+    assert signatures[0][2] != signatures[1][2]
+
+
 def test_exhausted_exclusions_stop_before_generation_without_substitute_tasks():
     exclusions = [f"Kürze {a}/{b} vollständig." for b in range(2, 37) for a in range(1, b)]
     with pytest.raises(ProviderError, match="keine neuen kleinen Zahlenaufgaben"):
