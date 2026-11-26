@@ -53,7 +53,7 @@ class Fixture {
   int vocabularyPreview = 0;
   late final AppState state;
   late final GoRouter router;
-  Fixture({this.role = 'child', this.readOnly = false}) {
+  Fixture({this.role = 'parent', this.readOnly = false}) {
     state =
         AppState(
             api: Api(
@@ -272,6 +272,7 @@ void main() {
     '141 an existing draft on the next page and unrelated answer data survive advancement',
     (tester) async {
       final f = Fixture();
+      f.pages[2]['synthetic'] = false;
       final draft = {
         'account': f.state.user,
         'revision': 1,
@@ -298,7 +299,7 @@ void main() {
       expect(
         tester
             .widget<TextField>(
-              find.widgetWithText(TextField, 'Text auf der Seite'),
+              find.widgetWithText(TextField, 'Erkannter Unterrichtsstoff'),
             )
             .controller!
             .text,
@@ -373,7 +374,13 @@ void main() {
       await f.open(tester);
       await tap(tester, 'Stimmt, weiter');
       expect(f.location.path, '/material/$own');
-      expect(find.text('Text übernommen'), findsOneWidget);
+      expect(f.pages[1]['confirmed'], true);
+      expect(
+        find.text(
+          'Die Seite ist gespeichert. Die nächsten Seiten konnten gerade nicht geladen werden.',
+        ),
+        findsOneWidget,
+      );
       expect(find.text('Stimmt, weiter'), findsNothing);
       expect(find.text('Weitere Seiten prüfen'), findsOneWidget);
       expect(f.writes, hasLength(1));
@@ -387,7 +394,7 @@ void main() {
     testWidgets(
       '141 $kind keeps its existing local refresh instead of batch navigation',
       (tester) async {
-        final f = Fixture(role: kind == 'parent edit' ? 'parent' : 'child');
+        final f = Fixture();
         if (kind == 'no day') f.pages[1].remove('school_day_id');
         if (kind == 'exam') f.pages[1]['purpose'] = 'exam';
         if (kind == 'parent edit') {
@@ -415,9 +422,9 @@ void main() {
         'vocabulary_preview': source.preview(),
       });
       await f.open(tester);
-      await tap(tester, 'Etwas verbessern');
+      await tap(tester, 'Erkannten Text verbessern');
       await tester.enterText(
-        find.widgetWithText(TextField, 'Text auf der Seite'),
+        find.widgetWithText(TextField, 'Erkannter Unterrichtsstoff'),
         'apple = Apfel\nZusätzlicher korrigierter Wortlaut.',
       );
       FocusManager.instance.primaryFocus?.unfocus();
@@ -531,7 +538,13 @@ void main() {
     await f.open(tester);
     await tap(tester, 'Stimmt, weiter');
     expect(f.location.path, '/material/$own');
-    expect(find.text('Text übernommen'), findsOneWidget);
+    expect(f.pages[1]['confirmed'], true);
+    expect(
+      find.text(
+        'Die Seite ist gespeichert. Die nächsten Seiten konnten gerade nicht geladen werden.',
+      ),
+      findsOneWidget,
+    );
     expect(f.writes, hasLength(1));
     expect(f.calls.any((r) => r.url.path == '/api/materials/$next'), false);
     await f.close(tester);
