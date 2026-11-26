@@ -670,6 +670,13 @@ class _ChildCoachingPanel extends StatelessWidget {
                       Text(
                         'Deine Antworten und dein Rückblick bleiben gespeichert.',
                       ),
+                      if (coach?['practice_error_code'] ==
+                          'visual_unavailable') ...[
+                        SizedBox(height: 8),
+                        Text(
+                          'Für diese Übung fehlt gerade eine passende Erklärgrafik. Wähle eine andere Runde.',
+                        ),
+                      ],
                       SizedBox(height: 14),
                     ],
                     if (practiceFailed && childId is String) ...[

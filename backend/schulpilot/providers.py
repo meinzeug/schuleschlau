@@ -167,7 +167,11 @@ QUESTION_CLARITY_RULES = (
     "'welcher Körperteil' reichen nicht, wenn mehrere Antworten passen könnten. "
     "Grenze die gesuchte Eigenschaft eindeutig ein oder wähle eine andere belegte Frage. "
     "Eine begrifflich richtige andere Antwort darf nicht durch einen willkürlich engen "
-    "Antwortschlüssel als falsch erscheinen. Bereits serverseitig festgelegte Aufgaben bleiben unverändert."
+    "Antwortschlüssel als falsch erscheinen. Prüfe nach Möglichkeit verschiedene belegte "
+    "fachliche Zusammenhänge und Denkhandlungen, statt eine ganze Runde auf das Ablesen "
+    "von Zahlen zu reduzieren. Wenn die Quelle dafür nicht ausreicht, erfinde keine "
+    "biologischen oder anderen zusätzlichen Zusammenhänge. Bereits serverseitig festgelegte "
+    "Aufgaben bleiben unverändert."
 )
 
 

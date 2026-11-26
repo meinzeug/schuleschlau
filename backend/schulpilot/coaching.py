@@ -929,6 +929,11 @@ def view(db, unit):
         "practice_job_id": practice_job.id if practice_job else None,
         "practice_status": practice_job.status if practice_job else None,
         "practice_error": practice_job.error if practice_job else None,
+        "practice_error_code": (
+            "visual_unavailable"
+            if practice_job and practice_job.status == "failed" and practice_job.error_code == "visual_unavailable"
+            else None
+        ),
         "assessment_notice": "KI-Einschätzungen ergänzen die feste Prüfung. Unklare Antworten zählen dadurch nicht automatisch als selbstständig richtig gelöst.",
     }
 

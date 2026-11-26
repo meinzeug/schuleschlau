@@ -412,3 +412,28 @@ Die Offsite-Prüfung nach dem Runtime-Wechsel authentifizierte den übertragenen
 Stand und stellte ihn isoliert wieder her; die Testdatenbank wurde entfernt.
 Die Prüfung belegt keine vollständige Löschjournal-Abdeckung oder
 Aktivierungsfreigabe.
+
+## Umgang mit fehlender Anschlussgrafik
+
+Die lokale Änderung gibt für fehlgeschlagene Anschlussübungen ausschließlich
+die kontrollierte Kategorie `visual_unavailable` an den Client weiter. Das
+Kind erhält dann einen kurzen Hinweis auf die fehlende Erklärgrafik und kann
+vorhandene Runden öffnen; eine Wiederholung bleibt eine ausdrückliche Aktion.
+Regressionstests prüfen erhaltene Antworten und Rückblicke, die stornierte
+Reservierung und ältere Clients ohne das neue Feld. Die eigentliche
+Anschlussübung ist damit noch nicht erzeugbar: Sie benötigt für Einführung
+und Aufgaben eine fachlich passende, jeweils zur Quelle und zum Lernziel
+gebundene Darstellung. Ein allgemeines Bienenbild oder ein unverbundener
+Wortkasten wäre dafür kein fachlicher Ersatz. Die Änderung ist noch nicht
+veröffentlicht und der Live-Nachtest steht aus.
+
+Die lokale Erzeugungsvorgabe bittet außerdem um unterschiedliche belegte
+fachliche Denkhandlungen statt einer ganzen Runde bloßer Zahlenablesung und
+untersagt unbelegte zusätzliche Zusammenhänge. Das bleibt eine Modellvorgabe,
+keine garantierte fachliche Qualitätsprüfung. Die tatsächlichen Einzelrunden-
+und Pakettransportwege sind mit künstlichen Antworten geprüft.
+
+Auf der mobilen Heute-Seite wurde auch das Benachrichtigungsmenü geöffnet:
+Es zeigt mehrere geladene Einträge in einem scrollbar begrenzten Bereich.
+Beim Öffnen wurden sichtbare Einträge als gelesen markiert. Daraus lässt sich
+keine Android-Pushzustellung oder eine Zustellung für jede Lernrunde ableiten.

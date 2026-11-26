@@ -8,7 +8,7 @@ import test_coaching_stages as stages
 from conftest import create_child
 from schulpilot import coaching
 from schulpilot.db import DB, Attempt, Child, Family, Job, LearningUnit, Session, UnitCoaching, Usage, now
-from schulpilot.providers import Result
+from schulpilot.providers import ProviderError, Result
 from sqlalchemy import func, select
 
 normal_unit = stages.normal_unit
@@ -26,6 +26,52 @@ def preserved(db, unit_id):
             for a in db.scalars(select(Attempt).where(Attempt.unit_id == unit_id).order_by(Attempt.id))
         ],
     )
+
+
+def test_only_the_owned_failed_visual_attempt_exposes_a_controlled_reason(deferred_review):
+    client, unit_id, _, _, _, original, _ = deferred_review
+    job_id = stages.ask_practice(client, unit_id, "visual-reason-artificial")
+    with DB.begin() as db:
+        job = db.get(Job, job_id)
+        job.status = "failed"
+        job.error = "Interne künstliche Einzelheit"
+        job.error_code = "visual_unavailable"
+    response = client.get(f"/api/units/{unit_id}")
+    assert response.status_code == 200
+    value = response.json()
+    assert value["coaching"]["practice_error_code"] == "visual_unavailable"
+    assert value["questions"] == original["questions"]
+    with DB.begin() as db:
+        db.get(Job, job_id).error_code = "invalid_output"
+    assert client.get(f"/api/units/{unit_id}").json()["coaching"]["practice_error_code"] is None
+
+
+def test_missing_graphic_keeps_the_report_and_cancelled_reservation(deferred_review, monkeypatch):
+    client, unit_id, _, _, _, original, _ = deferred_review
+    calls = []
+
+    def missing_visual(*args, **kwargs):
+        calls.append(True)
+        raise ProviderError(
+            "Für diese Heftseiten fehlt noch eine passende geprüfte Erklärgrafik.",
+            code="visual_unavailable",
+            billing_result=Result({}, 0, 0, 0, telemetry={"pre_dispatch": True}, cost_source="cancelled"),
+        )
+
+    monkeypatch.setattr(coaching, "request_provider", missing_visual)
+    job_id = stages.ask_practice(client, unit_id, "visual-failure-artificial")
+    stages.process_next()
+    value = client.get(f"/api/units/{unit_id}").json()
+    assert value["coaching"]["practice_error_code"] == "visual_unavailable"
+    assert value["questions"] == original["questions"]
+    assert value["coaching"]["report"] == original["coaching"]["report"]
+    with DB() as db:
+        job = db.get(Job, job_id)
+        usage = db.scalar(select(Usage).where(Usage.job_id == job_id))
+        assert job.status == "failed"
+        assert usage.cost_source == "cancelled" and usage.cost_micros == 0
+        assert db.scalar(select(func.count()).select_from(LearningUnit)) == 1
+    assert calls == [True]
 
 
 @pytest.mark.parametrize("invalid", ["logout", "expired", "revoked", "inactive", "kind_switch", "family_switch"])

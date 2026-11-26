@@ -195,6 +195,25 @@ Finder roundsButton() =>
 
 void main() {
   testWidgets(
+    'missing visual gives a clear next step without automatically retrying',
+    (tester) async {
+      final data = savedRound();
+      (data['coaching'] as Json)['practice_error_code'] = 'visual_unavailable';
+      final h = Harness(data: data);
+      await h.open(tester);
+      expect(
+        find.text(
+          'Für diese Übung fehlt gerade eine passende Erklärgrafik. Wähle eine andere Runde.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text(rounds), findsOneWidget);
+      expect(find.text(rawFailure, skipOffstage: false), findsNothing);
+      expect(h.calls, isEmpty);
+      await h.close(tester);
+    },
+  );
+  testWidgets(
     'A failed new practice preserves completed facts without technical paths or automatic calls',
     (t) async {
       final h = Harness();
