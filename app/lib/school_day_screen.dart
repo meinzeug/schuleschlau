@@ -681,7 +681,11 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
     };
   }
 
-  Future<void> capture(ImageSource source, {bool recovered = false}) async {
+  Future<void> capture(
+    ImageSource source, {
+    bool recovered = false,
+    bool submitDirect = false,
+  }) async {
     if (!ownerMatches || !allowUploads) return;
     final owner = actor!;
     final captureGeneration = generation;
@@ -703,11 +707,18 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
     final nativeAndroid =
         !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
     if (source == ImageSource.gallery) {
+      if (submitDirect && pendingPhotos.isNotEmpty) {
+        throw ApiError(
+          'Gib zuerst die Fotos ab, die schon auf diesem Gerät liegen.',
+        );
+      }
       final available =
           (day!['max_pages'] as int) - pages.length - pendingPhotos.length;
       final remaining = available.clamp(
         0,
-        PendingUploads.maxPages - pendingPhotos.length,
+        submitDirect
+            ? (day!['max_pages'] as int)
+            : PendingUploads.maxPages - pendingPhotos.length,
       );
       if (remaining == 0) {
         throw ApiError(
@@ -748,9 +759,14 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
               : 'In dieser Auswahl sind höchstens $remaining Fotos möglich. Bitte danach erneut auswählen.',
         });
       }
-      Object? firstError;
+      Object? firstError = files.length > remaining
+          ? ApiError(
+              'Einige Fotos passen heute nicht mehr dazu. Deine bisherigen Seiten bleiben gespeichert.',
+            )
+          : null;
       for (var i = 0; i < files.length && i < remaining; i++) {
         if (!currentCapture()) return;
+        var queued = false;
         try {
           setState(
             () => progress =
@@ -779,19 +795,46 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
             bytes,
             receiptId: keys[i],
           );
+          queued = true;
           if (!currentCapture()) return;
           await receipt(keys[i], {'stage': 'queued'});
+          if (submitDirect) {
+            if (!currentCapture()) return;
+            setState(
+              () => progress =
+                  'Foto ${i + 1} von ${files.length.clamp(0, remaining)} abgeben',
+            );
+            await sendPending();
+          }
         } catch (e) {
+          if (!currentCapture()) return;
           firstError ??= e;
           await receipt(keys[i], {
-            'stage': 'not_accepted',
-            'reason': e is ApiError ? e.message : 'Diese Datei konnte nicht übernommen werden. Bitte erneut auswählen.',
+            'stage': queued ? 'queued' : 'not_accepted',
+            'reason': queued
+                ? 'Das Foto bleibt auf diesem Gerät. Bitte die Abgabe erneut starten.'
+                : e is ApiError
+                ? e.message
+                : 'Diese Datei konnte nicht übernommen werden. Bitte erneut auswählen.',
           });
+          if (submitDirect) {
+            for (var j = i + 1; j < files.length && j < remaining; j++) {
+              if (!currentCapture()) return;
+              await receipt(keys[j], {
+                'stage': 'not_accepted',
+                'reason': 'Dieses Foto wurde noch nicht abgegeben. Bitte später erneut auswählen.',
+              });
+            }
+            break;
+          }
         }
       }
       if (!currentCapture()) return;
       await refreshPending();
       if (firstError != null) throw firstError;
+      if (submitDirect && files.isNotEmpty && currentCapture()) {
+        await prepareInBackground();
+      }
       return;
     }
     if (!currentCapture()) return;
@@ -1973,6 +2016,14 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
                   icon: Icon(Icons.photo_library_outlined, size: 18),
                   label: Text('Fotos auswählen'),
                 ),
+                if (pendingPhotos.isEmpty)
+                  TextButton.icon(
+                    onPressed: () => run(
+                      () => capture(ImageSource.gallery, submitDirect: true),
+                    ),
+                    icon: Icon(Icons.cloud_upload_outlined, size: 18),
+                    label: Text('Fotos auswählen und abgeben'),
+                  ),
               ],
               if (allowUploads &&
                   state.recoveredPhoto != null &&

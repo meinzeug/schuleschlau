@@ -200,3 +200,22 @@ sichtbar. Die vorbereitete Startkartenänderung nennt „Wiederholung“ unmitte
 neben dem Fach, ohne Reihenfolge, Fälligkeit oder Elternaufträge zu ändern.
 Künstliche Startseitentests einschließlich großer Schrift und verschiedener
 Bildschirmbreiten sind erfolgreich. Die Änderung ist noch nicht live geprüft.
+
+## Mehrere große Fotos
+
+Am zweiten Testtag wurde eine weitere echte, ausdrücklich freigegebene Seite
+abgegeben und automatisch mit einem zweiten KI-Durchgang abgeglichen. Eine
+unleserliche Stelle blieb als solche gekennzeichnet. Ein zweites gleichzeitig
+ausgewähltes Foto wurde wegen der auf 3 MiB begrenzten lokalen Warteschlange
+nicht übernommen; die Quelldatei und die bereits gespeicherten Seiten blieben
+erhalten. Die Ablehnung ist im Konto weiterhin sichtbar.
+
+Lokal ergänzt eine ausdrücklich beschriftete Direktabgabe die bisherige
+Vorschau mit optionalem Zuschnitt: Ausgewählte Fotos werden einzeln mit
+separaten Idempotenzschlüsseln gespeichert und übertragen. Erst nach der
+vollständigen erfolgreichen Übergabe wird die vorhandene Vorbereitung einmal
+gestartet. Bei einem Fehler bleibt ein bereits vorgemerktes Foto für einen
+bewussten erneuten Versuch erhalten; weitere noch nicht übertragene Fotos werden
+kenntlich gemacht. Die Bildqualität wurde dafür nicht herabgesetzt. Künstliche
+Tests decken eine Gesamtauswahl über 3 MiB, einen Übertragungsfehler und einen
+Kontowechsel ab. Die Prüfung im echten Browser steht nach Veröffentlichung aus.

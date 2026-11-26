@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:image/image.dart' as image;
 
@@ -44,6 +45,7 @@ class PreparationServer {
   bool archived = false, realUploads = false, aiAvailable = true;
   int reads = 0, starts = 0, submissions = 0, savedForLater = 0, postponed = 0;
   int minutes = 8, uploads = 0;
+  int? failUploadAt;
   final requests = <String>[];
   final keys = <String>[];
   List<Json> units = [];
@@ -174,6 +176,9 @@ class PreparationServer {
     }
     if (request.method == 'POST' && request.url.path.endsWith('/materials')) {
       uploads++;
+      if (uploads == failUploadAt) {
+        return response({'detail': 'Abgabe fehlgeschlagen'}, 503);
+      }
       final page = source(uploads, status: 'uploaded');
       pages.add(page);
       return response(page, 201);
@@ -1009,6 +1014,136 @@ void main() {
   );
 
   testWidgets(
+    'Direct gallery submission handles photos exceeding the local batch limit',
+    (tester) async {
+      mobile(tester);
+      final dir = await tester.runAsync(
+        () => Directory.systemTemp.createTemp('schulpilot-direct-gallery-'),
+      );
+      addTearDown(() => dir!.delete(recursive: true));
+      final paths = <String>[];
+      await tester.runAsync(() async {
+        final random = Random(1234);
+        final photo = image.Image(width: 1000, height: 1000);
+        for (var y = 0; y < photo.height; y++) {
+          for (var x = 0; x < photo.width; x++) {
+            photo.setPixelRgb(
+              x,
+              y,
+              random.nextInt(256),
+              random.nextInt(256),
+              random.nextInt(256),
+            );
+          }
+        }
+        final bytes = image.encodeJpg(photo, quality: 95);
+        expect(bytes.length * 4, greaterThan(3 * 1024 * 1024));
+        for (var i = 0; i < 4; i++) {
+          final file = File('${dir!.path}/page-$i.jpg');
+          await file.writeAsBytes(bytes);
+          paths.add(file.path);
+        }
+      });
+      const picker = MethodChannel('plugins.flutter.io/image_picker');
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        picker,
+        (call) async => paths,
+      );
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          picker,
+          null,
+        ),
+      );
+      final server = PreparationServer(pages: [])..realUploads = true;
+      final state = server.state();
+      final navigation = router(state);
+      addTearDown(navigation.dispose);
+      await tester.pumpWidget(
+        MaterialApp.router(theme: appTheme(), routerConfig: navigation),
+      );
+      await settleUi(tester);
+      await tapText(tester, 'Fotos auswählen und abgeben');
+      for (var wait = 0; wait < 600 && server.submissions == 0; wait++) {
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 30)),
+        );
+        await settleUi(tester);
+      }
+      expect(server.uploads, 4);
+      expect(server.submissions, 1);
+      expect(await state.pendingUploads.read('kid'), isEmpty);
+      expect(
+        (await state.pendingUploads.receipts('kid'))
+            .where((r) => r['stage'] == 'saved'),
+        hasLength(4),
+      );
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
+  testWidgets(
+    'Direct gallery failure preserves the pending photo and stops processing',
+    (tester) async {
+      mobile(tester);
+      final dir = await tester.runAsync(
+        () => Directory.systemTemp.createTemp('schulpilot-direct-failure-'),
+      );
+      addTearDown(() => dir!.delete(recursive: true));
+      final paths = <String>[];
+      await tester.runAsync(() async {
+        for (var i = 0; i < 3; i++) {
+          final file = File('${dir!.path}/page-$i.png');
+          await file.writeAsBytes(
+            image.encodePng(image.Image(width: 30, height: 40)),
+          );
+          paths.add(file.path);
+        }
+      });
+      const picker = MethodChannel('plugins.flutter.io/image_picker');
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        picker,
+        (call) async => paths,
+      );
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          picker,
+          null,
+        ),
+      );
+      final server = PreparationServer(pages: [])
+        ..realUploads = true
+        ..failUploadAt = 2;
+      final state = server.state();
+      final navigation = router(state);
+      addTearDown(navigation.dispose);
+      await tester.pumpWidget(
+        MaterialApp.router(theme: appTheme(), routerConfig: navigation),
+      );
+      await settleUi(tester);
+      await tapText(tester, 'Fotos auswählen und abgeben');
+      for (var wait = 0; wait < 300 && server.uploads < 2; wait++) {
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 30)),
+        );
+        await settleUi(tester);
+      }
+      await settleUi(tester);
+      expect(server.uploads, 2);
+      expect(server.pages, hasLength(1));
+      expect(server.submissions, 0);
+      expect(await state.pendingUploads.read('kid'), hasLength(1));
+      final receipts = await state.pendingUploads.receipts('kid');
+      expect(receipts.where((r) => r['stage'] == 'saved'), hasLength(1));
+      expect(receipts.where((r) => r['stage'] == 'queued'), hasLength(1));
+      expect(receipts.where((r) => r['stage'] == 'not_accepted'), hasLength(1));
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
+  testWidgets(
     'Ten selected files retain eight local drafts and two clear rejections',
     (tester) async {
       mobile(tester);
@@ -1078,10 +1213,11 @@ void main() {
     },
   );
 
-  for (final recovered in [true, false]) {
+  for (final mode in ['recovered', 'gallery', 'direct']) {
     testWidgets(
-      '${recovered ? 'Recovered camera' : 'Gallery'} photo cannot cross an account change during collection handoff',
+      '$mode photo cannot cross an account change during collection handoff',
       (tester) async {
+        final recovered = mode == 'recovered';
         mobile(tester);
         final server = PreparationServer(pages: [], stage: 'review')
           ..realUploads = true;
@@ -1142,7 +1278,12 @@ void main() {
         if (recovered) {
           await tapText(tester, 'Letztes Foto wiederfinden');
         } else {
-          await tapText(tester, 'Fotos auswählen');
+          await tapText(
+            tester,
+            mode == 'direct'
+                ? 'Fotos auswählen und abgeben'
+                : 'Fotos auswählen',
+          );
         }
         for (var wait = 0; wait < 100 && !collectingRequested; wait++) {
           await tester.runAsync(
