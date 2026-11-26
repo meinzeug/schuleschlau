@@ -255,3 +255,10 @@ Aufgaben ließen sich beantworten: Die erste Antwort wurde selbstständig, die
 zweite nach geöffneter Erklärung als unterstützt gewertet. Der erzeugte
 Auftrag und die Testantworten sind im echten Konto gespeichert; sie sind keine
 Aussage über die tatsächliche Leistung des Kindes.
+
+Der Rückblick bot anschließend eine gezielte Anschlussübung an. Ihr echter
+KI-Auftrag wurde erfolgreich abgeschlossen; die beiden unterschiedlichen
+Erweiterungsaufgaben wurden ohne weitere Hinweise richtig beantwortet und als
+selbstständig gezählt. Der folgende KI-Rückblick empfahl eine spätere
+Wiederholung. Das ist ein einzelner getesteter Ablauf und kein Beleg für einen
+vollständigen 30-Tage-Test oder langfristigen Lernerfolg.
