@@ -1,6 +1,9 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+
+import 'app_localizations.dart';
+
 import 'package:flutter/services.dart';
 
 const brandStartupBackground = Color(0xFF101E24);
@@ -72,6 +75,8 @@ class _BrandStartupState extends State<BrandStartup>
     }
     return MaterialApp(
       title: 'SchuleSchlau',
+      supportedLocales: supportedAppLocales,
+      localizationsDelegates: appLocalizationDelegates,
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.dark,

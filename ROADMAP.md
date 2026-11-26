@@ -1204,6 +1204,16 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – Barrierearme mobile Führung nachweisen**
 
+  - [x] **Flutter-Systemtexte auf Deutsch bereitstellen.** In der mobilen
+    Browseransicht meldete der Zeichenzähler „characters remaining“ und die
+    Dialogschranke „Dismiss“. Startansicht und gemeinsame App verwenden nun
+    das im fixierten Flutter-SDK enthaltene deutsche Material-, Widgets- und
+    Cupertino-Sprachpaket, auch wenn das Gerät eine andere Sprache meldet.
+    Ein Widgettest prüft den tatsächlichen barrierefreien Zeichenzähler und
+    Dialogtext. Sprachübungen und ihre explizit gewählten Vorlese-/Mikrofon-
+    Sprachen bleiben davon getrennt. Die umfassende Screenreader-Abnahme und
+    das Ausrollen bleiben offen.
+
   - [x] **Desktop-Ziel „Lernen“ per Tastatur und Web-Semantik prüfen.**
     Das Ziel „Lernen“ ist bei 1280 Pixeln als fokussierbare Schaltfläche
     vorhanden, per Tab erreichbar und mit Enter bedienbar. Die frühere

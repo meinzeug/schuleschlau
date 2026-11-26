@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter/foundation.dart';
 
 import 'api.dart';
+import 'app_localizations.dart';
 import 'brand_startup.dart';
 import 'schulbuddy.dart';
 import 'account_deletion_screen.dart';
@@ -668,6 +669,8 @@ class _SchulpilotAppState extends State<SchulpilotApp>
     builder: (context, _) => MaterialApp.router(
       scaffoldMessengerKey: messenger,
       title: 'SchuleSchlau',
+      supportedLocales: supportedAppLocales,
+      localizationsDelegates: appLocalizationDelegates,
       debugShowCheckedModeBanner: false,
       theme: appTheme(),
       darkTheme: appTheme(brightness: Brightness.dark),
