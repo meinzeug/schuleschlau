@@ -2582,7 +2582,11 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
       title: Text(title),
       children: [
         ExpansionTile(
-          title: const Text('Suchen und filtern'),
+          title: Text(
+            query.isNotEmpty || packageKind != 'all'
+                ? 'Suchen und filtern · aktiv'
+                : 'Suchen und filtern',
+          ),
           onExpansionChanged: (expanded) {
             if (!expanded) FocusManager.instance.primaryFocus?.unfocus();
           },

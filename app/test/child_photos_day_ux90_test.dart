@@ -275,6 +275,10 @@ void main() {
       await f.tap(tester, find.widgetWithText(ChoiceChip, 'Heftseiten'));
       expect(find.text('1 Heftseite · 0 Lernrunden'), findsOneWidget);
       expect(find.text('Mathematik · Andere Runde'), findsNothing);
+      expect(find.text('Suchen und filtern · aktiv'), findsOneWidget);
+      await old.tap(tester, 'Suchen und filtern · aktiv');
+      expect(find.text('Suchen und filtern · aktiv'), findsOneWidget);
+      expect(find.text('1 Heftseite · 0 Lernrunden'), findsOneWidget);
       expect(server.requests.every((r) => r.startsWith('GET ')), isTrue);
     },
   );
