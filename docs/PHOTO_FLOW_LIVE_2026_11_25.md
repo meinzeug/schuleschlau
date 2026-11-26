@@ -716,3 +716,17 @@ Die erste Frage verlangte ausdrücklich „Schreibe Zähler/Nenner“, zeigte ab
 ein allgemeines Textfeld. Diese zusätzliche Formulierung wird lokal ebenfalls
 als Bruch-Eingabe erkannt und gezielt geprüft. Die Testhandlung beeinflusst den
 Status der realen Runde und die erfasste Lernzeit; sie ist kein Kindesnachweis.
+
+### Live-Nachtest auf 1.38.166
+
+Die zuvor benutzte Heftseite wurde nach dem Deployment im Smartphone-Browser
+geöffnet. Beim Aufklappen des gesamten Texts erschien der ausdrücklich als
+abweichend markierte Abschnitt zunächst hinter „Text mit Lesehinweis“. Er ließ
+sich bewusst öffnen und wieder schließen; die übrigen Abschnitte blieben
+sichtbar. Dies prüft die Darstellung und den Zugriff auf die erhaltene Lesung,
+nicht die sachliche Richtigkeit aller erkannten Inhalte. Die kompakteren
+Mehrfachgrafiken und die Bruch-Eingabe sind automatisiert geprüft, für diesen
+Release aber nicht erneut mit einer neu erzeugten passenden Live-Runde belegt.
+Die nach dem Build gefundene zusätzliche Aufforderung „Schreibe
+Zähler/Nenner“ ist separat getestet und liegt erst nach diesem Release auf
+main; sie ist in 1.38.166 noch nicht enthalten.
