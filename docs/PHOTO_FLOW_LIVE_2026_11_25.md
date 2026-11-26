@@ -219,3 +219,22 @@ bewussten erneuten Versuch erhalten; weitere noch nicht übertragene Fotos werde
 kenntlich gemacht. Die Bildqualität wurde dafür nicht herabgesetzt. Künstliche
 Tests decken eine Gesamtauswahl über 3 MiB, einen Übertragungsfehler und einen
 Kontowechsel ab. Die Prüfung im echten Browser steht nach Veröffentlichung aus.
+
+Mit Version 1.38.155 wurden im mobilen Browser zwei ausdrücklich freigegebene
+Fotos zusammen ausgewählt, darunter das zuvor abgewiesene Foto. Beide wurden
+nacheinander auf dem Server gespeichert und die reguläre KI-Verarbeitung startete
+einmal. Eine Seite wurde automatisch abgeglichen; für die andere zeigte die App
+eine offene Elternprüfung. Der alte Fehlversuch blieb gleichzeitig als Problem
+sichtbar, obwohl eine erneute Auswahl gespeichert wurde. Die nachfolgende lokale
+Änderung bezeichnet deshalb fehlgeschlagene Auswahlversuche als solche, ohne
+gleichnamige Dateien fälschlich als identisch zu behandeln. Sie ist noch nicht
+veröffentlicht.
+
+Eine weitere echte Bruch-Etappe und die gezielt angebotene Anschlussübung wurden
+im Browser bearbeitet. Nach geöffneter Erklärung zählten zwei richtige Antworten
+als unterstützt; in der Anschlussübung zählten zwei richtige Antworten ohne
+weitere Hilfe als selbstständig. Die Grafik der ersten Erklärung zeigte ein
+korrektes Bruchmodell, aber die Verfeinerung beim Erweitern nicht unmittelbar.
+Die Testantworten und Testlernzeit sind im echten Konto gespeichert; daraus
+folgt kein Nachweis über das tatsächliche Können des Kindes. Der Test umfasst
+weiterhin zwei tatsächliche Kalendertage, nicht 30 abgeschlossene Tage.

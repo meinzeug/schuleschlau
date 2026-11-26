@@ -312,7 +312,12 @@ void main() {
         'reason': 'Bitte noch einmal auswählen.',
       });
       await showDay(tester, state);
-      await old.tap(tester, 'Nur Fotos mit Problemen');
+      expect(find.text('1 Auswahlversuch fehlgeschlagen'), findsOneWidget);
+      expect(
+        find.text('Dieser Auswahlversuch wurde nicht übernommen'),
+        findsOneWidget,
+      );
+      await old.tap(tester, 'Nur fehlgeschlagene Versuche');
       expect(find.text('Unlesbares Foto'), findsOneWidget);
       expect(find.text('Gutes Foto'), findsNothing);
       expect(server.requests.every((r) => r.startsWith('GET ')), isTrue);

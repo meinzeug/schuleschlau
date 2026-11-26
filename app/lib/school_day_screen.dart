@@ -599,12 +599,12 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
           initiallyExpanded: missing > 0,
           title: Text(
             missing > 0
-                ? '$missing Fotos noch nicht übernommen'
+                ? '$missing ${missing == 1 ? 'Auswahlversuch fehlgeschlagen' : 'Auswahlversuche fehlgeschlagen'}'
                 : 'Deine Fotoauswahl',
           ),
           children: [
             SwitchListTile(
-              title: Text('Nur Fotos mit Problemen'),
+              title: Text('Nur fehlgeschlagene Versuche'),
               value: receiptProblems,
               onChanged: (value) {
                 if (ownerMatches) setState(() => receiptProblems = value);
@@ -613,9 +613,7 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
             if (receiptProblems && missing == 0)
               Padding(
                 padding: EdgeInsets.all(12),
-                child: Text(
-                  'In dieser Auswahl gibt es keine nicht übernommenen Fotos.',
-                ),
+                child: Text('Es gibt keine fehlgeschlagenen Auswahlversuche.'),
               ),
             for (final row in importReceipts.where(
               (row) => !receiptProblems || row['stage'] == 'not_accepted',
@@ -676,7 +674,7 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
       'cropped' => 'Zugeschnitten',
       'queued' => 'Auf diesem Gerät gespeichert · noch nicht gesendet',
       'saved' => 'Auf dem Server gespeichert',
-      'not_accepted' => 'Nicht übernommen',
+      'not_accepted' => 'Dieser Auswahlversuch wurde nicht übernommen',
       _ => 'Bitte Status prüfen',
     };
   }
