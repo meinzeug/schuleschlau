@@ -2581,52 +2581,60 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
     return ExpansionTile(
       title: Text(title),
       children: [
-        TextField(
-          controller: packageSearch,
-          textInputAction: TextInputAction.search,
-          decoration: InputDecoration(
-            labelText: 'In diesem Tagespaket suchen',
-            prefixIcon: Icon(Icons.search_rounded),
-            suffixIcon: query.isEmpty
-                ? null
-                : IconButton(
-                    tooltip: 'Paketsuche leeren',
-                    onPressed: () {
-                      if (ownerMatches) setState(packageSearch.clear);
-                    },
-                    icon: Icon(Icons.close_rounded),
-                  ),
-          ),
-          onChanged: (_) {
-            if (ownerMatches) setState(() {});
+        ExpansionTile(
+          title: const Text('Suchen und filtern'),
+          onExpansionChanged: (expanded) {
+            if (!expanded) FocusManager.instance.primaryFocus?.unfocus();
           },
-          onSubmitted: (_) => FocusManager.instance.primaryFocus?.unfocus(),
-        ),
-        SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
           children: [
-            for (final item in [
-              ('all', 'Alles'),
-              ('pages', 'Heftseiten'),
-              ('units', 'Lernrunden'),
-            ])
-              ChoiceChip(
-                label: Text(item.$2),
-                selected: packageKind == item.$1,
-                onSelected: (_) {
-                  if (!ownerMatches) return;
-                  FocusManager.instance.primaryFocus?.unfocus();
-                  setState(() => packageKind = item.$1);
-                },
+            TextField(
+              controller: packageSearch,
+              textInputAction: TextInputAction.search,
+              decoration: InputDecoration(
+                labelText: 'In diesem Tagespaket suchen',
+                prefixIcon: Icon(Icons.search_rounded),
+                suffixIcon: query.isEmpty
+                    ? null
+                    : IconButton(
+                        tooltip: 'Paketsuche leeren',
+                        onPressed: () {
+                          if (ownerMatches) setState(packageSearch.clear);
+                        },
+                        icon: Icon(Icons.close_rounded),
+                      ),
               ),
+              onChanged: (_) {
+                if (ownerMatches) setState(() {});
+              },
+              onSubmitted: (_) => FocusManager.instance.primaryFocus?.unfocus(),
+            ),
+            SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final item in [
+                  ('all', 'Alles'),
+                  ('pages', 'Heftseiten'),
+                  ('units', 'Lernrunden'),
+                ])
+                  ChoiceChip(
+                    label: Text(item.$2),
+                    selected: packageKind == item.$1,
+                    onSelected: (_) {
+                      if (!ownerMatches) return;
+                      FocusManager.instance.primaryFocus?.unfocus();
+                      setState(() => packageKind = item.$1);
+                    },
+                  ),
+              ],
+            ),
           ],
         ),
         Semantics(
           liveRegion: true,
           child: Text(
-            '${visiblePages.length} Heftseiten · ${visibleUnits.length} Lernrunden in dieser Ansicht',
+            '${counted(visiblePages.length, 'Heftseite', 'Heftseiten')} · ${counted(visibleUnits.length, 'Lernrunde', 'Lernrunden')}',
           ),
         ),
         if (visiblePages.isEmpty && visibleUnits.isEmpty)

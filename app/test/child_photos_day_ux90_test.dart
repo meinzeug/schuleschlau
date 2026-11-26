@@ -231,6 +231,8 @@ void main() {
       ];
       await showDay(tester, server.state());
       await old.tap(tester, 'Was ist im Paket?');
+      expect(f.input('In diesem Tagespaket suchen'), findsNothing);
+      await old.tap(tester, 'Suchen und filtern');
       await tester.enterText(
         f.input('In diesem Tagespaket suchen'),
         'Bruchaufgabe 2',
@@ -242,6 +244,11 @@ void main() {
       await tester.pump();
       await old.tap(tester, 'Alle Inhalte dieses Pakets zeigen');
       expect(find.text('Künstliche Bruchaufgabe 1'), findsOneWidget);
+      await tester.showKeyboard(f.input('In diesem Tagespaket suchen'));
+      final searchFocus = FocusManager.instance.primaryFocus;
+      expect(searchFocus, isNotNull);
+      await old.tap(tester, 'Suchen und filtern');
+      expect(searchFocus!.hasPrimaryFocus, isFalse);
       expect(server.requests.every((r) => r.startsWith('GET ')), isTrue);
     },
   );
@@ -262,16 +269,11 @@ void main() {
       ];
       await showDay(tester, server.state());
       await old.tap(tester, 'Was ist im Paket?');
+      await old.tap(tester, 'Suchen und filtern');
       await f.tap(tester, find.widgetWithText(ChoiceChip, 'Lernrunden'));
-      expect(
-        find.text('0 Heftseiten · 1 Lernrunden in dieser Ansicht'),
-        findsOneWidget,
-      );
+      expect(find.text('0 Heftseiten · 1 Lernrunde'), findsOneWidget);
       await f.tap(tester, find.widgetWithText(ChoiceChip, 'Heftseiten'));
-      expect(
-        find.text('1 Heftseiten · 0 Lernrunden in dieser Ansicht'),
-        findsOneWidget,
-      );
+      expect(find.text('1 Heftseite · 0 Lernrunden'), findsOneWidget);
       expect(find.text('Mathematik · Andere Runde'), findsNothing);
       expect(server.requests.every((r) => r.startsWith('GET ')), isTrue);
     },
