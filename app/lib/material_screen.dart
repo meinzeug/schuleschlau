@@ -2552,31 +2552,54 @@ class _MaterialReviewState extends State<MaterialReview>
             d['has_image'] != false) ...[
           Panel(
             padding: EdgeInsets.all(12),
-            child: LoadView<Uint8List>(
-              revision: (d['id'], d['revision'], ObjectKey(account)),
-              load: () => widget.state.api.bytes('/materials/${d['id']}/image'),
-              builder: (bytes, _) => Semantics(
-                button: true,
-                label: 'Heftfoto vergrößern',
-                child: InkWell(
-                  onTap: () => zoomNotebookPhoto(context, widget.state, d),
-                  child: SizedBox(
-                    height: 150,
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        Image.memory(bytes, fit: BoxFit.contain),
-                        Positioned(
-                          right: 4,
-                          bottom: 4,
-                          child: Icon(
+            child: Semantics(
+              button: true,
+              label: 'Heftfoto vergrößern',
+              child: InkWell(
+                onTap: () {
+                  if (sourceCurrent(d)) {
+                    zoomNotebookPhoto(context, widget.state, d);
+                  }
+                },
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    SizedBox(
+                      key: const ValueKey('material-photo-preview'),
+                      height: (MediaQuery.sizeOf(context).height * .24).clamp(
+                        150.0,
+                        260.0,
+                      ),
+                      child: NotebookPhoto(
+                        widget.state,
+                        materialId: d['id'].toString(),
+                        revision: d['revision'] is int
+                            ? d['revision'] as int
+                            : null,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    ExcludeSemantics(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          Icon(
                             Icons.zoom_in_rounded,
+                            size: 20,
                             color: context.palette.teal,
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: Text(
+                              'Foto vergrößern',
+                              textAlign: TextAlign.end,
+                              style: TextStyle(color: context.palette.teal),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
+                  ],
                 ),
               ),
             ),

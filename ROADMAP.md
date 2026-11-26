@@ -1056,6 +1056,14 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – Alle Kinderansichten sprachlich und in ihrer Bedienung entrümpeln**
 
+  - [x] **Heftfoto auf der Materialseite besser erkennbar machen.** Die
+    bisher 150 Pixel hohe Vorschau nutzt abhängig von der Bildschirmhöhe mehr
+    Platz, zeigt das ganze Foto und beschriftet die Vergrößerung sichtbar.
+    Der bestehende private Fotolader verwirft Bilddaten bei Konto-, Familien-
+    und Sitzungswechsel. Künstliche Tests prüfen drei Fenstergrößen und
+    doppelte Schrift, Öffnen/Schließen sowie lesende Zugriffe. Die vollständige
+    Abnahme aller Kinderansichten bleibt offen; der Stand ist nicht ausgerollt.
+
   - [x] **Fortlaufende Vorbereitung nach dem Lesen verständlich anzeigen.**
     Sind alle Seiten gelesen, aber noch Arbeit im Hintergrund offen, zeigt die
     Kinderansicht „Deine Seiten werden fertig vorbereitet“ statt weiterhin
