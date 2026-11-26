@@ -703,3 +703,16 @@ Der verbleibende Dialog verdeckt weiterhin einen großen Teil der mobilen Ansich
 und sollte weiter vereinfacht werden. Die beiden KI-Verarbeitungsschritte des erneuten Lesens
 dauerten ungefähr 39 und 41 Sekunden; die In-App-Glocke zeigte eine neue
 Meldung. Eine tatsächliche Firebase-Zustellung wurde dabei nicht nachgewiesen.
+
+### Benachrichtigung und Wiederaufnahme
+
+Die In-App-Glocke zeigte für das abgeschlossene Tagespaket eine neue Meldung.
+Nach dem Öffnen des Menüs wurde sie als gelesen markiert; ein Klick auf die
+Meldung öffnete direkt eine vorhandene Lernrunde. Diese ließ sich starten, die
+Erklärung öffnen und die Runde anschließend ohne Antwort pausieren. Das zeigt
+die Bedienung der In-App-Meldung, nicht die Android-Hintergrundzustellung.
+
+Die erste Frage verlangte ausdrücklich „Schreibe Zähler/Nenner“, zeigte aber
+ein allgemeines Textfeld. Diese zusätzliche Formulierung wird lokal ebenfalls
+als Bruch-Eingabe erkannt und gezielt geprüft. Die Testhandlung beeinflusst den
+Status der realen Runde und die erfasste Lernzeit; sie ist kein Kindesnachweis.

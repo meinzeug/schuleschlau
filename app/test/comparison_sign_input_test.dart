@@ -48,6 +48,13 @@ void main() {
     expect(
       expectsFraction({
         'type': 'short',
+        'prompt': 'Ein Ganzes ist in 10 gleich große Teile geteilt. 1 Teil ist ausgewählt. Welchen Bruch beschreibt das? Schreibe Zähler/Nenner.',
+      }),
+      isTrue,
+    );
+    expect(
+      expectsFraction({
+        'type': 'short',
         'prompt': 'Wie lautet der Zähler des Bruchs in der Form Zähler/Nenner?',
       }),
       isFalse,
@@ -78,6 +85,25 @@ void main() {
     expect(find.text('Richtig!'), findsOneWidget);
     await harness.close();
   });
+
+  testWidgets(
+    'Instruction to write numerator/denominator offers the fraction input',
+    (t) async {
+      final question = room.question('fraction2', type: 'short')
+        ..['prompt'] = 'Ein Ganzes ist in 10 gleich große Teile geteilt. 1 Teil ist ausgewählt. Welchen Bruch beschreibt das? Schreibe Zähler/Nenner.'
+        ..['options'] = <String>[];
+      final server = room.SavedRound(questions: [question]);
+      server.expected['fraction2'] = '1/10';
+      final harness = await room.openRound(t, server);
+      expect(find.byType(FractionAnswerInput), findsOneWidget);
+      await t.enterText(find.widgetWithText(TextField, 'Zähler'), '1');
+      await t.enterText(find.widgetWithText(TextField, 'Nenner'), '10');
+      await room.tapText(t, 'Antwort prüfen');
+      expect(server.answers, 1);
+      expect(find.text('Richtig!'), findsOneWidget);
+      await harness.close();
+    },
+  );
 
   for (final scale in [1.0, 2.0]) {
     testWidgets('A sign answer can be selected and submitted at $scale', (
