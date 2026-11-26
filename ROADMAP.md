@@ -1243,6 +1243,15 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – Barrierearme mobile Führung nachweisen**
 
+  - [x] **Heftfoto bei großer Schrift im Fotoablauf sichtbar halten.** Im
+    Kinderzugang steht das Foto vor dem weiterhin vorhandenen Hinweis auf die
+    Elternprüfung. Bei großer Schrift fasst eine beschriftete Fortschrittsleiste
+    die Phasen platzsparend zusammen; das Datum bleibt mit seinem vollständigen
+    Screenreader-Namen erhalten. Künstliche Widgettests prüfen 19 Seiten bei
+    320 und 390 Pixeln sowie einfacher und doppelter Schrift, einschließlich
+    Kontowechsel und veralteter Seitenauswahl. Eine umfassende Geräte- und
+    Screenreaderabnahme sowie das Ausrollen stehen weiter aus.
+
   - [x] **Flutter-Systemtexte auf Deutsch bereitstellen.** In der mobilen
     Browseransicht meldete der Zeichenzähler „characters remaining“ und die
     Dialogschranke „Dismiss“. Startansicht und gemeinsame App verwenden nun

@@ -116,8 +116,20 @@ void main() {
         '19 pages leave photo visible and select with GET only at $width/$scale',
         (tester) async {
           final (server, _) = await open(tester, width: width, scale: scale);
-          expect(find.text('Seite 3 prüfen'), findsOneWidget);
-          expect(find.text('2 von 19 geprüft'), findsOneWidget);
+          if (scale == 2) {
+            final semantics = tester.ensureSemantics();
+            try {
+              await tester.pump();
+              expect(
+                tester.getSemantics(find.text('2 Vorbereitung')).label,
+                'Schritt 2 von 3: Vorbereitung',
+              );
+            } finally {
+              semantics.dispose();
+            }
+          }
+          expect(find.text('Seite 3 ansehen'), findsOneWidget);
+          expect(find.text('19 Fotos gespeichert'), findsOneWidget);
           expect(find.byKey(picker).hitTestable(), findsOneWidget);
           expect(
             find.byWidgetPredicate(
@@ -128,7 +140,10 @@ void main() {
             findsNothing,
           );
           final photo = find.byWidgetPredicate(
-            (w) => w is Image && w.image is MemoryImage,
+            (w) =>
+                w is Image &&
+                w.image is ResizeImage &&
+                (w.image as ResizeImage).imageProvider is MemoryImage,
           );
           expect(photo, findsOneWidget);
           final bounds = tester.getRect(photo);
@@ -152,7 +167,7 @@ void main() {
           await tester.tap(choice(19));
           await tester.pumpAndSettle();
           expect(find.byType(AlertDialog), findsNothing);
-          expect(find.text('Seite 19 prüfen'), findsOneWidget);
+          expect(find.text('Seite 19 ansehen'), findsOneWidget);
           expect(server.images.toSet(), {'page3', 'page19'});
           onlyReads(server);
           expect(tester.takeException(), isNull);
@@ -169,7 +184,7 @@ void main() {
     await tester.tap(find.text('Abbrechen'));
     await tester.pumpAndSettle();
     expect(tester.state(find.byType(MaterialReview)), same(review));
-    expect(find.text('Seite 3 prüfen'), findsOneWidget);
+    expect(find.text('Seite 3 ansehen'), findsOneWidget);
     expect(server.images.toSet(), {'page3'});
     onlyReads(server);
   });
@@ -225,7 +240,7 @@ void main() {
     expect(server.images.contains('page4'), isFalse);
     await tester.tap(find.text('Abbrechen'));
     await tester.pumpAndSettle();
-    expect(find.text('Seite 3 prüfen'), findsOneWidget);
+    expect(find.text('Seite 3 ansehen'), findsOneWidget);
     onlyReads(server);
   });
   testWidgets('foreign modal blocks old selection and remains open', (
@@ -258,7 +273,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Abbrechen'));
     await tester.pumpAndSettle();
-    expect(find.text('Seite 3 prüfen'), findsOneWidget);
+    expect(find.text('Seite 3 ansehen'), findsOneWidget);
     onlyReads(server);
   });
 }

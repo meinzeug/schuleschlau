@@ -1262,6 +1262,7 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
         : stage == 'ready' && pages.every((page) => page['confirmed'] == true)
         ? 2
         : 1;
+    final largeText = MediaQuery.textScalerOf(context).scale(1) >= 1.5;
     return PageFrame(
       state: state,
       title: 'Nach der Schule',
@@ -1307,7 +1308,10 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
           ),
           if (day != null) ...[
             Text(
-              'Schultag · ${schoolDate(day!['date'])}',
+              largeText
+                  ? schoolDate(day!['date'])
+                  : 'Schultag · ${schoolDate(day!['date'])}',
+              semanticsLabel: 'Schultag · ${schoolDate(day!['date'])}',
               style: TextStyle(
                 fontWeight: FontWeight.w700,
                 color: context.palette.muted,
@@ -1318,46 +1322,62 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
                 'Gespeicherter Tag · neue Fotos gehören zum heutigen Schultag.',
                 style: TextStyle(color: context.palette.muted),
               ),
-            SizedBox(height: 16),
+            SizedBox(height: largeText ? 8 : 16),
           ],
-          Row(
-            children: [
-              for (var i = 0; i < 3; i++)
-                Expanded(
-                  child: Padding(
-                    padding: EdgeInsets.only(right: i == 2 ? 0 : 8),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Container(
-                          height: 5,
-                          decoration: BoxDecoration(
-                            color: i <= step
-                                ? context.palette.teal
-                                : Color(0xFFE1E6F0),
-                            borderRadius: BorderRadius.circular(5),
+          if (largeText) ...[
+            ExcludeSemantics(
+              child: LinearProgressIndicator(value: (step + 1) / 3),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              ['1 Fotos', '2 Vorbereitung', '3 Fertig'][step],
+              semanticsLabel:
+                  'Schritt ${step + 1} von 3: ${['Fotos', 'Vorbereitung', 'Fertig'][step]}',
+              style: TextStyle(
+                fontSize: 12,
+                color: context.palette.teal,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ] else
+            Row(
+              children: [
+                for (var i = 0; i < 3; i++)
+                  Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.only(right: i == 2 ? 0 : 8),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Container(
+                            height: 5,
+                            decoration: BoxDecoration(
+                              color: i <= step
+                                  ? context.palette.teal
+                                  : Color(0xFFE1E6F0),
+                              borderRadius: BorderRadius.circular(5),
+                            ),
                           ),
-                        ),
-                        SizedBox(height: 7),
-                        Text(
-                          ['1 Fotos', '2 Vorbereitung', '3 Fertig'][i],
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: i == step
-                                ? context.palette.teal
-                                : context.palette.muted,
-                            fontWeight: i == step
-                                ? FontWeight.w700
-                                : FontWeight.w400,
+                          SizedBox(height: 7),
+                          Text(
+                            ['1 Fotos', '2 Vorbereitung', '3 Fertig'][i],
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: i == step
+                                  ? context.palette.teal
+                                  : context.palette.muted,
+                              fontWeight: i == step
+                                  ? FontWeight.w700
+                                  : FontWeight.w400,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
-                ),
-            ],
-          ),
-          SizedBox(height: 16),
+              ],
+            ),
+          SizedBox(height: largeText ? 8 : 16),
           if (loading)
             Center(child: CircularProgressIndicator())
           else if (day == null) ...[

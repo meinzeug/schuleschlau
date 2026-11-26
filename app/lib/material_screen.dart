@@ -2532,12 +2532,6 @@ class _MaterialReviewState extends State<MaterialReview>
         if (d['purpose'] == 'exam') examReturn(d),
         pageActions(maintenance: false),
         if (automaticReview != null) automaticReviewNotice(),
-        if (!confirmed &&
-            d['status'] == 'review' &&
-            automaticReview?['status'] != 'checking')
-          const Notice(
-            'Diese Seite prüfen deine Eltern. Dein Foto ist gespeichert.',
-          ),
         if (dirty && !confirmedHere)
           Semantics(
             liveRegion: true,
@@ -2606,6 +2600,12 @@ class _MaterialReviewState extends State<MaterialReview>
           ),
           SizedBox(height: 16),
         ],
+        if (!confirmed &&
+            d['status'] == 'review' &&
+            automaticReview?['status'] != 'checking')
+          const Notice(
+            'Diese Seite prüfen deine Eltern. Dein Foto ist gespeichert.',
+          ),
         if (d['purpose'] == 'exam' && d['status'] == 'uploaded')
           const Notice(
             'Das Foto ist gespeichert. Gib deine Arbeitsseiten in der Nacharbeit gemeinsam zum Lesen ab.',
