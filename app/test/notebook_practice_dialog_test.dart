@@ -123,6 +123,83 @@ void main() {
       expect(requests, isEmpty);
     },
   );
+  testWidgets(
+    'new login closes old notebook dialog and captured actions are inert',
+    (tester) async {
+      final (state, requests) = await openDialog(tester);
+      final stalePrepare = tester
+          .widget<FilledButton>(
+            find.widgetWithText(FilledButton, 'Runde vorbereiten'),
+          )
+          .onPressed!;
+      final staleBack = tester
+          .widget<TextButton>(find.widgetWithText(TextButton, 'Zurück'))
+          .onPressed!;
+      state.beginAuthentication();
+      await tester.pumpAndSettle();
+      expect(find.byType(NotebookPracticeDialog), findsNothing);
+      final context = tester.element(find.text('Öffnen'));
+      unawaited(
+        showDialog<void>(
+          context: context,
+          builder: (_) => const AlertDialog(title: Text('Neuer Dialog')),
+        ),
+      );
+      await tester.pumpAndSettle();
+      stalePrepare();
+      staleBack();
+      await tester.pumpAndSettle();
+      expect(find.text('Neuer Dialog'), findsOneWidget);
+      expect(requests.where((r) => r.method == 'POST'), isEmpty);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'login interruption retains the exact uncertain notebook request',
+    (tester) async {
+      final pending = Completer<http.Response>();
+      var posts = 0;
+      final (state, requests) = await openDialog(
+        tester,
+        respond: (request) async {
+          expect(request.method, 'POST');
+          posts++;
+          return posts == 1
+              ? pending.future
+              : reply({'id': 'job', 'status': 'queued'}, 202);
+        },
+      );
+      await tester.tap(find.text('Runde vorbereiten'));
+      for (var i = 0; i < 10 && posts == 0; i++) {
+        await tester.pump();
+      }
+      expect(posts, 1);
+      final revision = state.beginAuthentication();
+      await tester.pump();
+      pending.complete(reply({'id': 'job', 'status': 'queued'}, 202));
+      await tester.pumpAndSettle();
+      expect(find.byType(NotebookPracticeDialog), findsNothing);
+      state.cancelAuthentication(revision);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Öffnen'));
+      await tester.pumpAndSettle();
+      expect(find.text('Vorbereitung abgleichen'), findsOneWidget);
+      expect(posts, 1);
+      await tapText(tester, 'Vorbereitung abgleichen');
+      expect(posts, 2);
+      final writes = requests
+          .where((request) => request.method == 'POST')
+          .toList();
+      expect(
+        writes[0].headers['Idempotency-Key'],
+        writes[1].headers['Idempotency-Key'],
+      );
+      expect(writes[0].body, writes[1].body);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets('A usable or legacy source remains preparable', (tester) async {
     final primary = page('base')
       ..['source_learning'] = {'content': 'Künstlicher, verwendbarer Stoff.'};

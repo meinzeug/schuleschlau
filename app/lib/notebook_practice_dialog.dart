@@ -29,6 +29,7 @@ class _NotebookPracticeDialogState extends State<NotebookPracticeDialog>
   late final owner = widget.state.user;
   late final family = widget.state.familyId;
   late final token = widget.state.api.token;
+  late final authenticationRevision = widget.state.api.requestIdentity().$3;
   late final pages = <String, Json>{widget.page['id']: Json.from(widget.page)};
   final count = TextEditingController(text: '2');
   final form = GlobalKey<FormState>();
@@ -50,7 +51,12 @@ class _NotebookPracticeDialogState extends State<NotebookPracticeDialog>
       widget.state.api.token == token &&
       widget.state.notebookRequests.generation == requestEpoch;
 
-  bool get current => mounted && owner != null && sameAccount;
+  bool get current =>
+      mounted &&
+      owner != null &&
+      sameAccount &&
+      !widget.state.authenticationPending &&
+      authenticationRevision == widget.state.api.requestIdentity().$3;
   bool get active =>
       current &&
       (WidgetsBinding.instance.lifecycleState == null ||
@@ -71,7 +77,12 @@ class _NotebookPracticeDialogState extends State<NotebookPracticeDialog>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     widget.state.addListener(accountChanged);
-    restoreRequest();
+    widget.state.authenticationChanges.addListener(accountChanged);
+    if (!current) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => accountChanged());
+    } else {
+      restoreRequest();
+    }
   }
 
   void applyRequest(Json value) {
@@ -161,6 +172,13 @@ class _NotebookPracticeDialogState extends State<NotebookPracticeDialog>
         pages.clear();
         error = listError = null;
       });
+      final route = ModalRoute.of(context);
+      if (route is DialogRoute) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (route.isActive) route.navigator?.removeRoute(route);
+        });
+        WidgetsBinding.instance.ensureVisualUpdate();
+      }
     }
   }
 
@@ -177,6 +195,7 @@ class _NotebookPracticeDialogState extends State<NotebookPracticeDialog>
     readEpoch++;
     WidgetsBinding.instance.removeObserver(this);
     widget.state.removeListener(accountChanged);
+    widget.state.authenticationChanges.removeListener(accountChanged);
     count.dispose();
     super.dispose();
   }
@@ -538,7 +557,11 @@ class _NotebookPracticeDialogState extends State<NotebookPracticeDialog>
                 style: TextButton.styleFrom(
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                 ),
-                onPressed: sending ? null : () => Navigator.of(context).pop(),
+                onPressed: sending
+                    ? null
+                    : () {
+                        if (active) Navigator.of(context).pop();
+                      },
                 child: const Text('Zurück'),
               ),
             ),
