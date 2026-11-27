@@ -46,6 +46,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Json? account;
   String? accountFamily, accountToken;
   bool onlyUnread = false;
+  bool authenticationReload = false;
   String? opening;
   int openRevision = 0, readEpoch = 0;
   int interactionRevision = 0;
@@ -59,15 +60,74 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     accountFamily = widget.state.familyId;
     accountToken = widget.state.api.token;
     widget.state.addListener(accountChanged);
+    widget.state.authenticationChanges.addListener(authenticationChanged);
+    authenticationReload = widget.state.authenticationPending;
+    if (!authenticationReload) {
+      void activateInbox() {
+        if (!mounted ||
+            widget.state.authenticationPending ||
+            authenticationReload ||
+            !identical(account, widget.state.user) ||
+            accountFamily != widget.state.familyId ||
+            accountToken != widget.state.api.token) {
+          return;
+        }
+        widget.state.inbox.activate(
+          widget.state.user?['id'],
+          family: widget.state.familyId,
+          session: widget.state.api.token,
+        );
+        unawaited(widget.state.inbox.refresh());
+      }
+
+      if (widget.state.inbox.active) {
+        activateInbox();
+      } else {
+        // The bell may already be mounted after a login intent cleared the
+        // inbox. Avoid publishing to it while this route is being built.
+        WidgetsBinding.instance.addPostFrameCallback((_) => activateInbox());
+      }
+    }
+  }
+
+  void _searchInteraction() => interactionRevision++;
+
+  void authenticationChanged() {
+    if (!mounted ||
+        !identical(account, widget.state.user) ||
+        accountFamily != widget.state.familyId ||
+        accountToken != widget.state.api.token) {
+      return;
+    }
+    _noticeAnchors.clear();
+    setState(() {
+      authenticationReload = true;
+      unreadSelection.clear();
+      readEpoch++;
+      opening = null;
+      openRevision++;
+    });
+  }
+
+  void reloadAfterAuthentication() {
+    if (!mounted ||
+        widget.state.authenticationPending ||
+        !authenticationReload ||
+        !identical(account, widget.state.user) ||
+        accountFamily != widget.state.familyId ||
+        accountToken != widget.state.api.token) {
+      return;
+    }
+    setState(() => authenticationReload = false);
     widget.state.inbox.activate(
       widget.state.user?['id'],
       family: widget.state.familyId,
       session: widget.state.api.token,
     );
-    widget.state.inbox.refresh();
+    // Another part of the shell may already have activated this inbox.
+    // Explicitly reconcile it even when activate() is a no-op.
+    unawaited(widget.state.inbox.refresh());
   }
-
-  void _searchInteraction() => interactionRevision++;
 
   void accountChanged() {
     if (identical(account, widget.state.user) &&
@@ -83,6 +143,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     _noticeAnchors.clear();
     setState(() {
       account = widget.state.user;
+      authenticationReload = widget.state.authenticationPending;
       accountFamily = widget.state.familyId;
       accountToken = widget.state.api.token;
       onlyUnread = false;
@@ -100,9 +161,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     super.didUpdateWidget(oldWidget);
     if (!identical(widget.state, oldWidget.state)) {
       oldWidget.state.removeListener(accountChanged);
+      oldWidget.state.authenticationChanges.removeListener(
+        authenticationChanged,
+      );
       widget.state.addListener(accountChanged);
+      widget.state.authenticationChanges.addListener(authenticationChanged);
       _noticeAnchors.clear();
       account = widget.state.user;
+      authenticationReload = widget.state.authenticationPending;
       accountFamily = widget.state.familyId;
       accountToken = widget.state.api.token;
       onlyUnread = false;
@@ -123,6 +189,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   @override
   void dispose() {
     widget.state.removeListener(accountChanged);
+    widget.state.authenticationChanges.removeListener(authenticationChanged);
     search.removeListener(_searchInteraction);
     search.dispose();
     super.dispose();
@@ -313,6 +380,25 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (authenticationReload) {
+      return PageFrame(
+        state: widget.state,
+        title: 'Benachrichtigungen',
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text('Lade deine Benachrichtigungen erneut.'),
+            const SizedBox(height: 12),
+            FilledButton(
+              onPressed: widget.state.authenticationPending
+                  ? null
+                  : reloadAfterAuthentication,
+              child: const Text('Benachrichtigungen erneut laden'),
+            ),
+          ],
+        ),
+      );
+    }
     final owner = widget.state.user;
     final token = widget.state.api.token, family = widget.state.familyId;
     final authentication = widget.state.api.currentAuthenticationRevision

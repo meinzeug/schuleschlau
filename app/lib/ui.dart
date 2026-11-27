@@ -2885,6 +2885,7 @@ class _NotificationBellState extends State<NotificationBell>
     _family = widget.state.familyId;
     _token = widget.state.api.token;
     widget.state.addListener(_changed);
+    widget.state.authenticationChanges.addListener(_authenticationChanged);
     widget.state.inbox.addListener(_previewChanged);
     _previewIds = widget.state.inbox.items
         .map((e) => e['id'])
@@ -3072,8 +3073,12 @@ class _NotificationBellState extends State<NotificationBell>
       _opening = false;
       _openRevision++;
       oldWidget.state.removeListener(_changed);
+      oldWidget.state.authenticationChanges.removeListener(
+        _authenticationChanged,
+      );
       oldWidget.state.inbox.removeListener(_previewChanged);
       widget.state.addListener(_changed);
+      widget.state.authenticationChanges.addListener(_authenticationChanged);
       widget.state.inbox.addListener(_previewChanged);
       _previewAnchors.clear();
       _previewIds = widget.state.inbox.items
@@ -3083,6 +3088,17 @@ class _NotificationBellState extends State<NotificationBell>
       _previewRevision++;
       _changed();
     }
+  }
+
+  void _authenticationChanged() {
+    _cancelPreviewWaiters();
+    widget.state.inbox.unregisterRefreshGate(_refreshGateOwner);
+    _menu.close();
+    _opening = false;
+    _openRevision++;
+    _previewRevision++;
+    _previewAnchors.clear();
+    if (mounted) setState(() {});
   }
 
   void _changed() {
@@ -3112,6 +3128,7 @@ class _NotificationBellState extends State<NotificationBell>
     widget.state.inbox.unregisterRefreshGate(_refreshGateOwner);
     WidgetsBinding.instance.removeObserver(this);
     widget.state.removeListener(_changed);
+    widget.state.authenticationChanges.removeListener(_authenticationChanged);
     widget.state.inbox.removeListener(_previewChanged);
     _previewScroll.removeListener(_loadMoreOnScroll);
     _previewScroll.dispose();
@@ -3128,6 +3145,7 @@ class _NotificationBellState extends State<NotificationBell>
     final state = widget.state;
     final route = ModalRoute.of(context);
     if (_opening ||
+        state.authenticationPending ||
         !_sameHeaderAccount(state, snapshot) ||
         state.api.currentAuthenticationRevision?.call() != authentication ||
         state.familyId != family ||
@@ -3206,7 +3224,7 @@ class _NotificationBellState extends State<NotificationBell>
           maximumSize: WidgetStatePropertyAll(Size(width + 24, menuHeight)),
         ),
         onOpen: () {
-          if (!state.isAdmin) {
+          if (!state.isAdmin && !state.authenticationPending) {
             inbox.activate(account, family: family, session: token);
             inbox.registerRefreshGate(_refreshGateOwner, _waitForRefreshRest);
             inbox.refresh();
@@ -3483,7 +3501,8 @@ class _NotificationBellState extends State<NotificationBell>
             key: ValueKey('notifications-all'),
             leadingIcon: Icon(Icons.list_alt_rounded),
             onPressed: () {
-              if (_sameHeaderAccount(state, snapshot) &&
+              if (!state.authenticationPending &&
+                  _sameHeaderAccount(state, snapshot) &&
                   state.familyId == family &&
                   state.api.token == token) {
                 context.go(state.isAdmin ? '/admin/push' : '/notifications');
@@ -3514,7 +3533,9 @@ class _NotificationBellState extends State<NotificationBell>
                         : BorderSide.none,
                   ),
                 ),
-            onPressed: () => menu.isOpen ? menu.close() : menu.open(),
+            onPressed: state.authenticationPending
+                ? null
+                : () => menu.isOpen ? menu.close() : menu.open(),
             icon: Semantics(
               label: state.isAdmin
                   ? 'Push-Status'

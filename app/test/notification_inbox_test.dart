@@ -25,6 +25,121 @@ void main() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(PushTransport.channel, null);
   });
+  test('authentication intent clears inbox and blocks reads until explicit reactivation', () async {
+    final calls = <String>[];
+    final state = AppState(
+      api: Api(
+        base: 'https://example.invalid/api',
+        client: MockClient((request) async {
+          calls.add(request.method);
+          return http.Response(
+            jsonEncode({
+              'items': [
+                {'id': 'synthetic', 'read': false},
+              ],
+              'unread': 1,
+            }),
+            200,
+          );
+        }),
+      ),
+    )..user = {'id': 'synthetic', 'role': 'parent'};
+    state.inbox.activate('synthetic');
+    await Future<void>.delayed(Duration.zero);
+    expect(state.inbox.items, hasLength(1));
+    final revision = state.beginAuthentication();
+    expect(state.inbox.items, isEmpty);
+    state.inbox.activate('synthetic');
+    await state.inbox.refresh();
+    await state.inbox.loadMore();
+    await state.inbox.markRead(['synthetic']);
+    expect(calls, ['GET']);
+    state.cancelAuthentication(revision);
+    await Future<void>.delayed(Duration.zero);
+    expect(calls, ['GET']);
+    state.inbox.activate('synthetic');
+    await Future<void>.delayed(Duration.zero);
+    expect(calls, ['GET', 'GET']);
+    expect(state.inbox.items.single['id'], 'synthetic');
+    state.dispose();
+  });
+
+  test(
+    'late notification reply cannot refill cache after authentication starts',
+    () async {
+      final pending = Completer<http.Response>();
+      final state = AppState(
+        api: Api(
+          base: 'https://example.invalid/api',
+          client: MockClient((_) => pending.future),
+        ),
+      )..user = {'id': 'synthetic', 'role': 'parent'};
+      state.inbox.activate('synthetic');
+      await Future<void>.delayed(Duration.zero);
+      state.beginAuthentication();
+      pending.complete(
+        http.Response(
+          jsonEncode({
+            'items': [
+              {'id': 'old', 'read': false},
+            ],
+            'unread': 1,
+          }),
+          200,
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+      expect(state.inbox.items, isEmpty);
+      state.dispose();
+    },
+  );
+
+  test(
+    'a receipt already sent before login is reconciled from the server',
+    () async {
+      final pending = Completer<http.Response>();
+      final calls = <String>[];
+      var serverRead = false;
+      final state = AppState(
+        api: Api(
+          base: 'https://example.invalid/api',
+          client: MockClient((request) async {
+            calls.add(request.method);
+            if (request.method == 'POST') {
+              final response = await pending.future;
+              serverRead = true;
+              return response;
+            }
+            return http.Response(
+              jsonEncode({
+                'items': [
+                  {'id': 'synthetic', 'read': serverRead},
+                ],
+                'unread': serverRead ? 0 : 1,
+              }),
+              200,
+            );
+          }),
+        ),
+      )..user = {'id': 'synthetic', 'role': 'parent'};
+      state.inbox.activate('synthetic');
+      await Future<void>.delayed(Duration.zero);
+      final receipt = state.inbox.markRead(['synthetic']);
+      await Future<void>.delayed(Duration.zero);
+      expect(calls, ['GET', 'POST']);
+      final revision = state.beginAuthentication();
+      pending.complete(http.Response('{}', 200));
+      await receipt;
+      expect(state.inbox.items, isEmpty);
+      state.cancelAuthentication(revision);
+      state.inbox.activate('synthetic');
+      await Future<void>.delayed(Duration.zero);
+      expect(calls, ['GET', 'POST', 'GET']);
+      expect(state.inbox.items.single['read'], isTrue);
+      state.dispose();
+    },
+  );
+
   test(
     'late GET cannot leak the previous account and mark-read is explicit',
     () async {

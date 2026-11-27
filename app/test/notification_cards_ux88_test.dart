@@ -35,6 +35,7 @@ Future<({AppState state, GoRouter router})> display(
   WidgetTester tester,
   Future<http.Response> Function(http.Request) handle, {
   bool bell = false,
+  void Function(AppState)? beforeMount,
 }) async {
   final state =
       AppState(
@@ -54,6 +55,7 @@ Future<({AppState state, GoRouter router})> display(
           'role': 'parent',
           'display_name': 'Kunstfamilie',
         };
+  beforeMount?.call(state);
   final router = GoRouter(
     initialLocation: '/notices',
     routes: [
@@ -119,6 +121,134 @@ void main() {
     () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(PushTransport.channel, null),
   );
+
+  scenario('notification screen pauses at login and reloads only on request', (
+    tester,
+  ) async {
+    final methods = <String>[];
+    final f = await display(tester, (request) async {
+      methods.add(request.method);
+      return reply({
+        'items': [notice('safe', read: true)],
+        'unread': 0,
+        'next_cursor': null,
+      });
+    });
+    expect(find.text('Künstliche Meldung safe'), findsOneWidget);
+    final count = methods.length;
+    final revision = f.state.beginAuthentication();
+    await tester.pumpAndSettle();
+    expect(find.text('Künstliche Meldung safe'), findsNothing);
+    final reload = tester.widget<FilledButton>(
+      find.widgetWithText(FilledButton, 'Benachrichtigungen erneut laden'),
+    );
+    expect(reload.onPressed, isNull);
+    await f.state.inbox.refresh();
+    expect(methods.length, count);
+    f.state.cancelAuthentication(revision);
+    await tester.pumpAndSettle();
+    expect(methods.length, count);
+    await tester.tap(find.text('Benachrichtigungen erneut laden'));
+    await tester.pumpAndSettle();
+    expect(methods.length, count + 1);
+    expect(find.text('Künstliche Meldung safe'), findsOneWidget);
+    expect(methods.every((method) => method == 'GET'), isTrue);
+  });
+
+  scenario(
+    'notification screen opened during login waits for explicit reload',
+    (tester) async {
+      final methods = <String>[];
+      int? revision;
+      final f = await display(tester, (request) async {
+        methods.add(request.method);
+        return reply({
+          'items': [notice('safe', read: true)],
+          'unread': 0,
+          'next_cursor': null,
+        });
+      }, beforeMount: (state) => revision = state.beginAuthentication());
+      expect(methods, isEmpty);
+      expect(
+        tester
+            .widget<FilledButton>(
+              find.widgetWithText(
+                FilledButton,
+                'Benachrichtigungen erneut laden',
+              ),
+            )
+            .onPressed,
+        isNull,
+      );
+      f.state.cancelAuthentication(revision!);
+      await tester.pumpAndSettle();
+      expect(methods, isEmpty);
+      await tester.tap(find.text('Benachrichtigungen erneut laden'));
+      await tester.pumpAndSettle();
+      expect(methods, ['GET']);
+      expect(find.text('Künstliche Meldung safe'), findsOneWidget);
+    },
+  );
+
+  scenario('bell closes and disables during a new login', (tester) async {
+    final methods = <String>[];
+    final f = await display(tester, (request) async {
+      methods.add(request.method);
+      return reply({
+        'items': [notice('safe', read: true)],
+        'unread': 0,
+        'next_cursor': null,
+      });
+    }, bell: true);
+    await tester.tap(find.byKey(const ValueKey('notification-bell')));
+    await tester.pumpAndSettle();
+    expect(find.text('Künstliche Meldung safe'), findsOneWidget);
+    final count = methods.length;
+    final revision = f.state.beginAuthentication();
+    await tester.pumpAndSettle();
+    expect(find.text('Künstliche Meldung safe'), findsNothing);
+    expect(
+      tester
+          .widget<IconButton>(find.byKey(const ValueKey('notification-bell')))
+          .onPressed,
+      isNull,
+    );
+    expect(methods.length, count);
+    f.state.cancelAuthentication(revision);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('notification-bell')));
+    await tester.pumpAndSettle();
+    expect(find.text('Künstliche Meldung safe'), findsOneWidget);
+    expect(methods.every((method) => method == 'GET'), isTrue);
+  });
+
+  scenario('a simulated account change receives only its own notices', (
+    tester,
+  ) async {
+    var current = 'old';
+    final f = await display(tester, (request) async {
+      return reply({
+        'items': [notice(current, read: true)],
+        'unread': 0,
+        'next_cursor': null,
+      });
+    });
+    expect(find.text('Künstliche Meldung old'), findsOneWidget);
+    final revision = f.state.beginAuthentication();
+    await tester.pump();
+    expect(find.text('Künstliche Meldung old'), findsNothing);
+    current = 'new';
+    f.state.cancelAuthentication(revision);
+    f.state.user = {
+      'id': 'new-parent',
+      'role': 'parent',
+      'display_name': 'Neu',
+    };
+    f.state.refreshState();
+    await tester.pumpAndSettle();
+    expect(find.text('Künstliche Meldung old'), findsNothing);
+    expect(find.text('Künstliche Meldung new'), findsOneWidget);
+  });
 
   scenario(
     'RR012 unread filter keeps visible receipts stable and restores read history',

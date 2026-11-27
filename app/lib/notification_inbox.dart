@@ -51,6 +51,9 @@ class NotificationInbox extends ChangeNotifier {
   bool hasLoaded = false;
   bool get loading => _loading;
   bool get loadingMore => _loadingMore;
+  bool get active => _account != null;
+  bool get _authenticationPending =>
+      api.authenticationIsPending?.call() == true;
 
   void _discardPrivateSnapshot() {
     _pages = [];
@@ -80,6 +83,7 @@ class NotificationInbox extends ChangeNotifier {
   }
 
   void activate(String? account, {String? family, String? session}) {
+    if (account != null && _authenticationPending) return;
     if (account == null) {
       family = null;
       session = null;
@@ -136,6 +140,7 @@ class NotificationInbox extends ChangeNotifier {
 
   Future<void> refresh() async {
     if (_disposed ||
+        _authenticationPending ||
         _account == null ||
         _loading ||
         _loadingMore ||
@@ -284,6 +289,7 @@ class NotificationInbox extends ChangeNotifier {
   }) async {
     final cursor = nextCursor;
     if (_disposed ||
+        _authenticationPending ||
         _account == null ||
         !_foreground ||
         _loading ||
@@ -419,7 +425,13 @@ class NotificationInbox extends ChangeNotifier {
 
   /// Discard a scrolled history window and return to the latest notifications.
   Future<void> showLatest() async {
-    if (_disposed || _account == null || _loading || _loadingMore) return;
+    if (_disposed ||
+        _authenticationPending ||
+        _account == null ||
+        _loading ||
+        _loadingMore) {
+      return;
+    }
     _pages = [];
     _seenCursors.clear();
     historyTrimmed = false;
@@ -433,7 +445,12 @@ class NotificationInbox extends ChangeNotifier {
   }
 
   Future<void> markRead(List<String> ids) async {
-    if (_disposed || _account == null || ids.isEmpty) return;
+    if (_disposed ||
+        _authenticationPending ||
+        _account == null ||
+        ids.isEmpty) {
+      return;
+    }
     final generation = _generation;
     final identity = api.requestIdentity();
     final ownUnread = items

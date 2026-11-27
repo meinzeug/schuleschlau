@@ -34,6 +34,7 @@ class Api {
   VoidCallback? onUnauthorized;
   Object? Function()? currentAccount;
   int Function()? currentAuthenticationRevision;
+  bool Function()? authenticationIsPending;
   Api({http.Client? client, String? base})
     : client = client ?? createClient(),
       base =
@@ -527,6 +528,7 @@ class AppState extends ChangeNotifier {
       storage = storage ?? const FlutterSecureStorage() {
     this.api.currentAccount = () => user;
     this.api.currentAuthenticationRevision = () => _authenticationRevision;
+    this.api.authenticationIsPending = () => authenticationPending;
     this.api.onUnauthorized = () {
       final expectedUser = user;
       if (expectedUser != null) {
@@ -719,6 +721,9 @@ class AppState extends ChangeNotifier {
   bool get authenticationPending => _authenticationPending;
   int beginAuthentication() {
     _authenticationPending = true;
+    // Cached notifications are private; old in-flight reads/receipts are
+    // invalidated before consumers observe the new authentication intent.
+    inbox.clear();
     return _authenticationRevisionSignal.value += 1;
   }
 

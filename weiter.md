@@ -2,6 +2,16 @@
 
 ## Arbeitsstand 27. November 2026: Quellen und Kontowechsel
 
+Die Benachrichtigungsansicht leert ihren privaten Cache bei einer neuen
+Anmeldeabsicht, sperrt die Glocke währenddessen und verwirft alte Antworten.
+Nach einem Abbruch muss das Glockenmenü erneut geöffnet oder die Gesamtansicht
+bewusst neu geladen werden. Die Inbox-Hintergrundabfrage ist nach dem Abbruch
+zunächst ausgesetzt; eine weitere Kontoaktualisierung kann sie wieder starten.
+Bereits gesendete Lesebelege bleiben möglicherweise auf dem Server erhalten.
+Die begrenzte Änderung behebt weder den allgemeinen HttpOnly-Cookie-Race noch
+belegt sie eine native Push-Zustellung. Die zugehörigen 109 lokalen Flutter-
+Tests verwenden ausschließlich künstliche Daten.
+
 Die Heftseitenansicht verbirgt private Inhalte bei neuer Anmeldeabsicht und
 verlangt nach deren Abbruch bewusstes Neuladen. Lokale Korrekturentwürfe
 bleiben kontogebunden erhalten; eine geänderte Quellenrevision bleibt ein

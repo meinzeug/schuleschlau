@@ -522,6 +522,9 @@ void main() {
             );
             // A cancelled login must not leave the notice action permanently busy.
             f.state.cancelAuthentication(intent);
+            // The disabled bell receives the changed authentication state on
+            // the next frame, just as it does before a real subsequent tap.
+            await tester.pump();
             if (full) {
               // Returning from the login route rebuilds the screen and its
               // action callbacks under the current authentication revision.

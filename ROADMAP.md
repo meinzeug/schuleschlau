@@ -3813,6 +3813,19 @@ Bestandteil des bestehenden Buildvertrags.
     Lesebelege werden nicht rückgängig gemacht. Dies ersetzt keine vollständige
     Geräte- oder Pushabnahme.
 
+  - [x] **Benachrichtigungscache bei neuer Anmeldung ausblenden.** Beim
+    Beginn einer Anmeldung werden lokale Meldungen und laufende Abrufe
+    verworfen, die Glocke geschlossen und neue Abrufe sowie Lesebelege bis zum
+    Ende der Anmeldung gesperrt. Nach einem Abbruch öffnet das Glockenmenü
+    beziehungsweise die Gesamtansicht den Datenstand bewusst neu; die
+    Hintergrundaktualisierung ist nach dem Abbruch zunächst ausgesetzt und
+    kann durch eine weitere Kontoaktualisierung wieder anlaufen. Bereits abgeschickte
+    Lesebelege können serverseitig trotzdem gespeichert worden sein; ein
+    erneuter Abruf übernimmt den tatsächlichen Stand. 109 künstliche lokale
+    Flutter-Fälle zu Benachrichtigungen und Familiennavigation bestanden;
+    vier neue und sechs bestehende Anmeldefälle auch im Chrome-Webrunner.
+    Die allgemeine Cookie-Race-, Geräte- und Pushabnahme bleibt offen.
+
   - [x] **Falschen Ladefehler bei wiederholter Scrollverzögerung vermeiden.**
     Zwei Gesten oder Lesebestätigungen erschöpfen die begrenzten GET-Versuche,
     ohne einen Netzwerkfehler vorzutäuschen. Liste und Cursor bleiben erhalten;
