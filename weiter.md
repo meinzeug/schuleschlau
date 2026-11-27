@@ -78,6 +78,9 @@ VM und Chrome; zusätzlich wurden die drei Menüpunkte in der lokalen
 Debug-Vorschau im Browser geöffnet. Lernen, Hefte und die Platzhalterrunde sind
 in dieser Vorschau weiterhin keine vollständigen End-to-End-Abläufe; daraus lassen sich keine
 Funktionsaussagen über die produktive App ableiten.
+Die Vorschau verwendet nun dieselbe deutsche Flutter-Lokalisierung wie die
+App. Der mobile Browser zeigt auch den Zeichenzähler auf Deutsch; die
+Produktivkonfiguration musste dafür nicht geändert werden.
 
 ## Synthetische 30-Schultage-Regression
 

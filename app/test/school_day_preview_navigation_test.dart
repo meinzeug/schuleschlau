@@ -12,6 +12,8 @@ void main() {
   testWidgets(
     'synthetic preview navigation uses the routes of real child pages',
     (tester) async {
+      tester.platformDispatcher.localeTestValue = const Locale('en', 'US');
+      addTearDown(tester.platformDispatcher.clearLocaleTestValue);
       tester.view.physicalSize = const Size(1100, 900);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.resetPhysicalSize);
@@ -19,7 +21,17 @@ void main() {
       preview.main();
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 600));
-      final router = GoRouter.of(tester.element(find.byType(SchoolDayScreen)));
+      final context = tester.element(find.byType(SchoolDayScreen));
+      expect(Localizations.localeOf(context).languageCode, 'de');
+      expect(
+        MaterialLocalizations.of(context).modalBarrierDismissLabel,
+        'Schließen',
+      );
+      expect(
+        MaterialLocalizations.of(context).remainingTextFieldCharacterCount(5),
+        contains('Noch 5'),
+      );
+      final router = GoRouter.of(context);
       for (final (path, expected) in [
         ('/vocabulary/example-child', VocabularyScreen),
         ('/homework/example-child', HomeworkScreen),

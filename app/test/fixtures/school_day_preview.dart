@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:schulpilot/api.dart';
+import 'package:schulpilot/app_localizations.dart';
 import 'package:schulpilot/exams_screen.dart';
 import 'package:schulpilot/homework_screen.dart';
 import 'package:schulpilot/school_day_screen.dart';
@@ -284,6 +285,8 @@ void main() {
   );
   runApp(
     MaterialApp.router(
+      supportedLocales: supportedAppLocales,
+      localizationsDelegates: appLocalizationDelegates,
       theme: appTheme(brightness: Brightness.dark),
       debugShowCheckedModeBanner: false,
       routerConfig: router,
