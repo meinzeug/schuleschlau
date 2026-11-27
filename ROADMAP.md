@@ -1210,8 +1210,9 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
   - [x] **Lokale Kinder-Vorschau mit einigen echten Navigationszielen verbinden.**
     Die rein synthetische Vorschau kennt die Kinderpfade für Wörter,
     Hausaufgaben und Klassenarbeiten sowie `/app`. Ein Flutter-Test prüft die
-    Zielwidgets auf der VM und im Chrome-Webrunner. Lernen, Hefte und die
-    Platzhalterrunde sind damit nicht als vollständige Vorschau umgesetzt;
+    Zielwidgets auf der VM und im Chrome-Webrunner; die drei Menüpunkte
+    wurden auch in der lokalen Debug-Vorschau im Browser angeklickt. Lernen,
+    Hefte und die Platzhalterrunde sind damit nicht als vollständige Vorschau umgesetzt;
     der Test belegt keine produktive Navigation oder Geräteabnahme.
 
   - [x] **Leseeinstellungen im Seitentext verständlich benennen.** Die
@@ -4170,6 +4171,17 @@ Bestandteil des bestehenden Buildvertrags.
   **Abnahme:** Dokumentation, Bewertung, gegebenenfalls Folgenabschätzung, vereinbarte Maßnahmen und Zuständigkeiten liegen für den vorgesehenen Freigabeumfang vor; offene Risiken sind vor der jeweiligen Freigabe entschieden.
 
 - [ ] **P1 – Echtzeitstatus gezielt und zuverlässig bereitstellen**
+
+  - [x] **Lehrplanentwürfe bei neuer Anmeldung sichern.** Eine begonnene
+    Anmeldung pausiert den Editor, ohne die ungespeicherte Auswahl zu löschen.
+    Eine ausdrückliche Wiederaufnahme prüft die verfügbare Sitzungskennung,
+    das berechtigte Kinderprofil und den Länderkatalog. Änderungen am Profil
+    oder Katalog sperren Speichern bis zur bewussten Klärung; eine unsichere
+    Wiederholung behält ihren Auftragsschlüssel. Überlagerungen, Hintergrund,
+    parallele Anmeldungen und verspätete Antworten sind mit künstlichen Daten
+    geprüft. Je 47 Fälle bestanden lokal und im Chrome-Webrunner. Der
+    allgemeine Cookie-Wettlauf und Altclients ohne
+    Sitzungsvergleich bleiben gesondert offen.
 
   - [x] **Entwürfe persönlicher Lernhinweise bei einer Anmeldung schützen.**
     Ein begonnener Kontowechsel pausiert den Editor und hält seine lokale

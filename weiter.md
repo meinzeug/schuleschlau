@@ -17,12 +17,16 @@ Persönliche Lernhinweisentwürfe werden bei einem Anmeldeversuch pausiert und
 erst nach ausdrücklicher erneuter Konto- und Standprüfung fortgesetzt; ein
 abweichender Serverstand verhindert das Speichern. Die allgemeinen
 Kontowechsel- und Altclientgrenzen bleiben offen.
+Auch Lehrplanentwürfe werden bei neuer Anmeldung pausiert. Ihre ausdrückliche
+Wiederaufnahme vergleicht Sitzung, Kinderprofilrevision und Länderkatalog;
+eine Änderung sperrt den alten Entwurf bis zur bewussten Klärung.
 
 Die lokale synthetische Ansicht `app/test/fixtures/school_day_preview.dart`
 kennt zusätzlich die von der Kindernavigation verwendeten Routen für Wörter,
 Hausaufgaben, Klassenarbeiten und `/app`. Ein Widgettest prüft diese Ziele auf
-VM und Chrome. Lernen, Hefte und die Platzhalterrunde sind in dieser Vorschau
-weiterhin keine vollständigen End-to-End-Abläufe; daraus lassen sich keine
+VM und Chrome; zusätzlich wurden die drei Menüpunkte in der lokalen
+Debug-Vorschau im Browser geöffnet. Lernen, Hefte und die Platzhalterrunde sind
+in dieser Vorschau weiterhin keine vollständigen End-to-End-Abläufe; daraus lassen sich keine
 Funktionsaussagen über die produktive App ableiten.
 
 ## Synthetische 30-Schultage-Regression

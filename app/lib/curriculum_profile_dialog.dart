@@ -24,6 +24,7 @@ class CurriculumProfileButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final owner = state.user, family = state.familyId, token = state.api.token;
+    final identity = state.api.requestIdentity();
     final actorId = owner?['id'];
     final sourceRoute = ModalRoute.of(context);
     if (!state.isParent || !state.canManage || family == null) {
@@ -40,6 +41,8 @@ class CurriculumProfileButton extends StatelessWidget {
             state.user?['id'] == actorId &&
             state.familyId == family &&
             state.api.token == token &&
+            !state.authenticationPending &&
+            state.api.ownsRequest(identity) &&
             context.widget is CurriculumProfileButton &&
             identical(
               (context.widget as CurriculumProfileButton).state,
@@ -95,6 +98,7 @@ class _CurriculumProfileEditorState extends State<CurriculumProfileEditor>
   late final Json? owner = ownerState.user;
   late final Object? actorId = owner?['id'];
   late final String? family = ownerState.familyId, token = ownerState.api.token;
+  late (Object?, String?, int?) identity = ownerState.api.requestIdentity();
   final states = <Json>[];
   Json? profile;
   late final String childId = widget.childId;
@@ -113,10 +117,12 @@ class _CurriculumProfileEditorState extends State<CurriculumProfileEditor>
       foreground = true,
       needsRefresh = false,
       didSave = false,
-      scopeLoading = false;
+      scopeLoading = false,
+      accessPaused = false,
+      checkingAccess = false;
   ModalRoute<bool>? discardRoute;
   ModalRoute<void>? otherRegionsRoute;
-  bool get owned =>
+  bool get sameOwner =>
       mounted &&
       !closing &&
       identical(widget.state, ownerState) &&
@@ -127,6 +133,11 @@ class _CurriculumProfileEditorState extends State<CurriculumProfileEditor>
       ownerState.user?['id'] == actorId &&
       ownerState.familyId == family &&
       ownerState.api.token == token;
+  bool get owned =>
+      sameOwner &&
+      !accessPaused &&
+      !ownerState.authenticationPending &&
+      ownerState.api.ownsRequest(identity);
   bool get current => owned && foreground;
   bool get active => current && ModalRoute.of(context)?.isCurrent == true;
   bool get fieldsAvailable =>
@@ -165,6 +176,7 @@ class _CurriculumProfileEditorState extends State<CurriculumProfileEditor>
         WidgetsBinding.instance.lifecycleState == null ||
         WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
     ownerState.addListener(identityChanged);
+    ownerState.authenticationChanges.addListener(authenticationChanged);
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (current) {
@@ -183,7 +195,7 @@ class _CurriculumProfileEditorState extends State<CurriculumProfileEditor>
   }
 
   void identityChanged() {
-    if (owned || closing) {
+    if (sameOwner || closing) {
       return;
     }
     closing = true;
@@ -203,6 +215,26 @@ class _CurriculumProfileEditorState extends State<CurriculumProfileEditor>
     });
   }
 
+  void authenticationChanged() {
+    if (!sameOwner) {
+      identityChanged();
+      return;
+    }
+    epoch++;
+    final extra = discardRoute, regions = otherRegionsRoute;
+    discardRoute = null;
+    otherRegionsRoute = null;
+    scheduleMicrotask(() {
+      if (regions?.isActive == true) regions!.navigator?.removeRoute(regions);
+      if (extra?.isActive == true) extra!.navigator?.removeRoute(extra);
+    });
+    setState(() {
+      accessPaused = true;
+      checkingAccess = loading = saving = scopeLoading = false;
+      error = notice = null;
+    });
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState value) {
     foreground = value == AppLifecycleState.resumed;
@@ -211,7 +243,7 @@ class _CurriculumProfileEditorState extends State<CurriculumProfileEditor>
       return;
     }
     setState(() {
-      loading = saving = false;
+      loading = saving = checkingAccess = false;
       if (!foreground) {
         error = 'Vor dem Speichern bitte den aktuellen Stand neu laden. Dein Entwurf bleibt erhalten.';
         needsRefresh = true;
@@ -223,6 +255,7 @@ class _CurriculumProfileEditorState extends State<CurriculumProfileEditor>
   void dispose() {
     epoch++;
     ownerState.removeListener(identityChanged);
+    ownerState.authenticationChanges.removeListener(authenticationChanged);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -259,6 +292,115 @@ class _CurriculumProfileEditorState extends State<CurriculumProfileEditor>
       return false;
     }
     return true;
+  }
+
+  Future<void> recheckAccess() async {
+    if (!sameOwner ||
+        !accessPaused ||
+        !foreground ||
+        ownerState.authenticationPending ||
+        checkingAccess ||
+        ModalRoute.of(context)?.isCurrent != true) {
+      return;
+    }
+    final captured = epoch, requestIdentity = ownerState.api.requestIdentity();
+    bool stillValid() =>
+        sameOwner &&
+        accessPaused &&
+        foreground &&
+        !ownerState.authenticationPending &&
+        epoch == captured &&
+        ownerState.api.ownsRequest(requestIdentity) &&
+        ModalRoute.of(context)?.isCurrent == true;
+    setState(() {
+      checkingAccess = true;
+      error = null;
+    });
+    try {
+      final me = await ownerState.api.get('/auth/me');
+      if (!stillValid()) return;
+      final expected = owner?['session_assertion'];
+      if (me['id'] != actorId ||
+          (expected != null && me['session_assertion'] != expected)) {
+        throw ApiError(
+          'Der Zugang hat sich geändert. Bitte öffne die Lehrplanauswahl erneut.',
+        );
+      }
+      final values = await Future.wait([
+        ownerState.api.get('/curriculum/catalog'),
+        ownerState.api.get(path),
+      ]);
+      if (!stillValid()) return;
+      final catalog = values[0], row = values[1];
+      if (row['child_id'] != childId ||
+          row['revision'] is! int ||
+          row['profile_revision'] is! String ||
+          row['can_manage'] is! bool ||
+          catalog['states'] is! List ||
+          (catalog['states'] as List).any((item) => item is! Map)) {
+        throw ApiError(
+          'Der gespeicherte Lehrplanstand ist unvollständig. Bitte erneut prüfen.',
+        );
+      }
+      final changed =
+          profile != null &&
+          (row['revision'] != revision ||
+              row['profile_revision'] != profileRevision ||
+              jsonEncode(catalog['states']) != jsonEncode(states));
+      identity = requestIdentity;
+      setState(() {
+        accessPaused = false;
+        checkingAccess = false;
+        if (changed || row['can_manage'] != true) {
+          needsRefresh = true;
+          error = row['can_manage'] != true
+              ? 'Dieser Zugang darf den Lehrplan nicht ändern.'
+              : 'Der gespeicherte Stand hat sich geändert. Dein Entwurf bleibt erhalten. Lade den Stand bewusst, bevor du erneut speicherst.';
+        }
+      });
+      if (profile == null && row['can_manage'] == true && active) {
+        await load();
+      }
+    } catch (e) {
+      if (stillValid()) {
+        setState(
+          () => error = e is ApiError
+              ? e.message
+              : 'Der Zugang konnte nicht geprüft werden.',
+        );
+      }
+    } finally {
+      if (sameOwner &&
+          epoch == captured &&
+          !ownerState.authenticationPending &&
+          ownerState.api.ownsRequest(requestIdentity)) {
+        setState(() => checkingAccess = false);
+      }
+    }
+  }
+
+  Future<void> closePaused() async {
+    bool allowed() =>
+        sameOwner &&
+        accessPaused &&
+        foreground &&
+        !ownerState.authenticationPending &&
+        !checkingAccess;
+    if (!allowed() || ModalRoute.of(context)?.isCurrent != true) return;
+    if (dirty) {
+      final discard = await confirmParentDiscard(
+        context,
+        current: allowed,
+        subject: 'Die Lehrplanauswahl',
+        onRoute: (r) => discardRoute = r,
+      );
+      discardRoute = null;
+      if (!mounted || !discard || !allowed()) return;
+    }
+    if (!mounted) return;
+    if (allowed() && ModalRoute.of(context)?.isCurrent == true) {
+      Navigator.pop(context, didSave);
+    }
   }
 
   Future<void> load() async {
@@ -536,6 +678,41 @@ class _CurriculumProfileEditorState extends State<CurriculumProfileEditor>
 
   @override
   Widget build(BuildContext context) {
+    if (!sameOwner) return const SizedBox.shrink();
+    if (accessPaused || ownerState.authenticationPending) {
+      return PopScope(
+        canPop: false,
+        child: AlertDialog(
+          scrollable: true,
+          title: const Text('Lehrplanauswahl pausiert'),
+          content: Text(
+            ownerState.authenticationPending
+                ? 'Die Anmeldung wird geprüft.'
+                : error ?? 'Deine Auswahl bleibt erhalten. Prüfe zuerst deinen Zugang.',
+          ),
+          actions: [
+            TextButton(
+              onPressed:
+                  foreground &&
+                      !ownerState.authenticationPending &&
+                      !checkingAccess
+                  ? closePaused
+                  : null,
+              child: const Text('Schließen'),
+            ),
+            FilledButton(
+              onPressed:
+                  foreground &&
+                      !ownerState.authenticationPending &&
+                      !checkingAccess
+                  ? recheckAccess
+                  : null,
+              child: Text(checkingAccess ? 'Wird geprüft …' : 'Zugang prüfen'),
+            ),
+          ],
+        ),
+      );
+    }
     final localEpoch = epoch;
     final localBody = fingerprint;
     final localState = stateCode;

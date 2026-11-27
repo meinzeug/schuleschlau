@@ -89,22 +89,27 @@ DropdownButton<T> innerDropdown<T>(WidgetTester tester, Finder form) =>
 class Fixture {
   final calls = <http.Request>[];
   Json stored = profile();
-  Future<http.Response>? pendingGet, pendingPut, pendingDach;
+  Json currentCatalog = catalog();
+  Future<http.Response>? pendingGet, pendingPut, pendingDach, pendingMe;
   int failures = 0, failureStatus = 409;
   final child = ValueNotifier(childId);
   final replacement = ValueNotifier<AppState?>(null);
   int saves = 0;
   final navigator = GlobalKey<NavigatorState>();
-  late final state =
+  late final AppState state =
       AppState(
           api: Api(
             base: 'https://example.invalid/api',
             client: MockClient((request) async {
               calls.add(request);
               expectSync(request.headers['X-Schulpilot-Account'], actorId);
+              if (request.url.path == '/api/auth/me' &&
+                  request.method == 'GET') {
+                return pendingMe ?? response(state.user!);
+              }
               if (request.url.path == '/api/curriculum/catalog' &&
                   request.method == 'GET') {
-                return response(catalog());
+                return response(currentCatalog);
               }
               if (request.url.path == '/api/curriculum/dach-scope' &&
                   request.method == 'GET') {
@@ -306,6 +311,350 @@ Future<void> background(WidgetTester tester, bool resumed) async {
 }
 
 void main() {
+  testWidgets('old curriculum choice cannot change a draft after recheck', (
+    tester,
+  ) async {
+    final f = Fixture()..stored = profile(configured: true);
+    await f.mount(tester);
+    final stale = tester
+        .widget<DropdownButtonFormField<int>>(gradeField())
+        .onChanged!;
+    final intent = f.state.beginAuthentication();
+    f.state.cancelAuthentication(intent);
+    await tester.pumpAndSettle();
+    stale(9);
+    await tap(tester, find.text('Zugang prüfen'));
+    stale(9);
+    await tester.pumpAndSettle();
+    expect(gradeValue(tester), 7);
+    expect(f.puts, isEmpty);
+  });
+  testWidgets('a newer login invalidates an in-flight curriculum recheck', (
+    tester,
+  ) async {
+    final f = Fixture()..stored = profile(configured: true);
+    final delayed = Completer<http.Response>();
+    await f.mount(tester);
+    final intent = f.state.beginAuthentication();
+    f.state.cancelAuthentication(intent);
+    f.pendingMe = delayed.future;
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Zugang prüfen'));
+    await tester.pump();
+    final newer = f.state.beginAuthentication();
+    delayed.complete(response(f.state.user!));
+    await tester.pumpAndSettle();
+    expect(
+      f.calls.where((r) => r.url.path == path && r.method == 'GET'),
+      hasLength(1),
+    );
+    expect(f.puts, isEmpty);
+    f.state.cancelAuthentication(newer);
+    await tester.pumpAndSettle();
+    expect(find.text('Zugang prüfen'), findsOneWidget);
+  });
+
+  testWidgets(
+    'a committed old curriculum save is not silently repeated after login',
+    (tester) async {
+      final f = Fixture()..stored = profile(configured: true);
+      final delayed = Completer<http.Response>();
+      await f.mount(tester);
+      tester.widget<DropdownButtonFormField<int>>(gradeField()).onChanged!(8);
+      await tester.pumpAndSettle();
+      f.pendingPut = delayed.future;
+      await tester.ensureVisible(
+        find.widgetWithText(FilledButton, 'Zuordnung speichern'),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.widgetWithText(FilledButton, 'Zuordnung speichern'),
+      );
+      await tester.pump();
+      expect(f.puts, hasLength(1));
+      final intent = f.state.beginAuthentication();
+      f.stored = {
+        ...f.stored,
+        'revision': 1,
+        'profile_revision': 'b' * 64,
+        'grade': 8,
+      };
+      f.state.cancelAuthentication(intent);
+      delayed.complete(response(f.stored));
+      await tester.pumpAndSettle();
+      await tap(tester, find.text('Zugang prüfen'));
+      expect(gradeValue(tester), 8);
+      expect(
+        tester
+            .widget<FilledButton>(
+              find.widgetWithText(FilledButton, 'Zuordnung speichern'),
+            )
+            .onPressed,
+        isNull,
+      );
+      expect(f.puts, hasLength(1));
+    },
+  );
+  testWidgets(
+    'initial curriculum read interrupted by login resumes only after explicit recheck',
+    (tester) async {
+      final f = Fixture()..stored = profile(configured: true);
+      final delayed = Completer<http.Response>();
+      f.pendingGet = delayed.future;
+      await f.mount(tester, settle: false);
+      final intent = f.state.beginAuthentication();
+      f.state.cancelAuthentication(intent);
+      f.pendingGet = null;
+      delayed.complete(response(f.stored));
+      await tester.pumpAndSettle();
+      expect(find.text('Zugang prüfen'), findsOneWidget);
+      expect(f.puts, isEmpty);
+      await tap(tester, find.text('Zugang prüfen'));
+      expect(gradeValue(tester), 7);
+      expect(f.puts, isEmpty);
+    },
+  );
+
+  testWidgets('background interrupts curriculum recheck without retry', (
+    tester,
+  ) async {
+    final f = Fixture()..stored = profile(configured: true);
+    final delayed = Completer<http.Response>();
+    await f.mount(tester);
+    final intent = f.state.beginAuthentication();
+    f.state.cancelAuthentication(intent);
+    f.pendingMe = delayed.future;
+    await tester.pumpAndSettle();
+    final old = tester
+        .widget<FilledButton>(
+          find.widgetWithText(FilledButton, 'Zugang prüfen'),
+        )
+        .onPressed!;
+    await tester.tap(find.text('Zugang prüfen'));
+    await tester.pump();
+    await background(tester, false);
+    delayed.complete(response(f.state.user!));
+    await tester.pumpAndSettle();
+    old();
+    await tester.pumpAndSettle();
+    expect(f.calls.where((r) => r.url.path == '/api/auth/me'), hasLength(1));
+    expect(
+      f.calls.where((r) => r.url.path == path && r.method == 'GET'),
+      hasLength(1),
+    );
+    await background(tester, true);
+    expect(
+      tester
+          .widget<FilledButton>(
+            find.widgetWithText(FilledButton, 'Zugang prüfen'),
+          )
+          .onPressed,
+      isNotNull,
+    );
+    expect(f.puts, isEmpty);
+  });
+  testWidgets(
+    'changed curriculum catalog preserves the draft and disables saving',
+    (tester) async {
+      final f = Fixture()..stored = profile(configured: true);
+      await f.mount(tester);
+      tester.widget<DropdownButtonFormField<int>>(gradeField()).onChanged!(8);
+      final intent = f.state.beginAuthentication();
+      f.currentCatalog = {
+        ...catalog(),
+        'states': [
+          ...catalog()['states'] as List,
+          {'code': 'DE-BE', 'name': 'Berlin', 'school_forms': <Object>[]},
+        ],
+      };
+      f.state.cancelAuthentication(intent);
+      await tester.pumpAndSettle();
+      await tap(tester, find.text('Zugang prüfen'));
+      expect(gradeValue(tester), 8);
+      expect(
+        tester
+            .widget<FilledButton>(
+              find.widgetWithText(FilledButton, 'Zuordnung speichern'),
+            )
+            .onPressed,
+        isNull,
+      );
+      expect(f.puts, isEmpty);
+    },
+  );
+
+  testWidgets(
+    'curriculum retry after recheck retains its uncertain request key',
+    (tester) async {
+      final f = Fixture()
+        ..stored = profile(configured: true)
+        ..failures = 1
+        ..failureStatus = 503;
+      await f.mount(tester);
+      tester.widget<DropdownButtonFormField<int>>(gradeField()).onChanged!(8);
+      await tester.pumpAndSettle();
+      await tap(
+        tester,
+        find.widgetWithText(FilledButton, 'Zuordnung speichern'),
+      );
+      final first = f.puts.single.headers['Idempotency-Key'];
+      final intent = f.state.beginAuthentication();
+      f.state.cancelAuthentication(intent);
+      await tester.pumpAndSettle();
+      await tap(tester, find.text('Zugang prüfen'));
+      await tap(
+        tester,
+        find.widgetWithText(FilledButton, 'Zuordnung speichern'),
+      );
+      expect(f.puts, hasLength(2));
+      expect(f.puts.last.headers['Idempotency-Key'], first);
+    },
+  );
+
+  testWidgets('dirty paused curriculum requires explicit discard to close', (
+    tester,
+  ) async {
+    final f = Fixture()..stored = profile(configured: true);
+    await f.mount(tester);
+    tester.widget<DropdownButtonFormField<int>>(gradeField()).onChanged!(8);
+    final intent = f.state.beginAuthentication();
+    f.state.cancelAuthentication(intent);
+    await tester.pumpAndSettle();
+    await tap(tester, find.text('Schließen'));
+    expect(find.text('Änderungen verwerfen?'), findsOneWidget);
+    await tap(tester, find.text('Änderungen verwerfen'));
+    expect(find.text('Lehrplanauswahl pausiert'), findsNothing);
+    expect(f.puts, isEmpty);
+  });
+
+  testWidgets(
+    'paused curriculum remains usable at 320 pixels and double text',
+    (tester) async {
+      final f = Fixture()..stored = profile(configured: true);
+      await f.mount(tester, width: 320, scale: 2);
+      final intent = f.state.beginAuthentication();
+      f.state.cancelAuthentication(intent);
+      await tester.pumpAndSettle();
+      expect(find.text('Lehrplanauswahl pausiert'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      await tester.ensureVisible(find.text('Zugang prüfen'));
+      await tester.pumpAndSettle();
+      expect(find.text('Zugang prüfen').hitTestable(), findsOneWidget);
+    },
+  );
+  testWidgets(
+    'login pauses curriculum and recheck preserves the selected draft',
+    (tester) async {
+      final f = Fixture()..stored = profile(configured: true);
+      await f.mount(tester);
+      tester.widget<DropdownButtonFormField<int>>(gradeField()).onChanged!(8);
+      await tester.pumpAndSettle();
+      final stale = tester
+          .widget<FilledButton>(
+            find.widgetWithText(FilledButton, 'Zuordnung speichern'),
+          )
+          .onPressed!;
+      final intent = f.state.beginAuthentication();
+      stale();
+      await tester.pumpAndSettle();
+      expect(find.text('Die Anmeldung wird geprüft.'), findsOneWidget);
+      expect(f.puts, isEmpty);
+      f.state.cancelAuthentication(intent);
+      await tester.pumpAndSettle();
+      stale();
+      expect(f.puts, isEmpty);
+      await tap(tester, find.text('Zugang prüfen'));
+      expect(gradeValue(tester), 8);
+      expect(f.puts, isEmpty);
+      await tap(
+        tester,
+        find.widgetWithText(FilledButton, 'Zuordnung speichern'),
+      );
+      expect(f.puts, hasLength(1));
+      expect(jsonDecode(f.puts.single.body)['grade'], 8);
+    },
+  );
+
+  testWidgets(
+    'changed curriculum revision retains the draft and blocks saving',
+    (tester) async {
+      final f = Fixture()..stored = profile(configured: true);
+      await f.mount(tester);
+      tester.widget<DropdownButtonFormField<int>>(gradeField()).onChanged!(8);
+      final intent = f.state.beginAuthentication();
+      f.stored = {...f.stored, 'revision': 1, 'profile_revision': 'b' * 64};
+      f.state.cancelAuthentication(intent);
+      await tester.pumpAndSettle();
+      await tap(tester, find.text('Zugang prüfen'));
+      expect(gradeValue(tester), 8);
+      expect(
+        tester
+            .widget<FilledButton>(
+              find.widgetWithText(FilledButton, 'Zuordnung speichern'),
+            )
+            .onPressed,
+        isNull,
+      );
+      expect(
+        find.textContaining('gespeicherte Stand hat sich geändert'),
+        findsOneWidget,
+      );
+      expect(f.puts, isEmpty);
+    },
+  );
+
+  testWidgets('another server session cannot unlock a curriculum draft', (
+    tester,
+  ) async {
+    final f = Fixture()..stored = profile(configured: true);
+    f.state.user!['session_assertion'] = 'a' * 64;
+    await f.mount(tester);
+    final intent = f.state.beginAuthentication();
+    f.state.cancelAuthentication(intent);
+    f.pendingMe = Future.value(
+      response({'id': actorId, 'session_assertion': 'b' * 64}),
+    );
+    await tester.pumpAndSettle();
+    await tap(tester, find.text('Zugang prüfen'));
+    expect(find.textContaining('Der Zugang hat sich geändert'), findsOneWidget);
+    expect(
+      f.calls.where((r) => r.url.path == path && r.method == 'GET'),
+      hasLength(1),
+    );
+    expect(f.puts, isEmpty);
+  });
+
+  testWidgets(
+    'covered curriculum recheck can be retried after the newer dialog',
+    (tester) async {
+      final f = Fixture()..stored = profile(configured: true);
+      final delayed = Completer<http.Response>();
+      await f.mount(tester);
+      final intent = f.state.beginAuthentication();
+      f.state.cancelAuthentication(intent);
+      f.pendingMe = delayed.future;
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Zugang prüfen'));
+      await tester.pump();
+      await f.cover(tester);
+      delayed.complete(response(f.state.user!));
+      await tester.pumpAndSettle();
+      await tap(tester, find.text('Zurück zum Profil'));
+      expect(
+        tester
+            .widget<FilledButton>(
+              find.widgetWithText(FilledButton, 'Zugang prüfen'),
+            )
+            .onPressed,
+        isNotNull,
+      );
+      expect(
+        f.calls.where((r) => r.url.path == path && r.method == 'GET'),
+        hasLength(1),
+      );
+      expect(f.puts, isEmpty);
+    },
+  );
   testWidgets(
     '110 opening the actual curriculum button performs two reads and never guesses legacy school fields',
     (tester) async {
