@@ -144,7 +144,10 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
       identical(state.user, actorAccount) &&
       state.familyId == family &&
       state.api.token == session;
-  bool get ownerMatches => sameAccount && state.api.ownsRequest(authentication);
+  bool get ownerMatches =>
+      sameAccount &&
+      !state.authenticationPending &&
+      state.api.ownsRequest(authentication);
   bool get active => mounted && ownerMatches && foreground && routeVisible;
 
   @override
@@ -154,7 +157,14 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
     WidgetsBinding.instance.addObserver(this);
     state.addListener(identityChanged);
     state.authenticationChanges.addListener(authenticationChanged);
-    unawaited(load());
+    if (state.authenticationPending) {
+      loading = false;
+      authenticationReload = true;
+      allowAutomaticDayCreation = false;
+      captureRequested = false;
+    } else {
+      unawaited(load());
+    }
   }
 
   @override
@@ -186,9 +196,14 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
       family = state.familyId;
       session = state.api.token;
       authentication = state.api.requestIdentity();
-      authenticationReload = false;
-      allowAutomaticDayCreation = true;
-      unawaited(load());
+      authenticationReload = state.authenticationPending;
+      allowAutomaticDayCreation = !state.authenticationPending;
+      if (state.authenticationPending) {
+        loading = false;
+        captureRequested = false;
+      } else {
+        unawaited(load());
+      }
     }
   }
 
@@ -267,7 +282,12 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
   }
 
   Future<void> reloadAfterAuthentication() async {
-    if (!mounted || !sameAccount || !authenticationReload) return;
+    if (!mounted ||
+        !sameAccount ||
+        state.authenticationPending ||
+        !authenticationReload) {
+      return;
+    }
     authentication = state.api.requestIdentity();
     generation++;
     readVersion++;
@@ -3043,6 +3063,7 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
             const SizedBox(height: 12),
             ActionButton(
               label: 'Erneut laden',
+              enabled: !state.authenticationPending,
               onPressed: reloadAfterAuthentication,
             ),
           ],

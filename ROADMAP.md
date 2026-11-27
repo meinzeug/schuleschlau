@@ -4402,6 +4402,14 @@ Bestandteil des bestehenden Buildvertrags.
 
   - [ ] **Verspätete gemeinsame API-Antworten nach Kontowechsel absichern.**
 
+    **Fotoeinstieg während laufender Anmeldung sperren:** Beim Öffnen des
+    Schultags während einer Anmeldung wird weder gelesen noch ein Tag
+    automatisch angelegt; auch der Neuladeknopf ist deaktiviert. Nach
+    Anmeldeabbruch liest erst ein bewusster Klick den Stand, ohne einen Tag
+    anzulegen. Bereits vorhandene Fotoentwürfe und Wiederholungsschlüssel
+    bleiben erhalten. 37 künstliche Flutterfälle, sechs Chrome-Fälle und
+    Flutter Analyze bestanden. Die allgemeine Cookie-Abnahme bleibt offen.
+
     **Lernweg während laufender Anmeldung nicht nachladen:** Wird der
     Lernweg während einer Anmeldung geöffnet oder auf eine andere App-Instanz
     umgestellt, startet keine Anfrage und es erscheinen keine alten

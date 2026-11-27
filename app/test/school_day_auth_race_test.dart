@@ -105,6 +105,33 @@ void main() {
     },
   );
 
+  testWidgets('photo entry opened during login cannot read or create a day', (
+    t,
+  ) async {
+    final calls = <http.Request>[];
+    final state = local.account((request) async {
+      calls.add(request);
+      return fixture.response({'day': null});
+    });
+    final intent = state.beginAuthentication();
+    await mount(t, state, capture: true);
+    await fixture.settleUi(t);
+    expect(calls, isEmpty);
+    final retry = t.widget<ActionButton>(
+      find.widgetWithText(ActionButton, 'Erneut laden'),
+    );
+    expect(retry.enabled, isFalse);
+    await retry.onPressed();
+    await t.pump();
+    expect(calls, isEmpty);
+    state.cancelAuthentication(intent);
+    await fixture.settleUi(t);
+    await fixture.tapText(t, 'Erneut laden');
+    expect(calls, hasLength(1));
+    expect(calls.single.method, 'GET');
+    expect(t.takeException(), isNull);
+  });
+
   testWidgets('old capture action is inert as login notification begins', (
     t,
   ) async {
