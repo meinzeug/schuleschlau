@@ -4402,6 +4402,15 @@ Bestandteil des bestehenden Buildvertrags.
 
   - [ ] **Verspätete gemeinsame API-Antworten nach Kontowechsel absichern.**
 
+    **Elternansichten für Verarbeitung bei Anmeldung leeren:** Ein neuer
+    Anmeldeversuch entfernt angezeigte Verarbeitungsdetails und lokale
+    Fehlerhinweise und verhindert das Öffnen während der laufenden Anmeldung.
+    Alte Antworten bleiben verworfen; ein Anmeldeabbruch zeigt die alten
+    Ansichten nicht automatisch erneut. 29 künstliche Widgetfälle und Flutter
+    Analyze bestanden; je zwei Kontowechselfälle beider Ansichten bestanden
+    auch im Chrome-Webrunner.
+    Der allgemeine Cookie-Wettlauf bleibt offen.
+
     **Fachauswahl bei neuer Anmeldung schließen:** Die gemeinsame Auswahl
     öffnet während einer Anmeldung keine neuen Listen. Eine bereits geöffnete
     Auswahl wird bei neuer Anmeldeabsicht geschlossen; verspätete Ergebnisse

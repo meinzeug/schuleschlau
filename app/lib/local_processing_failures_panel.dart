@@ -30,6 +30,7 @@ class _LocalProcessingFailuresPanelState
   bool get current =>
       mounted &&
       widget.state.isParent &&
+      !widget.state.authenticationPending &&
       identical(owner, widget.state.user) &&
       family == widget.state.familyId &&
       widget.state.api.ownsRequest(identity);
@@ -48,6 +49,7 @@ class _LocalProcessingFailuresPanelState
   void initState() {
     super.initState();
     widget.state.addListener(accountChanged);
+    widget.state.authenticationChanges.addListener(accountChanged);
   }
 
   void accountChanged() {
@@ -66,6 +68,7 @@ class _LocalProcessingFailuresPanelState
   void dispose() {
     epoch++;
     widget.state.removeListener(accountChanged);
+    widget.state.authenticationChanges.removeListener(accountChanged);
     super.dispose();
   }
 

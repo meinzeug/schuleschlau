@@ -355,6 +355,75 @@ void main() {
     expect(find.textContaining('old-account-model'), findsNothing);
   });
 
+  testWidgets('loaded private trace disappears when a new login begins', (
+    tester,
+  ) async {
+    var reads = 0;
+    final state = AppState(
+      api: Api(
+        base: 'https://example.invalid/api',
+        client: MockClient((_) async {
+          reads++;
+          return reply({
+            'job_id': jobId,
+            'phase': 'generation',
+            'status': 'completed',
+            'model': {'model': 'private-example-model', 'config_revision': 3},
+            'sources': [],
+            'units': [],
+          });
+        }),
+      ),
+    )..user = {'id': 'parent', 'role': 'parent'};
+    addTearDown(state.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: ProcessingTracePanel(state: state, jobId: jobId),
+        ),
+      ),
+    );
+    await tester.tap(find.text('Verarbeitung ansehen'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('private-example-model'), findsOneWidget);
+    final revision = state.beginAuthentication();
+    await tester.pump();
+    expect(find.textContaining('private-example-model'), findsNothing);
+    expect(find.text('Verarbeitung ansehen'), findsNothing);
+    state.cancelAuthentication(revision);
+    await tester.pumpAndSettle();
+    expect(find.textContaining('private-example-model'), findsNothing);
+    expect(reads, 1);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('private trace cannot open during a pending login', (
+    tester,
+  ) async {
+    var reads = 0;
+    final state = AppState(
+      api: Api(
+        base: 'https://example.invalid/api',
+        client: MockClient((_) async {
+          reads++;
+          return reply({});
+        }),
+      ),
+    )..user = {'id': 'parent', 'role': 'parent'};
+    addTearDown(state.dispose);
+    state.beginAuthentication();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: ProcessingTracePanel(state: state, jobId: jobId),
+        ),
+      ),
+    );
+    expect(find.text('Verarbeitung ansehen'), findsNothing);
+    expect(reads, 0);
+    expect(tester.takeException(), isNull);
+  });
+
   for (final width in [320.0, 390.0]) {
     testWidgets('parent trace stays usable with large text at $width pixels', (
       tester,

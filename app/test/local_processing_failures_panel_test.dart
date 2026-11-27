@@ -59,6 +59,72 @@ void main() {
     expect(find.byTooltip('Runde öffnen'), findsOneWidget);
   });
 
+  testWidgets('loaded errors disappear as soon as a new login starts', (
+    tester,
+  ) async {
+    var reads = 0;
+    final state = AppState(
+      api: Api(
+        base: 'https://example.invalid/api',
+        client: MockClient((_) async {
+          reads++;
+          return reply({
+            'errors': [
+              {'code': 'photo_invalid', 'created': 1700000000},
+            ],
+          });
+        }),
+      ),
+    )..user = {'id': 'parent', 'role': 'parent'};
+    addTearDown(state.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: LocalProcessingFailuresPanel(state: state, childId: childId),
+        ),
+      ),
+    );
+    await tester.tap(find.text('Verarbeitungsfehler'));
+    await tester.pumpAndSettle();
+    expect(find.text('Foto konnte nicht gelesen werden'), findsOneWidget);
+    final revision = state.beginAuthentication();
+    await tester.pump();
+    expect(find.text('Foto konnte nicht gelesen werden'), findsNothing);
+    expect(find.text('Verarbeitungsfehler'), findsNothing);
+    state.cancelAuthentication(revision);
+    await tester.pumpAndSettle();
+    expect(find.text('Foto konnte nicht gelesen werden'), findsNothing);
+    expect(reads, 1);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('errors cannot open while a new login is pending', (
+    tester,
+  ) async {
+    var reads = 0;
+    final state = AppState(
+      api: Api(
+        base: 'https://example.invalid/api',
+        client: MockClient((_) async {
+          reads++;
+          return reply({'errors': []});
+        }),
+      ),
+    )..user = {'id': 'parent', 'role': 'parent'};
+    addTearDown(state.dispose);
+    state.beginAuthentication();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: LocalProcessingFailuresPanel(state: state, childId: childId),
+        ),
+      ),
+    );
+    expect(find.text('Verarbeitungsfehler'), findsNothing);
+    expect(reads, 0);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('child cannot see or load parent diagnostics', (tester) async {
     var calls = 0;
     final state = AppState(
