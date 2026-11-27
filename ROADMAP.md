@@ -4171,6 +4171,18 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Echtzeitstatus gezielt und zuverlässig bereitstellen**
 
+  - [x] **Entwürfe persönlicher Lernhinweise bei einer Anmeldung schützen.**
+    Ein begonnener Kontowechsel pausiert den Editor und hält seine lokale
+    Auswahl zurück. Nach Abbruch prüft eine ausdrückliche Aktion Konto,
+    verfügbare Sitzungskennung und gespeicherten Stand, bevor die Bearbeitung
+    fortgesetzt wird. Bei geänderter Revision bleibt die Auswahl sichtbar,
+    Speichern ist bis zur bewussten Klärung gesperrt; unsichere Wiederholungen
+    behalten ihren Schlüssel. Kontowechsel, verspätete Antworten, Konflikte und
+    Verwerfen wurden mit künstlichen Daten geprüft. 37 Flutterfälle und
+    dieselben 37 Fälle im Chrome-Webrunner bestanden. Dies löst nicht den
+    allgemeinen Browser-Cookie-Wettlauf oder die Fälle alter Clients ohne
+    Sitzungsvergleich.
+
   - [x] **Einstellungen und Kinderexport bei beginnender Anmeldung sperren.**
     Während einer neuen Anmeldeabsicht zeigt die Einstellungsseite ihren
     bisherigen Inhalt nicht. Bereits offene Einstellungsdialoge werden

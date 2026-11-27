@@ -49,6 +49,6 @@ Bytes ohne echten Browser-Dateiauswahldialog. Die statische Dart-Analyse des
 betroffenen Codes und der neuen Tests meldete keine Fehler.
 
 Der identische Stand bestand anschließend auch in der Git-Arbeitskopie den
-gezielten lokalen Lauf mit 170 Fällen. Ein zusätzlicher vollständiger
-Flutterlauf wurde gestartet; sein Ergebnis ist zum Zeitpunkt dieses Eintrags
-noch nicht abgewartet.
+gezielten lokalen Lauf mit 170 Fällen. Der vollständige lokale Flutterlauf
+auf Commit `438436d` endete mit 5162 bestandenen und 19 übersprungenen Fällen.
+Spätere Commits sind damit nicht als gesamter Stand abgenommen.

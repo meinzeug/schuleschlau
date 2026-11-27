@@ -38,15 +38,18 @@ Json rule() => {
 class Fixture {
   final requests = <http.Request>[];
   Json stored = rule();
-  Future<http.Response>? pendingGet, pendingPut;
+  Future<http.Response>? pendingGet, pendingPut, pendingMe;
   int failures = 0;
   int failureStatus = 503;
-  late final state =
+  late final AppState state =
       AppState(
           api: Api(
             base: 'https://example.invalid/api',
             client: MockClient((r) async {
               requests.add(r);
+              if (r.url.path == '/api/auth/me' && r.method == 'GET') {
+                return pendingMe ?? response(state.user!);
+              }
               if (r.url.path != endpoint) {
                 throw StateError('Unexpected synthetic settings endpoint');
               }
@@ -181,6 +184,301 @@ Future<void> lifecycle(WidgetTester tester, {required bool active}) async {
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  testWidgets(
+    'login intent pauses reminders and explicit recheck preserves the draft',
+    (tester) async {
+      final f = Fixture();
+      await f.mount(tester);
+      await tester.enterText(keyed('goal-reminder-time'), '19:25');
+      final stale = tester
+          .widget<FilledButton>(keyed('goal-reminder-save'))
+          .onPressed!;
+      final intent = f.state.beginAuthentication();
+      stale();
+      await tester.pumpAndSettle();
+      expect(find.text('Die Anmeldung wird geprüft.'), findsOneWidget);
+      expect(f.puts, isEmpty);
+      f.state.cancelAuthentication(intent);
+      await tester.pumpAndSettle();
+      expect(find.text('Zugang prüfen'), findsOneWidget);
+      stale();
+      await tester.pumpAndSettle();
+      expect(f.puts, isEmpty);
+      await tap(tester, find.text('Zugang prüfen'));
+      expect(
+        tester
+            .widget<TextFormField>(keyed('goal-reminder-time'))
+            .controller!
+            .text,
+        '19:25',
+      );
+      expect(
+        f.requests.where((r) => r.url.path == '/api/auth/me'),
+        hasLength(1),
+      );
+      expect(f.puts, isEmpty);
+      await save(tester);
+      expect(f.puts, hasLength(1));
+      expect(jsonDecode(f.puts.single.body)['time'], '19:25');
+      await f.cleanup(tester);
+    },
+  );
+
+  testWidgets(
+    'recheck preserves the draft but blocks save when server revision changed',
+    (tester) async {
+      final f = Fixture();
+      await f.mount(tester);
+      await tester.enterText(keyed('goal-reminder-time'), '19:25');
+      final intent = f.state.beginAuthentication();
+      f.stored = {...f.stored, 'revision': 1};
+      f.state.cancelAuthentication(intent);
+      await tester.pumpAndSettle();
+      await tap(tester, find.text('Zugang prüfen'));
+      expect(
+        tester
+            .widget<TextFormField>(keyed('goal-reminder-time'))
+            .controller!
+            .text,
+        '19:25',
+      );
+      expect(
+        tester.widget<FilledButton>(keyed('goal-reminder-save')).onPressed,
+        isNull,
+      );
+      expect(
+        find.textContaining('gespeicherte Stand hat sich geändert'),
+        findsOneWidget,
+      );
+      expect(f.puts, isEmpty);
+      await f.cleanup(tester);
+    },
+  );
+
+  testWidgets('a newer login invalidates an in-flight access recheck', (
+    tester,
+  ) async {
+    final f = Fixture();
+    final delayed = Completer<http.Response>();
+    await f.mount(tester);
+    final intent = f.state.beginAuthentication();
+    f.state.cancelAuthentication(intent);
+    f.pendingMe = delayed.future;
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Zugang prüfen'));
+    await tester.pump();
+    final newer = f.state.beginAuthentication();
+    delayed.complete(response(f.state.user!));
+    await tester.pumpAndSettle();
+    expect(
+      f.requests.where((r) => r.url.path == endpoint && r.method == 'GET'),
+      hasLength(1),
+    );
+    expect(f.puts, isEmpty);
+    f.state.cancelAuthentication(newer);
+    await tester.pumpAndSettle();
+    expect(find.text('Zugang prüfen'), findsOneWidget);
+    await f.cleanup(tester);
+  });
+
+  testWidgets('a different server session cannot unlock the retained draft', (
+    tester,
+  ) async {
+    final f = Fixture();
+    f.state.user!['session_assertion'] = 'a' * 64;
+    await f.mount(tester);
+    final intent = f.state.beginAuthentication();
+    f.state.cancelAuthentication(intent);
+    f.pendingMe = Future.value(
+      response({'id': actor, 'session_assertion': 'b' * 64}),
+    );
+    await tester.pumpAndSettle();
+    await tap(tester, find.text('Zugang prüfen'));
+    expect(find.textContaining('Der Zugang hat sich geändert'), findsOneWidget);
+    expect(find.text('Zugang prüfen'), findsOneWidget);
+    expect(
+      f.requests.where((r) => r.url.path == endpoint && r.method == 'GET'),
+      hasLength(1),
+    );
+    expect(f.puts, isEmpty);
+    await f.cleanup(tester);
+  });
+
+  testWidgets(
+    'a covered recheck can be retried after the newer dialog closes',
+    (tester) async {
+      final f = Fixture();
+      final delayed = Completer<http.Response>();
+      await f.mount(tester);
+      final intent = f.state.beginAuthentication();
+      f.state.cancelAuthentication(intent);
+      f.pendingMe = delayed.future;
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Zugang prüfen'));
+      await tester.pump();
+      final navigator = tester.state<NavigatorState>(
+        find.byType(Navigator).first,
+      );
+      navigator.push(
+        DialogRoute<void>(
+          context: navigator.context,
+          builder: (_) => const AlertDialog(title: Text('Neuer Dialog')),
+        ),
+      );
+      await tester.pumpAndSettle();
+      delayed.complete(response(f.state.user!));
+      await tester.pumpAndSettle();
+      expect(find.text('Neuer Dialog'), findsOneWidget);
+      navigator.pop();
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<FilledButton>(
+              find.widgetWithText(FilledButton, 'Zugang prüfen'),
+            )
+            .onPressed,
+        isNotNull,
+      );
+      expect(
+        f.requests.where((r) => r.url.path == endpoint && r.method == 'GET'),
+        hasLength(1),
+      );
+      expect(f.puts, isEmpty);
+      await f.cleanup(tester);
+    },
+  );
+
+  testWidgets('background interrupts recheck without a background retry', (
+    tester,
+  ) async {
+    final f = Fixture();
+    final delayed = Completer<http.Response>();
+    await f.mount(tester);
+    final intent = f.state.beginAuthentication();
+    f.state.cancelAuthentication(intent);
+    f.pendingMe = delayed.future;
+    await tester.pumpAndSettle();
+    final oldCheck = tester
+        .widget<FilledButton>(
+          find.widgetWithText(FilledButton, 'Zugang prüfen'),
+        )
+        .onPressed!;
+    await tester.tap(find.text('Zugang prüfen'));
+    await tester.pump();
+    await lifecycle(tester, active: false);
+    delayed.complete(response(f.state.user!));
+    await tester.pumpAndSettle();
+    oldCheck();
+    await tester.pumpAndSettle();
+    expect(f.requests.where((r) => r.url.path == '/api/auth/me'), hasLength(1));
+    expect(
+      f.requests.where((r) => r.url.path == endpoint && r.method == 'GET'),
+      hasLength(1),
+    );
+    await lifecycle(tester, active: true);
+    expect(
+      tester
+          .widget<FilledButton>(
+            find.widgetWithText(FilledButton, 'Zugang prüfen'),
+          )
+          .onPressed,
+      isNotNull,
+    );
+    expect(f.puts, isEmpty);
+    await f.cleanup(tester);
+  });
+
+  testWidgets('a retry after recheck keeps the original uncertain save key', (
+    tester,
+  ) async {
+    final f = Fixture()..failures = 1;
+    await f.mount(tester);
+    await tester.enterText(keyed('goal-reminder-time'), '19:25');
+    await save(tester);
+    final first = f.puts.single.headers['Idempotency-Key'];
+    final intent = f.state.beginAuthentication();
+    f.state.cancelAuthentication(intent);
+    await tester.pumpAndSettle();
+    await tap(tester, find.text('Zugang prüfen'));
+    await save(tester);
+    expect(f.puts, hasLength(2));
+    expect(f.puts.last.headers['Idempotency-Key'], first);
+    await f.cleanup(tester);
+  });
+
+  testWidgets('a committed old save blocks the retained draft after recheck', (
+    tester,
+  ) async {
+    final f = Fixture();
+    final delayed = Completer<http.Response>();
+    await f.mount(tester);
+    await tester.enterText(keyed('goal-reminder-time'), '19:25');
+    f.pendingPut = delayed.future;
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(keyed('goal-reminder-save'));
+    await tester.pumpAndSettle();
+    await tester.tap(keyed('goal-reminder-save'));
+    await tester.pump();
+    expect(f.puts, hasLength(1));
+    final intent = f.state.beginAuthentication();
+    f.stored = {...f.stored, 'revision': 1, 'time': '19:25'};
+    f.state.cancelAuthentication(intent);
+    delayed.complete(response(f.stored));
+    await tester.pumpAndSettle();
+    expect(
+      find.text('Deine persönlichen Lernhinweise sind gespeichert.'),
+      findsNothing,
+    );
+    await tap(tester, find.text('Zugang prüfen'));
+    expect(
+      tester
+          .widget<TextFormField>(keyed('goal-reminder-time'))
+          .controller!
+          .text,
+      '19:25',
+    );
+    expect(
+      tester.widget<FilledButton>(keyed('goal-reminder-save')).onPressed,
+      isNull,
+    );
+    expect(f.puts, hasLength(1));
+    await f.cleanup(tester);
+  });
+
+  testWidgets('closing a paused dirty reminder requires explicit discard', (
+    tester,
+  ) async {
+    final f = Fixture();
+    await f.mount(tester);
+    await tester.enterText(keyed('goal-reminder-time'), '19:25');
+    final intent = f.state.beginAuthentication();
+    f.state.cancelAuthentication(intent);
+    await tester.pumpAndSettle();
+    await tap(tester, find.text('Schließen'));
+    expect(find.text('Änderungen verwerfen?'), findsOneWidget);
+    await tap(tester, find.text('Änderungen verwerfen'));
+    expect(find.text('Lernhinweise pausiert'), findsNothing);
+    expect(f.puts, isEmpty);
+    await f.cleanup(tester);
+  });
+
+  testWidgets('paused reminder stays usable at 320 pixels and double text', (
+    tester,
+  ) async {
+    final f = Fixture();
+    await f.mount(tester, width: 320, scale: 2);
+    final intent = f.state.beginAuthentication();
+    f.state.cancelAuthentication(intent);
+    await tester.pumpAndSettle();
+    expect(find.text('Lernhinweise pausiert'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await tester.ensureVisible(find.text('Zugang prüfen'));
+    await tester.pumpAndSettle();
+    expect(find.text('Zugang prüfen').hitTestable(), findsOneWidget);
+    await f.cleanup(tester);
+  });
 
   testWidgets(
     '108 opening reads only this parent and never enables a rule or push',

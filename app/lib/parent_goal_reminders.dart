@@ -23,6 +23,7 @@ class ParentGoalRemindersButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final owner = state.user, family = state.familyId, token = state.api.token;
+    final identity = state.api.requestIdentity();
     if (!state.isParent || family == null || owner == null) {
       return const SizedBox.shrink();
     }
@@ -33,6 +34,8 @@ class ParentGoalRemindersButton extends StatelessWidget {
             !identical(state.user, owner) ||
             state.familyId != family ||
             state.api.token != token ||
+            state.authenticationPending ||
+            !state.api.ownsRequest(identity) ||
             ModalRoute.of(context)?.isCurrent != true) {
           return;
         }
@@ -59,6 +62,7 @@ Future<void> showParentGoalReminders(
       !state.isParent ||
       state.familyId == null ||
       state.user?['id'] is! String ||
+      state.authenticationPending ||
       ModalRoute.of(context)?.isCurrent != true) {
     return;
   }
@@ -104,22 +108,29 @@ class _ReminderEditorState extends State<_ReminderEditor>
   late final AppState state;
   late final Json? owner;
   late final String? family, token;
+  late (Object?, String?, int?) identity;
   late final String actor;
   Set<int> weekdays = {};
   int revision = 0, epoch = 0, reads = 0;
   bool enabled = false, daily = false, exams = false;
   bool loaded = false, loading = true, saving = false, closing = false;
   bool foreground = true, canConfigure = false, saved = false;
+  bool accessPaused = false, checkingAccess = false;
   String? error, baseline, requestFingerprint, requestKey;
   ModalRoute<bool>? discardRoute;
 
-  bool get ownerCurrent =>
+  bool get sameOwner =>
       mounted &&
       !closing &&
       state.isParent &&
       identical(state.user, owner) &&
       state.familyId == family &&
       state.api.token == token;
+  bool get ownerCurrent =>
+      sameOwner &&
+      !accessPaused &&
+      !state.authenticationPending &&
+      state.api.ownsRequest(identity);
   bool get current => ownerCurrent && foreground;
   bool get interactive =>
       current &&
@@ -151,10 +162,12 @@ class _ReminderEditorState extends State<_ReminderEditor>
     actor = owner?['id']?.toString() ?? '';
     family = widget.family;
     token = widget.token;
+    identity = state.api.requestIdentity();
     foreground =
         WidgetsBinding.instance.lifecycleState == null ||
         WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
     state.addListener(identityChanged);
+    state.authenticationChanges.addListener(authenticationChanged);
     WidgetsBinding.instance.addObserver(this);
     // The route exists before checking it and dispatching a read.
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -170,7 +183,7 @@ class _ReminderEditorState extends State<_ReminderEditor>
   }
 
   void identityChanged() {
-    if (ownerCurrent || closing) {
+    if (sameOwner || closing) {
       return;
     }
     closing = true;
@@ -186,6 +199,129 @@ class _ReminderEditorState extends State<_ReminderEditor>
       }
     });
     setState(() {});
+  }
+
+  void authenticationChanged() {
+    if (!sameOwner) {
+      identityChanged();
+      return;
+    }
+    epoch++;
+    reads++;
+    final extra = discardRoute;
+    discardRoute = null;
+    if (extra?.isActive == true) {
+      scheduleMicrotask(() {
+        if (extra!.isActive) extra.navigator?.removeRoute(extra);
+      });
+    }
+    setState(() {
+      accessPaused = true;
+      checkingAccess = loading = saving = false;
+      error = null;
+    });
+  }
+
+  Future<void> recheckAccess() async {
+    if (!sameOwner ||
+        !accessPaused ||
+        !foreground ||
+        state.authenticationPending ||
+        checkingAccess ||
+        ModalRoute.of(context)?.isCurrent != true) {
+      return;
+    }
+    final captured = epoch, requestIdentity = state.api.requestIdentity();
+    bool stillValid() =>
+        sameOwner &&
+        accessPaused &&
+        foreground &&
+        !state.authenticationPending &&
+        epoch == captured &&
+        state.api.ownsRequest(requestIdentity) &&
+        ModalRoute.of(context)?.isCurrent == true;
+    setState(() {
+      checkingAccess = true;
+      error = null;
+    });
+    try {
+      final me = await state.api.get('/auth/me');
+      if (!stillValid()) return;
+      final expected = owner?['session_assertion'];
+      if (me['id'] != actor ||
+          (expected != null && me['session_assertion'] != expected)) {
+        throw ApiError(
+          'Der Zugang hat sich geändert. Bitte öffne die Lernhinweise erneut.',
+        );
+      }
+      final remote = await state.api.get(path);
+      if (!stillValid()) return;
+      if (remote['child_id'] != widget.childId ||
+          remote['revision'] is! int ||
+          remote['revision'] < 0 ||
+          remote['can_configure'] is! bool) {
+        throw ApiError(
+          'Der gespeicherte Hinweisstand ist unvollständig. Bitte erneut prüfen.',
+        );
+      }
+      identity = requestIdentity;
+      if (!loaded) {
+        adopt(remote);
+        setState(() {
+          accessPaused = false;
+        });
+      } else {
+        setState(() {
+          accessPaused = false;
+          canConfigure =
+              remote['can_configure'] == true && remote['revision'] == revision;
+          error = remote['revision'] != revision
+              ? 'Der gespeicherte Stand hat sich geändert. Deine Auswahl bleibt erhalten. Lade den gespeicherten Stand bewusst, bevor du erneut speicherst.'
+              : remote['can_configure'] != true
+              ? 'Dieser Zugang darf die Lernhinweise nicht ändern.'
+              : null;
+        });
+      }
+    } catch (e) {
+      if (stillValid()) {
+        setState(
+          () => error = e is ApiError
+              ? e.message
+              : 'Der Zugang konnte nicht geprüft werden.',
+        );
+      }
+    } finally {
+      if (sameOwner &&
+          epoch == captured &&
+          !state.authenticationPending &&
+          state.api.ownsRequest(requestIdentity)) {
+        setState(() => checkingAccess = false);
+      }
+    }
+  }
+
+  Future<void> closePaused() async {
+    bool allowed() =>
+        sameOwner &&
+        accessPaused &&
+        foreground &&
+        !state.authenticationPending &&
+        !checkingAccess;
+    if (!allowed() || ModalRoute.of(context)?.isCurrent != true) return;
+    if (dirty) {
+      final accepted = await confirmParentDiscard(
+        context,
+        current: allowed,
+        subject: 'Deine Lernhinweise',
+        onRoute: (r) => discardRoute = r,
+      );
+      discardRoute = null;
+      if (!mounted || !accepted || !allowed()) return;
+    }
+    if (!mounted) return;
+    if (allowed() && ModalRoute.of(context)?.isCurrent == true) {
+      Navigator.pop(context);
+    }
   }
 
   @override
@@ -207,7 +343,7 @@ class _ReminderEditorState extends State<_ReminderEditor>
       });
     }
     setState(() {
-      loading = saving = false;
+      loading = saving = checkingAccess = false;
       if (loaded) {
         error = 'Die Ansicht war im Hintergrund. Deine Auswahl bleibt erhalten. Prüfe sie und speichere bei Bedarf erneut.';
       }
@@ -443,6 +579,7 @@ class _ReminderEditorState extends State<_ReminderEditor>
   void dispose() {
     reads++;
     state.removeListener(identityChanged);
+    state.authenticationChanges.removeListener(authenticationChanged);
     WidgetsBinding.instance.removeObserver(this);
     time.dispose();
     timezone.dispose();
@@ -457,8 +594,38 @@ class _ReminderEditorState extends State<_ReminderEditor>
 
   @override
   Widget build(BuildContext context) {
-    if (!ownerCurrent) {
+    if (!sameOwner) {
       return const SizedBox.shrink();
+    }
+    if (accessPaused || state.authenticationPending) {
+      return PopScope(
+        canPop: false,
+        child: AlertDialog(
+          scrollable: true,
+          title: const Text('Lernhinweise pausiert'),
+          content: Text(
+            state.authenticationPending
+                ? 'Die Anmeldung wird geprüft.'
+                : error ?? 'Deine Auswahl bleibt erhalten. Prüfe zuerst deinen Zugang.',
+          ),
+          actions: [
+            TextButton(
+              onPressed:
+                  foreground && !state.authenticationPending && !checkingAccess
+                  ? closePaused
+                  : null,
+              child: const Text('Schließen'),
+            ),
+            FilledButton(
+              onPressed:
+                  foreground && !state.authenticationPending && !checkingAccess
+                  ? recheckAccess
+                  : null,
+              child: Text(checkingAccess ? 'Wird geprüft …' : 'Zugang prüfen'),
+            ),
+          ],
+        ),
+      );
     }
     final captured = epoch;
     final edit = interactive;

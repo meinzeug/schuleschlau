@@ -13,6 +13,10 @@ neuen Anmeldeabsicht ihre alten Aktionen. Einzelheiten stehen in der Roadmap.
 Diese begrenzten Fixes lösen den offenen browserseitigen `HttpOnly`-Cookie-
 Wettlauf nicht: `docs/WEB_LOGIN_COOKIE_RACE_2026_11_06.md` beschreibt den
 reproduzierbaren Fall und die nötigen weitergehenden Prüfungen.
+Persönliche Lernhinweisentwürfe werden bei einem Anmeldeversuch pausiert und
+erst nach ausdrücklicher erneuter Konto- und Standprüfung fortgesetzt; ein
+abweichender Serverstand verhindert das Speichern. Die allgemeinen
+Kontowechsel- und Altclientgrenzen bleiben offen.
 
 Die lokale synthetische Ansicht `app/test/fixtures/school_day_preview.dart`
 kennt zusätzlich die von der Kindernavigation verwendeten Routen für Wörter,
