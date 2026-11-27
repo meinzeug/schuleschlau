@@ -932,8 +932,10 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
   deutschen Schulprofil kann ein Klassenwechsel vorgeschlagen und bewusst
   gespeichert werden; ein automatischer Übergang ist nicht implementiert.
   Als erste fachlich belegte Erweiterung wurden Mathematik, Deutsch, Englisch,
-  Geschichte, Biologie, Physik, Chemie, Geographie und die Ethikübersicht der Sekundarschule Sachsen-Anhalt für die genannten
-  Jahrgangsbänder bzw. Abschlussphasen ergänzt. Andere Fächer, Österreich,
+  Geschichte, Biologie, Physik, Chemie, Geographie sowie Übersichten für Ethik,
+  Informatik, Musik, Kunst, Sport, Technik, Wirtschaft und Sozialkunde der
+  Sekundarschule Sachsen-Anhalt für die jeweils belegten Jahrgänge bzw.
+  Abschlussphasen ergänzt. Weitere Fächer, Österreich,
   die Schweiz und Hochschulen bleiben offen; keine Vollständigkeit behaupten.
 
   **Abnahme:** Lernende und Berechtigte können den eigenen Bildungsweg ohne
@@ -943,6 +945,20 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
   Clients getestet.
 
 - [ ] **P1 – Lehrplanabdeckung fachlich kuratieren und offen ausweisen**
+
+  - [x] **Sozialkunde der Sekundarschule Sachsen-Anhalt ergänzen.** Die
+    amtliche Übersicht ist ausdrücklich dem bestehenden Sammelfach
+    Gemeinschaftskunde zugeordnet. Vier Schwerpunkte gelten für Jahrgang 8,
+    drei ausdrücklich für Jahrgang 9 und fünf für das Band 9/10. Ein
+    weiterer Schwerpunkt zu Wahlen bleibt ohne erfundene Jahrgangszuordnung.
+    Pflicht-/Wahlhinweise und ausgewogene Behandlung kontroverser Fragen
+    bleiben im Planungskontext erhalten. Die Zuordnung erzeugt keine
+    Kursbelegung oder Leistungsnachweise. Katalog- und Migrationstests
+    bestanden auf SQLite (34 Fälle, zwei PostgreSQL-Fälle übersprungen) und
+    isoliertem PostgreSQL (36 Fälle); drei erweiterte Fälle zum tatsächlichen
+    Planungskontext bestanden zusätzlich auf beiden Datenbanken. Der
+    umfassende Hauptpunkt und das Ausrollen bleiben offen.
+    [Quelle und Einschränkungen](docs/SOURCES.md).
 
   - [x] **Technik und Wirtschaft der Sekundarschule Sachsen-Anhalt ergänzen.**
     Die amtlichen Überblickstabellen enthalten sieben Technik- und acht

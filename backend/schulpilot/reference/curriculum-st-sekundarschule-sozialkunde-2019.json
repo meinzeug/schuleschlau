@@ -1,0 +1,253 @@
+{
+  "version": 1,
+  "retrieved": "2026-11-27",
+  "documents": [
+    {
+      "id": "st-sek-sozialkunde-2019",
+      "state_code": "DE-ST",
+      "title": "Fachlehrplan Sekundarschule Sozialkunde",
+      "official_url": "https://www.bildung-lsa.de/files/164f3f97e3adf65ff6f44685dd9e1ced/lp_sks_sozi_01_08_2019.pdf",
+      "edition": "Stand 01.08.2019",
+      "effective_from": null,
+      "school_form_label": "Sekundarschule",
+      "school_form_id": "de-st.sekundarschule",
+      "school_form_scope": "specific",
+      "applies_to_school_forms": [],
+      "source_status": "current_verified",
+      "retrieved": "2026-11-27",
+      "applicability_note": "Sozialkunde ist ausdrücklich dem vorhandenen Sammelfach Gemeinschaftskunde zugeordnet; daraus folgt keine Kursbelegung. Der Plan nennt Jahrgang 8 und das Band 9/10; drei markierte Schwerpunkte liegen in Jahrgang 9. Digitale Meinungsbildung, Streitkultur und Datenbedeutung sind verpflichtend, können andere Schwerpunkte ersetzen oder ergänzen. Wahlen sind zeitnah zu behandeln und keinem einzelnen Schuljahr zugeordnet. Die konkrete schulische Reihenfolge ist unbekannt. Kontroverse Fragen ausgewogen behandeln; keine politischen Meinungen oder Wahlen vorgeben.",
+      "document_kind": "curriculum",
+      "source_notes": "Ministerium für Bildung Sachsen-Anhalt; Landesportal Sachsen-Anhalt, CC BY-SA 3.0 (https://creativecommons.org/licenses/by-sa/3.0/); Kapitel 3.1, gedruckte Seiten 12–13. PDF-SHA256 fed964b5ca7173a267dfc03176f060e16b2dfe12bc1e3750339e47c1929c2c59; amtlicher Index https://www.bildung-lsa.de/index.php?KAT_ID=16003."
+    }
+  ],
+  "topics": [
+    {
+      "id": "st-sek-sozialkunde-2019.8-sozialpolitik",
+      "document_id": "st-sek-sozialkunde-2019",
+      "subject_key": "gemeinschaftskunde",
+      "title": "Soziale Ungleichheit und Unterstützungssysteme",
+      "grade_kind": "exact",
+      "grades": [
+        8
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 12,
+      "quote": "Ungleichheit",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-sozialkunde-2019.8-jugendrecht",
+      "document_id": "st-sek-sozialkunde-2019",
+      "subject_key": "gemeinschaftskunde",
+      "title": "Rechte und Pflichten Jugendlicher",
+      "grade_kind": "exact",
+      "grades": [
+        8
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 12,
+      "quote": "Jugendlichen",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-sozialkunde-2019.8-kommunalpolitik",
+      "document_id": "st-sek-sozialkunde-2019",
+      "subject_key": "gemeinschaftskunde",
+      "title": "Politik vor Ort",
+      "grade_kind": "exact",
+      "grades": [
+        8
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 12,
+      "quote": "Nahraum",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-sozialkunde-2019.8-digitale-meinung",
+      "document_id": "st-sek-sozialkunde-2019",
+      "subject_key": "gemeinschaftskunde",
+      "title": "Meinungsbildung im digitalen Raum",
+      "grade_kind": "exact",
+      "grades": [
+        8
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 12,
+      "quote": "Meinungsbildung",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-sozialkunde-2019.9-fremdenfeindlichkeit",
+      "document_id": "st-sek-sozialkunde-2019",
+      "subject_key": "gemeinschaftskunde",
+      "title": "Fremdenfeindlichkeit untersuchen",
+      "grade_kind": "exact",
+      "grades": [
+        9
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 12,
+      "quote": "Fremdenfeindlichkeit",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-sozialkunde-2019.9-parlamentarismus",
+      "document_id": "st-sek-sozialkunde-2019",
+      "subject_key": "gemeinschaftskunde",
+      "title": "Parlamentarische Demokratie verstehen",
+      "grade_kind": "exact",
+      "grades": [
+        9
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 12,
+      "quote": "Demokratie",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-sozialkunde-2019.9-bundespolitik",
+      "document_id": "st-sek-sozialkunde-2019",
+      "subject_key": "gemeinschaftskunde",
+      "title": "Einen Konflikt der Bundespolitik untersuchen",
+      "grade_kind": "exact",
+      "grades": [
+        9
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 12,
+      "quote": "bundespolitischen",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-sozialkunde-2019.910-digitale-streitkultur",
+      "document_id": "st-sek-sozialkunde-2019",
+      "subject_key": "gemeinschaftskunde",
+      "title": "Politische Debatten in digitalen Medien",
+      "grade_kind": "band",
+      "grades": [
+        9,
+        10
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 12,
+      "quote": "Streitkultur",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-sozialkunde-2019.910-menschenrechte",
+      "document_id": "st-sek-sozialkunde-2019",
+      "subject_key": "gemeinschaftskunde",
+      "title": "Verletzungen von Menschenrechten",
+      "grade_kind": "band",
+      "grades": [
+        9,
+        10
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 13,
+      "quote": "Menschenrechten",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-sozialkunde-2019.910-europa",
+      "document_id": "st-sek-sozialkunde-2019",
+      "subject_key": "gemeinschaftskunde",
+      "title": "Europäische Politik",
+      "grade_kind": "band",
+      "grades": [
+        9,
+        10
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 13,
+      "quote": "Europäische",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-sozialkunde-2019.910-international",
+      "document_id": "st-sek-sozialkunde-2019",
+      "subject_key": "gemeinschaftskunde",
+      "title": "Internationale Konflikte",
+      "grade_kind": "band",
+      "grades": [
+        9,
+        10
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 13,
+      "quote": "internationalen",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-sozialkunde-2019.910-daten",
+      "document_id": "st-sek-sozialkunde-2019",
+      "subject_key": "gemeinschaftskunde",
+      "title": "Bedeutung von Daten in der digitalen Welt",
+      "grade_kind": "band",
+      "grades": [
+        9,
+        10
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 13,
+      "quote": "Daten",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-sozialkunde-2019.wahltermin",
+      "document_id": "st-sek-sozialkunde-2019",
+      "subject_key": "gemeinschaftskunde",
+      "title": "Wahlen in einer Demokratie",
+      "grade_kind": "unclassified",
+      "grades": null,
+      "phase_label": null,
+      "section": "3.1",
+      "page": 13,
+      "quote": "Wahlen",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    }
+  ],
+  "coverage": {
+    "complete": false,
+    "note": "Nur amtliche Überblicksschwerpunkte; keine Kursbelegung, parteipolitische Vorgabe oder vollständige Lehrplanabdeckung."
+  }
+}

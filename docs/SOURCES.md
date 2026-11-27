@@ -1,3 +1,24 @@
+## 27.11.2026 · Sozialkunde Sachsen-Anhalt
+
+Der [amtliche Sekundarschulindex](https://www.bildung-lsa.de/index.php?KAT_ID=16003)
+verlinkte den [Fachlehrplan Sozialkunde, Stand 01.08.2019](https://www.bildung-lsa.de/files/164f3f97e3adf65ff6f44685dd9e1ced/lp_sks_sozi_01_08_2019.pdf).
+Die Übersicht auf den gedruckten Seiten 12–13 unterscheidet den Jahrgang 8,
+das Band 9/10 und drei ausdrücklich für Jahrgang 9 markierte Schwerpunkte.
+Der Wahlenschwerpunkt soll in zeitlicher Nähe zu Wahlen stattfinden und kann
+in jedem Schuljahrgang behandelt werden; er erhält keine erfundene
+Jahrgangszuordnung. Die mit zwei Sternen versehenen digitalen Schwerpunkte sind
+verpflichtend und können andere Schwerpunkte ersetzen oder ergänzen.
+
+Quelle: Ministerium für Bildung und Landesportal Sachsen-Anhalt,
+[CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/). PDF-SHA256:
+`fed964b5ca7173a267dfc03176f060e16b2dfe12bc1e3750339e47c1929c2c59`.
+Die kurzen Themenüberschriften sind eigene Formulierungen. Sozialkunde ist
+explizit dem bereits vorhandenen öffentlichen Sammelfach Gemeinschaftskunde
+zugeordnet; daraus wird keine individuelle Kursbelegung abgeleitet. Der
+Lehrplan verlangt eine ausgewogene Behandlung kontroverser Fragen. Die
+konkrete schulische Reihenfolge und die Übertragung auf andere Schulformen
+bleiben offen.
+
 ## 27.11.2026 · Technik und Wirtschaft Sachsen-Anhalt
 
 Der [amtliche Sekundarschulindex](https://www.bildung-lsa.de/index.php?KAT_ID=16003)
