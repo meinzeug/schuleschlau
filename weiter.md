@@ -597,7 +597,9 @@ Der unabhängige Watchdog aus Commit `96c43ca` ist lokal installiert. Er meldet 
   API-Anfragen und Netzwerksperren sind weiterhin geprüft. Elf Unitfälle und
   der echte Chrome-Guardtest bestanden. Der erste lokale PDF-Wiederholversuch
   verwendete versehentlich einen Build ohne die CI-Offlineoptionen und scheiterte
-  vor der Flutter-Ansicht; der korrekte Offlinebuild wird gesondert geprüft.
+  vor der Flutter-Ansicht. Mit den CI-Offlineoptionen und dem angepassten
+  Guard bestand der vollständige PDF-Browsertest anschließend lokal mit
+  künstlichen Daten. Ein grüner GitHub-Gesamtlauf steht weiterhin aus.
 
 ## Nützliche Prüfungen
 

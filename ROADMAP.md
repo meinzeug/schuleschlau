@@ -4186,8 +4186,9 @@ Bestandteil des bestehenden Buildvertrags.
   deterministische Fälle und der lokale Chrome-Schutztest bestanden;
   permanent gestörte Schriften, API- und Schreibanfragen bleiben begrenzt
   und Fehler bleiben sichtbar. Origin-, Redirect- und WebSocket-Sperre sind
-  unverändert. Eine bestandene Wiederholung des vollständigen PDF-Tests und
-  ein grüner GitHub-Gesamtlauf sind damit noch nicht nachgewiesen.
+  unverändert. Der vollständige PDF-Browsertest bestand danach lokal mit
+  einem Build mit den CI-Offlineoptionen und künstlichen Daten. Ein grüner
+  GitHub-Gesamtlauf für diese Änderung ist damit noch nicht nachgewiesen.
 
 - [x] **Browser-Testabschluss vor laufenden Anfragen schützen.** Im
   GitHub-Lauf `45988628610` scheiterte der synthetische Mehrkind-PDF-Test
