@@ -325,7 +325,7 @@ def test_two_step_source_procedure_has_exact_bounded_evidence_and_unmodified_ind
         visual_references.validate_output(db, actual, planned)
 
 
-@pytest.mark.parametrize("change", ["wrong_list", "no_common", "wrong_step", "only_keywords", "superscript", "contradictory_result", "unknown_result"])
+@pytest.mark.parametrize("change", ["wrong_list", "no_common", "wrong_step", "only_keywords", "superscript", "unknown_result"])
 def test_two_step_rule_does_not_guess_or_promote_erroneous_work(household, change):
     content = PROCEDURE
     if change == "wrong_list":
@@ -336,8 +336,6 @@ def test_two_step_rule_does_not_guess_or_promote_erroneous_work(household, chang
         content = content.replace("kleinste gemeinsame Zahl", "irgendeine gemeinsame Zahl")
     elif change == "only_keywords":
         content = "kgV. Vielfache. Kleinste gemeinsame Zahl. V3={3;6;9;12;} V4={4;8;12;}"
-    elif change == "contradictory_result":
-        content = content.replace("kgV(3;4)=", "kgV(3;4)=24")
     elif change == "unknown_result":
         content = content.replace("kgV(3;4)=", "kgV(3;4)=unbekannt")
     else:
@@ -345,6 +343,14 @@ def test_two_step_rule_does_not_guess_or_promote_erroneous_work(household, chang
     _, payload = prepared(household, content=content)
     with pytest.raises(ValueError, match="Lehrgrundlage"):
         multiples.prepare(payload)
+
+
+def test_contradictory_kgv_result_is_rejected_before_visual_planning(household):
+    content = PROCEDURE.replace("kgV(3;4)=", "kgV(3;4)=24")
+    # Without separately usable blocks, the source-safety gate excludes the
+    # whole page before any visual or exercise plan can be prepared.
+    with pytest.raises(ValueError, match="Lehrgrundlage"):
+        prepared(household, content=content)
 
 
 def test_own_source_revision_and_content_changes_hide_saved_graphic_not_questions(household):

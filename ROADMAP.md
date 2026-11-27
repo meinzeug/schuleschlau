@@ -757,6 +757,14 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – OCR anhand vollständig referenzierter künstlicher Seiten prüfen**
 
+  - [x] **Quellenschutz und kgV-Planung konsistent prüfen.** Ein alter
+    Regressionstest erwartete bei einer eindeutig falschen kgV-Gleichung erst
+    eine Ablehnung durch die Aufgabenplanung. Die frühere Quellensicherung
+    schließt jedoch eine ununterteilte fehlerhafte Quelle bereits davor aus.
+    Der Test prüft nun ausdrücklich diese Ablehnung; andere unbelegte Regeln
+    werden weiterhin separat an der Planung abgewiesen. 83 künstliche Fälle
+    auf SQLite und 25 auf isoliertem PostgreSQL bestanden.
+
   - [x] **Eindeutig falsche ggT-/kgV-Angaben als Lernstoff ausschließen.**
     Der begrenzte lokale Check erkennt vollständige Gleichungen wie
     `kgV(20,80)=160` und bewahrt den ursprünglichen Text. Gegenlesungen bleiben
@@ -1535,6 +1543,15 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
     Dialogtext. Sprachübungen und ihre explizit gewählten Vorlese-/Mikrofon-
     Sprachen bleiben davon getrennt. Die umfassende Screenreader-Abnahme und
     das Ausrollen bleiben offen.
+
+  - [x] **Fokusprüfung im Mehrtageslauf gegen asynchrone Updates absichern.**
+    Ein GitHub-Lauf verfehlte nach mehreren synthetischen Tagen die Navigation
+    per Tab; die konkrete Ursache ist nicht abschließend belegt. Die Prüfung
+    wartet nun auf die tatsächlich geladene Startaktion und nach jeder
+    Tasteneingabe auf einen gerenderten Frame. Sie verlangt weiterhin einen
+    echten Tab-Fokus, Enter und den gemessenen sichtbaren Fokuskontrast. Drei
+    isolierte Chrome-Läufe mit 320, 390 und 1280 Pixeln bestanden, zwei davon
+    gleichzeitig. Ein Screenreader und der nächste GitHub-Lauf bleiben separat.
 
   - [x] **Desktop-Ziel „Lernen“ per Tastatur und Web-Semantik prüfen.**
     Das Ziel „Lernen“ ist bei 1280 Pixeln als fokussierbare Schaltfläche

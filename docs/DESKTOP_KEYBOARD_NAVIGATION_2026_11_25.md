@@ -24,3 +24,16 @@ konkreten Screenreader-Software. Die Ausgabe „Tab 2 of 6“ und die Prüfung
 weiterer Navigationsziele, Bildschirmgrößen und Android-Bedienhilfen bleiben
 separat zu beurteilen. Der Test verwendet keine echten Kinderinhalte und
 keinen externen KI-Anbieter.
+
+
+## Wiederholung am 27.11.2026
+
+Ein späterer GitHub-Mehrtagefall verfehlte bei 1280 Pixeln nach fünf
+simulierten Tagen den Fokus innerhalb der erlaubten Tab-Folge. Die genaue
+Ursache ist nicht abschließend belegt. Der Test wartet jetzt vor der
+Tastaturnavigation auf die geladene Startaktion und nach jedem Tab auf einen
+Browser-Frame, bevor der Fokus geprüft wird. Er verwendet weiterhin echte
+Tab- und Enter-Eingaben und misst den gerenderten Fokuskontrast. Drei lokale
+isolierte Chrome-Läufe mit künstlichen Konten bestanden, davon zwei parallel.
+Dies ersetzt keinen Screenreader- oder realen Gerätetest und belegt für sich
+keinen erfolgreichen nächsten GitHub-Lauf.

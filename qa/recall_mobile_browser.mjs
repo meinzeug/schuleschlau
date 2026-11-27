@@ -77,16 +77,27 @@ try {
       const learn=page.getByRole('button',{name:/^Lernen(?:\s+Tab \d+ (?:of|von) \d+)?$/})
         .or(page.getByRole('tab',{name:/^Lernen/})).first();
       if(width>=1100) {
+        // The route changes before the asynchronous Today panel has settled.
+        // Wait for its real action so a later rebuild cannot steal rail focus.
+        await page.getByRole('button',{name:/^(Weiterlernen|Jetzt lernen|Freiwillig weiterlernen)$/}).first().waitFor({timeout:30000});
         const bounds=await learn.boundingBox();
         assert(bounds && bounds.width>=48 && bounds.height>=48);
         writeFileSync(`${input.screens}/recall-nav-bounds.json`,JSON.stringify(bounds));
         await shot(`recall-nav-before-${width}`);
         let focused=false;
+        const focusTrail=[];
         for(let i=0;i<50 && !focused;i++) {
           await page.keyboard.press('Tab');
+          // Flutter updates its accessibility tree on frames; do not dispatch
+          // another keystroke before the prior focus transition is rendered.
+          const focus=await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => {
+            const node=document.activeElement;
+            resolve({tag:node?.tagName,role:node?.getAttribute('role'),tabindex:node?.getAttribute('tabindex')});
+          })));
+          focusTrail.push(focus);
           focused=await learn.evaluate(node=>node.matches(':focus'));
         }
-        assert(focused,'Desktop navigation must be reachable by Tab');
+        assert(focused,'Desktop navigation must be reachable by Tab; focus path: '+JSON.stringify(focusTrail));
         assert.equal(await learn.getAttribute('role'),'button');
         assert.equal(await learn.getAttribute('aria-current'),'false');
         await page.waitForTimeout(200);
