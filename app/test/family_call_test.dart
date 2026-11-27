@@ -450,6 +450,67 @@ void main() {
     },
   );
 
+  for (final role in ['child', 'parent']) {
+    testWidgets('New sign-in stops live $role call media immediately', (
+      tester,
+    ) async {
+      final fake = FakeMedia();
+      var requests = 0;
+      final state = makeState((request) async {
+        requests++;
+        if (request.url.path.endsWith('/active')) {
+          return response({
+            'calls': role == 'parent' ? [metadata('ringing', role: role)] : [],
+          });
+        }
+        if (request.url.path.endsWith('/config')) {
+          return response({'available': true});
+        }
+        if (request.url.path.endsWith('/ice')) {
+          return response({'ice_servers': []});
+        }
+        if (request.url.path.endsWith('/signals')) {
+          return request.method == 'POST'
+              ? response({'sequence': 1})
+              : response({'signals': [], 'cursor': 0});
+        }
+        return response(metadata('accepted', role: role));
+      }, role: role);
+      final calls = FamilyCallService(
+        state,
+        nativeEnabled: false,
+        mediaFactory: () => fake,
+      );
+      calls.activate(state.user);
+      await tester.pump();
+      if (role == 'child') {
+        await calls.start();
+      } else {
+        await calls.join();
+      }
+      expect(calls.media, same(fake));
+      final before = requests;
+      final auth = state.beginAuthentication();
+      expect(fake.closed, isTrue);
+      expect(calls.media, isNull);
+      await tester.pump();
+      expect(
+        requests,
+        before,
+        reason: 'Changing sign-in must not start new requests.',
+      );
+      state.cancelAuthentication(auth);
+      await tester.pump();
+      expect(
+        calls.media,
+        isNull,
+        reason: 'An aborted login must not reactivate capture.',
+      );
+      await calls.clear();
+      calls.dispose();
+    });
+  }
+
   testWidgets(
     'New sign-in closes pending child media and does not start a call',
     (tester) async {
@@ -949,10 +1010,12 @@ void main() {
     var signalPosts = 0;
     final state = makeState((request) async {
       if (request.url.path.endsWith('/active')) return response({'calls': []});
-      if (request.url.path.endsWith('/config'))
+      if (request.url.path.endsWith('/config')) {
         return response({'available': true});
-      if (request.url.path.endsWith('/ice'))
+      }
+      if (request.url.path.endsWith('/ice')) {
         return response({'ice_servers': []});
+      }
       if (request.url.path.endsWith('/signals')) {
         if (request.method == 'POST') {
           signalPosts++;

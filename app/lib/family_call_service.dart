@@ -69,6 +69,7 @@ class FamilyCallService extends ChangeNotifier {
   String? _nativeShown;
   String? _mediaCallId;
   bool _nativeInitialized = false;
+  bool _watchingAuthentication = false;
   String? _startKey;
   void Function(String callId, String action)? onNativeIntent;
   Object? get accountIdentity => _owner;
@@ -111,11 +112,30 @@ class FamilyCallService extends ChangeNotifier {
     });
   }
 
+  // A live call must not continue capturing while a different sign-in is
+  // being initiated, even before the old account object is replaced.
+  void _authenticationChanged() {
+    if (media == null) return;
+    unawaited(_closeMedia());
+    notifyListeners();
+  }
+
+  void _watchAuthentication(bool watch) {
+    if (watch == _watchingAuthentication) return;
+    _watchingAuthentication = watch;
+    if (watch) {
+      state.authenticationChanges.addListener(_authenticationChanged);
+    } else {
+      state.authenticationChanges.removeListener(_authenticationChanged);
+    }
+  }
+
   void activate(Json? user) {
     final allowed = ['child', 'parent'].contains(user?['role']) ? user : null;
     if (identical(_owner, allowed)) return;
     _generation++;
     _owner = allowed;
+    _watchAuthentication(allowed != null);
     _timer?.cancel();
     _timer = null;
     _polling = false;
@@ -790,6 +810,7 @@ class FamilyCallService extends ChangeNotifier {
   Future<void> clear() async {
     _generation++;
     _owner = null;
+    _watchAuthentication(false);
     _timer?.cancel();
     _timer = null;
     await _nativeSubscription?.cancel();
@@ -809,6 +830,7 @@ class FamilyCallService extends ChangeNotifier {
 
   @override
   void dispose() {
+    _watchAuthentication(false);
     _timer?.cancel();
     unawaited(_nativeSubscription?.cancel());
     unawaited(_closeMedia());

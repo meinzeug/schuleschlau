@@ -4108,6 +4108,13 @@ Bestandteil des bestehenden Buildvertrags.
     Anrufe, allgemeine API-Antworten und der Cookie-Wettlauf bleiben gesondert
     zu prüfen; ein echtes Androidgerät ist damit nicht abgenommen.
 
+    **Laufende Anrufmedien bei neuer Anmeldung stoppen:** Kinder- und
+    Elternanrufe schließen lokale Medien unmittelbar bei neuer Anmeldeabsicht;
+    ein Abbruch der Anmeldung öffnet sie nicht automatisch erneut. Die
+    Änderung löst selbst keine neue Anfrage aus. Künstliche Flutterfälle
+    prüfen beide Rollen und den Abbruch; die geräteübergreifende und native
+    Abnahme sowie der allgemeine Cookie-Wettlauf bleiben offen.
+
     **Verzögerten Bildschirmstart absichern:** Beginnt während einer
     Bildschirmfreigabe eine neue Anmeldung, wird die laufende Medienverbindung
     geschlossen. Auch eine verspätet erteilte Aufnahme startet keine
