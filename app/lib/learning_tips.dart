@@ -1670,6 +1670,7 @@ class _TopicRowState extends State<_TopicRow> {
               for (final item in detail?['recommended'] as List? ?? [])
                 TipContentCard(
                   Json.from(item),
+                  isCurrent: () => current && detail != null,
                   onOpened: () => opened(Json.from(item)),
                 ),
               if ((detail?['additional'] as List? ?? []).isNotEmpty)
@@ -1680,6 +1681,7 @@ class _TopicRowState extends State<_TopicRow> {
               for (final item in detail?['additional'] as List? ?? [])
                 TipContentCard(
                   Json.from(item),
+                  isCurrent: () => current && detail != null,
                   onOpened: () => opened(Json.from(item)),
                 ),
               if ((detail?['recommended'] as List? ?? []).isEmpty &&

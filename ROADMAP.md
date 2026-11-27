@@ -4084,6 +4084,9 @@ Bestandteil des bestehenden Buildvertrags.
     beginnt. Künstliche Widget- und Chrome-Fälle prüfen die einzelnen Abläufe;
     ein während der Anmeldung neu gestarteter anderer Transport und der
     Cookie-Wettlauf bleiben gesondert offen.
+    Ein zusätzlicher künstlicher Widgetfall prüft auch einen bereits
+    eingefangenen Medienknopf während der Anmeldebenachrichtigung: Es wird
+    weder ein externer Link noch ein neuer Interaktionsauftrag gestartet.
 
   - [x] **Tagesverlauf beim Beginn einer neuen Anmeldung leeren.** Bereits
     angezeigte Tageskarten und Filter werden entfernt, die Datumsauswahl

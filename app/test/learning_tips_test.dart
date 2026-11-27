@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -247,6 +248,65 @@ void main() {
       findsOneWidget,
     );
     expect(requests, hasLength(1));
+    await tester.pumpWidget(const SizedBox.shrink());
+    state.dispose();
+  });
+
+  testWidgets('old topic media cannot open while login intent is changing', (
+    tester,
+  ) async {
+    const channel = MethodChannel('plugins.flutter.io/url_launcher');
+    final messenger =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    var launches = 0;
+    messenger.setMockMethodCallHandler(channel, (call) async {
+      if (call.method == 'launch') launches++;
+      return true;
+    });
+    addTearDown(() => messenger.setMockMethodCallHandler(channel, null));
+    final requests = <http.Request>[];
+    final state = AppState(
+      api: Api(
+        base: 'https://example.invalid/api',
+        client: MockClient((request) async {
+          requests.add(request);
+          if (request.url.path.endsWith('/topic-1')) {
+            return reply({
+              'recommended': [content(1)],
+              'additional': [],
+            });
+          }
+          return reply({
+            'subject': {'title': 'Mathematik'},
+            'items': [
+              {'id': 'topic-1', 'title': 'Künstliches Thema'},
+            ],
+            'total': 1,
+          });
+        }),
+      ),
+    )..user = {'id': 'own-user', 'role': 'child', 'child_id': 'child'};
+    VoidCallback? earlyOpen;
+    state.authenticationChanges.addListener(() => earlyOpen?.call());
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: appTheme(),
+        home: Scaffold(
+          body: TopicBrowser(state, childId: 'child', subjectId: 'math'),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tap(tester, find.text('Künstliches Thema'));
+    final open = tester.widget<OutlinedButton>(
+      find.widgetWithText(OutlinedButton, 'Bei Sofatutor ansehen'),
+    );
+    earlyOpen = open.onPressed;
+    state.beginAuthentication();
+    await tester.pumpAndSettle();
+    expect(launches, 0);
+    expect(requests, hasLength(2));
+    expect(requests.every((r) => r.method == 'GET'), isTrue);
     await tester.pumpWidget(const SizedBox.shrink());
     state.dispose();
   });
