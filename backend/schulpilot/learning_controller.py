@@ -245,7 +245,7 @@ def decide(db, unit, memory=None):
         on_success="check_understanding", on_error="hint")
     if not data["source_valid"]:
         value.update(kind="confirm_source", phase="entry", reason_code="source_changed",
-            title="Der Lernstoff wurde geändert", reason="Die alte Runde bleibt gespeichert. Die neue Heftseite braucht zuerst eine Prüfung.",
+            title="Der Lernstoff wurde geändert", reason="Die alte Runde bleibt gespeichert. Der Lernstoff muss zuerst erneut geprüft werden.",
             expected_result="Aktuell bestätigter Lernstoff.", on_success="check_prior", on_error="confirm_source")
     elif unit.status != "completed" and (model_action := instructional_decisions.action(db, unit)):
         value.update(model_action)

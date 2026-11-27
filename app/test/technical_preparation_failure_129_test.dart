@@ -422,7 +422,7 @@ void main() {
     await mountDay(tester, server);
     expect(
       find.text(
-        'Eine Heftseite wurde geändert. Deine Eltern können die Seite prüfen.',
+        'Deine Heftseiten haben sich verändert. Deine Eltern können nachsehen.',
       ),
       findsOneWidget,
     );

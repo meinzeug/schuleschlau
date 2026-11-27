@@ -1671,7 +1671,7 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
                 'provider_busy' => 'Die KI arbeitet gerade an einer anderen Anfrage. Du kannst es später noch einmal versuchen.',
                 'unreadable_photo' => 'Ein Foto ist nicht gut lesbar. Nimm es bitte bei gutem Licht neu auf.',
                 'cost_preflight' => technicalMessage,
-                'source_changed' => 'Eine Heftseite wurde geändert. Deine Eltern können die Seite prüfen.',
+                'source_changed' => 'Deine Heftseiten haben sich verändert. Deine Eltern können nachsehen.',
                 _ =>
                   technicalFailure
                       ? technicalMessage

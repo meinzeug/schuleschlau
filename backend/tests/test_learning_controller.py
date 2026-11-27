@@ -153,7 +153,7 @@ def test_changed_material_invalidates_decision_without_rewriting_answers(normal_
         brain.observe(db, unit, "material_revised", "source-change-1", ["material:" + material_id])
     session = client.get(endpoint(unit_id)).json()
     assert not session["source_valid"] and session["action"]["kind"] == "confirm_source"
-    assert session["action"]["reason"] == "Die alte Runde bleibt gespeichert. Die neue Heftseite braucht zuerst eine Prüfung."
+    assert session["action"]["reason"] == "Die alte Runde bleibt gespeichert. Der Lernstoff muss zuerst erneut geprüft werden."
     with DB() as db:
         assert db.scalar(select(Attempt)).outcome == "correct"
 
