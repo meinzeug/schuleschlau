@@ -1,0 +1,1841 @@
+{
+  "after": {
+    "commit": "733a5a2c672b5119c4f633a9a9d66481d88f7dc2",
+    "inventory_sha256": "7f345ea0066fe20dfe42656222c957148d696b7c682fd01f19325c886108eb88",
+    "source_file_count": 2106,
+    "source_sha256": "9639c6481ce61e1fac05d99be213a8641f81008e921df4a9053b5b0b79ae06b3"
+  },
+  "all_files": [
+    {
+      "path": "app/test/access_auth_ux90_test.dart",
+      "sha256": "b9d6f5382a0e591b88420b1e66607e8fdf4e69ffed40a5f9f2603ad16f3ed32d"
+    },
+    {
+      "path": "app/test/access_google_ux90_test.dart",
+      "sha256": "bce5685ebc3e79879eb4e66a9ed589d52c9d0120486003c0b270c137ed64f6d5"
+    },
+    {
+      "path": "app/test/access_installation_ux90_test.dart",
+      "sha256": "50099e5e5a19722cee19270752e6a1ab31c978bd56d10e31ffd85f73e83f8056"
+    },
+    {
+      "path": "app/test/access_recovery_ux90_test.dart",
+      "sha256": "c2204bca27119ef9fa3b2de9ca9206b99d7cf43478b92b2a21d5657258b2112f"
+    },
+    {
+      "path": "app/test/access_store_ux90_test.dart",
+      "sha256": "ab62dcb8dbd28aa37221418392e7f2e26277c57b18fec4fc14d221355e8cba30"
+    },
+    {
+      "path": "app/test/access_workflows_ux90_test.dart",
+      "sha256": "d160101941c5031d2fcca3f80ee34f36af4bc274cb7c8f6235e7db72b26c9ec2"
+    },
+    {
+      "path": "app/test/accessible_action_chip_test.dart",
+      "sha256": "5e60862968a2b3f487761525f1a0385e7cbabeb5c1424b4ca99251aa1890f601"
+    },
+    {
+      "path": "app/test/action_panel_ux88_test.dart",
+      "sha256": "65378cec92cfe6cbb74ba2291b75703d69b8b6254092979665625d0a341254ad"
+    },
+    {
+      "path": "app/test/adaptive_learning_room_test.dart",
+      "sha256": "5a0a2834e7997fba169ccf9bce8beb3b173098dfd26277b09a9fe8ba6a943ae5"
+    },
+    {
+      "path": "app/test/adaptive_learning_test.dart",
+      "sha256": "9fafe5f960d6db246df5be1411f57f0b155c92b19407025880d0099b145df399"
+    },
+    {
+      "path": "app/test/admin_batch1_ux_test.dart",
+      "sha256": "44d39e4a0d6c113cde00928794a7f2700d3f80ba04d0ecae13db00d4555005c6"
+    },
+    {
+      "path": "app/test/admin_child_costs_107_test.dart",
+      "sha256": "40ffa0dbf83cbfa98c88171f949f5c773859c3334253bc589d23bac28c39b724"
+    },
+    {
+      "path": "app/test/admin_family_pagination_test.dart",
+      "sha256": "99a3314070f32ce05642dc469d313515ca624b4d0acbd4891e08559b5f4c0bb1"
+    },
+    {
+      "path": "app/test/admin_material_review_141_test.dart",
+      "sha256": "aabf6803a2108c893f1b62ecb9d824c5876fb545272a45f93086db6c25fd4ad5"
+    },
+    {
+      "path": "app/test/admin_operations_catalog_ux_test.dart",
+      "sha256": "2c1bb8c9e39f5975765854e4586c9a0b9de823b912a8cd17ce5e7f7273d25c2f"
+    },
+    {
+      "path": "app/test/admin_round2_cost_routes_test.dart",
+      "sha256": "810d0deae9e400b73ff8f905687ff2ca44a819dfbd0cdd1baf9ad63a59ebbd58"
+    },
+    {
+      "path": "app/test/admin_round2_provider_test.dart",
+      "sha256": "e27a6cbc78ff7cd7eeab2bad5e2c1d83893eb029c5766e0a4aede1a469841367"
+    },
+    {
+      "path": "app/test/admin_round2_push_test.dart",
+      "sha256": "daf2647e9f7b774f25944832fa3d77243b9ffd9858fb3b2854e2ff997b119eea"
+    },
+    {
+      "path": "app/test/admin_round2_sales_test.dart",
+      "sha256": "77be7ac26423b85efe336788ab58624d71c511fae548e76b9ef4118019bbae89"
+    },
+    {
+      "path": "app/test/admin_round2_setup_test.dart",
+      "sha256": "923d6e64a7498d5d2a8ff813bef68bf176891045408537c99ead74150d448e55"
+    },
+    {
+      "path": "app/test/admin_round2_tariffs_test.dart",
+      "sha256": "db88606516ca151356d3b4b644a568bd090d8d42a147f89fcb53e53650cbdc46"
+    },
+    {
+      "path": "app/test/admin_round2_workflows_test.dart",
+      "sha256": "5f2462da03628f7c835903992eb78818d2f178e3826904e9b22f5b9cb4a90b57"
+    },
+    {
+      "path": "app/test/admin_setup_sales_recovery_ux_test.dart",
+      "sha256": "45bd9ab9762efc500f0031e2a16c9a2c3c02e7a487b47dbdcf6bc957095b2cf4"
+    },
+    {
+      "path": "app/test/admin_subpages_design_test.dart",
+      "sha256": "04dd2d3a02f6f79e6c6ba50ce15f8834b951702b970f1b835387021e028761cb"
+    },
+    {
+      "path": "app/test/admin_users_screen_test.dart",
+      "sha256": "1a63988ced74792875c7d99ab01e9e8d22c04d89c11d799ec31c1e2da0585bf0"
+    },
+    {
+      "path": "app/test/admin_workspace_test.dart",
+      "sha256": "11c60bdfee8e00c55bc2190e4c438edc2a1f1b304856e74384bd1b23bc3c24e4"
+    },
+    {
+      "path": "app/test/answer_numpad_access_test.dart",
+      "sha256": "1abffc7741894d4fb20c28dbc63d9478ce408f942cfbe6b1a7ec97a5b2bce18b"
+    },
+    {
+      "path": "app/test/answer_retry_identity_test.dart",
+      "sha256": "b20e0881f59cc99942d29ade8704691bf77b618faac13101dc02043f7d04192c"
+    },
+    {
+      "path": "app/test/answer_writing_tools_test.dart",
+      "sha256": "49eed15d64b922112885557065acb791b4f0c46b076a695a9f7a2244867df401"
+    },
+    {
+      "path": "app/test/api_expected_account_test.dart",
+      "sha256": "e4134492337bac32edb5df6b789b554fa188a1a1fb910fc7276a09d125d5fc31"
+    },
+    {
+      "path": "app/test/api_unauthorized_identity_test.dart",
+      "sha256": "f376c655610fea465ceaea00dfca57fddd1bf0dc89fd1b08611de4e7a486b247"
+    },
+    {
+      "path": "app/test/app_localizations_test.dart",
+      "sha256": "b18678541cf65176598cbc643b9172727c577647252f58ef20eb27939bbdc150"
+    },
+    {
+      "path": "app/test/appearance_test.dart",
+      "sha256": "d45d2a7989c6b28c0d77fd6943568309d46cf8ddf430d0cefe74ad1aa3a54d2a"
+    },
+    {
+      "path": "app/test/auth_continuity_test.dart",
+      "sha256": "8436a7cab024f7a081831b8abf917caf536ad71083d7652faed76a82b8bbcbd9"
+    },
+    {
+      "path": "app/test/auth_form_usability_test.dart",
+      "sha256": "f221dd8b406fad0c97f4d2a6c7253ea8bc2de2cb49d2510c26b8a4ba477bd4b3"
+    },
+    {
+      "path": "app/test/auth_input_bounds_ux_test.dart",
+      "sha256": "651c283b5a01a753d413aa9c1047f911d0ecfdeea9e2e278bbc0aee4a5c4113c"
+    },
+    {
+      "path": "app/test/auth_links_test.dart",
+      "sha256": "d81bba819f4b4313431b1ac78b5220bac664214e6ecd28c8b733a41f80988bc4"
+    },
+    {
+      "path": "app/test/auth_recovery_ux88_test.dart",
+      "sha256": "0f5187e42288c5c2a7362a90d16bd56f1507d00a2c9c3d7d6e426ddc27bfbb4c"
+    },
+    {
+      "path": "app/test/beta_frontend_test.dart",
+      "sha256": "775060c57805dc1b7fa853094796eede1e0424d2b66ad54eaddc71f7598c14b0"
+    },
+    {
+      "path": "app/test/brand_navigation_105_test.dart",
+      "sha256": "59c3db312d6d893242bd58600b20f6a585f05a8c0bcc96948379340eb61d0d8e"
+    },
+    {
+      "path": "app/test/brand_startup_105_test.dart",
+      "sha256": "b0d00b5a88fadcfe89e0266d24bc9e4240df42039397368f25c6789f24c58371"
+    },
+    {
+      "path": "app/test/browser_workspace_test.dart",
+      "sha256": "70cbf2d79484eca741388fd9684b5f0ddc1d3491bc78a1cdcde43b50fe8c66ec"
+    },
+    {
+      "path": "app/test/calendar_graphic_test.dart",
+      "sha256": "94315d61692d05cd4eadc87a38efe5e09d54dedfc82b7ff39092ff40a5e006c2"
+    },
+    {
+      "path": "app/test/camera_recovery_test.dart",
+      "sha256": "face4ee201a047e470809602d4e84e2ffe61ebc6c60a3fcdc2d8e4bd0772fc36"
+    },
+    {
+      "path": "app/test/card_progress_roles_ux89_test.dart",
+      "sha256": "d1136624f4c1b64f4f8fcfcef86fc0059a3bff7b96d83d804eb8543aaaa623f7"
+    },
+    {
+      "path": "app/test/checkout_uncertain_early_start_test.dart",
+      "sha256": "7ceefbf6b5d8b5f6a6a19837fc5856800d4ee00672aca5b78153ad32e76a29cf"
+    },
+    {
+      "path": "app/test/child_additional_boundaries_ux90_test.dart",
+      "sha256": "3d3452815e60c0d2ed9c62f35acbf679ebcddc70fdd0f66023491e967b0ae764"
+    },
+    {
+      "path": "app/test/child_context_forms_ux_test.dart",
+      "sha256": "4986652a4c4d416ff1698b4506a7150954cd752d4682cad7cb8e35f6517a4a46"
+    },
+    {
+      "path": "app/test/child_devices_auth_race_test.dart",
+      "sha256": "35f57b838c4233c86cd7a84d3363c75db63edad873b4922a94b7f839439dfe97"
+    },
+    {
+      "path": "app/test/child_display_recovery_ux87_test.dart",
+      "sha256": "4332a984b91a875d2b96d687f58a71cd722f1ff58401492d8aacdd14ac00f141"
+    },
+    {
+      "path": "app/test/child_drafts_boundaries_ux87_test.dart",
+      "sha256": "a86bc47cec51612fa79b6349c96f00819bd502effe6b368b74f91c2c5d457707"
+    },
+    {
+      "path": "app/test/child_final_actions_ux87_test.dart",
+      "sha256": "e34b94f29999391897ab4c665bb271fab6c7d587f37e37d16d4fef69e2d28b09"
+    },
+    {
+      "path": "app/test/child_help_continuity_ux87_test.dart",
+      "sha256": "0df312271ab5d16ad106a31e8d6dd1cfb4c9fbeab14724ec69e15094f065030c"
+    },
+    {
+      "path": "app/test/child_hierarchy_103_test.dart",
+      "sha256": "61fb56c34182800b10c2d6cf652a9fd003889e2bbfa1ea1ebfe75787b25d0374"
+    },
+    {
+      "path": "app/test/child_history_ux90_test.dart",
+      "sha256": "f6fc0b035a35fa1326c9e8f2b8372b71e92719a5397a73568d30eba30b04fe3c"
+    },
+    {
+      "path": "app/test/child_home_fixture_sync_test.dart",
+      "sha256": "c3b1d14ea002f56e2b723ef23d622e3f454e10fb9e1e472c1cce084bd1c49f2f"
+    },
+    {
+      "path": "app/test/child_home_polling_test.dart",
+      "sha256": "65b3446a99ea227429fe40344d3baa27800629382e88443b42460cc4add218a5"
+    },
+    {
+      "path": "app/test/child_home_test.dart",
+      "sha256": "bb0538e211a79b8c6f375ea1056c4a375edc02113ff508a06ff8107317f060cd"
+    },
+    {
+      "path": "app/test/child_home_usability_test.dart",
+      "sha256": "cf55f1d408f4768471185f939ef5b66fd1a29629cd2fe70477aa8dcecb7db0f4"
+    },
+    {
+      "path": "app/test/child_homework_continuity_test.dart",
+      "sha256": "48095c74b5b9ee61c89f1e3fad48752b4da65c878b769bf71ca9f6ea09d76a1b"
+    },
+    {
+      "path": "app/test/child_homework_details_ux88_test.dart",
+      "sha256": "f42b626a8299989ed06af621ee73cf28cd5698d08538fe7d70955fb2ef56aec6"
+    },
+    {
+      "path": "app/test/child_homework_tools_ux90_test.dart",
+      "sha256": "124dd72c6ac98eab5a17944b012bd8e8e52e94fad9d504d8db931294bbd71233"
+    },
+    {
+      "path": "app/test/child_homework_ux90_test.dart",
+      "sha256": "b75490f562cadbd5008852c97880df60c0911a14d4697abc3bfe275080de5bab"
+    },
+    {
+      "path": "app/test/child_learning_helpers_ux_test.dart",
+      "sha256": "5bc6db43a9d7af50722c719b7e3b1493e1aeceee06afcff43786171e6458a05d"
+    },
+    {
+      "path": "app/test/child_local_tools_ux88_test.dart",
+      "sha256": "135fdcdd4273f714bcd79bd7c53f005d6d1e5469beb8c76274743bd26a830eac"
+    },
+    {
+      "path": "app/test/child_material_actions_ux90_test.dart",
+      "sha256": "503fdb8e920e19c086076972d838b268301323439d89666db28b3dcc344489ca"
+    },
+    {
+      "path": "app/test/child_messages_ux90_test.dart",
+      "sha256": "3fb540ad5c057b5aa41d68ef9fa9f2cddec6f0cbc752dc2ffa9812f1a8f0ee43"
+    },
+    {
+      "path": "app/test/child_notebook_actions_ux88_test.dart",
+      "sha256": "58d05be390583f004666b265fe2a6c5411148d166dcba9ecf1cf6a7f9118009f"
+    },
+    {
+      "path": "app/test/child_notebook_ux90_test.dart",
+      "sha256": "5e2a1eee32cfe2c1bd4600878c4e107bec42a4793eb8a5e49d81b43089d305e3"
+    },
+    {
+      "path": "app/test/child_page_tools_104_test.dart",
+      "sha256": "98fb1dc43e1f33f1ca4541c1cc08c053388425eda60de258991db32bd6043c12"
+    },
+    {
+      "path": "app/test/child_photo_entry_simple_test.dart",
+      "sha256": "2122daae354b0e1309feb796ab0e1746861b169d38934cedb30bddcc0649e454"
+    },
+    {
+      "path": "app/test/child_photos_auth_race_test.dart",
+      "sha256": "2b32ae33ddbec99bce14ac214f959564bce81df2362284c50a3c3bf5210a096b"
+    },
+    {
+      "path": "app/test/child_photos_day_ux90_test.dart",
+      "sha256": "d342a15eaf75164f795ce1427a9f366b4673a9bc7b9993ccd50b5cf2662f05a4"
+    },
+    {
+      "path": "app/test/child_preferences_page_test.dart",
+      "sha256": "efc1f2e37db1470e419bccc61793f4eddb368a38b624dd03c98f0e467fcbb3c1"
+    },
+    {
+      "path": "app/test/child_project_tools_ux88_test.dart",
+      "sha256": "f5406c5df8bc3c4cfa36c22b4fe95090553d70904cb92f6bf42772e8da27d411"
+    },
+    {
+      "path": "app/test/child_question_text_test.dart",
+      "sha256": "b224e75134a4840c38a204387fb8a6cfd40aca55488c86e9a5653d3afd1231e3"
+    },
+    {
+      "path": "app/test/child_round_controls_ux88_test.dart",
+      "sha256": "c1862254fb0187f5d39ff264e976255b3bd76c7a9a83bf17668d603dce51af92"
+    },
+    {
+      "path": "app/test/child_routine_entry_test.dart",
+      "sha256": "07a525deb940a2ee0e8f2b29bbfeba48e5b588a56831ad96c404fcd9d0c2fe61"
+    },
+    {
+      "path": "app/test/child_school_day_actions_ux88_test.dart",
+      "sha256": "378f5ea23090748438e1ff573a55242cbc8662fccbff714712ffe87ce5b41c81"
+    },
+    {
+      "path": "app/test/child_school_day_web_ui_test.dart",
+      "sha256": "dabcfe02f2f75e9c3523a1ac30b40ff91f44aa75ad53febf56a583d3616cb3ef"
+    },
+    {
+      "path": "app/test/child_sections_design_test.dart",
+      "sha256": "4fb5026ec6d53f7c86f966ce8ccfd92aa087b9067b2b2fb2591c436fe606a0d1"
+    },
+    {
+      "path": "app/test/child_source_tools_ux88_test.dart",
+      "sha256": "da812b37fc389dbb25010a1579849b9a3bd3083f7539a89baa559ed9cc7a88d0"
+    },
+    {
+      "path": "app/test/child_sources_input_ux87_test.dart",
+      "sha256": "36592e8f5f8af96b62a97db73dcffff8925dee991221abd863c988055d9c3c86"
+    },
+    {
+      "path": "app/test/child_study_path_ux90_test.dart",
+      "sha256": "5df9e9021cc9b9fd0f4ed73518dadfe2aa813db1cba546b8e719d2f55c6c0ba7"
+    },
+    {
+      "path": "app/test/child_tasks_usability_test.dart",
+      "sha256": "c3b408288304be28024e2ce11909531a5f9170de8b3208e3a84195ec78492524"
+    },
+    {
+      "path": "app/test/child_today_actions_ux88_test.dart",
+      "sha256": "15976052a93d43db872b0ad6eda93979796f227d5d3353c69636dadd807ea7b7"
+    },
+    {
+      "path": "app/test/child_today_next_ux90_test.dart",
+      "sha256": "56bd6d020b482709a48863485644397237cabfe318019e2f1b42a8af60144c8b"
+    },
+    {
+      "path": "app/test/child_today_redesign_test.dart",
+      "sha256": "2bcaccef9ebfd811a95d46689bf7579b2b1b7360a5883d552e54ad8af9055e0e"
+    },
+    {
+      "path": "app/test/child_today_redesign_visual_test.dart",
+      "sha256": "e5c2c87c3d027452e2c2050f744bf30e26fc8ac6667d7b0cfd5537b049d7ec35"
+    },
+    {
+      "path": "app/test/child_today_stale_study_131_test.dart",
+      "sha256": "c72a9b90e678455ef7c4f60e64f7d0cdf4e2a4c23156cfa934c86210e593cc8a"
+    },
+    {
+      "path": "app/test/child_topics_messages_ux87_test.dart",
+      "sha256": "71e0e052251f3ef874fda5f120faa92ec3376d2ec1a5192e15916af42cc666e0"
+    },
+    {
+      "path": "app/test/child_tutor_tools_ux88_test.dart",
+      "sha256": "4cea7a17836f6cfedb08e3ded2503695e472ade15fc5a7c51553bb82aeb1d68b"
+    },
+    {
+      "path": "app/test/child_usability_test.dart",
+      "sha256": "e76e54c32332438308989f136ae3ea8da10b64cce2db4a81edaef5c469bdb5fc"
+    },
+    {
+      "path": "app/test/child_week_plan_ux88_test.dart",
+      "sha256": "261b9fe780c217c9a72e3dd9d32847d29fb1dff607a60de1bd640395dceed224"
+    },
+    {
+      "path": "app/test/child_wizard_usability_test.dart",
+      "sha256": "2ff5e0814536d572f9695a1d76236b7f422a201ecaa6186bd6ba9102d8c52c6e"
+    },
+    {
+      "path": "app/test/child_word_review_ux88_test.dart",
+      "sha256": "6650e0888940bbad08c41fc8e31bd5d9f97f5b4775c5d8ebb1d1469b7071e59b"
+    },
+    {
+      "path": "app/test/coach_practice_failure_ux_test.dart",
+      "sha256": "0766e40b62427ba770d0dc4c1bf75a8a641a3b8987fe1c3b5ce8955f2276fd4d"
+    },
+    {
+      "path": "app/test/coach_retry_availability_139_test.dart",
+      "sha256": "b6f3fb615d63d375b5122caa9ee80387bd54628af6ee7490480b388802e26bc2"
+    },
+    {
+      "path": "app/test/coaching_cards_142_test.dart",
+      "sha256": "a80589f79ed93eab70f9851748888910c7187806619db49657ef809d0e17f2bd"
+    },
+    {
+      "path": "app/test/coaching_completion_test.dart",
+      "sha256": "e82ff62c45310ae2d6e9fa9a806391c980340f19730b597b50609a34a13d1160"
+    },
+    {
+      "path": "app/test/coaching_mixed_contribution_test.dart",
+      "sha256": "9602f70c29c248f1c0ee2d8b0fc401dbf6650fad9fb11572bb5666c5e7103622"
+    },
+    {
+      "path": "app/test/coaching_recheck_binding_test.dart",
+      "sha256": "27b0b8275c9a59f110897b2bf143643ede6f0042ffa76e8c307f9542fd5d076c"
+    },
+    {
+      "path": "app/test/coaching_test.dart",
+      "sha256": "8d5625585d9e45b2c4fdc2f686c91786279c24a89bf75c4bd70a2bfb458b639c"
+    },
+    {
+      "path": "app/test/codex_provider_form_test.dart",
+      "sha256": "4992d1cbca4656414db199ed3d126e47fc4bbd3b0f917f2aea44743737ec4f52"
+    },
+    {
+      "path": "app/test/collection_resume_test.dart",
+      "sha256": "e1f856980e311608c92f95fedf3a526b05b23470cb55702652091c51c0a453ad"
+    },
+    {
+      "path": "app/test/collection_screen_test.dart",
+      "sha256": "91960316f512d2735ed8ab817a0798f5fde16de969b86a000bfc3743384512aa"
+    },
+    {
+      "path": "app/test/collection_view_tools_test.dart",
+      "sha256": "0d71eb1819cd851aeae3ded2ef168ef87c4a8227b4457bb9c6cca19a02fc6f3b"
+    },
+    {
+      "path": "app/test/collection_views_100_test.dart",
+      "sha256": "ae6328fba84be110eaef4841357c58c6fd7b043c9fd9713112e8ff6ae3997f4e"
+    },
+    {
+      "path": "app/test/commerce_payments_test.dart",
+      "sha256": "58750fed099245e6a2c6d931befce713b8ad7c993c7eede84ca47b0a51ecc2f9"
+    },
+    {
+      "path": "app/test/commerce_trial_launch_test.dart",
+      "sha256": "768808610e6cd021838f9716de51b88eb106d4692038b2dc8f1866aa33b02bbf"
+    },
+    {
+      "path": "app/test/compact_admin_queue_102_test.dart",
+      "sha256": "144669bc5da9b2dfdf41ceca6c8cccc90874939afcf8c83eb5cab2816de520dc"
+    },
+    {
+      "path": "app/test/compact_child_pages_102_test.dart",
+      "sha256": "034f2ffc2053e30b2a99b7361aa3a67cfe0845fd1a9d35fc5962f5f73a78eff2"
+    },
+    {
+      "path": "app/test/compact_learning_layout_test.dart",
+      "sha256": "b05ec5a4c61757987f03ceb5dbf186617fae40e90f35d02689073362ffe81ba1"
+    },
+    {
+      "path": "app/test/compact_round_result_141_test.dart",
+      "sha256": "20d3b7351dde612cf9f63374bd9dfed7b4b3a2e16ce8ca97b9e238ee493e0b34"
+    },
+    {
+      "path": "app/test/compact_workspace_102_test.dart",
+      "sha256": "69aea897e841195b7a7d72fc3f0767b0deba2e2215aba11c698170e1a4671e36"
+    },
+    {
+      "path": "app/test/comparison_sign_input_test.dart",
+      "sha256": "f88abfb6d15ac3306a5fe5cf26acacc6b5908358659fe4f87c295b3b2acdcf4b"
+    },
+    {
+      "path": "app/test/completed_question_explanation_129_test.dart",
+      "sha256": "2812bfaa532bb20c29183dd554bb67aa9f6f73219f6c901ccf390895d0ffeddc"
+    },
+    {
+      "path": "app/test/content_layout_regression_test.dart",
+      "sha256": "bea4d33018468e7cf3ef2a1fa794d582f22e9941edda5a9852601ee8c3993938"
+    },
+    {
+      "path": "app/test/curriculum_profile_110_test.dart",
+      "sha256": "e6e58b5adb74a700378b5009391f85d70c4a16265ceade05518f8a8734b13643"
+    },
+    {
+      "path": "app/test/decimal_sum_graphic_test.dart",
+      "sha256": "effb284aa0b9ac017a86be3f626e0070d6b73f95d36799991349e6d8a6678f2d"
+    },
+    {
+      "path": "app/test/decision_permission_test.dart",
+      "sha256": "c7f0bd9787123babdbbaa8f50b02d4622acb5a19d4de0befd5dad5341672af3a"
+    },
+    {
+      "path": "app/test/demo_visual_text_contract_test.dart",
+      "sha256": "81b6697c17b5a86a50653b17ac9fd8c48b052ff4e79056645c777aa700f4415a"
+    },
+    {
+      "path": "app/test/design_accessibility_test.dart",
+      "sha256": "032a17e30b27ec255ea231fdcb2b7f3733c662d9220a6df6039af2407d7701fc"
+    },
+    {
+      "path": "app/test/entry_help_139_test.dart",
+      "sha256": "f193c9813d2fdae45d6420d13a172319b7d64e38173658cd6480f080cf617f0c"
+    },
+    {
+      "path": "app/test/exam_material_test.dart",
+      "sha256": "cb42c9fbdc3bd37baf0a2c1a3df9dbd42e844d0f7fdd94e33cf00af1ec09bf73"
+    },
+    {
+      "path": "app/test/exam_photos_test.dart",
+      "sha256": "248a01c3ee8d1036eafbb3c8dc8daad02cb86407243fa8ee1a7d4e22f0da23a4"
+    },
+    {
+      "path": "app/test/exam_review_batches_test.dart",
+      "sha256": "f7187e939a0288cdf61f7a5216522980d99d35caf5e490375b8fe3fefec423ff"
+    },
+    {
+      "path": "app/test/exam_review_realtime_test.dart",
+      "sha256": "a333e8d64ad93a3d644d47417bfb733188a09803837c86d42aee8edcbb52649f"
+    },
+    {
+      "path": "app/test/exams_child_compact_test.dart",
+      "sha256": "5559b7aa9d857cda5503cc3cba64a88cf5e820e4606e7ab14e5afaba0f231565"
+    },
+    {
+      "path": "app/test/exams_lifecycle_test.dart",
+      "sha256": "6ccd85ebc0a788f687d663eb5ff2d95ce0205f46cda77d5d54f8f5819505aa30"
+    },
+    {
+      "path": "app/test/exams_screen_test.dart",
+      "sha256": "34d21a5dee2da03f06e471d480d79c47fae3474bed141b832006ddc38aaf3094"
+    },
+    {
+      "path": "app/test/exams_subject_search_test.dart",
+      "sha256": "ca79b712ed4685f6edbb773b38efc888457eff720413a1b89950a54edc8999e1"
+    },
+    {
+      "path": "app/test/explanation_scroll_mobile_test.dart",
+      "sha256": "912fe809eaaa9c80b27bd18720a510b3ff457bfc24347d3be1243ecc8ae5ecf4"
+    },
+    {
+      "path": "app/test/family_call_continuity_ux88_test.dart",
+      "sha256": "fad222a8fe3dc78eec3298adde562f06e8ad6be1bef79a95512b1ac87a604da1"
+    },
+    {
+      "path": "app/test/family_call_dock_test.dart",
+      "sha256": "ce9cc01ee55999320a6774dc8e9dc030a98ff2ed4f998d42ea2502611ba14f61"
+    },
+    {
+      "path": "app/test/family_call_media_test.dart",
+      "sha256": "6b77e2b1cc7ed9085aa4dea56bc46a07539973acd011c8721d259952b21bafb7"
+    },
+    {
+      "path": "app/test/family_call_native_test.dart",
+      "sha256": "698767ab448b94b5fabca751c4299adfb4d9d6110cf647318332011a2efda771"
+    },
+    {
+      "path": "app/test/family_call_navigation_test.dart",
+      "sha256": "8bfcafb9184dd68171e6727883655fdf0b089abdce7a3df5c9ff4793a3b19361"
+    },
+    {
+      "path": "app/test/family_call_test.dart",
+      "sha256": "91bfd94da4ba6a573cae903782ba7572f551d54ccf8b77b9ae58e4b3021c4357"
+    },
+    {
+      "path": "app/test/family_landing_auth_race_test.dart",
+      "sha256": "624501b8ac8849079eacbcbfbe4ed16f80d9ea861629e38d076edcfb812f4e5d"
+    },
+    {
+      "path": "app/test/feedback_attempt_identity_test.dart",
+      "sha256": "7ee98c30ff3ce96b6ecd1df35eb6527c6beaffcd7e74b3b57403f60759837170"
+    },
+    {
+      "path": "app/test/feedback_recovery_sheet_test.dart",
+      "sha256": "7926bd825419af5779ec1de9d28710bca719c79c1b1c713c53d1dc867029c157"
+    },
+    {
+      "path": "app/test/force_lab_109_test.dart",
+      "sha256": "8fb394dcc667a64b8c63ec3ed1b3a82124e704bb971385e75028dc54e9287d90"
+    },
+    {
+      "path": "app/test/fraction_comparison_widget_test.dart",
+      "sha256": "e3e8fda9e22723d3bbc96afa867a70eb2b71856f4b9040ff46f59a3aed52c8ce"
+    },
+    {
+      "path": "app/test/fraction_composition_127_test.dart",
+      "sha256": "d7f7374f67fadcc626426a89c78c2762761ef6ce9dc0981b5c60f2fbfd520ffb"
+    },
+    {
+      "path": "app/test/fraction_composition_bounds_129_test.dart",
+      "sha256": "90db68c720f2033178252493784b1ef8f6199e7e130bd29cac91c52a3b95bac1"
+    },
+    {
+      "path": "app/test/fraction_expansion_128_test.dart",
+      "sha256": "2bce0a85806a01652ebf54c95c7f97c1fc1c74a05c44485371142ff22e230911"
+    },
+    {
+      "path": "app/test/fraction_explorer_104_test.dart",
+      "sha256": "02d0f10976af1fafb1b6fe40aec9fd7f6c23b99492d4d3d2806dfe5a12c20502"
+    },
+    {
+      "path": "app/test/german_original_comparison_132_test.dart",
+      "sha256": "729e0da029d53e4ba0a6b32ebe102d17571bfe9509bee1b55a6b9be9986d2ce1"
+    },
+    {
+      "path": "app/test/google_access_notice_test.dart",
+      "sha256": "e96e0ad77b1f8a96f8d219d830fb81b88276322eab56accf4921ecb8927e919b"
+    },
+    {
+      "path": "app/test/google_completion_ux_test.dart",
+      "sha256": "a198de214d17b3ecab743a5ee15ff02e3f4d0248e9de5df4abbc4f41563c0af7"
+    },
+    {
+      "path": "app/test/google_login_test.dart",
+      "sha256": "c858caf24ecc17cb5ca50f26a540c768427eba7eb8505436801d5250d0b85971"
+    },
+    {
+      "path": "app/test/grade_pdf_test.dart",
+      "sha256": "ee2e05380bfce5d66f670f72d47c779d6705cf9572034fd2b83065e696e6fde8"
+    },
+    {
+      "path": "app/test/graphic_zoom_responsive_test.dart",
+      "sha256": "eaf6c4f20ed682902c060a46cc3123eed627d96483717c1503d9f4e59f7ae0cd"
+    },
+    {
+      "path": "app/test/grouped_answer_board_test.dart",
+      "sha256": "96a8bc56801fc221e8e51b33f64e8a388b4360bea0d14178b8980c3f88ec5f9f"
+    },
+    {
+      "path": "app/test/grouped_answer_review_test.dart",
+      "sha256": "37cbeefe6a2c95c7ec99552e60f9baa993aa5c5555d4efe2fda192a25cc629e9"
+    },
+    {
+      "path": "app/test/grouped_answer_unit_test.dart",
+      "sha256": "b9aa13fcb85fd4a25ee8dc3539ac7d1b84c27498e4e240a2bf823a4da982b8a4"
+    },
+    {
+      "path": "app/test/guided_unit_test.dart",
+      "sha256": "9b5146f15a9b849f6d4977ddcb7e360e7045c9fefd572b6e296f14f389f55feb"
+    },
+    {
+      "path": "app/test/header_menu_test.dart",
+      "sha256": "7231bbc9995b6788f7bb09bd0fd96a02de95398f1efdfd9217e7e06b4396453d"
+    },
+    {
+      "path": "app/test/heart_pump_graphic_test.dart",
+      "sha256": "daae8a4910dab0fab31dc41ff9734fb8178d759efff557f097d627880d1eeb5d"
+    },
+    {
+      "path": "app/test/hint_support_feedback_test.dart",
+      "sha256": "91579863fdfd38fe20841024edf64d373e996d3a8c57acd8db00f25d6f05856e"
+    },
+    {
+      "path": "app/test/homework_empty_ux_test.dart",
+      "sha256": "0f05b37e561304133030f36125b6f5d924984f48b4ba4877ddcfa5aaa7915023"
+    },
+    {
+      "path": "app/test/homework_mobile_p1_test.dart",
+      "sha256": "805ac8dcf5b052a892ca24241ffdd4731d54ca7aa3010bca3a522cfdb399e816"
+    },
+    {
+      "path": "app/test/homework_screen_test.dart",
+      "sha256": "41dc2e8541b8287ebe0776b635b9bb791736e845ad9efb4057ee08265015bab7"
+    },
+    {
+      "path": "app/test/ideas100_collections_test.dart",
+      "sha256": "4f2db62c659d4d09b733f4884de12e056bcccc79e5ded432c40903531bc7f7be"
+    },
+    {
+      "path": "app/test/ideas100_learning_tools_test.dart",
+      "sha256": "5ebed773626083dd5d6975fd3d1bc1fa74bce9083eea540777e7d1904cafab36"
+    },
+    {
+      "path": "app/test/ideas100_local_tools_test.dart",
+      "sha256": "66c71ec7eb2e10a950cdc2b4eb7b03a259b9f42d84e0f1fdd651003a450a574d"
+    },
+    {
+      "path": "app/test/ideas100_parent_views_test.dart",
+      "sha256": "b6050910e827ed9dde6fc3da370d5f33918b9ae30af6439b8c365d2f65495c66"
+    },
+    {
+      "path": "app/test/installation_provider_draft_test.dart",
+      "sha256": "70174d7f14dc25c590ba5d56ee9dd62dae0375655881615cbd7fab67f48eb277"
+    },
+    {
+      "path": "app/test/installation_site_cas_test.dart",
+      "sha256": "7eeec0efc8fe5c6715e5155d34c46287f5baf61a404000c417706478bab01412"
+    },
+    {
+      "path": "app/test/installation_test.dart",
+      "sha256": "08aedc9c303889873fbd0e1249101585840d68fca39ff1cf18a738d5bd08c65f"
+    },
+    {
+      "path": "app/test/interactive_unit_test.dart",
+      "sha256": "a980133d295bb19f5fbe808ff2d67139bdd69fea456c2ba9ffe16eb95cbaef86"
+    },
+    {
+      "path": "app/test/knowledge_sheet_test.dart",
+      "sha256": "23cf0b5903dbd30809c518c47023b51d678d574716efd928fab783edc688cac9"
+    },
+    {
+      "path": "app/test/known_question_veto_test.dart",
+      "sha256": "bc1c385e54e7a1575e6df984a49757e5fc81aee2ca548a9b2ab4d1038fd5005c"
+    },
+    {
+      "path": "app/test/lab_view_109_test.dart",
+      "sha256": "af56e332453691e9b9cd10a5937c9ca14625e88b2b1d9291d079f2bb56163d6b"
+    },
+    {
+      "path": "app/test/language_character_comparison_137_test.dart",
+      "sha256": "42fd5e7781d3e1a0b44400b4ba2830f5408408459e1f588c5c92c64fcabde0fc"
+    },
+    {
+      "path": "app/test/language_comparison_widget_test.dart",
+      "sha256": "7998ca6f6937adfe428e88e934b94e6a0e0e5cf3c2d6e6c89622412f609b2d9b"
+    },
+    {
+      "path": "app/test/language_realtime_test.dart",
+      "sha256": "119750f22c431ee79417cde5d35a208dd905c279c4206140837d637e0ff594f8"
+    },
+    {
+      "path": "app/test/language_retry_test.dart",
+      "sha256": "7ba004e80f9821b656584758d1122428f6ffbe85276ef10b878840d2af8f4898"
+    },
+    {
+      "path": "app/test/learning_assets_screen_test.dart",
+      "sha256": "642d9cf09731b5ecd5c3b027149e2361c421b90a982a60d86a87a53b39a3eb95"
+    },
+    {
+      "path": "app/test/learning_comparison_overview_test.dart",
+      "sha256": "0c40f84b997a68ab3c4ef89c3fdad09300422678687ecd92f92d2b235184b466"
+    },
+    {
+      "path": "app/test/learning_continuation_test.dart",
+      "sha256": "edb4d9f7d64c9e15e6839909451ec5b7b4de8e583866ef735b6b2c862fecf260"
+    },
+    {
+      "path": "app/test/learning_explanation_paragraphs_122_test.dart",
+      "sha256": "f7d04a8173f9a869f01a1622199ff88c8d3821d2be89e108b16be8982b95be03"
+    },
+    {
+      "path": "app/test/learning_origins_148_test.dart",
+      "sha256": "f0b9e73f7d1fcbb0bb88fb413e8ff7cb347729aeae1858357e662a3563c135dd"
+    },
+    {
+      "path": "app/test/learning_preparation_child_errors_132_test.dart",
+      "sha256": "f14e44f0bf282c52fcadefcaf1c137797486454698839a4ea00085e08917ebe1"
+    },
+    {
+      "path": "app/test/learning_preparation_failure_test.dart",
+      "sha256": "d99e758c450ec0d2ecb49b8d53b70a676f47effe4ad639f4fdf06d775e648bd0"
+    },
+    {
+      "path": "app/test/learning_preparation_initial_status_test.dart",
+      "sha256": "072b4dafdaa80879e30482a55b23980085741d8cceb648275a15684b4ca78f93"
+    },
+    {
+      "path": "app/test/learning_preparation_recovery_152_test.dart",
+      "sha256": "6b2657623fd617c1c652ee0b607c1c84aeb5d543753c615d14c8db15ca955c53"
+    },
+    {
+      "path": "app/test/learning_preparation_resume_status_test.dart",
+      "sha256": "fbc9167c61981c96191de95e6ce58b281e322b46d3a5d559a527885279d67519"
+    },
+    {
+      "path": "app/test/learning_preparation_saved_exit_test.dart",
+      "sha256": "ef151425f2caaf535906e22730509015b08680031bb40989679598ba818ddf4a"
+    },
+    {
+      "path": "app/test/learning_preparation_start_boundary_test.dart",
+      "sha256": "1a9e51544787e0bb5205452fc1b76c8fbd3bfeb4f4aaa2a6e1cd4ba79d3c0f8b"
+    },
+    {
+      "path": "app/test/learning_room_test.dart",
+      "sha256": "371a857caf65c091777576ae5dc9b56634c90a498601b6ad34e69eb85b81b1ea"
+    },
+    {
+      "path": "app/test/learning_scene_player_test.dart",
+      "sha256": "e13e5efdbfe5454d7dce0850b4dde3cbaa8a42a4abae66523832f9a0ce10f31a"
+    },
+    {
+      "path": "app/test/learning_subjects_151_test.dart",
+      "sha256": "85621b961503aab163cd094af44ea9dcbec56225bb34cdbc5c3c3b138a1a5083"
+    },
+    {
+      "path": "app/test/learning_tips_return_test.dart",
+      "sha256": "e25a82a02680fce1617cab58ef6abee253635cbe9510177f3314afa5a5d7134e"
+    },
+    {
+      "path": "app/test/learning_tips_test.dart",
+      "sha256": "56feba0f47555b0918fe19d1c7e81aa303c68c74f611e2c88207e0c072e2984e"
+    },
+    {
+      "path": "app/test/lesson_voice_test.dart",
+      "sha256": "d40ab540e3d80352df08944c3b5e892d4e6d465a79b98a8adb9994e323dc26f5"
+    },
+    {
+      "path": "app/test/load_view_usability_test.dart",
+      "sha256": "7060fb7c79ab70a57c5292c9e6a1e67d5663c2077101de760236948cde6d906d"
+    },
+    {
+      "path": "app/test/local_processing_failures_panel_test.dart",
+      "sha256": "da5f7d880045f6848775c9fcb6037a76f56d1397c9ea638e40ff18097209a898"
+    },
+    {
+      "path": "app/test/login_overview_pending_test.dart",
+      "sha256": "a81b34a4c3f2609a99190ded8b8ebae0717e6448e9f66a76d0b1a5d5a2996bc5"
+    },
+    {
+      "path": "app/test/management_density_102_test.dart",
+      "sha256": "825d1126b01c931a1e3ab8b41da17dd0c16611cf6f95810e692956d2775fdc19"
+    },
+    {
+      "path": "app/test/matching_answer_board_test.dart",
+      "sha256": "04b82bcfd4a92617ee95aa71960795ba58ef1293dbe129d24b4b5cc3d28a30e2"
+    },
+    {
+      "path": "app/test/material_action_sessions_test.dart",
+      "sha256": "cb7d8ba64107f2088142523af73afd2c031c771e312e234230214412037335ec"
+    },
+    {
+      "path": "app/test/material_actions_test.dart",
+      "sha256": "1002c763d1241174268f5f2be4c8ad059755ae045cf470510ff6866476fefca0"
+    },
+    {
+      "path": "app/test/material_auto_review_142_test.dart",
+      "sha256": "f4809da914b48cf82b60499ab6dc43ae0b99ea9915f2ef22f492bd4c80d457da"
+    },
+    {
+      "path": "app/test/material_child_review_ux_test.dart",
+      "sha256": "fe3bf4cd981da8825ffa28cfc566b36cee65d31e278ffdd2856a3fd7b53dad95"
+    },
+    {
+      "path": "app/test/material_confirm_next_141_test.dart",
+      "sha256": "bb0e1c6d4af960ffa4869af5adfbcd4641fd1fb7fea05df44959a4e5c1b63dea"
+    },
+    {
+      "path": "app/test/material_confirmed_uncertainties_124_test.dart",
+      "sha256": "b899cc166a5bf1a110b7d19e87e178c62fac00c00ace418e89f7c5fb3973bc5c"
+    },
+    {
+      "path": "app/test/material_live_review_144_test.dart",
+      "sha256": "8405ff0170824dfb3f982d20e824580ea36ae4f13a430f0170aa5dd88c668f19"
+    },
+    {
+      "path": "app/test/material_notebook_practice_136_test.dart",
+      "sha256": "188a927e7e1eb61965abd1fa45240faec51793047c48b31518b47a971aeb5dfc"
+    },
+    {
+      "path": "app/test/material_photo_preview_test.dart",
+      "sha256": "17cecd930da93050f70866f603043b54db9fd75dde5b636294fd1c1071216cf7"
+    },
+    {
+      "path": "app/test/material_reader_101_test.dart",
+      "sha256": "9e378860dcb9e2b3e2a33ee941da458ce2933076b31953dff92af491c934d4ce"
+    },
+    {
+      "path": "app/test/material_source_warning_groups_132_test.dart",
+      "sha256": "8ba7ab8eea880a6ed144ab689a0f35609aa84e9ce8b311a0467de2b59b4d5cb7"
+    },
+    {
+      "path": "app/test/material_visual_observations_test.dart",
+      "sha256": "4aeaaac476ce2f2c1d23a15af42574700e1acd6e813c84100c088967cb1bdbcf"
+    },
+    {
+      "path": "app/test/material_visual_review_test.dart",
+      "sha256": "5b5c124a95914108181d84132423705510b853c43dd9fb688a1fe3d95018ae99"
+    },
+    {
+      "path": "app/test/material_words_test.dart",
+      "sha256": "91d1677f681f124f5f885a0b86c52856a0052ed19e09a39b6773d36c7e66daa1"
+    },
+    {
+      "path": "app/test/math_content_test.dart",
+      "sha256": "0e6c60adc363744c1c9f9ec10e8d1c90b639608abed94d4b7414d31df6d6e84f"
+    },
+    {
+      "path": "app/test/math_literal_arrows_139_test.dart",
+      "sha256": "76561be12bd24e84675d9ad6e866a98bd3f1ee8421a4439dc810475973980cc8"
+    },
+    {
+      "path": "app/test/menu_review_test.dart",
+      "sha256": "4790c5625b3ce8c14e726ae8ca655cd3bb2db5609a6985a0f77c75f7e3df6f5a"
+    },
+    {
+      "path": "app/test/midpoint_scene_test.dart",
+      "sha256": "86800e2f8c5383e128d262a1e992e70ea8c7fb3716fb25d9f5549cbe8fb5449c"
+    },
+    {
+      "path": "app/test/minimum_learning_goal_test.dart",
+      "sha256": "dea282025b4464e642779d791afe581605a93911e49583d4b44521bd01ed9f48"
+    },
+    {
+      "path": "app/test/mixed_number_speech_129_test.dart",
+      "sha256": "299badeb444d71c631bb6c75e4382140e660eadf4c0e29c4a68f22520a931ecb"
+    },
+    {
+      "path": "app/test/mobile_admin_navigation_test.dart",
+      "sha256": "689e477beb65ea30b5f9780b00426366ad2fb27aa1d23a42e2c65610c60065fc"
+    },
+    {
+      "path": "app/test/mobile_parent_child_navigation_test.dart",
+      "sha256": "8e896f78800a70572bb16396818ad60553b92cc8620ea2dbf130b0f3b0247781"
+    },
+    {
+      "path": "app/test/mobile_parent_route_regression_test.dart",
+      "sha256": "b1d57a2e1dd2a0ae2193f78b8acbfc7eeaed17bcee8c88e233f616fefcbfb3e7"
+    },
+    {
+      "path": "app/test/mobile_regression_test.dart",
+      "sha256": "da7f9c528a3cd69900ef376959be24de442c8b4c93925a4d8fe16568e8fd96a3"
+    },
+    {
+      "path": "app/test/mobile_role_headers_test.dart",
+      "sha256": "2ec0c158b18088da6e922b49d5e07bebe20d8e3fd44e08d2ac80efa0120fe840"
+    },
+    {
+      "path": "app/test/mobile_workspace_density_test.dart",
+      "sha256": "2557eebdfba465e4349a2fda456760bdf6aa42ef1bf94d2225f999e04da46105"
+    },
+    {
+      "path": "app/test/mobile_workspace_visual_test.dart",
+      "sha256": "c2253803730caa4598c0603e4b0cd00c38d91a3aef6a9c793468dea65b597b76"
+    },
+    {
+      "path": "app/test/multiples_scene_137_test.dart",
+      "sha256": "afde4558db6f1503360cb3bcfbda48e7daf26c007464c2aaad06b489ab4a62ce"
+    },
+    {
+      "path": "app/test/multiples_scene_test.dart",
+      "sha256": "6a6104d3f5849c426b9b7420e0d2be26201d3a4ee455bfa0c622423ffb34f062"
+    },
+    {
+      "path": "app/test/notebook_focus_103_test.dart",
+      "sha256": "42bc2c2d3c91a828c6eb97507f379229877675181993232081acebabef6b9bff"
+    },
+    {
+      "path": "app/test/notebook_menu_104_test.dart",
+      "sha256": "2131031b8c2935cdee6ae231805f8b82bb4d5738b84c0b99d9816a3a4a212e12"
+    },
+    {
+      "path": "app/test/notebook_practice_dialog_test.dart",
+      "sha256": "8183e0d3ab7cb9acf8dd4061aa2f7152b53b4758a284d24f11f730142d024bfc"
+    },
+    {
+      "path": "app/test/notebook_test.dart",
+      "sha256": "ce9ee7b81a299f4fa2cc55ece33c70378c4add4a3c1e926ca273512185d08d33"
+    },
+    {
+      "path": "app/test/notebook_text_album_103_test.dart",
+      "sha256": "ea590dc17e87f0abd3b9a4522b94408ca05858f6a57aaf5aec38a7ba146955be"
+    },
+    {
+      "path": "app/test/notification_auth_intent_test.dart",
+      "sha256": "5cc7955fc1a1931d50fb07fb7812c432a97950c4ce3b9980a15557b412944828"
+    },
+    {
+      "path": "app/test/notification_cards_ux88_test.dart",
+      "sha256": "ea80594fdf8f751edd32cf708af8f5d3ae1bea89af6a6eac94296f330c5234e2"
+    },
+    {
+      "path": "app/test/notification_cross_device_read_test.dart",
+      "sha256": "3c4777036ccfa36b30cc2406eb36b230226fa3178c0ef9d2c39452c40c41a2a3"
+    },
+    {
+      "path": "app/test/notification_empty_child_simple_test.dart",
+      "sha256": "5813c2587aaf38153343b06b999492aa1c775bcd2ca55df26417371dbfe6c52c"
+    },
+    {
+      "path": "app/test/notification_inbox_test.dart",
+      "sha256": "09513797412a5ebb237280995b09b216c784cf91f6e94c79a7b8b399c3e35f87"
+    },
+    {
+      "path": "app/test/notification_multidevice_test.dart",
+      "sha256": "03ca81c031a68550e4c0e085503dfda1f56b8efeade8c5cc79e76db4a6276177"
+    },
+    {
+      "path": "app/test/notification_pagination_test.dart",
+      "sha256": "af10aef02b8bacf0709e96d4265b3dd23cbae0db91df9b144833e9cb646fdbe1"
+    },
+    {
+      "path": "app/test/notification_preferences_ux87_test.dart",
+      "sha256": "90998185be906f3c1e5a757b82c880728bd7f699b011faa98eded4227b60c015"
+    },
+    {
+      "path": "app/test/notification_refresh_gate_test.dart",
+      "sha256": "a50565ae298b50df16809df1fbeb5ac3ddc1af01affefc75d20c21af4083015f"
+    },
+    {
+      "path": "app/test/notification_visible_read_142_test.dart",
+      "sha256": "59d0a00eed9cb0778bddc6f96a6988b2a76cddb2d049b528bd37c146deeb3d29"
+    },
+    {
+      "path": "app/test/notifications_download_ux87_test.dart",
+      "sha256": "dffd9a43ae033425ab9360e43733762f96d0b3fe461b145347450f843c242ecf"
+    },
+    {
+      "path": "app/test/operator_incidents_test.dart",
+      "sha256": "3bf2036e2b584a4ce73fd2b6a7cc0bccfa79193f5afcb200e69cc9fd9d418492"
+    },
+    {
+      "path": "app/test/ops_hierarchy_103_test.dart",
+      "sha256": "43ea45a8f3bd2eb8cbdac6589f21135858d10592afd62530018ecf5664956d44"
+    },
+    {
+      "path": "app/test/page_tools_104_test.dart",
+      "sha256": "302c3130c23bef4f4b1160c9ac50fe66721100de850e1ffb1e70158dab45857b"
+    },
+    {
+      "path": "app/test/parent_actions_ux90_test.dart",
+      "sha256": "38683acd544617d819d708acfef648fdc17b03ccdb54646becc0c196c8c6e66d"
+    },
+    {
+      "path": "app/test/parent_admin_page_tools_104_test.dart",
+      "sha256": "f621e90ca8c312f56c05656c9f4b86da6a500f2e9e9390f139a2e5449303104f"
+    },
+    {
+      "path": "app/test/parent_assignment_ux88_test.dart",
+      "sha256": "6127c1b77dd2701b4695cfd2a6269f9da2d7109b1aae6f34dc05110d725b04e8"
+    },
+    {
+      "path": "app/test/parent_cards_ux88_test.dart",
+      "sha256": "2a335bc83dbb29e92952d9799d786a3c5840eb3087c6585833f1935e568dab99"
+    },
+    {
+      "path": "app/test/parent_completion_ux90_test.dart",
+      "sha256": "5d3e1634f7bfcd45c019d69796fe460d0d94b249ad27822074d4320d7833324f"
+    },
+    {
+      "path": "app/test/parent_context_hierarchy_103_test.dart",
+      "sha256": "cf75fb1b9f4d117318645903403ef016afb410e35d5c0ea195dd894103b7a088"
+    },
+    {
+      "path": "app/test/parent_dialog_lifecycle_ux88_test.dart",
+      "sha256": "0c614a7aa876ad40917c8ab830f3b46f1a282ac29a3f298ce50a99958fbf1a2e"
+    },
+    {
+      "path": "app/test/parent_export_auth_race_test.dart",
+      "sha256": "0c4bf63a305ebd6c2f392254b4072bb19f8209048b5ece148cf4a3227be9b031"
+    },
+    {
+      "path": "app/test/parent_filters_ux88_test.dart",
+      "sha256": "a82eb6497b8e67f0ad3fe3cf650200c345363f8f40f6d93d929ae4037b6081d2"
+    },
+    {
+      "path": "app/test/parent_goal_reminders_108_test.dart",
+      "sha256": "f0cfcd662b1c51818309da1448c9cdd9d6a0b5bb011aaa287f95c076fbc6d342"
+    },
+    {
+      "path": "app/test/parent_grade_filters_ux88_test.dart",
+      "sha256": "b132e8fae60171bcc1b071225dcbc6f69b5824c6885888aabfbfbe403fe51042"
+    },
+    {
+      "path": "app/test/parent_grades_ux87_test.dart",
+      "sha256": "a783a747ece15f4f5b3b419efdeceb48cfc3b0540c40350454524a7bf4e0346f"
+    },
+    {
+      "path": "app/test/parent_hierarchy_103_test.dart",
+      "sha256": "b4a4b625926a3ae0d20dbb98b908fe1f09836f95559c8023681405be181475d7"
+    },
+    {
+      "path": "app/test/parent_insights_compact_102_test.dart",
+      "sha256": "3f7cf1ca30e09b46fd3da50befdb3b9d9029a2f8aaefd19b3ff999bd38f4ba65"
+    },
+    {
+      "path": "app/test/parent_insights_session_1106_test.dart",
+      "sha256": "53b93664e02eef8be5148a2d145849dd05ad05cfbd3b3d70836621d3c98f355f"
+    },
+    {
+      "path": "app/test/parent_insights_test.dart",
+      "sha256": "51a45ea7b6289f0a9810a12dfdc95718517fdea0fde4fd5c4a4f8ac7390d0ab0"
+    },
+    {
+      "path": "app/test/parent_learning_overview_test.dart",
+      "sha256": "db4849c97e81f68a0b805d20ef8ff868d32e65001040438393793887ea528fd4"
+    },
+    {
+      "path": "app/test/parent_lists_ux_test.dart",
+      "sha256": "1bf9be7fa1a53fafd3309d09083b57735bdb1c71b0b12e7beb87fb7889537aa0"
+    },
+    {
+      "path": "app/test/parent_messages_ux88_test.dart",
+      "sha256": "82ed8525b31fa34e8e632471e059996f99836f528be06363de5d8a207d1864ee"
+    },
+    {
+      "path": "app/test/parent_operator_ux90_test.dart",
+      "sha256": "4f5e9d2b5709a4aa7b458e18643fd0d91653e233b02f786a5810c1230ca4d075"
+    },
+    {
+      "path": "app/test/parent_orientation_ux88_test.dart",
+      "sha256": "7bd154e59b67a82746d5b35f717ffc75bc470a8c99b9e4763e5e4e7904cf1353"
+    },
+    {
+      "path": "app/test/parent_overview_compact_test.dart",
+      "sha256": "3531cfcc6504ddb27f75dcccd73d2301637e280f3e3f9ffb467b4df5246457c9"
+    },
+    {
+      "path": "app/test/parent_overview_refresh_test.dart",
+      "sha256": "06a15b724da08c5d8d8fb8ea4279e441d8900ee45b8cd677e6caab5d25a788f5"
+    },
+    {
+      "path": "app/test/parent_pdf_filters_ux88_test.dart",
+      "sha256": "50c6baf6ff5df0bbfd0c6ab619f8dcbcb085a4a1aa54c2b1844f7130f9657571"
+    },
+    {
+      "path": "app/test/parent_pdf_ux87_test.dart",
+      "sha256": "89c48f876d191208e03600f03473cfabe3baf981a1a04f32b8705605249f2b49"
+    },
+    {
+      "path": "app/test/parent_pdf_ux90_test.dart",
+      "sha256": "12f1338afed6b7c0837ea4ed699bf401985afecd2658753f022d111e42cdd797"
+    },
+    {
+      "path": "app/test/parent_plan_audit_test.dart",
+      "sha256": "5c3cb5b57fdbaaf92438d0bc52d9cd7ac286a1e4bffea87778f42fa68f164a25"
+    },
+    {
+      "path": "app/test/parent_plan_auth_race_test.dart",
+      "sha256": "2747f7ed8250123067a1edc86cc57489104ffa838dad95099fce80b038e94c8a"
+    },
+    {
+      "path": "app/test/parent_practice_rows_102_test.dart",
+      "sha256": "fe748c8474d72a1440c0fc33d0df6f20afd2521fa2fac4c9a02058fcf0603920"
+    },
+    {
+      "path": "app/test/parent_preferences_messages_ux87_test.dart",
+      "sha256": "e558ac038d2de352900404e290d8fc9ee0590252bbb3c67c30f5d3980ead1658"
+    },
+    {
+      "path": "app/test/parent_profile_ux90_test.dart",
+      "sha256": "2bdf5b77e9d2a6be150411b185ad72dc3e6958999ffe9286ceca563891cbbdfa"
+    },
+    {
+      "path": "app/test/parent_saved_tools_ux90_test.dart",
+      "sha256": "be5e1c2fcf13b2d2342fbb4e29cbc90ab321ef92bdeb3831b827effc2d3d7da0"
+    },
+    {
+      "path": "app/test/parent_scope_exports_ux90_test.dart",
+      "sha256": "d3f56b367095c56f390f88a1f566e1581a76c4e2da3a7564a39c76920d3bb256"
+    },
+    {
+      "path": "app/test/parent_settings_ux88_test.dart",
+      "sha256": "1be5d95afc3dc588a6be25290625b7bd0e0b36674bfccce3db207429e72c3514"
+    },
+    {
+      "path": "app/test/parent_timeline_ux88_test.dart",
+      "sha256": "75973039f9b84319872a4ca2401b9de60cc8f985dc07745e328c50167c3b14e5"
+    },
+    {
+      "path": "app/test/parent_view_details_geometry_103_test.dart",
+      "sha256": "b1e82a48d92218727d5355811b20f77817c7225102712b38e944a2a18926fe55"
+    },
+    {
+      "path": "app/test/parent_web_layout_ux87_test.dart",
+      "sha256": "1fb6f22e8c1dcd17b2148f37dcb75e26d49364f0d4a716aa01dcb976dfe3c90e"
+    },
+    {
+      "path": "app/test/parent_workflows_ux90_test.dart",
+      "sha256": "abdab123fc60ce3e72dff95c50be2df81dbcd8a876aef971ca03be88d207feba"
+    },
+    {
+      "path": "app/test/parent_workspace_design_test.dart",
+      "sha256": "ab3cff6cdc464e5e648097f5cead91bf08309e49face3c3ed6f1c795246f0725"
+    },
+    {
+      "path": "app/test/parent_workspace_ux87_test.dart",
+      "sha256": "6c349ef65c90236068e07c90c75d45123e030b331dc0a448c7d47ab3064d8395"
+    },
+    {
+      "path": "app/test/pending_uploads_test.dart",
+      "sha256": "c7d5db8ade52469f933062b7d0630dc989c0391fd747e6da38b9afca556b9ff8"
+    },
+    {
+      "path": "app/test/photo_zoom_test.dart",
+      "sha256": "867b9e1578855b442cd4702bb85400e8eb8fcd3d043b80677ee550dee93d6f89"
+    },
+    {
+      "path": "app/test/practice_audit_test.dart",
+      "sha256": "42d85e74909375feaa1f5bcc0556495637c6bcd5df5024c9260ca1c10177fcfd"
+    },
+    {
+      "path": "app/test/private_context_cards_ux88_test.dart",
+      "sha256": "14636034e5e63cd643b25ab14775449d77ace10fdaa50930ea56c971419cd3a2"
+    },
+    {
+      "path": "app/test/processing_trace_panel_test.dart",
+      "sha256": "35d981e3c6de49858b26545aaa10341425fa002a6ac081e668badd38ffbe7789"
+    },
+    {
+      "path": "app/test/profile_avatar_105_test.dart",
+      "sha256": "4dff6f00019d21864f1c354a25b73d17db437645e0450249dc2e65a88d414c9e"
+    },
+    {
+      "path": "app/test/progress_cards_ux88_test.dart",
+      "sha256": "8b83281f20a1b881c463f4dfb510ab1911f2ac05c116522ce3746ce512b335c1"
+    },
+    {
+      "path": "app/test/progress_child_compact_test.dart",
+      "sha256": "921316f5dc3421220269fcefe1fb42fc86533e261b4b22f3a3f530eecd2fe1fe"
+    },
+    {
+      "path": "app/test/progress_grades_test.dart",
+      "sha256": "ac04d62fe5cdb0b962dca94fb73a8121fd07da8b66ab5170b46ce665dc536088"
+    },
+    {
+      "path": "app/test/progress_navigation_ux_test.dart",
+      "sha256": "b791d890bd590ab358faa9b65c6ca847934165ed1b289766c341c78bf3393dd1"
+    },
+    {
+      "path": "app/test/public_cards_ux88_test.dart",
+      "sha256": "793df1f0acf8dc1ed411024e6ad2290a3ef0feb72ed4470298d8e65b98e05a4e"
+    },
+    {
+      "path": "app/test/public_image_card_test.dart",
+      "sha256": "7a6ce1dfe7b38975683632cfce9d673e77f07eb5d0d9df5d3cd98c5447d18631"
+    },
+    {
+      "path": "app/test/push_client_test.dart",
+      "sha256": "878bb04b2c46f3e71b30574eac2db534aea4f6f4291756a980f1768a83876b23"
+    },
+    {
+      "path": "app/test/push_routes_test.dart",
+      "sha256": "65f2d906dd29abd3163cd5df32c36dd9aa6155e09117d9f72abba839c5983a0f"
+    },
+    {
+      "path": "app/test/push_web_flow_test.dart",
+      "sha256": "3b0543e87d7f0c6a6678f270bf293f052e3fda4d565393dfb2a31a44faf100fc"
+    },
+    {
+      "path": "app/test/qa100_graphics_test.dart",
+      "sha256": "41e16a4fee9e339210a1f809dbc5ba9d55f627e610806e0f20b8080b0bd36404"
+    },
+    {
+      "path": "app/test/qa100_learning_flow_test.dart",
+      "sha256": "3d5407b1c4bb1e2ae6c746ec9ff554534f813c8b68a47a47a2cdfb964de85eb0"
+    },
+    {
+      "path": "app/test/reader_comparison_focus_140_test.dart",
+      "sha256": "3cab412e61d60dd028a93bc6477840b51e3cbc133bf810c1127c4fc372bc295f"
+    },
+    {
+      "path": "app/test/reference_learning_design_test.dart",
+      "sha256": "6935921668dd55b2f0ac19c0a7c71b6f0b4ae948178ede9256a26b9d43888de2"
+    },
+    {
+      "path": "app/test/reference_multisubject_web_test.dart",
+      "sha256": "7264cf3f6c20a9bc730f59105f585e3fcd919b975c068864656915f44ddbfbd8"
+    },
+    {
+      "path": "app/test/root_coaching_ux90_test.dart",
+      "sha256": "92d581a84137508c668ce0826a92d24633986758bbdd94de4a34179da54402fe"
+    },
+    {
+      "path": "app/test/root_collections_ux90_test.dart",
+      "sha256": "a6e454217eee064c43b2b76e89a3b6938d71576e571fefaaec191c1906e6f92a"
+    },
+    {
+      "path": "app/test/root_common_ux90_test.dart",
+      "sha256": "4365404af8b64bfa27be62d33221dd2224cfe733fac7d4e14ecc787cd5c83b08"
+    },
+    {
+      "path": "app/test/root_completion_ux90_test.dart",
+      "sha256": "c5eb00964c1ddc0eab2b02e6baab159556d75f15cc72b550410c703bf49a1555"
+    },
+    {
+      "path": "app/test/root_progress_ux90_test.dart",
+      "sha256": "9fa6479959ee3c3011934e198c6b11ca54c27a4f897a650e91e4ca62ed5e345b"
+    },
+    {
+      "path": "app/test/root_tips_ux90_test.dart",
+      "sha256": "9a8fa15d1072932f4920ddf1e945f6032e3c9da6693624488da212eeb5137a46"
+    },
+    {
+      "path": "app/test/root_tutor_ux90_test.dart",
+      "sha256": "39e5371f6d88a3f91a04d97118b8adb9fc26729b94dadf3261f01f7085aaa402"
+    },
+    {
+      "path": "app/test/root_unit_ux90_test.dart",
+      "sha256": "594a5381017fd3e7588f0bc4f7da1e2215a474de560b87aa260cfc0b95c4215c"
+    },
+    {
+      "path": "app/test/root_vocabulary_ux90_test.dart",
+      "sha256": "802a42a78df7946aefa0230c32df6839e4077e2b3ad298895dcd8299c8b176c5"
+    },
+    {
+      "path": "app/test/root_word_review_ux90_test.dart",
+      "sha256": "1c29958dd437eb3c44b5d6420ce2a69464f2c0c51d8d80454bded8f92f1693a5"
+    },
+    {
+      "path": "app/test/root_workshop_ux90_test.dart",
+      "sha256": "7a37e75e0a3aecb86008dd498df422451d4287f7deff8d67f38809a074cae361"
+    },
+    {
+      "path": "app/test/round_actions_103_test.dart",
+      "sha256": "6fd540be98c3edb9dcbfb21d5d984ac5f9e09cd47d4b137cb4d0c215c5c75d35"
+    },
+    {
+      "path": "app/test/round_card_explanation_test.dart",
+      "sha256": "681059221dae5be765f37cc924f34e9101ae3c4f84543c8875b4e28d9ed9b4ce"
+    },
+    {
+      "path": "app/test/saved_explanation_layout_111_test.dart",
+      "sha256": "6e981c26ba6610495418d4260527fb31520bf05bea5fc87565eec443a38d3fc8"
+    },
+    {
+      "path": "app/test/saved_help_retry_101_test.dart",
+      "sha256": "09ab1b4f343a51306a6e87ca68f71b38c2a8f41c737e7cd701d695eb5f0bafdc"
+    },
+    {
+      "path": "app/test/saved_visual_explanation_107_test.dart",
+      "sha256": "e3752e69997087bed2f03c49ad9c0d3196b7cce68578df6ee6d5c731297280dd"
+    },
+    {
+      "path": "app/test/scene_original_focus_compact_test.dart",
+      "sha256": "a3bf4012ef398a90bd32f5a4f9986eef7698475382144ede34eaf033405a75d7"
+    },
+    {
+      "path": "app/test/school_day_background_test.dart",
+      "sha256": "f29d6b03ac0f1edd85d1c6ee5ddad58a9a534550bd07ba0495099b7c13cb4935"
+    },
+    {
+      "path": "app/test/school_day_extract_failure_122_test.dart",
+      "sha256": "ce32aecdf9e64ba0a72226048e86ce7d9ece61111b68ad02c1efc9ce69413350"
+    },
+    {
+      "path": "app/test/school_day_page_picker_123_test.dart",
+      "sha256": "3e3e62c4c2ad745c5eaea55b3410df939b93b013366076efa511114854169164"
+    },
+    {
+      "path": "app/test/school_day_parts_113_test.dart",
+      "sha256": "8a866de2685c21770252c3dcad77db8f7eec0707843c17aa06151d8a2c0add0b"
+    },
+    {
+      "path": "app/test/school_day_ready_prefix_125_test.dart",
+      "sha256": "4f73265a087529efa2dcfdc1f0c21bd111cc699e709b2889b9e918fd6f9dbc28"
+    },
+    {
+      "path": "app/test/school_day_stale_sources_127_test.dart",
+      "sha256": "6018c12b4d7f71a702e4b1d1de9e650193ef9e4dea9a342ff4eb72e0f88eca87"
+    },
+    {
+      "path": "app/test/school_day_test.dart",
+      "sha256": "714c18c15d0872e28dda91151dde6625b42b71ad1a7fc146f35855ad8f38b4f9"
+    },
+    {
+      "path": "app/test/schulbuddy_availability_test.dart",
+      "sha256": "cfb40d9675dc2c08882822fafad2c4e9c9cfa2750a13e32650c45daf2dc6e65f"
+    },
+    {
+      "path": "app/test/schulbuddy_child_ideas_test.dart",
+      "sha256": "5c05229fa95e2712b72a9d473311c24588e4c1d374223e567d38d34c0ae9f07a"
+    },
+    {
+      "path": "app/test/schulbuddy_current_context_test.dart",
+      "sha256": "e3b4f914c6ed6e6413cf76160526a005bc02b16086645a3feb793b696759240c"
+    },
+    {
+      "path": "app/test/schulbuddy_device_fixture_test.dart",
+      "sha256": "f7467b562c82244b53b53039d1dfe5573499927b3921a902ccb65c42991f1ad4"
+    },
+    {
+      "path": "app/test/schulbuddy_dock_hint_105_test.dart",
+      "sha256": "5ab3152240ed638fc519fe49714319810f760f66acd7512231fa3007c3bd55ae"
+    },
+    {
+      "path": "app/test/schulbuddy_floating_105_test.dart",
+      "sha256": "091ebd8feeec9cca4d1fc32b77d4fe00591e3496dca8a3c8c90b0db99faf8250"
+    },
+    {
+      "path": "app/test/schulbuddy_integration_test.dart",
+      "sha256": "99ade62cf3237054c92e8306a581733847fb9ce3e6ebd908e2c6a627628b5ec3"
+    },
+    {
+      "path": "app/test/schulbuddy_intro_test.dart",
+      "sha256": "2c3d3b927a00094524f2feec04130a4f8d4df77f6a857a7380b5c11c6780a378"
+    },
+    {
+      "path": "app/test/schulbuddy_keyboard_test.dart",
+      "sha256": "542f5ec6c2638d6458bd7277c520814905495a8d5ef2bcc2e7b7b423f75be4f1"
+    },
+    {
+      "path": "app/test/schulbuddy_post_types_132_test.dart",
+      "sha256": "f046a2d1e9b352f692882b9dab8eedf26866191e3bc3d657fc479dc4095f4a7a"
+    },
+    {
+      "path": "app/test/schulbuddy_saved_explanation_131_test.dart",
+      "sha256": "d71ad613b9178f0ed0a18998952504b85c8d07bf75a3a36142b67c59f10efb91"
+    },
+    {
+      "path": "app/test/schulbuddy_test.dart",
+      "sha256": "e1eba70930905ac2000764db077daddeeacf69e96712b14d87b3ae5b879a0556"
+    },
+    {
+      "path": "app/test/science_explorer_test.dart",
+      "sha256": "67a4ec8b0369e1d4fe3e3759476c62ec9eb914efad6c9de0a608d703a4b2a2ff"
+    },
+    {
+      "path": "app/test/science_graphic_test.dart",
+      "sha256": "48f2427596a556696d3915f760540d5e6148aa708a4cbb34498cd68666ec01b6"
+    },
+    {
+      "path": "app/test/scientific_notation_test.dart",
+      "sha256": "efeed5cce83b8911401422acbe19f4d679407e14b3f38a53f9a56d3fb35ac352"
+    },
+    {
+      "path": "app/test/scientific_theme_test.dart",
+      "sha256": "fbda801cbef123d6d07d80c021318a902ef524b3fa8fcc45193faa198d46f52e"
+    },
+    {
+      "path": "app/test/sentence_shift_lab_109_test.dart",
+      "sha256": "d2487dec327b556ff60c101104517079d8aa05a84d2d354d19494f83ee5248a7"
+    },
+    {
+      "path": "app/test/sentence_words_graphic_test.dart",
+      "sha256": "c72fb125e1f96370e71d5dd0a0643e9be4e071be28b943f2e32e53d745256b65"
+    },
+    {
+      "path": "app/test/settings_reading_tools_test.dart",
+      "sha256": "bbf865996d3e1296d892b2470f9e313aebc857d3dcdf4dd62de4dd58de251b1b"
+    },
+    {
+      "path": "app/test/settings_safety_test.dart",
+      "sha256": "cc5b30f1c6b1cec647a6686e6997f60459e25cc470667e8d15b94690d2e3e7ad"
+    },
+    {
+      "path": "app/test/shadow_size_graphic_test.dart",
+      "sha256": "3c20c61cd2a75f50678872f4949b76f5e40e2d6fddecac5e9f243cb991196d54"
+    },
+    {
+      "path": "app/test/shared_controls_ux_test.dart",
+      "sha256": "2ed40ce05cd6e5c330f086c742c000759519f95283ef76e98619e2232b0c8d6a"
+    },
+    {
+      "path": "app/test/source_marks_144_test.dart",
+      "sha256": "80e715e62e62e89fc789bdaa504e13e2b8cefcce5f8e34727ed3c56ee2f3a01f"
+    },
+    {
+      "path": "app/test/source_photo_fidelity_107_test.dart",
+      "sha256": "c798327df5e3baef9337a72192cec665d3df33bde6a31dbd9697374b51f44979"
+    },
+    {
+      "path": "app/test/store_checkout_test.dart",
+      "sha256": "697045e54a5765a2c658c0dd99d43c7f6c91fab82f6f766d6af03c9a66d44a84"
+    },
+    {
+      "path": "app/test/store_round2_ux88_test.dart",
+      "sha256": "ab141391f3b5c0e021b57cf5d83f5ca6cc718e70fc10d69da7e36b0f3762ec5c"
+    },
+    {
+      "path": "app/test/study_path_panel_test.dart",
+      "sha256": "cadf48eb84e16e102e79ccc645dbce2f6924be61b2d1b5b60844bca42082fd59"
+    },
+    {
+      "path": "app/test/subject_content_test.dart",
+      "sha256": "5897eeca53e2eda341a1f3110787a71b0a3675f7208150d759163a886c57ff3a"
+    },
+    {
+      "path": "app/test/task_layout_reference_test.dart",
+      "sha256": "f1f55a841344f592ac75cdf40e09da174fcb4fa37c0f1422640ac0a79c60ab92"
+    },
+    {
+      "path": "app/test/technical_preparation_failure_129_test.dart",
+      "sha256": "f73d17ee857986dca53dbfc49b9f0cf02995fc543433a09f1649e0ba22431f76"
+    },
+    {
+      "path": "app/test/test_report_review_test.dart",
+      "sha256": "12d58b439c90074bc03773abcdb387fe476046ef39063dbb862e30a1d4a23d45"
+    },
+    {
+      "path": "app/test/text_probe_player_test.dart",
+      "sha256": "8a24067dc44ca8db24879a8e372bf84e58ca15b1c1de04a88858a0f5a965567f"
+    },
+    {
+      "path": "app/test/today_density_102_test.dart",
+      "sha256": "43f212153d5c01909211a50a0e035d4a455f81039efcbcee4867ded881f9c27e"
+    },
+    {
+      "path": "app/test/today_design_review_test.dart",
+      "sha256": "b8cee7a86eb0bca1161e7e3af5f1a13c59b3924b67ba716ea54cf6a813b3a1fc"
+    },
+    {
+      "path": "app/test/tutor_sheet_test.dart",
+      "sha256": "914888e126d10afea0ab7db557c0cd6e0765589fa912d95d1a76f0efb24fcbac"
+    },
+    {
+      "path": "app/test/unit_learning_time_test.dart",
+      "sha256": "6a803c712bf8f2c391a8882422bd1ccca24e4b5176c19a75a4319653c4c1ff7f"
+    },
+    {
+      "path": "app/test/unit_provenance_test.dart",
+      "sha256": "146775973528a61b2a0e67b638c5d3f712c629089a0052bef04a9ac04f69e024"
+    },
+    {
+      "path": "app/test/unit_resume_status_test.dart",
+      "sha256": "0f4651598597d2322ce8d90adad6c0b15021cc41d1b62a4815aab351bc6e8301"
+    },
+    {
+      "path": "app/test/unit_sources_viewer_test.dart",
+      "sha256": "c0e22436a475f0afb627909257dcb811671e65d159e7bd2e3d3472f50f28a9d5"
+    },
+    {
+      "path": "app/test/visual_learning_room_107_test.dart",
+      "sha256": "25f2c1a307f0da49b5515249724f210c20ebed2057208c629751828016681f6e"
+    },
+    {
+      "path": "app/test/vocabulary_hierarchy_103_test.dart",
+      "sha256": "2eeda6a79478050a38e424f6c4cd717efa04c5edbef06c28ac6ff242108a57af"
+    },
+    {
+      "path": "app/test/vocabulary_round_simple_start_test.dart",
+      "sha256": "8b0045bd4f285ea3beec603234ef58889a3c669ef1916dc3183de037408ed62a"
+    },
+    {
+      "path": "app/test/vocabulary_single_entry_test.dart",
+      "sha256": "cae66411b07fd6e1f6357388e5b5224c9bdd80e2844a1a60ce32a96e5356d793"
+    },
+    {
+      "path": "app/test/vocabulary_test.dart",
+      "sha256": "f9025e9e62c0554a051a3f05616eceeeda2c890de340822f912cd59c96e6aeff"
+    },
+    {
+      "path": "app/test/widget_test.dart",
+      "sha256": "c3f2aee5a45d0a9cf7abc752ba8f1789655661a297b863dcdf96529fa7ac1d22"
+    },
+    {
+      "path": "app/test/word_bank_regression_test.dart",
+      "sha256": "e78005c7d989dd77fd7ac075602167bb3ef8ef1d717e7e556e6a6f45d614543f"
+    },
+    {
+      "path": "app/test/workspace_download_cards_ux88_test.dart",
+      "sha256": "935e7deddd13084bb837da9f202092c52f0ed5f3188cfc5b3a7c84616c4500d8"
+    },
+    {
+      "path": "app/test/workspace_heading_action_103_test.dart",
+      "sha256": "4080a1df15e2414fe2962c9b3329c5e5bda5ecd4af54f6466920fe93fa9bcca7"
+    },
+    {
+      "path": "app/test/workspace_more_ux_test.dart",
+      "sha256": "600c129231413aa2bb6d1e0fd933c4a72d9c4c558b348070e28954f6a589fc8c"
+    },
+    {
+      "path": "app/test/workspace_reference_navigation_103_test.dart",
+      "sha256": "502e6126918b932239f3854143cec96511e703f111277dfec6c746b812acda18"
+    },
+    {
+      "path": "app/test/workspace_tools_100_test.dart",
+      "sha256": "f357b3397586617644f88888df736fb04586664d7a5aaf7b435312ff0dc43e94"
+    }
+  ],
+  "before": {
+    "commit": "733a5a2c672b5119c4f633a9a9d66481d88f7dc2",
+    "inventory_sha256": "7f345ea0066fe20dfe42656222c957148d696b7c682fd01f19325c886108eb88",
+    "source_file_count": 2106,
+    "source_sha256": "9639c6481ce61e1fac05d99be213a8641f81008e921df4a9053b5b0b79ae06b3"
+  },
+  "execution": {
+    "error_events": 0,
+    "errors": 0,
+    "execution_sha256": "d629f44f80efa331a2aeb1b183fe4bc8acdf54b29a06eff2dd4196ee83eb1ae4",
+    "failed": 0,
+    "hidden": 153,
+    "hidden_failures": 0,
+    "observed_files": [
+      "app/test/access_auth_ux90_test.dart",
+      "app/test/access_recovery_ux90_test.dart",
+      "app/test/accessible_action_chip_test.dart",
+      "app/test/adaptive_learning_test.dart",
+      "app/test/admin_family_pagination_test.dart",
+      "app/test/admin_round2_cost_routes_test.dart",
+      "app/test/admin_round2_sales_test.dart",
+      "app/test/admin_round2_workflows_test.dart",
+      "app/test/admin_users_screen_test.dart",
+      "app/test/answer_retry_identity_test.dart",
+      "app/test/api_unauthorized_identity_test.dart",
+      "app/test/auth_continuity_test.dart",
+      "app/test/auth_links_test.dart",
+      "app/test/brand_navigation_105_test.dart",
+      "app/test/calendar_graphic_test.dart",
+      "app/test/checkout_uncertain_early_start_test.dart",
+      "app/test/child_devices_auth_race_test.dart",
+      "app/test/child_final_actions_ux87_test.dart",
+      "app/test/child_history_ux90_test.dart",
+      "app/test/child_home_test.dart",
+      "app/test/child_homework_details_ux88_test.dart",
+      "app/test/child_learning_helpers_ux_test.dart",
+      "app/test/child_messages_ux90_test.dart",
+      "app/test/child_page_tools_104_test.dart",
+      "app/test/child_photos_day_ux90_test.dart",
+      "app/test/child_question_text_test.dart",
+      "app/test/child_school_day_actions_ux88_test.dart",
+      "app/test/child_source_tools_ux88_test.dart",
+      "app/test/child_tasks_usability_test.dart",
+      "app/test/child_today_redesign_test.dart",
+      "app/test/child_topics_messages_ux87_test.dart",
+      "app/test/child_week_plan_ux88_test.dart",
+      "app/test/coach_practice_failure_ux_test.dart",
+      "app/test/coaching_completion_test.dart",
+      "app/test/coaching_test.dart",
+      "app/test/collection_screen_test.dart",
+      "app/test/commerce_payments_test.dart",
+      "app/test/compact_child_pages_102_test.dart",
+      "app/test/compact_workspace_102_test.dart",
+      "app/test/content_layout_regression_test.dart",
+      "app/test/decision_permission_test.dart",
+      "app/test/entry_help_139_test.dart",
+      "app/test/exam_review_batches_test.dart",
+      "app/test/exams_lifecycle_test.dart",
+      "app/test/explanation_scroll_mobile_test.dart",
+      "app/test/family_call_media_test.dart",
+      "app/test/family_call_test.dart",
+      "app/test/feedback_recovery_sheet_test.dart",
+      "app/test/fraction_composition_127_test.dart",
+      "app/test/fraction_explorer_104_test.dart",
+      "app/test/google_completion_ux_test.dart",
+      "app/test/graphic_zoom_responsive_test.dart",
+      "app/test/grouped_answer_unit_test.dart",
+      "app/test/heart_pump_graphic_test.dart",
+      "app/test/homework_mobile_p1_test.dart",
+      "app/test/ideas100_learning_tools_test.dart",
+      "app/test/installation_provider_draft_test.dart",
+      "app/test/interactive_unit_test.dart",
+      "app/test/lab_view_109_test.dart",
+      "app/test/language_realtime_test.dart",
+      "app/test/learning_comparison_overview_test.dart",
+      "app/test/learning_origins_148_test.dart",
+      "app/test/learning_preparation_initial_status_test.dart",
+      "app/test/learning_preparation_saved_exit_test.dart",
+      "app/test/learning_scene_player_test.dart",
+      "app/test/learning_tips_test.dart",
+      "app/test/local_processing_failures_panel_test.dart",
+      "app/test/matching_answer_board_test.dart",
+      "app/test/material_auto_review_142_test.dart",
+      "app/test/material_confirmed_uncertainties_124_test.dart",
+      "app/test/material_photo_preview_test.dart",
+      "app/test/material_visual_observations_test.dart",
+      "app/test/math_content_test.dart",
+      "app/test/midpoint_scene_test.dart",
+      "app/test/mobile_admin_navigation_test.dart",
+      "app/test/mobile_regression_test.dart",
+      "app/test/mobile_workspace_visual_test.dart",
+      "app/test/notebook_focus_103_test.dart",
+      "app/test/notebook_test.dart",
+      "app/test/notification_cards_ux88_test.dart",
+      "app/test/notification_inbox_test.dart",
+      "app/test/notification_preferences_ux87_test.dart",
+      "app/test/notifications_download_ux87_test.dart",
+      "app/test/page_tools_104_test.dart",
+      "app/test/parent_assignment_ux88_test.dart",
+      "app/test/parent_context_hierarchy_103_test.dart",
+      "app/test/parent_filters_ux88_test.dart",
+      "app/test/parent_grades_ux87_test.dart",
+      "app/test/parent_insights_session_1106_test.dart",
+      "app/test/parent_lists_ux_test.dart",
+      "app/test/parent_orientation_ux88_test.dart",
+      "app/test/parent_pdf_filters_ux88_test.dart",
+      "app/test/parent_plan_audit_test.dart",
+      "app/test/parent_preferences_messages_ux87_test.dart",
+      "app/test/parent_scope_exports_ux90_test.dart",
+      "app/test/parent_view_details_geometry_103_test.dart",
+      "app/test/parent_workspace_design_test.dart",
+      "app/test/photo_zoom_test.dart",
+      "app/test/processing_trace_panel_test.dart",
+      "app/test/progress_child_compact_test.dart",
+      "app/test/public_cards_ux88_test.dart",
+      "app/test/push_routes_test.dart",
+      "app/test/qa100_learning_flow_test.dart",
+      "app/test/reference_multisubject_web_test.dart",
+      "app/test/root_common_ux90_test.dart",
+      "app/test/root_tips_ux90_test.dart",
+      "app/test/root_vocabulary_ux90_test.dart",
+      "app/test/round_actions_103_test.dart",
+      "app/test/saved_help_retry_101_test.dart",
+      "app/test/school_day_background_test.dart",
+      "app/test/school_day_parts_113_test.dart",
+      "app/test/school_day_test.dart",
+      "app/test/schulbuddy_current_context_test.dart",
+      "app/test/schulbuddy_floating_105_test.dart",
+      "app/test/schulbuddy_keyboard_test.dart",
+      "app/test/schulbuddy_test.dart",
+      "app/test/scientific_notation_test.dart",
+      "app/test/sentence_words_graphic_test.dart",
+      "app/test/shadow_size_graphic_test.dart",
+      "app/test/source_photo_fidelity_107_test.dart",
+      "app/test/study_path_panel_test.dart",
+      "app/test/technical_preparation_failure_129_test.dart",
+      "app/test/today_density_102_test.dart",
+      "app/test/unit_learning_time_test.dart",
+      "app/test/unit_sources_viewer_test.dart",
+      "app/test/vocabulary_round_simple_start_test.dart",
+      "app/test/widget_test.dart",
+      "app/test/workspace_heading_action_103_test.dart",
+      "app/test/workspace_tools_100_test.dart"
+    ],
+    "passed": 1684,
+    "report_sha256": "64e56455485e715e8134c51c60db06396ff0bb19c4b6bf1d0c8e08521cfcbddf",
+    "skipped": 7,
+    "terminal_success": true,
+    "visible_tests": 1691
+  },
+  "kind": "flutter_file_shard",
+  "process_exit_code": 0,
+  "run_attempt": null,
+  "run_id": null,
+  "selected_files": [
+    "app/test/access_auth_ux90_test.dart",
+    "app/test/access_recovery_ux90_test.dart",
+    "app/test/accessible_action_chip_test.dart",
+    "app/test/adaptive_learning_test.dart",
+    "app/test/admin_family_pagination_test.dart",
+    "app/test/admin_round2_cost_routes_test.dart",
+    "app/test/admin_round2_sales_test.dart",
+    "app/test/admin_round2_workflows_test.dart",
+    "app/test/admin_users_screen_test.dart",
+    "app/test/answer_retry_identity_test.dart",
+    "app/test/api_unauthorized_identity_test.dart",
+    "app/test/auth_continuity_test.dart",
+    "app/test/auth_links_test.dart",
+    "app/test/brand_navigation_105_test.dart",
+    "app/test/calendar_graphic_test.dart",
+    "app/test/checkout_uncertain_early_start_test.dart",
+    "app/test/child_devices_auth_race_test.dart",
+    "app/test/child_final_actions_ux87_test.dart",
+    "app/test/child_history_ux90_test.dart",
+    "app/test/child_home_test.dart",
+    "app/test/child_homework_details_ux88_test.dart",
+    "app/test/child_learning_helpers_ux_test.dart",
+    "app/test/child_messages_ux90_test.dart",
+    "app/test/child_page_tools_104_test.dart",
+    "app/test/child_photos_day_ux90_test.dart",
+    "app/test/child_question_text_test.dart",
+    "app/test/child_school_day_actions_ux88_test.dart",
+    "app/test/child_source_tools_ux88_test.dart",
+    "app/test/child_tasks_usability_test.dart",
+    "app/test/child_today_redesign_test.dart",
+    "app/test/child_topics_messages_ux87_test.dart",
+    "app/test/child_week_plan_ux88_test.dart",
+    "app/test/coach_practice_failure_ux_test.dart",
+    "app/test/coaching_completion_test.dart",
+    "app/test/coaching_test.dart",
+    "app/test/collection_screen_test.dart",
+    "app/test/commerce_payments_test.dart",
+    "app/test/compact_child_pages_102_test.dart",
+    "app/test/compact_workspace_102_test.dart",
+    "app/test/content_layout_regression_test.dart",
+    "app/test/decision_permission_test.dart",
+    "app/test/entry_help_139_test.dart",
+    "app/test/exam_review_batches_test.dart",
+    "app/test/exams_lifecycle_test.dart",
+    "app/test/explanation_scroll_mobile_test.dart",
+    "app/test/family_call_media_test.dart",
+    "app/test/family_call_test.dart",
+    "app/test/feedback_recovery_sheet_test.dart",
+    "app/test/fraction_composition_127_test.dart",
+    "app/test/fraction_explorer_104_test.dart",
+    "app/test/google_completion_ux_test.dart",
+    "app/test/graphic_zoom_responsive_test.dart",
+    "app/test/grouped_answer_unit_test.dart",
+    "app/test/heart_pump_graphic_test.dart",
+    "app/test/homework_mobile_p1_test.dart",
+    "app/test/ideas100_learning_tools_test.dart",
+    "app/test/installation_provider_draft_test.dart",
+    "app/test/interactive_unit_test.dart",
+    "app/test/lab_view_109_test.dart",
+    "app/test/language_realtime_test.dart",
+    "app/test/learning_comparison_overview_test.dart",
+    "app/test/learning_origins_148_test.dart",
+    "app/test/learning_preparation_initial_status_test.dart",
+    "app/test/learning_preparation_saved_exit_test.dart",
+    "app/test/learning_scene_player_test.dart",
+    "app/test/learning_tips_test.dart",
+    "app/test/local_processing_failures_panel_test.dart",
+    "app/test/matching_answer_board_test.dart",
+    "app/test/material_auto_review_142_test.dart",
+    "app/test/material_confirmed_uncertainties_124_test.dart",
+    "app/test/material_photo_preview_test.dart",
+    "app/test/material_visual_observations_test.dart",
+    "app/test/math_content_test.dart",
+    "app/test/midpoint_scene_test.dart",
+    "app/test/mobile_admin_navigation_test.dart",
+    "app/test/mobile_regression_test.dart",
+    "app/test/mobile_workspace_visual_test.dart",
+    "app/test/notebook_focus_103_test.dart",
+    "app/test/notebook_test.dart",
+    "app/test/notification_cards_ux88_test.dart",
+    "app/test/notification_inbox_test.dart",
+    "app/test/notification_preferences_ux87_test.dart",
+    "app/test/notifications_download_ux87_test.dart",
+    "app/test/page_tools_104_test.dart",
+    "app/test/parent_assignment_ux88_test.dart",
+    "app/test/parent_context_hierarchy_103_test.dart",
+    "app/test/parent_filters_ux88_test.dart",
+    "app/test/parent_grades_ux87_test.dart",
+    "app/test/parent_insights_session_1106_test.dart",
+    "app/test/parent_lists_ux_test.dart",
+    "app/test/parent_orientation_ux88_test.dart",
+    "app/test/parent_pdf_filters_ux88_test.dart",
+    "app/test/parent_plan_audit_test.dart",
+    "app/test/parent_preferences_messages_ux87_test.dart",
+    "app/test/parent_scope_exports_ux90_test.dart",
+    "app/test/parent_view_details_geometry_103_test.dart",
+    "app/test/parent_workspace_design_test.dart",
+    "app/test/photo_zoom_test.dart",
+    "app/test/processing_trace_panel_test.dart",
+    "app/test/progress_child_compact_test.dart",
+    "app/test/public_cards_ux88_test.dart",
+    "app/test/push_routes_test.dart",
+    "app/test/qa100_learning_flow_test.dart",
+    "app/test/reference_multisubject_web_test.dart",
+    "app/test/root_common_ux90_test.dart",
+    "app/test/root_tips_ux90_test.dart",
+    "app/test/root_vocabulary_ux90_test.dart",
+    "app/test/round_actions_103_test.dart",
+    "app/test/saved_help_retry_101_test.dart",
+    "app/test/school_day_background_test.dart",
+    "app/test/school_day_parts_113_test.dart",
+    "app/test/school_day_test.dart",
+    "app/test/schulbuddy_current_context_test.dart",
+    "app/test/schulbuddy_floating_105_test.dart",
+    "app/test/schulbuddy_keyboard_test.dart",
+    "app/test/schulbuddy_test.dart",
+    "app/test/scientific_notation_test.dart",
+    "app/test/sentence_words_graphic_test.dart",
+    "app/test/shadow_size_graphic_test.dart",
+    "app/test/source_photo_fidelity_107_test.dart",
+    "app/test/study_path_panel_test.dart",
+    "app/test/technical_preparation_failure_129_test.dart",
+    "app/test/today_density_102_test.dart",
+    "app/test/unit_learning_time_test.dart",
+    "app/test/unit_sources_viewer_test.dart",
+    "app/test/vocabulary_round_simple_start_test.dart",
+    "app/test/widget_test.dart",
+    "app/test/workspace_heading_action_103_test.dart",
+    "app/test/workspace_tools_100_test.dart"
+  ],
+  "selection_sha256": "c60b7c5e356f023061b8cc855ec770a31fdd6592bb8ea362430d0c910778bf5a",
+  "shard_count": 3,
+  "shard_index": 0,
+  "sources_unchanged": true,
+  "status": "passed",
+  "version": 1
+}

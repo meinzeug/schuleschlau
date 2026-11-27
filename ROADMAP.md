@@ -1228,8 +1228,13 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
     lesenden Abruf. Für eine vorhandene Runde prüft ein weiterer Test den
     sichtbaren Knopf „Weiterlernen“ und das richtige Rundenziel ohne
     Erzeugungsauftrag. Dadurch wird weder freiwilliges Lernen behauptet noch eine
-    Runde automatisch gestartet; die ursprüngliche breite Regression wird als
-    fehlgeschlagener Lauf ausgewiesen, bis sie erneut vollständig bestanden ist.
+    Runde automatisch gestartet. Die ursprüngliche breite Regression bleibt
+    als fehlgeschlagener Lauf dokumentiert; ein erneuter vollständiger Lauf
+    auf Commit `733a5a2` bestand mit 4.980 Fällen und 19 ausgewiesenen Skips.
+    Drei quellgebundene Teilberichte wurden auf die vollständigen 385 Testdateien
+    mit genau einmaliger Ausführung geprüft. Spätere Änderungen wurden gezielt
+    getestet; dieser ältere Gesamtlauf belegt sie nicht.
+    [Testberichte und Wiederholung](docs/FLUTTER_REGRESSION_2026_11_27.md).
 
   - [x] **Wartende Heftseiten ohne Kinderprüfauftrag anzeigen.** Der Kindersicht
     steht ein kurzer Hinweis auf gespeicherte Fotos und die mögliche Hilfe der
@@ -4025,6 +4030,14 @@ Bestandteil des bestehenden Buildvertrags.
     gegebenenfalls erneut geöffnet werden. 59 künstliche Fälle zur Kinder-
     startseite und 38 Fälle zu Statusabgleich und Elternansicht bestanden;
     andere Dialoge und das globale Cookie-Problem sind nicht abgenommen.
+
+    **Geöffneten Lernweg an dieselbe Anmeldeabsicht binden:** Vor dem
+    Neuzeichnen gespeicherte Vorbereitungsaktionen starten nach Beginn einer
+    neuen Anmeldung keinen Auftrag; verspätete Wege erscheinen nicht erneut.
+    Auch bestehende private Dialoge werden geschlossen. 77 künstliche Fälle
+    zum Lernweg und zur Kinderstartseite bestanden. Bereits gesendete Aufträge
+    werden nicht rückgängig gemacht; neu geöffnete Ansichten während einer
+    noch laufenden Anmeldung und der allgemeine Cookie-Wettlauf bleiben offen.
 
     **Fotoimport und elterliche Bildprüfung zusätzlich begrenzt:** Der
     klassische Fotoimport bindet die Zustimmung und den Start des Pickers

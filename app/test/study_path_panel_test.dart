@@ -47,6 +47,83 @@ void sessionReplacementTest() {
     expect(calls, ['GET /api/school-days/day/study-path']);
     expect(tester.takeException(), isNull);
   });
+  testWidgets('new sign-in intent discards a delayed study path', (
+    tester,
+  ) async {
+    final delayed = Completer<http.Response>();
+    final calls = <String>[];
+    final state = _state(
+      MockClient((request) async {
+        calls.add('${request.method} ${request.url.path}');
+        return delayed.future;
+      }),
+    );
+    final router = await _open(tester, state);
+    addTearDown(() async {
+      await tester.pumpWidget(const SizedBox());
+      router.dispose();
+      state.dispose();
+    });
+    state.beginAuthentication();
+    delayed.complete(_json(_path()));
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('Brüche first'), findsNothing);
+    expect(calls, ['GET /api/school-days/day/study-path']);
+    expect(tester.takeException(), isNull);
+  });
+  testWidgets('new sign-in intent blocks the captured preparation action', (
+    tester,
+  ) async {
+    final calls = <String>[];
+    final state = _state(
+      MockClient((request) async {
+        calls.add('${request.method} ${request.url.path}');
+        return _json(_path());
+      }),
+    );
+    final router = await _open(tester, state);
+    addTearDown(() async {
+      await tester.pumpWidget(const SizedBox());
+      router.dispose();
+      state.dispose();
+    });
+    await tester.pumpAndSettle();
+    final action = tester.widget<FilledButton>(
+      find.widgetWithText(FilledButton, 'Runde vorbereiten'),
+    );
+    state.beginAuthentication();
+    action.onPressed!();
+    await tester.pumpAndSettle();
+    expect(calls, ['GET /api/school-days/day/study-path']);
+    expect(find.text('Brüche first'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+  testWidgets(
+    'changing the day during sign-in does not rebind the old account',
+    (tester) async {
+      final calls = <String>[];
+      final state = _state(
+        MockClient((request) async {
+          calls.add('${request.method} ${request.url.path}');
+          return _json(_path());
+        }),
+      );
+      Widget screen(String day) => MaterialApp(
+        home: Scaffold(body: StudyPathPanel(state, 'child', day)),
+      );
+      await tester.pumpWidget(screen('day'));
+      await tester.pumpAndSettle();
+      state.beginAuthentication();
+      await tester.pumpWidget(screen('next-day'));
+      await tester.pumpAndSettle();
+      expect(calls, ['GET /api/school-days/day/study-path']);
+      expect(find.text('Brüche first'), findsNothing);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+      state.dispose();
+    },
+  );
 }
 
 AppState _state(MockClient client, {String role = 'child'}) => AppState(

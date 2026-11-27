@@ -45,13 +45,15 @@ class _StudyPathPanelState extends State<StudyPathPanel>
   late Json? actor = widget.state.user;
   late String? family = widget.state.familyId;
   late String? session = widget.state.api.token;
+  late int? authenticationRevision = widget.state.api.requestIdentity().$3;
   AppState get state => widget.state;
   String get endpoint => '/school-days/${widget.dayId}/study-path';
   bool get ownerMatches =>
       actor != null &&
       identical(state.user, actor) &&
       state.familyId == family &&
-      state.api.token == session;
+      state.api.token == session &&
+      state.api.requestIdentity().$3 == authenticationRevision;
   bool get active => mounted && ownerMatches && foreground && routeVisible;
   List<Json> get blocks => (path?['blocks'] as List? ?? [])
       .map((block) => Json.from(block as Map))
@@ -101,6 +103,7 @@ class _StudyPathPanelState extends State<StudyPathPanel>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     state.addListener(identityChanged);
+    state.authenticationChanges.addListener(identityChanged);
     unawaited(load());
   }
 
@@ -109,7 +112,9 @@ class _StudyPathPanelState extends State<StudyPathPanel>
     super.didUpdateWidget(oldWidget);
     if (oldWidget.state != state) {
       oldWidget.state.removeListener(identityChanged);
+      oldWidget.state.authenticationChanges.removeListener(identityChanged);
       state.addListener(identityChanged);
+      state.authenticationChanges.addListener(identityChanged);
     }
     if (oldWidget.dayId != widget.dayId ||
         oldWidget.childId != widget.childId ||
@@ -131,6 +136,9 @@ class _StudyPathPanelState extends State<StudyPathPanel>
       actor = state.user;
       family = state.familyId;
       session = state.api.token;
+      if (oldWidget.state != state) {
+        authenticationRevision = state.api.requestIdentity().$3;
+      }
       unawaited(load());
     }
   }
@@ -170,6 +178,7 @@ class _StudyPathPanelState extends State<StudyPathPanel>
     poll?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     state.removeListener(identityChanged);
+    state.authenticationChanges.removeListener(identityChanged);
     closePrivateRoutes();
     blockSearch.dispose();
     super.dispose();

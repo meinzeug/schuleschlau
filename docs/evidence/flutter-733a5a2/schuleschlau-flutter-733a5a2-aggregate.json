@@ -1,0 +1,17 @@
+{
+  "all_files": 385,
+  "exactly_once": true,
+  "inventory_sha256": "7f345ea0066fe20dfe42656222c957148d696b7c682fd01f19325c886108eb88",
+  "passed": 4980,
+  "receipt_sha256s": [
+    "5fe607a3064436079d22e79e35090e0cd20feede067a6530dcc020c40623a5a8",
+    "cf12b64ab4561aec19e8510da92fef532d7ff29a0bc5145c83984843e82cea3a",
+    "b814ce409834a8a030f689b7beef9b6e634cb7dbb85a95498b02ea3f079e328a"
+  ],
+  "shards": 3,
+  "skipped": 19,
+  "source_commit": "733a5a2c672b5119c4f633a9a9d66481d88f7dc2",
+  "source_sha256": "9639c6481ce61e1fac05d99be213a8641f81008e921df4a9053b5b0b79ae06b3",
+  "status": "passed",
+  "version": 1
+}
