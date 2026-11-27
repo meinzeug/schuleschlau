@@ -4108,6 +4108,13 @@ Bestandteil des bestehenden Buildvertrags.
     Anrufe, allgemeine API-Antworten und der Cookie-Wettlauf bleiben gesondert
     zu prüfen; ein echtes Androidgerät ist damit nicht abgenommen.
 
+    **Verzögerten Bildschirmstart absichern:** Beginnt während einer
+    Bildschirmfreigabe eine neue Anmeldung, wird die laufende Medienverbindung
+    geschlossen. Auch eine verspätet erteilte Aufnahme startet keine
+    Signalisierung und die nachträglich bereitgestellte Bildschirmspur wird
+    wieder gestoppt. Ein künstlicher Regressionstest prüft diesen Fall; die
+    native Geräteabnahme bleibt offen.
+
     **Nachrichtenentwürfe bei Anmeldebeginn schützen:** Ein geöffnetes
     Nachrichtenformular schließt sich bei einer neuen Anmeldeabsicht. Alte
     Rückrufe versenden nichts; verspätete Erfolge und Fehler verändern die

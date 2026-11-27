@@ -136,6 +136,18 @@ class FakeMedia extends FamilyCallMedia {
   }
 }
 
+class SlowScreenMedia extends FakeMedia {
+  final startWait = Completer<void>();
+  bool started = false;
+
+  @override
+  Future<void> startScreen() async {
+    started = true;
+    await startWait.future;
+    sharing = true;
+  }
+}
+
 class ScriptedOfferMedia extends FakeMedia {
   int offerAttempts = 0;
   bool failNextOffer = false;
@@ -929,6 +941,51 @@ void main() {
       },
     );
   }
+
+  testWidgets('New sign-in stops a late screen capture before publication', (
+    tester,
+  ) async {
+    final fake = SlowScreenMedia();
+    var signalPosts = 0;
+    final state = makeState((request) async {
+      if (request.url.path.endsWith('/active')) return response({'calls': []});
+      if (request.url.path.endsWith('/config'))
+        return response({'available': true});
+      if (request.url.path.endsWith('/ice'))
+        return response({'ice_servers': []});
+      if (request.url.path.endsWith('/signals')) {
+        if (request.method == 'POST') {
+          signalPosts++;
+          return response({'sequence': signalPosts});
+        }
+        return response({'signals': [], 'cursor': 0});
+      }
+      return response(metadata('accepted'));
+    });
+    final calls = FamilyCallService(
+      state,
+      nativeEnabled: false,
+      mediaFactory: () => fake,
+    );
+    calls.activate(state.user);
+    await tester.pump();
+    await calls.start();
+    await calls.refresh();
+    final before = signalPosts;
+    final sharing = calls.shareScreen();
+    await tester.pump();
+    expect(fake.started, isTrue);
+    state.beginAuthentication();
+    await tester.pump();
+    expect(fake.closed, isTrue);
+    fake.startWait.complete();
+    await sharing;
+    expect(fake.sharingScreen, isFalse);
+    expect(signalPosts, before);
+    expect(calls.media, isNull);
+    await calls.clear();
+    calls.dispose();
+  });
 
   for (final failure in ['generation', 'sending', 'deferred_generation']) {
     testWidgets(

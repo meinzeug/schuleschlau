@@ -645,16 +645,37 @@ class FamilyCallService extends ChangeNotifier {
     final owner = _owner, generation = _generation;
     final currentMedia = media!;
     final id = callId!;
+    final family = state.familyId, identity = state.api.requestIdentity();
+    bool valid() =>
+        _current(owner, generation) &&
+        state.familyId == family &&
+        state.api.ownsRequest(identity) &&
+        media == currentMedia;
+    void invalidate() {
+      if (!valid() && _current(owner, generation) && media == currentMedia) {
+        unawaited(_closeMedia());
+      }
+    }
+
+    state.authenticationChanges.addListener(invalidate);
     _screenPreparing = true;
     error = null;
     try {
       if (_nativeAndroid) {
         if (!await requestScreenPermission()) return;
-        if (!_current(owner, generation) || media != currentMedia) return;
+        if (!valid()) return;
         await FamilyCallNative.instance.startProjection(id);
+        if (!valid()) {
+          await _restoreCaptureForeground(id);
+          return;
+        }
       }
       await currentMedia.startScreen();
-      if (!_current(owner, generation) || media != currentMedia) return;
+      if (!valid()) {
+        await currentMedia.stopScreen();
+        await _restoreCaptureForeground(id);
+        return;
+      }
       if (!currentMedia.sharingScreen || !await _renegotiate()) {
         throw StateError('Screen sender was not published.');
       }
@@ -668,6 +689,7 @@ class FamilyCallService extends ChangeNotifier {
         notifyListeners();
       }
     } finally {
+      state.authenticationChanges.removeListener(invalidate);
       if (_current(owner, generation) && media == currentMedia) {
         _screenPreparing = false;
       }
