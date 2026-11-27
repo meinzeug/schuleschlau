@@ -1220,7 +1220,7 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
     zusätzliche Hinzufügen-Knopf. Über „Zum Wortschatz“ bleibt das Hinzufügen
     erreichbar; die Einstiegsgrafik erscheint dort bei leerem Wortschatz.
     Elternansichten bleiben unverändert.
-    58 bestehende künstliche Wortschatzfälle sowie ein zusätzlicher Fall für
+    90 künstliche Wortschatz- und Nachbarfälle sowie ein zusätzlicher Fall für
     vorhandene Wörter bestanden; zwei eigenständige Fälle für leeren und
     gefüllten Wortschatz bestanden auch im Chrome-Webrunner und belegten,
     dass der Reiterwechsel keine Schreibanfrage auslöst. Der kompakte Zustand
