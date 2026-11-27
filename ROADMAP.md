@@ -1184,6 +1184,12 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
     Lesedialogtests. Eine vollständige Screenreader- und Geräteabnahme und
     das Ausrollen stehen noch aus.
 
+  - [x] **Überschrift im Lesedialog auszeichnen.** Der sichtbare Titel
+    „Seitentext“ ist für Hilfstechnologien als Überschrift gekennzeichnet.
+    Der synthetische Regressionstest scheiterte vor der Änderung und prüft
+    die Auszeichnung bei normaler und doppelter Schrift. Die vollständige
+    Screenreader-Abnahme bleibt offen.
+
   - [x] **Lernzeit in der Klassenarbeitsplanung kompakt eingeben.** Die
     Auswahlliste mit 56 Minutenwerten ist durch ein Zahlenfeld ersetzt.
     Individuelle Werte von 5 bis 60 Minuten bleiben möglich und werden vor

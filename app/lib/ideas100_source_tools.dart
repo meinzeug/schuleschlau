@@ -368,9 +368,12 @@ class _SourceReaderState extends State<Ideas100SourceReader> {
                 child: Row(
                   children: [
                     Expanded(
-                      child: Text(
-                        'Seitentext',
-                        style: Theme.of(context).textTheme.titleLarge,
+                      child: Semantics(
+                        header: true,
+                        child: Text(
+                          'Seitentext',
+                          style: Theme.of(context).textTheme.titleLarge,
+                        ),
                       ),
                     ),
                     IconButton(

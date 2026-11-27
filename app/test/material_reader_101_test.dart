@@ -160,6 +160,11 @@ void main() {
           final fixture = Fixture();
           await fixture.mount(t, width: 320, scale: scale);
           await fixture.open(t, 'reader');
+          final heading = t
+              .getSemantics(find.text('Seitentext'))
+              .getSemanticsData();
+          expect(heading.label, contains('Seitentext'));
+          expect(heading.flagsCollection.isHeader, isTrue);
           for (final entry in {
             'search': 'Suchen',
             'contents': 'Inhalt',
