@@ -3339,7 +3339,9 @@ class _VocabularyScreenState extends State<_VocabularyBody>
                   compactAction: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      if (widget.state.isChild && !noWords)
+                      if (widget.state.isChild &&
+                          !noWords &&
+                          section == 'words')
                         IconButton(
                           tooltip: 'Wörter hinzufügen',
                           onPressed: busy || loading
@@ -3406,7 +3408,10 @@ class _VocabularyScreenState extends State<_VocabularyBody>
                   action: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (widget.state.isChild && noWords && !filtered)
+                      if (widget.state.isChild &&
+                          noWords &&
+                          !filtered &&
+                          section == 'words')
                         const LearningStartIllustration(),
 
                       if (data != null) ...[
@@ -3443,7 +3448,8 @@ class _VocabularyScreenState extends State<_VocabularyBody>
                             ),
                           if ((widget.state.isChild ||
                                   widget.state.canManage) &&
-                              (!widget.state.isChild || noWords))
+                              (!widget.state.isChild ||
+                                  (noWords && section == 'words')))
                             Tooltip(
                               message: 'Wörter hinzufügen',
                               child: FilledButton.icon(

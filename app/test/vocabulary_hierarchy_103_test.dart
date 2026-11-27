@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:schulpilot/api.dart';
 import 'package:schulpilot/child_section_ui.dart';
+import 'package:schulpilot/learning_start_illustration.dart';
 import 'package:schulpilot/ui.dart';
 import 'package:schulpilot/vocabulary_screen.dart';
 
@@ -482,10 +483,33 @@ void main() {
     expect(find.byTooltip('Nächste Wortseite'), findsNothing);
     expect(find.text('Seite 1 · 0 Wörter'), findsNothing);
     expect(find.byTooltip('Wörter hinzufügen'), findsOneWidget);
+    expect(find.byType(LearningStartIllustration), findsOneWidget);
+    await fixture.tap(tester, find.text('Prüfen'));
+    expect(find.byType(LearningStartIllustration), findsNothing);
+    expect(find.byTooltip('Wörter hinzufügen'), findsNothing);
+    expect(find.text('Wörter prüfen'), findsOneWidget);
+    expect(calls.every((r) => r.method == 'GET'), isTrue);
+    await fixture.tap(tester, find.text('Zum Wortschatz'));
+    expect(find.byType(LearningStartIllustration), findsOneWidget);
+    expect(find.byTooltip('Wörter hinzufügen'), findsOneWidget);
     expect(calls.every((r) => r.method == 'GET'), isTrue);
     await fixture.tap(tester, find.byTooltip('Wörter hinzufügen'));
     expect(find.byType(AlertDialog), findsOneWidget);
     expect(calls.every((r) => r.method == 'GET'), isTrue);
+  });
+
+  testWidgets('the review tab keeps adding in the word bank, without writes', (
+    tester,
+  ) async {
+    final calls = <http.Request>[];
+    await fixture.open(tester, calls, openTools: false, cards: false);
+    expect(find.byTooltip('Wörter hinzufügen'), findsOneWidget);
+    await fixture.tap(tester, find.text('Prüfen'));
+    expect(find.byTooltip('Wörter hinzufügen'), findsNothing);
+    await fixture.tap(tester, find.text('Zum Wortschatz'));
+    expect(find.byTooltip('Wörter hinzufügen'), findsOneWidget);
+    expect(calls.every((r) => r.method == 'GET'), isTrue);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets(

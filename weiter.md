@@ -2,6 +2,11 @@
 
 ## Arbeitsstand 27. November 2026: Quellen und Kontowechsel
 
+Im Kinderreiter „Prüfen“ des Wortschatzes nehmen Einstiegsgrafik und
+Hinzufügen-Aktion keinen Platz mehr ein. Hinzufügen bleibt im Wortschatzreiter
+erreichbar, die Grafik erscheint dort bei leerem Bestand; synthetische VM- und Chrome-Tests prüfen leere und gefüllte
+Wortschätze sowie lesenden Reiterwechsel. Die Gesamtabnahme bleibt offen.
+
 Das kompakte Kontomenü bündelt Beschriftung und Schaltflächenaktion. Drei
 Rollentests scheiterten am alten Semantikknoten und bestanden nach der
 Änderung auch in Chrome; 80 angrenzende Flutterfälle bestanden. Eine echte

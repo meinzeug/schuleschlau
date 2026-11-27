@@ -1215,6 +1215,18 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – Alle Kinderansichten sprachlich und in ihrer Bedienung entrümpeln**
 
+  - [x] **Wortvorschläge auf kleinen Displays in den Vordergrund stellen.**
+    Im Kinderreiter „Prüfen“ entfällt die große Einstiegsgrafik und der
+    zusätzliche Hinzufügen-Knopf. Über „Zum Wortschatz“ bleibt das Hinzufügen
+    erreichbar; die Einstiegsgrafik erscheint dort bei leerem Wortschatz.
+    Elternansichten bleiben unverändert.
+    58 bestehende künstliche Wortschatzfälle sowie ein zusätzlicher Fall für
+    vorhandene Wörter bestanden; zwei eigenständige Fälle für leeren und
+    gefüllten Wortschatz bestanden auch im Chrome-Webrunner und belegten,
+    dass der Reiterwechsel keine Schreibanfrage auslöst. Der kompakte Zustand
+    wurde mit Beispieldaten bei 390 Pixeln im lokalen Browser verglichen. Eine
+    vollständige Abnahme der Wortschatzoberfläche bleibt offen.
+
   - [x] **Einstieg für geschriebene Arbeiten vereinfachen.** Das einzelne
     Formular zeigt keinen überflüssigen Hinweis „Schritt 1 von 1“ mehr. Kinder
     sehen einen vertrauten Titel und „Arbeit speichern“; Fach und optionale
@@ -1637,8 +1649,9 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
     zu einer benannten Aktion zusammengeführt. Der Rollentest scheiterte am
     bisherigen Zustand und besteht nach der Änderung für Kinder, Eltern und
     Admin, auch im Chrome-Webrunner. 80 Flutterfälle zu Kopfmenü, Navigation
-    und Schulbuddy sowie die gezielte Analyse bestanden. Die vollständige
-    Screenreader- und Geräteabnahme bleibt offen.
+    und Schulbuddy sowie die gezielte Analyse bestanden. In der lokalen
+    390-Pixel-Demo zeigte der Browserbaum einen benannten Kontobutton. Die
+    vollständige Screenreader- und Geräteabnahme bleibt offen.
 
   - [x] **Bereichsinfo als eine Aktion ausgeben.** Im mobilen Browser wurde
     „Bereichsinfo schließen“ doppelt im Zugänglichkeitsbaum ausgegeben. Kinder-, Eltern- und
