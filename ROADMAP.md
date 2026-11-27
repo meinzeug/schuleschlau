@@ -4099,6 +4099,15 @@ Bestandteil des bestehenden Buildvertrags.
     Ereignisse und der allgemeine Cookie-Wettlauf sind damit nicht allgemein
     abgesichert.
 
+    **Anrufaufbau bei neuer Anmeldung abbrechen:** Während Start oder Annahme
+    sind Medienvorbereitung und Antworten an Anmeldeabsicht, Familie und
+    Sitzungsidentität gebunden. Bei neuer Anmeldung wird die vorbereitete
+    Medienverbindung geschlossen; verspätete Antworten starten keine neue
+    Verbindung. Künstliche Fälle decken die Kind- und Elternseite sowie einen
+    verspäteten simulierten Android-Medienstart ab. Fortgeschrittene aktive
+    Anrufe, allgemeine API-Antworten und der Cookie-Wettlauf bleiben gesondert
+    zu prüfen; ein echtes Androidgerät ist damit nicht abgenommen.
+
     **Nachrichtenentwürfe bei Anmeldebeginn schützen:** Ein geöffnetes
     Nachrichtenformular schließt sich bei einer neuen Anmeldeabsicht. Alte
     Rückrufe versenden nichts; verspätete Erfolge und Fehler verändern die

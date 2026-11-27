@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -431,6 +432,118 @@ void main() {
       expect(starts, 0);
       expect(fake.closed, isTrue);
       expect(calls.call, isNull);
+      expect(calls.media, isNull);
+      await calls.clear();
+      calls.dispose();
+    },
+  );
+
+  testWidgets(
+    'New sign-in closes pending child media and does not start a call',
+    (tester) async {
+      var starts = 0;
+      final fake = FakeMedia()..prepareWait = Completer<void>();
+      final state = makeState((request) async {
+        if (request.url.path.endsWith('/config')) {
+          return response({'available': true});
+        }
+        if (request.method == 'POST') starts++;
+        return response({'calls': []});
+      });
+      final calls = FamilyCallService(
+        state,
+        nativeEnabled: false,
+        mediaFactory: () => fake,
+      );
+      calls.activate(state.user);
+      await tester.pump();
+      final starting = calls.start();
+      await tester.pump();
+      expect(fake.prepared, 1);
+      state.beginAuthentication();
+      await tester.pump();
+      expect(fake.closed, isTrue);
+      fake.prepareWait!.complete();
+      await starting;
+      expect(starts, 0);
+      expect(calls.media, isNull);
+      expect(calls.call, isNull);
+      await calls.clear();
+      calls.dispose();
+    },
+  );
+
+  testWidgets('New sign-in prevents pending parent media from accepting', (
+    tester,
+  ) async {
+    var accepts = 0;
+    final fake = FakeMedia()..prepareWait = Completer<void>();
+    final state = makeState((request) async {
+      if (request.url.path.endsWith('/active')) {
+        return response({
+          'calls': [metadata('ringing', role: 'parent')],
+        });
+      }
+      if (request.url.path.endsWith('/accept')) accepts++;
+      return response(metadata('accepted', role: 'parent'));
+    }, role: 'parent');
+    final calls = FamilyCallService(
+      state,
+      nativeEnabled: false,
+      mediaFactory: () => fake,
+    );
+    calls.activate(state.user);
+    await tester.pump();
+    final joining = calls.join();
+    await tester.pump();
+    expect(fake.prepared, 1);
+    state.beginAuthentication();
+    await tester.pump();
+    expect(fake.closed, isTrue);
+    fake.prepareWait!.complete();
+    await joining;
+    expect(accepts, 0);
+    expect(calls.media, isNull);
+    await calls.clear();
+    calls.dispose();
+  });
+
+  testWidgets(
+    'Late accepted call cannot reconnect media after sign-in begins',
+    (tester) async {
+      final fake = FakeMedia();
+      final pendingAccept = Completer<http.Response>();
+      var accepts = 0;
+      final state = makeState((request) {
+        if (request.url.path.endsWith('/active')) {
+          return Future.value(
+            response({
+              'calls': [metadata('ringing', role: 'parent')],
+            }),
+          );
+        }
+        if (request.url.path.endsWith('/accept')) {
+          accepts++;
+          return pendingAccept.future;
+        }
+        return Future.value(response(metadata('accepted', role: 'parent')));
+      }, role: 'parent');
+      final calls = FamilyCallService(
+        state,
+        nativeEnabled: false,
+        mediaFactory: () => fake,
+      );
+      calls.activate(state.user);
+      await tester.pump();
+      final joining = calls.join();
+      await tester.pump();
+      expect(accepts, 1);
+      state.beginAuthentication();
+      await tester.pump();
+      expect(fake.closed, isTrue);
+      pendingAccept.complete(response(metadata('accepted', role: 'parent')));
+      await joining;
+      expect(fake.connected, 0);
       expect(calls.media, isNull);
       await calls.clear();
       calls.dispose();
@@ -1060,5 +1173,6 @@ void main() {
       calls.dispose();
       channel.setMockMethodCallHandler(FamilyCallNative.channel, null);
     },
+    skip: kIsWeb,
   );
 }

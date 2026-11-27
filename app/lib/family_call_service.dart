@@ -276,17 +276,13 @@ class FamilyCallService extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<FamilyCallMedia> _prepare(
-    bool camera,
-    Json? owner,
-    int generation,
-  ) async {
+  Future<FamilyCallMedia> _prepare(bool camera, bool Function() valid) async {
     final next = mediaFactory();
     media = next;
     next.addListener(_mediaChanged);
     try {
       await next.prepare(camera: camera);
-      if (!_current(owner, generation) || media != next) {
+      if (!valid() || media != next) {
         await next.close();
         throw ApiError('Der Zugang hat sich geändert.');
       }
@@ -308,48 +304,67 @@ class FamilyCallService extends ChangeNotifier {
     if (!isChild || busy || _ending) return callId;
     if (live) return callId;
     final owner = _owner, generation = _generation;
+    final family = state.familyId, identity = state.api.requestIdentity();
+    bool valid() =>
+        _current(owner, generation) &&
+        state.familyId == family &&
+        state.api.ownsRequest(identity);
+    void invalidate() {
+      if (!valid() && _current(owner, generation)) unawaited(_closeMedia());
+    }
+
+    state.authenticationChanges.addListener(invalidate);
     busy = true;
     error = null;
     notifyListeners();
     try {
       final config = await state.api.get('/family-calls/config');
-      if (!_current(owner, generation)) return null;
+      if (!valid()) return null;
       if (config['available'] != true) {
         throw ApiError(
           config['notice'] is String ? config['notice'] : 'Videoanrufe sind gerade nicht verfügbar. Du kannst eine Nachricht senden.',
         );
       }
-      await _prepare(camera, owner, generation);
-      if (!_current(owner, generation)) return null;
+      await _prepare(camera, valid);
+      if (!valid()) return null;
       _startKey ??= familyCallKey();
       final response = await state.api.post('/family-calls', {
         'idempotency_key': _startKey,
         'context_kind': contextKind,
         'context_id': ?contextId,
       });
-      if (!_current(owner, generation)) return null;
+      if (!valid()) return null;
       call = response;
       _renewAuthority(response);
       _startKey = null;
       if (_nativeAndroid) {
-        _mediaCallId = callId;
+        final startedCallId = callId!;
+        _mediaCallId = startedCallId;
         await FamilyCallNative.instance.startMedia(
-          callId!,
+          startedCallId,
           camera: camera,
           microphone: true,
         );
+        if (!valid()) {
+          if (_current(owner, generation)) {
+            await FamilyCallNative.instance.stopMedia(callId: startedCallId);
+          }
+          return null;
+        }
       }
       notifyListeners();
       return callId;
     } catch (e) {
-      if (_current(owner, generation)) {
+      if (valid()) {
         await _closeMedia();
         error = e is ApiError ? e.message : 'Kamera oder Mikrofon konnten nicht geöffnet werden. Erlaube den Zugriff oder sende eine Nachricht.';
         notifyListeners();
       }
       return null;
     } finally {
+      state.authenticationChanges.removeListener(invalidate);
       if (_current(owner, generation)) {
+        if (!valid()) await _closeMedia();
         busy = false;
         notifyListeners();
       }
@@ -359,6 +374,16 @@ class FamilyCallService extends ChangeNotifier {
   Future<void> join({bool camera = true}) async {
     if (busy || _ending || !live || media != null) return;
     final owner = _owner, generation = _generation;
+    final family = state.familyId, identity = state.api.requestIdentity();
+    bool valid() =>
+        _current(owner, generation) &&
+        state.familyId == family &&
+        state.api.ownsRequest(identity);
+    void invalidate() {
+      if (!valid() && _current(owner, generation)) unawaited(_closeMedia());
+    }
+
+    state.authenticationChanges.addListener(invalidate);
     final id = callId!;
     busy = true;
     error = null;
@@ -367,7 +392,7 @@ class FamilyCallService extends ChangeNotifier {
       final resuming = accepted;
       if (resuming) {
         final current = await state.api.get('/family-calls/$id');
-        if (!_current(owner, generation)) return;
+        if (!valid()) return;
         if (current['status'] != 'accepted' ||
             current['is_participant'] != true) {
           throw ApiError('Dieser Anruf ist nicht mehr für dich geöffnet.', 403);
@@ -377,39 +402,48 @@ class FamilyCallService extends ChangeNotifier {
         final history = await state.api.get(
           '/family-calls/$id/signals?after=0',
         );
-        if (!_current(owner, generation)) return;
+        if (!valid()) return;
         _cursor = (history['cursor'] as num?)?.toInt() ?? 0;
       }
-      await _prepare(camera, owner, generation);
-      if (!_current(owner, generation)) return;
+      await _prepare(camera, valid);
+      if (!valid()) return;
       if (incoming) {
         final response = await state.api.post('/family-calls/$id/accept', {});
-        if (!_current(owner, generation)) return;
+        if (!valid()) return;
         call = response;
         _renewAuthority(response);
       }
       if (_nativeAndroid) {
         _mediaCallId = id;
         await FamilyCallNative.instance.cancel(id);
+        if (!valid()) return;
         await FamilyCallNative.instance.startMedia(
           id,
           camera: camera,
           microphone: true,
         );
+        if (!valid()) {
+          if (_current(owner, generation)) {
+            await FamilyCallNative.instance.stopMedia(callId: id);
+          }
+          return;
+        }
       }
       await _connect(owner, generation);
-      if (_current(owner, generation) && resuming && isParent) {
+      if (valid() && resuming && isParent) {
         await _sendSignal('renegotiate', {}, owner, generation);
       }
-      if (_current(owner, generation)) notifyListeners();
+      if (valid()) notifyListeners();
     } catch (e) {
-      if (_current(owner, generation)) {
+      if (valid()) {
         await _closeMedia();
         error = e is ApiError ? e.message : 'Kamera oder Mikrofon konnten nicht geöffnet werden. Prüfe die Freigabe und versuche es erneut.';
         notifyListeners();
       }
     } finally {
+      state.authenticationChanges.removeListener(invalidate);
       if (_current(owner, generation)) {
+        if (!valid()) await _closeMedia();
         busy = false;
         notifyListeners();
       }
