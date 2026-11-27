@@ -164,8 +164,8 @@ def test_overrun_conflict_retains_exact_cost_and_sets_stop(api, book, transport,
     with DB.begin() as db:
         unit = db.get(LearningUnit, book["unit_id"])
         unit.status = "active"
-        unit.questions = [{"id": "q1", "type": "short", "prompt": "Was ist die Sonne?",
-                           "answer": "Stern", "options": [], "hints": [], "explanation": "Künstlich"}]
+        unit.questions = [{"id": "q1", "type": "short", "prompt": "Woraus besteht ein Stern?",
+                           "answer": "Gas", "options": [], "hints": [], "explanation": "Künstlich"}]
     turn_id = ask(book).json()["id"]
     with DB.begin() as db:
         turn = db.get(SchulbuddyTurn, turn_id)
