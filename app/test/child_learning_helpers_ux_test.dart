@@ -455,6 +455,160 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+  testWidgets('subject choices close as soon as a new login starts', (
+    tester,
+  ) async {
+    final controller = TextEditingController();
+    addTearDown(controller.dispose);
+    var changes = 0;
+    final state = account(
+      MockClient(
+        (_) async => reply({
+          'items': [
+            {'id': 'math', 'title': 'Privates Fach'},
+          ],
+        }),
+      ),
+    );
+    await tester.pumpWidget(
+      home(
+        SubjectField(
+          state,
+          childId: 'child',
+          controller: controller,
+          enabled: true,
+          changed: () => changes++,
+        ),
+      ),
+    );
+    await tap(tester, find.text('Fach auswählen'));
+    final stale = tester
+        .widget<ListTile>(find.widgetWithText(ListTile, 'Privates Fach'))
+        .onTap!;
+    state.beginAuthentication();
+    await tester.pumpAndSettle();
+    expect(find.text('Privates Fach'), findsNothing);
+    final ctx = tester.element(find.byType(SubjectField));
+    unawaited(
+      showDialog<void>(
+        context: ctx,
+        builder: (_) => const AlertDialog(title: Text('Neuer Dialog')),
+      ),
+    );
+    await tester.pumpAndSettle();
+    stale();
+    await tester.pumpAndSettle();
+    expect(find.text('Neuer Dialog'), findsOneWidget);
+    expect(controller.text, isEmpty);
+    expect(changes, 0);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('subject selection cannot start while a new login is pending', (
+    tester,
+  ) async {
+    final controller = TextEditingController();
+    addTearDown(controller.dispose);
+    var gets = 0;
+    final state = account(
+      MockClient((_) async {
+        gets++;
+        return reply({'items': []});
+      }),
+    );
+    state.beginAuthentication();
+    await tester.pumpWidget(
+      home(
+        SubjectField(
+          state,
+          childId: 'child',
+          controller: controller,
+          enabled: true,
+          changed: () {},
+        ),
+      ),
+    );
+    await tap(tester, find.text('Fach auswählen'));
+    expect(find.text('Fach suchen'), findsNothing);
+    expect(gets, 0);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('subject selection can be reopened after login is canceled', (
+    tester,
+  ) async {
+    final controller = TextEditingController();
+    addTearDown(controller.dispose);
+    var gets = 0;
+    final state = account(
+      MockClient((_) async {
+        gets++;
+        return reply({
+          'items': [
+            {'id': 'math', 'title': 'Mathematik'},
+          ],
+        });
+      }),
+    );
+    await tester.pumpWidget(
+      home(
+        SubjectField(
+          state,
+          childId: 'child',
+          controller: controller,
+          enabled: true,
+          changed: () {},
+        ),
+      ),
+    );
+    await tap(tester, find.text('Fach auswählen'));
+    final revision = state.beginAuthentication();
+    await tester.pumpAndSettle();
+    expect(find.text('Mathematik'), findsNothing);
+    state.cancelAuthentication(revision);
+    await tester.pumpAndSettle();
+    await tap(tester, find.text('Fach auswählen'));
+    expect(find.text('Mathematik'), findsOneWidget);
+    expect(gets, 2);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+    'late subject results cannot reopen selection after login intent',
+    (tester) async {
+      final controller = TextEditingController();
+      addTearDown(controller.dispose);
+      final pending = Completer<http.Response>();
+      final state = account(MockClient((_) => pending.future));
+      await tester.pumpWidget(
+        home(
+          SubjectField(
+            state,
+            childId: 'child',
+            controller: controller,
+            enabled: true,
+            changed: () {},
+          ),
+        ),
+      );
+      await tester.tap(find.text('Fach auswählen'));
+      await tester.pump();
+      state.beginAuthentication();
+      await tester.pumpAndSettle();
+      pending.complete(
+        reply({
+          'items': [
+            {'id': 'math', 'title': 'Privates Fach'},
+          ],
+        }),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Privates Fach'), findsNothing);
+      expect(controller.text, isEmpty);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets('late subject response is discarded after token replacement', (
     tester,
   ) async {

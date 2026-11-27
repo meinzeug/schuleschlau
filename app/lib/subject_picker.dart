@@ -20,7 +20,8 @@ class SubjectField extends StatelessWidget {
   });
 
   Future<void> choose(BuildContext context) async {
-    if (!enabled) return;
+    if (!enabled || state.authenticationPending) return;
+    final authenticationRevision = state.api.requestIdentity().$3;
     final account = state.user;
     final family = state.familyId;
     final token = state.api.token;
@@ -32,7 +33,9 @@ class SubjectField extends StatelessWidget {
         context.mounted &&
         identical(account, state.user) &&
         family == state.familyId &&
-        token == state.api.token;
+        token == state.api.token &&
+        !state.authenticationPending &&
+        authenticationRevision == state.api.requestIdentity().$3;
     void accountChanged() {
       if (!current() && route.isActive) {
         navigator.removeRoute(route);
@@ -53,6 +56,7 @@ class SubjectField extends StatelessWidget {
       ),
     );
     state.addListener(accountChanged);
+    state.authenticationChanges.addListener(accountChanged);
     try {
       final selected = await navigator.push(route);
       await route.completed;
@@ -62,7 +66,8 @@ class SubjectField extends StatelessWidget {
       }
     } finally {
       state.removeListener(accountChanged);
-      FocusManager.instance.primaryFocus?.unfocus();
+      state.authenticationChanges.removeListener(accountChanged);
+      if (current()) FocusManager.instance.primaryFocus?.unfocus();
     }
   }
 

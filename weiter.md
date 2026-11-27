@@ -2,6 +2,11 @@
 
 ## Arbeitsstand 27. November 2026: Quellen und Kontowechsel
 
+Die gemeinsame Fachauswahl bindet eine geöffnete Auswahl an die
+Anmeldeabsicht. Bei einer neuen Anmeldung schließt sie; alte Rückgaben oder
+Schaltflächen ändern den Entwurf nicht. Das ersetzt nicht den offenen
+allgemeinen API-/Cookie-Wettlauf.
+
 Der kostenfreie synthetische OpenRouter-Fototest ist jetzt an vier fest
 prüfsummengebundene Vorlagen und `data_collection: deny` gebunden. Der erste
 echte Versuch für `particle-ai/particle-1:free` mit festem Upstream scheiterte

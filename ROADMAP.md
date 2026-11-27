@@ -4401,6 +4401,16 @@ Bestandteil des bestehenden Buildvertrags.
     und Erklärgrafik-Auftrag; die gesonderte Cookie-Lücke bleibt offen.
 
   - [ ] **Verspätete gemeinsame API-Antworten nach Kontowechsel absichern.**
+
+    **Fachauswahl bei neuer Anmeldung schließen:** Die gemeinsame Auswahl
+    öffnet während einer Anmeldung keine neuen Listen. Eine bereits geöffnete
+    Auswahl wird bei neuer Anmeldeabsicht geschlossen; verspätete Ergebnisse
+    und alte Auswahlschaltflächen ändern den Entwurf nicht und schließen
+    keine neueren Dialoge. 57 künstliche Flutterfälle zu Fachauswahl, Material
+    und Lernhilfen bestanden; zehn Fälle bestanden im Chrome-Webrunner. Nach
+    einem Anmeldeabbruch kann die Auswahl bewusst erneut geöffnet werden.
+    Der übergreifende API-/Cookie-Wettlauf bleibt
+    offen; dies ist keine vollständige Kontowechselabnahme.
     Ein zentraler Abbruch über alle Transporte wurde nach fehlgeschlagener
     vollständiger CI zurückgenommen: Mehrere bestehende Aufrufer behandeln
     verspätete Ergebnisse selbst und fingen den neuen Fehler nicht ab; zudem
