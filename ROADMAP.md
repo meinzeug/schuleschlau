@@ -3929,6 +3929,17 @@ Bestandteil des bestehenden Buildvertrags.
 
 ## Laufende Qualitätssicherung und finale Freigabe
 
+- [x] **Browser-Testabschluss vor laufenden Anfragen schützen.** Im
+  GitHub-Lauf `45988628610` scheiterte der synthetische Mehrkind-PDF-Test
+  beim Aufräumen mit Verbindungsabbrüchen laufender lokaler Schriftdateien.
+  Die Netzwerksperre weist neue Anfragen beim Abschluss weiterhin ab und lässt
+  bereits begonnene Anfragen zunächst begrenzt auslaufen, bevor sie den
+  Browser offline setzt und die Routen entfernt. Ein neuer deterministischer
+  Regressionstest scheitert mit der vorherigen Reihenfolge. Der Netzwerkschutz
+  bestand mit echtem lokalem Chrome und zwei ausschließlich lokalen Servern;
+  der konkrete PDF-Browsertest bestand zweimal mit künstlichen Daten. Ein
+  erfolgreicher vollständiger GitHub-Lauf ist damit noch nicht nachgewiesen.
+
 - [x] **Katalogtest an die tatsächlich festgelegte CLI binden.** Der lokale
   Test verwechselt eine andere Entwicklungs-CLI nicht mehr mit der im
   Container vorgesehenen Version. Eine explizit angegebene Datei wird gegen

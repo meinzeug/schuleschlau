@@ -75,12 +75,16 @@ export async function closeRestrictedBrowserContext(context) {
   if (state) state.closing = true;
   let failure;
   try {
-    await bounded(context.setOffline(true), timeout, 'Taking browser offline');
-    // Drain our own handlers first: Playwright's unrouteAll can mark an
-    // active route handled before route.fetch finishes, deadlocking teardown.
+    // Keep routing installed while draining: closing=true blocks every new
+    // request, while existing allowed fetches can finish without an offline
+    // transition resetting their sockets. Never remove the guard on timeout.
     const drain = async () => {
       while (state?.handlers.size) await Promise.allSettled([...state.handlers]);
     };
+    await bounded(drain(), timeout, 'Draining browser routes');
+    await bounded(context.setOffline(true), timeout, 'Taking browser offline');
+    // A request may have reached the guard between the first drain and the
+    // offline transition. Finish its abort before removing routes.
     await bounded(drain(), timeout, 'Draining browser routes');
     await bounded(context.unrouteAll({behavior: 'wait'}), timeout, 'Removing browser routes');
     if (state?.failures.length) throw new AggregateError(state.failures, 'Synthetic browser network guard failed');

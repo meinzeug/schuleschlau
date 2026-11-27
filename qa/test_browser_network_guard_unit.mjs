@@ -28,12 +28,13 @@ const route = overrides => ({
 });
 
 test('new requests during cleanup are aborted, existing handler drains first', async () => {
-  const c = context();
+  let active = false, offline = false;
+  const c = context({async setOffline() { assert.equal(active, false); offline = true; }});
   await restrictBrowserNetwork(c, origin, {closeTimeoutMs: 1000});
   const gate = deferred();
   const started = deferred();
   const existing = c.handler(route({
-    async fetch() { started.resolve(); await gate.promise; return {status: () => 200}; },
+    async fetch() { active = true; started.resolve(); await gate.promise; active = false; return {status: () => 200}; },
     async fulfill() {},
   }));
   await started.promise;
@@ -45,8 +46,33 @@ test('new requests during cleanup are aborted, existing handler drains first', a
   }))));
   assert.equal(aborted, 100);
   assert.equal(c.closed, false);
+  assert.equal(offline, false);
   gate.resolve();
   await Promise.all([existing, closing]);
+  assert.equal(offline, true);
+  assert.equal(c.closed, true);
+});
+
+test('routes arriving while going offline are aborted and drained before unroute', async () => {
+  const offlineEntered = deferred(), finishOffline = deferred(), finishAbort = deferred();
+  let removed = false;
+  const c = context({
+    async setOffline() { offlineEntered.resolve(); await finishOffline.promise; },
+    async unrouteAll() { removed = true; },
+  });
+  await restrictBrowserNetwork(c, origin, {closeTimeoutMs: 1000});
+  const closing = closeRestrictedBrowserContext(c);
+  await offlineEntered.promise;
+  const blocked = c.handler(route({
+    async fetch() { assert.fail('closing guard must not fetch'); },
+    async abort() { await finishAbort.promise; },
+  }));
+  finishOffline.resolve();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(removed, false);
+  finishAbort.resolve();
+  await Promise.all([blocked, closing]);
+  assert.equal(removed, true);
   assert.equal(c.closed, true);
 });
 
