@@ -34,7 +34,7 @@ foreign.on('upgrade', (_req, socket) => { foreignUpgrades++; socket.destroy(); }
 await listen(foreign);
 const foreignOrigin = `http://127.0.0.1:${foreign.address().port}`;
 const originServer = http.createServer((req, res) => {
-  if (req.url === '/redirect') {
+  if (req.url === '/redirect' || req.url === '/assets/test/redirect.ttf') {
     res.writeHead(302, {location: foreignOrigin}); res.end();
   } else if (req.url === '/cookie') {
     res.setHeader('Set-Cookie', 'fixture=yes; Path=/; HttpOnly'); res.end('set');
@@ -86,6 +86,7 @@ try {
   }), foreignOrigin);
   assert.equal(wsFailed, true);
   await assert.rejects(page.goto(base + '/redirect'));
+  await assert.rejects(page.goto(base + '/assets/test/redirect.ttf'));
   assert.equal(foreignRequests, 0, 'foreign HTTP must not reach the other server');
   assert.equal(foreignUpgrades, 0, 'WebSocket must not reach the other server');
   // Close while a guarded response is still in flight. Disabling routing
