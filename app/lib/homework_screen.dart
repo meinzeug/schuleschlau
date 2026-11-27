@@ -1083,6 +1083,8 @@ class _HomeworkDetailScreenState extends State<_HomeworkDetailBody>
   final draftFocus = FocusNode();
   late final LocalTextHistory draftHistory;
   late final actorToken = widget.state.api.token;
+  late final authentication = widget.state.api.requestIdentity();
+  bool authenticationInvalidated = false;
   bool taskFocusMode = false;
   String helpKind = 'all';
   final Map<String, String> drafts = {}, taskQuestions = {};
@@ -1115,11 +1117,15 @@ class _HomeworkDetailScreenState extends State<_HomeworkDetailBody>
       restored = false,
       foreground = true,
       applying = false;
-  bool get own =>
+  bool get sameAccount =>
       actor != null &&
       identical(actor, widget.state.user) &&
       actorFamily == widget.state.familyId &&
       actorToken == widget.state.api.token;
+  bool get own =>
+      sameAccount &&
+      !authenticationInvalidated &&
+      widget.state.api.ownsRequest(authentication);
   bool get canWrite =>
       own &&
       widget.state.isChild &&
@@ -1155,6 +1161,7 @@ class _HomeworkDetailScreenState extends State<_HomeworkDetailBody>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     widget.state.addListener(identity);
+    widget.state.authenticationChanges.addListener(authenticationChanged);
     draftHistory = LocalTextHistory(
       draft,
       canRecord: () =>
@@ -1163,6 +1170,16 @@ class _HomeworkDetailScreenState extends State<_HomeworkDetailBody>
     draft.addListener(edited);
     question.addListener(editedQuestion);
     unawaited(load());
+  }
+
+  void authenticationChanged() {
+    if (!mounted || !sameAccount) return;
+    generation++;
+    poll?.cancel();
+    debounce?.cancel();
+    closePrivateDialogs();
+    FocusManager.instance.primaryFocus?.unfocus();
+    setState(() => authenticationInvalidated = true);
   }
 
   void identity() {
@@ -1224,6 +1241,7 @@ class _HomeworkDetailScreenState extends State<_HomeworkDetailBody>
     poll?.cancel();
     debounce?.cancel();
     widget.state.removeListener(identity);
+    widget.state.authenticationChanges.removeListener(authenticationChanged);
     WidgetsBinding.instance.removeObserver(this);
     draft.removeListener(edited);
     question.removeListener(editedQuestion);
@@ -2397,7 +2415,9 @@ class _HomeworkDetailScreenState extends State<_HomeworkDetailBody>
           'body': 'Ich brauche Hilfe bei meinen Hausaufgaben.',
           'material_id': widget.materialId,
         });
-        if (mounted && identical(widget.state.user, expectedAccount)) {
+        if (mounted &&
+            canWrite &&
+            identical(widget.state.user, expectedAccount)) {
           widget.state.refreshState();
           toast(context, 'Hilfewunsch gesendet.');
         }
@@ -2764,6 +2784,31 @@ class _HomeworkDetailScreenState extends State<_HomeworkDetailBody>
 
   @override
   Widget build(BuildContext context) {
+    if (authenticationInvalidated) {
+      return PageFrame(
+        state: widget.state,
+        title: 'Hausaufgaben',
+        showTitle: !widget.state.isChild,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text('Öffne deine Aufgabe noch einmal.'),
+            const SizedBox(height: 12),
+            FilledButton(
+              onPressed: () {
+                if (!sameAccount) return;
+                context.go(
+                  widget.state.isParent
+                      ? '/parent-homework/${widget.childId}'
+                      : '/homework/${widget.childId}',
+                );
+              },
+              child: const Text('Zu deinen Aufgabenfotos'),
+            ),
+          ],
+        ),
+      );
+    }
     final active =
         canWrite && !busy && !pending && !extracting && uncertainBody == null;
     final allRelevant = turns

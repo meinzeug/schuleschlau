@@ -1680,6 +1680,17 @@ Die folgenden Punkte beschreiben ausstehende, wiederholbare Betriebs- und Freiga
   automatisierte Freigabeprüfung ersetzt keinen unabhängigen Sicherheitstest.
 - [ ] **P1 – Datenlebenszyklus und Löschung pro Datenart prüfen**
 
+  - [x] **Hausaufgabenentwurf bei neuer Anmeldeabsicht schützen.** Die offene
+    Aufgabenansicht und ihre Dialoge werden verborgen; verzögerte Antworten,
+    bereits ausgelöste Hilfeaktionen und weitere automatische Speicherung des
+    alten Bildschirms bleiben gesperrt. Ein noch nicht gespeicherter Text
+    bleibt im bestehenden kontogebundenen Entwurf erhalten und kann nach
+    bewusstem erneutem Öffnen wiederhergestellt werden. Künstliche Fälle prüfen
+    auch eine verspätete Speicherung vor einer Hilfeanfrage. 66 angrenzende
+    Flutterfälle, zwei weitere Prüfungen für Klick und Dialog sowie vier
+    Prüfungen im Chrome-Webrunner bestanden. Die
+    gesamte Hausaufgaben- und geräteübergreifende Cookieabnahme bleibt offen.
+
   - [x] **Hausaufgabenfoto-Liste beim Anmeldewechsel schützen.** Ein neuer
     Anmeldeversuch verbirgt bisherige Fotos und schließt den internen
     Auswahldialog; verspätete Auswahl-, Listen- und Uploadantworten sowie alte

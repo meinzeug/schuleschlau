@@ -161,6 +161,127 @@ Future<void> tap(WidgetTester tester, String label) async {
 }
 
 void main() {
+  testWidgets(
+    'login intent hides homework detail and retains the local draft',
+    (tester) async {
+      final methods = <String>[];
+      final state = account(
+        MockClient((request) async {
+          methods.add(request.method);
+          expect(request.method, 'GET');
+          if (request.url.path.endsWith('/children/child/homework')) {
+            return reply({
+              'photos': [
+                {'id': 'photo', 'topic': 'Flächen', 'confirmed': true},
+              ],
+              'next_cursor': null,
+            });
+          }
+          return reply(fixture());
+        }),
+      );
+      await open(tester, state);
+      await tester.enterText(
+        find.byType(TextField).first,
+        'Mein eigener Versuch',
+      );
+      final revision = state.beginAuthentication();
+      await tester.pump();
+      expect(find.text('Mein eigener Versuch'), findsNothing);
+      expect(find.text('Zu deinen Aufgabenfotos'), findsOneWidget);
+      await tester.pump(const Duration(seconds: 1));
+      expect(methods.every((method) => method == 'GET'), isTrue);
+      state.cancelAuthentication(revision);
+      await tester.pump();
+      await tap(tester, 'Zu deinen Aufgabenfotos');
+      await tap(tester, 'Flächen');
+      expect(find.text('Mein eigener Versuch'), findsWidgets);
+      expect(methods.every((method) => method == 'GET'), isTrue);
+    },
+  );
+
+  testWidgets('late draft save cannot launch homework help after login', (
+    tester,
+  ) async {
+    final save = Completer<http.Response>();
+    final methods = <String>[];
+    final state = account(
+      MockClient((request) async {
+        methods.add(request.method);
+        if (request.method == 'PUT') return save.future;
+        expect(request.method, 'GET');
+        return reply(fixture());
+      }),
+    );
+    await open(tester, state);
+    await tester.enterText(
+      find.byType(TextField).first,
+      'Mein eigener Versuch',
+    );
+    await tester.ensureVisible(find.text('Erkläre es mir'));
+    await tester.tap(find.text('Erkläre es mir'));
+    await tester.pump();
+    expect(methods.where((method) => method == 'PUT'), hasLength(1));
+    final revision = state.beginAuthentication();
+    save.complete(reply({'revision': 4}));
+    await tester.pumpAndSettle();
+    expect(methods.where((method) => method == 'POST'), isEmpty);
+    expect(find.text('Mein eigener Versuch'), findsNothing);
+    expect(find.text('Zu deinen Aufgabenfotos'), findsOneWidget);
+    state.cancelAuthentication(revision);
+  });
+
+  testWidgets('an already queued help tap cannot start work after login', (
+    tester,
+  ) async {
+    final methods = <String>[];
+    final state = account(
+      MockClient((request) async {
+        methods.add(request.method);
+        expect(request.method, 'GET');
+        return reply(fixture());
+      }),
+    );
+    await open(tester, state);
+    final oldHelp = tester
+        .widget<OutlinedButton>(
+          find.widgetWithText(OutlinedButton, 'Erkläre es mir'),
+        )
+        .onPressed!;
+    final revision = state.beginAuthentication();
+    oldHelp();
+    await tester.pumpAndSettle();
+    expect(methods.every((method) => method == 'GET'), isTrue);
+    expect(find.text('Zu deinen Aufgabenfotos'), findsOneWidget);
+    state.cancelAuthentication(revision);
+  });
+
+  testWidgets('a private homework dialog closes when login starts', (
+    tester,
+  ) async {
+    final methods = <String>[];
+    final state = account(
+      MockClient((request) async {
+        methods.add(request.method);
+        expect(request.method, 'GET');
+        return reply(fixture(draft: 'Schon gespeicherter Versuch'));
+      }),
+    );
+    await open(tester, state);
+    await tap(tester, 'Schreibwerkzeuge');
+    final clear = find.text('Eigenen Versuch leeren').first;
+    await tester.ensureVisible(clear);
+    await tester.tap(clear);
+    await tester.pumpAndSettle();
+    expect(find.text('Eigenen Versuch leeren?'), findsOneWidget);
+    final revision = state.beginAuthentication();
+    await tester.pumpAndSettle();
+    expect(find.text('Eigenen Versuch leeren?'), findsNothing);
+    expect(find.text('Schon gespeicherter Versuch'), findsNothing);
+    expect(methods.every((method) => method == 'GET'), isTrue);
+    state.cancelAuthentication(revision);
+  });
+
   testWidgets('a new login intent immediately hides the homework photo list', (
     tester,
   ) async {
