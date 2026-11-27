@@ -632,3 +632,18 @@ def test_avatar_processing_shares_image_memory_slot_and_can_retry(api, mailbox, 
     assert invalid.status_code == 422
     valid = upload(api, raw, revision=revision, key="next-valid-attempt")
     assert valid.status_code == 200
+
+
+def test_oversize_avatar_warning_is_a_controlled_rejection():
+    """Pillow warnings promoted to errors must not become server failures."""
+    import warnings
+
+    from fastapi import HTTPException
+
+    raw = io.BytesIO()
+    with Image.new('L', (4001, 4000), 'white') as image:
+        image.save(raw, 'JPEG')
+    with warnings.catch_warnings(), pytest.raises(HTTPException) as rejected:
+        warnings.simplefilter('error', Image.DecompressionBombWarning)
+        profile_images.normalize(raw.getvalue())
+    assert rejected.value.status_code == 422

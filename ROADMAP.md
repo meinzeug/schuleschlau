@@ -2691,6 +2691,22 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Kapazitätsannahmen vor wachsendem Betrieb messen**
 
+  - [x] **Alte Quellbilder vor Ausschnitt-Dekodierung begrenzen.** Auch
+    historische oder beschädigte Speicherdateien werden beim Erzeugen eines
+    Heftausschnitts vor dem Laden der Pixel auf die bestehende Grenze von
+    16 Millionen Bildpunkten geprüft. Größere Dateien erhalten einen
+    verständlichen Hinweis auf das Original; genau die Grenze bleibt zulässig.
+    Ein künstlicher Regressionstest scheiterte vorher und besteht danach auf
+    SQLite und PostgreSQL, einschließlich Warnungen als Ausnahmen und
+    Freigabe des Verarbeitungsplatzes. Die Datei bleibt unverändert. Dies ist
+    keine produktive Lastmessung oder Abnahme anderer Bildpfade.
+
+  - [x] **Übergrößenwarnungen bei Profilbildern kontrolliert behandeln.**
+    Falls die Laufzeit Bildwarnungen zu Fehlern macht, wird ein unzulässiges
+    Bild als HTTP 422 abgewiesen. Der künstliche Gegenfall scheiterte zuvor;
+    die Profilbildsuite bestand danach auf SQLite und PostgreSQL mit je 32
+    Fällen. Die bestehende Acht-Megapixel-Grenze und Rechte bleiben erhalten.
+
   - [x] **Installierten Fotodienst mit künstlichem Bild und falscher UID prüfen.**
     Auf dem Zielserver verarbeitete die tatsächlich installierte getrennte
     Fotokomponente ein künstliches JPEG mit EXIF-Drehung korrekt; eine andere

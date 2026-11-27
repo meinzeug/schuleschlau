@@ -601,6 +601,14 @@ Der unabhängige Watchdog aus Commit `96c43ca` ist lokal installiert. Er meldet 
   Guard bestand der vollständige PDF-Browsertest anschließend zweimal lokal
   mit künstlichen Daten. Ein grüner GitHub-Gesamtlauf steht weiterhin aus.
 
+- Der vollständige GitHub-Lauf `46066281027` für `f21d4f0` war erfolgreich.
+- Quellausschnitte prüfen nun die bestehende 16-Megapixel-Grenze, bevor sie
+  Pixel älterer Speicherdateien laden. Bei Profilbildern werden zu Fehlern
+  verschärfte Pillow-Warnungen als ungültige Eingabe behandelt. Die gezielten
+  künstlichen Gegenfälle wurden vor und nach den Fixes geprüft; die vollständige
+  Produktionslast und ein Deployment bleiben offen. Details und Grenzen:
+  `docs/SOURCE_IMAGE_LIMIT_2026_11_28.md`.
+
 ## Nützliche Prüfungen
 
 - CI: `gh run list --limit 5` und `gh run view <ID>`; ein laufender oder abgebrochener Workflow ist kein grüner Gesamtnachweis.

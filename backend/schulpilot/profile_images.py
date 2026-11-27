@@ -94,7 +94,7 @@ def normalize(raw):
             if len(result) > MAX_STORED:
                 raise ValueError("Image remains too large")
             return result
-    except (UnidentifiedImageError, OSError, ValueError, Image.DecompressionBombError):
+    except (UnidentifiedImageError, OSError, ValueError, Image.DecompressionBombError, Image.DecompressionBombWarning):
         raise HTTPException(
             422, "Bitte ein gültiges einzelnes JPEG-, PNG- oder WebP-Bild bis 8 Megapixel wählen."
         ) from None

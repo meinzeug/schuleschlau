@@ -257,3 +257,47 @@ def test_source_crop_and_photo_import_share_bounded_memory_slot(api, household, 
     with DB() as db:
         assert [db.scalar(select(func.count()).select_from(t)) for t in (Job, Usage, Activity)] == before
     (folder / name).unlink()
+
+
+def test_source_crop_rejects_oversized_stored_image_before_decoding(api, household):
+    """A malformed or historical source cannot bypass the upload pixel limit."""
+    import warnings
+    from unittest.mock import patch
+
+    from PIL import Image
+    from schulpilot.config import settings
+    from schulpilot.db import DB
+
+    _, child = household
+    folder = settings.data_dir / 'uploads'
+    folder.mkdir(exist_ok=True)
+    path = folder / 'synthetic-pixel-boundary.jpg'
+    block = {'kind': 'diagram_text', 'text': 'Künstlicher Ausschnitt',
+             'image_region': {'left': 100, 'top': 100, 'right': 120, 'bottom': 120}}
+    with DB.begin() as db:
+        material = Material(child_id=child['id'], title='Künstlich', path=path.name,
+                            content=block['text'], source_blocks=[block])
+        db.add(material)
+        db.flush()
+        mid = material.id
+    route = f'/api/materials/{mid}/figures/0?revision=1'
+    with Image.new('L', (4001, 4000), 'white') as too_large:
+        too_large.save(path, 'JPEG')
+    with warnings.catch_warnings(), patch.object(Image.Image, 'crop', side_effect=AssertionError('oversized image decoded')):
+        warnings.simplefilter('ignore', Image.DecompressionBombWarning)
+        response = api.get(route)
+    assert response.status_code == 422
+    assert 'vollständigen Heftfoto' in response.json()['detail']
+    # A deployment may promote Pillow warnings to exceptions. This remains a
+    # controlled rejection and must not consume the image processing slot.
+    with warnings.catch_warnings(), patch.object(Image.Image, 'crop', side_effect=AssertionError('oversized image decoded')):
+        warnings.simplefilter('error', Image.DecompressionBombWarning)
+        promoted = api.get(route)
+    assert promoted.status_code == 422
+    # Exactly 16 megapixels remains usable; the rejected request released its slot.
+    with Image.new('L', (4000, 4000), 'white') as boundary:
+        boundary.save(path, 'JPEG')
+    accepted = api.get(route)
+    assert accepted.status_code == 200
+    assert accepted.headers['content-type'] == 'image/jpeg'
+    assert accepted.headers['cache-control'] == 'no-store'

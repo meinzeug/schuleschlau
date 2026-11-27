@@ -32,7 +32,8 @@ from .providers import ProviderError, config_for_function, external_allowed, res
 from .security import authenticated, child_access, lock_session_after_child, rate_limit
 
 router = APIRouter(tags=["Materialien und KI-Aufträge"])
-Image.MAX_IMAGE_PIXELS = 16_000_000
+_MAX_SOURCE_IMAGE_PIXELS = 16_000_000
+Image.MAX_IMAGE_PIXELS = _MAX_SOURCE_IMAGE_PIXELS
 
 def material_data(material):
     value = learning_material_data(material)
@@ -412,6 +413,10 @@ def source_figure(material_id: str, block_index: int, revision: int,
             raise HTTPException(404, "Das Heftfoto ist nicht mehr verfügbar.")
         try:
             with Image.open(io.BytesIO(data)) as original:
+                # Old or damaged stored sources did not necessarily pass the
+                # current decoder. Refuse oversize before Pillow loads pixels.
+                if original.width * original.height > _MAX_SOURCE_IMAGE_PIXELS:
+                    raise HTTPException(422, "Bitte die Abbildung im vollständigen Heftfoto ansehen.")
                 # A small margin protects labels against approximate OCR bounds.
                 bounds = (max(0, region["left"] - 12), max(0, region["top"] - 12),
                           min(1000, region["right"] + 12), min(1000, region["bottom"] + 12))
@@ -421,7 +426,7 @@ def source_figure(material_id: str, block_index: int, revision: int,
                 crop.thumbnail((1600, 2000))
                 output = io.BytesIO()
                 crop.save(output, format="JPEG", quality=92)
-        except (OSError, ValueError, Image.DecompressionBombError):
+        except (OSError, ValueError, Image.DecompressionBombError, Image.DecompressionBombWarning):
             raise HTTPException(422, "Bitte die Abbildung im vollständigen Heftfoto ansehen.") from None
         # Derived on demand from authenticated original pixels; no disk copy,
         # provider call, progress write, or public image cache.
