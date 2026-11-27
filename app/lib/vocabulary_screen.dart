@@ -1634,11 +1634,33 @@ class _VocabularyScreenState extends State<_VocabularyBody>
         }
       }
     }
-    final existingCollection = collections
-        .where((r) => r['id'] == collection && r['target_locale'] == locale)
-        .firstOrNull;
-    String? targetCollection =
-        pendingImport?['collection_id'] ?? existingCollection?['id'];
+    final namedDefaults = collections
+        .where(
+          (r) =>
+              r['title'] == 'Meine Schulwörter' && r['target_locale'] == locale,
+        )
+        .toList();
+    final collectionPreviewComplete =
+        data?['supports_collections'] == true &&
+        data?['collections_total'] is int &&
+        data?['collections_total'] == collections.length;
+    final suggestedDefault =
+        widget.state.isChild &&
+            pendingImport == null &&
+            widget.materialId == null &&
+            collection == null &&
+            collectionPreviewComplete &&
+            namedDefaults.length == 1
+        ? namedDefaults.single
+        : null;
+    final existingCollection =
+        collections
+            .where((r) => r['id'] == collection && r['target_locale'] == locale)
+            .firstOrNull ??
+        suggestedDefault;
+    String? targetCollection = pendingImport != null
+        ? pendingImport['collection_id'] as String?
+        : existingCollection?['id'];
     final title = TextEditingController(
       text:
           pendingImport?['title'] ??
@@ -1686,6 +1708,9 @@ class _VocabularyScreenState extends State<_VocabularyBody>
         controllers: [title, text, word, meaning],
         child: StatefulBuilder(
           builder: (ctx, update) => AlertDialog(
+            insetPadding: widget.state.isChild
+                ? const EdgeInsets.symmetric(horizontal: 16, vertical: 24)
+                : null,
             title: const Text('Wörter hinzufügen'),
             content: SizedBox(
               width: 520,
@@ -1719,21 +1744,41 @@ class _VocabularyScreenState extends State<_VocabularyBody>
                       }),
                     ),
                     if (widget.state.isChild)
-                      TextButton.icon(
+                      TextButton(
                         key: const ValueKey('vocabulary-collection-toggle'),
                         onPressed: () =>
                             update(() => showCollection = !showCollection),
-                        icon: Icon(
-                          showCollection
-                              ? Icons.expand_less
-                              : Icons.expand_more,
-                        ),
-                        label: Text(
-                          showCollection
-                              ? 'Sammlung schließen'
-                              : 'Sammlung: ${title.text.trim().isEmpty ? 'Name fehlt' : title.text.trim()}',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                        child: Row(
+                          children: [
+                            Icon(
+                              showCollection
+                                  ? Icons.expand_less
+                                  : Icons.expand_more,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    showCollection
+                                        ? 'Sammlung schließen'
+                                        : targetCollection == null
+                                        ? 'Neue Sammlung'
+                                        : 'Sammlung',
+                                  ),
+                                  if (!showCollection)
+                                    Text(
+                                      title.text.trim().isEmpty
+                                          ? 'Name fehlt'
+                                          : title.text.trim(),
+                                      maxLines: 5,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     if (showCollection &&

@@ -2,6 +2,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 
@@ -30,7 +31,21 @@ void main() {
           expect(word, findsOneWidget);
           expect(meaning, findsOneWidget);
           expect(find.text('Lernsprache bestätigen'), findsOneWidget);
-          expect(find.text('Sammlung: Meine Schulwörter'), findsOneWidget);
+          expect(find.text('Neue Sammlung'), findsOneWidget);
+          expect(find.text('Meine Schulwörter'), findsOneWidget);
+          for (final labelText in ['Neue Sammlung', 'Meine Schulwörter']) {
+            final label = find.descendant(
+              of: find.text(labelText),
+              matching: find.byType(RichText),
+            );
+            final rendered = tester.renderObject<RenderParagraph>(label);
+            expect(
+              rendered.didExceedMaxLines,
+              isFalse,
+              reason:
+                  'size=${rendered.size}, constraints=${rendered.constraints}, maxLines=${rendered.maxLines}',
+            );
+          }
           expect(find.text('Wörter speichern in'), findsNothing);
           await fixture.tap(tester, find.text('Wort prüfen'));
           expect(
@@ -137,6 +152,125 @@ void main() {
         'bird',
       );
       expect(calls.where((r) => r.method == 'POST'), isEmpty);
+    },
+  );
+  for (final caseData in [
+    (total: 1, duplicates: false, expectedId: 'default'),
+    (total: 2, duplicates: false, expectedId: null),
+    (total: 2, duplicates: true, expectedId: null),
+  ]) {
+    testWidgets(
+      'default collection is reused only when unambiguous: $caseData',
+      (tester) async {
+        final calls = <http.Request>[];
+        final listing = fixture.listing();
+        listing['supports_collections'] = true;
+        listing['collections_total'] = caseData.total;
+        listing['collections'] = [
+          {
+            'id': 'default',
+            'title': 'Meine Schulwörter',
+            'target_locale': 'en-GB',
+          },
+          if (caseData.duplicates)
+            {
+              'id': 'other',
+              'title': 'Meine Schulwörter',
+              'target_locale': 'en-GB',
+            },
+        ];
+        await fixture.open(
+          tester,
+          calls,
+          openTools: false,
+          cards: false,
+          wordListing: listing,
+        );
+        await fixture.tap(tester, find.byTooltip('Wörter hinzufügen'));
+        expect(
+          find.text(caseData.expectedId == null ? 'Neue Sammlung' : 'Sammlung'),
+          findsOneWidget,
+        );
+        expect(find.text('Meine Schulwörter'), findsOneWidget);
+        await tester.enterText(
+          find.byKey(const ValueKey('vocabulary-single-word')),
+          'bird',
+        );
+        await tester.enterText(
+          find.byKey(const ValueKey('vocabulary-single-meaning')),
+          'Vogel',
+        );
+        await fixture.tap(tester, find.text('Wort prüfen'));
+        final post = calls.singleWhere((r) => r.method == 'POST');
+        expect(jsonDecode(post.body)['collection_id'], caseData.expectedId);
+      },
+    );
+  }
+  testWidgets(
+    'retry preserves the suggested collection and original request key',
+    (tester) async {
+      final calls = <http.Request>[];
+      final listing = fixture.listing()
+        ..['supports_collections'] = true
+        ..['collections_total'] = 1
+        ..['collections'] = [
+          {
+            'id': 'default',
+            'title': 'Meine Schulwörter',
+            'target_locale': 'en-GB',
+          },
+        ];
+      await fixture.open(
+        tester,
+        calls,
+        openTools: false,
+        cards: false,
+        respond: (request) async {
+          if (request.method == 'POST' &&
+              request.url.path.endsWith('/imports')) {
+            return http.Response(
+              '{"detail":"Antwort unterwegs verloren"}',
+              503,
+              headers: {'content-type': 'application/json'},
+            );
+          }
+          if (request.url.path.endsWith('/imports')) {
+            return fixture.reply({'imports': []});
+          }
+          return fixture.reply(listing);
+        },
+      );
+      await fixture.tap(tester, find.byTooltip('Wörter hinzufügen'));
+      await tester.enterText(
+        find.byKey(const ValueKey('vocabulary-single-word')),
+        'bird',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('vocabulary-single-meaning')),
+        'Vogel',
+      );
+      await fixture.tap(tester, find.text('Wort prüfen'));
+      await fixture.tap(tester, find.byTooltip('Wörter hinzufügen'));
+      expect(
+        tester
+            .widget<TextField>(
+              find.byKey(const ValueKey('vocabulary-single-word')),
+            )
+            .controller!
+            .text,
+        'bird',
+      );
+      await fixture.tap(tester, find.text('Wort prüfen'));
+      final posts = calls.where((r) => r.method == 'POST').toList();
+      expect(posts, hasLength(2));
+      expect(jsonDecode(posts.first.body)['collection_id'], 'default');
+      expect(posts.first.body, posts.last.body);
+      expect(
+        posts.first.headers['Idempotency-Key'] ??
+            posts.first.headers['idempotency-key'],
+        posts.last.headers['Idempotency-Key'] ??
+            posts.last.headers['idempotency-key'],
+      );
     },
   );
   testWidgets('parent retains the existing list entry form', (tester) async {

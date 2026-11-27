@@ -62,6 +62,49 @@ Future<void> choose(WidgetTester t) async {
 }
 
 void main() {
+  testWidgets('a retry for a new collection ignores a later list filter', (
+    t,
+  ) async {
+    final calls = <http.Request>[];
+    await f.open(
+      t,
+      calls,
+      respond: (q) async {
+        if (q.method == 'POST' && q.url.path.endsWith('/imports')) {
+          return http.Response(
+            '{"detail":"Antwort unterwegs verloren"}',
+            503,
+            headers: {'content-type': 'application/json'},
+          );
+        }
+        return regular(q);
+      },
+    );
+    await f.tap(t, find.byTooltip('Wörter hinzufügen'));
+    await t.enterText(
+      find.byKey(const ValueKey('vocabulary-single-word')),
+      'bird',
+    );
+    await t.enterText(
+      find.byKey(const ValueKey('vocabulary-single-meaning')),
+      'Vogel',
+    );
+    await f.tap(t, find.text('Wort prüfen'));
+    await choose(t);
+    await f.tap(t, find.byTooltip('Wörter hinzufügen'));
+    expect(find.text('Neue Sammlung'), findsOneWidget);
+    await f.tap(t, find.text('Wort prüfen'));
+    final posts = calls.where((q) => q.method == 'POST').toList();
+    expect(posts, hasLength(2));
+    expect(jsonDecode(posts.first.body).containsKey('collection_id'), isFalse);
+    expect(posts.first.body, posts.last.body);
+    expect(
+      posts.first.headers['Idempotency-Key'] ??
+          posts.first.headers['idempotency-key'],
+      posts.last.headers['Idempotency-Key'] ??
+          posts.last.headers['idempotency-key'],
+    );
+  });
   testWidgets(
     'RQ052 an empty collection is explicitly saved once with a retry key',
     (t) async {
@@ -182,7 +225,7 @@ void main() {
       );
       await choose(t);
       await f.tap(t, find.byTooltip('Wörter hinzufügen'));
-      expect(find.text('Sammlung: Schulwörter'), findsOneWidget);
+      expect(find.text('Schulwörter'), findsWidgets);
       await f.tap(
         t,
         find.byKey(const ValueKey('vocabulary-collection-toggle')),

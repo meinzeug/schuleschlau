@@ -1150,6 +1150,21 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – Alle Kinderansichten sprachlich und in ihrer Bedienung entrümpeln**
 
+  - [x] **Schulwörter eindeutig in der vorhandenen Standardsammlung ergänzen.**
+    Eine einzelne, zur gewählten Sprache passende „Meine Schulwörter“-Sammlung
+    wird im Kinderzugang nur dann vorgeschlagen, wenn die geladene Übersicht
+    vollständig ist und genau einen solchen Treffer enthält. Das Ziel ist
+    sichtbar und änderbar; bei mehrdeutiger oder unvollständiger Übersicht wird
+    keine bestehende Sammlung erraten. Wiederaufgenommene Sendeversuche behalten
+    ihr ursprüngliches Ziel, auch wenn die ursprüngliche Aktion eine neue
+    Sammlung anlegen sollte und später ein Listenfilter geändert wurde.
+    Widgettests prüfen diese Fälle und den tatsächlich
+    unbeschnittenen Standardnamen bei 320/390 Pixeln und doppelter Schrift.
+    34 gezielte Fälle bestanden; Elternabläufe und serverseitige
+    Besitzprüfungen bleiben erhalten. Die Eindeutigkeit gilt für die geladene
+    Übersicht; eine spätere Umbenennung auf einem anderen Gerät ist damit nicht
+    revisionsgebunden nachgewiesen.
+
   - [x] **Leeren Hausaufgabenbereich ehrlich und freundlich zeigen.** Vor dem
     ersten Foto behauptet der Hinweis keinen bereits laufenden Lesevorgang;
     er erklärt knapp die Hilfe durch Eltern. Der vorhandene Schulbuddy lockert
