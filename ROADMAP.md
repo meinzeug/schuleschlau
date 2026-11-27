@@ -1150,6 +1150,19 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – Alle Kinderansichten sprachlich und in ihrer Bedienung entrümpeln**
 
+  - [x] **Fortsetzung einer pausierten Runde verständlich begründen.** Die
+    tatsächliche mobile Startseite zeigte auf „Warum dieser Lernschritt?“
+    bisher lediglich einen Speicherhinweis. Der Lerncontroller nennt bei
+    pausierten Runden nun den belegten Pausenstatus und die Möglichkeit,
+    dort weiterzumachen; er erfindet keine bereits gegebene Antwort. Die
+    Erklärung ist eine Statusauskunft und keine behauptete pädagogische
+    Gesamtbegründung. Bei veränderter Quelle fordert der Controller keine
+    konkrete Person zur Prüfung auf; beim entsprechenden Fehlercode ohne
+    gesonderten Blockertext verweist die Kinderansicht auf die Eltern.
+    21 künstliche Controllerfälle, zwei erneute gezielte Fälle und 39
+    Flutterfälle zur Vorbereitung und Startseite bestanden. Der umfassende
+    Hauptpunkt und das Ausrollen bleiben offen.
+
   - [x] **Klassenarbeit ohne Kinder-Prüfauftrag planen.** Fehlen geprüfte
     Heftseiten, verweist der Kinderdialog verständlich auf die Eltern, statt
     das Kind selbst zur Quellenbestätigung aufzufordern. Bei vorhandenen

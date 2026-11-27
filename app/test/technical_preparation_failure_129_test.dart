@@ -411,6 +411,26 @@ void main() {
     expect(server.submissions, 0);
   });
 
+  testWidgets('Geänderte Seite verweist das Kind an die Eltern', (
+    tester,
+  ) async {
+    final server = background.PreparationServer(
+      stage: 'review',
+      pages: [background.source(1, status: 'confirmed')],
+      preparation: failedPreparation(code: 'source_changed', error: ''),
+    );
+    await mountDay(tester, server);
+    expect(
+      find.text(
+        'Eine Heftseite wurde geändert. Deine Eltern können die Seite prüfen.',
+      ),
+      findsOneWidget,
+    );
+    expect(server.submissions, 0);
+    expect(server.requests.every((call) => call.startsWith('GET ')), isTrue);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('129 study failure opens saved notebooks without preparation', (
     tester,
   ) async {

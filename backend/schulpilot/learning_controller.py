@@ -245,7 +245,7 @@ def decide(db, unit, memory=None):
         on_success="check_understanding", on_error="hint")
     if not data["source_valid"]:
         value.update(kind="confirm_source", phase="entry", reason_code="source_changed",
-            title="Der Lernstoff wurde geändert", reason="Die alte Runde bleibt gespeichert. Prüfe zuerst die neue Heftseite.",
+            title="Der Lernstoff wurde geändert", reason="Die alte Runde bleibt gespeichert. Die neue Heftseite braucht zuerst eine Prüfung.",
             expected_result="Aktuell bestätigter Lernstoff.", on_success="check_prior", on_error="confirm_source")
     elif unit.status != "completed" and (model_action := instructional_decisions.action(db, unit)):
         value.update(model_action)
@@ -298,7 +298,7 @@ def decide(db, unit, memory=None):
                 on_success="practice", on_error="visual_example")
     elif unit.status == "paused":
         value.update(kind="resume", phase="entry", reason_code="paused", title="Mach hier weiter",
-            reason="Deine Antwort und Lernposition bleiben gespeichert.", on_success="practice", on_error="offer_break")
+            reason="Diese Runde ist pausiert. Hier kannst du weitermachen.", on_success="practice", on_error="offer_break")
     elif not unit.introduction_seen and not data["attempts"] and unit.round_kind not in ("check", "review", "vocabulary"):
         from .coaching import fraction_task_goal
         from .learning import local_day

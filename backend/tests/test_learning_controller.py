@@ -56,6 +56,20 @@ def test_single_error_gets_a_small_hint_not_a_diagnosis(normal_unit):
         assert db.scalar(select(func.count()).select_from(Job)) == 0
 
 
+def test_paused_round_explains_why_it_can_continue_without_inventing_answers(normal_unit):
+    client, unit_id, *_ = normal_unit
+    start(client, unit_id)
+    response = client.post(f"/api/units/{unit_id}/pause")
+    assert response.status_code == 200
+    session = client.get(endpoint(unit_id)).json()
+    assert session["action"]["kind"] == "resume"
+    assert session["action"]["reason_code"] == "paused"
+    assert session["action"]["reason"] == "Diese Runde ist pausiert. Hier kannst du weitermachen."
+    with DB() as db:
+        assert db.scalar(select(func.count()).select_from(Attempt)) == 0
+        assert db.scalar(select(func.count()).select_from(Job)) == 0
+
+
 def test_repeated_observed_denominator_error_changes_strategy(normal_unit):
     client, unit_id, *_ = normal_unit
     start(client, unit_id)
@@ -139,6 +153,7 @@ def test_changed_material_invalidates_decision_without_rewriting_answers(normal_
         brain.observe(db, unit, "material_revised", "source-change-1", ["material:" + material_id])
     session = client.get(endpoint(unit_id)).json()
     assert not session["source_valid"] and session["action"]["kind"] == "confirm_source"
+    assert session["action"]["reason"] == "Die alte Runde bleibt gespeichert. Die neue Heftseite braucht zuerst eine Prüfung."
     with DB() as db:
         assert db.scalar(select(Attempt)).outcome == "correct"
 
