@@ -4027,6 +4027,15 @@ Bestandteil des bestehenden Buildvertrags.
     ohne unklare Schreibvorgänge automatisch zu wiederholen. Der separate
     Cookie-Wettlauf bleibt ebenfalls offen.
 
+    **Hilfeauswahl bei neuer Anmeldung schließen:** Die offene Hilfeauswahl
+    und ihr optionaler Dialog zum erneuten Laden sind an die ursprüngliche
+    Anmeldeabsicht gebunden. Zuvor eingefangene Aktionen senden keine Nachricht
+    und lösen kein Neuladen aus. Beide Dialogrouten werden getrennt verfolgt,
+    damit die ausblendende Auswahl nicht die Referenz des nachfolgenden
+    Dialogs überschreibt. 35 künstliche Fälle zu Hilfe und Kinderstartseite
+    bestanden; separate Nachrichten- und Anrufformulare sowie das globale
+    Cookie-Problem sind damit nicht allgemein abgenommen.
+
     **Geöffnete Heftfotos bei Anmeldebeginn ausblenden:** Die Fotoansicht
     blendet das private Bild aus und fordert seine Entfernung aus dem Cache an,
     verwirft verspätete

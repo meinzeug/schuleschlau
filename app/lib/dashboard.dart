@@ -3413,30 +3413,34 @@ Future<void> showHomeHelp(
   required VoidCallback refresh,
 }) async {
   final account = state.user, family = state.familyId;
+  final identity = state.api.requestIdentity();
   final sourceRoute = ModalRoute.of(context);
-  bool current() =>
-      context.mounted &&
+  bool owns() =>
       account != null &&
       identical(state.user, account) &&
       state.familyId == family &&
-      sourceRoute?.isCurrent != false;
+      state.api.ownsRequest(identity);
+  bool current() =>
+      context.mounted && owns() && sourceRoute?.isCurrent != false;
   if (!current()) return;
-  ModalRoute<dynamic>? helpRoute;
+  ModalRoute<dynamic>? sheetRoute, technicalRoute;
   void changed() {
-    if (!identical(state.user, account) || state.familyId != family) {
-      final route = helpRoute;
-      if (route?.isActive == true) route!.navigator?.removeRoute(route);
+    if (!owns()) {
+      for (final route in [technicalRoute, sheetRoute]) {
+        if (route?.isActive == true) route!.navigator?.removeRoute(route);
+      }
     }
   }
 
   state.addListener(changed);
+  state.authenticationChanges.addListener(changed);
   String? choice;
   try {
     choice = await showModalBottomSheet<String>(
       context: context,
       showDragHandle: true,
       builder: (ctx) {
-        helpRoute = ModalRoute.of(ctx);
+        sheetRoute = ModalRoute.of(ctx);
         return SafeArea(
           child: SingleChildScrollView(
             child: Column(
@@ -3464,9 +3468,8 @@ Future<void> showHomeHelp(
                     title: Text(option.$2),
                     onTap: () {
                       if (ctx.mounted &&
-                          identical(state.user, account) &&
-                          state.familyId == family &&
-                          helpRoute?.isCurrent == true) {
+                          owns() &&
+                          sheetRoute?.isCurrent == true) {
                         Navigator.pop(ctx, option.$1);
                       }
                     },
@@ -3479,6 +3482,7 @@ Future<void> showHomeHelp(
     );
   } finally {
     state.removeListener(changed);
+    state.authenticationChanges.removeListener(changed);
   }
   if (!context.mounted || !current() || choice == null) return;
   if (choice == 'parents') {
@@ -3501,10 +3505,7 @@ Future<void> showHomeHelp(
       context: context,
       builder: (ctx) {
         bool canClose() =>
-            ctx.mounted &&
-            identical(state.user, account) &&
-            state.familyId == family &&
-            ModalRoute.of(ctx)?.isCurrent == true;
+            ctx.mounted && owns() && ModalRoute.of(ctx)?.isCurrent == true;
         return AlertDialog(
           title: Text('Gespeicherten Stand neu laden'),
           content: Text(
@@ -3527,14 +3528,16 @@ Future<void> showHomeHelp(
         );
       },
     );
-    helpRoute = route;
+    technicalRoute = route;
     state.addListener(changed);
+    state.authenticationChanges.addListener(changed);
     bool? reload;
     try {
       reload = await Navigator.of(context, rootNavigator: true).push(route);
       await route.completed;
     } finally {
       state.removeListener(changed);
+      state.authenticationChanges.removeListener(changed);
     }
     if (reload == true && current()) refresh();
   } else {

@@ -319,6 +319,67 @@ void main() {
     state.dispose();
   });
 
+  for (final technical in [false, true]) {
+    testWidgets(
+      'New sign-in closes the old home help${technical ? ' retry' : ''}',
+      (tester) async {
+        final requests = <http.Request>[];
+        final state = AppState(
+          api: Api(
+            client: MockClient((r) async {
+              requests.add(r);
+              return http.Response('{}', 200);
+            }),
+          ),
+        )..user = {'id': 'kid', 'role': 'child', 'child_id': 'child'};
+        var reloads = 0;
+        await tester.pumpWidget(
+          frame(
+            Builder(
+              builder: (context) => TextButton(
+                onPressed: () => showHomeHelp(
+                  context,
+                  state,
+                  childId: 'child',
+                  refresh: () => reloads++,
+                ),
+                child: const Text('Hilfe öffnen'),
+              ),
+            ),
+          ),
+        );
+        await tester.tap(find.text('Hilfe öffnen'));
+        await tester.pumpAndSettle();
+        VoidCallback saved;
+        if (technical) {
+          await tester.tap(find.text('Etwas funktioniert nicht'));
+          await tester.pumpAndSettle();
+          saved = tester
+              .widget<FilledButton>(
+                find.widgetWithText(FilledButton, 'Erneut laden'),
+              )
+              .onPressed!;
+        } else {
+          saved = tester
+              .widget<ListTile>(
+                find.widgetWithText(ListTile, 'Meine Eltern fragen'),
+              )
+              .onTap!;
+        }
+        state.beginAuthentication();
+        saved();
+        await tester.pumpAndSettle();
+        expect(find.text('Wobei brauchst du Hilfe?'), findsNothing);
+        expect(find.text('Gespeicherten Stand neu laden'), findsNothing);
+        expect(requests, isEmpty);
+        expect(reloads, 0);
+        expect(tester.takeException(), isNull);
+        await tester.pumpWidget(const SizedBox());
+        state.dispose();
+      },
+    );
+  }
+
   testWidgets(
     '21 saved pages and 3 pending photos remain viewable at the daily limit',
     (tester) async {
