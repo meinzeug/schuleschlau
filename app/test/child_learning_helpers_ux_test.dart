@@ -528,6 +528,13 @@ void main() {
         ),
       ),
     );
+    final button = tester.widget<OutlinedButton>(
+      find.descendant(
+        of: find.byType(SubjectField),
+        matching: find.byType(OutlinedButton),
+      ),
+    );
+    expect(button.onPressed, isNull);
     await tap(tester, find.text('Fach auswählen'));
     expect(find.text('Fach suchen'), findsNothing);
     expect(gets, 0);

@@ -4472,8 +4472,9 @@ Bestandteil des bestehenden Buildvertrags.
     Der allgemeine Cookie-Wettlauf bleibt offen.
 
     **Fachauswahl bei neuer Anmeldung schließen:** Die gemeinsame Auswahl
-    öffnet während einer Anmeldung keine neuen Listen. Eine bereits geöffnete
-    Auswahl wird bei neuer Anmeldeabsicht geschlossen; verspätete Ergebnisse
+    öffnet während einer Anmeldung keine neuen Listen und wird sichtbar
+    deaktiviert. Eine bereits geöffnete Auswahl wird bei neuer Anmeldeabsicht
+    geschlossen; verspätete Ergebnisse
     und alte Auswahlschaltflächen ändern den Entwurf nicht und schließen
     keine neueren Dialoge. 57 künstliche Flutterfälle zu Fachauswahl, Material
     und Lernhilfen bestanden; zehn Fälle bestanden im Chrome-Webrunner. Nach

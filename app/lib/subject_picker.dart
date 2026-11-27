@@ -72,46 +72,54 @@ class SubjectField extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) => Semantics(
-    button: true,
-    enabled: enabled,
-    label: 'Fach auswählen',
-    value: controller.text.isEmpty ? 'Noch nicht ausgewählt' : controller.text,
-    onTap: enabled ? () => choose(context) : null,
-    excludeSemantics: true,
-    child: OutlinedButton(
-      onPressed: enabled ? () => choose(context) : null,
-      style: OutlinedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-        alignment: Alignment.centerLeft,
-      ),
-      child: ExcludeSemantics(
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Fach',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: context.palette.muted,
-                    ),
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: Listenable.merge([state, state.authenticationChanges]),
+    builder: (context, _) {
+      final canChoose = enabled && !state.authenticationPending;
+      return Semantics(
+        button: true,
+        enabled: canChoose,
+        label: 'Fach auswählen',
+        value: controller.text.isEmpty
+            ? 'Noch nicht ausgewählt'
+            : controller.text,
+        onTap: canChoose ? () => choose(context) : null,
+        excludeSemantics: true,
+        child: OutlinedButton(
+          onPressed: canChoose ? () => choose(context) : null,
+          style: OutlinedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+            alignment: Alignment.centerLeft,
+          ),
+          child: ExcludeSemantics(
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Fach',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: context.palette.muted,
+                        ),
+                      ),
+                      Text(
+                        controller.text.isEmpty
+                            ? 'Fach auswählen'
+                            : controller.text,
+                      ),
+                    ],
                   ),
-                  Text(
-                    controller.text.isEmpty
-                        ? 'Fach auswählen'
-                        : controller.text,
-                  ),
-                ],
-              ),
+                ),
+                const Icon(Icons.expand_more),
+              ],
             ),
-            const Icon(Icons.expand_more),
-          ],
+          ),
         ),
-      ),
-    ),
+      );
+    },
   );
 }
 
