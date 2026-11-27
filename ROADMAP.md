@@ -1215,6 +1215,12 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – Alle Kinderansichten sprachlich und in ihrer Bedienung entrümpeln**
 
+  - [x] **Einzelne Fotoentfernung klar benennen.** Auf der Fotoauswahl heißen
+    Aktion und Rückfrage nun „Foto entfernen“ statt „vorgemerktes Foto“; der
+    Hinweis auf das noch nicht gesendete Foto und der Schutz anderer Fotos
+    bleiben erhalten. 33 künstliche Fälle bestanden einschließlich gezielter
+    Entfernung, Abbruch und Kontowechsel; die Dart-Analyse war fehlerfrei.
+
   - [x] **Fotogroßansicht verständlicher benennen.** Bei einem im lokalen
     Browser ausgewählten künstlichen Heftfoto zeigte die Ansicht den
     sperrigen Begriff „vorgemerkt“. Titel, Blätter- und Zoomaktionen nennen

@@ -81,7 +81,12 @@ void main() {
         bytes(4),
       );
       await old.open(tester, state);
-      await f.tap(tester, find.byTooltip('Vorgemerktes Foto 1 entfernen'));
+      await f.tap(tester, find.byTooltip('Foto 1 entfernen'));
+      expect(find.text('Dieses Foto entfernen?'), findsOneWidget);
+      expect(
+        find.textContaining('Nur dieses noch nicht gesendete Foto'),
+        findsOneWidget,
+      );
       await old.tap(tester, 'Dieses Foto entfernen');
       final remaining = await state.pendingUploads.read('kid');
       expect(remaining.map((p) => p['key']), [second, other]);

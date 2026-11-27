@@ -1942,7 +1942,7 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
     final accepted = await showDayDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Dieses vorgemerkte Foto entfernen?'),
+        title: Text('Dieses Foto entfernen?'),
         content: SingleChildScrollView(
           child: Text(
             'Nur dieses noch nicht gesendete Foto wird von diesem Gerät entfernt. Die anderen Fotos bleiben erhalten.',
@@ -2104,8 +2104,7 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
                                     icon: const Icon(Icons.crop_rotate_rounded),
                                   ),
                                   IconButton(
-                                    tooltip:
-                                        'Vorgemerktes Foto ${n + 1} entfernen',
+                                    tooltip: 'Foto ${n + 1} entfernen',
                                     onPressed: locked
                                         ? null
                                         : () => removeLocalPhoto(photo),
