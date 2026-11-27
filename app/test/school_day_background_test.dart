@@ -485,6 +485,12 @@ void main() {
       expect(find.text('Stimmt, weiter'), findsNothing);
       await tapText(tester, 'Noch eine Seite hinzufügen');
       expect(find.text('Fotos auswählen'), findsOneWidget);
+      expect(
+        tester
+            .getSize(find.widgetWithText(ActionButton, 'Fotos auswählen'))
+            .height,
+        greaterThanOrEqualTo(48),
+      );
       expect(server.pages.single['confirmed'], false);
       expect(server.submissions, 0);
       expect(server.starts, 0);
@@ -1076,6 +1082,8 @@ void main() {
         MaterialApp.router(theme: appTheme(), routerConfig: navigation),
       );
       await settleUi(tester);
+      expect(find.text('Fotos auswählen und abgeben'), findsNothing);
+      await tapText(tester, 'Fotos direkt abgeben');
       await tapText(tester, 'Fotos auswählen und abgeben');
       for (var wait = 0; wait < 600 && server.submissions == 0; wait++) {
         await tester.runAsync(
@@ -1135,6 +1143,7 @@ void main() {
         MaterialApp.router(theme: appTheme(), routerConfig: navigation),
       );
       await settleUi(tester);
+      await tapText(tester, 'Fotos direkt abgeben');
       await tapText(tester, 'Fotos auswählen und abgeben');
       for (var wait = 0; wait < 300 && server.uploads < 2; wait++) {
         await tester.runAsync(
@@ -1291,6 +1300,9 @@ void main() {
         if (recovered) {
           await tapText(tester, 'Letztes Foto wiederfinden');
         } else {
+          if (mode == 'direct') {
+            await tapText(tester, 'Fotos direkt abgeben');
+          }
           await tapText(
             tester,
             mode == 'direct'

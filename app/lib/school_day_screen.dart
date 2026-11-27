@@ -2040,18 +2040,27 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
                   icon: Icons.camera_alt_rounded,
                   onPressed: () => run(() => capture(ImageSource.camera)),
                 ),
-                TextButton.icon(
+                const SizedBox(height: 8),
+                ActionButton(
                   onPressed: () => run(() => capture(ImageSource.gallery)),
-                  icon: Icon(Icons.photo_library_outlined, size: 18),
-                  label: Text('Fotos auswählen'),
+                  icon: Icons.photo_library_outlined,
+                  label: 'Fotos auswählen',
+                  secondary: true,
                 ),
                 if (pendingPhotos.isEmpty)
-                  TextButton.icon(
-                    onPressed: () => run(
-                      () => capture(ImageSource.gallery, submitDirect: true),
-                    ),
-                    icon: Icon(Icons.cloud_upload_outlined, size: 18),
-                    label: Text('Fotos auswählen und abgeben'),
+                  ExpansionTile(
+                    tilePadding: EdgeInsets.zero,
+                    title: const Text('Fotos direkt abgeben'),
+                    children: [
+                      TextButton.icon(
+                        onPressed: () => run(
+                          () =>
+                              capture(ImageSource.gallery, submitDirect: true),
+                        ),
+                        icon: Icon(Icons.cloud_upload_outlined, size: 18),
+                        label: Text('Fotos auswählen und abgeben'),
+                      ),
+                    ],
                   ),
               ],
               if (allowUploads &&

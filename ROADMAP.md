@@ -1129,6 +1129,14 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – Alle Kinderansichten sprachlich und in ihrer Bedienung entrümpeln**
 
+  - [x] **Fotoeinstieg verständlicher machen.** Kinder sehen Fotografieren und
+    Fotoauswahl als gut erkennbare Touch-Schaltflächen. Die zusätzliche direkte
+    Abgabe ist eindeutig beschriftet und nur auf Wunsch aufgeklappt; die
+    bewusste Abgabe, Fotoentwürfe, Größenbegrenzungen und Fehlerbehandlung
+    bleiben erhalten. Die mobile Ansicht wurde mit einer ausdrücklich
+    gekennzeichneten lokalen Beispielseite geprüft; künstliche Widgettests
+    prüfen die Auswahl, Direktabgabe und die Behandlung fehlerhafter Uploads.
+
   - [x] **Lernweg für Kinder auf den nächsten Schritt ausrichten.** Nach der
     Sichtprüfung der schmalen produktiven Ansicht zeigt der lokale Stand eine
     klare Schaltfläche „Weiterlernen“, das aktuelle Thema und den tatsächlichen

@@ -27,6 +27,7 @@ void main() {
     'stage': 'ready',
     'revision': 1,
     'allow_uploads': true,
+    'max_pages': 24,
     'pages': [page],
     'confirmed_count': 1,
     // The ready-path branch is normally for real packages. This flag only
@@ -88,6 +89,16 @@ void main() {
               } else if (request.method == 'GET' &&
                   request.url.path.endsWith('/school-days/example-day')) {
                 result = day;
+              } else if (request.method == 'GET' &&
+                  request.url.path.endsWith('/school-days/photo-day')) {
+                result = {
+                  ...day,
+                  'id': 'photo-day',
+                  'stage': 'collecting',
+                  'pages': <Object>[],
+                  'confirmed_count': 0,
+                  'preparation': {'status': 'idle'},
+                };
               } else {
                 return http.Response('Preview route not implemented', 404);
               }
@@ -113,6 +124,14 @@ void main() {
           state,
           childId: 'example-child',
           dayId: 'example-day',
+        ),
+      ),
+      GoRoute(
+        path: '/capture',
+        builder: (_, _) => SchoolDayScreen(
+          state,
+          childId: 'example-child',
+          dayId: 'photo-day',
         ),
       ),
       GoRoute(
