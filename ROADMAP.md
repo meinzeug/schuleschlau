@@ -4096,6 +4096,9 @@ Bestandteil des bestehenden Buildvertrags.
     Reihenfolge eines neuen und eines verspäteten alten Abrufs. Ein Abruf,
     der erst während einer laufenden Anmeldung gestartet wird, sowie der
     allgemeine Cookie-Wettlauf bleiben gesondert offen.
+    Ein weiterer Regressionstest prüft die alte Tagesaktion bereits während
+    der Benachrichtigung über die neue Anmeldeabsicht; die Abrufidentität wird
+    dafür auch vor der Aktualisierung der Ansicht geprüft.
 
   - [x] **Geöffnete Foto- und Gerätedialoge beim Anmeldewechsel schließen.**
     Eine separate Benachrichtigung über die lokale Anmeldeabsicht schließt

@@ -134,6 +134,8 @@ void main() {
           'next_before': null,
         }),
       );
+      VoidCallback? earlyAction;
+      state.authenticationChanges.addListener(() => earlyAction?.call());
       final router = GoRouter(
         routes: [
           GoRoute(
@@ -162,8 +164,8 @@ void main() {
               w.actionLabel == 'Tagespaket vom 20.10.2026 öffnen',
         ),
       );
+      earlyAction = () => panel.onPressed!();
       state.beginAuthentication();
-      panel.onPressed!();
       await t.pumpAndSettle();
       expect(find.text('Altes Ziel'), findsNothing);
       expect(find.textContaining('Mathematik'), findsNothing);
