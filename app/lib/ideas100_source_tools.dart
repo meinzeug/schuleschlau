@@ -146,27 +146,38 @@ class _SourceReaderState extends State<Ideas100SourceReader> {
         style: style,
       ),
     );
-    Widget toolButton(String id, String label, IconData icon) => Expanded(
+    Widget toolButton(
+      String id,
+      String label,
+      IconData icon, {
+      String? accessibleLabel,
+    }) => Expanded(
       child: Semantics(
-        label: largeText ? label : null,
+        label: accessibleLabel ?? label,
+        button: true,
         selected: tool == id,
-        child: TextButton(
-          key: ValueKey('source-reader-$id'),
-          style: TextButton.styleFrom(
-            minimumSize: const Size(48, 48),
-            backgroundColor: tool == id ? context.palette.mint : null,
+        onTap: () => toggle(id),
+        child: ExcludeSemantics(
+          child: TextButton(
+            key: ValueKey('source-reader-$id'),
+            style: TextButton.styleFrom(
+              minimumSize: const Size(48, 48),
+              backgroundColor: tool == id ? context.palette.mint : null,
+            ),
+            onPressed: () => toggle(id),
+            child: largeText
+                ? Tooltip(message: accessibleLabel ?? label, child: Icon(icon))
+                : Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(icon, size: 20),
+                      const SizedBox(width: 6),
+                      Flexible(
+                        child: Text(label, semanticsLabel: accessibleLabel),
+                      ),
+                    ],
+                  ),
           ),
-          onPressed: () => toggle(id),
-          child: largeText
-              ? Tooltip(message: label, child: Icon(icon))
-              : Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(icon, size: 20),
-                    const SizedBox(width: 6),
-                    Flexible(child: Text(label)),
-                  ],
-                ),
         ),
       ),
     );
@@ -378,7 +389,12 @@ class _SourceReaderState extends State<Ideas100SourceReader> {
                   children: [
                     toolButton('search', 'Suchen', Icons.search),
                     toolButton('contents', 'Inhalt', Icons.list),
-                    toolButton('type', 'Aa', Icons.text_fields),
+                    toolButton(
+                      'type',
+                      'Aa',
+                      Icons.text_fields,
+                      accessibleLabel: 'Schrift und Zeilenabstand',
+                    ),
                   ],
                 ),
               ),

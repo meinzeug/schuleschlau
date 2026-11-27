@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -150,6 +151,61 @@ class Fixture {
 }
 
 void main() {
+  for (final scale in [1.0, 2.0]) {
+    testWidgets(
+      'Reading options have a descriptive accessible name at scale $scale',
+      (t) async {
+        final semantics = t.ensureSemantics();
+        try {
+          final fixture = Fixture();
+          await fixture.mount(t, width: 320, scale: scale);
+          await fixture.open(t, 'reader');
+          for (final entry in {
+            'search': 'Suchen',
+            'contents': 'Inhalt',
+            'type': 'Schrift und Zeilenabstand',
+          }.entries) {
+            final item = t
+                .getSemantics(
+                  find.byKey(ValueKey('source-reader-${entry.key}')),
+                )
+                .getSemanticsData();
+            expect(item.label, contains(entry.value));
+            expect(item.flagsCollection.isButton, isTrue);
+            expect(item.hasAction(ui.SemanticsAction.tap), isTrue);
+          }
+          final control = find.byKey(const ValueKey('source-reader-type'));
+          final node = t.getSemantics(control);
+          final data = node.getSemanticsData();
+          expect(data.label, contains('Schrift und Zeilenabstand'));
+          expect(data.flagsCollection.isButton, isTrue);
+          expect(data.hasAction(ui.SemanticsAction.tap), isTrue);
+          t.binding.performSemanticsAction(
+            ui.SemanticsActionEvent(
+              type: ui.SemanticsAction.tap,
+              viewId: t.view.viewId,
+              nodeId: node.id,
+            ),
+          );
+          await t.pumpAndSettle();
+          expect(
+            t
+                .getSemantics(control)
+                .getSemanticsData()
+                .flagsCollection
+                .isSelected,
+            ui.Tristate.isTrue,
+          );
+          expect(find.text('Schriftgröße'), findsOneWidget);
+          expect(find.text('Zeilenabstand'), findsOneWidget);
+          expect(fixture.requests.every((r) => r.method == 'GET'), isTrue);
+          expect(t.takeException(), isNull);
+        } finally {
+          semantics.dispose();
+        }
+      },
+    );
+  }
   testWidgets(
     'A retained conflicting reading is labelled and remains accessible',
     (t) async {

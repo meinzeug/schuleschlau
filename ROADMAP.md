@@ -1174,6 +1174,16 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – Alle Kinderansichten sprachlich und in ihrer Bedienung entrümpeln**
 
+  - [x] **Leseeinstellungen im Seitentext verständlich benennen.** Die
+    sichtbare Abkürzung „Aa“ erhält für Hilfstechnologien die Bezeichnung
+    „Schrift und Zeilenabstand“. Die drei Lesewerkzeuge bleiben als benannte
+    Schaltflächen mit gewähltem Zustand und Bedienaktion erreichbar.
+    Synthetische Tests prüfen die Aktivierung der Leseeinstellungen bei
+    320 Pixeln und normaler beziehungsweise doppelter Schrift; beide Fälle
+    bestanden auch im Chrome-Webrunner. Insgesamt bestanden 40 lokale
+    Lesedialogtests. Eine vollständige Screenreader- und Geräteabnahme und
+    das Ausrollen stehen noch aus.
+
   - [x] **Lernzeit in der Klassenarbeitsplanung kompakt eingeben.** Die
     Auswahlliste mit 56 Minutenwerten ist durch ein Zahlenfeld ersetzt.
     Individuelle Werte von 5 bis 60 Minuten bleiben möglich und werden vor
