@@ -62,6 +62,12 @@ void main() {
     final revision = state.beginAuthentication();
     await tester.pumpAndSettle();
     expect(find.text('Erste künstliche Frage'), findsNothing);
+    expect(
+      tester
+          .widget<IconButton>(find.byKey(const ValueKey('round-overview-open')))
+          .onPressed,
+      isNull,
+    );
     unawaited(
       showDialog<void>(
         context: navigator.currentState!.context,

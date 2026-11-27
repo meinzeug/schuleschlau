@@ -4437,8 +4437,9 @@ Bestandteil des bestehenden Buildvertrags.
 
     **Rundenübersicht bei neuer Anmeldung schließen:** Die Übersicht mit
     Aufgabeninhalten wird an die Anmeldeabsicht gebunden und während einer
-    laufenden Anmeldung nicht geöffnet. Gespeicherte alte Zurückaktionen
-    können keinen neueren Dialog schließen. Der Ablauf ist mit künstlichen
+    laufenden Anmeldung nicht geöffnet; der Übersichtsknopf wird sichtbar
+    deaktiviert. Gespeicherte alte Zurückaktionen können keinen neueren Dialog
+    schließen. Der Ablauf ist mit künstlichen
     Lernrunden ohne zusätzliche Anfragen geprüft; 24 Fälle in Lernrunde und
     Übersicht sowie zwei gezielte Fälle lokal und im Chrome-Webrunner bestanden. Eine
     vollständige Kontowechsel- und

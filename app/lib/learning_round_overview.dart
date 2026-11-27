@@ -61,7 +61,10 @@ class _LearningRoundOverviewButtonState
   }
 
   void accountChanged() {
-    if (!current) closeView();
+    if (!current) {
+      closeView();
+      if (mounted) setState(() {});
+    }
   }
 
   @override
