@@ -11,6 +11,7 @@ void main() {
   testWidgets('local photo viewer uses simple labels and never sends photos', (
     tester,
   ) async {
+    final semantics = tester.ensureSemantics();
     var requests = 0;
     final state = AppState(
       api: Api(
@@ -45,6 +46,15 @@ void main() {
       find.text('Nur auf diesem Gerät · noch nicht abgegeben'),
       findsOneWidget,
     );
+    expect(
+      tester
+          .getSemantics(
+            find.text('Nur auf diesem Gerät · noch nicht abgegeben'),
+          )
+          .getSemanticsData()
+          .label,
+      contains('noch nicht abgegeben'),
+    );
     expect(find.byTooltip('Vorheriges Foto'), findsOneWidget);
     expect(find.byTooltip('Nächstes Foto'), findsOneWidget);
     expect(find.byTooltip('Foto vergrößern'), findsOneWidget);
@@ -57,5 +67,6 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
     state.inbox.dispose();
     state.dispose();
+    semantics.dispose();
   });
 }

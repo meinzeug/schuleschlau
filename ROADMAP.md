@@ -4186,7 +4186,7 @@ Bestandteil des bestehenden Buildvertrags.
   deterministische Fälle und der lokale Chrome-Schutztest bestanden;
   permanent gestörte Schriften, API- und Schreibanfragen bleiben begrenzt
   und Fehler bleiben sichtbar. Origin-, Redirect- und WebSocket-Sperre sind
-  unverändert. Der vollständige PDF-Browsertest bestand danach lokal mit
+  unverändert. Der vollständige PDF-Browsertest bestand danach zweimal lokal mit
   einem Build mit den CI-Offlineoptionen und künstlichen Daten. Ein grüner
   GitHub-Gesamtlauf für diese Änderung ist damit noch nicht nachgewiesen.
 
