@@ -574,6 +574,10 @@ Der unabhängige Watchdog aus Commit `96c43ca` ist lokal installiert. Er meldet 
   Knoten. Die gezielten Fälle liefen in Flutter und Chrome; 89 verwandte
   Flutterfälle bestanden. Dies ersetzt keine Android- oder Screenreader-Abnahme.
 
+- Die mobile Elternnavigation meldet ihren Namen und Aufklappzustand auf
+  demselben Knoten. 50 künstliche Flutterfälle und zwei Chrome-Fälle
+  bestanden; die vollständige Screenreader-Abnahme bleibt offen.
+
 ## Nützliche Prüfungen
 
 - CI: `gh run list --limit 5` und `gh run view <ID>`; ein laufender oder abgebrochener Workflow ist kein grüner Gesamtnachweis.

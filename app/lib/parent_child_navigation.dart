@@ -240,23 +240,28 @@ class _ParentChildNavigationState extends State<ParentChildNavigation> {
                     ),
                   ),
                   ?refresh,
-                  Semantics(
-                    expanded: details,
-                    child: IconButton(
-                      constraints: const BoxConstraints(
-                        minWidth: 48,
-                        minHeight: 48,
-                      ),
-                      tooltip: canPick
+                  MergeSemantics(
+                    child: Semantics(
+                      label: canPick
                           ? 'Bereiche und Kindwechsel'
                           : 'Bereiche öffnen',
-                      onPressed: () {
-                        if (current()) setState(() => details = !details);
-                      },
-                      icon: Icon(
-                        details
-                            ? Icons.expand_less_rounded
-                            : Icons.more_horiz_rounded,
+                      expanded: details,
+                      child: IconButton(
+                        constraints: const BoxConstraints(
+                          minWidth: 48,
+                          minHeight: 48,
+                        ),
+                        tooltip: canPick
+                            ? 'Bereiche und Kindwechsel'
+                            : 'Bereiche öffnen',
+                        onPressed: () {
+                          if (current()) setState(() => details = !details);
+                        },
+                        icon: Icon(
+                          details
+                              ? Icons.expand_less_rounded
+                              : Icons.more_horiz_rounded,
+                        ),
                       ),
                     ),
                   ),

@@ -1644,6 +1644,13 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – Barrierearme mobile Führung nachweisen**
 
+  - [x] **Mobiles Elternmenü als aufklappbare Aktion kennzeichnen.** Der
+    Kontextknopf meldet seinen Namen und seinen geöffneten Zustand gemeinsam
+    mit der Bedienaktion; er funktioniert mit und ohne Kindwechsel. Ein
+    gezielter künstlicher Fall scheiterte vor dem Fix. 50 Flutterfälle und
+    zwei Chrome-Fälle bestanden danach; reine Navigation löst keine
+    Schreibanfrage aus. Eine vollständige Screenreader-Abnahme bleibt offen.
+
   - [x] **Aufgeklappte Lernhilfen und Filter zugänglich kennzeichnen.**
     Die Zustände der Kinderfilter, Rundendetails, Schreibwerkzeuge,
     Textuntersuchung und Klassenarbeitsdetails liegen am bedienbaren
