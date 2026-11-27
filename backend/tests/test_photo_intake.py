@@ -15,7 +15,12 @@ from test_photo_isolation import fixture
 from test_school_day import allow_synthetic_test_transport
 
 
-def test_intake_requires_auth_before_slot_and_expires_slow_body(api, monkeypatch):
+@pytest.mark.parametrize('method,path', [
+    ('POST', '/api/children/synthetic/materials'),
+    ('POST', '/api/exams/synthetic/pages'),
+    ('PUT', '/api/auth/me/avatar'),
+])
+def test_intake_requires_auth_before_slot_and_expires_slow_body(api, monkeypatch, method, path):
     def authorization(scope):
         if (b'x-test-authorized', b'yes') not in scope['headers']:
             raise HTTPException(401, 'Bitte erneut anmelden.')
@@ -45,8 +50,7 @@ def test_intake_requires_auth_before_slot_and_expires_slow_body(api, monkeypatch
             result = []
             async def send(message):
                 result.append(message)
-            scope = {'type': 'http', 'method': 'POST', 'path': '/api/children/synthetic/materials',
-                     'headers': headers}
+            scope = {'type': 'http', 'method': method, 'path': path, 'headers': headers}
             await gate(scope, receive, send)
             return next(message['status'] for message in result if message['type'] == 'http.response.start')
         first = asyncio.create_task(run([(b'x-test-authorized', b'yes')], slow_receive))

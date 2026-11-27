@@ -1619,6 +1619,9 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
     Wiederholung am 26.11.2026 auf isoliertem PostgreSQL: elf Fälle bestanden,
     darunter die 30-tägige Folge mit künstlichem Provider. Das ist kein Ersatz
     für den weiterhin offenen Browsermonat mit echten Anbieteraufrufen.
+    Eine weitere isolierte Wiederholung am 27.11.2026 bestand ebenfalls mit
+    elf Fällen und 30 synthetischen Tagen; auch sie verwendet keinen echten
+    Anbieter und keine durchgehende Browserbedienung.
 
   Der in `docs/EVERYDAY_QA_2026_10_30.md` beschriebene isolierte Test dokumentiert bereits 30 Schultage und 32 künstliche Materialseiten; er belegt keine tägliche Mindestzeit, vollständige Lehrplanabdeckung oder langfristige Lernwirkung. Für den nächsten Release einen eigenen Testplan mit festem Code-/Konfigurationsstand, künstlichen Familien und Fotos, isolierter Datenbank und Testuhr erstellen. Pro Tag Quelle, Plan, ausdrücklich gestartete Runde, Antwort-/Hilfestatus, Fehler, Provideraufträge und bekannte/unbekannte Kosten erfassen; Ferien, Fehl- und Nachholtage, Mitternacht, Netzverlust, Quellrevision, Mehrgeräte und freiwillige Fortsetzung einplanen.
 
@@ -2505,6 +2508,15 @@ Bestandteil des bestehenden Buildvertrags.
     Verarbeitungsplätze für die Datenbankkonkurrenz. Andere Bildpfade, mehrere
     API-Worker und Produktionslast bleiben offen.
     [Messung und Grenzen](docs/CAPACITY_PROCESS_FAILURE_2026_11_06.md#ergänzung-parallele-profilfotos-27112026).
+
+  - [x] **Eingang von Profilfoto-Uploads begrenzen.** Anmeldung und
+    Kontozuordnung werden vor dem Einlesen geprüft; Profilfoto-Uploads teilen
+    den begrenzten Aufnahmeplatz mit Heftfotos. Bei Überlast bleiben ein
+    ausdrücklicher erneuter Versuch und derselbe Uploadschlüssel möglich.
+    Synthetische Tests decken langsame Anfragen und Datenbankkonkurrenz ab.
+    Die Grenze gilt pro API-Prozess; echte Produktivlast und weitere
+    Bildpfade sind dadurch nicht abgenommen.
+    [Prüfumfang](docs/CAPACITY_PROCESS_FAILURE_2026_11_06.md#ergänzung-eingangsschutz-für-profilfoto-uploads-27112026).
 
   - [ ] **API-Speicherschutz beim gleichzeitigen Fotoimport beheben.**
     Die getrennte Prozessprüfung auf PostgreSQL und Loopback reproduzierte bei

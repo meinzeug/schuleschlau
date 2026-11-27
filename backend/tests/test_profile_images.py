@@ -73,6 +73,37 @@ def assert_meta(data, present):
     assert isinstance(data["avatar_updated_at"], int)
 
 
+def test_avatar_intake_checks_account_before_admission_and_can_retry(api, mailbox, monkeypatch):
+    from schulpilot import main
+
+    user = register(api, mailbox)
+    monkeypatch.setattr(main, "_PHOTO_WAIT_TIMEOUT", .03)
+    slot = threading.BoundedSemaphore(1)
+    monkeypatch.setattr(main, "_PHOTO_REQUEST_SLOT", slot)
+    assert slot.acquire(blocking=False)
+    key = uuid.uuid4().hex
+    try:
+        with TestClient(app, headers=HEADERS) as anonymous:
+            assert anonymous.put(URL, files={"file": ("a.png", picture())}, headers=headers(key=key)).status_code == 401
+        wrong_account = {**headers(key=key), "X-Schulpilot-Account": "another-account"}
+        assert api.put(URL, files={"file": ("a.png", picture())}, headers=wrong_account).status_code == 409
+        busy = upload(api, key=key)
+        assert busy.status_code == 503
+        assert busy.headers.get("retry-after")
+        assert not own_files(user["id"])
+        with DB() as db:
+            assert db.get(UserAvatar, user["id"]) is None
+    finally:
+        slot.release()
+    result = upload(api, key=key)
+    assert result.status_code == 200, result.text
+    replay = upload(api, key=key)
+    assert replay.status_code == 200
+    assert replay.json() == result.json()
+    assert len(own_files(user["id"])) == 1
+    assert_no_learning()
+
+
 @pytest.mark.parametrize("fmt", ["JPEG", "PNG", "WEBP"])
 def test_upload_actual_format_private_revision_and_metadata_only(api, mailbox, fmt):
     user = register(api, mailbox)
@@ -285,6 +316,9 @@ def test_revoked_session_or_disabled_account_during_decode_cannot_save(api, mail
 
 def test_two_concurrent_first_uploads_have_one_cas_winner(api, mailbox, monkeypatch):
     # Exercise database CAS independently, as in separate API workers.
+    from schulpilot import main
+
+    monkeypatch.setattr(main, "_PHOTO_REQUEST_SLOT", threading.BoundedSemaphore(2))
     monkeypatch.setattr(profile_images, "SYNC_IMAGE_SLOT", threading.BoundedSemaphore(2))
     user = register(api, mailbox)
     normalize = profile_images.normalize
@@ -430,6 +464,9 @@ def test_active_file_survives_orphan_sweep_and_demo_retention_deletes_owner(api,
 
 def test_concurrent_replay_uses_one_revision_file_and_audit(api, mailbox, monkeypatch):
     # Exercise database CAS independently, as in separate API workers.
+    from schulpilot import main
+
+    monkeypatch.setattr(main, "_PHOTO_REQUEST_SLOT", threading.BoundedSemaphore(2))
     monkeypatch.setattr(profile_images, "SYNC_IMAGE_SLOT", threading.BoundedSemaphore(2))
     user = register(api, mailbox)
     original = profile_images.normalize

@@ -220,4 +220,19 @@ Tests prüfen erneutes Senden desselben Schlüssels, die Rechteprüfung und
 Freigabe bei ungültigen Bildern. Die bestehenden Datenbank-CAS-Rennen werden
 separat mit zwei künstlich unabhängigen Verarbeitungsplätzen geprüft, damit
 der Test nicht nur die prozesslokale Schranke misst. Mehrere API-Prozesse,
-Multipart-Parsing, weitere Bildpfade und echte Produktivlast bleiben offen.
+weitere Bildpfade und echte Produktivlast bleiben offen.
+
+## Ergänzung: Eingangsschutz für Profilfoto-Uploads, 27.11.2026
+
+Auch das Einlesen eines Profilfoto-Uploads ist nun durch den vorhandenen
+Aufnahmeplatz begrenzt, bevor das Multipart-Formular verarbeitet wird. Die
+Sitzung und die ausdrückliche Kontozuordnung werden bereits davor geprüft;
+der reguläre Endpunkt prüft sie erneut. Bei belegtem Platz erhält der Client
+`503` mit `Retry-After`; derselbe Uploadschlüssel kann anschließend verwendet
+werden. Wie bei Heftfotos gelten die bestehenden Zeitgrenzen für langsame
+Übertragungen. Lesen und Löschen eines Profilbilds sind nicht betroffen.
+
+Isolierte synthetische Tests prüfen unauthentifizierte und falsch zugeordnete
+Anfragen, Überlast, erneutes Senden, langsame Übertragungen und konkurrierende
+Datenbankänderungen. Die Begrenzung ist pro Prozess; eine Messung der echten
+Produktivlast, weiterer API-Worker und anderer Bildpfade steht aus.

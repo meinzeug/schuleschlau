@@ -165,8 +165,14 @@ def authorize_photo_before_intake(scope):
             principal = authenticated(request, db)
             if parts[2] == 'children':
                 child_access(db, principal, parts[3], write=principal.user.role == 'parent')
-            else:
+            elif parts[2] == 'exams':
                 exam_review.preflight_upload_access(db, principal, parts[3])
+            elif request.url.path == '/api/auth/me/avatar':
+                # Match the endpoint's own-account assertion before accepting
+                # the profile image body. The endpoint checks it again.
+                profile_images.expected_owner(request.headers.get('x-schulpilot-account'), principal)
+            else:
+                raise HTTPException(404, 'Nicht gefunden.')
     finally:
         _PHOTO_AUTH_SLOT.release()
 
@@ -177,7 +183,10 @@ class PhotoIntakeLimit:
 
     async def __call__(self, scope, receive, send):
         path = scope.get("path", "")
-        if scope.get("type") != "http" or scope.get("method") != "POST" or not _PHOTO_REQUEST_PATH.fullmatch(path):
+        method = scope.get("method")
+        photo_upload = method == "POST" and _PHOTO_REQUEST_PATH.fullmatch(path)
+        avatar_upload = method == "PUT" and path == "/api/auth/me/avatar"
+        if scope.get("type") != "http" or not (photo_upload or avatar_upload):
             return await self.app(scope, receive, send)
         try:
             await run_in_threadpool(authorize_photo_before_intake, scope)
