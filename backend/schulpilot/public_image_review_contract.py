@@ -92,10 +92,14 @@ def request_review(client, config, image, public_input, *, token, route):
             target = io.BytesIO()
             clean.save(target, format='JPEG', quality=85, optimize=False)
         jpeg = target.getvalue()
-    except (ValueError, OSError):
-        raise ProviderError('Das Bild kann nicht überprüft werden.', code='invalid_output') from None
+    except (ValueError, OSError, Image.DecompressionBombError, Image.DecompressionBombWarning):
+        # Image decoding happens before client.stream. The provider was not
+        # contacted, so release only this demonstrably unused reservation.
+        raise ProviderError('Das Bild kann nicht überprüft werden.', code='invalid_output',
+                            billing_result=Result({}, 0, 0, 0, cost_source='cancelled')) from None
     if not jpeg or len(jpeg) > MAX_IMAGE_BYTES:
-        raise ProviderError('Das Bild kann nicht überprüft werden.', code='invalid_output')
+        raise ProviderError('Das Bild kann nicht überprüft werden.', code='invalid_output',
+                            billing_result=Result({}, 0, 0, 0, cost_source='cancelled'))
     instructions = ('Beurteile das sichtbare Bild als eigenständige KI-Einschätzung für den angegebenen öffentlichen '
         'Lerngegenstand. Suche nach fachlich irreführenden Darstellungen, falschen Beschriftungen und sichtbaren '
         'Widersprüchen zur ggf. gelieferten öffentlichen Sachgrundlage. Melde uncertain bei unklaren Details. '

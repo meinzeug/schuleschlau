@@ -756,3 +756,97 @@ def test_worker_dispatches_review_after_successful_image_commit(api, image_case)
         review = db.scalar(select(Job).where(Job.kind == "public_image_review"))
         assert review is not None and review.status == "queued"
         assert db.scalar(select(Usage).where(Usage.job_id == review.id)).status == "reserved"
+
+
+@pytest.mark.parametrize('problem', ['bad_image', 'oversize_warning', 'oversize_error'])
+def test_local_review_image_failure_is_not_recorded_as_provider_call(api, image_case, monkeypatch, problem):
+    """Local decode failures never leave a fictitious unknown provider charge."""
+    import httpx
+    from PIL import Image
+
+    _, creator = generated(api, image_case)
+    enqueue_after_image(creator)
+    from schulpilot.db import UsageBucket
+
+    with DB.begin() as db:
+        job = db.scalar(select(Job).where(Job.kind == 'public_image_review'))
+        job.status = 'running'
+        jid = job.id
+        usage = db.scalar(select(Usage).where(Usage.job_id == jid))
+        reserved = usage.reserved_micros
+        assert reserved > 0
+        buckets_before = {
+            key: (db.get(UsageBucket, key).encumbered_micros,
+                  db.get(UsageBucket, key).unknown_calls,
+                  db.get(UsageBucket, key).known_cost_micros)
+            for key in usage.bucket_ids
+        }
+        assert buckets_before
+
+    def rejected(*_args, **_kwargs):
+        if problem == 'oversize_warning':
+            raise Image.DecompressionBombWarning('synthetic warning')
+        if problem == 'oversize_error':
+            raise Image.DecompressionBombError('synthetic error')
+        raise ValueError('synthetic invalid image')
+
+    attempts = []
+    def never_send(*_args, **_kwargs):
+        attempts.append(True)
+        raise AssertionError('Local failure must precede provider transport')
+
+    monkeypatch.setattr('schulpilot.public_image_review_contract.Image.open', rejected)
+    monkeypatch.setattr(httpx.Client, 'stream', never_send)
+    review_image(jid)
+    with DB() as db:
+        job = db.get(Job, jid)
+        usage = db.scalar(select(Usage).where(Usage.job_id == jid))
+        row = db.scalar(select(PublicImageReview))
+        assert job.status == 'failed' and job.error_code == 'invalid_output'
+        assert usage.status == 'failed_not_sent'
+        assert usage.cost_micros == 0 and usage.cost_source == 'cancelled'
+        assert usage.settlement_version == 1
+        for key, (held, unknown, known) in buckets_before.items():
+            bucket = db.get(UsageBucket, key)
+            assert bucket.encumbered_micros == held - reserved
+            assert bucket.unknown_calls == unknown - 1
+            assert bucket.known_cost_micros == known
+        assert row.status == 'unavailable'
+    review_image(jid)  # Idempotent worker re-entry cannot settle twice.
+    with DB() as db:
+        assert db.scalar(select(Usage).where(Usage.job_id == jid)).settlement_version == 1
+    assert attempts == []
+
+
+@pytest.mark.parametrize('problem', ['empty_jpeg', 'oversize_jpeg'])
+def test_local_review_jpeg_failure_has_zero_provider_cost(monkeypatch, problem):
+    import io
+    from types import SimpleNamespace
+
+    import httpx
+    from PIL import Image
+    from schulpilot.providers import ProviderError
+    from schulpilot.public_image_review_contract import request_review
+
+    png = io.BytesIO()
+    with Image.new('RGB', (80, 80), 'blue') as bitmap:
+        bitmap.save(png, 'PNG')
+    image = SimpleNamespace(png=png.getvalue(), model='synthetic/image')
+    config = SimpleNamespace(provider='openrouter', image_capable=True, model='synthetic/vision')
+    route = {'region': 'standard', 'route': {'upstreams': ['synthetic']}}
+    value = {'subject': 'Biologie', 'topic': 'Insekten', 'public_facts': '', 'reference_available': False}
+    monkeypatch.setattr('schulpilot.providers.external_allowed', lambda *args, **kwargs: None)
+    if problem == 'empty_jpeg':
+        monkeypatch.setattr(Image.Image, 'save', lambda *_args, **_kwargs: None)
+    else:
+        monkeypatch.setattr('schulpilot.public_image_review_contract.MAX_IMAGE_BYTES', 1)
+    calls = []
+    def never_send(_request):
+        calls.append(True)
+        raise AssertionError('Local image error must not send a provider request')
+    with httpx.Client(transport=httpx.MockTransport(never_send)) as client, pytest.raises(ProviderError) as rejected:
+        request_review(client, config, image, value, token='synthetic', route=route)
+    assert rejected.value.code == 'invalid_output'
+    assert rejected.value.billing_result.cost_source == 'cancelled'
+    assert rejected.value.billing_result.cost_micros == 0
+    assert calls == []

@@ -3318,6 +3318,14 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Erklärgrafiken und Animationen fachlich und technisch abnehmen**
 
+  - [x] **Lokale Bildprüffehler korrekt abrechnen.** Scheitert die rein lokale
+    Dekodierung oder JPEG-Vorbereitung vor dem Anbietertransport, wird der
+    Prüfauftrag als nicht gesendet verbucht und seine Reservierung genau einmal
+    freigegeben. Unklare Netz- und Anbieterfehler bleiben weiterhin unbekannt;
+    kein fehlerhaftes Bild wird freigegeben. Künstliche Tests prüfen die
+    Fehlerarten, den ausbleibenden Transport und die Kostenstände.
+    [Umfang und Grenzen](docs/IMAGE_REVIEW_PRESEND_COST_2026_11_28.md).
+
   - [x] **Belegte Vielfachenreihen für Paketabschnitte vorbereiten.** Ein
     eigenes versioniertes Rezept prüft die wörtliche Reihe rechnerisch, plant
     unterschiedliche Aufgaben und zeigt Quelle und Lösung in passenden

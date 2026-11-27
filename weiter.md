@@ -609,6 +609,12 @@ Der unabhängige Watchdog aus Commit `96c43ca` ist lokal installiert. Er meldet 
   Produktionslast und ein Deployment bleiben offen. Details und Grenzen:
   `docs/SOURCE_IMAGE_LIMIT_2026_11_28.md`.
 
+- Die lokale Vorbereitung der unabhängigen KI-Bildprüfung verbucht nachweislich
+  nicht gesendete Bildfehler nun mit null Kosten und gibt nur deren Reservierung
+  einmal frei. Fehler nach möglichem Versand bleiben unbekannt. Die Tests
+  verwenden künstliche Daten; keine neue fachliche Bildabnahme oder echter
+  Anbieteraufruf. Siehe `docs/IMAGE_REVIEW_PRESEND_COST_2026_11_28.md`.
+
 ## Nützliche Prüfungen
 
 - CI: `gh run list --limit 5` und `gh run view <ID>`; ein laufender oder abgebrochener Workflow ist kein grüner Gesamtnachweis.
