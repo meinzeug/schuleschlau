@@ -356,6 +356,7 @@ class _LearningTipsState extends State<LearningTips>
   String tipType = 'all';
   Set<String>? pendingSelection;
   Json? data;
+  (Object?, String?, int?)? dataIdentity;
   String? error;
   bool expanded = false,
       loading = false,
@@ -370,6 +371,10 @@ class _LearningTipsState extends State<LearningTips>
       identical(owner, widget.state.user) &&
       ownerFamily == widget.state.familyId &&
       ownerSession == widget.state.api.token;
+  bool get currentData =>
+      current &&
+      dataIdentity != null &&
+      widget.state.api.ownsRequest(dataIdentity!);
   String get path =>
       '/children/${widget.childId}/learning-tips/${widget.kind}/${widget.resourceId}';
   @override
@@ -392,6 +397,7 @@ class _LearningTipsState extends State<LearningTips>
     tipSearch.clear();
     setState(() {
       data = null;
+      dataIdentity = null;
       error = null;
       expanded = false;
       loading = false;
@@ -410,6 +416,7 @@ class _LearningTipsState extends State<LearningTips>
         old.childId != widget.childId) {
       generation++;
       data = null;
+      dataIdentity = null;
       expanded = false;
       unavailable = false;
       error = null;
@@ -429,6 +436,7 @@ class _LearningTipsState extends State<LearningTips>
       tipSearch.clear();
       setState(() {
         data = null;
+        dataIdentity = null;
         error = null;
         expanded = false;
       });
@@ -456,21 +464,27 @@ class _LearningTipsState extends State<LearningTips>
   Future<void> load() async {
     if (!current) return;
     final request = ++generation;
+    final identity = widget.state.api.requestIdentity();
     setState(() {
       loading = true;
       error = null;
     });
     try {
       final value = await widget.state.api.get('$path?limit=${more ? 12 : 3}');
-      if (current && request == generation) {
+      if (current &&
+          request == generation &&
+          widget.state.api.ownsRequest(identity)) {
         setState(() {
           data = value;
+          dataIdentity = identity;
           loading = false;
           unavailable = value['state'] == 'unavailable';
         });
       }
     } catch (e) {
-      if (current && request == generation) {
+      if (current &&
+          request == generation &&
+          widget.state.api.ownsRequest(identity)) {
         setState(() {
           loading = false;
           unavailable = e is ApiError && e.status == 404;
@@ -483,7 +497,7 @@ class _LearningTipsState extends State<LearningTips>
   }
 
   Future<void> action(Json item, String kind, {Json? expectedData}) async {
-    if (!current ||
+    if (!currentData ||
         (writing && kind != 'open') ||
         (expectedData != null && !identical(data, expectedData))) {
       return;
@@ -529,7 +543,7 @@ class _LearningTipsState extends State<LearningTips>
   }
 
   Future<void> checkAfterMedia({Json? expectedData}) async {
-    if (!current ||
+    if (!currentData ||
         writing ||
         (expectedData != null && !identical(data, expectedData))) {
       return;
@@ -677,7 +691,7 @@ class _LearningTipsState extends State<LearningTips>
                 ),
               TextButton(
                 onPressed: () {
-                  if (!current || !identical(data, snapshot)) return;
+                  if (!currentData || !identical(data, snapshot)) return;
                   final callback = widget.onReturnToTask;
                   if (callback != null) {
                     callback();
@@ -707,7 +721,7 @@ class _LearningTipsState extends State<LearningTips>
 
   Future<void> selectTopics() async {
     final subjectId = data?['subject_id'] as String?;
-    if (subjectId == null || !current || writing) return;
+    if (subjectId == null || !currentData || writing) return;
     final resource = (widget.childId, widget.kind, widget.resourceId);
     final snapshot = data;
     final sourceRevision = data?['revision'];
@@ -932,7 +946,8 @@ class _LearningTipsState extends State<LearningTips>
                         ),
                       TipContentCard(
                         item,
-                        isCurrent: () => current && identical(data, shownData),
+                        isCurrent: () =>
+                            currentData && identical(data, shownData),
                         beforeOpen: widget.beforeOpen,
                         onOpened: () =>
                             action(item, 'open', expectedData: shownData),
@@ -1113,6 +1128,7 @@ class _TopicBrowserState extends State<_TopicBrowserBody> {
   late final Json? owner;
   late final String? ownerFamily = widget.state.familyId;
   late final String? ownerSession;
+  late final (Object?, String?, int?) authentication;
   Set<String>? clearedChoice;
   late final chosen = {...?widget.selected};
   late final chosenLabels = <String, String>{...widget.selectedLabels};
@@ -1120,21 +1136,42 @@ class _TopicBrowserState extends State<_TopicBrowserBody> {
   String? error;
   int page = 1, generation = 0;
   Timer? debounce;
-  bool loading = true, knownOnly = false;
-  bool get current =>
+  bool loading = true, knownOnly = false, invalidated = false;
+  bool get own =>
       mounted &&
       owner != null &&
       identical(owner, widget.state.user) &&
       ownerFamily == widget.state.familyId &&
       ownerSession == widget.state.api.token;
+  bool get current =>
+      own && !invalidated && widget.state.api.ownsRequest(authentication);
   String get path => '/children/${widget.childId}/subjects/${widget.subjectId}';
   @override
   void initState() {
     super.initState();
     owner = widget.state.user;
     ownerSession = widget.state.api.token;
+    authentication = widget.state.api.requestIdentity();
     widget.state.addListener(changed);
+    widget.state.authenticationChanges.addListener(authenticationChanged);
     load();
+  }
+
+  void authenticationChanged() {
+    if (!mounted || !own) return;
+    generation++;
+    debounce?.cancel();
+    search.clear();
+    chosen.clear();
+    chosenLabels.clear();
+    clearedChoice = null;
+    FocusManager.instance.primaryFocus?.unfocus();
+    setState(() {
+      invalidated = true;
+      data = null;
+      error = null;
+      loading = false;
+    });
   }
 
   void changed() {
@@ -1155,6 +1192,7 @@ class _TopicBrowserState extends State<_TopicBrowserBody> {
     debounce?.cancel();
     search.dispose();
     widget.state.removeListener(changed);
+    widget.state.authenticationChanges.removeListener(authenticationChanged);
     super.dispose();
   }
 
@@ -1196,6 +1234,31 @@ class _TopicBrowserState extends State<_TopicBrowserBody> {
 
   @override
   Widget build(BuildContext context) {
+    if (own && invalidated) {
+      return SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Die Anmeldung hat sich geändert. Öffne die Themen erneut.',
+              ),
+              TextButton(
+                onPressed: () {
+                  if (own &&
+                      invalidated &&
+                      ModalRoute.of(context)?.isCurrent == true) {
+                    Navigator.maybePop(context);
+                  }
+                },
+                child: const Text('Schließen'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
     if (!current) return SizedBox.shrink();
     final rows = loading || error != null
         ? <dynamic>[]
@@ -1268,6 +1331,7 @@ class _TopicBrowserState extends State<_TopicBrowserBody> {
                           : IconButton(
                               tooltip: 'Suche leeren',
                               onPressed: () {
+                                if (!current) return;
                                 debounce?.cancel();
                                 search.clear();
                                 page = 1;
@@ -1278,6 +1342,7 @@ class _TopicBrowserState extends State<_TopicBrowserBody> {
                             ),
                     ),
                     onChanged: (_) {
+                      if (!current) return;
                       generation++;
                       setState(() {
                         loading = true;
@@ -1288,6 +1353,7 @@ class _TopicBrowserState extends State<_TopicBrowserBody> {
                       debounce = Timer(Duration(milliseconds: 350), load);
                     },
                     onSubmitted: (_) {
+                      if (!current) return;
                       FocusManager.instance.primaryFocus?.unfocus();
                       debounce?.cancel();
                       load();
@@ -1306,6 +1372,7 @@ class _TopicBrowserState extends State<_TopicBrowserBody> {
                             label: Text(mode.$2),
                             selected: knownOnly == mode.$1,
                             onSelected: (_) {
+                              if (!current) return;
                               knownOnly = mode.$1;
                               page = 1;
                               load();
@@ -1329,6 +1396,7 @@ class _TopicBrowserState extends State<_TopicBrowserBody> {
                   if (data != null && rows.isEmpty && !loading && knownOnly)
                     TextButton(
                       onPressed: () {
+                        if (!current) return;
                         knownOnly = false;
                         page = 1;
                         FocusManager.instance.primaryFocus?.unfocus();
@@ -1366,15 +1434,18 @@ class _TopicBrowserState extends State<_TopicBrowserBody> {
                     TextButton.icon(
                       onPressed: loading
                           ? null
-                          : () => setState(() {
-                              if (chosen.isNotEmpty) {
-                                clearedChoice = {...chosen};
-                                chosen.clear();
-                              } else {
-                                chosen.addAll(clearedChoice!);
-                                clearedChoice = null;
-                              }
-                            }),
+                          : () {
+                              if (!current) return;
+                              setState(() {
+                                if (chosen.isNotEmpty) {
+                                  clearedChoice = {...chosen};
+                                  chosen.clear();
+                                } else {
+                                  chosen.addAll(clearedChoice!);
+                                  clearedChoice = null;
+                                }
+                              });
+                            },
                       icon: Icon(
                         chosen.isNotEmpty ? Icons.deselect : Icons.undo,
                       ),
@@ -1432,6 +1503,7 @@ class _TopicBrowserState extends State<_TopicBrowserBody> {
                         onPressed: loading || page <= 1
                             ? null
                             : () {
+                                if (!current) return;
                                 page--;
                                 load();
                               },
@@ -1450,6 +1522,7 @@ class _TopicBrowserState extends State<_TopicBrowserBody> {
                                 page * 20 >= (data?['total'] as int? ?? 0)
                             ? null
                             : () {
+                                if (!current) return;
                                 page++;
                                 load();
                               },
@@ -1512,12 +1585,14 @@ class _TopicRowState extends State<_TopicRow> {
   late final Json? owner = widget.state.user;
   late final String? family = widget.state.familyId;
   late final String? session;
+  late final (Object?, String?, int?) authentication;
   int generation = 0;
   bool get current =>
       mounted &&
       identical(owner, widget.state.user) &&
       family == widget.state.familyId &&
-      session == widget.state.api.token;
+      session == widget.state.api.token &&
+      widget.state.api.ownsRequest(authentication);
   Json? detail;
   String? error;
   bool loading = false;
@@ -1525,6 +1600,7 @@ class _TopicRowState extends State<_TopicRow> {
   void initState() {
     super.initState();
     session = widget.state.api.token;
+    authentication = widget.state.api.requestIdentity();
   }
 
   Future<void> opened(Json item) async {

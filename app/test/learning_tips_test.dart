@@ -157,6 +157,145 @@ void main() {
   });
 
   testWidgets(
+    'a new login intent hides topic choices and blocks old topic actions',
+    (tester) async {
+      final requests = <http.Request>[];
+      final state = AppState(
+        api: Api(
+          base: 'https://example.invalid/api',
+          client: MockClient((request) async {
+            requests.add(request);
+            return reply({
+              'subject': {'title': 'Mathematik'},
+              'items': [
+                {'id': 'topic-1', 'title': 'Künstliches Thema'},
+              ],
+              'total': 1,
+              'can_manage': false,
+            });
+          }),
+        ),
+      )..user = {'id': 'own-user', 'role': 'child', 'child_id': 'child'};
+      VoidCallback? earlyAction;
+      state.authenticationChanges.addListener(() => earlyAction?.call());
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: appTheme(),
+          home: Scaffold(
+            body: TopicBrowser(state, childId: 'child', subjectId: 'math'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final topic = tester.widget<ExpansionTile>(
+        find.ancestor(
+          of: find.text('Künstliches Thema'),
+          matching: find.byType(ExpansionTile),
+        ),
+      );
+      earlyAction = () => topic.onExpansionChanged!(true);
+      state.beginAuthentication();
+      await tester.pumpAndSettle();
+      expect(find.text('Künstliches Thema'), findsNothing);
+      expect(
+        find.text('Die Anmeldung hat sich geändert. Öffne die Themen erneut.'),
+        findsOneWidget,
+      );
+      expect(requests, hasLength(1));
+      await tester.pumpWidget(const SizedBox.shrink());
+      state.dispose();
+    },
+  );
+
+  testWidgets('a late topic list cannot cross a new login intent', (
+    tester,
+  ) async {
+    final delayed = Completer<http.Response>();
+    final requests = <http.Request>[];
+    final state = AppState(
+      api: Api(
+        base: 'https://example.invalid/api',
+        client: MockClient((request) {
+          requests.add(request);
+          return delayed.future;
+        }),
+      ),
+    )..user = {'id': 'own-user', 'role': 'child', 'child_id': 'child'};
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: appTheme(),
+        home: Scaffold(
+          body: TopicBrowser(state, childId: 'child', subjectId: 'math'),
+        ),
+      ),
+    );
+    await tester.pump();
+    state.beginAuthentication();
+    delayed.complete(
+      reply({
+        'subject': {'title': 'Mathematik'},
+        'items': [
+          {'id': 'topic-1', 'title': 'Künstliches Thema'},
+        ],
+        'total': 1,
+      }),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Künstliches Thema'), findsNothing);
+    expect(
+      find.text('Die Anmeldung hat sich geändert. Öffne die Themen erneut.'),
+      findsOneWidget,
+    );
+    expect(requests, hasLength(1));
+    await tester.pumpWidget(const SizedBox.shrink());
+    state.dispose();
+  });
+
+  testWidgets('an old topic restore action is inert after login begins', (
+    tester,
+  ) async {
+    final state = AppState(
+      api: Api(
+        base: 'https://example.invalid/api',
+        client: MockClient(
+          (_) async => reply({
+            'subject': {'title': 'Mathematik'},
+            'items': [
+              {'id': 'topic-1', 'title': 'Künstliches Thema'},
+            ],
+            'total': 1,
+          }),
+        ),
+      ),
+    )..user = {'id': 'own-user', 'role': 'child', 'child_id': 'child'};
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: appTheme(),
+        home: Scaffold(
+          body: TopicBrowser(
+            state,
+            childId: 'child',
+            subjectId: 'math',
+            selected: const {'topic-1'},
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tap(tester, find.text('Themenauswahl leeren'));
+    final restore = tester.widget<TextButton>(
+      find.widgetWithText(TextButton, 'Themenauswahl wiederherstellen'),
+    );
+    state.beginAuthentication();
+    restore.onPressed!();
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(find.text('Künstliches Thema'), findsNothing);
+    await tester.pumpWidget(const SizedBox.shrink());
+    state.dispose();
+  });
+
+  testWidgets(
     'a submitted tip response keeps its key across an interrupted login',
     (tester) async {
       final pending = Completer<http.Response>();

@@ -34,6 +34,11 @@ void main() {
         }),
       ),
     )..user = {'id': 'own-child', 'role': 'child', 'child_id': 'child'};
+    VoidCallback? earlyCheck, earlyBack;
+    state.authenticationChanges.addListener(() {
+      earlyCheck?.call();
+      earlyBack?.call();
+    });
     await tester.pumpWidget(
       MaterialApp(
         theme: appTheme(),
@@ -58,9 +63,9 @@ void main() {
     final back = tester.widget<TextButton>(
       find.widgetWithText(TextButton, 'Zur gespeicherten Aufgabe'),
     );
+    earlyCheck = check.onPressed;
+    earlyBack = back.onPressed;
     state.beginAuthentication();
-    check.onPressed!();
-    back.onPressed!();
     await tester.pumpAndSettle();
     expect(returned, 0);
     expect(requests, hasLength(1));

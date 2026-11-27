@@ -4063,8 +4063,16 @@ Bestandteil des bestehenden Buildvertrags.
     wirkungslos. Bereits abgeschickte Rückmeldungen werden nicht zurückgesetzt;
     ein ausdrücklicher Wiederholungsversuch behält seinen Schlüssel, und eine
     alte Antwort entsperrt keine neuere laufende Aktion. Synthetische Widget-
-    und Chrome-Fälle prüfen diese Abläufe. Die gesonderte Themenauswahl, andere
-    Transporte und der Cookie-Wettlauf sind damit nicht allgemein abgesichert.
+    und Chrome-Fälle prüfen diese Abläufe. Andere Transporte und der
+    Cookie-Wettlauf sind damit nicht allgemein abgesichert.
+
+  - [x] **Themenauswahl beim Anmeldewechsel abgrenzen.** Offene Suchbegriffe,
+    ausgewählte Themen und alte Treffer werden entfernt; die Ansicht bittet
+    darum, sie erneut zu öffnen. Verzögerte Treffer und alte Auswahl- oder
+    Themenaktionen bleiben wirkungslos, auch während die Anmeldung gerade
+    beginnt. Künstliche Widget- und Chrome-Fälle prüfen die einzelnen Abläufe;
+    ein während der Anmeldung neu gestarteter anderer Transport und der
+    Cookie-Wettlauf bleiben gesondert offen.
 
   - [x] **Tagesverlauf beim Beginn einer neuen Anmeldung leeren.** Bereits
     angezeigte Tageskarten und Filter werden entfernt, die Datumsauswahl
