@@ -583,6 +583,14 @@ Der unabhängige Watchdog aus Commit `96c43ca` ist lokal installiert. Er meldet 
   wurde mit einem synthetischen Foto geöffnet; 33 Flutterfälle bestanden.
   Eine echte Übertragung oder Android-Abnahme war dies nicht.
 
+- Die mobile Rückaktion meldet ihr Ziel als einen Namen; 53 synthetische
+  Workspacefälle und zwei gezielte Chrome-Fälle bestanden. Der CI-Lauf
+  `46062877498` hatte einen Fehler im lokalen PDF-Browsertest: zwei
+  Schriftdatei-Anfragen endeten mit ECONNRESET im Netzwerkguard. Alle
+  Flutter-Testpartitionen waren erfolgreich; der Gesamtlauf ist deshalb noch
+  nicht grün. Ursache und Wiederholbarkeit weiter prüfen; Netzwerksperre nicht
+  deaktivieren oder den Fehler unterdrücken.
+
 ## Nützliche Prüfungen
 
 - CI: `gh run list --limit 5` und `gh run view <ID>`; ein laufender oder abgebrochener Workflow ist kein grüner Gesamtnachweis.

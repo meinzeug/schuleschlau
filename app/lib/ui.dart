@@ -1753,18 +1753,26 @@ class _WorkspaceShellState extends State<WorkspaceShell>
                       automaticallyImplyLeading: !focusedMobile,
                       leading: returnEntry == null || focusedMobile
                           ? null
-                          : IconButton(
-                              tooltip: 'Zu ${returnEntry.$2}',
-                              constraints: const BoxConstraints(
-                                minWidth: 48,
-                                minHeight: 48,
+                          : Tooltip(
+                              message: 'Zu ${returnEntry.$2}',
+                              excludeFromSemantics: true,
+                              child: MergeSemantics(
+                                child: Semantics(
+                                  label: 'Zu ${returnEntry.$2}',
+                                  child: IconButton(
+                                    constraints: const BoxConstraints(
+                                      minWidth: 48,
+                                      minHeight: 48,
+                                    ),
+                                    onPressed: _workspaceLink(
+                                      context,
+                                      state,
+                                      returnEntry.$3,
+                                    ),
+                                    icon: const Icon(Icons.arrow_back_rounded),
+                                  ),
+                                ),
                               ),
-                              onPressed: _workspaceLink(
-                                context,
-                                state,
-                                returnEntry.$3,
-                              ),
-                              icon: const Icon(Icons.arrow_back_rounded),
                             ),
                       title: brand(
                         compact:

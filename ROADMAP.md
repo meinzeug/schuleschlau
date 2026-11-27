@@ -1661,6 +1661,14 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – Barrierearme mobile Führung nachweisen**
 
+  - [x] **Rückweg im mobilen Kopf eindeutig ansagen.** Der im lokalen
+    Browser zeitweise doppelt ausgegebene Tooltip erhält keinen eigenen
+    Semantiknamen; die Rückaktion bleibt beschriftet und bedienbar. Der
+    gezielte künstliche Test scheiterte vorher und besteht danach für Heft-
+    und Wort-Rückwege, auch bei sichtbarem Tooltip. 53 Workspace-Fälle und
+    zwei gezielte Chrome-Fälle bestanden. Eine vollständige Screenreader- und
+    Android-Abnahme bleibt offen.
+
   - [x] **Mobiles Elternmenü als aufklappbare Aktion kennzeichnen.** Der
     Kontextknopf meldet seinen Namen und seinen geöffneten Zustand gemeinsam
     mit der Bedienaktion; er funktioniert mit und ohne Kindwechsel. Ein
