@@ -4152,6 +4152,14 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Echtzeitstatus gezielt und zuverlässig bereitstellen**
 
+  - [x] **Eltern-Kalender beim Anmeldewechsel abgrenzen.** Eine neue
+    Anmeldeabsicht schließt den Termin- und Exportdialog. Eingefangene alte
+    Export- und Navigationsaktionen bleiben wirkungslos, verspätete Daten
+    werden nicht angezeigt. Künstliche Tests prüfen diese Fälle zusammen mit
+    dem regulären, ausdrücklichen Kalenderexport. Bereits auf dem Gerät
+    gespeicherte Kalenderkopien werden dadurch nicht zurückgerufen; der
+    allgemeine Browser-Cookie-Wettlauf bleibt offen.
+
   - [x] **Profilfoto-Aktionen bei neuer Anmeldeabsicht schützen.** Eine
     gestartete Anmeldung sperrt die alte Fotoansicht und schließt lokale
     Auswahl und Löschbestätigung. Alte Aktionen und verspätete Antworten

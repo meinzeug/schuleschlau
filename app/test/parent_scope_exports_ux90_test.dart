@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -17,6 +18,148 @@ import 'parent_insights_test.dart' as fixture;
 import 'parent_messages_ux88_test.dart' show tap;
 
 void main() {
+  testWidgets('calendar bytes arriving after login do not open a file save', (
+    t,
+  ) async {
+    final f = saved.Fixture();
+    final response = Completer<http.Response>();
+    f.respond = (r) => r.url.path.endsWith('.ics')
+        ? response.future
+        : Future.value(
+            fixture.response({
+              'child_name': 'Künstliches Kind',
+              'start': '2026-10-22',
+              'end': '2026-11-20',
+              'total': 1,
+              'items': [
+                {
+                  'id': 'goal',
+                  'subject': 'Mathematik',
+                  'topic': 'Brüche',
+                  'due': '2026-10-23',
+                  'mandatory': true,
+                },
+              ],
+            }),
+          );
+    var saves = 0;
+    const channel = BasicMessageChannel<Object?>(
+      'dev.flutter.pigeon.file_saver.FileSaverHostApi.saveAs',
+      FileSaverHostApi.pigeonChannelCodec,
+    );
+    t.binding.defaultBinaryMessenger.setMockDecodedMessageHandler<Object?>(
+      channel,
+      (_) async {
+        saves++;
+        return ['synthetic-memory-only'];
+      },
+    );
+    addTearDown(
+      () => t.binding.defaultBinaryMessenger
+          .setMockDecodedMessageHandler<Object?>(channel, null),
+    );
+    await f.mount(
+      t,
+      (c) => TextButton(
+        onPressed: () => showParentDeadlines(c, f.state, 'child'),
+        child: const Text('Öffnen'),
+      ),
+    );
+    await tap(t, find.text('Öffnen'));
+    await t.tap(find.text('Kalenderdatei speichern'));
+    await t.pump();
+    expect(f.requests, hasLength(2));
+    final intent = f.state.beginAuthentication();
+    response.complete(
+      http.Response(
+        'BEGIN:VCALENDAR\r\nEND:VCALENDAR\r\n',
+        200,
+        headers: {'content-type': 'text/calendar'},
+      ),
+    );
+    await t.pumpAndSettle();
+    f.state.cancelAuthentication(intent);
+    await t.pumpAndSettle();
+    expect(saves, 0);
+    expect(f.requests, hasLength(2));
+  }, skip: kIsWeb);
+
+  testWidgets('calendar export and its old button stop at a new login intent', (
+    t,
+  ) async {
+    final f = saved.Fixture();
+    f.respond = (r) async => fixture.response({
+      'child_name': 'Künstliches Kind',
+      'start': '2026-10-22',
+      'end': '2026-11-20',
+      'total': 1,
+      'items': [
+        {
+          'id': 'goal',
+          'subject': 'Mathematik',
+          'topic': 'Brüche',
+          'due': '2026-10-23',
+          'mandatory': true,
+        },
+      ],
+    });
+    await f.mount(
+      t,
+      (c) => TextButton(
+        onPressed: () => showParentDeadlines(c, f.state, 'child'),
+        child: const Text('Öffnen'),
+      ),
+    );
+    await tap(t, find.text('Öffnen'));
+    final stale = t
+        .widget<FilledButton>(
+          find.ancestor(
+            of: find.text('Kalenderdatei speichern'),
+            matching: find.byType(FilledButton),
+          ),
+        )
+        .onPressed!;
+    final intent = f.state.beginAuthentication();
+    stale();
+    await t.pumpAndSettle();
+    expect(find.text('Gespeicherte Termine'), findsNothing);
+    expect(f.requests, hasLength(1));
+    f.state.cancelAuthentication(intent);
+    await t.pumpAndSettle();
+    expect(f.requests, hasLength(1));
+  });
+
+  testWidgets('late calendar data does not reappear after a login intent', (
+    t,
+  ) async {
+    final f = saved.Fixture();
+    final response = Completer<http.Response>();
+    f.respond = (_) => response.future;
+    await f.mount(
+      t,
+      (c) => TextButton(
+        onPressed: () => showParentDeadlines(c, f.state, 'child'),
+        child: const Text('Öffnen'),
+      ),
+    );
+    await t.tap(find.text('Öffnen'));
+    await t.pump();
+    final intent = f.state.beginAuthentication();
+    response.complete(
+      fixture.response({
+        'child_name': 'Künstliches Kind',
+        'start': '2026-10-22',
+        'end': '2026-11-20',
+        'total': 0,
+        'items': [],
+      }),
+    );
+    await t.pumpAndSettle();
+    f.state.cancelAuthentication(intent);
+    await t.pumpAndSettle();
+    expect(find.textContaining('Termine von Künstliches Kind'), findsNothing);
+    expect(f.requests, hasLength(1));
+  });
   testWidgets(
     'PK036 only explicit supported overview criteria initialize parent goal selection',
     (t) async {

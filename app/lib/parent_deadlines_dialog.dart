@@ -15,10 +15,13 @@ Future<void> showParentDeadlines(
   if (!context.mounted || !state.isParent) return;
   final sourceRoute = ModalRoute.of(context);
   final account = state.user, family = state.familyId;
+  final identity = state.api.requestIdentity();
   bool current() =>
       context.mounted &&
       identical(account, state.user) &&
       family == state.familyId &&
+      !state.authenticationPending &&
+      state.api.ownsRequest(identity) &&
       state.isParent &&
       (isCurrent?.call() ?? true);
   final route = DialogRoute<String>(
@@ -35,6 +38,7 @@ Future<void> showParentDeadlines(
   onRoute?.call(route);
   if (!current()) return;
   state.addListener(changed);
+  state.authenticationChanges.addListener(changed);
   try {
     final target = await Navigator.of(context, rootNavigator: true).push(route);
     await route.completed;
@@ -46,6 +50,7 @@ Future<void> showParentDeadlines(
     }
   } finally {
     state.removeListener(changed);
+    state.authenticationChanges.removeListener(changed);
   }
 }
 
