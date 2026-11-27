@@ -29,6 +29,13 @@ Future<void> importMaterial(
   String childId,
 ) async {
   final owner = state.user;
+  final family = state.familyId;
+  final identity = state.api.requestIdentity();
+  bool current() =>
+      owner != null &&
+      identical(owner, state.user) &&
+      family == state.familyId &&
+      state.api.ownsRequest(identity);
   if (state.isDemo) {
     if (!await confirmDialog(
       context,
@@ -38,21 +45,21 @@ Future<void> importMaterial(
       return;
     }
     if (!context.mounted ||
-        !identical(owner, state.user) ||
+        !current() ||
         ModalRoute.of(context)?.isCurrent == false) {
       return;
     }
     final material = await state.api.post(
       '/children/$childId/materials/synthetic-fixture',
     );
-    if (context.mounted && identical(owner, state.user)) {
+    if (context.mounted && current()) {
       state.refreshState();
       openRoute(context, '/material/${material['id']}');
     }
     return;
   }
   final status = await state.api.get('/status');
-  if (!context.mounted || !identical(owner, state.user)) return;
+  if (!context.mounted || !current()) return;
   if (status['real_data_enabled'] != true) {
     throw ApiError(
       'Der Import echter Materialien ist bis zur dokumentierten Datenschutzfreigabe gesperrt.',
@@ -80,19 +87,19 @@ Future<void> importMaterial(
     ),
   );
   if (source == null || !context.mounted) return;
-  if (!identical(owner, state.user)) return;
+  if (!current()) return;
   await rememberCameraSource(state, childId);
   Uint8List? cropped;
   try {
-    if (!context.mounted || !identical(owner, state.user)) return;
+    if (!context.mounted || !current()) return;
     cropped = await pickMaterialPhoto(context, source, state: state);
   } finally {
-    if (identical(owner, state.user)) await clearCameraSource(state);
+    if (current()) await clearCameraSource(state);
   }
   if (cropped == null) return;
-  if (!identical(owner, state.user)) return;
+  if (!current()) return;
   final material = await state.api.upload(childId, cropped);
-  if (context.mounted && identical(owner, state.user)) {
+  if (context.mounted && current()) {
     state.refreshState();
     openRoute(context, '/material/${material['id']}');
   }

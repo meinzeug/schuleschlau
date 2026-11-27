@@ -78,9 +78,9 @@ class MaterialVisualReview extends StatefulWidget {
 }
 
 class _MaterialVisualReviewState extends State<MaterialVisualReview> {
-  late final account = widget.state.user;
-  late final family = widget.state.familyId;
-  late final token = widget.state.api.token;
+  late final Json? account;
+  late final String? family, token;
+  late final int? authenticationRevision;
   Object? materialId;
   Object? materialRevision;
   Object? observationsDigest;
@@ -90,14 +90,20 @@ class _MaterialVisualReviewState extends State<MaterialVisualReview> {
       account != null &&
       identical(account, widget.state.user) &&
       family == widget.state.familyId &&
-      token == widget.state.api.token;
+      token == widget.state.api.token &&
+      authenticationRevision == widget.state.api.requestIdentity().$3;
   @override
   void initState() {
     super.initState();
+    account = widget.state.user;
+    family = widget.state.familyId;
+    token = widget.state.api.token;
+    authenticationRevision = widget.state.api.requestIdentity().$3;
     materialId = widget.data['id'];
     materialRevision = widget.data['revision'];
     observationsDigest = widget.data['visual_observations_digest'];
     widget.state.addListener(accountChanged);
+    widget.state.authenticationChanges.addListener(accountChanged);
   }
 
   void accountChanged() {
@@ -124,6 +130,7 @@ class _MaterialVisualReviewState extends State<MaterialVisualReview> {
   @override
   void dispose() {
     widget.state.removeListener(accountChanged);
+    widget.state.authenticationChanges.removeListener(accountChanged);
     super.dispose();
   }
 
@@ -293,7 +300,12 @@ class _VisualItemState extends State<_VisualItem> {
   }
 
   Future<void> send(String decision) async {
-    if (busy || !widget.enabled || description.text.trim().isEmpty) return;
+    if (!mounted ||
+        busy ||
+        !widget.enabled ||
+        description.text.trim().isEmpty) {
+      return;
+    }
     setState(() {
       busy = true;
       error = null;

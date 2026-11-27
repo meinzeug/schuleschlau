@@ -132,6 +132,46 @@ void main() {
     expect(find.text('Drei blaue Felder'), findsNothing);
     expect(tester.takeException(), isNull);
   });
+  testWidgets('Neue Anmeldung sperrt alte Bildprüfungsaktion sofort', (
+    tester,
+  ) async {
+    await mount(tester);
+    final saved = tester.widget<TextButton>(
+      find.widgetWithText(TextButton, 'Stimmt').first,
+    );
+    state.beginAuthentication();
+    saved.onPressed!();
+    await tester.pumpAndSettle();
+    expect(requests, isEmpty);
+    expect(find.text('Drei blaue Felder'), findsNothing);
+    expect(tester.takeException(), isNull);
+    saved.onPressed!();
+    await tester.pumpAndSettle();
+    expect(requests, isEmpty);
+    expect(tester.takeException(), isNull);
+  });
+  testWidgets('Später Bildprüfungsstand erscheint nicht bei neuer Anmeldung', (
+    tester,
+  ) async {
+    final completion = Completer<http.Response>();
+    respond = (_) => completion.future;
+    await mount(tester);
+    await tester.tap(find.text('Stimmt').first);
+    await tester.pump();
+    state.beginAuthentication();
+    await tester.pump();
+    completion.complete(
+      http.Response(
+        jsonEncode(data),
+        200,
+        headers: {'content-type': 'application/json'},
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(requests, hasLength(1));
+    expect(find.text('Drei blaue Felder'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
   testWidgets('Seitenwechsel verwirft gespeicherte Prüfstände', (tester) async {
     final oldObservation = data['visual_observations'][0];
     respond = (_) async => http.Response(

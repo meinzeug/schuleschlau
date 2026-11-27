@@ -4003,6 +4003,17 @@ Bestandteil des bestehenden Buildvertrags.
     nach einer abgebrochenen Anmeldung gegebenenfalls erneut geöffnet werden.
     Dies behebt weder das globale Transportproblem noch den Cookie-Wettlauf.
 
+    **Fotoimport und elterliche Bildprüfung zusätzlich begrenzt:** Der
+    klassische Fotoimport bindet die Zustimmung und den Start des Pickers
+    an Konto, Familie, Sitzung und Anmeldeabsicht; ein verspäteter Status
+    öffnet nach einer neuen Anmeldung keine Auswahl mehr. Die elterliche
+    Bildbefundprüfung verbirgt alte Inhalte und nimmt keine alten Aktionen
+    oder späten Antworten an. Bereits abgesendete Prüfungen werden nicht
+    rückgängig gemacht. 26 künstliche Fälle zu Bildbefunden, Fotoeinwilligung
+    und kindlichen Aktionen sowie 94 angrenzende Heft- und Materialfälle
+    bestanden. Andere Importpfade, Fehlermeldungen und direkte Ressourcen sind
+    damit nicht allgemein abgesichert.
+
   - [x] **Andere Sitzung desselben Kontos bei markierten API-Zugriffen ablehnen.**
     Die gemeinsame App erhält bei Login und Wiederaufnahme einen nicht
     autorisierenden Sitzungsvergleichswert und sendet ihn bei gemeinsamen

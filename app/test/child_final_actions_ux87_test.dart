@@ -212,6 +212,63 @@ void main() {
       await t.pumpWidget(const SizedBox());
     },
   );
+  testWidgets('Neue Anmeldung sperrt die alte Demo-Fotoeinwilligung', (
+    t,
+  ) async {
+    final requests = <http.Request>[];
+    final s = src.account((r) async {
+      requests.add(r);
+      return src.reply({});
+    });
+    s.user = {...s.user!, 'synthetic': true};
+    await t.pumpWidget(
+      src.home(
+        Builder(
+          builder: (context) => TextButton(
+            onPressed: () => importMaterial(context, s, 'child'),
+            child: const Text('Importieren'),
+          ),
+        ),
+      ),
+    );
+    await tap(t, find.text('Importieren'));
+    s.beginAuthentication();
+    await tap(t, find.text('Bestätigen'));
+    expect(requests, isEmpty);
+    expect(t.takeException(), isNull);
+    await t.pumpWidget(const SizedBox());
+  });
+  testWidgets(
+    'Verspäteter Fotostatus öffnet nach Anmeldebeginn keinen Picker',
+    (t) async {
+      final completion = Completer<http.Response>();
+      final requests = <http.Request>[];
+      final s = src.account((r) {
+        requests.add(r);
+        return completion.future;
+      });
+      s.user = {'id': 'own', 'role': 'parent'};
+      await t.pumpWidget(
+        src.home(
+          Builder(
+            builder: (context) => TextButton(
+              onPressed: () => importMaterial(context, s, 'child'),
+              child: const Text('Importieren'),
+            ),
+          ),
+        ),
+      );
+      await t.tap(find.text('Importieren'));
+      await t.pump();
+      s.beginAuthentication();
+      completion.complete(src.reply({'real_data_enabled': true}));
+      await t.pumpAndSettle();
+      expect(requests, hasLength(1));
+      expect(find.text('Bild auswählen'), findsNothing);
+      expect(t.takeException(), isNull);
+      await t.pumpWidget(const SizedBox());
+    },
+  );
   testWidgets('Photo import still requires the material privacy approval', (
     t,
   ) async {
