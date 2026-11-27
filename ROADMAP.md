@@ -1218,7 +1218,8 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
   - [x] **Korrekturhinweise für Aufgabenanzahl und Lernzeit erhalten.**
     Ungültige Zahlen blenden den Hinweis nicht mehr vorzeitig aus. Erst eine
     gültige Korrektur entfernt den jeweils zugehörigen Hinweis; ein offener
-    Lerntaghinweis bleibt beim Ändern der Minuten bestehen. Neun künstliche
+    Lerntaghinweis bleibt beim Ändern der Minuten bestehen und verschwindet
+    nach der bestätigten Auswahl eines Tages. Neun künstliche
     Dauer- und Planungstests bestanden, darunter ein schmaler Bildschirm mit
     großer Schrift und Tastatur; der gezielte Korrekturfall bestand zusätzlich
     im Chrome-Webrunner. Die gesamte Kinderoberfläche bleibt offen.

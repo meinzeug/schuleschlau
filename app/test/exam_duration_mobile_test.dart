@@ -104,6 +104,10 @@ void main() {
     await tester.enterText(minutes, '30');
     await tester.pump();
     expect(find.text(dateError), findsOneWidget);
+    await fixtures.tap(tester, find.text('Einzelnen Lerntag auswählen'));
+    await fixtures.tap(tester, find.text('OK'));
+    expect(find.text(dateError), findsNothing);
+    expect(find.byType(InputChip), findsOneWidget);
     expect(fixture.writes, isEmpty);
     expect(tester.takeException(), isNull);
   });
