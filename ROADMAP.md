@@ -1215,6 +1215,17 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – Alle Kinderansichten sprachlich und in ihrer Bedienung entrümpeln**
 
+  - [x] **Lernschrittdetails für Kinder verkürzen.** Der Dialog eines noch
+    nicht geöffneten Schritts nennt den tatsächlichen Zustand in einem kurzen
+    Satz; wiederholte Phasen-, Status- und Aufgabenzahlen entfallen bei
+    Kindern. Zurückgelegte Schritte und Fehler bleiben unterscheidbar, Eltern
+    behalten die Details. Das Öffnen erzeugt keine Aufgaben. 46 künstliche
+    Flutter-Lernwegfälle bestanden, darunter die neue Ansicht bei 320 Pixeln;
+    beide neuen Ansichtsprüfungen bestanden auch im Chrome-Webrunner. Der
+    Dialog wurde mit Beispieldaten bei 390 Pixeln im lokalen Browser geöffnet
+    und sichtbar verglichen; eine native Geräteabnahme und die vollständige
+    mobile Kinderoberfläche bleiben offen.
+
   - [x] **Korrekturhinweise für Aufgabenanzahl und Lernzeit erhalten.**
     Ungültige Zahlen blenden den Hinweis nicht mehr vorzeitig aus. Erst eine
     gültige Korrektur entfernt den jeweils zugehörigen Hinweis; ein offener

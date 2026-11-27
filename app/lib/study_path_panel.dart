@@ -458,26 +458,29 @@ class _StudyPathPanelState extends State<StudyPathPanel>
         content: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              'Lernschritt: ${block['label'] ?? _phaseLabel(block['phase'])}',
-            ),
-            SizedBox(height: 10),
-            Text(
-              'Stand: ${block['round_deferred'] == true ? 'Zur Seite gelegt' : _blockLabel(block['status'])}',
-            ),
-            SizedBox(height: 10),
-            Text(
-              '${block['question_count'] ?? 0} ${block['unit_id'] == null ? 'geplante' : 'vorbereitete'} Aufgaben',
-            ),
-            if (block['unit_id'] == null)
-              Padding(
-                padding: EdgeInsets.only(top: 12),
-                child: Text(
-                  state.isChild
-                      ? 'Dieser Lernschritt ist geplant. Hier werden noch keine Aufgaben erstellt.'
-                      : 'Dies ist nur dein Plan. Hier werden keine neuen Aufgaben vorbereitet. Starte die nächste passende Etappe oben im Lernweg.',
-                ),
+            if (state.isChild) ...[
+              if ((block['error'] ?? '').toString().isEmpty)
+                Text(_childBlockDetails(block)),
+            ] else ...[
+              Text(
+                'Lernschritt: ${block['label'] ?? _phaseLabel(block['phase'])}',
               ),
+              SizedBox(height: 10),
+              Text(
+                'Stand: ${block['round_deferred'] == true ? 'Zur Seite gelegt' : _blockLabel(block['status'])}',
+              ),
+              SizedBox(height: 10),
+              Text(
+                '${block['question_count'] ?? 0} ${block['unit_id'] == null ? 'geplante' : 'vorbereitete'} Aufgaben',
+              ),
+              if (block['unit_id'] == null)
+                Padding(
+                  padding: EdgeInsets.only(top: 12),
+                  child: Text(
+                    'Dies ist nur dein Plan. Hier werden keine neuen Aufgaben vorbereitet. Starte die nächste passende Etappe oben im Lernweg.',
+                  ),
+                ),
+            ],
             if ((block['error'] ?? '').toString().isNotEmpty)
               Padding(
                 padding: EdgeInsets.only(top: 12),
@@ -1218,6 +1221,19 @@ String _blockLabel(dynamic status) => switch (status) {
   'completed' => 'Bearbeitet',
   _ => 'Noch offen',
 };
+
+String _childBlockDetails(Json block) {
+  if (block['round_deferred'] == true) {
+    return 'Dieser Schritt ist zur Seite gelegt.';
+  }
+  return switch (block['status']) {
+    'planned' => 'Diesen Schritt kannst du später bearbeiten.',
+    'generating' => 'Dieser Schritt wird gerade vorbereitet.',
+    'completed' => 'Diesen Schritt hast du bearbeitet.',
+    _ => 'Dieser Schritt ist noch nicht verfügbar.',
+  };
+}
+
 String _phaseLabel(dynamic phase) => switch (phase) {
   'understand' || 'understanding' => 'Verstehen',
   'detective' || 'error_detective' => 'Fehlerdetektiv',

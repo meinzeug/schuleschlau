@@ -754,6 +754,61 @@ void main() {
     },
   );
 
+  testWidgets('A planned child step is short and does not generate tasks', (
+    tester,
+  ) async {
+    _viewport(tester);
+    final methods = <String>[];
+    final state = _state(
+      MockClient((request) async {
+        methods.add(request.method);
+        return _json(_path(blocks: [_block('first'), _block('later')]));
+      }),
+    );
+    final router = await _open(tester, state);
+    await _tap(tester, 'Alle Lernschritte');
+    final step = find.widgetWithText(TextButton, 'Brüche later');
+    await tester.ensureVisible(step);
+    await tester.tap(step);
+    await tester.pumpAndSettle();
+    expect(
+      find.text('Diesen Schritt kannst du später bearbeiten.'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('Lernschritt:'), findsNothing);
+    expect(find.textContaining('Stand:'), findsNothing);
+    expect(find.textContaining('geplante Aufgaben'), findsNothing);
+    expect(methods.every((method) => method == 'GET'), isTrue);
+    await _tap(tester, 'Zurück zum Lernweg');
+    expect(tester.takeException(), isNull);
+    await _dispose(tester, router);
+  });
+
+  testWidgets('A deferred child step remains clearly identified', (
+    tester,
+  ) async {
+    _viewport(tester);
+    final state = _state(
+      MockClient(
+        (_) async =>
+            _json(_path(blocks: [_block('later')..['round_deferred'] = true])),
+      ),
+    );
+    final router = await _open(tester, state);
+    await _tap(tester, 'Alle Lernschritte');
+    final step = find.widgetWithText(TextButton, 'Brüche later');
+    await tester.ensureVisible(step);
+    await tester.tap(step);
+    await tester.pumpAndSettle();
+    expect(find.text('Dieser Schritt ist zur Seite gelegt.'), findsOneWidget);
+    expect(
+      find.text('Diesen Schritt kannst du später bearbeiten.'),
+      findsNothing,
+    );
+    expect(tester.takeException(), isNull);
+    await _dispose(tester, router);
+  });
+
   testWidgets(
     'Parents see truthful planned, ready and completed stages without generation controls',
     (tester) async {

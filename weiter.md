@@ -2,6 +2,11 @@
 
 ## Arbeitsstand 27. November 2026: Quellen und Kontowechsel
 
+Für Kinder zeigen noch nicht geöffnete Lernschritte nun einen kurzen,
+zustandsbezogenen Satz statt mehrfacher technischer Angaben. Zurückgelegte
+Schritte und Fehler behalten ihren eigenen Hinweis; die Elternansicht ist
+unverändert. Der mobile Gesamtumbau bleibt offen.
+
 Die Benachrichtigungsansicht leert ihren privaten Cache bei einer neuen
 Anmeldeabsicht, sperrt die Glocke währenddessen und verwirft alte Antworten.
 Nach einem Abbruch muss das Glockenmenü erneut geöffnet oder die Gesamtansicht
