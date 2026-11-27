@@ -88,6 +88,7 @@ class _MaterialVisualReviewState extends State<MaterialVisualReview> {
   bool get current =>
       mounted &&
       account != null &&
+      !widget.state.authenticationPending &&
       identical(account, widget.state.user) &&
       family == widget.state.familyId &&
       token == widget.state.api.token &&

@@ -75,6 +75,16 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  testWidgets('Bildbefund wird während laufender Anmeldung nicht geöffnet', (
+    tester,
+  ) async {
+    state.beginAuthentication();
+    await mount(tester);
+    expect(find.text('Drei blaue Felder'), findsNothing);
+    expect(find.text('Stimmt'), findsNothing);
+    expect(requests, isEmpty);
+  });
+
   testWidgets('Öffnen schreibt nichts; ein Klick bestätigt nur einen Befund', (
     tester,
   ) async {

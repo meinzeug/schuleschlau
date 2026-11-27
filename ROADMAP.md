@@ -4402,6 +4402,13 @@ Bestandteil des bestehenden Buildvertrags.
 
   - [ ] **Verspätete gemeinsame API-Antworten nach Kontowechsel absichern.**
 
+    **Bildbefunde bei laufender Anmeldung nicht öffnen:** Wird die Eltern-
+    Bildprüfung erst während eines Anmeldeversuchs aufgebaut, zeigt sie keine
+    Befunde und sendet keine Bestätigung. Bereits zuvor begonnene Wechsel
+    bleiben durch die vorhandene Revisionsprüfung geschützt. 14 künstliche
+    Flutterfälle und Flutter Analyze sowie drei Chrome-Kontowechselfälle
+    bestanden. Die allgemeine Kontowechselabnahme bleibt offen.
+
     **Heftübungsdialog bei Anmeldewechsel schließen:** Eine begonnene
     Anmeldung schließt den betroffenen Dialog und alte Schaltflächen bleiben
     wirkungslos. Ein bereits gesendeter, unklarer Auftrag behält seinen
