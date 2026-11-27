@@ -268,6 +268,10 @@ Future<void> tapText(WidgetTester tester, String label) async {
   await settleUi(tester);
 }
 
+Future<void> showPhotoDetails(WidgetTester tester) async {
+  await tapText(tester, 'Fotos ansehen');
+}
+
 Future<void> reload(WidgetTester tester) async {
   final header = find.byKey(const ValueKey('page-tools-button'));
   await tester.ensureVisible(header);
@@ -356,6 +360,7 @@ void main() {
     expect(server.reads, readsAway);
     navigation.go('/after-school/child');
     await settleUi(tester);
+    await showPhotoDetails(tester);
     expect(find.text('Seite 1 ansehen'), findsOneWidget);
     expect(server.submissions, 1);
     expect(server.pages.single['confirmed'], false);
@@ -379,6 +384,7 @@ void main() {
       );
       await settleUi(tester);
       expect(find.byType(CheckboxListTile), findsNothing);
+      await showPhotoDetails(tester);
       await tapText(tester, 'Seite löschen');
       expect(find.text('Heftseite löschen?'), findsOneWidget);
       expect(find.textContaining('verknüpfte Lernrunde'), findsOneWidget);
@@ -426,6 +432,7 @@ void main() {
       MaterialApp.router(theme: appTheme(), routerConfig: navigation),
     );
     await settleUi(tester);
+    await showPhotoDetails(tester);
     await tapText(tester, 'Seite löschen');
     expect(
       find.widgetWithText(FilledButton, 'Heftseite löschen'),
@@ -483,6 +490,14 @@ void main() {
       expect(find.text('Stimmt, weiter'), findsNothing);
       expect(
         find.text(
+          'Deine Fotos sind gespeichert. Wenn etwas unklar ist, können deine Eltern nachsehen.',
+        ),
+        findsOneWidget,
+      );
+      await showPhotoDetails(tester);
+      expect(find.text('1 Foto gespeichert'), findsOneWidget);
+      expect(
+        find.text(
           'Diese Seite prüfen deine Eltern. Dein Foto ist gespeichert.',
         ),
         findsOneWidget,
@@ -493,6 +508,38 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   }
+
+  testWidgets(
+    'A child leaves pending photo review without confirming or restarting it',
+    (tester) async {
+      mobile(tester);
+      final server = PreparationServer(
+        pages: [source(1)],
+        stage: 'review',
+        preparation: {'status': 'needs_review', 'phase': 'review'},
+      );
+      final navigation = router(server.state());
+      addTearDown(navigation.dispose);
+      await tester.pumpWidget(
+        MaterialApp.router(theme: appTheme(), routerConfig: navigation),
+      );
+      await settleUi(tester);
+      expect(
+        find.widgetWithText(ActionButton, 'Zur Startseite'),
+        findsOneWidget,
+      );
+      expect(find.text('Seite 1 ansehen'), findsNothing);
+      await tapText(tester, 'Zur Startseite');
+      expect(find.text('Startseite'), findsOneWidget);
+      expect(server.pages.single['confirmed'], false);
+      expect(
+        server.requests.every((request) => request.startsWith('GET ')),
+        isTrue,
+      );
+      expect(server.submissions, 0);
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets(
     'Another photo remains reachable after the last source confirmation',
@@ -599,6 +646,7 @@ void main() {
         tester.binding.handleAppLifecycleStateChanged(lifecycle);
       }
       await settleUi(tester);
+      await showPhotoDetails(tester);
       expect(find.text('Seite 1 ansehen'), findsOneWidget);
       expect(server.submissions, 0);
       expect(server.starts, 0);
@@ -632,6 +680,7 @@ void main() {
     delayed.complete(oldDay);
     await settleUi(tester);
     expect(server.reads, 2);
+    await showPhotoDetails(tester);
     expect(find.text('Seite 1 ansehen'), findsOneWidget);
     expect(
       server.requests.where((request) => !request.startsWith('GET ')),
@@ -788,6 +837,7 @@ void main() {
     expect(server.reads, hiddenReads);
     navigation.pop();
     await settleUi(tester);
+    await showPhotoDetails(tester);
     expect(find.text('Seite 1 ansehen'), findsOneWidget);
     expect(server.submissions, 0);
     expect(tester.takeException(), isNull);
@@ -836,6 +886,7 @@ void main() {
       MaterialApp.router(theme: appTheme(), routerConfig: navigation),
     );
     await settleUi(tester);
+    await showPhotoDetails(tester);
     expect(find.text('Seite 1 ansehen'), findsOneWidget);
     expect(find.text('Noch eine Seite hinzufügen'), findsNothing);
     expect(find.byType(CheckboxListTile), findsNothing);

@@ -82,6 +82,12 @@ Future<(Pages, AppState)> open(
     ),
   );
   await tester.pumpAndSettle();
+  expect(find.byKey(picker), findsNothing);
+  await tester.ensureVisible(find.text('Fotos ansehen'));
+  await tester.tap(find.text('Fotos ansehen'));
+  await tester.pumpAndSettle();
+  await tester.ensureVisible(find.byKey(picker));
+  await tester.pumpAndSettle();
   return (server, state);
 }
 

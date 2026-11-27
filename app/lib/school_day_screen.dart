@@ -1257,6 +1257,17 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
     );
     final failureHasHomeAction =
         failed && !technicalFailure && preparation?['can_retry'] != true;
+    final unconfirmed = pages.where((page) => page['confirmed'] != true);
+    final selectedReview =
+        unconfirmed.where((page) => page['id'] == reviewId).firstOrNull ??
+        unconfirmed.firstOrNull;
+    final reviewHasHomeAction =
+        stage == 'review' &&
+        !(preparation?['status'] == 'postponed' && !captureRequested) &&
+        !((failed || isTechnicalPreparationFailure(error)) &&
+            !captureRequested) &&
+        selectedReview != null &&
+        selectedReview['status'] != 'uploaded';
     final step = stage == 'collecting'
         ? 0
         : stage == 'ready' &&
@@ -1451,7 +1462,8 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
             readyParts(),
             if ((stage != 'collecting' || failed) &&
                 !waiting &&
-                !failureHasHomeAction) ...[
+                !failureHasHomeAction &&
+                !reviewHasHomeAction) ...[
               SizedBox(height: 12),
               TextButton.icon(
                 onPressed: () => context.go('/app'),
@@ -2453,54 +2465,74 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        KeyedSubtree(
-          key: reviewStartKey,
-          child: OutlinedButton(
-            key: const ValueKey('school-day-page-picker'),
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-            ),
-            onPressed: active && !locked
-                ? () => chooseReviewPage(selected)
-                : null,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Seite ${selected['page_number']} ansehen',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 14,
-                          ),
+        const Notice(
+          'Deine Fotos sind gespeichert. Wenn etwas unklar ist, können deine Eltern nachsehen.',
+        ),
+        const SizedBox(height: 12),
+        ActionButton(
+          label: 'Zur Startseite',
+          icon: Icons.home_outlined,
+          onPressed: () async {
+            if (active) context.go('/app');
+          },
+        ),
+        const SizedBox(height: 8),
+        ExpansionTile(
+          title: const Text('Fotos ansehen'),
+          onExpansionChanged: (expanded) {
+            if (!expanded) FocusManager.instance.primaryFocus?.unfocus();
+          },
+          children: [
+            KeyedSubtree(
+              key: reviewStartKey,
+              child: OutlinedButton(
+                key: const ValueKey('school-day-page-picker'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                ),
+                onPressed: active && !locked
+                    ? () => chooseReviewPage(selected)
+                    : null,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Seite ${selected['page_number']} ansehen',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 14,
+                              ),
+                            ),
+                            Text(
+                              '${counted(pages.length, 'Foto', 'Fotos')} gespeichert',
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                          ],
                         ),
-                        Text(
-                          '${pages.length} Fotos gespeichert',
-                          style: const TextStyle(fontSize: 12),
-                        ),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Icon(Icons.expand_more_rounded),
+                    ],
                   ),
-                  const SizedBox(width: 8),
-                  const Icon(Icons.expand_more_rounded),
-                ],
+                ),
               ),
             ),
-          ),
-        ),
-        const SizedBox(height: 4),
-        MaterialReview(
-          state,
-          selected,
-          key: ValueKey('${selected['id']}-${selected['status']}'),
-          showUnitAction: false,
-          simpleChild: true,
-          onRefresh: () => unawaited(load()),
-          onDeleted: pageDeleted,
+            const SizedBox(height: 4),
+            MaterialReview(
+              state,
+              selected,
+              key: ValueKey('${selected['id']}-${selected['status']}'),
+              showUnitAction: false,
+              simpleChild: true,
+              onRefresh: () => unawaited(load()),
+              onDeleted: pageDeleted,
+            ),
+          ],
         ),
         if (selected['status'] == 'unreadable' && !allowUploads) ...[
           const SizedBox(height: 16),

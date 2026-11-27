@@ -121,6 +121,23 @@ void main() {
             };
       await tester.pumpWidget(app(state));
       await tester.pumpAndSettle();
+      expect(find.text('Seite 1 ansehen'), findsNothing);
+      expect(
+        find.widgetWithText(ActionButton, 'Zur Startseite'),
+        findsOneWidget,
+      );
+      expect(find.text('Zur Startseite'), findsOneWidget);
+      expect(
+        find.text(
+          'Deine Fotos sind gespeichert. Wenn etwas unklar ist, können deine Eltern nachsehen.',
+        ),
+        findsOneWidget,
+      );
+      await tester.ensureVisible(find.text('Fotos ansehen'));
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, -180));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Fotos ansehen'));
+      await tester.pumpAndSettle();
       expect(find.text('Seite 1 ansehen'), findsOneWidget);
       expect(find.byType(CheckboxListTile), findsNothing);
       expect(find.text('Stimmt, weiter'), findsNothing);

@@ -1129,6 +1129,17 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – Alle Kinderansichten sprachlich und in ihrer Bedienung entrümpeln**
 
+  - [x] **Wartende Heftseiten ohne Kinderprüfauftrag anzeigen.** Der Kindersicht
+    steht ein kurzer Hinweis auf gespeicherte Fotos und die mögliche Hilfe der
+    Eltern sowie ein eindeutiger Rückweg zur Startseite voran. Fotoauswahl und
+    erkannter Inhalt erscheinen erst auf Wunsch; Unsicherheiten bleiben in den
+    Details erhalten und die Elternprüfung wird nicht automatisch bestätigt.
+    Auch alte Seiten und eine ausdrücklich gewählte Löschung bleiben erreichbar.
+    Synthetische Tests prüfen die Statuswechsel, Rückwege, Seitenauswahl,
+    getrennte Konten sowie kleine Bildschirme und große Schrift. Eine mobile
+    Browservorschau zeigt den Zustand mit Beispieldaten; eine vollständige
+    Geräte- und Elternabnahme ist damit nicht behauptet.
+
   - [x] **Fotoeinstieg verständlicher machen.** Kinder sehen Fotografieren und
     Fotoauswahl als gut erkennbare Touch-Schaltflächen. Die zusätzliche direkte
     Abgabe ist eindeutig beschriftet und nur auf Wunsch aufgeklappt; die

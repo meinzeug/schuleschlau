@@ -219,6 +219,10 @@ void main() {
       await tester.pumpAndSettle();
       expect(extracted, ['page1', 'page2']);
       expect(submissions, 1);
+      expect(find.text('Seite 1 ansehen'), findsNothing);
+      await tester.ensureVisible(find.text('Fotos ansehen'));
+      await tester.tap(find.text('Fotos ansehen'));
+      await tester.pumpAndSettle();
       expect(find.text('Seite 1 ansehen'), findsOneWidget);
       expect(find.byType(TextField), findsNothing);
       expect(find.byType(CheckboxListTile), findsNothing);

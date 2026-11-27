@@ -99,6 +99,24 @@ void main() {
                   'confirmed_count': 0,
                   'preparation': {'status': 'idle'},
                 };
+              } else if (request.method == 'GET' &&
+                  request.url.path.endsWith('/school-days/review-day')) {
+                result = {
+                  ...day,
+                  'id': 'review-day',
+                  'stage': 'review',
+                  'pages': [
+                    {
+                      ...page,
+                      'confirmed': false,
+                      'status': 'review',
+                      'content': 'Beispieltext zu Brüchen.',
+                      'uncertainties': ['Eine Stelle ist unklar.'],
+                    },
+                  ],
+                  'confirmed_count': 0,
+                  'preparation': {'status': 'needs_review'},
+                };
               } else {
                 return http.Response('Preview route not implemented', 404);
               }
@@ -132,6 +150,14 @@ void main() {
           state,
           childId: 'example-child',
           dayId: 'photo-day',
+        ),
+      ),
+      GoRoute(
+        path: '/review',
+        builder: (_, _) => SchoolDayScreen(
+          state,
+          childId: 'example-child',
+          dayId: 'review-day',
         ),
       ),
       GoRoute(
