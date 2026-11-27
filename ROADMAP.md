@@ -3993,6 +3993,16 @@ Bestandteil des bestehenden Buildvertrags.
     ohne unklare Schreibvorgänge automatisch zu wiederholen. Der separate
     Cookie-Wettlauf bleibt ebenfalls offen.
 
+    **Klassenarbeiten zusätzlich abgesichert:** Die Klassenarbeitenansicht
+    und ihre Dialoge binden sich an die beim Öffnen aktuelle Anmeldeabsicht.
+    Beginnt eine neue Anmeldung, werden alte Inhalte und Dialoge ausgeblendet;
+    gespeicherte Rückrufe und verspätete Listen laden die alte Ansicht nicht
+    wieder und starten keine weitere Verarbeitung. 57 künstliche Flutterfälle
+    zu Planung, Nacharbeit und diesem Wechsel sowie 42 weitere Foto-,
+    Lebenszyklus- und Nacharbeitsfälle bestanden. Die Ansicht muss
+    nach einer abgebrochenen Anmeldung gegebenenfalls erneut geöffnet werden.
+    Dies behebt weder das globale Transportproblem noch den Cookie-Wettlauf.
+
   - [x] **Andere Sitzung desselben Kontos bei markierten API-Zugriffen ablehnen.**
     Die gemeinsame App erhält bei Login und Wiederaufnahme einen nicht
     autorisierenden Sitzungsvergleichswert und sendet ihn bei gemeinsamen

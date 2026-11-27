@@ -78,7 +78,7 @@ void main() {
       expect(
         find.text(
           role == 'child'
-              ? 'Für deinen Plan fehlen noch geprüfte Heftseiten. Bitte deine Eltern um Hilfe.'
+              ? 'Noch keine geprüften Seiten. Bitte deine Eltern um Hilfe.'
               : 'Hier fehlen bestätigte Heftquellen. Bestätige zuerst deine Seiten im Hefter.',
         ),
         findsOneWidget,
@@ -87,6 +87,34 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   }
+
+  testWidgets('Elternhinweis bleibt bei großer Schrift erreichbar', (
+    tester,
+  ) async {
+    final fixture = fixtures.Fixture();
+    fixture.listOverride = {
+      'child_id': 'child',
+      'can_manage': true,
+      'exams': [],
+      'sources': [],
+      'has_more': false,
+    };
+    await fixture.mount(tester, size: const Size(320, 600), scale: 2);
+    await fixtures.tap(tester, find.text('Arbeit planen'));
+    final notice = find.text(
+      'Noch keine geprüften Seiten. Bitte deine Eltern um Hilfe.',
+    );
+    await tester.ensureVisible(notice);
+    await tester.pumpAndSettle();
+    expect(notice, findsOneWidget);
+    final bounds = tester.getRect(notice);
+    expect(bounds.top, greaterThanOrEqualTo(0));
+    await Scrollable.ensureVisible(tester.element(notice), alignment: 1);
+    await tester.pumpAndSettle();
+    expect(tester.getRect(notice).bottom, lessThanOrEqualTo(600));
+    expect(tester.takeException(), isNull);
+    expect(fixture.writes, isEmpty);
+  });
 
   testWidgets('Kind bekommt bei fehlendem Thema Hilfe statt Prüfauftrag', (
     tester,
@@ -111,7 +139,7 @@ void main() {
     await fixtures.tap(tester, find.text('Thema aus dem Heft wählen (0/8)'));
     expect(
       find.text(
-        'Für dieses Fach fehlen noch geprüfte Heftseiten. Bitte deine Eltern um Hilfe.',
+        'Keine geprüften Seiten für dieses Fach. Bitte deine Eltern um Hilfe.',
       ),
       findsOneWidget,
     );

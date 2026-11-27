@@ -268,7 +268,7 @@ class _ExamPlanEditorState extends State<ExamPlanEditor> {
     if (candidates.isEmpty) {
       setState(
         () => error = widget.state.isChild
-            ? 'Für dieses Fach fehlen noch geprüfte Heftseiten. Bitte deine Eltern um Hilfe.'
+            ? 'Keine geprüften Seiten für dieses Fach. Bitte deine Eltern um Hilfe.'
             : 'Bestätige zuerst eine passende Heftquelle für dieses Fach.',
       );
       return;
@@ -460,7 +460,7 @@ class _ExamPlanEditorState extends State<ExamPlanEditor> {
       if (subjects.isEmpty && !review)
         Notice(
           widget.state.isChild
-              ? 'Für deinen Plan fehlen noch geprüfte Heftseiten. Bitte deine Eltern um Hilfe.'
+              ? 'Noch keine geprüften Seiten. Bitte deine Eltern um Hilfe.'
               : 'Hier fehlen bestätigte Heftquellen. Bestätige zuerst deine Seiten im Hefter.',
         ),
       gap(),

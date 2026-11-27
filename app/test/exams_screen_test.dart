@@ -546,7 +546,46 @@ void main() {
     expect(find.text('Arbeit planen'), findsNothing);
     expect(fixture.writes, isEmpty);
   });
-  for (final change in ['account', 'family', 'token', 'background', 'cover']) {
+  testWidgets('new authentication intent closes the old exam editor', (
+    tester,
+  ) async {
+    final fixture = Fixture();
+    await fixture.mount(tester);
+    await tap(tester, find.text('Arbeit planen'));
+    expect(find.byType(ExamPlanEditor), findsOneWidget);
+    fixture.state.beginAuthentication();
+    await tester.pumpAndSettle();
+    expect(find.byType(ExamPlanEditor), findsNothing);
+    expect(find.text('Bruchtest vorbereiten'), findsNothing);
+    expect(fixture.writes, isEmpty);
+  });
+  testWidgets('late exam list does not reappear after new authentication', (
+    tester,
+  ) async {
+    final fixture = Fixture()..listWait = Completer<http.Response>();
+    await fixture.mount(tester);
+    fixture.state.beginAuthentication();
+    fixture.listWait!.complete(
+      reply({
+        'child_id': 'child',
+        'can_manage': true,
+        'exams': [exam()],
+        'sources': [source()],
+        'has_more': false,
+      }),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Bruchtest vorbereiten'), findsNothing);
+    expect(fixture.writes, isEmpty);
+  });
+  for (final change in [
+    'account',
+    'family',
+    'token',
+    'authentication intent',
+    'background',
+    'cover',
+  ]) {
     testWidgets('saved start callback is inert after $change', (tester) async {
       final fixture = Fixture();
       await fixture.mount(tester, selected: 'exam');
@@ -564,6 +603,9 @@ void main() {
       if (change == 'token') {
         fixture.state.api.token = 'other';
         fixture.state.refreshState();
+      }
+      if (change == 'authentication intent') {
+        fixture.state.beginAuthentication();
       }
       if (change == 'background') await pause(tester);
       if (change == 'cover') {

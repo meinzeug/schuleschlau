@@ -22,6 +22,7 @@ class ExamScope extends ChangeNotifier with WidgetsBindingObserver {
   final AppState state;
   final Json? account;
   final String? family, token;
+  final int? authenticationRevision;
   final Set<ModalRoute<dynamic>> _owned = {};
   ModalRoute<dynamic>? route;
   bool _alive = true;
@@ -32,10 +33,12 @@ class ExamScope extends ChangeNotifier with WidgetsBindingObserver {
     : account = state.user,
       family = state.familyId,
       token = state.api.token,
+      authenticationRevision = state.api.requestIdentity().$3,
       foreground =
           WidgetsBinding.instance.lifecycleState == null ||
           WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed {
     state.addListener(_changed);
+    state.authenticationChanges.addListener(_changed);
     WidgetsBinding.instance.addObserver(this);
   }
   bool get owner =>
@@ -44,6 +47,7 @@ class ExamScope extends ChangeNotifier with WidgetsBindingObserver {
       identical(account, state.user) &&
       family == state.familyId &&
       token == state.api.token &&
+      authenticationRevision == state.api.requestIdentity().$3 &&
       !state.isAdmin;
   bool get active => owner && foreground;
   bool get current => active && route?.isCurrent == true;
@@ -117,6 +121,7 @@ class ExamScope extends ChangeNotifier with WidgetsBindingObserver {
     epoch++;
     _closeOwned();
     state.removeListener(_changed);
+    state.authenticationChanges.removeListener(_changed);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
