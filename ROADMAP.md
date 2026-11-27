@@ -4152,6 +4152,16 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Echtzeitstatus gezielt und zuverlässig bereitstellen**
 
+  - [x] **Profilfoto-Aktionen bei neuer Anmeldeabsicht schützen.** Eine
+    gestartete Anmeldung sperrt die alte Fotoansicht und schließt lokale
+    Auswahl und Löschbestätigung. Alte Aktionen und verspätete Antworten
+    aktualisieren die Ansicht auch nach einem abgebrochenen Wechsel nicht.
+    Ein bereits gesendeter Speichervorgang kann serverseitig erfolgt sein;
+    der gespeicherte Fotostand kann danach bewusst geladen werden. Die
+    künstlichen Tests betreffen diesen Dialog (59 Flutter-Fälle und ein
+    Chrome-Fall zur Löschbestätigung) und lösen den allgemeinen Browser-
+    Cookie-Wettlauf nicht.
+
   - [x] **Notenentwürfe und PDF-Vorschauen bei Anmeldewechsel schützen.**
     Eine laufende Anmeldung blendet den bisherigen Notenbereich aus und
     verhindert auch beim Wechsel des ausgewählten Kindes neue Notenabrufe.

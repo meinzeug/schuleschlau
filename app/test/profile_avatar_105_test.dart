@@ -697,6 +697,119 @@ void main() {
     );
   }
 
+  testWidgets(
+    'a new login intent closes the photo choice and invalidates old actions',
+    (tester) async {
+      final calls = <http.Request>[];
+      final state = _state((r) async {
+        calls.add(r);
+        return _json(_metadata());
+      });
+      await _mount(tester, state);
+      await _tap(tester, _select);
+      final staleSave = tester.widget<ActionButton>(_save).onPressed;
+      final intent = state.beginAuthentication();
+      await staleSave();
+      await tester.pumpAndSettle();
+      expect(calls, isEmpty);
+      expect(
+        find.byKey(const ValueKey('profile-photo-settings')),
+        findsNothing,
+      );
+      state.cancelAuthentication(intent);
+      await tester.pumpAndSettle();
+      expect(_save, findsNothing);
+      expect(
+        find.textContaining('Prüfe den gespeicherten Fotostand'),
+        findsOneWidget,
+      );
+      expect(calls, isEmpty);
+    },
+  );
+
+  testWidgets(
+    'a picker returning after a cancelled login cannot restore its photo',
+    (tester) async {
+      final picker = Completer<XFile?>();
+      final calls = <http.Request>[];
+      final state = _state((r) async {
+        calls.add(r);
+        return _json(_metadata());
+      });
+      await _mount(tester, state, picker: () => picker.future);
+      await tester.tap(_select);
+      await tester.pump();
+      final intent = state.beginAuthentication();
+      state.cancelAuthentication(intent);
+      picker.complete(XFile.fromData(_png, name: 'old-scope.png'));
+      await tester.pumpAndSettle();
+      expect(_save, findsNothing);
+      expect(calls, isEmpty);
+      expect(
+        find.textContaining('Prüfe den gespeicherten Fotostand'),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets('a new login intent closes the removal confirmation', (
+    tester,
+  ) async {
+    final calls = <http.Request>[];
+    final state = _state((r) async {
+      calls.add(r);
+      return _image();
+    }, photo: true);
+    await _mount(tester, state);
+    await _tap(tester, find.byKey(const ValueKey('profile-photo-remove')));
+    final staleRemove = tester
+        .widget<TextButton>(
+          find.ancestor(
+            of: find.text('Foto entfernen'),
+            matching: find.byType(TextButton),
+          ),
+        )
+        .onPressed!;
+    final intent = state.beginAuthentication();
+    staleRemove();
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('profile-photo-remove-dialog')),
+      findsNothing,
+    );
+    expect(calls.where((r) => r.method == 'DELETE'), isEmpty);
+    state.cancelAuthentication(intent);
+    await tester.pumpAndSettle();
+    expect(state.hasProfileAvatar, isTrue);
+  });
+
+  testWidgets('a late save cannot apply after a cancelled login intent', (
+    tester,
+  ) async {
+    final delayed = Completer<http.Response>();
+    final calls = <http.Request>[];
+    final state = _state((r) {
+      calls.add(r);
+      return r.method == 'PUT' ? delayed.future : Future.value(_image());
+    });
+    await _mount(tester, state);
+    await _tap(tester, _select);
+    await tester.ensureVisible(_save);
+    await tester.tap(_save);
+    await tester.pump();
+    final intent = state.beginAuthentication();
+    state.cancelAuthentication(intent);
+    delayed.complete(_json(_metadata()));
+    await tester.pumpAndSettle();
+    expect(state.hasProfileAvatar, isFalse);
+    expect(find.text('Dein Profilfoto ist gespeichert.'), findsNothing);
+    expect(
+      find.textContaining('Prüfe den gespeicherten Fotostand'),
+      findsOneWidget,
+    );
+    expect(calls.where((r) => r.method == 'PUT'), hasLength(1));
+  });
+
   testWidgets('a late upload result cannot rewrite a replacement session', (
     tester,
   ) async {

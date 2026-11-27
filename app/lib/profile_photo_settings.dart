@@ -96,6 +96,7 @@ class _ProfilePhotoSettingsState extends State<ProfilePhotoSettings>
   ImageProvider? preview;
   String? requestKey, removeRequestKey, error, notice;
   String seenRevision = 'none';
+  int? authenticationRevision;
   bool foreground = true, picking = false, busy = false, applying = false;
   int generation = 0;
   AppState get state => widget.state;
@@ -104,7 +105,9 @@ class _ProfilePhotoSettingsState extends State<ProfilePhotoSettings>
       owner != null &&
       identical(state.user, owner) &&
       state.familyId == family &&
-      state.api.token == token;
+      state.api.token == token &&
+      !state.authenticationPending &&
+      state.api.requestIdentity().$3 == authenticationRevision;
   bool get current =>
       identityCurrent && foreground && hostRoute?.isCurrent == true;
   bool valid(int stamp) => current && stamp == generation;
@@ -117,6 +120,7 @@ class _ProfilePhotoSettingsState extends State<ProfilePhotoSettings>
         WidgetsBinding.instance.lifecycleState == null ||
         WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
     state.addListener(changed);
+    state.authenticationChanges.addListener(authenticationChanged);
     WidgetsBinding.instance.addObserver(this);
   }
 
@@ -124,6 +128,7 @@ class _ProfilePhotoSettingsState extends State<ProfilePhotoSettings>
     owner = state.user;
     family = state.familyId;
     token = state.api.token;
+    authenticationRevision = state.api.requestIdentity().$3;
     seenRevision = state.profileAvatarRevision;
   }
 
@@ -160,12 +165,36 @@ class _ProfilePhotoSettingsState extends State<ProfilePhotoSettings>
     }
   }
 
+  void authenticationChanged() {
+    if (!mounted) return;
+    setState(() {
+      // The selection and its confirmation are private to the old intent.
+      // An already submitted save may still commit on the server.
+      final hadWork = selected != null || busy || ownDialog != null;
+      invalidate();
+      error = null;
+      if (hadWork) {
+        notice = 'Die Fotoauswahl wurde geschlossen. Prüfe den gespeicherten Fotostand.';
+      }
+      if (!state.authenticationPending &&
+          identical(state.user, owner) &&
+          state.familyId == family &&
+          state.api.token == token) {
+        authenticationRevision = state.api.requestIdentity().$3;
+      }
+    });
+  }
+
   @override
   void didUpdateWidget(covariant ProfilePhotoSettings oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (!identical(oldWidget.state, state)) {
       oldWidget.state.removeListener(changed);
+      oldWidget.state.authenticationChanges.removeListener(
+        authenticationChanged,
+      );
       state.addListener(changed);
+      state.authenticationChanges.addListener(authenticationChanged);
       invalidate();
       error = notice = null;
     }
@@ -203,6 +232,7 @@ class _ProfilePhotoSettingsState extends State<ProfilePhotoSettings>
   void dispose() {
     generation++;
     state.removeListener(changed);
+    state.authenticationChanges.removeListener(authenticationChanged);
     WidgetsBinding.instance.removeObserver(this);
     discard();
     final old = ownDialog;
