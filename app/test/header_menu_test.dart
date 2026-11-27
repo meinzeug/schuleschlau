@@ -95,6 +95,35 @@ void main() {
   setUp(() => FlutterSecureStorage.setMockInitialValues({}));
 
   for (final role in ['child', 'parent', 'admin']) {
+    testWidgets('$role compact account menu has one named action', (
+      tester,
+    ) async {
+      final semantics = tester.ensureSemantics();
+      try {
+        final state = AppState(
+          api: Api(
+            base: 'https://example.invalid/api',
+            client: MockClient((_) async => _response(_inbox())),
+          ),
+        )..user = _user(role);
+        await _open(tester, state);
+        final account = find.byKey(const ValueKey('account-menu'));
+        final data = tester.getSemantics(account).getSemanticsData();
+        expect(data.label, 'Konto öffnen');
+        expect(data.flagsCollection.isButton, isTrue);
+        expect(data.hasAction(SemanticsAction.tap), isTrue);
+        expect(find.bySemanticsLabel('Konto öffnen'), findsOneWidget);
+        await tester.tap(account);
+        await tester.pumpAndSettle();
+        expect(find.text('Einstellungen'), findsOneWidget);
+        await tester.pumpWidget(const SizedBox());
+      } finally {
+        semantics.dispose();
+      }
+    });
+  }
+
+  for (final role in ['child', 'parent', 'admin']) {
     testWidgets('$role bell names its action instead of only the badge', (
       tester,
     ) async {

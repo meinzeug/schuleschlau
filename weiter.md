@@ -2,6 +2,11 @@
 
 ## Arbeitsstand 27. November 2026: Quellen und Kontowechsel
 
+Das kompakte Kontomenü bündelt Beschriftung und Schaltflächenaktion. Drei
+Rollentests scheiterten am alten Semantikknoten und bestanden nach der
+Änderung auch in Chrome; 80 angrenzende Flutterfälle bestanden. Eine echte
+Screenreader- oder Geräteabnahme ist damit nicht ersetzt.
+
 Die Info-Schaltflächen der Kinder-, Eltern- und Adminköpfe haben eine
 gemeinsame Semantik mit einem Namen und aufgeklapptem Zustand. 90 künstliche
 Flutterfälle einschließlich drei Tastatur- und Semantikprüfungen bestanden; der im

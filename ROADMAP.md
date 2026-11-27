@@ -1632,6 +1632,14 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – Barrierearme mobile Führung nachweisen**
 
+  - [x] **Kompaktes Kontomenü eindeutig benennen.** Die zuvor im mobilen
+    Browser getrennt ausgegebenen Container- und Buttonbezeichnungen sind
+    zu einer benannten Aktion zusammengeführt. Der Rollentest scheiterte am
+    bisherigen Zustand und besteht nach der Änderung für Kinder, Eltern und
+    Admin, auch im Chrome-Webrunner. 80 Flutterfälle zu Kopfmenü, Navigation
+    und Schulbuddy sowie die gezielte Analyse bestanden. Die vollständige
+    Screenreader- und Geräteabnahme bleibt offen.
+
   - [x] **Bereichsinfo als eine Aktion ausgeben.** Im mobilen Browser wurde
     „Bereichsinfo schließen“ doppelt im Zugänglichkeitsbaum ausgegeben. Kinder-, Eltern- und
     Adminüberschriften nutzen dieselbe beschriftete Schaltfläche mit
