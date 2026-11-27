@@ -1237,6 +1237,7 @@ class _WorkspaceShellState extends State<WorkspaceShell>
     WidgetsBinding.instance.addObserver(this);
     bindOwner();
     state.addListener(ownerChanged);
+    state.authenticationChanges.addListener(closeTool);
     scroll.addListener(scrolled);
     skipFocus.addListener(skipFocused);
     HardwareKeyboard.instance.addHandler(unfocusedShortcut);
@@ -1244,8 +1245,10 @@ class _WorkspaceShellState extends State<WorkspaceShell>
 
   bool unfocusedShortcut(KeyEvent event) {
     if (event is! KeyDownEvent ||
-        !ownerCurrent ||
         !mounted ||
+        !ownerCurrent ||
+        state.authenticationPending ||
+        isOffstage ||
         ModalRoute.of(context)?.isCurrent == false ||
         (WidgetsBinding.instance.lifecycleState != null &&
             WidgetsBinding.instance.lifecycleState !=
@@ -1276,6 +1279,20 @@ class _WorkspaceShellState extends State<WorkspaceShell>
       return true;
     }
     return false;
+  }
+
+  bool get isOffstage {
+    if (!mounted) return true;
+    var hidden = false;
+    context.visitAncestorElements((element) {
+      final ancestor = element.widget;
+      if (ancestor is Offstage && ancestor.offstage) {
+        hidden = true;
+        return false;
+      }
+      return true;
+    });
+    return hidden;
   }
 
   void bindOwner() {
@@ -1336,9 +1353,11 @@ class _WorkspaceShellState extends State<WorkspaceShell>
     super.didUpdateWidget(oldWidget);
     if (!identical(oldWidget.state, state)) {
       oldWidget.state.removeListener(ownerChanged);
+      oldWidget.state.authenticationChanges.removeListener(closeTool);
       closeTool();
       bindOwner();
       state.addListener(ownerChanged);
+      state.authenticationChanges.addListener(closeTool);
     }
   }
 
@@ -1350,6 +1369,7 @@ class _WorkspaceShellState extends State<WorkspaceShell>
   @override
   void dispose() {
     state.removeListener(ownerChanged);
+    state.authenticationChanges.removeListener(closeTool);
     WidgetsBinding.instance.removeObserver(this);
     HardwareKeyboard.instance.removeHandler(unfocusedShortcut);
     closeTool();
@@ -1362,14 +1382,22 @@ class _WorkspaceShellState extends State<WorkspaceShell>
 
   Future<void> openWorkspaceTool({bool help = false}) async {
     final hostRoute = ModalRoute.of(context);
-    if (!ownerCurrent || hostRoute?.isCurrent == false || toolRoute != null) {
+    if (!ownerCurrent ||
+        state.authenticationPending ||
+        isOffstage ||
+        hostRoute?.isCurrent == false ||
+        toolRoute != null) {
       return;
     }
     final account = boundOwner, family = boundFamily, token = boundToken;
+    final authentication = state.api.requestIdentity();
     final path = GoRouterState.of(context).uri.path;
     final entries = _entries(sidebar: false);
     bool current() =>
         mounted &&
+        !isOffstage &&
+        !state.authenticationPending &&
+        state.api.ownsRequest(authentication) &&
         identical(state.user, account) &&
         state.familyId == family &&
         state.api.token == token &&

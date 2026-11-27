@@ -307,6 +307,12 @@ class _GoogleActionState extends State<_GoogleAction> {
                     context.go('/auth/google/complete#flow=$flow');
                   }
                 } catch (e) {
+                  final revision = authenticationRevision;
+                  if (revision != null) {
+                    authenticationState?.cancelAuthentication(revision);
+                    authenticationRevision = null;
+                    authenticationState = null;
+                  }
                   if (mounted) {
                     setState(
                       () => error = e is ApiError ? e.message : 'Google konnte gerade nicht geöffnet werden. Versuche es bitte erneut.',

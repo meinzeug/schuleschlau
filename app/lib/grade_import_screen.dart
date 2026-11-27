@@ -9,6 +9,7 @@ import 'ui.dart';
 import 'page_tools.dart';
 import 'collection_view_tools.dart';
 import 'parent_workspace_ui.dart';
+import 'parent_form_guard.dart';
 import 'vocabulary_screen.dart' show vocabularyKey;
 
 /// Private local PDF preview; no grade is written before explicit confirmation.
@@ -33,6 +34,11 @@ class _GradePdfImportState extends State<GradePdfImport> {
   late final String? family;
   late final String child;
   late final sessionToken = widget.state.api.token;
+  late var authentication = widget.state.api.requestIdentity();
+  bool authenticationBlocked = false, checkingAuthentication = false;
+  bool operationUncertain = false;
+  int authenticationEpoch = 0;
+  String? authenticationError;
   final focusedEntryKey = GlobalKey();
   String? focusedSlot;
   Json? preview, result;
@@ -60,13 +66,19 @@ class _GradePdfImportState extends State<GradePdfImport> {
 
   bool busy = false, closing = false, unresolvedOnly = false;
   int classworkWeight = 1, otherWeight = 1;
-  bool get current =>
+  bool get sameAccount =>
       mounted &&
       owner != null &&
       identical(widget.state.user, owner) &&
       family == widget.state.familyId &&
       child == widget.childId &&
       sessionToken == widget.state.api.token;
+  bool get current =>
+      sameAccount &&
+      !authenticationBlocked &&
+      !widget.state.authenticationPending &&
+      widget.state.api.ownsRequest(authentication);
+  bool currentAt(int epoch) => current && epoch == authenticationEpoch;
   List<Json> get items => rows;
   bool get complete =>
       items.every((r) => choices[r['slot_key']] != null) &&
@@ -97,7 +109,8 @@ class _GradePdfImportState extends State<GradePdfImport> {
   }
 
   Future<void> skipVisible(List<Json> visible) async {
-    if (!current ||
+    final epoch = authenticationEpoch;
+    if (!currentAt(epoch) ||
         busy ||
         preview == null ||
         ModalRoute.of(context)?.isCurrent != true) {
@@ -121,7 +134,7 @@ class _GradePdfImportState extends State<GradePdfImport> {
       accept: 'Diese Positionen auslassen',
     );
     if (!accepted ||
-        !current ||
+        !currentAt(epoch) ||
         busy ||
         preview?['id'] != id ||
         preview?['context_revision'] != revision) {
@@ -136,7 +149,8 @@ class _GradePdfImportState extends State<GradePdfImport> {
   }
 
   Future<void> restartPreview() async {
-    if (!current ||
+    final epoch = authenticationEpoch;
+    if (!currentAt(epoch) ||
         busy ||
         bytes == null ||
         preview == null ||
@@ -153,7 +167,7 @@ class _GradePdfImportState extends State<GradePdfImport> {
     )) {
       return;
     }
-    if (!current || busy || preview?['id'] != id) return;
+    if (!currentAt(epoch) || busy || preview?['id'] != id) return;
     requestKey = vocabularyKey();
     await upload();
   }
@@ -165,10 +179,137 @@ class _GradePdfImportState extends State<GradePdfImport> {
     family = widget.state.familyId;
     child = widget.childId;
     widget.state.addListener(identityChanged);
+    widget.state.authenticationChanges.addListener(authenticationChanged);
+  }
+
+  void authenticationChanged() {
+    if (!sameAccount || closing) return;
+    authenticationEpoch++;
+    final extra = ownDialog;
+    Future<void>.microtask(() {
+      if (extra?.isActive == true) extra!.navigator?.removeRoute(extra);
+    });
+    FocusManager.instance.primaryFocus?.unfocus();
+    setState(() {
+      operationUncertain = operationUncertain || busy;
+      busy = false;
+      authenticationBlocked = true;
+      checkingAuthentication = false;
+      authenticationError = null;
+    });
+  }
+
+  Future<void> resumeAfterAuthentication() async {
+    if (!sameAccount ||
+        !authenticationBlocked ||
+        checkingAuthentication ||
+        widget.state.authenticationPending) {
+      return;
+    }
+    final assertion = owner?['session_assertion'];
+    if (sessionToken == null &&
+        (assertion is! String ||
+            !RegExp(r'^[a-f0-9]{64}$').hasMatch(assertion))) {
+      setState(
+        () => authenticationError =
+            'Dieser Zugang kann die Vorschau nicht sicher öffnen.',
+      );
+      return;
+    }
+    final identity = widget.state.api.requestIdentity(),
+        epoch = authenticationEpoch;
+    setState(() {
+      checkingAuthentication = true;
+      authenticationError = null;
+    });
+    try {
+      final me = await widget.state.api.get('/auth/me');
+      if (!sameAccount ||
+          epoch != authenticationEpoch ||
+          !widget.state.api.ownsRequest(identity)) {
+        return;
+      }
+      if (widget.state.authenticationPending ||
+          me['id'] != owner?['id'] ||
+          me['role'] != 'parent' ||
+          (assertion != null && me['session_assertion'] != assertion)) {
+        throw ApiError('Der Zugang hat sich geändert.', 409);
+      }
+      final access = await widget.state.api.get(
+        '/children/${widget.childId}/grades?page=1',
+      );
+      if (!sameAccount ||
+          epoch != authenticationEpoch ||
+          !widget.state.api.ownsRequest(identity)) {
+        return;
+      }
+      if (access['can_manage'] != true ||
+          access['child_id'] != widget.childId) {
+        throw ApiError('Der Zugriff hat sich geändert.', 403);
+      }
+      Json? latest;
+      if (preview != null) {
+        latest = await widget.state.api.get(
+          '/children/${widget.childId}/grade-imports/${preview!['id']}',
+        );
+        if (!sameAccount ||
+            epoch != authenticationEpoch ||
+            !widget.state.api.ownsRequest(identity)) {
+          return;
+        }
+      }
+      setState(() {
+        if (latest != null) usePreview(latest);
+        authentication = identity;
+        authenticationBlocked = false;
+        operationUncertain = false;
+      });
+    } catch (_) {
+      if (sameAccount && epoch == authenticationEpoch) {
+        setState(
+          () => authenticationError = 'Der Zugang konnte nicht geprüft werden. Die Vorschau bleibt erhalten.',
+        );
+      }
+    } finally {
+      if (sameAccount && epoch == authenticationEpoch) {
+        setState(() => checkingAuthentication = false);
+      }
+    }
+  }
+
+  Future<void> closeBlockedDraft() async {
+    final epoch = authenticationEpoch;
+    if (!sameAccount || !authenticationBlocked || checkingAuthentication) {
+      return;
+    }
+    if (bytes != null || preview != null || operationUncertain) {
+      ModalRoute<bool>? discard;
+      final accepted = await confirmParentDiscard(
+        context,
+        current: () =>
+            sameAccount &&
+            authenticationBlocked &&
+            !closing &&
+            epoch == authenticationEpoch,
+        subject: 'Diese PDF-Vorschau',
+        onRoute: (route) => ownDialog = discard = route,
+      );
+      if (identical(ownDialog, discard)) ownDialog = null;
+      if (!accepted ||
+          !sameAccount ||
+          !authenticationBlocked ||
+          closing ||
+          epoch != authenticationEpoch) {
+        return;
+      }
+    }
+    if (mounted && ModalRoute.of(context)?.isCurrent == true) {
+      Navigator.pop(context, false);
+    }
   }
 
   void identityChanged() {
-    if (mounted && !current && !closing) {
+    if (mounted && !sameAccount && !closing) {
       closing = true;
       final route = ModalRoute.of(context);
       final extra = ownDialog;
@@ -203,6 +344,7 @@ class _GradePdfImportState extends State<GradePdfImport> {
       });
     }
     widget.state.removeListener(identityChanged);
+    widget.state.authenticationChanges.removeListener(authenticationChanged);
     super.dispose();
   }
 
@@ -296,7 +438,8 @@ class _GradePdfImportState extends State<GradePdfImport> {
     required Widget content,
     String accept = 'Weiter',
   }) async {
-    if (!current ||
+    final epoch = authenticationEpoch;
+    if (!currentAt(epoch) ||
         ownDialog?.isActive == true ||
         ModalRoute.of(context)?.isCurrent != true) {
       return false;
@@ -311,7 +454,7 @@ class _GradePdfImportState extends State<GradePdfImport> {
           TextButton(
             onPressed: () {
               if (ctx.mounted &&
-                  current &&
+                  currentAt(epoch) &&
                   ModalRoute.of(ctx)?.isCurrent == true) {
                 Navigator.pop(ctx, false);
               }
@@ -321,7 +464,7 @@ class _GradePdfImportState extends State<GradePdfImport> {
           FilledButton(
             onPressed: () {
               if (ctx.mounted &&
-                  current &&
+                  currentAt(epoch) &&
                   ModalRoute.of(ctx)?.isCurrent == true) {
                 Navigator.pop(ctx, true);
               }
@@ -335,7 +478,7 @@ class _GradePdfImportState extends State<GradePdfImport> {
     final answer = await Navigator.of(context, rootNavigator: true).push(route);
     await route.completed;
     if (identical(ownDialog, route)) ownDialog = null;
-    return current && answer == true;
+    return currentAt(epoch) && answer == true;
   }
 
   void changeView(VoidCallback apply) {
@@ -352,7 +495,8 @@ class _GradePdfImportState extends State<GradePdfImport> {
   }
 
   Future<void> selectFile() async {
-    if (!current || busy) return;
+    final epoch = authenticationEpoch;
+    if (!currentAt(epoch) || busy) return;
     var selectedNew = false;
     setState(() {
       busy = true;
@@ -370,7 +514,7 @@ class _GradePdfImportState extends State<GradePdfImport> {
           )) {
         return;
       }
-      if (!current) return;
+      if (!currentAt(epoch)) return;
       final file =
           await (widget.pickPdf?.call() ??
               openFile(
@@ -383,14 +527,14 @@ class _GradePdfImportState extends State<GradePdfImport> {
                   ),
                 ],
               ));
-      if (!current || file == null) return;
+      if (!currentAt(epoch) || file == null) return;
       final size = await file.length();
-      if (!current) return;
+      if (!currentAt(epoch)) return;
       if (size > 6 * 1024 * 1024) {
         throw ApiError('Bitte eine PDF bis 6 MB auswählen.');
       }
       final selected = await file.readAsBytes();
-      if (!current) return;
+      if (!currentAt(epoch)) return;
       if (selected.length > 6 * 1024 * 1024) {
         throw ApiError('Bitte eine PDF bis 6 MB auswählen.');
       }
@@ -405,7 +549,7 @@ class _GradePdfImportState extends State<GradePdfImport> {
       requestKey = vocabularyKey();
       selectedNew = true;
     } catch (e) {
-      if (current) {
+      if (currentAt(epoch)) {
         setState(
           () => error = errorMessage(
             e,
@@ -414,13 +558,14 @@ class _GradePdfImportState extends State<GradePdfImport> {
         );
       }
     } finally {
-      if (current) setState(() => busy = false);
+      if (currentAt(epoch)) setState(() => busy = false);
     }
-    if (selectedNew && current) await upload();
+    if (selectedNew && currentAt(epoch)) await upload();
   }
 
   Future<void> upload() async {
-    if (!current || busy || bytes == null) return;
+    final epoch = authenticationEpoch;
+    if (!currentAt(epoch) || busy || bytes == null) return;
     setState(() {
       busy = true;
       error = null;
@@ -431,9 +576,9 @@ class _GradePdfImportState extends State<GradePdfImport> {
         bytes!,
         requestKey!,
       );
-      if (current) setState(() => usePreview(data));
+      if (currentAt(epoch)) setState(() => usePreview(data));
     } catch (e) {
-      if (current) {
+      if (currentAt(epoch)) {
         setState(
           () => error = errorMessage(
             e,
@@ -442,12 +587,13 @@ class _GradePdfImportState extends State<GradePdfImport> {
         );
       }
     } finally {
-      if (current) setState(() => busy = false);
+      if (currentAt(epoch)) setState(() => busy = false);
     }
   }
 
   Future<void> refresh() async {
-    if (!current || busy || preview == null) return;
+    final epoch = authenticationEpoch;
+    if (!currentAt(epoch) || busy || preview == null) return;
     setState(() {
       busy = true;
       error = null;
@@ -456,9 +602,9 @@ class _GradePdfImportState extends State<GradePdfImport> {
       final data = await widget.state.api.get(
         '/children/${widget.childId}/grade-imports/${preview!['id']}',
       );
-      if (current) setState(() => usePreview(data));
+      if (currentAt(epoch)) setState(() => usePreview(data));
     } catch (e) {
-      if (current) {
+      if (currentAt(epoch)) {
         setState(
           () => error = errorMessage(
             e,
@@ -467,12 +613,13 @@ class _GradePdfImportState extends State<GradePdfImport> {
         );
       }
     } finally {
-      if (current) setState(() => busy = false);
+      if (currentAt(epoch)) setState(() => busy = false);
     }
   }
 
   Future<void> save() async {
-    if (!current ||
+    final epoch = authenticationEpoch;
+    if (!currentAt(epoch) ||
         busy ||
         !complete ||
         preview == null ||
@@ -505,14 +652,14 @@ class _GradePdfImportState extends State<GradePdfImport> {
         '/children/${widget.childId}/grade-imports/${preview!['id']}/confirm',
         body,
       );
-      if (current) {
+      if (currentAt(epoch)) {
         setState(() {
           result = data;
           bytes = null;
         });
       }
     } catch (e) {
-      if (current) {
+      if (currentAt(epoch)) {
         setState(
           () => error = errorMessage(
             e,
@@ -521,12 +668,62 @@ class _GradePdfImportState extends State<GradePdfImport> {
         );
       }
     } finally {
-      if (current) setState(() => busy = false);
+      if (currentAt(epoch)) setState(() => busy = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final epoch = authenticationEpoch;
+    if (authenticationBlocked && sameAccount && !closing) {
+      return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop &&
+              !checkingAuthentication &&
+              epoch == authenticationEpoch) {
+            closeBlockedDraft();
+          }
+        },
+        child: AlertDialog(
+          title: const Text('Anmeldung geändert'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Deine PDF-Vorschau bleibt hier. Prüfe deinen Zugang, um weiterzuarbeiten.',
+              ),
+              if (operationUncertain)
+                const Text('Der letzte Vorgang kann bereits gespeichert sein.'),
+              if (authenticationError != null)
+                Notice(authenticationError!, warning: true),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: checkingAuthentication
+                  ? null
+                  : () {
+                      if (epoch == authenticationEpoch) closeBlockedDraft();
+                    },
+              child: const Text('Schließen'),
+            ),
+            FilledButton(
+              onPressed:
+                  checkingAuthentication || widget.state.authenticationPending
+                  ? null
+                  : () {
+                      if (epoch == authenticationEpoch) {
+                        resumeAfterAuthentication();
+                      }
+                    },
+              child: Text(checkingAuthentication ? 'Prüft …' : 'Zugang prüfen'),
+            ),
+          ],
+        ),
+      );
+    }
     final unresolved = rows
         .where((row) => choices[row['slot_key']] == null)
         .length;
@@ -621,7 +818,7 @@ class _GradePdfImportState extends State<GradePdfImport> {
                               onPressed: busy
                                   ? null
                                   : () {
-                                      if (current &&
+                                      if (currentAt(epoch) &&
                                           ModalRoute.of(context)?.isCurrent ==
                                               true) {
                                         Navigator.pop(context, result != null);
@@ -770,7 +967,11 @@ class _GradePdfImportState extends State<GradePdfImport> {
                                           TextButton.icon(
                                             onPressed: busy || unresolved == 0
                                                 ? null
-                                                : nextOpenEntry,
+                                                : () {
+                                                    if (currentAt(epoch)) {
+                                                      nextOpenEntry();
+                                                    }
+                                                  },
                                             icon: const Icon(
                                               Icons.arrow_downward,
                                             ),
@@ -1270,7 +1471,13 @@ class _GradePdfImportState extends State<GradePdfImport> {
                                           runSpacing: 8,
                                           children: [
                                             TextButton(
-                                              onPressed: busy ? null : refresh,
+                                              onPressed: busy
+                                                  ? null
+                                                  : () {
+                                                      if (currentAt(epoch)) {
+                                                        refresh();
+                                                      }
+                                                    },
                                               child: const Text(
                                                 'Vorschau neu laden',
                                               ),
@@ -1279,7 +1486,11 @@ class _GradePdfImportState extends State<GradePdfImport> {
                                               TextButton(
                                                 onPressed: busy
                                                     ? null
-                                                    : restartPreview,
+                                                    : () {
+                                                        if (currentAt(epoch)) {
+                                                          restartPreview();
+                                                        }
+                                                      },
                                                 child: const Text(
                                                   'PDF mit aktuellem Stand neu prüfen',
                                                 ),
@@ -1287,7 +1498,11 @@ class _GradePdfImportState extends State<GradePdfImport> {
                                             TextButton(
                                               onPressed: busy
                                                   ? null
-                                                  : selectFile,
+                                                  : () {
+                                                      if (currentAt(epoch)) {
+                                                        selectFile();
+                                                      }
+                                                    },
                                               child: const Text(
                                                 'Andere PDF auswählen',
                                               ),
@@ -1303,7 +1518,7 @@ class _GradePdfImportState extends State<GradePdfImport> {
                         if (result != null)
                           FilledButton(
                             onPressed: () {
-                              if (current &&
+                              if (currentAt(epoch) &&
                                   ModalRoute.of(context)?.isCurrent == true) {
                                 Navigator.pop(context, true);
                               }
@@ -1313,17 +1528,29 @@ class _GradePdfImportState extends State<GradePdfImport> {
                         else if (preview == null) ...[
                           if (bytes != null)
                             OutlinedButton(
-                              onPressed: busy ? null : upload,
+                              onPressed: busy
+                                  ? null
+                                  : () {
+                                      if (currentAt(epoch)) upload();
+                                    },
                               child: const Text('Upload erneut versuchen'),
                             ),
                           FilledButton.icon(
-                            onPressed: busy ? null : selectFile,
+                            onPressed: busy
+                                ? null
+                                : () {
+                                    if (currentAt(epoch)) selectFile();
+                                  },
                             icon: const Icon(Icons.folder_open_outlined),
                             label: const Text('PDF auswählen'),
                           ),
                         ] else
                           FilledButton(
-                            onPressed: busy || !complete ? null : save,
+                            onPressed: busy || !complete
+                                ? null
+                                : () {
+                                    if (currentAt(epoch)) save();
+                                  },
                             child: const Text('Auswahl übernehmen'),
                           ),
                       ],
@@ -1335,24 +1562,27 @@ class _GradePdfImportState extends State<GradePdfImport> {
     );
   }
 
-  Widget weight(String label, int value, ValueChanged<int> change) =>
-      DropdownButtonFormField<int>(
-        initialValue: value,
-        isExpanded: true,
-        itemHeight: null,
-        decoration: InputDecoration(labelText: label),
-        items: [
-          for (var n = 1; n <= 5; n++)
-            DropdownMenuItem(value: n, child: Text('Gewicht $n')),
-        ],
-        onChanged: busy
-            ? null
-            : (v) {
-                if (v != null) change(v);
-              },
-      );
+  Widget weight(String label, int value, ValueChanged<int> change) {
+    final epoch = authenticationEpoch;
+    return DropdownButtonFormField<int>(
+      initialValue: value,
+      isExpanded: true,
+      itemHeight: null,
+      decoration: InputDecoration(labelText: label),
+      items: [
+        for (var n = 1; n <= 5; n++)
+          DropdownMenuItem(value: n, child: Text('Gewicht $n')),
+      ],
+      onChanged: busy
+          ? null
+          : (v) {
+              if (v != null && currentAt(epoch) && !busy) change(v);
+            },
+    );
+  }
 
   Widget entry(Json row) {
+    final epoch = authenticationEpoch;
     final status = row['status'];
     final previewId = preview?['id'],
         previewRevision = preview?['context_revision'];
@@ -1501,7 +1731,7 @@ class _GradePdfImportState extends State<GradePdfImport> {
                       ? null
                       : (v) {
                           if (v != null &&
-                              current &&
+                              currentAt(epoch) &&
                               !busy &&
                               preview?['id'] == previewId &&
                               preview?['context_revision'] == previewRevision &&

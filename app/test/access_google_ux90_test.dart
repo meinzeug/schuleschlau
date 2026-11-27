@@ -292,4 +292,17 @@ void main() {
       await f.close(t);
     },
   );
+  testWidgets('failed Google preparation settles its authentication intent', (
+    t,
+  ) async {
+    final f = Fixture()
+      ..respond = (r) async => r.method == 'GET'
+          ? reply({'available': true})
+          : reply({'detail': 'Künstlicher Fehler'}, 503);
+    await f.mount(t, location: '/login');
+    await press(t, 'Mit Google anmelden');
+    expect(f.state.authenticationPending, isFalse);
+    expect(f.requests.where((r) => r.method == 'POST'), hasLength(1));
+    await f.close(t);
+  });
 }

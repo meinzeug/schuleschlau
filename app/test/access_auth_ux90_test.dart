@@ -301,4 +301,41 @@ void main() {
       await f.close(t);
     },
   );
+  testWidgets('failed demo request settles its own authentication intent', (
+    t,
+  ) async {
+    final f = Fixture();
+    f.respond = (r) async => r.method == 'POST'
+        ? reply({'detail': 'Künstlicher Fehler'}, 503)
+        : reply({'available': false});
+    await f.mount(t, '/');
+    await tap(t, 'Demo ausprobieren');
+    expect(f.state.authenticationPending, isFalse);
+    expect(f.state.user, isNull);
+    await f.close(t);
+  });
+  testWidgets(
+    'successful demo does not invalidate the accepted authentication on disposal',
+    (t) async {
+      final f = Fixture();
+      f.respond = (r) async => r.method == 'POST'
+          ? reply({
+              'user': {
+                'id': 'synthetic-demo',
+                'role': 'parent',
+                'families': [],
+                'synthetic': true,
+              },
+            })
+          : reply({'available': false});
+      await f.mount(t, '/');
+      await tap(t, 'Demo ausprobieren');
+      expect(find.text('Lernraum'), findsOneWidget);
+      expect(f.state.authenticationPending, isFalse);
+      final revision = f.state.api.requestIdentity().$3;
+      await t.pumpAndSettle();
+      expect(f.state.api.requestIdentity().$3, revision);
+      await f.close(t);
+    },
+  );
 }

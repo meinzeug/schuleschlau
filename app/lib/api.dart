@@ -220,17 +220,21 @@ class Api {
       http.MultipartFile.fromBytes('file', bytes, filename: 'material.jpg'),
     );
     try {
+      final response = await http.Response.fromStream(
+        await client.send(request).timeout(const Duration(seconds: 45)),
+      ).timeout(const Duration(seconds: 45));
+      if (identity.$1 != null && !ownsRequest(identity)) {
+        throw _changedAuthentication('POST');
+      }
       return Map<String, dynamic>.from(
-        decode(
-          await http.Response.fromStream(
-            await client.send(request).timeout(const Duration(seconds: 45)),
-          ).timeout(const Duration(seconds: 45)),
-          notifyUnauthorized: ownsRequest(identity),
-        ),
+        decode(response, notifyUnauthorized: ownsRequest(identity)),
       );
     } on ApiError {
       rethrow;
     } catch (_) {
+      if (identity.$1 != null && !ownsRequest(identity)) {
+        throw _changedAuthentication('POST');
+      }
       throw ApiError(
         'Bild konnte nicht hochgeladen werden. Bitte erneut versuchen.',
       );
@@ -252,17 +256,21 @@ class Api {
       http.MultipartFile.fromBytes('file', bytes, filename: 'grades.pdf'),
     );
     try {
+      final response = await http.Response.fromStream(
+        await client.send(request).timeout(const Duration(seconds: 45)),
+      ).timeout(const Duration(seconds: 45));
+      if (identity.$1 != null && !ownsRequest(identity)) {
+        throw _changedAuthentication('POST');
+      }
       return Json.from(
-        decode(
-          await http.Response.fromStream(
-            await client.send(request).timeout(const Duration(seconds: 45)),
-          ).timeout(const Duration(seconds: 45)),
-          notifyUnauthorized: ownsRequest(identity),
-        ),
+        decode(response, notifyUnauthorized: ownsRequest(identity)),
       );
     } on ApiError {
       rethrow;
     } catch (_) {
+      if (identity.$1 != null && !ownsRequest(identity)) {
+        throw _changedAuthentication('POST');
+      }
       throw ApiError(
         'PDF konnte nicht hochgeladen werden. Bitte erneut versuchen.',
       );
@@ -271,18 +279,30 @@ class Api {
 
   Future<Uint8List> bytes(String path) async {
     final identity = requestIdentity();
-    final response = await client.get(
-      Uri.parse('$base$path'),
-      headers: headers,
-    );
-    if (response.statusCode != 200) {
-      decode(
-        response,
-        notifyUnauthorized:
-            _usesSession401('GET', path) && ownsRequest(identity),
+    try {
+      final response = await client.get(
+        Uri.parse('$base$path'),
+        headers: headers,
       );
+      if (identity.$1 != null && !ownsRequest(identity)) {
+        throw _changedAuthentication('GET');
+      }
+      if (response.statusCode != 200) {
+        decode(
+          response,
+          notifyUnauthorized:
+              _usesSession401('GET', path) && ownsRequest(identity),
+        );
+      }
+      return response.bodyBytes;
+    } on ApiError {
+      rethrow;
+    } catch (_) {
+      if (identity.$1 != null && !ownsRequest(identity)) {
+        throw _changedAuthentication('GET');
+      }
+      rethrow;
     }
-    return response.bodyBytes;
   }
 
   Map<String, String> _profileAvatarHeaders() {
@@ -421,12 +441,21 @@ class Api {
   }
 
   Future<Json> job(String path, [Json? body]) async {
+    final identity = requestIdentity();
     final key =
         '${DateTime.now().microsecondsSinceEpoch}-${identityHashCode(Object())}';
     final queued = await post(path, body, {'Idempotency-Key': key});
     for (var i = 0; i < 100; i++) {
       await Future<void>.delayed(const Duration(seconds: 2));
+      // A queued job belongs to the original login. Never poll that job
+      // using a later account, even when the server will also reject it.
+      if (identity.$1 != null && !ownsRequest(identity)) {
+        throw _changedAuthentication('POST');
+      }
       final result = await get('/jobs/${queued['id']}');
+      if (identity.$1 != null && !ownsRequest(identity)) {
+        throw _changedAuthentication('POST');
+      }
       if (result['status'] == 'completed') {
         return Map<String, dynamic>.from(result['result']);
       }
@@ -686,9 +715,16 @@ class AppState extends ChangeNotifier {
   Future<void> _authenticationStorage = Future<void>.value();
   Future<void>? _privacyCleanup;
   bool _privacyCleanupFailed = false;
-  int beginAuthentication() => _authenticationRevisionSignal.value += 1;
+  bool _authenticationPending = false;
+  bool get authenticationPending => _authenticationPending;
+  int beginAuthentication() {
+    _authenticationPending = true;
+    return _authenticationRevisionSignal.value += 1;
+  }
+
   void cancelAuthentication(int revision) {
-    if (revision == _authenticationRevision) {
+    if (_authenticationPending && revision == _authenticationRevision) {
+      _authenticationPending = false;
       _authenticationRevisionSignal.value += 1;
     }
   }
@@ -726,78 +762,85 @@ class AppState extends ChangeNotifier {
 
   Future<void> accept(Json response, {int? authenticationRevision}) async {
     final intent = authenticationRevision ?? beginAuthentication();
-    _requireAuthentication(intent);
-    // Once an old account has been removed, finish deleting its unscoped
-    // local state before publishing any new account or bearer token.
-    final cleanup = _privacyCleanup;
-    if (cleanup != null) await cleanup;
-    _requireAuthentication(intent);
-    if (_privacyCleanupFailed) {
-      throw ApiError(
-        'Die alten Gerätedaten konnten noch nicht gelöscht werden. Bitte starte die App erneut und versuche es noch einmal.',
-        503,
-      );
-    }
-    final candidate = response['user'];
-    if (candidate is! Map ||
-        candidate['id'] is! String ||
-        (candidate['id'] as String).isEmpty ||
-        !['child', 'parent', 'admin'].contains(candidate['role']) ||
-        (response['token'] != null && response['token'] is! String) ||
-        (response['credentials'] != null && response['credentials'] is! Map)) {
-      throw ApiError(
-        'Die Anmeldung wurde nicht vollständig bestätigt. Bitte versuche es erneut.',
-        502,
-      );
-    }
-    final previous = user;
-    _authIdentifier = null;
-    inbox.clear();
-    if (previous != null) {
-      await familyCalls.clear();
+    try {
       _requireAuthentication(intent);
-    }
-    if (previous != null && previous['id'] != response['user']['id']) {
-      await notebookRequests.clear();
+      // Once an old account has been removed, finish deleting its unscoped
+      // local state before publishing any new account or bearer token.
+      final cleanup = _privacyCleanup;
+      if (cleanup != null) await cleanup;
       _requireAuthentication(intent);
-      await LessonVoiceSession.shared.stop();
-      _requireAuthentication(intent);
-      recoveredPhoto = null;
-      recoveredPhotoPurpose = 'notebook';
-      recoveredPhotos.clear();
-      if (!kIsWeb) {
-        await storage.delete(key: 'camera_context');
-        _requireAuthentication(intent);
-        await storage.delete(key: 'camera_child');
+      if (_privacyCleanupFailed) {
+        throw ApiError(
+          'Die alten Gerätedaten konnten noch nicht gelöscht werden. Bitte starte die App erneut und versuche es noch einmal.',
+          503,
+        );
+      }
+      final candidate = response['user'];
+      if (candidate is! Map ||
+          candidate['id'] is! String ||
+          (candidate['id'] as String).isEmpty ||
+          !['child', 'parent', 'admin'].contains(candidate['role']) ||
+          (response['token'] != null && response['token'] is! String) ||
+          (response['credentials'] != null &&
+              response['credentials'] is! Map)) {
+        throw ApiError(
+          'Die Anmeldung wurde nicht vollständig bestätigt. Bitte versuche es erneut.',
+          502,
+        );
+      }
+      final previous = user;
+      _authIdentifier = null;
+      inbox.clear();
+      if (previous != null) {
+        await familyCalls.clear();
         _requireAuthentication(intent);
       }
-      await push.forget();
+      if (previous != null && previous['id'] != response['user']['id']) {
+        await notebookRequests.clear();
+        _requireAuthentication(intent);
+        await LessonVoiceSession.shared.stop();
+        _requireAuthentication(intent);
+        recoveredPhoto = null;
+        recoveredPhotoPurpose = 'notebook';
+        recoveredPhotos.clear();
+        if (!kIsWeb) {
+          await storage.delete(key: 'camera_context');
+          _requireAuthentication(intent);
+          await storage.delete(key: 'camera_child');
+          _requireAuthentication(intent);
+        }
+        await push.forget();
+        _requireAuthentication(intent);
+        await pendingUploads.clear();
+        _requireAuthentication(intent);
+        await learningDrafts.clear();
+        _requireAuthentication(intent);
+      }
+      if (!kIsWeb && response['token'] != null) {
+        await _storeAuthentication(intent, response['token']);
+        _requireAuthentication(intent);
+        api.token = response['token'];
+      }
       _requireAuthentication(intent);
-      await pendingUploads.clear();
-      _requireAuthentication(intent);
-      await learningDrafts.clear();
-      _requireAuthentication(intent);
+      collectionViews.clear();
+      clearProfileAvatarMemory();
+      user = Map<String, dynamic>.from(response['user']);
+      if (response['credentials'] != null) {
+        demoCredentials = Map<String, dynamic>.from(response['credentials']);
+      } else if (demoCredentials != null &&
+          ![
+            demoCredentials!['parent_username'],
+            demoCredentials!['child_username'],
+          ].contains(user?['username'])) {
+        demoCredentials = null;
+      }
+      _family();
+      _authenticationPending = false;
+      notifyListeners();
+    } catch (_) {
+      cancelAuthentication(intent);
+      rethrow;
     }
-    if (!kIsWeb && response['token'] != null) {
-      await _storeAuthentication(intent, response['token']);
-      _requireAuthentication(intent);
-      api.token = response['token'];
-    }
-    _requireAuthentication(intent);
-    collectionViews.clear();
-    clearProfileAvatarMemory();
-    user = Map<String, dynamic>.from(response['user']);
-    if (response['credentials'] != null) {
-      demoCredentials = Map<String, dynamic>.from(response['credentials']);
-    } else if (demoCredentials != null &&
-        ![
-          demoCredentials!['parent_username'],
-          demoCredentials!['child_username'],
-        ].contains(user?['username'])) {
-      demoCredentials = null;
-    }
-    _family();
-    notifyListeners();
   }
 
   Future<void> login(
@@ -806,18 +849,23 @@ class AppState extends ChangeNotifier {
     int? authenticationRevision,
   }) async {
     final intent = authenticationRevision ?? beginAuthentication();
-    _requireAuthentication(intent);
-    if (!kIsWeb) {
-      await storage.delete(key: 'google_login_proof');
+    try {
       _requireAuthentication(intent);
+      if (!kIsWeb) {
+        await storage.delete(key: 'google_login_proof');
+        _requireAuthentication(intent);
+      }
+      final response = await api.post('/auth/login', {
+        'username': username,
+        'password': password,
+        'device': kIsWeb ? 'Web-Browser' : 'Android',
+      });
+      _requireAuthentication(intent);
+      await accept(response, authenticationRevision: intent);
+    } catch (_) {
+      cancelAuthentication(intent);
+      rethrow;
     }
-    final response = await api.post('/auth/login', {
-      'username': username,
-      'password': password,
-      'device': kIsWeb ? 'Web-Browser' : 'Android',
-    });
-    _requireAuthentication(intent);
-    await accept(response, authenticationRevision: intent);
   }
 
   Future<void> logout({String? expectedAccountId}) async {
@@ -830,35 +878,39 @@ class AppState extends ChangeNotifier {
     if (!ownsAccount()) return;
     final intent = beginAuthentication();
     bool currentAccount() => ownsAccount() && intent == _authenticationRevision;
-    if (familyCalls.live) {
-      await familyCalls.end().timeout(
-        const Duration(seconds: 4),
-        onTimeout: () {},
-      );
-    }
-    await familyCalls.clear();
-    if (!currentAccount()) return;
-    await LessonVoiceSession.shared.stop();
-    if (!currentAccount()) return;
-    if (!kIsWeb) await storage.delete(key: 'google_login_proof');
-    if (!currentAccount()) return;
     try {
-      await api.post('/auth/logout');
-    } on ApiError catch (e) {
-      if (!currentAccount()) return;
-      // Another tab may already own the cookie. Never log out that account;
-      // an explicit logout can still discard this tab's obsolete local state.
-      if (e.status != 401 &&
-          !(e.status == 409 && e.code == 'account_changed')) {
-        rethrow;
+      if (familyCalls.live) {
+        await familyCalls.end().timeout(
+          const Duration(seconds: 4),
+          onTimeout: () {},
+        );
       }
+      await familyCalls.clear();
+      if (!currentAccount()) return;
+      await LessonVoiceSession.shared.stop();
+      if (!currentAccount()) return;
+      if (!kIsWeb) await storage.delete(key: 'google_login_proof');
+      if (!currentAccount()) return;
+      try {
+        await api.post('/auth/logout');
+      } on ApiError catch (e) {
+        if (!currentAccount()) return;
+        // Another tab may already own the cookie. Never log out that account;
+        // an explicit logout can still discard this tab's obsolete local state.
+        if (e.status != 401 &&
+            !(e.status == 409 && e.code == 'account_changed')) {
+          rethrow;
+        }
+      }
+      if (!currentAccount()) return;
+      await clear(
+        expectedUser: expectedUser,
+        expectedToken: expectedToken,
+        expectedAuthenticationRevision: intent,
+      );
+    } finally {
+      if (_authenticationPending) cancelAuthentication(intent);
     }
-    if (!currentAccount()) return;
-    await clear(
-      expectedUser: expectedUser,
-      expectedToken: expectedToken,
-      expectedAuthenticationRevision: intent,
-    );
   }
 
   Future<void> clear({
@@ -878,53 +930,59 @@ class AppState extends ChangeNotifier {
       return;
     }
     final clearIntent = beginAuthentication();
-    bool currentAccount() =>
-        clearIntent == _authenticationRevision &&
-        (expectedUser == null || identical(user, expectedUser)) &&
-        (expectedAuthenticationRevision == null || expectedToken == api.token);
-    _authIdentifier = null;
-    await familyCalls.clear();
-    if (!currentAccount()) return;
-    await LessonVoiceSession.shared.stop();
-    if (!currentAccount()) return;
-    collectionViews.clear();
-    clearProfileAvatarMemory();
-    inbox.clear();
-    await push.forget();
-    if (!currentAccount()) return;
-    // These photos have no per-account key. Remove them synchronously while
-    // the old account is still the owner, before any new login can start.
-    recoveredPhoto = null;
-    recoveredPhotoPurpose = 'notebook';
-    recoveredPhotos.clear();
-    final cleanupDone = Completer<void>();
-    _privacyCleanup = cleanupDone.future;
-    _privacyCleanupFailed = false;
-    api.token = null;
-    user = null;
-    familyId = null;
-    // Remove private routes immediately. A newer login may start while the
-    // remaining storage cleanup awaits; it must never leave the previous
-    // account visible if that newer login is then cancelled or rejected.
-    notifyListeners();
     try {
-      await notebookRequests.clear();
-      await pendingUploads.clear();
-      await learningDrafts.clear();
-      if (!kIsWeb) {
-        // A new accept cannot write a token until this barrier completes.
-        // Drain earlier authentication writes before removing the old token.
-        await _authenticationStorage.catchError((Object _) {});
-        await storage.delete(key: 'session');
-        await storage.delete(key: 'camera_child');
-        await storage.delete(key: 'camera_context');
+      bool currentAccount() =>
+          clearIntent == _authenticationRevision &&
+          (expectedUser == null || identical(user, expectedUser)) &&
+          (expectedAuthenticationRevision == null ||
+              expectedToken == api.token);
+      _authIdentifier = null;
+      await familyCalls.clear();
+      if (!currentAccount()) return;
+      await LessonVoiceSession.shared.stop();
+      if (!currentAccount()) return;
+      collectionViews.clear();
+      clearProfileAvatarMemory();
+      inbox.clear();
+      await push.forget();
+      if (!currentAccount()) return;
+      // These photos have no per-account key. Remove them synchronously while
+      // the old account is still the owner, before any new login can start.
+      recoveredPhoto = null;
+      recoveredPhotoPurpose = 'notebook';
+      recoveredPhotos.clear();
+      final cleanupDone = Completer<void>();
+      _privacyCleanup = cleanupDone.future;
+      _privacyCleanupFailed = false;
+      api.token = null;
+      user = null;
+      familyId = null;
+      _authenticationPending = false;
+      // Remove private routes immediately. A newer login may start while the
+      // remaining storage cleanup awaits; it must never leave the previous
+      // account visible if that newer login is then cancelled or rejected.
+      notifyListeners();
+      try {
+        await notebookRequests.clear();
+        await pendingUploads.clear();
+        await learningDrafts.clear();
+        if (!kIsWeb) {
+          // A new accept cannot write a token until this barrier completes.
+          // Drain earlier authentication writes before removing the old token.
+          await _authenticationStorage.catchError((Object _) {});
+          await storage.delete(key: 'session');
+          await storage.delete(key: 'camera_child');
+          await storage.delete(key: 'camera_context');
+        }
+      } catch (_) {
+        _privacyCleanupFailed = true;
+        rethrow;
+      } finally {
+        _privacyCleanup = null;
+        cleanupDone.complete();
       }
-    } catch (_) {
-      _privacyCleanupFailed = true;
-      rethrow;
     } finally {
-      _privacyCleanup = null;
-      cleanupDone.complete();
+      if (_authenticationPending) cancelAuthentication(clearIntent);
     }
   }
 }

@@ -4141,6 +4141,28 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Echtzeitstatus gezielt und zuverlässig bereitstellen**
 
+  - [x] **Notenentwürfe und PDF-Vorschauen bei Anmeldewechsel schützen.**
+    Eine laufende Anmeldung blendet den bisherigen Notenbereich aus und
+    verhindert auch beim Wechsel des ausgewählten Kindes neue Notenabrufe.
+    Offene Entwürfe bleiben beim bisherigen Konto im Arbeitsspeicher gesperrt;
+    ihre ausdrückliche Wiederaufnahme prüft Sitzung und Elternrecht erneut.
+    PDF-Vorschauen gleichen den gespeicherten Importstand ab. Überholte
+    Bestätigungen bleiben wirkungslos; unklare Speicherversuche behalten den
+    ursprünglichen Schlüssel. Verdeckte Arbeitsflächen öffnen keine alten
+    Tastaturmenüs. Die Abnahme verwendet künstliche Konten und Daten; echte
+    Browser-Cookies und andere Ansichten bleiben gesondert offen.
+    [Prüfumfang](docs/GRADE_AUTH_DRAFTS_2026_11_27.md).
+
+  - [x] **Dateiantworten und bestehende Fotoaufträge an ihre Anmeldung binden.**
+    Verspätete Binär-, Foto- und PDF-Antworten bereits angezeigter Konten
+    werden nach Konto-, Token- oder Anmeldeabsichtswechsel verworfen. Ein alter
+    Fehler meldet keinen neuen Zugang ab; ein bereits gesendeter Upload kann
+    dennoch angenommen worden sein und wird nicht automatisch wiederholt.
+    Bestehende Fotoaufträge werden nicht mit einer neueren Anmeldung abgefragt.
+    Künstliche Fälle prüfen auch stückweise Antworten, Fehler und einen
+    unveränderten Uploadschlüssel. Anonyme Starts, andere Transporte und der
+    browserseitige Cookie-Wettlauf bleiben offen.
+
   - [x] **Foto- und Tagesansicht beim Anmeldewechsel abgrenzen.** Eine neue
     Anmeldeabsicht blendet alte Tagesdaten und offene Dialoge aus und stoppt
     alte Folgeaktionen. Nach abgebrochener Anmeldung ist ein bewusstes

@@ -52,6 +52,130 @@ class GradesScreen extends StatefulWidget {
 }
 
 class _GradesScreenState extends State<GradesScreen> {
+  Json? owner;
+  String? family, token;
+  bool blocked = false;
+  int viewRevision = 0;
+
+  bool get sameAccount =>
+      mounted &&
+      owner != null &&
+      identical(widget.state.user, owner) &&
+      family == widget.state.familyId &&
+      token == widget.state.api.token;
+
+  void capture() {
+    owner = widget.state.user;
+    family = widget.state.familyId;
+    token = widget.state.api.token;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    capture();
+    blocked = widget.state.authenticationPending;
+    widget.state.authenticationChanges.addListener(authenticationChanged);
+    widget.state.addListener(accountChanged);
+  }
+
+  void authenticationChanged() {
+    if (sameAccount) {
+      if (!blocked) FocusManager.instance.primaryFocus?.unfocus();
+      // Rebuild on both start and cancellation so the reload control reflects
+      // whether an authentication intent is still pending.
+      setState(() => blocked = true);
+    }
+  }
+
+  void accountChanged() {
+    if (mounted && !sameAccount && !blocked) setState(() => blocked = true);
+  }
+
+  @override
+  void didUpdateWidget(covariant GradesScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.state, widget.state)) {
+      oldWidget.state.authenticationChanges.removeListener(
+        authenticationChanged,
+      );
+      oldWidget.state.removeListener(accountChanged);
+      capture();
+      widget.state.authenticationChanges.addListener(authenticationChanged);
+      widget.state.addListener(accountChanged);
+      blocked = widget.state.authenticationPending;
+      viewRevision++;
+    } else if (oldWidget.childId != widget.childId) {
+      viewRevision++;
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.state.authenticationChanges.removeListener(authenticationChanged);
+    widget.state.removeListener(accountChanged);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!sameAccount) return const SizedBox.shrink();
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        TickerMode(
+          enabled: !blocked,
+          child: Offstage(
+            offstage: blocked,
+            child: _GradesBody(
+              widget.state,
+              key: ValueKey(viewRevision),
+              childId: widget.childId,
+            ),
+          ),
+        ),
+        if (blocked)
+          PageFrame(
+            state: widget.state,
+            title: 'Noten',
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text('Bitte lade die Noten erneut.'),
+                const SizedBox(height: 12),
+                FilledButton(
+                  onPressed: widget.state.authenticationPending
+                      ? null
+                      : () {
+                          if (!sameAccount ||
+                              widget.state.authenticationPending) {
+                            return;
+                          }
+                          setState(() {
+                            blocked = false;
+                            viewRevision++;
+                          });
+                        },
+                  child: const Text('Noten erneut laden'),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _GradesBody extends StatefulWidget {
+  final AppState state;
+  final String childId;
+  const _GradesBody(this.state, {super.key, required this.childId});
+
+  @override
+  State<_GradesBody> createState() => _GradesBodyState();
+}
+
+class _GradesBodyState extends State<_GradesBody> {
   Json? data;
   Object? error;
   String? subject, start, end;
@@ -78,18 +202,24 @@ class _GradesScreenState extends State<GradesScreen> {
   int page = 1, generation = 0;
   bool loading = true, saving = false, monthlyView = false;
   late final sessionToken = widget.state.api.token;
+  late final authentication = widget.state.api.requestIdentity();
   late Json? owner;
   late String? family;
   String? childName;
   bool sourceRecovery = false;
   DialogRoute<dynamic>? dialogRoute;
+  bool retainDialogOnAuthentication = false;
   final entriesKey = GlobalKey();
-  bool get current =>
+  bool get sameAccount =>
       mounted &&
       owner != null &&
       identical(widget.state.user, owner) &&
       family == widget.state.familyId &&
       sessionToken == widget.state.api.token;
+  bool get current =>
+      sameAccount &&
+      !widget.state.authenticationPending &&
+      widget.state.api.ownsRequest(authentication);
   bool get manage =>
       current && widget.state.isParent && data?['can_manage'] == true;
 
@@ -99,12 +229,17 @@ class _GradesScreenState extends State<GradesScreen> {
     owner = widget.state.user;
     family = widget.state.familyId;
     widget.state.addListener(identityChanged);
+    widget.state.authenticationChanges.addListener(authenticationChanged);
     restoreView();
     load();
   }
 
+  void authenticationChanged() {
+    if (!retainDialogOnAuthentication) closeDialog();
+  }
+
   void identityChanged() {
-    if (mounted && !current) {
+    if (mounted && !sameAccount) {
       generation++;
       closeDialog();
       setState(() {
@@ -116,7 +251,7 @@ class _GradesScreenState extends State<GradesScreen> {
   }
 
   @override
-  void didUpdateWidget(covariant GradesScreen oldWidget) {
+  void didUpdateWidget(covariant _GradesBody oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.childId != widget.childId) {
       closeDialog();
@@ -132,6 +267,7 @@ class _GradesScreenState extends State<GradesScreen> {
   @override
   void dispose() {
     widget.state.removeListener(identityChanged);
+    widget.state.authenticationChanges.removeListener(authenticationChanged);
     closeDialog();
     search.dispose();
     super.dispose();
@@ -215,7 +351,10 @@ class _GradesScreenState extends State<GradesScreen> {
     });
   }
 
-  Future<T?> showGradeDialog<T>(WidgetBuilder builder) async {
+  Future<T?> showGradeDialog<T>(
+    WidgetBuilder builder, {
+    bool retainOnAuthentication = false,
+  }) async {
     if (!current || dialogRoute?.isActive == true) return null;
     final route = DialogRoute<T>(
       context: context,
@@ -223,6 +362,7 @@ class _GradesScreenState extends State<GradesScreen> {
       builder: builder,
     );
     dialogRoute = route;
+    retainDialogOnAuthentication = retainOnAuthentication;
     try {
       final result = await Navigator.of(
         context,
@@ -231,7 +371,10 @@ class _GradesScreenState extends State<GradesScreen> {
       await route.completed;
       return result;
     } finally {
-      if (identical(dialogRoute, route)) dialogRoute = null;
+      if (identical(dialogRoute, route)) {
+        dialogRoute = null;
+        retainDialogOnAuthentication = false;
+      }
     }
   }
 
@@ -427,6 +570,7 @@ class _GradesScreenState extends State<GradesScreen> {
         grade: grade,
         today: data?['today'] as String?,
       ),
+      retainOnAuthentication: true,
     );
     if (changed == true && current && child == widget.childId) {
       widget.state.refreshState();
@@ -443,6 +587,7 @@ class _GradesScreenState extends State<GradesScreen> {
         childId: child,
         childName: childName ?? 'dein Kind',
       ),
+      retainOnAuthentication: true,
     );
     if (changed == true && current && child == widget.childId) {
       widget.state.refreshState();
@@ -1584,6 +1729,11 @@ class GradeEditor extends StatefulWidget {
 class _GradeEditorState extends State<GradeEditor> {
   final form = GlobalKey<FormState>();
   late final sessionToken = widget.state.api.token;
+  late var authentication = widget.state.api.requestIdentity();
+  bool authenticationBlocked = false, checkingAuthentication = false;
+  bool saveUncertain = false;
+  int authenticationEpoch = 0;
+  String? uncertainFingerprint, authenticationError;
   late final TextEditingController subject, topic, value, note, year;
   late String scale, kind;
   String? day;
@@ -1632,13 +1782,18 @@ class _GradeEditorState extends State<GradeEditor> {
   late String child;
   bool closing = false;
   final feedback = GlobalKey();
-  bool get current =>
+  bool get sameAccount =>
       mounted &&
       owner != null &&
       identical(widget.state.user, owner) &&
       family == widget.state.familyId &&
       child == widget.childId &&
       sessionToken == widget.state.api.token;
+  bool get current =>
+      sameAccount &&
+      !authenticationBlocked &&
+      !widget.state.authenticationPending &&
+      widget.state.api.ownsRequest(authentication);
   late String requestKey;
   bool saving = false;
   Object? error;
@@ -1649,7 +1804,9 @@ class _GradeEditorState extends State<GradeEditor> {
     owner = widget.state.user;
     family = widget.state.familyId;
     child = widget.childId;
+    authentication = widget.state.api.requestIdentity();
     widget.state.addListener(contextChanged);
+    widget.state.authenticationChanges.addListener(authenticationChanged);
     final random = Random.secure();
     requestKey =
         'grade-${List.generate(16, (_) => random.nextInt(256).toRadixString(16).padLeft(2, '0')).join()}';
@@ -1675,6 +1832,7 @@ class _GradeEditorState extends State<GradeEditor> {
   @override
   void dispose() {
     widget.state.removeListener(contextChanged);
+    widget.state.authenticationChanges.removeListener(authenticationChanged);
     final discard = discardRoute;
     if (discard?.isActive == true) {
       Future<void>.microtask(() => discard!.navigator?.removeRoute(discard));
@@ -1689,8 +1847,135 @@ class _GradeEditorState extends State<GradeEditor> {
     super.dispose();
   }
 
+  void authenticationChanged() {
+    if (!sameAccount || closing) return;
+    authenticationEpoch++;
+    if (saving) {
+      saveUncertain = true;
+      uncertainFingerprint = fingerprint();
+    }
+    final calendar = calendarRoute, discard = discardRoute;
+    Future<void>.microtask(() {
+      if (discard?.isActive == true) discard!.navigator?.removeRoute(discard);
+      if (calendar?.isActive == true) {
+        calendar!.navigator?.removeRoute(calendar);
+      }
+    });
+    FocusManager.instance.primaryFocus?.unfocus();
+    setState(() {
+      authenticationBlocked = true;
+      checkingAuthentication = false;
+      saving = false;
+      authenticationError = null;
+    });
+  }
+
+  Future<void> resumeAfterAuthentication() async {
+    if (!sameAccount ||
+        !authenticationBlocked ||
+        checkingAuthentication ||
+        widget.state.authenticationPending) {
+      return;
+    }
+    final expectedSession = owner?['session_assertion'];
+    if (sessionToken == null &&
+        (expectedSession is! String ||
+            !RegExp(r'^[a-f0-9]{64}$').hasMatch(expectedSession))) {
+      setState(
+        () => authenticationError = 'Dieser Zugang kann den Entwurf nicht sicher wieder öffnen. Schließe ihn und melde dich erneut an.',
+      );
+      return;
+    }
+    final identity = widget.state.api.requestIdentity(),
+        epoch = authenticationEpoch;
+    setState(() {
+      checkingAuthentication = true;
+      authenticationError = null;
+    });
+    try {
+      final me = await widget.state.api.get('/auth/me');
+      if (!sameAccount ||
+          epoch != authenticationEpoch ||
+          !widget.state.api.ownsRequest(identity)) {
+        return;
+      }
+      if (widget.state.authenticationPending ||
+          me['id'] != owner?['id'] ||
+          me['role'] != 'parent' ||
+          (expectedSession != null &&
+              me['session_assertion'] != expectedSession)) {
+        throw ApiError(
+          'Der Zugang hat sich geändert. Der Entwurf bleibt gesperrt.',
+          409,
+        );
+      }
+      final access = await widget.state.api.get(
+        '/children/${widget.childId}/grades?page=1',
+      );
+      if (!sameAccount ||
+          epoch != authenticationEpoch ||
+          !widget.state.api.ownsRequest(identity)) {
+        return;
+      }
+      if (access['can_manage'] != true ||
+          access['child_id'] != widget.childId) {
+        throw ApiError('Der Zugriff auf die Noten hat sich geändert.', 403);
+      }
+      setState(() {
+        authentication = identity;
+        authenticationBlocked = false;
+      });
+    } catch (_) {
+      if (sameAccount && epoch == authenticationEpoch) {
+        setState(
+          () => authenticationError = 'Der Zugang konnte nicht geprüft werden. Dein Entwurf bleibt hier erhalten.',
+        );
+      }
+    } finally {
+      if (sameAccount && epoch == authenticationEpoch) {
+        setState(() => checkingAuthentication = false);
+      }
+    }
+  }
+
+  Future<void> closeBlockedDraft() async {
+    final epoch = authenticationEpoch;
+    if (!sameAccount || !authenticationBlocked || checkingAuthentication) {
+      return;
+    }
+    if (dirty || saveUncertain) {
+      ModalRoute<bool>? discard;
+      final accepted = await confirmParentDiscard(
+        context,
+        current: () =>
+            sameAccount &&
+            authenticationBlocked &&
+            !closing &&
+            epoch == authenticationEpoch,
+        subject: 'Diese Note',
+        onRoute: (route) => discardRoute = discard = route,
+      );
+      if (identical(discardRoute, discard)) discardRoute = null;
+      if (!accepted ||
+          !sameAccount ||
+          !authenticationBlocked ||
+          closing ||
+          epoch != authenticationEpoch) {
+        return;
+      }
+    }
+    if (mounted && ModalRoute.of(context)?.isCurrent == true) {
+      Navigator.pop(context, false);
+    }
+  }
+
   void contextChanged() {
-    if (current || closing || !mounted) return;
+    if (current ||
+        closing ||
+        !mounted ||
+        (sameAccount && authenticationBlocked)) {
+      return;
+    }
     closing = true;
     final route = ModalRoute.of(context);
     final calendar = calendarRoute, discard = discardRoute;
@@ -1722,12 +2007,21 @@ class _GradeEditorState extends State<GradeEditor> {
 
   Future<void> save() async {
     if (saving || !current || closing) return;
+    if (saveUncertain && fingerprint() != uncertainFingerprint) {
+      setState(
+        () => error = ApiError(
+          'Der vorherige Speicherversuch ist noch unklar. Prüfe zuerst die Notenübersicht; veränderte Eingaben können nicht mit diesem Versuch abgeglichen werden.',
+        ),
+      );
+      return;
+    }
     final invalid = form.currentState!.validateGranularly();
     if (invalid.isNotEmpty) {
       reveal(() => invalid.first.mounted ? invalid.first.context : null);
       return;
     }
     FocusManager.instance.primaryFocus?.unfocus();
+    final epoch = authenticationEpoch;
     setState(() {
       saving = true;
       error = null;
@@ -1758,7 +2052,7 @@ class _GradeEditorState extends State<GradeEditor> {
       } else {
         await widget.state.api.put('$path/${widget.grade!['id']}', body);
       }
-      if (mounted && current && !closing) {
+      if (mounted && current && !closing && epoch == authenticationEpoch) {
         final route = ModalRoute.of(context);
         if (route is PopupRoute && !route.isCurrent) {
           route.navigator?.removeRoute(route, true);
@@ -1767,7 +2061,7 @@ class _GradeEditorState extends State<GradeEditor> {
         }
       }
     } catch (e) {
-      if (current && !closing) {
+      if (current && !closing && epoch == authenticationEpoch) {
         setState(() {
           saving = false;
           error = e;
@@ -1778,12 +2072,72 @@ class _GradeEditorState extends State<GradeEditor> {
   }
 
   @override
-  Widget build(BuildContext context) => !current || closing
+  Widget build(BuildContext context) {
+    final epoch = authenticationEpoch;
+    if (authenticationBlocked && sameAccount && !closing) {
+      return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop &&
+              !checkingAuthentication &&
+              epoch == authenticationEpoch) {
+            closeBlockedDraft();
+          }
+        },
+        child: AlertDialog(
+          title: const Text('Anmeldung geändert'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Dein Entwurf bleibt hier. Prüfe deinen Zugang, um weiterzuarbeiten.',
+              ),
+              if (saveUncertain)
+                const Text(
+                  'Der letzte Speicherversuch kann bereits übernommen worden sein.',
+                ),
+              if (authenticationError != null)
+                Notice(authenticationError!, warning: true),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: checkingAuthentication
+                  ? null
+                  : () {
+                      if (epoch == authenticationEpoch) closeBlockedDraft();
+                    },
+              child: const Text('Schließen'),
+            ),
+            FilledButton(
+              onPressed:
+                  checkingAuthentication || widget.state.authenticationPending
+                  ? null
+                  : () {
+                      if (epoch == authenticationEpoch) {
+                        resumeAfterAuthentication();
+                      }
+                    },
+              child: Text(checkingAuthentication ? 'Prüft …' : 'Zugang prüfen'),
+            ),
+          ],
+        ),
+      );
+    }
+    return editor(context);
+  }
+
+  Widget editor(BuildContext context) => editorAt(context, authenticationEpoch);
+
+  Widget editorAt(BuildContext context, int epoch) => !current || closing
       ? const SizedBox.shrink()
       : PopScope(
           canPop: !saving && !dirty,
           onPopInvokedWithResult: (didPop, _) {
-            if (!didPop && !saving) requestClose();
+            if (!didPop && !saving && epoch == authenticationEpoch) {
+              requestClose();
+            }
           },
           child: AlertDialog(
             title: Text(
@@ -1804,6 +2158,11 @@ class _GradeEditorState extends State<GradeEditor> {
                       Text(
                         'Für ${widget.childName}',
                         style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                    if (saveUncertain)
+                      const Notice(
+                        'Der letzte Speicherversuch kann bereits übernommen worden sein. Prüfe die Notenübersicht, bevor du dieselbe Eingabe erneut speicherst.',
+                        warning: true,
                       ),
                     if (error != null)
                       Semantics(
@@ -2121,11 +2480,19 @@ class _GradeEditorState extends State<GradeEditor> {
             ),
             actions: [
               TextButton(
-                onPressed: saving ? null : requestClose,
+                onPressed: saving
+                    ? null
+                    : () {
+                        if (epoch == authenticationEpoch) requestClose();
+                      },
                 child: Text('Abbrechen'),
               ),
               FilledButton(
-                onPressed: saving ? null : save,
+                onPressed: saving
+                    ? null
+                    : () {
+                        if (epoch == authenticationEpoch) save();
+                      },
                 child: Text('Speichern'),
               ),
             ],

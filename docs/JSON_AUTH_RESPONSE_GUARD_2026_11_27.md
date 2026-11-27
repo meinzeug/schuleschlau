@@ -48,3 +48,8 @@ abgeschlossen.
 Der GitHub-Check [46011221573](https://github.com/meinzeug/schuleschlau/actions/runs/46011221573)
 auf Commit `b8fba4a` wurde vollständig erfolgreich abgeschlossen. Der
 separat gestartete lokale Gesamtlauf war zu diesem Zeitpunkt noch unterwegs.
+
+Der zusätzliche lokale Gesamtlauf für genau denselben Stand `b8fba4a` wurde
+mit 5.107 bestandenen und 19 übersprungenen Flutterfällen abgeschlossen. Dies
+ist ein synthetischer Testlauf und kein produktiver Mehrgeräte- oder
+Browser-Cookie-Nachweis.

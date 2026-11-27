@@ -429,11 +429,24 @@ class _DemoEntryButtonState extends State<_DemoEntryButton> {
       final revision = state.beginAuthentication();
       authenticationState = state;
       authenticationRevision = revision;
-      final response = await state.api.post('/demo');
-      if (!mounted) return;
-      await state.accept(response, authenticationRevision: revision);
-      if (mounted && ModalRoute.of(context)?.isCurrent != false) {
-        context.go('/app');
+      try {
+        final response = await state.api.post('/demo');
+        if (!mounted) return;
+        await state.accept(response, authenticationRevision: revision);
+        if (authenticationRevision == revision) {
+          authenticationRevision = null;
+          authenticationState = null;
+        }
+        if (mounted && ModalRoute.of(context)?.isCurrent != false) {
+          context.go('/app');
+        }
+      } catch (_) {
+        state.cancelAuthentication(revision);
+        if (authenticationRevision == revision) {
+          authenticationRevision = null;
+          authenticationState = null;
+        }
+        rethrow;
       }
     },
   );
