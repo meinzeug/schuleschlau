@@ -2,6 +2,14 @@
 
 ## Arbeitsstand 27. November 2026: Quellen und Kontowechsel
 
+Der Einstieg zum Erfassen einer geschriebenen Arbeit zeigt keinen
+Einzelschrittzähler mehr; die Kinderansicht verwendet „Deine geschriebene
+Arbeit“ und „Arbeit speichern“. Die Speicherung und übrigen Eingaben sind
+unverändert. Ein 390-Pixel-Browservergleich, 37 künstliche Flutterfälle und
+ein einzelner Elternfall belegen diesen begrenzten Teil. Ein zusätzlicher
+Chrome-Webrunner blieb beim Laden der Testschrift hängen und wurde abgebrochen;
+die vollständige Klassenarbeitsabnahme bleibt offen.
+
 Für Kinder zeigen noch nicht geöffnete Lernschritte nun einen kurzen,
 zustandsbezogenen Satz statt mehrfacher technischer Angaben. Zurückgelegte
 Schritte und Fehler behalten ihren eigenen Hinweis; die Elternansicht ist

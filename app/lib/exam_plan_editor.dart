@@ -961,7 +961,11 @@ class _ExamPlanEditorState extends State<ExamPlanEditor> {
         scrollable: true,
         title: Text(
           widget.existing == null
-              ? (review ? 'Geschriebene Arbeit anlegen' : 'Arbeit planen')
+              ? (review
+                    ? (widget.state.isChild
+                          ? 'Deine geschriebene Arbeit'
+                          : 'Geschriebene Arbeit anlegen')
+                    : 'Arbeit planen')
               : 'Plan bearbeiten',
         ),
         content: SizedBox(
@@ -969,11 +973,13 @@ class _ExamPlanEditorState extends State<ExamPlanEditor> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                'Schritt ${step + 1} von ${review ? 1 : 4} · ${const ['Arbeit', 'Themen', 'Lerntage', 'Überblick'][step]}',
-                style: const TextStyle(fontWeight: FontWeight.w700),
-              ),
-              gap(),
+              if (!review) ...[
+                Text(
+                  'Schritt ${step + 1} von 4 · ${const ['Arbeit', 'Themen', 'Lerntage', 'Überblick'][step]}',
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+                gap(),
+              ],
               if (step == 0) basics(),
               if (step == 1) topicFields(),
               if (step == 2) calendar(),
@@ -1051,7 +1057,9 @@ class _ExamPlanEditorState extends State<ExamPlanEditor> {
               uncertain
                   ? 'Speichern erneut bestätigen'
                   : review
-                  ? 'Arbeit anlegen'
+                  ? (widget.state.isChild
+                        ? 'Arbeit speichern'
+                        : 'Arbeit anlegen')
                   : step == 3
                   ? 'Plan speichern'
                   : 'Weiter',

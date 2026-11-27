@@ -1215,6 +1215,16 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – Alle Kinderansichten sprachlich und in ihrer Bedienung entrümpeln**
 
+  - [x] **Einstieg für geschriebene Arbeiten vereinfachen.** Das einzelne
+    Formular zeigt keinen überflüssigen Hinweis „Schritt 1 von 1“ mehr. Kinder
+    sehen einen vertrauten Titel und „Arbeit speichern“; Fach und optionale
+    Angaben sowie der bestehende Speicherweg bleiben erhalten. Der Dialog
+    wurde mit Beispieldaten bei 390 Pixeln im lokalen Browser angesehen;
+    37 künstliche Klassenarbeitsfälle einschließlich Speicherung und großer
+    Schrift sowie ein weiterer Elternfall bestanden lokal. Der separate
+    Chrome-Webrunner blieb beim Laden der Testschrift hängen und wurde
+    abgebrochen; die umfassende Kinder- und Geräteabnahme bleibt offen.
+
   - [x] **Lernschrittdetails für Kinder verkürzen.** Der Dialog eines noch
     nicht geöffneten Schritts nennt den tatsächlichen Zustand in einem kurzen
     Satz; wiederholte Phasen-, Status- und Aufgabenzahlen entfallen bei

@@ -695,13 +695,15 @@ void main() {
       };
       await fixture.mount(tester, tab: 'review');
       await tap(tester, find.text('Arbeit hinzufügen'));
+      expect(find.text('Deine geschriebene Arbeit'), findsOneWidget);
+      expect(find.textContaining('Schritt 1 von 1'), findsNothing);
       await tester.enterText(
         find.widgetWithText(TextField, 'Titel der Arbeit'),
         'Meine Beispielarbeit',
       );
       await tap(tester, find.text('Fach auswählen'));
       await tap(tester, find.text('Mathematik'));
-      await tap(tester, find.text('Arbeit anlegen'));
+      await tap(tester, find.text('Arbeit speichern'));
       expect(fixture.writes, hasLength(1));
       final body = jsonDecode(fixture.writes.single.body);
       expect(body['purpose'], 'review');
@@ -711,6 +713,22 @@ void main() {
       expect(fixture.writes.single.headers['Idempotency-Key'], isNotEmpty);
     },
   );
+  testWidgets('parents keep their written-work action label', (tester) async {
+    final fixture = Fixture(role: 'parent');
+    fixture.listOverride = {
+      'child_id': 'child',
+      'can_manage': true,
+      'exams': [],
+      'sources': [],
+      'has_more': false,
+    };
+    await fixture.mount(tester, tab: 'review');
+    await tap(tester, find.text('Geschriebene Arbeit hinzufügen'));
+    expect(find.text('Geschriebene Arbeit anlegen'), findsOneWidget);
+    expect(find.text('Arbeit anlegen'), findsOneWidget);
+    expect(find.textContaining('Schritt 1 von 1'), findsNothing);
+    expect(fixture.writes, isEmpty);
+  });
   testWidgets(
     'original answer teacher marking and AI proposal remain distinct',
     (tester) async {
