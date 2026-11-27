@@ -82,10 +82,14 @@ void main() {
       await open(tester, state);
       await f.tap(tester, find.text('Alle Lernschritte'));
       await f.tap(tester, find.widgetWithText(PlanRow, 'Thema Brüche'));
-      expect(find.text('4 geplante Aufgaben'), findsOneWidget);
+      expect(
+        find.text('Diesen Schritt kannst du später bearbeiten.'),
+        findsOneWidget,
+      );
+      expect(find.text('4 geplante Aufgaben'), findsNothing);
       expect(
         find.textContaining('Hier werden noch keine Aufgaben erstellt.'),
-        findsOneWidget,
+        findsNothing,
       );
       expect(requests.every((r) => r.method == 'GET'), isTrue);
     },
