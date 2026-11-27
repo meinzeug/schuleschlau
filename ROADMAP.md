@@ -1975,6 +1975,19 @@ Bestandteil des bestehenden Buildvertrags.
   Toolchain-Warnungen sind dadurch nicht ersetzt.
 - [ ] **P0 – Deployment und Rückkehr belegen**
 
+  **27.11.2026, Release 1.38.167+322:** Der Quellstand `4654a9e` wurde
+  nach gesicherter und koordinierter Umstellung des Restore-Readers und des
+  Offsite-Clients aktiviert. API, Worker, Caddy und der öffentliche Health-
+  Endpunkt meldeten den neuen Stand; das öffentliche APK-Manifest entspricht
+  dem signierten Build. Eine neue verschlüsselte Offsite-Sicherung wurde
+  erfolgreich in einer getrennten Datenbank wiederhergestellt und ihr
+  authentifiziertes Löschjournal mit dem aktuellen Stand verglichen. Dies
+  beweist keine historische Vollständigkeit des Journals und keinen produktiven
+  Rückrolltest. Die GitHub-Prüfung meldete drei Browserfehler; deren Ursachen
+  und erneute Abnahme sind noch offen. Vier PostgreSQL-Konflikttests verwendeten
+  versehentlich eine bereits verratene synthetische Lösung; mit korrigierter
+  Testaufgabe bestanden alle vier isoliert. Der Hauptpunkt bleibt offen.
+
   - [x] **Aktive Restore-Konfiguration vor Migration abgleichen.** Bei einem
     bestehenden Release vergleicht die Aktivierung die von systemd geladene
     Restore-Anweisung vor Änderungen und erneut vor der Migration. Ein
