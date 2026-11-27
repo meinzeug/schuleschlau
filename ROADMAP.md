@@ -4405,7 +4405,9 @@ Bestandteil des bestehenden Buildvertrags.
     **Lernweg während laufender Anmeldung nicht nachladen:** Wird der
     Lernweg während einer Anmeldung geöffnet oder auf eine andere App-Instanz
     umgestellt, startet keine Anfrage und es erscheinen keine alten
-    Lernschritte. 74 künstliche Flutterfälle zu Lernweg und Tagesablauf, fünf
+    Lernschritte. Währenddessen zeigt der Bereich „Anmeldung läuft“ und
+    deaktiviert seine Aktualisierung; das ist lokal und im Web getestet.
+    74 künstliche Flutterfälle zu Lernweg und Tagesablauf, fünf
     gezielte Chrome-Fälle und Flutter Analyze bestanden. Die vollständige
     Kontowechsel- und Cookie-Abnahme bleibt offen.
 

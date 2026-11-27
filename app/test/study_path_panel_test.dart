@@ -67,6 +67,14 @@ void sessionReplacementTest() {
     await tester.pumpAndSettle();
     expect(calls, isEmpty);
     expect(find.text('Brüche first'), findsNothing);
+    expect(find.text('Anmeldung läuft …'), findsOneWidget);
+    final reload = tester.widget<IconButton>(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is IconButton && widget.tooltip == 'Lernweg aktualisieren',
+      ),
+    );
+    expect(reload.onPressed, isNull);
     expect(tester.takeException(), isNull);
   });
 

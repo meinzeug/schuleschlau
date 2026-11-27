@@ -684,13 +684,17 @@ class _StudyPathPanelState extends State<StudyPathPanel>
               ),
               IconButton(
                 tooltip: 'Lernweg aktualisieren',
-                onPressed: reading ? null : load,
+                onPressed: reading || !ownerMatches ? null : load,
                 icon: Icon(Icons.refresh_rounded, size: 20),
               ),
             ],
           ),
           if (!ownerMatches)
-            Text('Bitte melde dich erneut an.')
+            Text(
+              state.authenticationPending
+                  ? 'Anmeldung läuft …'
+                  : 'Bitte melde dich erneut an.',
+            )
           else if (data == null && readError == null)
             Padding(
               padding: EdgeInsets.all(22),
