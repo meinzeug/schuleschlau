@@ -4402,6 +4402,15 @@ Bestandteil des bestehenden Buildvertrags.
 
   - [ ] **Verspätete gemeinsame API-Antworten nach Kontowechsel absichern.**
 
+    **Rundenübersicht bei neuer Anmeldung schließen:** Die Übersicht mit
+    Aufgabeninhalten wird an die Anmeldeabsicht gebunden und während einer
+    laufenden Anmeldung nicht geöffnet. Gespeicherte alte Zurückaktionen
+    können keinen neueren Dialog schließen. Der Ablauf ist mit künstlichen
+    Lernrunden ohne zusätzliche Anfragen geprüft; 24 Fälle in Lernrunde und
+    Übersicht sowie zwei gezielte Fälle lokal und im Chrome-Webrunner bestanden. Eine
+    vollständige Kontowechsel- und
+    Cookie-Abnahme bleibt offen.
+
     **Elternansichten für Verarbeitung bei Anmeldung leeren:** Ein neuer
     Anmeldeversuch entfernt angezeigte Verarbeitungsdetails und lokale
     Fehlerhinweise und verhindert das Öffnen während der laufenden Anmeldung.

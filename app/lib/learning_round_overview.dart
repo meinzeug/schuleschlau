@@ -37,6 +37,7 @@ class _LearningRoundOverviewButtonState
   late Json? owner = widget.state.user;
   late String? family = widget.state.familyId;
   late String? token = widget.state.api.token;
+  late int? authenticationRevision = widget.state.api.requestIdentity().$3;
   DialogRoute<void>? view;
 
   bool get current =>
@@ -44,7 +45,9 @@ class _LearningRoundOverviewButtonState
       owner != null &&
       identical(widget.state.user, owner) &&
       widget.state.familyId == family &&
-      widget.state.api.token == token;
+      widget.state.api.token == token &&
+      !widget.state.authenticationPending &&
+      widget.state.api.requestIdentity().$3 == authenticationRevision;
 
   void closeView() {
     final old = view;
@@ -65,6 +68,7 @@ class _LearningRoundOverviewButtonState
   void initState() {
     super.initState();
     widget.state.addListener(accountChanged);
+    widget.state.authenticationChanges.addListener(accountChanged);
     WidgetsBinding.instance.addObserver(this);
   }
 
@@ -77,10 +81,13 @@ class _LearningRoundOverviewButtonState
         jsonEncode(oldWidget.questions) != jsonEncode(widget.questions)) {
       closeView();
       oldWidget.state.removeListener(accountChanged);
+      oldWidget.state.authenticationChanges.removeListener(accountChanged);
       owner = widget.state.user;
       family = widget.state.familyId;
       token = widget.state.api.token;
+      authenticationRevision = widget.state.api.requestIdentity().$3;
       widget.state.addListener(accountChanged);
+      widget.state.authenticationChanges.addListener(accountChanged);
     }
   }
 
@@ -93,6 +100,7 @@ class _LearningRoundOverviewButtonState
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     widget.state.removeListener(accountChanged);
+    widget.state.authenticationChanges.removeListener(accountChanged);
     closeView();
     super.dispose();
   }
@@ -132,7 +140,9 @@ class _LearningRoundOverviewButtonState
                 title: const Text('Deine Rundenübersicht'),
                 leading: IconButton(
                   tooltip: 'Zur Aufgabe zurück',
-                  onPressed: () => Navigator.of(context).pop(),
+                  onPressed: () {
+                    if (current && route.isCurrent) Navigator.of(context).pop();
+                  },
                   icon: const Icon(Icons.close_rounded),
                 ),
               ),
@@ -245,7 +255,11 @@ class _LearningRoundOverviewButtonState
                           ),
                         const SizedBox(height: 12),
                         FilledButton.icon(
-                          onPressed: () => Navigator.of(context).pop(),
+                          onPressed: () {
+                            if (current && route.isCurrent) {
+                              Navigator.of(context).pop();
+                            }
+                          },
                           icon: const Icon(Icons.arrow_back_rounded),
                           label: const Text('Zur aktuellen Aufgabe'),
                         ),
