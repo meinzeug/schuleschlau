@@ -768,6 +768,14 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – OCR anhand vollständig referenzierter künstlicher Seiten prüfen**
 
+  - [x] **Kostenfreien Bildtest mit festen Kunstseiten absichern.** Der
+    separate Testpfad akzeptiert vier prüfsummengebundene künstliche Fotos,
+    prüft Endpunkt und Nullpreise und erzwingt Datensammlungsverbot sowie
+    feste Anbieterbindung ohne Fallback. Fünf automatisierte Tests bestanden.
+    Ein echter Aufruf scheiterte mit HTTP 404 an den kombinierten
+    Routingvorgaben; er ist kein OCR-Erfolgsnachweis.
+    [Ergebnis und Grenzen](docs/OCR_FREE_PROVIDER_PROBE_2026_11_27.md).
+
   - [x] **Mehrdeutige Zahlentrenner nicht als Rechenfehler ausgeben.** Eine
     vollständig numerische Gleichung mit beispielsweise `1.000` oder `1,000`
     wird bei möglicher Dezimal- oder Tausenderlesung als ungeklärt behandelt;

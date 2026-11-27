@@ -2,6 +2,13 @@
 
 ## Arbeitsstand 27. November 2026: Quellen und Kontowechsel
 
+Der kostenfreie synthetische OpenRouter-Fototest ist jetzt an vier fest
+prüfsummengebundene Vorlagen und `data_collection: deny` gebunden. Der erste
+echte Versuch für `particle-ai/particle-1:free` mit festem Upstream scheiterte
+an den kombinierten Routingvorgaben mit HTTP 404. Kein OCR-Erfolg, keine
+Kostenabrechnung und keine erfolgreiche reguläre App-Verarbeitung sind damit
+belegt. Details: `docs/OCR_FREE_PROVIDER_PROBE_2026_11_27.md`.
+
 `literal-safety-8` behandelt bestimmte mehrdeutige Zahlentrenner in vollständig
 numerischen Gleichungen als ungeklärt. Originale und historische Gegenchecks
 bleiben erhalten; die Grenzen und synthetischen SQLite-/PostgreSQL-Nachweise
