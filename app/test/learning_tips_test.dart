@@ -100,6 +100,140 @@ Future<void> tap(WidgetTester tester, Finder finder) async {
 }
 
 void main() {
+  testWidgets(
+    'a new login intent discards delayed tips and requires deliberate reload',
+    (tester) async {
+      final delayed = Completer<http.Response>();
+      var calls = 0;
+      final state = await mount(tester, (_) {
+        calls++;
+        return calls == 1 ? delayed.future : Future.value(reply(tips()));
+      });
+      await tester.tap(find.text('Lerntipps'));
+      await tester.pump();
+      final intent = state.beginAuthentication();
+      delayed.complete(reply(tips()));
+      await tester.pumpAndSettle();
+      expect(find.text('Künstlicher Lerntipp 1'), findsNothing);
+      expect(calls, 1);
+      state.cancelAuthentication(intent);
+      await tester.pumpAndSettle();
+      await tap(tester, find.text('Lerntipps'));
+      expect(find.text('Künstlicher Lerntipp 1'), findsOneWidget);
+      expect(calls, 2);
+      await tester.pumpWidget(const SizedBox());
+      state.dispose();
+    },
+  );
+
+  testWidgets('an invalidated tip cannot open after saving its draft', (
+    tester,
+  ) async {
+    final saving = Completer<void>();
+    var current = true;
+    var opened = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: appTheme(),
+        home: Scaffold(
+          body: TipContentCard(
+            content(1),
+            isCurrent: () => current,
+            beforeOpen: () => saving.future,
+            onOpened: () async {
+              opened++;
+            },
+          ),
+        ),
+      ),
+    );
+    tester.widget<OutlinedButton>(find.byType(OutlinedButton)).onPressed!();
+    await tester.pump();
+    current = false;
+    saving.complete();
+    await tester.pumpAndSettle();
+    expect(find.byType(BottomSheet), findsNothing);
+    expect(opened, 0);
+  });
+
+  testWidgets(
+    'a submitted tip response keeps its key across an interrupted login',
+    (tester) async {
+      final pending = Completer<http.Response>();
+      final keys = <String>[];
+      var reads = 0;
+      final state = await mount(tester, (request) {
+        if (request.method == 'GET') {
+          reads++;
+          return Future.value(reply(tips()));
+        }
+        final body = jsonDecode(request.body) as Map<String, dynamic>;
+        keys.add(body['request_key'] as String);
+        return keys.length == 1 ? pending.future : Future.value(reply({}));
+      });
+      await tap(tester, find.text('Lerntipps'));
+      await tester.ensureVisible(find.text('Passt nicht').first);
+      await tester.tap(find.text('Passt nicht').first);
+      await tester.pump();
+      expect(keys, hasLength(1));
+      final intent = state.beginAuthentication();
+      pending.complete(reply({}));
+      await tester.pumpAndSettle();
+      expect(reads, 1);
+      state.cancelAuthentication(intent);
+      await tester.pumpAndSettle();
+      await tap(tester, find.text('Lerntipps'));
+      await tester.ensureVisible(find.text('Passt nicht').first);
+      await tester.tap(find.text('Passt nicht').first);
+      await tester.pumpAndSettle();
+      expect(keys, hasLength(2));
+      expect(keys[1], keys[0]);
+      expect(reads, 3);
+      await tester.pumpWidget(const SizedBox());
+      state.dispose();
+    },
+  );
+
+  testWidgets('an older tip response cannot unlock a newer pending action', (
+    tester,
+  ) async {
+    final old = Completer<http.Response>();
+    final newer = Completer<http.Response>();
+    var writes = 0;
+    final state = await mount(tester, (request) {
+      if (request.method == 'GET') return Future.value(reply(tips()));
+      writes++;
+      return writes == 1 ? old.future : newer.future;
+    });
+    await tap(tester, find.text('Lerntipps'));
+    await tester.ensureVisible(find.text('Passt nicht').first);
+    await tester.tap(find.text('Passt nicht').first);
+    await tester.pump();
+    final intent = state.beginAuthentication();
+    state.cancelAuthentication(intent);
+    await tester.pumpAndSettle();
+    await tap(tester, find.text('Lerntipps'));
+    await tester.ensureVisible(find.text('Passt nicht').first);
+    await tester.tap(find.text('Passt nicht').first);
+    await tester.pump();
+    expect(writes, 2);
+    old.complete(reply({}));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.text('Passt nicht'), findsNothing);
+    newer.complete(reply({}));
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<TextButton>(
+            find.widgetWithText(TextButton, 'Passt nicht').first,
+          )
+          .onPressed,
+      isNotNull,
+    );
+    await tester.pumpWidget(const SizedBox());
+    state.dispose();
+  });
   testWidgets('delayed learning tips are hidden when the session changes', (
     tester,
   ) async {

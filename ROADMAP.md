@@ -4057,6 +4057,15 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Echtzeitstatus gezielt und zuverlässig bereitstellen**
 
+  - [x] **Kontextbezogene Lerntipps an die Anmeldeabsicht binden.** Beim
+    Beginn einer neuen Anmeldung werden angezeigte Tipps entfernt und späte
+    Leseergebnisse verworfen. Alte Medienrückkehr- und Linkaktionen bleiben
+    wirkungslos. Bereits abgeschickte Rückmeldungen werden nicht zurückgesetzt;
+    ein ausdrücklicher Wiederholungsversuch behält seinen Schlüssel, und eine
+    alte Antwort entsperrt keine neuere laufende Aktion. Synthetische Widget-
+    und Chrome-Fälle prüfen diese Abläufe. Die gesonderte Themenauswahl, andere
+    Transporte und der Cookie-Wettlauf sind damit nicht allgemein abgesichert.
+
   - [x] **Tagesverlauf beim Beginn einer neuen Anmeldung leeren.** Bereits
     angezeigte Tageskarten und Filter werden entfernt, die Datumsauswahl
     geschlossen und verspätete Antworten oder Fehler verworfen. Alte

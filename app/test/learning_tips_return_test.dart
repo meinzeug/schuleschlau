@@ -20,6 +20,55 @@ Json returnedTip({String status = 'watched'}) => tips()
   };
 
 void main() {
+  testWidgets('old media return controls cannot act during a new login', (
+    tester,
+  ) async {
+    final requests = <http.Request>[];
+    var returned = 0;
+    final state = AppState(
+      api: Api(
+        base: 'https://example.invalid/api',
+        client: MockClient((request) async {
+          requests.add(request);
+          return reply(returnedTip());
+        }),
+      ),
+    )..user = {'id': 'own-child', 'role': 'child', 'child_id': 'child'};
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: appTheme(),
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: LearningTips(
+              state,
+              childId: 'child',
+              kind: 'unit',
+              resourceId: 'unit',
+              initiallyExpanded: true,
+              onReturnToTask: () => returned++,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final check = tester.widget<FilledButton>(
+      find.widgetWithText(FilledButton, 'Mit 2 neuen Aufgaben prüfen'),
+    );
+    final back = tester.widget<TextButton>(
+      find.widgetWithText(TextButton, 'Zur gespeicherten Aufgabe'),
+    );
+    state.beginAuthentication();
+    check.onPressed!();
+    back.onPressed!();
+    await tester.pumpAndSettle();
+    expect(returned, 0);
+    expect(requests, hasLength(1));
+    expect(requests.single.method, 'GET');
+    expect(find.text('Jetzt selbst ausprobieren'), findsNothing);
+    await tester.pumpWidget(const SizedBox.shrink());
+    state.dispose();
+  });
   for (final scale in [1.0, 2.0]) {
     testWidgets(
       'Inline media return stays on the learning route at 320px/$scale',

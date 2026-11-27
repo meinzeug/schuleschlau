@@ -113,6 +113,9 @@ Future<bool> openSofatutor(
                 ),
                 TextButton.icon(
                   onPressed: () async {
+                    if (!valid() || ModalRoute.of(ctx)?.isCurrent != true) {
+                      return;
+                    }
                     try {
                       await Clipboard.setData(
                         ClipboardData(text: uri.toString()),
@@ -152,12 +155,14 @@ class TipContentCard extends StatefulWidget {
   final VoidCallback? onReject;
   final Future<void> Function()? onOpened;
   final Future<void> Function()? beforeOpen;
+  final bool Function()? isCurrent;
   const TipContentCard(
     this.item, {
     super.key,
     this.onReject,
     this.onOpened,
     this.beforeOpen,
+    this.isCurrent,
   });
   @override
   State<TipContentCard> createState() => _TipContentCardState();
@@ -196,27 +201,29 @@ class _TipContentCardState extends State<TipContentCard> {
   }
 
   Future<void> open() async {
-    if (!mounted || opening) return;
+    if (!mounted || opening || !(widget.isCurrent?.call() ?? true)) return;
     final ticket = ++operation;
+    bool stillCurrent() =>
+        mounted && ticket == operation && (widget.isCurrent?.call() ?? true);
     final before = widget.beforeOpen, after = widget.onOpened;
     final url = widget.item['url']?.toString() ?? '';
     setState(() => opening = true);
     try {
       if (before != null) await before();
-      if (!mounted || ticket != operation) return;
+      if (!mounted || !stillCurrent()) return;
       // A blocked browser popup gets an explicit second opening button in the
       // existing fallback sheet. Never leave before the return point is saved.
       final opened = await openSofatutor(
         context,
         url,
         deferToExplicitClick: kIsWeb && before != null,
-        isCurrent: () => mounted && ticket == operation,
+        isCurrent: stillCurrent,
         onFallbackRoute: (route) => openingRoute = route,
       );
       openingRoute = null;
-      if (opened && mounted && ticket == operation) await after?.call();
+      if (opened && stillCurrent()) await after?.call();
     } catch (error) {
-      if (mounted && ticket == operation) {
+      if (mounted && stillCurrent()) {
         showError(
           context,
           error is ApiError
@@ -372,9 +379,27 @@ class _LearningTipsState extends State<LearningTips>
     ownerSession = widget.state.api.token;
     revision = widget.state.revision;
     widget.state.addListener(changed);
+    widget.state.authenticationChanges.addListener(authenticationChanged);
     WidgetsBinding.instance.addObserver(this);
     expanded = widget.initiallyExpanded;
     if (expanded) load();
+  }
+
+  void authenticationChanged() {
+    if (!current) return;
+    generation++;
+    pendingSelection = null;
+    tipSearch.clear();
+    setState(() {
+      data = null;
+      error = null;
+      expanded = false;
+      loading = false;
+      writing = false;
+      more = false;
+      unavailable = false;
+      tipType = 'all';
+    });
   }
 
   @override
@@ -417,6 +442,7 @@ class _LearningTipsState extends State<LearningTips>
   void dispose() {
     generation++;
     widget.state.removeListener(changed);
+    widget.state.authenticationChanges.removeListener(authenticationChanged);
     tipSearch.dispose();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
@@ -465,8 +491,10 @@ class _LearningTipsState extends State<LearningTips>
     final resource = (widget.childId, widget.kind, widget.resourceId);
     final snapshot = data;
     final endpoint = path;
+    final requestIdentity = widget.state.api.requestIdentity();
     bool same() =>
         current &&
+        widget.state.api.ownsRequest(requestIdentity) &&
         resource == (widget.childId, widget.kind, widget.resourceId) &&
         identical(data, snapshot);
     final identity =
@@ -492,6 +520,7 @@ class _LearningTipsState extends State<LearningTips>
     } finally {
       if (mounted &&
           current &&
+          widget.state.api.ownsRequest(requestIdentity) &&
           resource == (widget.childId, widget.kind, widget.resourceId) &&
           kind != 'open') {
         setState(() => writing = false);
@@ -499,12 +528,19 @@ class _LearningTipsState extends State<LearningTips>
     }
   }
 
-  Future<void> checkAfterMedia() async {
-    if (!current || writing) return;
+  Future<void> checkAfterMedia({Json? expectedData}) async {
+    if (!current ||
+        writing ||
+        (expectedData != null && !identical(data, expectedData))) {
+      return;
+    }
     final resource = (widget.childId, widget.kind, widget.resourceId);
     final unitId = widget.resourceId;
+    final requestIdentity = widget.state.api.requestIdentity();
     bool sameContext() =>
-        current && resource == (widget.childId, widget.kind, widget.resourceId);
+        current &&
+        widget.state.api.ownsRequest(requestIdentity) &&
+        resource == (widget.childId, widget.kind, widget.resourceId);
     setState(() => writing = true);
     try {
       final session = await widget.state.api.get(
@@ -629,7 +665,9 @@ class _LearningTipsState extends State<LearningTips>
             ] else ...[
               if (media['check_available'] != false)
                 FilledButton.icon(
-                  onPressed: writing ? null : checkAfterMedia,
+                  onPressed: writing
+                      ? null
+                      : () => checkAfterMedia(expectedData: snapshot),
                   icon: Icon(Icons.psychology_alt_outlined),
                   label: Text('Mit 2 neuen Aufgaben prüfen'),
                 )
@@ -639,6 +677,7 @@ class _LearningTipsState extends State<LearningTips>
                 ),
               TextButton(
                 onPressed: () {
+                  if (!current || !identical(data, snapshot)) return;
                   final callback = widget.onReturnToTask;
                   if (callback != null) {
                     callback();
@@ -672,6 +711,7 @@ class _LearningTipsState extends State<LearningTips>
     final resource = (widget.childId, widget.kind, widget.resourceId);
     final snapshot = data;
     final sourceRevision = data?['revision'];
+    final requestIdentity = widget.state.api.requestIdentity();
     final result = await showTopicBrowser(
       context,
       widget.state,
@@ -688,6 +728,7 @@ class _LearningTipsState extends State<LearningTips>
     );
     if (result == null ||
         !current ||
+        !widget.state.api.ownsRequest(requestIdentity) ||
         resource != (widget.childId, widget.kind, widget.resourceId) ||
         !identical(data, snapshot)) {
       return;
@@ -701,6 +742,7 @@ class _LearningTipsState extends State<LearningTips>
         'confirmed': true,
       });
       if (current &&
+          widget.state.api.ownsRequest(requestIdentity) &&
           resource == (widget.childId, widget.kind, widget.resourceId) &&
           identical(data, snapshot)) {
         setState(() {
@@ -711,12 +753,14 @@ class _LearningTipsState extends State<LearningTips>
     } catch (e) {
       if (mounted &&
           current &&
+          widget.state.api.ownsRequest(requestIdentity) &&
           resource == (widget.childId, widget.kind, widget.resourceId) &&
           identical(data, snapshot)) {
         showError(context, e);
       }
     } finally {
       if (current &&
+          widget.state.api.ownsRequest(requestIdentity) &&
           resource == (widget.childId, widget.kind, widget.resourceId)) {
         setState(() => writing = false);
       }
@@ -888,6 +932,7 @@ class _LearningTipsState extends State<LearningTips>
                         ),
                       TipContentCard(
                         item,
+                        isCurrent: () => current && identical(data, shownData),
                         beforeOpen: widget.beforeOpen,
                         onOpened: () =>
                             action(item, 'open', expectedData: shownData),
