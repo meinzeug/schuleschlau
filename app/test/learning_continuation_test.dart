@@ -127,8 +127,12 @@ void main() {
       ),
     );
     await tester.pump();
-    state.beginAuthentication();
+    final revision = state.beginAuthentication();
     pending.complete(response(overview([item('old')])));
+    await tester.pump();
+    expect(find.text('Neu laden'), findsNothing);
+    expect(reads, 1);
+    state.cancelAuthentication(revision);
     await tester.pump();
     expect(find.text('Neu laden'), findsOneWidget);
     expect(reads, 1);
@@ -139,6 +143,75 @@ void main() {
     await tester.pumpWidget(const SizedBox());
     state.dispose();
   });
+  testWidgets('loaded next step hides on login and old actions stay inert', (
+    tester,
+  ) async {
+    var writes = 0;
+    var reads = 0;
+    final state = stateFor((r) async {
+      if (r.method != 'GET') {
+        writes++;
+        return response({});
+      }
+      reads++;
+      return response(overview([item('ready')]));
+    });
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: appTheme(),
+        home: Scaffold(
+          body: LearningNextStep(state: state, childId: 'child'),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final stale = tester
+        .widget<ActionPanel>(find.byType(ActionPanel))
+        .onPressed!;
+    expect(find.text('Mathematik · Brüche'), findsOneWidget);
+    final revision = state.beginAuthentication();
+    await tester.pump();
+    expect(find.text('Mathematik · Brüche'), findsNothing);
+    await stale();
+    await tester.pump();
+    expect(writes, 0);
+    state.cancelAuthentication(revision);
+    await tester.pump();
+    expect(find.text('Neu laden'), findsOneWidget);
+    expect(find.text('Mathematik · Brüche'), findsNothing);
+    await stale();
+    expect(reads, 1);
+    expect(writes, 0);
+    await tester.pumpWidget(const SizedBox());
+    state.dispose();
+  });
+
+  testWidgets('next step sends no read while login is pending', (tester) async {
+    var reads = 0;
+    final state = stateFor((r) async {
+      reads++;
+      return response(overview([item('ready')]));
+    });
+    final revision = state.beginAuthentication();
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: appTheme(),
+        home: Scaffold(
+          body: LearningNextStep(state: state, childId: 'child'),
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(reads, 0);
+    expect(find.text('Weiterlernen'), findsNothing);
+    state.cancelAuthentication(revision);
+    await tester.pump();
+    expect(reads, 0);
+    expect(find.text('Neu laden'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+    state.dispose();
+  });
+
   testWidgets('a new authentication intent suppresses an old source lookup', (
     tester,
   ) async {

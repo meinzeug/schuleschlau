@@ -4402,6 +4402,14 @@ Bestandteil des bestehenden Buildvertrags.
 
   - [ ] **Verspätete gemeinsame API-Antworten nach Kontowechsel absichern.**
 
+    **Nächsten Lernschritt beim Anmeldewechsel verbergen:** Eine begonnene
+    Anmeldung blendet die bisherige Empfehlung aus und blockiert alte Aktionen.
+    Während der Anmeldung werden keine neuen Übersichtsabfragen gestartet.
+    Nach einem abgebrochenen Anmeldeversuch kann das unveränderte Konto den
+    Stand bewusst neu laden; die alte Empfehlung wird nicht wiederverwendet.
+    65 künstliche Flutterfälle zu Lernfortsetzung und Heute sowie fünf gezielte
+    Chrome-Fälle bestanden. Der allgemeine Cookie-Wettlauf bleibt offen.
+
     **Rundenübersicht bei neuer Anmeldung schließen:** Die Übersicht mit
     Aufgabeninhalten wird an die Anmeldeabsicht gebunden und während einer
     laufenden Anmeldung nicht geöffnet. Gespeicherte alte Zurückaktionen

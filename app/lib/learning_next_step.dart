@@ -31,13 +31,18 @@ class _LearningNextStepState extends State<LearningNextStep>
   bool failed = false;
   late Json? owner;
   late String? family, session;
+  late int? authenticationRevision;
   bool reading = false, opening = false;
+  bool interruptedAuthentication = false;
   bool routeVisible = true, foreground = true;
   bool get current =>
       mounted &&
+      owner != null &&
       identical(widget.state.user, owner) &&
       widget.state.familyId == family &&
-      widget.state.api.token == session;
+      widget.state.api.token == session &&
+      !widget.state.authenticationPending &&
+      widget.state.api.requestIdentity().$3 == authenticationRevision;
   int version = 0, openingRevision = 0;
 
   @override
@@ -46,11 +51,14 @@ class _LearningNextStepState extends State<LearningNextStep>
     owner = widget.state.user;
     family = widget.state.familyId;
     session = widget.state.api.token;
+    authenticationRevision = widget.state.api.requestIdentity().$3;
+    interruptedAuthentication = widget.state.authenticationPending;
     WidgetsBinding.instance.addObserver(this);
     foreground =
         WidgetsBinding.instance.lifecycleState == null ||
         WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
     widget.state.addListener(accountChanged);
+    widget.state.authenticationChanges.addListener(accountChanged);
     load();
   }
 
@@ -59,10 +67,14 @@ class _LearningNextStepState extends State<LearningNextStep>
     super.didUpdateWidget(oldWidget);
     if (oldWidget.state != widget.state) {
       oldWidget.state.removeListener(accountChanged);
+      oldWidget.state.authenticationChanges.removeListener(accountChanged);
       owner = widget.state.user;
       family = widget.state.familyId;
       session = widget.state.api.token;
+      authenticationRevision = widget.state.api.requestIdentity().$3;
+      interruptedAuthentication = widget.state.authenticationPending;
       widget.state.addListener(accountChanged);
+      widget.state.authenticationChanges.addListener(accountChanged);
     }
     if (oldWidget.childId != widget.childId ||
         oldWidget.currentUnitId != widget.currentUnitId ||
@@ -99,7 +111,29 @@ class _LearningNextStepState extends State<LearningNextStep>
   }
 
   void accountChanged() {
-    if (!current && mounted) {
+    if (!mounted) return;
+    final sameAccount =
+        owner != null &&
+        identical(widget.state.user, owner) &&
+        widget.state.familyId == family &&
+        widget.state.api.token == session;
+    if (widget.state.authenticationPending) {
+      interruptedAuthentication = true;
+    } else if (interruptedAuthentication && sameAccount) {
+      // A canceled login may leave the same account visible. Never revive its
+      // old data or automatically read again: offer an explicit fresh request.
+      interruptedAuthentication = false;
+      authenticationRevision = widget.state.api.requestIdentity().$3;
+      version++;
+      openingRevision++;
+      setState(() {
+        data = null;
+        reading = opening = loading = false;
+        failed = true;
+      });
+      return;
+    }
+    if (!current) {
       version++;
       openingRevision++;
       setState(() {
@@ -115,6 +149,7 @@ class _LearningNextStepState extends State<LearningNextStep>
     version++;
     openingRevision++;
     widget.state.removeListener(accountChanged);
+    widget.state.authenticationChanges.removeListener(accountChanged);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
