@@ -108,6 +108,7 @@ class _SchulpilotAppState extends State<SchulpilotApp>
       final owner = widget.state.user;
       final family = widget.state.familyId;
       final token = widget.state.api.token;
+      final identity = widget.state.api.requestIdentity();
       final target = widget.state.push.foregroundTarget ?? '/notifications';
       messenger.currentState?.showSnackBar(
         SnackBar(
@@ -118,7 +119,8 @@ class _SchulpilotAppState extends State<SchulpilotApp>
               if (mounted &&
                   identical(widget.state.user, owner) &&
                   widget.state.familyId == family &&
-                  widget.state.api.token == token) {
+                  widget.state.api.token == token &&
+                  widget.state.api.ownsRequest(identity)) {
                 router.go(target);
               }
             },
@@ -140,15 +142,20 @@ class _SchulpilotAppState extends State<SchulpilotApp>
       return;
     }
     final account = widget.state.user;
+    final family = widget.state.familyId;
+    final identity = widget.state.api.requestIdentity();
+    bool current() =>
+        mounted &&
+        identical(widget.state.user, account) &&
+        widget.state.familyId == family &&
+        widget.state.api.ownsRequest(identity);
     final calls = widget.state.familyCalls;
     _handlingCallIntent = true;
     try {
       // A notification opens the global call controls, leaving the current
       // exercise and its draft mounted. It never grants capture permission.
-      await calls.open(id);
-      if (!mounted ||
-          !identical(widget.state.user, account) ||
-          calls.callId != id) {
+      await calls.open(id, isCurrent: current);
+      if (!current() || calls.callId != id) {
         return;
       }
       if (action == 'decline' && calls.incoming) {
@@ -160,7 +167,7 @@ class _SchulpilotAppState extends State<SchulpilotApp>
         }
       }
     } catch (_) {
-      if (mounted && identical(widget.state.user, account)) {
+      if (current()) {
         messenger.currentState?.showSnackBar(
           const SnackBar(
             content: Text('Dieser Anruf ist nicht mehr verfügbar.'),

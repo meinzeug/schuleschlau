@@ -4069,6 +4069,18 @@ Bestandteil des bestehenden Buildvertrags.
     ohne unklare Schreibvorgänge automatisch zu wiederholen. Der separate
     Cookie-Wettlauf bleibt ebenfalls offen.
 
+    **Bereits geöffnete Anrufannahme und Hinweisklick schützen:** Beginnt
+    eine neue Anmeldung, schließt sich der bestehende Dialog zur Annahme eines
+    Familienanrufs; auch ein unmittelbar zuvor eingefangener Annahmeknopf
+    startet keine Medien. Ein verspätet geladener nativer Anruf wird nach
+    Wechsel von Anmeldeabsicht, Familie oder Sitzung nicht übernommen. Eine
+    zuvor angezeigte Vordergrundbenachrichtigung navigiert nach neuer
+    Anmeldeabsicht nicht mehr zu ihrem alten Ziel. 55 künstliche Flutterfälle
+    zu Anrufen und Benachrichtigungen sowie elf Chrome-Fälle bestanden. Ein bereits gestarteter
+    Medienverbindungsaufbau, erst während einer Anmeldung eintreffende
+    Ereignisse und der allgemeine Cookie-Wettlauf sind damit nicht allgemein
+    abgesichert.
+
     **Nachrichtenentwürfe bei Anmeldebeginn schützen:** Ein geöffnetes
     Nachrichtenformular schließt sich bei einer neuen Anmeldeabsicht. Alte
     Rückrufe versenden nichts; verspätete Erfolge und Fehler verändern die

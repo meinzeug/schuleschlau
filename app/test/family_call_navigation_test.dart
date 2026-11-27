@@ -11,6 +11,7 @@ import 'package:schulpilot/api.dart';
 import 'package:schulpilot/family_call_media.dart';
 import 'package:schulpilot/family_call_service.dart';
 import 'package:schulpilot/main.dart';
+import 'package:schulpilot/notification_panel.dart';
 import 'package:schulpilot/unit_screen.dart';
 
 const _callId = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
@@ -108,6 +109,7 @@ class _Fixture {
   final requests = <String>[];
   final media = _RecordingMedia();
   String status;
+  Completer<http.Response>? pendingOpen;
   late final AppState state;
   _Fixture({this.role = 'child', this.status = 'accepted'}) {
     state =
@@ -139,6 +141,9 @@ class _Fixture {
     }
     if (path.endsWith('/family-calls/active')) {
       return _reply({'calls': []});
+    }
+    if (path.endsWith('/family-calls/$_callId') && pendingOpen != null) {
+      return pendingOpen!.future;
     }
     if (path.endsWith('/units/$_unitId')) return _reply(_unit());
     if (path.endsWith('/heartbeat') && path.contains('/units/')) {
@@ -250,6 +255,77 @@ void main() {
     expect(tester.state(find.byType(UnitScreen)), same(task));
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('New sign-in closes the old call acceptance dialog', (
+    tester,
+  ) async {
+    final fixture = _Fixture(role: 'parent', status: 'ringing');
+    await fixture.open(tester);
+    fixture.state.familyCalls.onNativeIntent!(_callId, 'answer');
+    await tester.pumpAndSettle();
+    expect(find.text('Gemeinsam helfen'), findsOneWidget);
+    final staleAccept = tester
+        .widget<FilledButton>(find.widgetWithText(FilledButton, 'Annehmen'))
+        .onPressed!;
+    fixture.state.beginAuthentication();
+    staleAccept();
+    await tester.pumpAndSettle();
+    expect(find.text('Gemeinsam helfen'), findsNothing);
+    expect(fixture.media.prepared, 0);
+    expect(fixture.requests.where((r) => r.contains('/accept')), isEmpty);
+    expect(tester.takeException(), isNull);
+  });
+
+  for (final change in ['intent', 'family', 'token']) {
+    testWidgets('Delayed native call lookup is discarded after $change', (
+      tester,
+    ) async {
+      final fixture = _Fixture(role: 'parent', status: 'ringing');
+      await fixture.open(tester);
+      fixture.pendingOpen = Completer<http.Response>();
+      fixture.state.familyCalls.onNativeIntent!(_callId, 'answer');
+      await tester.pump();
+      if (change == 'intent') fixture.state.beginAuthentication();
+      if (change == 'family') fixture.state.familyId = 'other-family';
+      if (change == 'token') fixture.state.api.token = 'other-token';
+      fixture.pendingOpen!.complete(
+        _reply(_call(_callId, 'ringing', role: 'parent')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Gemeinsam helfen'), findsNothing);
+      expect(fixture.state.familyCalls.callId, isNull);
+      expect(fixture.media.prepared, 0);
+      expect(fixture.requests.where((r) => r.contains('/accept')), isEmpty);
+      expect(tester.takeException(), isNull);
+    });
+  }
+
+  for (final changeAccount in [false, true]) {
+    testWidgets('Foreground notice respects sign-in intent: $changeAccount', (
+      tester,
+    ) async {
+      final fixture = _Fixture();
+      await fixture.open(tester);
+      fixture.state.push.foregroundTarget = '/notifications';
+      fixture.state.push.onForeground!();
+      await tester.pumpAndSettle();
+      final open = tester.widget<SnackBarAction>(
+        find.widgetWithText(SnackBarAction, 'Öffnen'),
+      );
+      if (changeAccount) fixture.state.beginAuthentication();
+      open.onPressed();
+      await tester.pumpAndSettle();
+      expect(
+        find.byType(NotificationsScreen),
+        changeAccount ? findsNothing : findsOneWidget,
+      );
+      expect(
+        find.byType(UnitScreen),
+        changeAccount ? findsOneWidget : findsNothing,
+      );
+      expect(tester.takeException(), isNull);
+    });
+  }
 
   testWidgets(
     'Native decline leaves the task route intact and never captures',

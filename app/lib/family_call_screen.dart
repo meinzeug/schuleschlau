@@ -280,15 +280,21 @@ Future<void> confirmFamilyCallJoin(
   final expectedAccount = calls.accountIdentity;
   final expectedCall = calls.callId;
   final expectedFamily = calls.state.familyId;
+  final expectedIdentity = calls.state.api.requestIdentity();
   var camera = true;
   final accepted = await showDialog<bool>(
     context: context,
     builder: (dialog) => _FamilyModalGuard(
-      changes: Listenable.merge([calls, calls.state]),
+      changes: Listenable.merge([
+        calls,
+        calls.state,
+        calls.state.authenticationChanges,
+      ]),
       current: () =>
           identical(calls.accountIdentity, expectedAccount) &&
           identical(calls.state.user, expectedAccount) &&
           calls.state.familyId == expectedFamily &&
+          calls.state.api.ownsRequest(expectedIdentity) &&
           calls.callId == expectedCall &&
           calls.live,
       child: StatefulBuilder(
@@ -329,6 +335,7 @@ Future<void> confirmFamilyCallJoin(
       identical(calls.accountIdentity, expectedAccount) &&
       identical(calls.state.user, expectedAccount) &&
       calls.state.familyId == expectedFamily &&
+      calls.state.api.ownsRequest(expectedIdentity) &&
       calls.callId == expectedCall &&
       calls.live) {
     await calls.join(camera: camera);
