@@ -168,18 +168,9 @@ class _CompactAdminHeaderState extends State<_CompactAdminHeader> {
             ),
             if (content.action != null) content.action!,
             const PageToolsButton(),
-            Semantics(
+            SectionInfoButton(
               expanded: expanded,
-              child: IconButton(
-                tooltip: expanded
-                    ? 'Bereichsinfo schließen'
-                    : 'Über diesen Bereich',
-                constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-                onPressed: () => setState(() => expanded = !expanded),
-                icon: Icon(
-                  expanded ? Icons.close_rounded : Icons.info_outline_rounded,
-                ),
-              ),
+              onPressed: () => setState(() => expanded = !expanded),
             ),
           ],
         ),

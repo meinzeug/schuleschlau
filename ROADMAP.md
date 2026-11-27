@@ -1629,6 +1629,17 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – Barrierearme mobile Führung nachweisen**
 
+  - [x] **Bereichsinfo als eine Aktion ausgeben.** Im mobilen Browser wurde
+    „Bereichsinfo schließen“ doppelt im Zugänglichkeitsbaum ausgegeben. Kinder-, Eltern- und
+    Adminüberschriften nutzen dieselbe beschriftete Schaltfläche mit
+    auf-/zugeklapptem Zustand; der Tooltip erzeugt keinen zweiten Namen.
+    Drei künstliche Semantikfälle prüfen auch Tastatur und 48-Pixel-Zielfläche;
+    insgesamt bestanden 90 Flutterfälle und die gezielte Dart-Analyse; die
+    drei Semantikfälle bestanden auch im Chrome-Webrunner. In einer lokalen
+    390-Pixel-Demo zeigte der Browserzugänglichkeitsbaum anschließend einen
+    einzigen Buttonnamen und den aufgeklappten Zustand. Eine vollständige
+    Abnahme mit Screenreader und echten Geräten bleibt offen.
+
   - [x] **Heftfoto bei großer Schrift im Fotoablauf sichtbar halten.** Im
     Kinderzugang steht das Foto vor dem weiterhin vorhandenen Hinweis auf die
     Elternprüfung. Bei großer Schrift fasst eine beschriftete Fortschrittsleiste

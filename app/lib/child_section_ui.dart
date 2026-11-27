@@ -74,19 +74,10 @@ class _CompactChildHeroState extends State<_CompactChildHero> {
             ),
             if (content.compactAction != null) content.compactAction!,
             const PageToolsButton(),
-            Semantics(
+            SectionInfoButton(
               expanded: expanded,
-              child: IconButton(
-                tooltip: expanded
-                    ? 'Bereichsinfo schließen'
-                    : 'Über diesen Bereich',
-                onPressed: () => setState(() => expanded = !expanded),
-                constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-                icon: Icon(
-                  expanded ? Icons.close_rounded : Icons.info_outline_rounded,
-                  color: palette.muted,
-                ),
-              ),
+              onPressed: () => setState(() => expanded = !expanded),
+              color: palette.muted,
             ),
           ],
         ),

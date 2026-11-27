@@ -5,6 +5,43 @@ import 'package:flutter/material.dart';
 import 'api.dart';
 import 'app_palette.dart';
 
+/// A single accessible action for the optional section description.
+class SectionInfoButton extends StatelessWidget {
+  final bool expanded;
+  final VoidCallback onPressed;
+  final Color? color;
+
+  const SectionInfoButton({
+    super.key,
+    required this.expanded,
+    required this.onPressed,
+    this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final label = expanded ? 'Bereichsinfo schließen' : 'Über diesen Bereich';
+    return Tooltip(
+      message: label,
+      excludeFromSemantics: true,
+      child: MergeSemantics(
+        child: Semantics(
+          label: label,
+          expanded: expanded,
+          child: IconButton(
+            constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+            onPressed: onPressed,
+            icon: Icon(
+              expanded ? Icons.close_rounded : Icons.info_outline_rounded,
+              color: color,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// Registers local page tools without moving or rebuilding their form bodies.
 class PageToolsHost extends StatefulWidget {
   final AppState state;

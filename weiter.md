@@ -2,6 +2,13 @@
 
 ## Arbeitsstand 27. November 2026: Quellen und Kontowechsel
 
+Die Info-Schaltflächen der Kinder-, Eltern- und Adminköpfe haben eine
+gemeinsame Semantik mit einem Namen und aufgeklapptem Zustand. 90 künstliche
+Flutterfälle einschließlich drei Tastatur- und Semantikprüfungen bestanden; der im
+mobilen Web beobachtete doppelte Name war der Anlass. Eine vollständige
+Screenreader- und Geräteabnahme ist damit nicht erbracht; die drei gezielten
+Semantikfälle bestanden zusätzlich im Chrome-Webrunner.
+
 Der Einstieg zum Erfassen einer geschriebenen Arbeit zeigt keinen
 Einzelschrittzähler mehr; die Kinderansicht verwendet „Deine geschriebene
 Arbeit“ und „Arbeit speichern“. Die Speicherung und übrigen Eingaben sind
