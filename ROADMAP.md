@@ -3318,6 +3318,14 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Erklärgrafiken und Animationen fachlich und technisch abnehmen**
 
+  - [x] **Lokale Bilderzeugungsfehler von Transportfehlern unterscheiden.**
+    Ungültige Routenparameter oder ein ungültiger öffentlicher Prompt werden
+    bereits vor dem Anbietertransport abgewiesen und als nicht gesendet mit
+    null Kosten gebucht. Ein tatsächlicher Transportversuch mit unklarem Fehler
+    behält dagegen seine Reservierung. Künstliche Regressionen prüfen den
+    Unterschied sowie die einmalige Abrechnung und fremde Kostenstände.
+    [Nachweis](docs/IMAGE_REVIEW_PRESEND_COST_2026_11_28.md).
+
   - [x] **Lokale Bildprüffehler korrekt abrechnen.** Scheitert die rein lokale
     Dekodierung oder JPEG-Vorbereitung vor dem Anbietertransport, wird der
     Prüfauftrag als nicht gesendet verbucht und seine Reservierung genau einmal

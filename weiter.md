@@ -615,6 +615,12 @@ Der unabhängige Watchdog aus Commit `96c43ca` ist lokal installiert. Er meldet 
   verwenden künstliche Daten; keine neue fachliche Bildabnahme oder echter
   Anbieteraufruf. Siehe `docs/IMAGE_REVIEW_PRESEND_COST_2026_11_28.md`.
 
+- Bei der Bilderzeugung werden ungültige Routenparameter und öffentliche
+  Prompts, die nachweislich vor dem Transport abgelehnt werden, jetzt als nicht
+  gesendet abgerechnet. Ein fehlerhafter Transportversuch hält die Reservierung
+  weiterhin als unbekannt. Künstliche Tests prüfen den Unterschied; es gab
+  hierfür keinen echten Anbieteraufruf.
+
 ## Nützliche Prüfungen
 
 - CI: `gh run list --limit 5` und `gh run view <ID>`; ein laufender oder abgebrochener Workflow ist kein grüner Gesamtnachweis.

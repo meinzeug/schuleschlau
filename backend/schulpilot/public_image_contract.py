@@ -145,9 +145,11 @@ def request_resolved_image(client, prompt, *, token, model, upstream, region):
     if (region not in HOSTS or not isinstance(token, str) or not token
             or not isinstance(model, str) or not re.fullmatch(r"[a-z0-9_.-]+/[a-z0-9_.-]+", model)
             or not isinstance(upstream, str) or not re.fullmatch(r"[a-z0-9_.-]+(?:/[a-z0-9_.-]+)*", upstream)):
-        raise ImageContractError("invalid_route")
+        raise ImageContractError("invalid_route", {
+            "input_tokens": 0, "output_tokens": 0, "cost_micros": 0, "cost_source": "cancelled"})
     if not isinstance(prompt, str) or not 1 <= len(prompt) <= 2000:
-        raise ImageContractError("invalid_public_prompt")
+        raise ImageContractError("invalid_public_prompt", {
+            "input_tokens": 0, "output_tokens": 0, "cost_micros": 0, "cost_source": "cancelled"})
     body = {"model": model, "prompt": prompt, "n": 1,
             "provider": {"only": [upstream], "allow_fallbacks": False,
                          "data_collection": "deny", "zdr": True}}

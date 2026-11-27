@@ -480,3 +480,91 @@ def test_opt_in_live_synthetic_image_through_reserved_job(api, image_case, monke
     path = '/api/units/' + case['unit'] + '/public-image'
     assert api.get(path).json()['status'] == 'ready'
     assert api.get(path + '/file').content.startswith(b'\x89PNG')
+
+
+@pytest.mark.parametrize('invalid', ['token', 'prompt'])
+def test_image_generation_local_input_failure_releases_only_its_reservation(api, image_case, monkeypatch, invalid):
+    """Invalid local arguments are rejected before any image provider call."""
+    import httpx
+    from schulpilot.db import UsageBucket
+    from schulpilot.public_image_contract import request_resolved_image
+
+    case, _, _ = image_case
+    assert start(api, case).status_code == 202
+    with DB.begin() as db:
+        job = db.scalar(select(Job).where(Job.kind == 'public_image'))
+        job.status = 'running'
+        jid = job.id
+        usage = db.scalar(select(Usage).where(Usage.job_id == jid))
+        reserved = usage.reserved_micros
+        assert reserved > 0
+        buckets = {key: (db.get(UsageBucket, key).encumbered_micros,
+                         db.get(UsageBucket, key).unknown_calls)
+                   for key in usage.bucket_ids}
+        assert buckets
+    def local_invalid(client, prompt, **kwargs):
+        if invalid == 'token':
+            kwargs['token'] = ''
+        else:
+            prompt = ''
+        return request_resolved_image(client, prompt, **kwargs)
+    requests = []
+    def never_send(*_args, **_kwargs):
+        requests.append(True)
+        raise AssertionError('Invalid local input must not reach provider transport')
+    monkeypatch.setattr('schulpilot.public_image_jobs.request_resolved_image', local_invalid)
+    monkeypatch.setattr(httpx.Client, 'stream', never_send)
+    process(jid)
+    with DB() as db:
+        job = db.get(Job, jid)
+        usage = db.scalar(select(Usage).where(Usage.job_id == jid))
+        assert job.status == 'failed'
+        assert usage.status == 'failed_not_sent'
+        assert usage.cost_micros == 0 and usage.cost_source == 'cancelled'
+        assert usage.settlement_version == 1
+        for key, (held, unknown) in buckets.items():
+            bucket = db.get(UsageBucket, key)
+            assert bucket.encumbered_micros == held - reserved
+            assert bucket.unknown_calls == unknown - 1
+    process(jid)
+    with DB() as db:
+        assert db.scalar(select(Usage).where(Usage.job_id == jid)).settlement_version == 1
+    assert requests == []
+
+
+def test_image_generation_transport_failure_keeps_unknown_cost_and_reservation(api, image_case, monkeypatch):
+    """A real transport attempt must not be mistaken for a local cancellation."""
+    import httpx
+    from schulpilot.db import UsageBucket
+    from schulpilot.public_image_contract import request_resolved_image
+
+    case, _, _ = image_case
+    assert start(api, case).status_code == 202
+    with DB.begin() as db:
+        job = db.scalar(select(Job).where(Job.kind == 'public_image'))
+        job.status = 'running'
+        jid = job.id
+        usage = db.scalar(select(Usage).where(Usage.job_id == jid))
+        buckets = {key: (db.get(UsageBucket, key).encumbered_micros,
+                         db.get(UsageBucket, key).unknown_calls)
+                   for key in usage.bucket_ids}
+        assert buckets and usage.reserved_micros > 0
+    def real_with_synthetic_token(client, prompt, **kwargs):
+        kwargs['token'] = 'synthetic'
+        return request_resolved_image(client, prompt, **kwargs)
+    attempts = []
+    def transport_failure(*_args, **_kwargs):
+        attempts.append(True)
+        raise httpx.ConnectError('synthetic transport failure')
+    monkeypatch.setattr('schulpilot.public_image_jobs.request_resolved_image', real_with_synthetic_token)
+    monkeypatch.setattr(httpx.Client, 'stream', transport_failure)
+    process(jid)
+    with DB() as db:
+        job = db.get(Job, jid)
+        usage = db.scalar(select(Usage).where(Usage.job_id == jid))
+        assert job.status == 'failed' and job.error_code == 'provider_unavailable'
+        assert usage.status == 'failed_unknown' and usage.cost_micros is None
+        for key, (held, unknown) in buckets.items():
+            bucket = db.get(UsageBucket, key)
+            assert (bucket.encumbered_micros, bucket.unknown_calls) == (held, unknown)
+    assert attempts == [True]

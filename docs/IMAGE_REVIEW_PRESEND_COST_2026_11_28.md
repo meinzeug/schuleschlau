@@ -29,3 +29,21 @@ mit 48 bestandenen und fünf übersprungenen sowie auf isoliertem PostgreSQL mit
 Fehlerfälle bestanden zusätzlich auf beiden Datenbanken. Die übersprungenen
 Fälle umfassen optionale Umgebungs- beziehungsweise Livepfade; daraus folgt
 kein Live-Anbieternachweis.
+
+## Bilderzeugung: ungültige lokale Parameter
+
+Die Bilderzeugung setzt den konservativen Versandmarker ebenfalls vor dem
+Aufruf ihres Transportadapters. Der Adapter prüft Zugangsdaten, Modellroute und
+öffentlichen Prompt lokal, bevor er `client.stream` erreicht. Wenn diese
+Parameter ungültig waren, blieb zuvor die Reservierung als unbekannter Aufwand
+stehen. Diese zwei expliziten Prüfstellen liefern nun einen Nullkostenbeleg für
+einen nicht gesendeten Auftrag; die Anwendung rechnet ihn über den bestehenden
+idempotenten Pfad ab. Wurde der Transport dagegen aufgerufen und schlägt fehl,
+bleiben Kosten und Reservierung unbekannt. Tests verwenden künstliche Aufträge,
+prüfen die eigenen Kosten-Buckets und zählen die Transportversuche. Sie zeigen
+keine tatsächliche Anbieterantwort.
+
+Nach der Ergänzung für die Bilderzeugung bestand die gemeinsame Suite aus
+Bildvertrag, Bilderzeugung, Bildprüfung und Kostenkontrollen mit 68 Fällen auf
+SQLite (fünf übersprungen) und 71 Fällen auf isoliertem PostgreSQL (zwei
+übersprungen). Die künstlichen Fälle ersetzen keinen echten Anbieterbeleg.
