@@ -100,6 +100,8 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
   late Json? actorAccount = widget.state.user;
   late String? family = widget.state.familyId;
   late String? session = widget.state.api.token;
+  late (Object?, String?, int?) authentication;
+  bool authenticationReload = false, allowAutomaticDayCreation = true;
   final privateRoutes = <Route<dynamic>>{};
   int generation = 0, readVersion = 0, reviewPickerEpoch = 0;
   Route<dynamic>? reviewPickerRoute;
@@ -137,18 +139,21 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
   bool get locked => working || publishingParts || waiting;
   bool get readOnly => day?['read_only'] == true;
   bool get allowUploads => day?['allow_uploads'] != false && !readOnly;
-  bool get ownerMatches =>
+  bool get sameAccount =>
       actorAccount != null &&
       identical(state.user, actorAccount) &&
       state.familyId == family &&
       state.api.token == session;
+  bool get ownerMatches => sameAccount && state.api.ownsRequest(authentication);
   bool get active => mounted && ownerMatches && foreground && routeVisible;
 
   @override
   void initState() {
     super.initState();
+    authentication = state.api.requestIdentity();
     WidgetsBinding.instance.addObserver(this);
     state.addListener(identityChanged);
+    state.authenticationChanges.addListener(authenticationChanged);
     unawaited(load());
   }
 
@@ -157,7 +162,11 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
     super.didUpdateWidget(oldWidget);
     if (oldWidget.state != state) {
       oldWidget.state.removeListener(identityChanged);
+      oldWidget.state.authenticationChanges.removeListener(
+        authenticationChanged,
+      );
       state.addListener(identityChanged);
+      state.authenticationChanges.addListener(authenticationChanged);
     }
     if (oldWidget.state != state ||
         oldWidget.childId != widget.childId ||
@@ -176,6 +185,9 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
       actorAccount = state.user;
       family = state.familyId;
       session = state.api.token;
+      authentication = state.api.requestIdentity();
+      authenticationReload = false;
+      allowAutomaticDayCreation = true;
       unawaited(load());
     }
   }
@@ -229,6 +241,43 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
     }
   }
 
+  void authenticationChanged() {
+    if (!mounted || !sameAccount) return;
+    generation++;
+    readVersion++;
+    reviewPickerEpoch++;
+    poll?.cancel();
+    poll = null;
+    closePrivateRoutes();
+    FocusManager.instance.primaryFocus?.unfocus();
+    setState(() {
+      day = null;
+      pendingPhotos = [];
+      importReceipts = [];
+      packageSearch.clear();
+      packageKind = 'all';
+      error = reviewId = null;
+      progress = '';
+      loading = fetching = working = publishingParts = discarding = false;
+      queuedRead = false;
+      captureRequested = false;
+      allowAutomaticDayCreation = false;
+      authenticationReload = true;
+    });
+  }
+
+  Future<void> reloadAfterAuthentication() async {
+    if (!mounted || !sameAccount || !authenticationReload) return;
+    authentication = state.api.requestIdentity();
+    generation++;
+    readVersion++;
+    setState(() {
+      authenticationReload = false;
+      loading = true;
+    });
+    await load();
+  }
+
   void schedule() {
     poll?.cancel();
     poll = null;
@@ -256,6 +305,7 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
     poll?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     state.removeListener(identityChanged);
+    state.authenticationChanges.removeListener(authenticationChanged);
     closePrivateRoutes();
     packageSearch.dispose();
     super.dispose();
@@ -315,6 +365,7 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
 
   Future<void> discardLocalPhotos() async {
     if (!active || pendingPhotos.isEmpty || discarding) return;
+    final actionGeneration = generation;
     setState(() => discarding = true);
     try {
       final version = generation, id = day?['id'];
@@ -353,7 +404,9 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
       }
       if (sameDay(version, id)) await refreshPending();
     } finally {
-      if (mounted && ownerMatches) setState(() => discarding = false);
+      if (mounted && ownerMatches && generation == actionGeneration) {
+        setState(() => discarding = false);
+      }
     }
   }
 
@@ -394,7 +447,10 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
           next['child_id'] != widget.childId) {
         throw ApiError('Dieser Schultag gehört nicht zu diesem Lernraum.');
       }
-      if (next == null && state.isChild && widget.startWithPhotos) {
+      if (next == null &&
+          state.isChild &&
+          widget.startWithPhotos &&
+          allowAutomaticDayCreation) {
         next = await state.api.post(
           '/children/${widget.childId}/school-day/today',
         );
@@ -504,6 +560,7 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
           'reason': '',
         });
       }
+      if (!sameDay(version, id)) return;
       await state.pendingUploads.remove(owner, photo['key']);
       await refreshPending();
     }
@@ -749,7 +806,12 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
           limit: remaining > 1 ? remaining : 2,
         );
       } finally {
-        if (nativeAndroid) await clearCameraSource(state);
+        if (nativeAndroid &&
+            mounted &&
+            ownerMatches &&
+            generation == captureGeneration) {
+          await clearCameraSource(state);
+        }
       }
       if (!currentCapture()) return;
       final keys = [
@@ -874,7 +936,12 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
         'bottom': 1.0,
       });
     } finally {
-      if (nativeAndroid) await clearCameraSource(state);
+      if (nativeAndroid &&
+          mounted &&
+          ownerMatches &&
+          generation == captureGeneration) {
+        await clearCameraSource(state);
+      }
     }
     if (bytes == null || !currentCapture()) return;
     final receiptId =
@@ -947,7 +1014,11 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
     } on ApiError catch (failure) {
       // Keep the same key after an ambiguous transport timeout. A deliberate
       // later retry after a known rejection gets a new request key.
-      if (failure.status >= 400) preparationKeys.remove(signature);
+      if (failure.status >= 400 &&
+          generation == version &&
+          preparationKeys[signature] == key) {
+        preparationKeys.remove(signature);
+      }
       rethrow;
     }
   }
@@ -1005,7 +1076,12 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
       }
       state.refreshState();
     } on ApiError catch (e) {
-      if (e.status >= 400 && e.status < 500) preparationKeys.remove(signature);
+      if (e.status >= 400 &&
+          e.status < 500 &&
+          generation == version &&
+          preparationKeys[signature] == key) {
+        preparationKeys.remove(signature);
+      }
       failure = e.message;
     } catch (_) {
       failure = 'Die fertigen Runden konnten gerade nicht freigegeben werden. Dein gespeicherter Stand bleibt erhalten.';
@@ -1088,13 +1164,15 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
   }
 
   Future<void> ensureCollecting() async {
+    if (!ownerMatches || day == null) return;
+    final version = generation, id = day?['id'];
     if (day?['stage'] == 'collecting') return;
     final updated = day?['stage'] == 'ready'
         ? await state.api.post('/school-days/${day!['id']}/extend')
         : await state.api.put('/school-days/${day!['id']}/stage', {
             'stage': 'collecting',
           });
-    if (mounted && ownerMatches) setState(() => day = updated);
+    if (sameDay(version, id)) setState(() => day = updated);
   }
 
   Future<void> replacePage(Json page) async {
@@ -1147,7 +1225,7 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
       if (!mounted || !currentReplacement()) return;
       bytes = await pickMaterialPhoto(context, source, state: state);
     } finally {
-      if (ownerMatches) await clearCameraSource(state);
+      if (sameDay(version, dayId)) await clearCameraSource(state);
     }
     if (bytes == null || !currentReplacement()) return;
     // Hold the new cropped photo before asking to delete the old one.
@@ -1159,13 +1237,16 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
     );
     if (!currentReplacement()) return;
     if (!await deleteDayPage(page)) {
-      if (ownerMatches) await state.pendingUploads.remove(actor!, pendingKey);
+      if (sameDay(version, dayId)) {
+        await state.pendingUploads.remove(actor!, pendingKey);
+      }
       return;
     }
-    if (!mounted || !ownerMatches) return;
+    if (!sameDay(version, dayId)) return;
     await ensureCollecting();
-    if (!mounted || !ownerMatches) return;
+    if (!sameDay(version, dayId)) return;
     await refreshPending();
+    if (!sameDay(version, dayId)) return;
     await sendPending();
   }
 
@@ -2155,12 +2236,15 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
               label: 'Mit diesen Seiten weiter',
               icon: Icons.arrow_forward_rounded,
               onPressed: () => run(() async {
+                final version = generation, id = day?['id'];
                 if (day!['stage'] != 'ready') {
                   await state.api.put('/school-days/${day!['id']}/stage', {
                     'stage': 'review',
                   });
                 }
-                if (mounted) setState(() => captureRequested = false);
+                if (sameDay(version, id)) {
+                  setState(() => captureRequested = false);
+                }
               }),
             ),
           ),
@@ -2945,6 +3029,26 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
 
   @override
   Widget build(BuildContext context) {
+    if (!sameAccount) return const SizedBox.shrink();
+    if (authenticationReload || !ownerMatches) {
+      return PageFrame(
+        state: state,
+        title: 'Nach der Schule',
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Notice(
+              'Die Anmeldung hat sich geändert. Lade deinen Schultag erneut.',
+            ),
+            const SizedBox(height: 12),
+            ActionButton(
+              label: 'Erneut laden',
+              onPressed: reloadAfterAuthentication,
+            ),
+          ],
+        ),
+      );
+    }
     if (state.isChild) return childFrame(context);
     final stage = day?['stage'] ?? 'collecting';
     final step = stage == 'collecting'

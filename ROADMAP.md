@@ -4076,6 +4076,17 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Echtzeitstatus gezielt und zuverlässig bereitstellen**
 
+  - [x] **Foto- und Tagesansicht beim Anmeldewechsel abgrenzen.** Eine neue
+    Anmeldeabsicht blendet alte Tagesdaten und offene Dialoge aus und stoppt
+    alte Folgeaktionen. Nach abgebrochener Anmeldung ist ein bewusstes
+    Neuladen möglich; dabei wird ein fehlender Tag nicht automatisch neu
+    angelegt. Lokal vorgemerkte Fotos bleiben erhalten, und ein überholter
+    Vorbereitungsfehler entfernt keinen Schlüssel einer späteren Wiederholung.
+    Sechs künstliche Unterbrechungsfälle bestanden auf Flutter und im Chrome-
+    Webrunner; die lokale Foto- und Tagesregression umfasste 76 Fälle. Ein
+    während einer laufenden Anmeldung neu gestarteter anderer Transport und
+    der allgemeine Cookie-Wettlauf bleiben gesondert offen.
+
   - [x] **Kontextbezogene Lerntipps an die Anmeldeabsicht binden.** Beim
     Beginn einer neuen Anmeldung werden angezeigte Tipps entfernt und späte
     Leseergebnisse verworfen. Alte Medienrückkehr- und Linkaktionen bleiben
