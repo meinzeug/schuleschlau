@@ -47,13 +47,18 @@ class _SchoolDayHistoryState extends State<_SchoolDayHistoryBody> {
       family == widget.state.familyId &&
       sessionToken == widget.state.api.token;
   bool get currentView =>
-      current && !needsReload && widget.state.api.ownsRequest(requestIdentity);
+      current &&
+      !widget.state.authenticationPending &&
+      !needsReload &&
+      widget.state.api.ownsRequest(requestIdentity);
   @override
   void initState() {
     super.initState();
     requestIdentity = widget.state.api.requestIdentity();
     final saved = widget.state.collectionViews[memoryKey];
-    if (identical(saved?['account'], account) && saved?['family'] == family) {
+    if (!widget.state.authenticationPending &&
+        identical(saved?['account'], account) &&
+        saved?['family'] == family) {
       search.text = saved?['q'] as String? ?? '';
       status =
           ['open', 'done', 'collecting', 'review'].contains(saved?['status'])
@@ -68,7 +73,14 @@ class _SchoolDayHistoryState extends State<_SchoolDayHistoryBody> {
     }
     widget.state.addListener(accountChanged);
     widget.state.authenticationChanges.addListener(authenticationChanged);
-    load();
+    if (widget.state.authenticationPending) {
+      widget.state.collectionViews.remove(memoryKey);
+      loading = more = false;
+      needsReload = true;
+      error = 'Bitte lade deine Tagespakete erneut.';
+    } else {
+      load();
+    }
   }
 
   void authenticationChanged() {
@@ -134,7 +146,12 @@ class _SchoolDayHistoryState extends State<_SchoolDayHistoryBody> {
     String? anchor,
     bool latest = false,
   }) async {
-    if (!current || requestActive || (!needsReload && !currentView)) return;
+    if (!current ||
+        widget.state.authenticationPending ||
+        requestActive ||
+        (!needsReload && !currentView)) {
+      return;
+    }
     requestIdentity = widget.state.api.requestIdentity();
     final identity = requestIdentity;
     final version = ++generation;
@@ -656,6 +673,7 @@ class _SchoolDayHistoryState extends State<_SchoolDayHistoryBody> {
                 else if (more || error != null)
                   ActionButton(
                     label: error == null ? 'Ältere Tage laden' : 'Erneut laden',
+                    enabled: !widget.state.authenticationPending,
                     onPressed: load,
                   ),
                 SizedBox(height: 16),

@@ -171,6 +171,97 @@ void main() {
       expect(find.textContaining('Mathematik'), findsNothing);
     },
   );
+  testWidgets('retry stays disabled until login is canceled', (t) async {
+    var calls = 0;
+    final state = helpers.account((_) async {
+      calls++;
+      return helpers.reply({
+        'days': [history.day('old', '2026-10-20', 'Mathematik')],
+        'next_before': null,
+      });
+    });
+    final router = GoRouter(
+      routes: [
+        GoRoute(
+          path: '/',
+          builder: (_, _) => SchoolDayHistory(state, childId: 'child'),
+        ),
+      ],
+    );
+    addTearDown(() async {
+      await t.pumpWidget(const SizedBox.shrink());
+      router.dispose();
+      state.dispose();
+    });
+    await t.pumpWidget(
+      MaterialApp.router(theme: appTheme(), routerConfig: router),
+    );
+    await t.pumpAndSettle();
+    final revision = state.beginAuthentication();
+    await t.pumpAndSettle();
+    final retry = t.widget<ActionButton>(
+      find.widgetWithText(ActionButton, 'Erneut laden'),
+    );
+    expect(retry.enabled, isFalse);
+    await retry.onPressed();
+    await t.pump();
+    expect(calls, 1);
+    expect(find.textContaining('Mathematik'), findsNothing);
+    state.cancelAuthentication(revision);
+    await t.pumpAndSettle();
+    await helpers.tap(t, find.text('Erneut laden'));
+    expect(calls, 2);
+    expect(find.text('Tagespaket vom 20.10.2026 öffnen'), findsOneWidget);
+    expect(t.takeException(), isNull);
+  });
+
+  testWidgets('history opened during login reads no private data', (t) async {
+    var calls = 0;
+    final state = helpers.account((_) async {
+      calls++;
+      return helpers.reply({'days': [], 'next_before': null});
+    });
+    state.collectionViews['school_history:child'] = {
+      'account': state.user,
+      'family': state.familyId,
+      'q': 'privater Suchtext',
+    };
+    final revision = state.beginAuthentication();
+    final router = GoRouter(
+      routes: [
+        GoRoute(
+          path: '/',
+          builder: (_, _) => SchoolDayHistory(state, childId: 'child'),
+        ),
+      ],
+    );
+    addTearDown(() async {
+      await t.pumpWidget(const SizedBox.shrink());
+      router.dispose();
+      state.dispose();
+    });
+    await t.pumpWidget(
+      MaterialApp.router(theme: appTheme(), routerConfig: router),
+    );
+    await t.pumpAndSettle();
+    expect(calls, 0);
+    expect(find.text('privater Suchtext'), findsNothing);
+    expect(
+      t
+          .widget<ActionButton>(
+            find.widgetWithText(ActionButton, 'Erneut laden'),
+          )
+          .enabled,
+      isFalse,
+    );
+    state.cancelAuthentication(revision);
+    await t.pumpAndSettle();
+    expect(calls, 0);
+    await helpers.tap(t, find.text('Erneut laden'));
+    expect(calls, 1);
+    expect(t.takeException(), isNull);
+  });
+
   testWidgets('An open date picker closes after a new login intent', (t) async {
     final state = helpers.account(
       (_) async => helpers.reply({

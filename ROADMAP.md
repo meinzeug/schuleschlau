@@ -4402,6 +4402,14 @@ Bestandteil des bestehenden Buildvertrags.
 
   - [ ] **Verspätete gemeinsame API-Antworten nach Kontowechsel absichern.**
 
+    **Tagespakete während laufender Anmeldung nicht neu abrufen:** Nach
+    Anmeldebeginn bleibt „Erneut laden“ bis zu deren Abschluss deaktiviert;
+    direkte alte Rückrufe starten ebenfalls keine Anfrage. Wird die Ansicht
+    erst währenddessen aufgebaut, übernimmt sie keine gespeicherten Suchfilter
+    und liest keine Tagespakete. Nach Anmeldeabbruch ist bewusstes Neuladen
+    möglich. 35 künstliche Flutterfälle, sieben Chrome-Fälle und die statische
+    Analyse bestanden. Die allgemeine Cookie-Abnahme bleibt offen.
+
     **Bildbefunde bei laufender Anmeldung nicht öffnen:** Wird die Eltern-
     Bildprüfung erst während eines Anmeldeversuchs aufgebaut, zeigt sie keine
     Befunde und sendet keine Bestätigung. Bereits zuvor begonnene Wechsel
