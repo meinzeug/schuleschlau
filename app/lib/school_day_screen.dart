@@ -1987,6 +1987,8 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
                                     icon: Image.memory(
                                       base64Decode(photo['image']),
                                       cacheWidth: 160,
+                                      width: 40,
+                                      height: 40,
                                       fit: BoxFit.contain,
                                       errorBuilder: (_, _, _) => const Icon(
                                         Icons.broken_image_outlined,

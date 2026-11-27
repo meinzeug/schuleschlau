@@ -155,7 +155,7 @@ try {
   assert.equal(pageNotice.read,false);
   await tap(childPage,childPage.getByRole('button',{name:/Benachrichtigungen/}));
   await childPage.screenshot({path:screens+'/child-bell-390.png'});
-  await tap(childPage,childPage.getByRole('button',{name:/Heftseite.*Bitte prüfen/}));
+  await tap(childPage,childPage.getByRole('button',{name:/Heftseite.*Elternprüfung offen/}));
   await childPage.waitForURL(url=>url.pathname===`/after-school/${child}` && url.searchParams.get('day')===day,{timeout:15000});
   await open(childPage,'/app');
   await tap(childPage,childPage.getByRole('button',{name:/Benachrichtigungen/}));

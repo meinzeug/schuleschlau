@@ -74,7 +74,7 @@ try {
     phase='day-'+day+'-login'; await login(width);
     if(day<6) {
       phase='day-'+day+'-subject-navigation';
-      const learn=page.getByRole('button',{name:/^Lernen(?:\s+Tab \d+ of \d+)?$/})
+      const learn=page.getByRole('button',{name:/^Lernen(?:\s+Tab \d+ (?:of|von) \d+)?$/})
         .or(page.getByRole('tab',{name:/^Lernen/})).first();
       if(width>=1100) {
         const bounds=await learn.boundingBox();

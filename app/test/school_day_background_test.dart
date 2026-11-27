@@ -1087,6 +1087,14 @@ void main() {
       );
       expect(server.uploads, 0);
       expect(server.submissions, 0);
+      final thumbnail = find.descendant(
+        of: find.byTooltip('Foto 1 ansehen'),
+        matching: find.byType(Image),
+      );
+      expect(tester.getSize(thumbnail), const Size(40, 40));
+      final previewBounds = tester.getRect(find.byTooltip('Foto 1 ansehen'));
+      final editBounds = tester.getRect(find.byTooltip('Foto 1 bearbeiten'));
+      expect(previewBounds.right, lessThanOrEqualTo(editBounds.left));
       await tester.ensureVisible(find.byTooltip('Foto 1 bearbeiten'));
       await tester.tap(find.byTooltip('Foto 1 bearbeiten'));
       await settleUi(tester);
