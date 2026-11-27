@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import 'api.dart';
+import 'calendar_dates.dart';
 import 'ui.dart';
 import 'page_tools.dart';
 import 'parent_child_navigation.dart';
@@ -186,7 +187,7 @@ class _SchoolDayHistoryState extends State<_SchoolDayHistoryBody> {
     FocusManager.instance.primaryFocus?.unfocus();
     await load(
       reset: true,
-      anchor: DateFormat('yyyy-MM-dd').format(selected.add(Duration(days: 1))),
+      anchor: DateFormat('yyyy-MM-dd').format(nextCalendarDay(selected)),
     );
   }
 

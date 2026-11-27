@@ -8,6 +8,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
 import 'api.dart';
+import 'calendar_dates.dart';
 import 'camera_recovery.dart';
 import 'child_photo_preview.dart';
 import 'child_section_ui.dart';
@@ -103,8 +104,11 @@ class _HomeworkScreenState extends State<HomeworkScreen> {
         if (photoDates != null) {
           final date = photoDate(photo);
           if (date == null ||
-              date.isBefore(photoDates!.start) ||
-              !date.isBefore(photoDates!.end.add(Duration(days: 1)))) {
+              !isWithinCalendarDates(
+                date,
+                photoDates!.start,
+                photoDates!.end,
+              )) {
             return false;
           }
         }

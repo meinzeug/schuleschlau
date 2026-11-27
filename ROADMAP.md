@@ -1176,6 +1176,18 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
     Diese sieben gezielten Fälle bestanden auch im Chrome-Webrunner. Die
     vollständige Kinderansicht und das Ausrollen bleiben offen.
 
+  - [x] **Kalenderauswahl bei Zeitumstellungen stabil halten.** Lerntage für
+    Klassenarbeiten werden in Kalendertagen statt in festen 24-Stunden-
+    Schritten gezählt. Das gilt auch für den nächsten geplanten Schultag,
+    die Datumsnavigation im Verlauf und das inklusive Ende des Fotofilters
+    bei Hausaufgaben. Damit fehlen bei der Winterzeit weder der Folgetag noch
+    späte Fotos, und beim Wechsel zur Sommerzeit rutschen keine Fotos des
+    nächsten Tages in den Filter. 65 künstliche Flutterfälle und elf Chrome-
+    Webrunnerfälle bestanden mit ausdrücklich überprüfter Berliner Zeitzone,
+    darunter beide Zeitumstellungen und ein Schaltjahr; 71 angrenzende
+    Foto-, Tages- und Hausaufgabenfälle bestanden ebenfalls. Andere Zeitzonen
+    und die vollständige Geräteabnahme sind damit nicht allgemein geprüft.
+
   - [x] **Fortsetzung einer pausierten Runde verständlich begründen.** Die
     tatsächliche mobile Startseite zeigte auf „Warum dieser Lernschritt?“
     bisher lediglich einen Speicherhinweis. Der Lerncontroller nennt bei

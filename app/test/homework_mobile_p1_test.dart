@@ -65,6 +65,62 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   }
+  for (final day in [DateTime(2026, 3, 29), DateTime(2026, 10, 25)]) {
+    testWidgets('Fotofilter behält den ganzen gewählten Tag ${day.month}', (
+      tester,
+    ) async {
+      final methods = <String>[];
+      final state = homework.account(
+        MockClient((request) async {
+          methods.add(request.method);
+          return homework.reply({
+            'photos': [
+              {
+                'id': 'selected-day',
+                'topic': 'Spätes Foto',
+                'subject': '',
+                'confirmed': false,
+                'status': 'uploaded',
+                'created': DateTime(
+                  day.year,
+                  day.month,
+                  day.day,
+                  23,
+                  30,
+                ).toIso8601String(),
+              },
+              {
+                'id': 'next-day',
+                'topic': 'Foto am Folgetag',
+                'subject': '',
+                'confirmed': false,
+                'status': 'uploaded',
+                'created': DateTime(
+                  day.year,
+                  day.month,
+                  day.day + 1,
+                  0,
+                  30,
+                ).toIso8601String(),
+              },
+            ],
+            'next_cursor': null,
+          });
+        }),
+      );
+      final date = day.toIso8601String().substring(0, 10);
+      state.collectionViews['homework_list:child'] = {
+        'account': state.user,
+        'from': date,
+        'to': date,
+      };
+      await homework.open(tester, state, overview: true, openTools: false);
+      expect(find.text('Spätes Foto'), findsOneWidget);
+      expect(find.text('Foto am Folgetag'), findsNothing);
+      expect(methods.every((method) => method == 'GET'), isTrue);
+      expect(tester.takeException(), isNull);
+    });
+  }
   for (final width in [320.0, 390.0]) {
     testWidgets('saved homework labels identify the next action at $width', (
       tester,

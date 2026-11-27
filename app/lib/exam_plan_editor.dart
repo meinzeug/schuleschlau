@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'api.dart';
+import 'calendar_dates.dart';
 import 'exams_scope.dart';
 import 'ui.dart';
 
@@ -56,7 +57,7 @@ class _ExamPlanEditorState extends State<ExamPlanEditor> {
     () => TextEditingController(text: '${topic['question_count']}'),
   );
   DateTime from = DateUtils.dateOnly(DateTime.now());
-  late DateTime until = from.add(const Duration(days: 13));
+  late DateTime until = DateTime(from.year, from.month, from.day + 13);
   int step = 0;
   bool saving = false, uncertain = false;
   String? error;
@@ -810,19 +811,15 @@ class _ExamPlanEditorState extends State<ExamPlanEditor> {
                 ? null
                 : () {
                     if (!mounted || !scope.current) return;
-                    if (until.isBefore(from) ||
-                        until.difference(from).inDays > 365) {
+                    final calendarSpan = calendarDayDifference(from, until);
+                    if (calendarSpan < 0 || calendarSpan > 365) {
                       setState(
                         () => error = 'Wähle einen geordneten Zeitraum von höchstens einem Jahr.',
                       );
                       return;
                     }
                     final selected = <String>{...dates};
-                    for (
-                      var date = from;
-                      !date.isAfter(until);
-                      date = date.add(const Duration(days: 1))
-                    ) {
+                    for (final date in calendarDays(from, until)) {
                       if (weekdays.contains(date.weekday)) {
                         selected.add(examDate(date));
                       }

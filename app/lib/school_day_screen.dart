@@ -9,6 +9,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
 import 'api.dart';
+import 'calendar_dates.dart';
 import 'camera_recovery.dart';
 import 'child_photo_preview.dart';
 import 'material_screen.dart';
@@ -526,8 +527,7 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
     final overview = await state.api.get(
       '/children/${widget.childId}/overview',
     );
-    final tomorrow = DateTime.parse(overview['plan']['date'])
-        .add(Duration(days: 1))
+    final tomorrow = nextCalendarDay(DateTime.parse(overview['plan']['date']))
         .toIso8601String()
         .substring(0, 10);
     if (!mounted ||
