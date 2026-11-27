@@ -244,12 +244,35 @@ void main() {
         builder: (_, _) => VocabularyScreen(state, childId: 'example-child'),
       ),
       GoRoute(
+        path: '/vocabulary/:id',
+        builder: (_, route) =>
+            VocabularyScreen(state, childId: route.pathParameters['id']!),
+      ),
+      GoRoute(
         path: '/homework',
         builder: (_, _) => HomeworkScreen(state, childId: 'example-child'),
       ),
       GoRoute(
+        path: '/homework/:childId',
+        builder: (_, route) =>
+            HomeworkScreen(state, childId: route.pathParameters['childId']!),
+      ),
+      GoRoute(
         path: '/exams',
         builder: (_, _) => ExamsScreen(state, childId: 'example-child'),
+      ),
+      GoRoute(
+        path: '/exams/:childId',
+        builder: (_, route) =>
+            ExamsScreen(state, childId: route.pathParameters['childId']!),
+      ),
+      GoRoute(
+        path: '/app',
+        builder: (_, _) => SchoolDayScreen(
+          state,
+          childId: 'example-child',
+          dayId: 'example-day',
+        ),
       ),
       GoRoute(
         path: '/unit/:id',

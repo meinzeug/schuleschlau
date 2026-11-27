@@ -1,5 +1,26 @@
 # Übergabe an die nächste Coding-KI
 
+## Arbeitsstand 27. November 2026: Quellen und Kontowechsel
+
+`literal-safety-8` behandelt bestimmte mehrdeutige Zahlentrenner in vollständig
+numerischen Gleichungen als ungeklärt. Originale und historische Gegenchecks
+bleiben erhalten; die Grenzen und synthetischen SQLite-/PostgreSQL-Nachweise
+stehen in `docs/NUMERIC_SEPARATOR_AMBIGUITY_2026_11_27.md`. Die breite
+Fotoerkennungsabnahme bleibt offen.
+
+Profilfoto-Einstellungen und Eltern-Kalender schließen oder sperren bei einer
+neuen Anmeldeabsicht ihre alten Aktionen. Einzelheiten stehen in der Roadmap.
+Diese begrenzten Fixes lösen den offenen browserseitigen `HttpOnly`-Cookie-
+Wettlauf nicht: `docs/WEB_LOGIN_COOKIE_RACE_2026_11_06.md` beschreibt den
+reproduzierbaren Fall und die nötigen weitergehenden Prüfungen.
+
+Die lokale synthetische Ansicht `app/test/fixtures/school_day_preview.dart`
+kennt zusätzlich die von der Kindernavigation verwendeten Routen für Wörter,
+Hausaufgaben, Klassenarbeiten und `/app`. Ein Widgettest prüft diese Ziele auf
+VM und Chrome. Lernen, Hefte und die Platzhalterrunde sind in dieser Vorschau
+weiterhin keine vollständigen End-to-End-Abläufe; daraus lassen sich keine
+Funktionsaussagen über die produktive App ableiten.
+
 ## Synthetische 30-Schultage-Regression
 
 `qa/run_month_regression.py` führt den isolierten API-/Worker-Monatslauf und

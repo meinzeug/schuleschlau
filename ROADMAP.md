@@ -1207,6 +1207,13 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – Alle Kinderansichten sprachlich und in ihrer Bedienung entrümpeln**
 
+  - [x] **Lokale Kinder-Vorschau mit einigen echten Navigationszielen verbinden.**
+    Die rein synthetische Vorschau kennt die Kinderpfade für Wörter,
+    Hausaufgaben und Klassenarbeiten sowie `/app`. Ein Flutter-Test prüft die
+    Zielwidgets auf der VM und im Chrome-Webrunner. Lernen, Hefte und die
+    Platzhalterrunde sind damit nicht als vollständige Vorschau umgesetzt;
+    der Test belegt keine produktive Navigation oder Geräteabnahme.
+
   - [x] **Leseeinstellungen im Seitentext verständlich benennen.** Die
     sichtbare Abkürzung „Aa“ erhält für Hilfstechnologien die Bezeichnung
     „Schrift und Zeilenabstand“. Die drei Lesewerkzeuge bleiben als benannte
