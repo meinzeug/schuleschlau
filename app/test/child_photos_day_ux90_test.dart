@@ -110,10 +110,15 @@ void main() {
       ),
     );
     await f.tap(tester, find.text('Foto ansehen'));
+    expect(find.text('Deine Fotos'), findsOneWidget);
+    expect(
+      find.text('Nur auf diesem Gerät · noch nicht abgegeben'),
+      findsOneWidget,
+    );
     final viewer = tester.widget<InteractiveViewer>(
       find.byType(InteractiveViewer),
     );
-    await f.tap(tester, find.byTooltip('Lokales Foto vergrößern'));
+    await f.tap(tester, find.byTooltip('Foto vergrößern'));
     expect(viewer.transformationController!.value.getMaxScaleOnAxis(), 2);
     await f.tap(tester, find.text('Ganze Seite'));
     expect(viewer.transformationController!.value.getMaxScaleOnAxis(), 1);
@@ -149,8 +154,7 @@ void main() {
         tester
             .widget<IconButton>(
               find.byWidgetPredicate(
-                (w) =>
-                    w is IconButton && w.tooltip == 'Voriges vorgemerktes Foto',
+                (w) => w is IconButton && w.tooltip == 'Vorheriges Foto',
               ),
             )
             .onPressed,
@@ -159,7 +163,7 @@ void main() {
       await f.tap(
         tester,
         find.byWidgetPredicate(
-          (w) => w is IconButton && w.tooltip == 'Nächstes vorgemerktes Foto',
+          (w) => w is IconButton && w.tooltip == 'Nächstes Foto',
         ),
       );
       expect(find.text('2 von 2'), findsOneWidget);
@@ -170,9 +174,7 @@ void main() {
         tester
             .widget<IconButton>(
               find.byWidgetPredicate(
-                (w) =>
-                    w is IconButton &&
-                    w.tooltip == 'Nächstes vorgemerktes Foto',
+                (w) => w is IconButton && w.tooltip == 'Nächstes Foto',
               ),
             )
             .onPressed,

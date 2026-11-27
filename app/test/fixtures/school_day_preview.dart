@@ -89,6 +89,10 @@ void main() {
             client: MockClient((request) async {
               final Object result;
               if (request.method == 'GET' &&
+                  request.url.path.endsWith('/status')) {
+                // Only enables local fake-photo selection in this MockClient.
+                result = {'real_data_enabled': true};
+              } else if (request.method == 'GET' &&
                   request.url.path.endsWith('/study-path')) {
                 result = path;
               } else if (request.method == 'GET' &&

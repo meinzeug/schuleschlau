@@ -10,7 +10,7 @@ Future<void> showChildPhotoPreview(
   AppState state, {
   required List<Uint8List> photos,
   int initialIndex = 0,
-  String title = 'Deine vorgemerkten Fotos',
+  String title = 'Deine Fotos',
 }) async {
   if (photos.isEmpty || photos.length > 8 || state.user == null) return;
   final owner = state.user, family = state.familyId;
@@ -152,7 +152,7 @@ class _LocalPhotoPreviewState extends State<_LocalPhotoPreview> {
                   children: [
                     if (widget.photos.length > 1) ...[
                       IconButton(
-                        tooltip: 'Voriges vorgemerktes Foto',
+                        tooltip: 'Vorheriges Foto',
                         onPressed: index > 0 ? () => move(-1) : null,
                         icon: Icon(Icons.chevron_left_rounded),
                       ),
@@ -161,7 +161,7 @@ class _LocalPhotoPreviewState extends State<_LocalPhotoPreview> {
                         child: Text('${index + 1} von ${widget.photos.length}'),
                       ),
                       IconButton(
-                        tooltip: 'Nächstes vorgemerktes Foto',
+                        tooltip: 'Nächstes Foto',
                         onPressed: index + 1 < widget.photos.length
                             ? () => move(1)
                             : null,
@@ -169,12 +169,12 @@ class _LocalPhotoPreviewState extends State<_LocalPhotoPreview> {
                       ),
                     ],
                     IconButton(
-                      tooltip: 'Lokales Foto vergrößern',
+                      tooltip: 'Foto vergrößern',
                       onPressed: () => scale(1),
                       icon: Icon(Icons.zoom_in_rounded),
                     ),
                     IconButton(
-                      tooltip: 'Lokales Foto verkleinern',
+                      tooltip: 'Foto verkleinern',
                       onPressed: () => scale(-1),
                       icon: Icon(Icons.zoom_out_rounded),
                     ),
@@ -203,11 +203,11 @@ class _LocalPhotoPreviewState extends State<_LocalPhotoPreview> {
                           () => MemoryImage(widget.photos[index]),
                         ),
                         semanticLabel:
-                            'Vorgemerktes Foto ${index + 1} von ${widget.photos.length}',
+                            'Foto ${index + 1} von ${widget.photos.length}',
                         errorBuilder: (_, _, _) => Padding(
                           padding: EdgeInsets.all(24),
                           child: Text(
-                            'Die lokale Vorschau konnte nicht gelesen werden. Dein gespeichertes Foto wird dadurch nicht gesendet oder verändert.',
+                            'Das Foto kann hier nicht angezeigt werden. Es bleibt auf diesem Gerät.',
                           ),
                         ),
                       ),

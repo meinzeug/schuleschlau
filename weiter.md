@@ -578,6 +578,11 @@ Der unabhängige Watchdog aus Commit `96c43ca` ist lokal installiert. Er meldet 
   demselben Knoten. 50 künstliche Flutterfälle und zwei Chrome-Fälle
   bestanden; die vollständige Screenreader-Abnahme bleibt offen.
 
+- Die lokale Kindervorschau für Fotos verwendet kürzere Bezeichnungen und
+  behält den Hinweis auf noch nicht abgegebene Fotos. Die 390-Pixel-Vorschau
+  wurde mit einem synthetischen Foto geöffnet; 33 Flutterfälle bestanden.
+  Eine echte Übertragung oder Android-Abnahme war dies nicht.
+
 ## Nützliche Prüfungen
 
 - CI: `gh run list --limit 5` und `gh run view <ID>`; ein laufender oder abgebrochener Workflow ist kein grüner Gesamtnachweis.

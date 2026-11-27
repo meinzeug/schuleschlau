@@ -1215,6 +1215,17 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – Alle Kinderansichten sprachlich und in ihrer Bedienung entrümpeln**
 
+  - [x] **Fotogroßansicht verständlicher benennen.** Bei einem im lokalen
+    Browser ausgewählten künstlichen Heftfoto zeigte die Ansicht den
+    sperrigen Begriff „vorgemerkt“. Titel, Blätter- und Zoomaktionen nennen
+    nun kurz „Foto“; der Hinweis, dass es nur auf dem Gerät und noch nicht
+    abgegeben ist, bleibt erhalten. 33 künstliche Fälle zu Fotovorschau,
+    Kontowechsel und Schultag bestanden; ein zusätzlicher Vorschaufall bestand
+    auch im Chrome-Webrunner. Die Auswahl und Vorschau wurden im
+    lokalen 390-Pixel-Browser mit einem synthetischen Foto aufgerufen; die
+    Testvorschau besitzt dafür eine passende Mock-Statusantwort. Das ist kein
+    Nachweis einer echten Fotoübertragung oder der vollständigen Mobilabnahme.
+
   - [x] **Wortvorschläge auf kleinen Displays in den Vordergrund stellen.**
     Im Kinderreiter „Prüfen“ entfällt die große Einstiegsgrafik und der
     zusätzliche Hinzufügen-Knopf. Über „Zum Wortschatz“ bleibt das Hinzufügen
