@@ -450,6 +450,102 @@ void main() {
     },
   );
 
+  for (final reply in ['success', 'error', 'malformed']) {
+    testWidgets('Old call discovery $reply is ignored after sign-in starts', (
+      tester,
+    ) async {
+      final pending = Completer<http.Response>();
+      var requests = 0;
+      final state = makeState((request) {
+        requests++;
+        if (requests == 1) return pending.future;
+        return Future.value(response({'calls': []}));
+      }, role: 'parent');
+      final calls = FamilyCallService(state, nativeEnabled: false);
+      calls.activate(state.user);
+      await tester.pump();
+      expect(requests, 1);
+      final auth = state.beginAuthentication();
+      if (reply == 'success') {
+        pending.complete(
+          response({
+            'calls': [metadata('ringing', role: 'parent')],
+          }),
+        );
+      } else if (reply == 'error') {
+        pending.complete(response({'detail': 'Synthetic error'}, 503));
+      } else {
+        pending.complete(response({'calls': 'not-a-list'}));
+      }
+      await tester.pumpAndSettle();
+      expect(calls.call, isNull);
+      expect(calls.error, isNull);
+      expect(
+        requests,
+        1,
+        reason: 'No heartbeat or other follow-up for a stale response.',
+      );
+      state.cancelAuthentication(auth);
+      await calls.refresh(force: true);
+      expect(
+        requests,
+        2,
+        reason: 'A deliberate refresh still works after cancellation.',
+      );
+      await calls.clear();
+      calls.dispose();
+    });
+  }
+
+  for (final fail in [false, true]) {
+    testWidgets(
+      'Old active call status is ignored after sign-in (error: $fail)',
+      (tester) async {
+        final pending = Completer<http.Response>();
+        final fake = FakeMedia();
+        var heartbeats = 0;
+        final state = makeState((request) {
+          if (request.url.path.endsWith('/active')) {
+            return Future.value(response({'calls': []}));
+          }
+          if (request.url.path.endsWith('/config')) {
+            return Future.value(response({'available': true}));
+          }
+          if (request.url.path.endsWith('/heartbeat')) heartbeats++;
+          if (request.method == 'GET' &&
+              request.url.path.endsWith('/$callId')) {
+            return pending.future;
+          }
+          return Future.value(response(metadata('ringing')));
+        });
+        final calls = FamilyCallService(
+          state,
+          nativeEnabled: false,
+          mediaFactory: () => fake,
+        );
+        calls.activate(state.user);
+        await tester.pump();
+        await calls.start();
+        final before = calls.call;
+        final refreshing = calls.refresh(force: true);
+        await tester.pump();
+        state.beginAuthentication();
+        pending.complete(
+          fail
+              ? response({'detail': 'Synthetic error'}, 503)
+              : response(metadata('accepted')),
+        );
+        await refreshing;
+        expect(calls.call, same(before));
+        expect(calls.error, isNull);
+        expect(heartbeats, 0);
+        expect(fake.closed, isTrue);
+        await calls.clear();
+        calls.dispose();
+      },
+    );
+  }
+
   for (final role in ['child', 'parent']) {
     testWidgets('New sign-in stops live $role call media immediately', (
       tester,

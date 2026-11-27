@@ -195,6 +195,11 @@ class FamilyCallService extends ChangeNotifier {
 
   Future<void> refresh({bool force = false}) async {
     final owner = _owner, generation = _generation;
+    final family = state.familyId, identity = state.api.requestIdentity();
+    bool valid() =>
+        _current(owner, generation) &&
+        state.familyId == family &&
+        state.api.ownsRequest(identity);
     if (owner == null || _polling || _ending || (!_foreground && !live)) return;
     final now = DateTime.now().millisecondsSinceEpoch;
     if (!live && !force && now - _lastDiscovery < 10000) return;
@@ -203,13 +208,13 @@ class FamilyCallService extends ChangeNotifier {
       if (live) {
         final currentId = callId!;
         final response = await state.api.get('/family-calls/$currentId');
-        if (!_current(owner, generation)) return;
+        if (!valid()) return;
         call = response;
         _renewAuthority(response);
       } else {
         _lastDiscovery = now;
         final response = await state.api.get('/family-calls/active');
-        if (!_current(owner, generation)) return;
+        if (!valid()) return;
         final calls = response['calls'] as List? ?? [];
         if (calls.isNotEmpty) {
           call = Json.from(calls.first);
@@ -228,12 +233,13 @@ class FamilyCallService extends ChangeNotifier {
               (call!['ring_expires'] as num).toInt() * 1000,
             ),
           );
+          if (!valid()) return;
         }
         if (accepted && media != null) {
           await _connect(owner, generation);
-          if (!_current(owner, generation)) return;
+          if (!valid()) return;
           await _receiveSignals(owner, generation);
-          if (!_current(owner, generation)) return;
+          if (!valid()) return;
         }
         final now = DateTime.now().millisecondsSinceEpoch;
         if ((isChild || call?['is_participant'] == true) &&
@@ -243,17 +249,18 @@ class FamilyCallService extends ChangeNotifier {
             '/family-calls/$callId/heartbeat',
             {},
           );
-          if (!_current(owner, generation)) return;
+          if (!valid()) return;
           call = response;
           _renewAuthority(response);
         }
       }
-      if (_current(owner, generation)) notifyListeners();
+      if (valid()) notifyListeners();
     } on ApiError catch (e) {
-      if (!_current(owner, generation)) return;
+      if (!valid()) return;
       _networkFailures++;
       if ([401, 403, 404, 409, 410].contains(e.status)) {
         await _closeMedia();
+        if (!valid()) return;
         call = null;
         error = 'Dieser Anruf ist nicht mehr verfügbar.';
       } else if (_networkFailures >= 3) {
@@ -261,7 +268,7 @@ class FamilyCallService extends ChangeNotifier {
       }
       notifyListeners();
     } catch (_) {
-      if (_current(owner, generation)) {
+      if (valid()) {
         error = 'Die Verbindung konnte nicht hergestellt werden. Versuche es erneut oder sende eine Nachricht.';
         notifyListeners();
       }

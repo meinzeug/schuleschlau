@@ -4108,6 +4108,15 @@ Bestandteil des bestehenden Buildvertrags.
     Anrufe, allgemeine API-Antworten und der Cookie-Wettlauf bleiben gesondert
     zu prüfen; ein echtes Androidgerät ist damit nicht abgenommen.
 
+    **Verspäteten Anrufstatus beim Anmeldewechsel verwerfen:** Die laufende
+    Anrufentdeckung und Statusabfrage sind an Konto, Familie, Sitzung und
+    Anmeldeabsicht gebunden. Ihre verspäteten Erfolge und Fehler verändern die
+    Anrufanzeige nicht und lösen keine Heartbeats aus. Nach abgebrochener
+    Anmeldung bleibt ein bewusstes erneutes Abrufen möglich. Künstliche Fälle
+    prüfen Entdeckung, laufenden Anruf, ungültige Antworten und Fehler; die
+    Abfrage, die erst nach Beginn einer noch laufenden Anmeldung startet,
+    und der allgemeine Cookie-Wettlauf bleiben offen.
+
     **Laufende Anrufmedien bei neuer Anmeldung stoppen:** Kinder- und
     Elternanrufe schließen lokale Medien unmittelbar bei neuer Anmeldeabsicht;
     ein Abbruch der Anmeldung öffnet sie nicht automatisch erneut. Die
