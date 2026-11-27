@@ -1680,6 +1680,18 @@ Die folgenden Punkte beschreiben ausstehende, wiederholbare Betriebs- und Freiga
   automatisierte Freigabeprüfung ersetzt keinen unabhängigen Sicherheitstest.
 - [ ] **P1 – Datenlebenszyklus und Löschung pro Datenart prüfen**
 
+  - [x] **Eltern-Lernplan bei neuer Anmeldeabsicht sofort ausblenden.**
+    Bisher blieben ältere Plandaten bis zur nächsten Aktion sichtbar, obwohl
+    die Aktionen bereits an die Anmeldeabsicht gebunden waren. Der Plan wird
+    nun sofort verborgen, offene Bearbeitungsdialoge werden geschlossen und
+    laufende Antworten verworfen. Nach abgebrochener Anmeldung lädt eine
+    bewusste Aktion den Plan erneut; sie startet keine KI und wiederholt keine
+    Änderung. Schlüssel unbestätigter Vorbereitungen bleiben für einen
+    ausdrücklichen Abgleich erhalten. Zwei künstliche Regressionstests und elf
+    weitere Anmeldewechselfälle bestanden lokal und im Chrome-Webrunner; 34
+    angrenzende Flutterfälle bestanden. Der umfassende Datenlebenszyklus und
+    eine geräteübergreifende Cookieprüfung bleiben offen.
+
   - [x] **Kinderexport an die Elternsitzung und Anmeldeabsicht binden.**
     Beginnt eine neue Anmeldung, schließt der alte Exportdialog; verspätete
     Dateidaten oder Fehler lösen keinen neuen Speicherdialog aus. Auch nach

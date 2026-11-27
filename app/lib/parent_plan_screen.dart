@@ -116,7 +116,23 @@ class _ParentPlanScreenState extends State<ParentPlanScreen> {
     applyInitialFilters();
     applyInitialAssignment();
     widget.state.addListener(identityChanged);
+    widget.state.authenticationChanges.addListener(authenticationChanged);
     load();
+  }
+
+  void authenticationChanged() {
+    if (!mounted || !own) return;
+    generation++;
+    operation++;
+    closeEditor();
+    setState(() {
+      data = null;
+      loading = false;
+      busy = false;
+      loadFailed = true;
+      error =
+          'Die Anmeldung hat sich geändert. Bitte lade den Lernplan erneut.';
+    });
   }
 
   void identityChanged() {
@@ -370,6 +386,7 @@ class _ParentPlanScreenState extends State<ParentPlanScreen> {
   void dispose() {
     closeEditor();
     widget.state.removeListener(identityChanged);
+    widget.state.authenticationChanges.removeListener(authenticationChanged);
     search.dispose();
     super.dispose();
   }

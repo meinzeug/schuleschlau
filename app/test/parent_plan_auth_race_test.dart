@@ -8,6 +8,49 @@ import 'parent_cards_ux88_test.dart' as cards;
 import 'parent_hierarchy_test_tools.dart';
 
 void main() {
+  testWidgets('a new login intent immediately hides the previous plan', (
+    tester,
+  ) async {
+    final f = cards.Fixture();
+    await f.mount(tester, '/parent-plan/child?ansicht=topics');
+    expect(find.textContaining('Bruchaddition'), findsWidgets);
+    final count = f.requests.length;
+    final revision = f.state.beginAuthentication();
+    await tester.pump();
+    expect(find.textContaining('Bruchaddition'), findsNothing);
+    expect(find.text('Lernplan erneut laden'), findsOneWidget);
+    expect(f.requests.length, count);
+    f.state.cancelAuthentication(revision);
+    await tester.pump();
+    expect(f.requests.length, count);
+    await tester.tap(find.text('Lernplan erneut laden'));
+    await tester.pumpAndSettle();
+    expect(f.requests.length, count + 1);
+    expect(find.textContaining('Bruchaddition'), findsWidgets);
+  });
+
+  testWidgets('a new login intent closes the open assignment editor', (
+    tester,
+  ) async {
+    final f = cards.Fixture();
+    f.state.user!['families'] = [
+      {'id': 'family', 'permission': 'owner'},
+    ];
+    f.state.familyId = 'family';
+    await f.mount(tester, '/parent-plan/child?ansicht=topics');
+    await tester.ensureVisible(find.text('Eigenes Thema setzen'));
+    await tester.tap(find.text('Eigenes Thema setzen'));
+    await tester.pumpAndSettle();
+    expect(find.text('Ein Lernziel vorgeben'), findsOneWidget);
+    final revision = f.state.beginAuthentication();
+    await tester.pumpAndSettle();
+    expect(find.text('Ein Lernziel vorgeben'), findsNothing);
+    expect(find.textContaining('Bruchaddition'), findsNothing);
+    expect(find.text('Lernplan erneut laden'), findsOneWidget);
+    expect(f.requests.where((r) => r.method != 'GET'), isEmpty);
+    f.state.cancelAuthentication(revision);
+  });
+
   testWidgets('a stale confirmation closes without changing an assignment', (
     tester,
   ) async {
@@ -175,10 +218,15 @@ void main() {
     await tester.tap(add);
     await tester.pumpAndSettle();
     expect(find.text('Ein Lernziel vorgeben'), findsOneWidget);
+    final fields = find.byType(TextFormField);
+    await tester.enterText(fields.at(0), 'Mathematik');
+    await tester.enterText(fields.at(1), 'Künstlicher Stoff');
+    final save = tester
+        .widget<FilledButton>(find.widgetWithText(FilledButton, 'Speichern'))
+        .onPressed!;
     final revision = f.state.beginAuthentication();
-    final save = find.text('Speichern').last;
-    await tester.ensureVisible(save);
-    await tester.tap(save);
+    // Simulate an activation already queued when the account starts changing.
+    save();
     await tester.pumpAndSettle();
     expect(f.requests.where((r) => r.method != 'GET'), isEmpty);
     expect(find.text('Ein Lernziel vorgeben'), findsNothing);
