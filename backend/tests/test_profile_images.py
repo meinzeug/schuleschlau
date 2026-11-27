@@ -284,6 +284,8 @@ def test_revoked_session_or_disabled_account_during_decode_cannot_save(api, mail
 
 
 def test_two_concurrent_first_uploads_have_one_cas_winner(api, mailbox, monkeypatch):
+    # Exercise database CAS independently, as in separate API workers.
+    monkeypatch.setattr(profile_images, "SYNC_IMAGE_SLOT", threading.BoundedSemaphore(2))
     user = register(api, mailbox)
     normalize = profile_images.normalize
     barrier = threading.Barrier(2)
@@ -427,6 +429,8 @@ def test_active_file_survives_orphan_sweep_and_demo_retention_deletes_owner(api,
 
 
 def test_concurrent_replay_uses_one_revision_file_and_audit(api, mailbox, monkeypatch):
+    # Exercise database CAS independently, as in separate API workers.
+    monkeypatch.setattr(profile_images, "SYNC_IMAGE_SLOT", threading.BoundedSemaphore(2))
     user = register(api, mailbox)
     original = profile_images.normalize
     barrier = threading.Barrier(2)
@@ -547,3 +551,47 @@ def test_unavailable_avatar_is_visible_in_export_and_fifo_does_not_block(api, ho
         assert "account/avatar.jpg" not in archive.namelist()
         assert f"children/{child['id']}/avatar.jpg" not in archive.namelist()
     kid_file.unlink()
+
+
+def test_avatar_processing_shares_image_memory_slot_and_can_retry(api, mailbox, monkeypatch):
+    user = register(api, mailbox)
+    original = profile_images.normalize
+    started, release = threading.Event(), threading.Event()
+
+    def delayed(raw):
+        started.set()
+        assert release.wait(10)
+        return original(raw)
+
+    monkeypatch.setattr(profile_images, "normalize", delayed)
+    raw = picture()
+    key = "same-synthetic-request"
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        pending = pool.submit(upload, api, raw, key=key)
+        try:
+            assert started.wait(10)
+            busy = upload(api, raw, key=key)
+            assert busy.status_code == 503 and busy.headers["retry-after"] == "2"
+            assert busy.headers["cache-control"] == "no-store"
+            from schulpilot import materials
+
+            assert not materials._SYNC_PHOTO_SLOT.acquire(blocking=False)
+            with TestClient(app, headers=HEADERS) as anonymous:
+                rejected = anonymous.put(URL, files={"file": ("x.png", raw, "image/png")}, headers=headers(key=key))
+                assert rejected.status_code == 401
+        finally:
+            release.set()
+        first = pending.result(timeout=10)
+    assert first.status_code == 200, first.text
+    monkeypatch.setattr(profile_images, "normalize", original)
+    retry = upload(api, raw, key=key)
+    assert retry.status_code == 200 and retry.json() == first.json()
+    assert len(own_files(user["id"])) == 1
+    with DB() as db:
+        assert db.scalar(select(func.count()).select_from(Audit).where(Audit.action == "account.avatar_upload")) == 1
+    # Failed decoding also releases the slot for the next explicit attempt.
+    revision = first.json()["avatar_revision"]
+    invalid = upload(api, b"invalid-image", revision=revision, key="invalid-image-attempt")
+    assert invalid.status_code == 422
+    valid = upload(api, raw, revision=revision, key="next-valid-attempt")
+    assert valid.status_code == 200

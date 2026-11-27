@@ -1,7 +1,6 @@
 import hashlib
 import io
 import re
-import threading
 
 from fastapi import APIRouter, Depends, File, Header, HTTPException, UploadFile
 from fastapi.responses import Response
@@ -25,6 +24,7 @@ from .db import (
     uid,
 )
 from .fixtures import FIXTURE_ID, LIVE_FIXTURE_IDS, worksheet
+from .image_memory_guard import SYNC_IMAGE_SLOT as _SYNC_PHOTO_SLOT
 from .learning import material_data as learning_material_data
 from .learning import record
 from .photo_isolation import normalize_photo
@@ -33,10 +33,6 @@ from .security import authenticated, child_access, lock_session_after_child, rat
 
 router = APIRouter(tags=["Materialien und KI-Aufträge"])
 Image.MAX_IMAGE_PIXELS = 16_000_000
-# A disconnected request can release the ASGI slot while its synchronous
-# decoder thread is still running. Never read another raw photo in that case.
-_SYNC_PHOTO_SLOT = threading.BoundedSemaphore(1)
-
 
 def material_data(material):
     value = learning_material_data(material)

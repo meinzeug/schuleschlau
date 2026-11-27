@@ -12,6 +12,7 @@ from sqlalchemy import select, update
 
 from .config import settings
 from .db import Session, User, UserAvatar, get_db, now, uid
+from .image_memory_guard import SYNC_IMAGE_SLOT
 from .security import audit, authenticated, rate_limit
 
 router = APIRouter(prefix="/auth/me/avatar", tags=["Accounts"])
@@ -205,10 +206,16 @@ def upload_avatar(
     db=Depends(get_db),
 ):
     expected = mutation_headers(if_match, idempotency_key)
-    user_id, session_id = p.user.id, p.session.id
-    rate_limit(db, "profile-photo:" + user_id, 20, 3600)
-    data = normalize(file.file.read(MAX_UPLOAD + 1))
-    return mutate(db, user_id, session_id, expected, idempotency_key, data)
+    if not SYNC_IMAGE_SLOT.acquire(blocking=False):
+        raise HTTPException(503, "Das Foto kann gerade nicht verarbeitet werden. Bitte versuche es gleich noch einmal.",
+                            headers={"Retry-After": "2", "Cache-Control": "no-store"})
+    try:
+        user_id, session_id = p.user.id, p.session.id
+        rate_limit(db, "profile-photo:" + user_id, 20, 3600)
+        data = normalize(file.file.read(MAX_UPLOAD + 1))
+        return mutate(db, user_id, session_id, expected, idempotency_key, data)
+    finally:
+        SYNC_IMAGE_SLOT.release()
 
 
 @router.delete("")

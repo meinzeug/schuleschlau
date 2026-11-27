@@ -2478,6 +2478,17 @@ Bestandteil des bestehenden Buildvertrags.
     Bildpfade, mehrere API-Worker und Produktionslast bleiben offen.
     [Messung und Grenzen](docs/CAPACITY_PROCESS_FAILURE_2026_11_06.md#ergänzung-parallele-ausschnitte-27112026).
 
+  - [x] **Profilfotodekodierung in die Bildspeichergrenze einbeziehen.**
+    Ein künstlicher Achtfachtest mit Profilbildern erreichte im isolierten
+    350-MiB-Prozess einen OOM-Abbruch; mit einem Verarbeitungsplatz bestand der
+    künstliche Vergleich. Profilbilder teilen nun pro API-Prozess den Platz mit
+    synchronem Fotoimport und Heftausschnitten. Überlast und ungültige Bilder
+    erhalten den bewussten Wiederholungsweg; Eigentümerprüfung, Idempotenz und
+    Datenbank-CAS bleiben erhalten. Künstliche Tests prüfen auch getrennte
+    Verarbeitungsplätze für die Datenbankkonkurrenz. Andere Bildpfade, mehrere
+    API-Worker und Produktionslast bleiben offen.
+    [Messung und Grenzen](docs/CAPACITY_PROCESS_FAILURE_2026_11_06.md#ergänzung-parallele-profilfotos-27112026).
+
   - [ ] **API-Speicherschutz beim gleichzeitigen Fotoimport beheben.**
     Die getrennte Prozessprüfung auf PostgreSQL und Loopback reproduzierte bei
     acht künstlichen Familien einen OOM-Kill am produktiven 350-MiB-API-Limit.

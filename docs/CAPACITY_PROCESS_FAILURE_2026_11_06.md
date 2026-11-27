@@ -201,3 +201,23 @@ Die Sicherung gilt pro API-Prozess; die vorhandene Deployment-Unit verwendet
 einen Worker. Zusätzliche API-Worker, Profilfotos, andere Bildoperationen,
 Produktivlast und die vollständige Aktivierungs-/Rückrollkette sind damit
 nicht abgenommen. Der Hauptpunkt bleibt offen; noch kein Release dieser Änderung.
+
+## Ergänzung: parallele Profilfotos, 27.11.2026
+
+Acht künstliche JPEGs mit je 2.828 × 2.828 Pixeln wurden im lokalen
+350-MiB-Prozess gleichzeitig dekodiert und vor der Skalierung synchronisiert.
+Der bewusst verschärfte Pillow-Mikrotest endete mit `oom-kill`; er bildet keine
+reale Benutzerzahl oder vollständige API-Last ab. Mit einem nicht wartenden
+Platz bestand ein weiterer isolierter Achtfachtest; genau eine Umwandlung
+lief durch, sieben wurden als beschäftigt behandelt. Die sehr kurze Laufzeit
+liefert keinen verlässlichen numerischen Speicherspitzenwert.
+
+Profilfoto-Uploads verwenden nun denselben prozesslokalen Platz wie der
+synchrone Heftfotoimport und die Quellausschnitte. Die Konto- und
+Revisionsparameter werden vor der Reservierung geprüft; bei Überlast erfolgt
+`503` mit `Retry-After`, ohne den Uploadschlüssel zu verbrauchen. Künstliche
+Tests prüfen erneutes Senden desselben Schlüssels, die Rechteprüfung und
+Freigabe bei ungültigen Bildern. Die bestehenden Datenbank-CAS-Rennen werden
+separat mit zwei künstlich unabhängigen Verarbeitungsplätzen geprüft, damit
+der Test nicht nur die prozesslokale Schranke misst. Mehrere API-Prozesse,
+Multipart-Parsing, weitere Bildpfade und echte Produktivlast bleiben offen.
