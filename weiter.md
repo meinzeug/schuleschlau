@@ -2,6 +2,13 @@
 
 ## Arbeitsstand 27. November 2026: Quellen und Kontowechsel
 
+Die Heftseitenansicht verbirgt private Inhalte bei neuer Anmeldeabsicht und
+verlangt nach deren Abbruch bewusstes Neuladen. Lokale Korrekturentwürfe
+bleiben kontogebunden erhalten; eine geänderte Quellenrevision bleibt ein
+Konflikt. Auch Rundenübersicht, Lernweg, Tagespakete und Fotoeinstieg sind
+für begrenzte Anmeldewechsel-Fälle ergänzt und in der Roadmap belegt. Diese
+Teilabsicherungen lösen den allgemeinen HttpOnly-Cookie-Wettlauf nicht.
+
 Die gemeinsame Fachauswahl bindet eine geöffnete Auswahl an die
 Anmeldeabsicht. Bei einer neuen Anmeldung schließt sie; alte Rückgaben oder
 Schaltflächen ändern den Entwurf nicht. Das ersetzt nicht den offenen

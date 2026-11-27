@@ -4402,6 +4402,17 @@ Bestandteil des bestehenden Buildvertrags.
 
   - [ ] **Verspätete gemeinsame API-Antworten nach Kontowechsel absichern.**
 
+    **Heftseiten beim Anmeldewechsel schützen und Entwürfe erhalten:** Eine
+    begonnene Anmeldung verbirgt Seiteninhalt und sperrt alte Aktionen. Eine
+    Seite, die währenddessen geöffnet wird, führt keinen automatischen Abruf
+    aus. Nach Anmeldeabbruch lädt erst eine bewusste Aktion die Seite erneut;
+    ein ungespeicherter Korrekturentwurf bleibt kontogebunden erhalten. Eine
+    inzwischen geänderte Quellenrevision führt zum bestehenden Konflikthinweis
+    und überschreibt den Entwurf nicht. Eine verspätete alte Antwort kann die
+    neue Fassung nicht ersetzen. 116 angrenzende künstliche Flutterfälle sowie
+    vier gezielte Fälle auf VM und im Chrome-Webrunner bestanden; Flutter
+    Analyze ist fehlerfrei. Der allgemeine Cookie-Wettlauf bleibt offen.
+
     **Fotoeinstieg während laufender Anmeldung sperren:** Beim Öffnen des
     Schultags während einer Anmeldung wird weder gelesen noch ein Tag
     automatisch angelegt; auch der Neuladeknopf ist deaktiviert. Nach

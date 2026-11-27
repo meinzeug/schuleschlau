@@ -892,12 +892,18 @@ class _MaterialScreenState extends State<MaterialScreen>
   late final account = widget.state.user;
   late final family = widget.state.familyId;
   late final session = widget.state.api.token;
-  bool get current =>
+  late int? authenticationRevision = widget.state.api.requestIdentity().$3;
+  bool authenticationReload = false;
+  bool get sameAccount =>
       mounted &&
       account != null &&
       identical(account, widget.state.user) &&
       family == widget.state.familyId &&
       session == widget.state.api.token;
+  bool get current =>
+      sameAccount &&
+      !widget.state.authenticationPending &&
+      authenticationRevision == widget.state.api.requestIdentity().$3;
   @override
   void initState() {
     super.initState();
@@ -906,6 +912,8 @@ class _MaterialScreenState extends State<MaterialScreen>
         WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
     WidgetsBinding.instance.addObserver(this);
     widget.state.addListener(accountChanged);
+    widget.state.authenticationChanges.addListener(authenticationChanged);
+    authenticationReload = widget.state.authenticationPending;
     reviewWatch = Timer.periodic(
       const Duration(seconds: 5),
       (_) => readReview(),
@@ -973,6 +981,31 @@ class _MaterialScreenState extends State<MaterialScreen>
       liveMaterial = null;
       setState(() {});
     }
+  }
+
+  void authenticationChanged() {
+    if (!mounted || !sameAccount) return;
+    reviewRead++;
+    liveMaterial = visibleMaterial = null;
+    setState(() {
+      authenticationReload = true;
+      version++;
+    });
+  }
+
+  void reloadAfterAuthentication() {
+    if (!sameAccount ||
+        widget.state.authenticationPending ||
+        !authenticationReload) {
+      return;
+    }
+    setState(() {
+      authenticationRevision = widget.state.api.requestIdentity().$3;
+      authenticationReload = false;
+      liveMaterial = visibleMaterial = null;
+      reviewRead++;
+      version++;
+    });
   }
 
   Future<void> afterConfirmation(Json source, Json saved) async {
@@ -1076,6 +1109,7 @@ class _MaterialScreenState extends State<MaterialScreen>
     reviewWatch?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     widget.state.removeListener(accountChanged);
+    widget.state.authenticationChanges.removeListener(authenticationChanged);
     super.dispose();
   }
 
@@ -1084,8 +1118,24 @@ class _MaterialScreenState extends State<MaterialScreen>
     state: widget.state,
     title: widget.state.isChild ? 'Dein Lernstoff' : 'Heftseite',
     subtitle: widget.state.isChild ? 'Deine gespeicherte Heftseite.' : null,
-    child: !current
-        ? SizedBox.shrink()
+    child: !sameAccount
+        ? const SizedBox.shrink()
+        : !current || authenticationReload
+        ? Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Notice(
+                'Die Anmeldung hat sich geändert. Lade deine Heftseite erneut.',
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton(
+                onPressed: widget.state.authenticationPending
+                    ? null
+                    : reloadAfterAuthentication,
+                child: const Text('Heftseite neu laden'),
+              ),
+            ],
+          )
         : LoadView<Json>(
             key: ValueKey((version, widget.materialId, ObjectKey(account))),
             load: () => widget.state.api.get('/materials/${widget.materialId}'),
@@ -1534,7 +1584,7 @@ class _MaterialReviewState extends State<MaterialReview>
       content.text != widget.data['content'] ||
       homework.text != (widget.data['homework'] as List).join('\n');
   void retainCorrection() {
-    if (!current) return;
+    if (!sameAccount) return;
     final preserveAutoConflict = automaticallyChecked && sourceConflict;
     if (!preserveAutoConflict) {
       widget.state.collectionViews.remove(correctionKey);
@@ -1591,12 +1641,17 @@ class _MaterialReviewState extends State<MaterialReview>
   late final account = widget.state.user;
   late final family = widget.state.familyId;
   late final sessionToken = widget.state.api.token;
-  bool get current =>
+  late final authenticationRevision = widget.state.api.requestIdentity().$3;
+  bool get sameAccount =>
       mounted &&
       account != null &&
       identical(account, widget.state.user) &&
       family == widget.state.familyId &&
       sessionToken == widget.state.api.token;
+  bool get current =>
+      sameAccount &&
+      !widget.state.authenticationPending &&
+      authenticationRevision == widget.state.api.requestIdentity().$3;
   @override
   void initState() {
     super.initState();
@@ -1606,6 +1661,7 @@ class _MaterialReviewState extends State<MaterialReview>
         WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
     correctionRevision = widget.data['revision'] as int?;
     widget.state.addListener(accountChanged);
+    widget.state.authenticationChanges.addListener(authenticationChanged);
     final saved = widget.state.collectionViews[correctionKey];
     if ((widget.data['confirmed'] != true || automaticallyChecked) &&
         saved != null &&
@@ -1621,8 +1677,21 @@ class _MaterialReviewState extends State<MaterialReview>
     }
   }
 
+  void authenticationChanged() {
+    if (!mounted || !sameAccount) return;
+    retainCorrection();
+    closeSourceTools();
+    final old = taskPreviewRoute;
+    if (old != null) {
+      Future<void>.microtask(() {
+        if (old.isActive) old.navigator?.removeRoute(old);
+      });
+    }
+    setState(() {});
+  }
+
   void accountChanged() {
-    if (!current && mounted) {
+    if (!sameAccount && mounted) {
       closeSourceTools();
       widget.state.collectionViews.remove(correctionKey);
       final old = taskPreviewRoute;
@@ -2020,6 +2089,7 @@ class _MaterialReviewState extends State<MaterialReview>
       });
     }
     widget.state.removeListener(accountChanged);
+    widget.state.authenticationChanges.removeListener(authenticationChanged);
     for (final c in [subject, topic, content, homework]) {
       c.dispose();
     }
