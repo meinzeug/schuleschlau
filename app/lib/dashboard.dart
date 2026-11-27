@@ -3581,10 +3581,12 @@ Future<void> showLearningMessage(
   }
   final account = state.user;
   final family = state.familyId;
+  final identity = state.api.requestIdentity();
   bool currentAccount() =>
       account != null &&
       identical(state.user, account) &&
       state.familyId == family &&
+      state.api.ownsRequest(identity) &&
       (!state.isChild || account['child_id'] == childId);
   if (!currentAccount()) return;
   if (kind == 'help' && offerLiveCall && state.isChild) {
@@ -3688,6 +3690,7 @@ Future<void> showLearningMessage(
   }
 
   state.addListener(accountChanged);
+  state.authenticationChanges.addListener(accountChanged);
   try {
     await showDialog(
       context: context,
@@ -3835,6 +3838,8 @@ Future<void> showLearningMessage(
                           ),
                         );
                       }
+                    } catch (_) {
+                      if (currentAccount()) rethrow;
                     } finally {
                       if (ctx.mounted && currentAccount()) {
                         change(() => sending = false);
@@ -3850,6 +3855,7 @@ Future<void> showLearningMessage(
     );
   } finally {
     state.removeListener(accountChanged);
+    state.authenticationChanges.removeListener(accountChanged);
     // The pop result arrives before the closing transition removes TextField.
     // Its controller must remain alive until that route's widgets are gone.
     if (draftRoute != null) await draftRoute!.completed;

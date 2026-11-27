@@ -4027,6 +4027,17 @@ Bestandteil des bestehenden Buildvertrags.
     ohne unklare Schreibvorgänge automatisch zu wiederholen. Der separate
     Cookie-Wettlauf bleibt ebenfalls offen.
 
+    **Nachrichtenentwürfe bei Anmeldebeginn schützen:** Ein geöffnetes
+    Nachrichtenformular schließt sich bei einer neuen Anmeldeabsicht. Alte
+    Rückrufe versenden nichts; verspätete Erfolge und Fehler verändern die
+    neue Ansicht nicht. Nach abgebrochener Anmeldung bleibt der Entwurf für
+    dasselbe Konto erhalten. Eine bewusst wiederholte unklare Übermittlung
+    verwendet denselben Idempotenzschlüssel. 46 künstliche Flutterfälle zur
+    Nachricht, Themenansicht und Kinderstartseite bestanden; bereits
+    versendete Anfragen bleiben serverseitig bestehen. Neu während einer
+    laufenden Anmeldung geöffnete Ansichten und der allgemeine Cookie-Wettlauf
+    sind damit nicht abgesichert.
+
     **Hilfeauswahl bei neuer Anmeldung schließen:** Die offene Hilfeauswahl
     und ihr optionaler Dialog zum erneuten Laden sind an die ursprüngliche
     Anmeldeabsicht gebunden. Zuvor eingefangene Aktionen senden keine Nachricht

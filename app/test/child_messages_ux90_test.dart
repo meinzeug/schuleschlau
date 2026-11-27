@@ -43,6 +43,95 @@ Future<void> mount(
 }
 
 void main() {
+  testWidgets('New sign-in closes the draft without sending and preserves it', (
+    tester,
+  ) async {
+    final requests = <http.Request>[];
+    final state = f.account((request) async {
+      requests.add(request);
+      return f.reply({});
+    });
+    await mount(tester, state);
+    await f.tap(tester, find.text('Öffnen'));
+    await tester.enterText(
+      f.input('Deine Nachricht'),
+      'Mein künstlicher Entwurf',
+    );
+    await tester.pump();
+    final send = tester
+        .widget<ActionButton>(find.widgetWithText(ActionButton, 'Senden'))
+        .onPressed;
+    final intent = state.beginAuthentication();
+    await send();
+    await tester.pumpAndSettle();
+    expect(find.byType(AlertDialog), findsNothing);
+    expect(requests, isEmpty);
+    state.cancelAuthentication(intent);
+    await f.tap(tester, find.text('Öffnen'));
+    expect(
+      tester.widget<TextField>(f.input('Deine Nachricht')).controller!.text,
+      'Mein künstlicher Entwurf',
+    );
+    expect(requests, isEmpty);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+    state.dispose();
+  });
+
+  for (final status in [200, 503]) {
+    testWidgets(
+      'Late message reply $status cannot erase the draft after sign-in',
+      (tester) async {
+        final pending = Completer<http.Response>();
+        final requests = <http.Request>[];
+        final state = f.account((request) {
+          requests.add(request);
+          return requests.length == 1
+              ? pending.future
+              : Future.value(f.reply({}));
+        });
+        await mount(tester, state);
+        await f.tap(tester, find.text('Öffnen'));
+        await tester.enterText(
+          f.input('Deine Nachricht'),
+          'Mein künstlicher Entwurf',
+        );
+        await tester.pump();
+        unawaited(
+          tester
+              .widget<ActionButton>(find.widgetWithText(ActionButton, 'Senden'))
+              .onPressed(),
+        );
+        await tester.pump();
+        expect(requests, hasLength(1));
+        final intent = state.beginAuthentication();
+        pending.complete(
+          status == 200
+              ? f.reply({})
+              : http.Response('{"detail":"Künstlicher Fehler"}', 503),
+        );
+        await tester.pumpAndSettle();
+        expect(find.byType(AlertDialog), findsNothing);
+        expect(find.text('Nachricht gesendet.'), findsNothing);
+        state.cancelAuthentication(intent);
+        await f.tap(tester, find.text('Öffnen'));
+        expect(
+          tester.widget<TextField>(f.input('Deine Nachricht')).controller!.text,
+          'Mein künstlicher Entwurf',
+        );
+        expect(requests, hasLength(1));
+        await f.tap(tester, find.text('Senden'));
+        expect(requests, hasLength(2));
+        expect(
+          jsonDecode(requests.last.body)['request_key'],
+          jsonDecode(requests.first.body)['request_key'],
+        );
+        expect(tester.takeException(), isNull);
+        await tester.pumpWidget(const SizedBox());
+        state.dispose();
+      },
+    );
+  }
   testWidgets(
     'CK043 empty interest stays in the field and never makes a request',
     (tester) async {
