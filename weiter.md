@@ -8,7 +8,8 @@ Arbeit“ und „Arbeit speichern“. Die Speicherung und übrigen Eingaben sind
 unverändert. Ein 390-Pixel-Browservergleich, 37 künstliche Flutterfälle und
 ein einzelner Elternfall belegen diesen begrenzten Teil. Ein zusätzlicher
 Chrome-Webrunner blieb beim Laden der Testschrift hängen und wurde abgebrochen;
-die vollständige Klassenarbeitsabnahme bleibt offen.
+ein getrennter Funktionstest ohne diesen Ladeschritt bestand danach auf VM und
+Chrome. Die vollständige Klassenarbeitsabnahme bleibt offen.
 
 Für Kinder zeigen noch nicht geöffnete Lernschritte nun einen kurzen,
 zustandsbezogenen Satz statt mehrfacher technischer Angaben. Zurückgelegte

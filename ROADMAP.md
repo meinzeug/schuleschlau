@@ -1221,9 +1221,10 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
     Angaben sowie der bestehende Speicherweg bleiben erhalten. Der Dialog
     wurde mit Beispieldaten bei 390 Pixeln im lokalen Browser angesehen;
     37 künstliche Klassenarbeitsfälle einschließlich Speicherung und großer
-    Schrift sowie ein weiterer Elternfall bestanden lokal. Der separate
-    Chrome-Webrunner blieb beim Laden der Testschrift hängen und wurde
-    abgebrochen; die umfassende Kinder- und Geräteabnahme bleibt offen.
+    Schrift sowie ein weiterer Elternfall bestanden lokal. Ein separater
+    Chrome-Funktionstest ohne Testschrift-Ladeschritt bestand; der ursprüngliche
+    Chrome-Lauf blieb beim Laden der Testschrift hängen und wurde abgebrochen.
+    Die umfassende Kinder- und Geräteabnahme bleibt offen.
 
   - [x] **Lernschrittdetails für Kinder verkürzen.** Der Dialog eines noch
     nicht geöffneten Schritts nennt den tatsächlichen Zustand in einem kurzen
