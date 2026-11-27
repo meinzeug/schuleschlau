@@ -545,6 +545,17 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 ## Lernqualität und fachliche Sicherheit
 
+- [x] **Anschlussübung nach unklarer Antwort sicher erneut anfordern.**
+  Bei Servern mit ausgewiesener Auftragskennung verwendet ein bewusster
+  erneuter Klick für dieselbe angezeigte Auftragsgeneration denselben
+  Idempotenzschlüssel. Ein sichtbar neuer fehlgeschlagener Auftrag erhält einen
+  neuen Schlüssel; ein laufender Anmeldeversuch blockiert den Aufruf. Die
+  Bindung bleibt lokal an Konto, Sitzung und Familie und startet keine
+  automatische Wiederholung. 25 künstliche Flutterfälle und vier Chrome-Fälle
+  bestanden. Ältere Server ohne Auftragskennung und ein kompletter App-Neustart
+  bleiben ausdrücklich außerhalb dieses Nachweises.
+  [Prüfung und Grenzen](docs/COACH_PRACTICE_REQUEST_KEYS_2026_11_27.md).
+
 - [ ] **P1 – Fachliche Abnahmematrix aufbauen und ausführen**
 
   Aus den vorhandenen synthetischen Fachfällen eine versionierte Matrix nach Fach, Klassenband, Aufgabentyp, Hilfestufe und Fehlerklasse erstellen. Eine fachkundige Person bewertet unabhängig Quellenbezug, Lösung, verlangte Darstellung, Erklärung und Verständlichkeit anhand vorab festgelegter Kriterien.

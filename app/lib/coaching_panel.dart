@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 
@@ -13,6 +14,31 @@ import 'math_content.dart';
 import 'family_call_screen.dart';
 import 'saved_attempt_tools.dart';
 import 'learning_tool_scope.dart';
+
+// The account object is replaced when a new login is accepted. Expando keeps
+// uncertain request keys private to that in-memory account without persisting
+// them in view preferences or retaining a departed account by itself.
+class _PracticeRequestScope {
+  _PracticeRequestScope(this.token);
+  final String? token;
+  final keys = <String, String>{};
+}
+
+final Expando<_PracticeRequestScope> _practiceRequestScopes = Expando();
+
+String _newPracticeRequestKey() {
+  final random = Random.secure();
+  return 'practice-${List.generate(16, (_) => random.nextInt(256).toRadixString(16).padLeft(2, '0')).join()}';
+}
+
+String _practiceRequestKey(AppState state, Object owner, String viewKey) {
+  var scope = _practiceRequestScopes[owner];
+  if (scope == null || scope.token != state.api.token) {
+    scope = _PracticeRequestScope(state.api.token);
+    _practiceRequestScopes[owner] = scope;
+  }
+  return scope.keys.putIfAbsent(viewKey, _newPracticeRequestKey);
+}
 
 /// A saved answer is formatted only with its own question's public schema.
 /// A normal text/code answer is never reinterpreted by looking at its JSON.
@@ -429,6 +455,10 @@ class _ChildCoachingPanel extends StatelessWidget {
         facts.answered > 0 &&
         facts.answered == questions.length &&
         facts.independent == facts.answered;
+    final practiceJobId = coach?['practice_job_id'];
+    final hasPracticeJobIdentity =
+        coach?.containsKey('practice_job_id') == true &&
+        (practiceJobId == null || practiceJobId is String);
     final practicePending = [
       'queued',
       'running',
@@ -718,14 +748,23 @@ class _ChildCoachingPanel extends StatelessWidget {
                         onPressed: () async {
                           final current = currentAction;
                           if (!current()) return;
+                          // A retry after an uncertain response must refer to
+                          // the same server job. A new, explicitly observed
+                          // failed job permits a distinct deliberate attempt.
+                          final viewKey = jsonEncode([
+                            state.familyId,
+                            childId,
+                            unit['id'],
+                            practiceJobId,
+                          ]);
+                          final key = hasPracticeJobIdentity
+                              ? _practiceRequestKey(state, state.user!, viewKey)
+                              : _newPracticeRequestKey();
                           try {
                             await state.api.post(
                               '/units/${unit['id']}/practice',
                               null,
-                              {
-                                'Idempotency-Key':
-                                    'practice-${DateTime.now().microsecondsSinceEpoch}',
-                              },
+                              {'Idempotency-Key': key},
                             );
                           } catch (_) {
                             if (!current()) return;
@@ -1115,6 +1154,7 @@ class _ChildCoachingPanel extends StatelessWidget {
         identical(state.user, owner) &&
         state.familyId == family &&
         state.api.token == token &&
+        !state.authenticationPending &&
         state.api.ownsRequest(authentication) &&
         state.isChild &&
         state.user?['child_id'] == child &&

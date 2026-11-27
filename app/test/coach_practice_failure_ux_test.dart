@@ -194,6 +194,105 @@ Finder roundsButton() =>
     find.byWidgetPredicate((w) => w is ActionButton && w.label == rounds);
 
 void main() {
+  testWidgets('a control built during login cannot create a practice job', (
+    t,
+  ) async {
+    final data = savedRound();
+    (data['coaching'] as Json)['practice_job_id'] = 'old-failed-job';
+    final h = Harness(data: data);
+    final intent = h.state.beginAuthentication();
+    await h.open(t);
+    await t.widget<ActionButton>(practiceButton()).onPressed();
+    expect(h.calls, isEmpty);
+    h.state.cancelAuthentication(intent);
+    await h.close(t);
+  });
+
+  testWidgets('a different session receives a different practice request key', (
+    t,
+  ) async {
+    final data = savedRound();
+    (data['coaching'] as Json)['practice_job_id'] = 'old-failed-job';
+    final h = Harness(data: data);
+    await h.open(t);
+    await t.widget<ActionButton>(practiceButton()).onPressed();
+    h.state.api.token = 'another-synthetic-session';
+    await t.pumpWidget(const SizedBox());
+    await t.pumpWidget(
+      MaterialApp.router(theme: appTheme(), routerConfig: h.router),
+    );
+    await t.pumpAndSettle();
+    await t.widget<ActionButton>(practiceButton()).onPressed();
+    expect(h.calls, hasLength(2));
+    expect(
+      h.calls.first.headers['Idempotency-Key'],
+      isNot(h.calls.last.headers['Idempotency-Key']),
+    );
+    await h.close(t);
+  });
+
+  testWidgets(
+    'uncertain practice creation reuses the same key on deliberate retry',
+    (t) async {
+      final data = savedRound();
+      (data['coaching'] as Json)['practice_job_id'] = 'old-failed-job';
+      var posts = 0;
+      final h = Harness(
+        data: data,
+        reply: (_) async {
+          posts++;
+          return posts == 1
+              ? http.Response('{"detail":"Künstlicher Fehler"}', 503)
+              : http.Response('{}', 202);
+        },
+      );
+      await h.open(t);
+      final action = t.widget<ActionButton>(practiceButton()).onPressed;
+      await expectLater(action(), throwsA(isA<ApiError>()));
+      expect(h.calls, hasLength(1));
+      expect(h.refreshes, 0);
+      await action();
+      expect(h.calls, hasLength(2));
+      expect(
+        h.calls.first.headers['Idempotency-Key'],
+        h.calls.last.headers['Idempotency-Key'],
+      );
+      expect(h.refreshes, 1);
+      await h.close(t);
+    },
+  );
+
+  testWidgets('a newly observed failed job allows a new deliberate key', (
+    t,
+  ) async {
+    final data = savedRound();
+    final coach = data['coaching'] as Json;
+    coach['practice_job_id'] = 'old-failed-job';
+    final h = Harness(data: data);
+    await h.open(t);
+    final oldAction = t.widget<ActionButton>(practiceButton()).onPressed;
+    await oldAction();
+    coach['practice_job_id'] = 'new-failed-job';
+    await oldAction(); // The captured control still belongs to the old job.
+    await t.pumpWidget(const SizedBox());
+    await t.pumpWidget(
+      MaterialApp.router(theme: appTheme(), routerConfig: h.router),
+    );
+    await t.pumpAndSettle();
+    final newAction = t.widget<ActionButton>(practiceButton()).onPressed;
+    await newAction();
+    expect(h.calls, hasLength(3));
+    expect(
+      h.calls[0].headers['Idempotency-Key'],
+      h.calls[1].headers['Idempotency-Key'],
+    );
+    expect(
+      h.calls[2].headers['Idempotency-Key'],
+      isNot(h.calls[0].headers['Idempotency-Key']),
+    );
+    await h.close(t);
+  });
+
   testWidgets(
     'missing visual gives a clear next step without automatically retrying',
     (tester) async {
