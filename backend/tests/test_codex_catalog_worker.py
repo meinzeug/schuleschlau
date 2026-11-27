@@ -1,7 +1,8 @@
 """Private metadata discovery: no inference, real login or provider request."""
 
+import hashlib
 import json
-import shutil
+import os
 import subprocess
 import sys
 import threading
@@ -246,8 +247,47 @@ def test_invalid_refresh_and_concurrent_manual_login_are_not_overwritten(login, 
     assert json.loads(login.read_text()) == manual
 
 
-@pytest.mark.skipif(shutil.which("codex") is None, reason="Pinned CLI is not installed in generic CI")
+def verified_catalog_cli():
+    # Do not mistake the development host's unrelated Codex for the pinned
+    # worker binary. A test-only path may provide an exact verified copy;
+    # production always launches the fixed path inside its isolated container.
+    from deploy.install_codex import BINARY_HASH
+
+    requested = os.environ.get("SCHULESCHLAU_TEST_CODEX_BINARY")
+    binary = Path(requested or "/usr/local/bin/codex")
+    if not binary.is_file():
+        if requested:
+            pytest.fail("The explicitly supplied pinned CLI binary is missing")
+        pytest.skip("The pinned worker CLI is not installed on this test host")
+    with binary.open("rb") as source:
+        actual_hash = hashlib.file_digest(source, "sha256").hexdigest()
+    if actual_hash != BINARY_HASH:
+        if requested:
+            pytest.fail("The explicitly supplied CLI binary is not the verified pinned worker binary")
+        pytest.skip("The host CLI is not the verified pinned worker binary")
+    return binary
+
+
+def test_explicit_catalog_cli_requires_the_pinned_binary(tmp_path, monkeypatch):
+    binary = tmp_path / "codex"
+    monkeypatch.setenv("SCHULESCHLAU_TEST_CODEX_BINARY", str(binary))
+    with pytest.raises(pytest.fail.Exception, match="missing"):
+        verified_catalog_cli()
+    binary.write_bytes(b"wrong synthetic binary")
+    with pytest.raises(pytest.fail.Exception, match="not the verified pinned"):
+        verified_catalog_cli()
+
+
 def test_real_pinned_cli_metadata_with_only_synthetic_local_login(login, monkeypatch, record_property):
+    binary = verified_catalog_cli()
+
+    original_popen = subprocess.Popen
+
+    def run_test_binary(args, **kwargs):
+        assert args == ["/usr/local/bin/codex", "app-server", "--listen", "stdio://"]
+        return original_popen([str(binary), *args[1:]], **kwargs)
+
+    monkeypatch.setattr(worker.subprocess, "Popen", run_test_binary)
     # A reject-only local proxy prevents every remote request. model/list may
     # return the CLI catalog, which is expressly not an entitlement assertion.
     methods = []

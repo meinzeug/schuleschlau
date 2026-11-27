@@ -1,0 +1,570 @@
+{
+  "version": 1,
+  "retrieved": "2026-11-27",
+  "documents": [
+    {
+      "id": "st-sek-sport-2019",
+      "state_code": "DE-ST",
+      "title": "Fachlehrplan Sekundarschule Sport",
+      "official_url": "https://www.bildung-lsa.de/files/164f3f97e3adf65ff6f44685dd9e1ced/lp_sks_sport_01_08_2019.pdf",
+      "edition": "Stand 01.08.2019",
+      "effective_from": null,
+      "school_form_label": "Sekundarschule",
+      "school_form_id": "de-st.sekundarschule",
+      "school_form_scope": "specific",
+      "applies_to_school_forms": [],
+      "source_status": "current_verified",
+      "retrieved": "2026-11-27",
+      "applicability_note": "In 5/6 und 7/8 sind Fitness, Spielen, Laufen/Springen/Werfen und Turnen Pflichtfelder; die übrigen Felder sind schulabhängige Wahlfelder. In 9/10 werden Wahlkurse ausgewählt; Inhalte der ersten vier Felder sind zeitlich anteilig verbindlich. Die tatsächliche Schulauswahl und Reihenfolge sind unbekannt. Sportpraktische Übungen unterliegen den schulischen Sicherheitsregeln und ersetzen keine Aufsicht.",
+      "document_kind": "curriculum",
+      "source_notes": "Ministerium für Bildung Sachsen-Anhalt; Landesportal Sachsen-Anhalt, CC BY-SA 3.0 (https://creativecommons.org/licenses/by-sa/3.0/); Kapitel 3.1, gedruckte Seite 13, Tabelle 1. PDF-SHA256 694c8eb9917cc036e576c7f3064ae0584993fa58685f1fcd83c05f61fab23551; amtlicher Index https://www.bildung-lsa.de/index.php?KAT_ID=16003."
+    }
+  ],
+  "topics": [
+    {
+      "id": "st-sek-sport-2019.56-fitness",
+      "document_id": "st-sek-sport-2019",
+      "subject_key": "sport",
+      "title": "Fitness und Gesundheit",
+      "grade_kind": "band",
+      "grades": [
+        5,
+        6
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 13,
+      "quote": "Fitness",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-sport-2019.56-spielen",
+      "document_id": "st-sek-sport-2019",
+      "subject_key": "sport",
+      "title": "Spielen und Fairness",
+      "grade_kind": "band",
+      "grades": [
+        5,
+        6
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 13,
+      "quote": "Spielen",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-sport-2019.56-laufen-springen-werfen",
+      "document_id": "st-sek-sport-2019",
+      "subject_key": "sport",
+      "title": "Laufen, Springen und Werfen",
+      "grade_kind": "band",
+      "grades": [
+        5,
+        6
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 13,
+      "quote": "Laufen, Springen, Werfen",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-sport-2019.56-turnen",
+      "document_id": "st-sek-sport-2019",
+      "subject_key": "sport",
+      "title": "Turnerische Bewegungen",
+      "grade_kind": "band",
+      "grades": [
+        5,
+        6
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 13,
+      "quote": "Turnerisches Bewegen",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-sport-2019.56-tanzen",
+      "document_id": "st-sek-sport-2019",
+      "subject_key": "sport",
+      "title": "Rhythmus, Tanz und Gestaltung",
+      "grade_kind": "band",
+      "grades": [
+        5,
+        6
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 13,
+      "quote": "Rhythmisches Bewegen",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-sport-2019.56-kaempfen",
+      "document_id": "st-sek-sport-2019",
+      "subject_key": "sport",
+      "title": "Faires Kämpfen",
+      "grade_kind": "band",
+      "grades": [
+        5,
+        6
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 13,
+      "quote": "Kämpfen",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-sport-2019.56-rollen",
+      "document_id": "st-sek-sport-2019",
+      "subject_key": "sport",
+      "title": "Bewegung auf Rollen",
+      "grade_kind": "band",
+      "grades": [
+        5,
+        6
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 13,
+      "quote": "auf Rollen",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-sport-2019.56-wasser",
+      "document_id": "st-sek-sport-2019",
+      "subject_key": "sport",
+      "title": "Bewegung im Wasser",
+      "grade_kind": "band",
+      "grades": [
+        5,
+        6
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 13,
+      "quote": "im Wasser",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-sport-2019.56-auf-wasser",
+      "document_id": "st-sek-sport-2019",
+      "subject_key": "sport",
+      "title": "Bewegung auf dem Wasser",
+      "grade_kind": "band",
+      "grades": [
+        5,
+        6
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 13,
+      "quote": "auf Wasser",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-sport-2019.56-schnee-eis",
+      "document_id": "st-sek-sport-2019",
+      "subject_key": "sport",
+      "title": "Bewegung auf Schnee und Eis",
+      "grade_kind": "band",
+      "grades": [
+        5,
+        6
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 13,
+      "quote": "auf Schnee und Eis",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-sport-2019.78-fitness",
+      "document_id": "st-sek-sport-2019",
+      "subject_key": "sport",
+      "title": "Fitness und Gesundheit",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 13,
+      "quote": "Fitness",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-sport-2019.78-spielen",
+      "document_id": "st-sek-sport-2019",
+      "subject_key": "sport",
+      "title": "Spielen und Fairness",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 13,
+      "quote": "Spielen",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-sport-2019.78-laufen-springen-werfen",
+      "document_id": "st-sek-sport-2019",
+      "subject_key": "sport",
+      "title": "Laufen, Springen und Werfen",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 13,
+      "quote": "Laufen, Springen, Werfen",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-sport-2019.78-turnen",
+      "document_id": "st-sek-sport-2019",
+      "subject_key": "sport",
+      "title": "Turnerische Bewegungen",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 13,
+      "quote": "Turnerisches Bewegen",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-sport-2019.78-tanzen",
+      "document_id": "st-sek-sport-2019",
+      "subject_key": "sport",
+      "title": "Rhythmus, Tanz und Gestaltung",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 13,
+      "quote": "Rhythmisches Bewegen",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-sport-2019.78-kaempfen",
+      "document_id": "st-sek-sport-2019",
+      "subject_key": "sport",
+      "title": "Faires Kämpfen",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 13,
+      "quote": "Kämpfen",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-sport-2019.78-rollen",
+      "document_id": "st-sek-sport-2019",
+      "subject_key": "sport",
+      "title": "Bewegung auf Rollen",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 13,
+      "quote": "auf Rollen",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-sport-2019.78-wasser",
+      "document_id": "st-sek-sport-2019",
+      "subject_key": "sport",
+      "title": "Bewegung im Wasser",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 13,
+      "quote": "im Wasser",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-sport-2019.78-auf-wasser",
+      "document_id": "st-sek-sport-2019",
+      "subject_key": "sport",
+      "title": "Bewegung auf dem Wasser",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 13,
+      "quote": "auf Wasser",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-sport-2019.78-schnee-eis",
+      "document_id": "st-sek-sport-2019",
+      "subject_key": "sport",
+      "title": "Bewegung auf Schnee und Eis",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 13,
+      "quote": "auf Schnee und Eis",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-sport-2019.910-fitness",
+      "document_id": "st-sek-sport-2019",
+      "subject_key": "sport",
+      "title": "Fitness und Gesundheit",
+      "grade_kind": "band",
+      "grades": [
+        9,
+        10
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 13,
+      "quote": "Fitness",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-sport-2019.910-spielen",
+      "document_id": "st-sek-sport-2019",
+      "subject_key": "sport",
+      "title": "Spielen und Fairness",
+      "grade_kind": "band",
+      "grades": [
+        9,
+        10
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 13,
+      "quote": "Spielen",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-sport-2019.910-laufen-springen-werfen",
+      "document_id": "st-sek-sport-2019",
+      "subject_key": "sport",
+      "title": "Laufen, Springen und Werfen",
+      "grade_kind": "band",
+      "grades": [
+        9,
+        10
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 13,
+      "quote": "Laufen, Springen, Werfen",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-sport-2019.910-turnen",
+      "document_id": "st-sek-sport-2019",
+      "subject_key": "sport",
+      "title": "Turnerische Bewegungen",
+      "grade_kind": "band",
+      "grades": [
+        9,
+        10
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 13,
+      "quote": "Turnerisches Bewegen",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-sport-2019.910-tanzen",
+      "document_id": "st-sek-sport-2019",
+      "subject_key": "sport",
+      "title": "Rhythmus, Tanz und Gestaltung",
+      "grade_kind": "band",
+      "grades": [
+        9,
+        10
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 13,
+      "quote": "Rhythmisches Bewegen",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-sport-2019.910-kaempfen",
+      "document_id": "st-sek-sport-2019",
+      "subject_key": "sport",
+      "title": "Faires Kämpfen",
+      "grade_kind": "band",
+      "grades": [
+        9,
+        10
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 13,
+      "quote": "Kämpfen",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-sport-2019.910-rollen",
+      "document_id": "st-sek-sport-2019",
+      "subject_key": "sport",
+      "title": "Bewegung auf Rollen",
+      "grade_kind": "band",
+      "grades": [
+        9,
+        10
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 13,
+      "quote": "auf Rollen",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-sport-2019.910-wasser",
+      "document_id": "st-sek-sport-2019",
+      "subject_key": "sport",
+      "title": "Bewegung im Wasser",
+      "grade_kind": "band",
+      "grades": [
+        9,
+        10
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 13,
+      "quote": "im Wasser",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-sport-2019.910-auf-wasser",
+      "document_id": "st-sek-sport-2019",
+      "subject_key": "sport",
+      "title": "Bewegung auf dem Wasser",
+      "grade_kind": "band",
+      "grades": [
+        9,
+        10
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 13,
+      "quote": "auf Wasser",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-sport-2019.910-schnee-eis",
+      "document_id": "st-sek-sport-2019",
+      "subject_key": "sport",
+      "title": "Bewegung auf Schnee und Eis",
+      "grade_kind": "band",
+      "grades": [
+        9,
+        10
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 13,
+      "quote": "auf Schnee und Eis",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    }
+  ],
+  "coverage": {
+    "complete": false,
+    "note": "Nur die zehn Bewegungsfelder je Doppeljahrgang als Orientierung; Wahlfelder und Wahlkurse werden nicht als individuelle Unterrichtsteilnahme ausgegeben. Keine schulinterne Reihenfolge, Einzelkompetenzen, Leistungsbelege oder persönliche Belastungsempfehlung."
+  },
+  "coverage_gaps": []
+}

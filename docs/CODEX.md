@@ -42,6 +42,15 @@ sudo python3 /opt/schulpilot/current/deploy/install_codex.py --binary /geschuetz
 
 Reproduzierbare Folgeinstallationen verwenden `/opt/schulpilot-codex/bin/codex`. Ein Fingerprint verhindert unnötige Containerbuilds. `scripts/deploy.sh` liefert die Workersourcen mit und aktualisiert einen bereits eingerichteten Codexdienst. Der Container läuft anhand seiner tatsächlichen unveränderlichen Image-ID, nicht anhand eines veränderbaren Tags. Dienst: `schulpilot-codex.service`, automatischer Start; nur SCHULPILOT wird geändert.
 
+Der lokale Metadatentest akzeptiert ausschließlich ein CLI-Binary mit dem im
+Installer fixierten SHA-256. Auf Entwicklungsrechnern kann ein geprüftes
+Exemplar über `SCHULESCHLAU_TEST_CODEX_BINARY` angegeben werden; sonst wird
+`/usr/local/bin/codex` geprüft. Eine andere oder fehlende Hostversion wird
+ausdrücklich übersprungen, ein ausdrücklich angegebenes falsches Binary lässt
+den Test fehlschlagen. Der Test verwendet nur eine künstliche Anmeldung und
+einen ablehnenden lokalen Proxy. Sein Ergebnis belegt weder eine Modellfreigabe
+noch einen erfolgreichen Lernauftrag oder den Zustand des produktiven Workers.
+
 Lokale Einstellungen in `/etc/schulpilot/environment`:
 
 ```text

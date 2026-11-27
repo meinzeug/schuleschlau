@@ -1,3 +1,15 @@
+## 27.11.2026 · Sportlehrplan Sachsen-Anhalt
+
+Der [amtliche Sekundarschulindex](https://www.bildung-lsa.de/index.php?KAT_ID=16003)
+verlinkte am 27.11.2026 den [Sportlehrplan, Fassung 01.08.2019](https://www.bildung-lsa.de/files/164f3f97e3adf65ff6f44685dd9e1ced/lp_sks_sport_01_08_2019.pdf).
+Tabelle 1 auf der gedruckten Seite 13 unterscheidet Pflicht- und Wahlfelder in
+5/6 und 7/8 sowie Wahlkurse in 9/10. Quelle: Ministerium für Bildung und
+Landesportal Sachsen-Anhalt, [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/).
+PDF-SHA256: `694c8eb9917cc036e576c7f3064ae0584993fa58685f1fcd83c05f61fab23551`.
+Die Titel sind kurze eigene Bezeichnungen; die tatsächliche schulische Auswahl,
+Reihenfolge und Teilnahme bleiben offen. Keine individuellen Sportleistungen
+oder Belastungsempfehlungen werden aus der Tabelle abgeleitet.
+
 ## 26.11.2026 · Kunstlehrplan Sachsen-Anhalt
 
 Der [amtliche Landesindex](https://www.bildung-lsa.de/informationsportal/unterricht/sekundarschule/schulformbezogene_informationen/lehrplan.html)

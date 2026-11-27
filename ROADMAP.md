@@ -944,6 +944,16 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – Lehrplanabdeckung fachlich kuratieren und offen ausweisen**
 
+  - [x] **Sportübersicht der Sekundarschule Sachsen-Anhalt ergänzen.** Zehn
+    amtliche Bewegungsfelder sind für die Doppeljahrgänge 5/6, 7/8 und 9/10
+    quellengebunden erfasst. Pflichtfelder, schulische Wahlfelder und
+    Wahlkurse bleiben als Einschränkung auch im KI-Planungskontext sichtbar;
+    die konkreten Entscheidungen der Schule sind unbekannt. Der Katalog
+    erteilt keine individuellen Belastungsempfehlungen. Katalog- und
+    Migrationstests bestanden auf SQLite (33 bestanden, zwei PostgreSQL-Fälle
+    übersprungen) und isoliertem PostgreSQL (35 bestanden). Die umfassende
+    fachliche Lehrplanabdeckung bleibt offen; die Ergänzung ist nicht ausgerollt.
+
   - [x] **Kunstübersicht der Sekundarschule Sachsen-Anhalt ergänzen.** Die
     fünf übergreifenden Bereiche sind je Doppeljahrgang 5/6, 7/8 und 9/10 mit
     amtlicher Quelle, Fassung, Lizenz und Fundstelle erfasst. Der besondere
@@ -3678,6 +3688,16 @@ Bestandteil des bestehenden Buildvertrags.
   **Abnahme:** Fremde Familien und Administratoren erhalten keinen privaten Zugriff; fehlende Berechtigungen und ausgefallene Medien blockieren den Lernweg nicht. Nicht geprüfte optionale Funktionen sind nicht Bestandteil der Freigabe.
 
 ## Laufende Qualitätssicherung und finale Freigabe
+
+- [x] **Katalogtest an die tatsächlich festgelegte CLI binden.** Der lokale
+  Test verwechselt eine andere Entwicklungs-CLI nicht mehr mit der im
+  Container vorgesehenen Version. Eine explizit angegebene Datei wird gegen
+  die Prüfsumme des Installers geprüft; fehlt die passende Host-CLI, weist der
+  Test einen Skip aus. Der Katalogtest bestand mit einer hashgleichen Kopie
+  der Server-CLI und künstlicher Anmeldung (28 Fälle). Bei abweichender
+  Host-CLI wurde der echte CLI-Fall korrekt übersprungen; eine explizit falsche
+  Datei wird abgelehnt. Das Ergebnis belegt keine Anbieterfreigabe und keinen
+  produktiven Lernauftrag.
 
 - [x] **P1 – Abhängigkeiten und kommende Toolchain-Änderungen prüfen**
 
