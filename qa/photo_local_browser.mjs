@@ -71,14 +71,27 @@ try {
     await tap(page.getByRole('button',{name:'Fotos auswählen',exact:true}));
     await (await picker).setFiles(photo);
     phase='crop-'+width;
+    await tap(page.getByRole('button',{name:`Foto ${width === 390 ? 1 : 2} bearbeiten`,exact:true}));
     await page.getByRole('button',{name:'Foto übernehmen',exact:true}).waitFor({timeout:30000});
     await tap(page.getByRole('button',{name:'Foto übernehmen',exact:true}));
     await page.getByRole('button',{name:'Fotos abgeben',exact:true}).waitFor({timeout:30000});
-    const buttonBox=await page.getByRole('button',{name:'Fotos abgeben',exact:true}).boundingBox();
+    const submitButton=await reveal(page.getByRole('button',{name:'Fotos abgeben',exact:true}));
+    const buttonBox=await submitButton.boundingBox();
     assert.ok(buttonBox && buttonBox.width >= 260 && buttonBox.width <= 640);
     buttonBoxes[String(width)]=buttonBox;
     await page.screenshot({path:screens+'/photo-cropped-'+width+'.png'});
   }
+  // Save both selected photos through the actual upload path, while keeping
+  // the synthetic browser fixture free of provider jobs and costs.
+  await ctx.route('**/api/school-days/*/prepare', route => route.fulfill({
+    status:503, contentType:'application/json', body:JSON.stringify({detail:'Synthetic preparation unavailable'})
+  }));
+  const uploads=[];
+  page.on('response', r=>{ if (r.request().method()==='POST' && new URL(r.url()).pathname.endsWith('/materials')) uploads.push(r.status()); });
+  await tap(page.getByRole('button',{name:'Fotos abgeben',exact:true}));
+  for (let i=0; i<120 && uploads.length<2; i++) await page.waitForTimeout(500);
+  assert.equal(uploads.length,2);
+  assert.ok(uploads.every(status=>status >= 200 && status < 300));
   console.log(JSON.stringify({passed:true,buttonBoxes}));
 } catch (error) {
   if (page) await page.screenshot({path:screens+'/failure-'+phase+'.png'}).catch(()=>{});

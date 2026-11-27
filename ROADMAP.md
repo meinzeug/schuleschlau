@@ -1983,10 +1983,15 @@ Bestandteil des bestehenden Buildvertrags.
   erfolgreich in einer getrennten Datenbank wiederhergestellt und ihr
   authentifiziertes Löschjournal mit dem aktuellen Stand verglichen. Dies
   beweist keine historische Vollständigkeit des Journals und keinen produktiven
-  Rückrolltest. Die GitHub-Prüfung meldete drei Browserfehler; deren Ursachen
-  und erneute Abnahme sind noch offen. Vier PostgreSQL-Konflikttests verwendeten
-  versehentlich eine bereits verratene synthetische Lösung; mit korrigierter
-  Testaufgabe bestanden alle vier isoliert. Der Hauptpunkt bleibt offen.
+  Rückrolltest. Drei GitHub-Browserprüfungen waren nach Änderungen an Navigation,
+  Kindermeldungen und Fotoimport veraltet. Nach Anpassung bestanden die lokalen
+  Browserwege mit künstlichen Daten; der Fotoweg prüft optionales Bearbeiten und
+  den Upload auf 390 und 1280 Pixeln ohne KI-Auftrag. Eine dabei sichtbare
+  Überlappung von Fotovorschau und Bedienelementen wurde korrigiert; 49 gezielte
+  Flutter-Tests bestanden. Die Korrektur liegt nach dem Release auf main und
+  ist noch nicht deployt. Vier PostgreSQL-Konflikttests verwendeten versehentlich
+  eine bereits verratene synthetische Lösung; mit korrigierter Testaufgabe
+  bestanden alle vier isoliert. Der Hauptpunkt bleibt offen.
 
   - [x] **Aktive Restore-Konfiguration vor Migration abgleichen.** Bei einem
     bestehenden Release vergleicht die Aktivierung die von systemd geladene
