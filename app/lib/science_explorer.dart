@@ -244,15 +244,18 @@ class _ScienceExplorerState extends State<ScienceExplorer>
     return parts.join('e').replaceAll('.', ',');
   }
 
-  Widget input(String label, int value, VoidCallback change) => Semantics(
-    toggled: value == 1,
-    child: Tooltip(
-      message: 'Eingang $label auf ${1 - value} setzen',
-      child: FilledButton.tonal(
-        key: ValueKey('science-input-$label'),
-        style: FilledButton.styleFrom(minimumSize: const Size(80, 48)),
-        onPressed: active ? change : null,
-        child: Text('$label = $value'),
+  Widget input(String label, int value, VoidCallback change) => MergeSemantics(
+    child: Semantics(
+      toggled: value == 1,
+      child: Tooltip(
+        message: 'Eingang $label auf ${1 - value} setzen',
+        excludeFromSemantics: true,
+        child: FilledButton.tonal(
+          key: ValueKey('science-input-$label'),
+          style: FilledButton.styleFrom(minimumSize: const Size(80, 48)),
+          onPressed: active ? change : null,
+          child: Text('$label = $value'),
+        ),
       ),
     ),
   );
@@ -269,23 +272,27 @@ class _ScienceExplorerState extends State<ScienceExplorer>
         const SizedBox(height: 12),
         Align(
           alignment: Alignment.centerLeft,
-          child: Semantics(
-            expanded: expanded,
-            child: OutlinedButton.icon(
-              key: const ValueKey('science-explore-toggle'),
-              style: OutlinedButton.styleFrom(minimumSize: const Size(48, 48)),
-              onPressed: active
-                  ? () {
-                      if (active && epoch == generation) {
-                        setState(() => expanded = !expanded);
-                        if (expanded) reportPhase();
+          child: MergeSemantics(
+            child: Semantics(
+              expanded: expanded,
+              child: OutlinedButton.icon(
+                key: const ValueKey('science-explore-toggle'),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(48, 48),
+                ),
+                onPressed: active
+                    ? () {
+                        if (active && epoch == generation) {
+                          setState(() => expanded = !expanded);
+                          if (expanded) reportPhase();
+                        }
                       }
-                    }
-                  : null,
-              icon: Icon(
-                expanded ? Icons.expand_less : Icons.touch_app_outlined,
+                    : null,
+                icon: Icon(
+                  expanded ? Icons.expand_less : Icons.touch_app_outlined,
+                ),
+                label: const Text('Erkunden'),
               ),
-              label: const Text('Erkunden'),
             ),
           ),
         ),

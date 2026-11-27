@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:ui' show SemanticsAction, Tristate;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -94,6 +95,48 @@ double value(WidgetTester tester, {bool offstage = false}) =>
     tester.widget<Slider>(find.byKey(slider, skipOffstage: !offstage)).value;
 
 void main() {
+  testWidgets('logic controls expose their own current state and action', (
+    tester,
+  ) async {
+    final semantics = tester.ensureSemantics();
+    final calls = <http.Request>[];
+    final state = actor(calls);
+    try {
+      size(tester, 390);
+      await tester.pumpWidget(
+        host(
+          ScienceGraphic(
+            block('logic_table', variant: 'and_gate'),
+            state: state,
+          ),
+        ),
+      );
+      final explore = find.byKey(toggle);
+      var info = tester.getSemantics(explore).getSemanticsData();
+      expect(info.flagsCollection.isExpanded, Tristate.isFalse);
+      expect(info.hasAction(SemanticsAction.tap), isTrue);
+      await tap(tester, explore);
+      info = tester.getSemantics(explore).getSemanticsData();
+      expect(info.flagsCollection.isExpanded, Tristate.isTrue);
+      final input = find.byKey(const ValueKey('science-input-A'));
+      info = tester.getSemantics(input).getSemanticsData();
+      expect(info.label, 'A = 0');
+      expect(info.flagsCollection.isToggled, Tristate.isFalse);
+      expect(info.hasAction(SemanticsAction.tap), isTrue);
+      await tap(tester, input);
+      info = tester.getSemantics(input).getSemanticsData();
+      expect(info.label, 'A = 1');
+      expect(info.flagsCollection.isToggled, Tristate.isTrue);
+      expect(find.text('Ausgang Y = 0'), findsOneWidget);
+      expect(calls, isEmpty);
+      expect(tester.takeException(), isNull);
+    } finally {
+      await tester.pumpWidget(const SizedBox.shrink());
+      state.dispose();
+      semantics.dispose();
+    }
+  });
+
   testWidgets(
     'given and unauthenticated scientific blocks stay entirely static',
     (tester) async {

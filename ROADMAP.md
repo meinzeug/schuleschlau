@@ -1644,6 +1644,14 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – Barrierearme mobile Führung nachweisen**
 
+  - [x] **Zustände interaktiver Sachgrafiken zugänglich machen.** Die
+    Zustände „Erkunden“ auf-/zugeklappt und die Ein-/Aus-Werte von
+    Logikeingaben liegen nun am jeweils bedienbaren Semantikknoten. Der
+    künstliche Test scheiterte zuvor, besteht nach dem Fix auf Flutter und im
+    Chrome-Webrunner und prüft lokale Zustandsänderung ohne Serveranfrage.
+    32 Grafik-, Zoom- und Lernraumfälle bestanden; die gezielte Analyse ist
+    sauber. Fachliche und vollständige Screenreader-Abnahme bleiben offen.
+
   - [x] **Kompaktes Kontomenü eindeutig benennen.** Die zuvor im mobilen
     Browser getrennt ausgegebenen Container- und Buttonbezeichnungen sind
     zu einer benannten Aktion zusammengeführt. Der Rollentest scheiterte am

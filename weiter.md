@@ -2,6 +2,12 @@
 
 ## Arbeitsstand 27. November 2026: Quellen und Kontowechsel
 
+Interaktive Sachgrafiken melden den erweiterten Erkundungszustand und den
+Zustand von Logikeingaben am jeweiligen bedienbaren Semantikknoten. Der
+gezielte Test scheiterte vor der Korrektur und bestand danach auf Flutter und
+Chrome; 32 Grafik- und Zoomfälle bestanden. Das ist keine fachliche oder
+vollständige Screenreader-Abnahme.
+
 Im Kinderreiter „Prüfen“ des Wortschatzes nehmen Einstiegsgrafik und
 Hinzufügen-Aktion keinen Platz mehr ein. Hinzufügen bleibt im Wortschatzreiter
 erreichbar, die Grafik erscheint dort bei leerem Bestand; synthetische VM- und Chrome-Tests prüfen leere und gefüllte
