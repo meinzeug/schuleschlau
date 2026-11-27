@@ -143,6 +143,8 @@ class Fixture {
   late Json details, report;
   Json? listOverride;
   List<Json>? subjectOverride;
+  Future<http.Response> Function(http.Request)? sourceHandler;
+  Future<http.Response> Function(http.Request)? examListHandler;
   Completer<http.Response>? listWait;
   String prepareKind = 'job';
   final String role;
@@ -172,7 +174,25 @@ class Fixture {
   Future<http.Response> handle(http.Request request) async {
     calls.add(request);
     final path = request.url.path;
+    if (request.method == 'GET' &&
+        path.endsWith('/children/child/exam-sources')) {
+      final handler = sourceHandler;
+      if (handler != null) return handler(request);
+      final sources = (listOverride?['sources'] as List?) ?? [source()];
+      return reply({
+        'items': sources
+            .where(
+              (item) =>
+                  item['subject'] == request.url.queryParameters['subject'],
+            )
+            .toList(),
+        'has_more': false,
+        'next_cursor': null,
+      });
+    }
     if (request.method == 'GET' && path.endsWith('/children/child/exams')) {
+      final handler = examListHandler;
+      if (handler != null) return handler(request);
       if (listWait != null) return listWait!.future;
       return reply(
         listOverride ??
@@ -282,7 +302,6 @@ class Fixture {
                         builder: (_) => ExamPlanEditor(
                           state,
                           childId: 'child',
-                          sources: [source()],
                           existing: details,
                         ),
                       ),

@@ -185,13 +185,11 @@ class _ExamsBodyState extends State<_ExamsBody> {
             detail?['revision'] != existing['revision'])) {
       return;
     }
-    final sources = examObjects((detail ?? listing)?['sources']);
     final result = await scope.dialog<Json>(
       context,
       (_) => ExamPlanEditor(
         state,
         childId: widget.childId,
-        sources: sources,
         existing: existing,
         purpose: tab == 'review' ? 'review' : 'preparation',
       ),

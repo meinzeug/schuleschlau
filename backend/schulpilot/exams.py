@@ -7,7 +7,7 @@ from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
-from sqlalchemy import func, select, update
+from sqlalchemy import and_, func, or_, select, update
 
 from .db import Child, Family, Job, LearningUnit, Material, Session, User, get_db, now
 from .exam_models import Exam, ExamRound, ExamSession
@@ -59,6 +59,40 @@ def sources_data(db, child_id):
             for m in db.scalars(select(Material).where(Material.child_id == child_id,
                 Material.purpose == "notebook", Material.confirmed.is_(True)).order_by(
                     Material.created.desc(), Material.id).limit(200)) if usable_source(db, m)]
+
+
+@router.get("/children/{child_id}/exam-sources")
+def list_exam_sources(child_id: str, subject: str = Query(..., min_length=1, max_length=80),
+                      cursor: str | None = Query(None, min_length=32, max_length=32),
+                      p=Depends(authenticated), db=Depends(get_db)):
+    """Page current usable notebook sources for a single authorized child and subject."""
+    from .source_lineage import usable_source
+    from .subject_registry import resolve
+
+    child = child_access(db, p, child_id)
+    selected = resolve(db, subject, child.family_id, active_only=True)
+    if not selected:
+        raise HTTPException(422, "Bitte ein vorhandenes Fach auswählen.")
+    query = select(Material).where(
+        Material.child_id == child.id,
+        Material.purpose == "notebook",
+        Material.confirmed.is_(True),
+        or_(Material.subject_id == selected.id,
+            and_(Material.subject_id.is_(None), Material.subject == subject)),
+    )
+    if cursor:
+        previous = db.scalar(query.where(Material.id == cursor))
+        if not previous:
+            raise HTTPException(409, "Die Heftseiten haben sich geändert. Bitte lade sie erneut.")
+        query = query.where(or_(Material.created < previous.created,
+            and_(Material.created == previous.created, Material.id > previous.id)))
+    rows = list(db.scalars(query.order_by(Material.created.desc(), Material.id).limit(41)))
+    more = len(rows) > 40
+    rows = rows[:40]
+    return {"items": [{"id": m.id, "revision": m.revision, "subject": m.subject,
+                       "topic": m.topic, "title": m.title}
+                      for m in rows if usable_source(db, m)],
+            "has_more": more, "next_cursor": rows[-1].id if more else None}
 
 
 def valid_refs(db, child_id, refs, subject_id, subject):

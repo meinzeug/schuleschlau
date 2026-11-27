@@ -11,14 +11,12 @@ import 'ui.dart';
 class ExamPlanEditor extends StatefulWidget {
   final AppState state;
   final String childId;
-  final List<Json> sources;
   final Json? existing;
   final String purpose;
   const ExamPlanEditor(
     this.state, {
     super.key,
     required this.childId,
-    required this.sources,
     this.existing,
     this.purpose = 'preparation',
   });
@@ -59,6 +57,11 @@ class _ExamPlanEditorState extends State<ExamPlanEditor> {
   int step = 0;
   bool saving = false, uncertain = false;
   String? error;
+  final loadedSources = <Json>[];
+  bool loadingSources = false, sourcesLoaded = false, sourcesMore = false;
+  bool legacySources = false;
+  String? sourcesCursor, sourcesError;
+  int sourcesGeneration = 0;
   Json? pending;
   final requestKey = examRequestKey();
   late final String initialFingerprint;
@@ -70,8 +73,129 @@ class _ExamPlanEditorState extends State<ExamPlanEditor> {
 
   bool get review =>
       (widget.existing?['purpose'] ?? widget.purpose) == 'review';
-  bool get hasSourcesForSubject =>
-      widget.sources.any((item) => item['subject'] == subject);
+  bool get hasSourcesForSubject => loadedSources.isNotEmpty;
+
+  Future<void> loadSources({bool more = false}) async {
+    if (!scope.current ||
+        loadingSources ||
+        subject.isEmpty ||
+        (more && (!sourcesMore || sourcesCursor == null))) {
+      return;
+    }
+    final stamp = scope.epoch;
+    final requestedSubject = subject;
+    final generation = ++sourcesGeneration;
+    final cursor = more ? sourcesCursor : null;
+    setState(() {
+      loadingSources = true;
+      sourcesError = null;
+    });
+    try {
+      final result = await widget.state.api.get(
+        Uri(
+          path: '/children/${widget.childId}/exam-sources',
+          queryParameters: {'subject': requestedSubject, 'cursor': ?cursor},
+        ).toString(),
+      );
+      if (!mounted ||
+          !scope.valid(stamp) ||
+          subject != requestedSubject ||
+          generation != sourcesGeneration) {
+        return;
+      }
+      if (result['items'] is! List || result['has_more'] is! bool) {
+        throw const FormatException('Invalid source page');
+      }
+      final rawItems = result['items'] as List;
+      final items = examObjects(rawItems);
+      final hasMore = result['has_more'] == true;
+      final next = result['next_cursor'];
+      if (items.length != rawItems.length ||
+          items.any(
+            (item) =>
+                item['id'] is! String ||
+                (item['id'] as String).isEmpty ||
+                item['revision'] is! int ||
+                (item['revision'] as int) < 1,
+          ) ||
+          (hasMore && (next is! String || next.isEmpty || next == cursor))) {
+        throw const FormatException('Invalid source page');
+      }
+      setState(() {
+        if (!more) loadedSources.clear();
+        final known = loadedSources.map((item) => item['id']).toSet();
+        loadedSources.addAll(items.where((item) => known.add(item['id'])));
+        sourcesLoaded = true;
+        sourcesMore = hasMore;
+        sourcesCursor = hasMore ? next as String : null;
+        legacySources = false;
+      });
+    } catch (value) {
+      if (!mounted ||
+          !scope.valid(stamp) ||
+          subject != requestedSubject ||
+          generation != sourcesGeneration) {
+        return;
+      }
+      if (value is ApiError && value.status == 404 && !more) {
+        // Older servers provide only a bounded preview. Read it again so a
+        // missing child or revoked access cannot revive a stale local preview.
+        try {
+          final fallback = await widget.state.api.get(
+            '/children/${widget.childId}/exams',
+          );
+          if (!mounted ||
+              !scope.valid(stamp) ||
+              subject != requestedSubject ||
+              generation != sourcesGeneration) {
+            return;
+          }
+          if (fallback['sources'] is! List) {
+            throw const FormatException('Invalid legacy source list');
+          }
+          final items = examObjects(fallback['sources']);
+          setState(() {
+            loadedSources
+              ..clear()
+              ..addAll(items.where((item) => item['subject'] == subject));
+            sourcesLoaded = true;
+            sourcesMore = false;
+            sourcesCursor = null;
+            legacySources = true;
+          });
+        } catch (_) {
+          if (mounted &&
+              scope.valid(stamp) &&
+              subject == requestedSubject &&
+              generation == sourcesGeneration) {
+            setState(
+              () =>
+                  sourcesError = 'Die Heftseiten konnten nicht geladen werden.',
+            );
+          }
+        }
+      } else {
+        setState(
+          () => sourcesError = value is ApiError && value.status == 409
+              ? 'Die Heftseiten haben sich geändert. Lade sie neu.'
+              : 'Die Heftseiten konnten nicht geladen werden.',
+        );
+      }
+    } finally {
+      if (mounted &&
+          scope.owner &&
+          subject == requestedSubject &&
+          generation == sourcesGeneration) {
+        setState(() {
+          loadingSources = false;
+          if (!scope.valid(stamp)) {
+            sourcesError = 'Die Heftseiten wurden noch nicht geladen.';
+          }
+        });
+      }
+    }
+  }
+
   void changed() {
     if (mounted) setState(() {});
   }
@@ -230,7 +354,16 @@ class _ExamPlanEditorState extends State<ExamPlanEditor> {
       );
       if (chosen != null && scope.valid(stamp)) {
         setState(() {
-          if (subject != chosen) topics.clear();
+          if (subject != chosen) {
+            topics.clear();
+            loadedSources.clear();
+            sourcesLoaded = false;
+            sourcesMore = false;
+            sourcesCursor = null;
+            sourcesError = null;
+            loadingSources = false;
+            sourcesGeneration++;
+          }
           subjectInput.text = chosen;
         });
       }
@@ -257,9 +390,7 @@ class _ExamPlanEditorState extends State<ExamPlanEditor> {
 
   Future<void> addTopic() async {
     if (!scope.current || topics.length >= 8 || saving || uncertain) return;
-    final candidates = widget.sources
-        .where((item) => item['subject'] == subject)
-        .toList();
+    final candidates = loadedSources.toList();
     if (candidates.isEmpty) {
       setState(
         () => error = widget.state.isChild
@@ -549,9 +680,13 @@ class _ExamPlanEditorState extends State<ExamPlanEditor> {
         ),
         gap(),
       ],
-      if (hasSourcesForSubject)
+      if (loadingSources && !sourcesLoaded)
+        const Center(child: CircularProgressIndicator())
+      else if (sourcesError != null && !sourcesLoaded)
+        Notice(sourcesError!)
+      else if (hasSourcesForSubject)
         OutlinedButton.icon(
-          onPressed: saving || uncertain || topics.length >= 8
+          onPressed: saving || uncertain || loadingSources || topics.length >= 8
               ? null
               : addTopic,
           icon: const Icon(Icons.add),
@@ -561,12 +696,29 @@ class _ExamPlanEditorState extends State<ExamPlanEditor> {
                 : 'Thema aus Heftquelle wählen (${topics.length}/8)',
           ),
         )
-      else
+      else if (sourcesLoaded && !sourcesMore)
         Notice(
           widget.state.isChild
               ? 'Hier sind keine geprüften Seiten für dieses Fach geladen. Fotografiere deine Seiten. Falls eine Prüfung offen ist, helfen deine Eltern.'
               : 'Hier sind keine bestätigten Seiten für dieses Fach geladen. Ergänze oder bestätige passende Seiten im Hefter.',
         ),
+      if (sourcesError != null && sourcesLoaded) Notice(sourcesError!),
+      if (sourcesError != null)
+        TextButton.icon(
+          onPressed: loadingSources ? null : () => loadSources(),
+          icon: const Icon(Icons.refresh),
+          label: const Text('Heftseiten neu laden'),
+        )
+      else if (sourcesMore)
+        TextButton.icon(
+          onPressed: loadingSources ? null : () => loadSources(more: true),
+          icon: const Icon(Icons.expand_more),
+          label: Text(
+            loadingSources ? 'Wird geladen …' : 'Weitere Heftseiten laden',
+          ),
+        ),
+      if (legacySources)
+        const Text('Hier siehst du die zuletzt geladenen Seiten.'),
       if (review)
         const Text(
           'Für eine geschriebene Arbeit kannst du diesen Schritt überspringen.',
@@ -838,7 +990,10 @@ class _ExamPlanEditorState extends State<ExamPlanEditor> {
                 : (review || step == 3)
                 ? save
                 : () {
-                    if (scope.current && validateStep()) setState(() => step++);
+                    if (scope.current && validateStep()) {
+                      setState(() => step++);
+                      if (step == 1 && !sourcesLoaded) loadSources();
+                    }
                   },
             child: Text(
               uncertain

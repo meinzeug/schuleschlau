@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
 import 'package:schulpilot/ui.dart';
 import 'package:schulpilot/learning_start_illustration.dart';
 
@@ -221,6 +224,292 @@ void main() {
     expect(fixture.writes, isEmpty);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('Weitere Heftseiten laden ohne gewählte Themen zu verlieren', (
+    tester,
+  ) async {
+    final fixture = fixtures.Fixture();
+    fixture.sourceHandler = (request) async {
+      final cursor = request.url.queryParameters['cursor'];
+      return fixtures.reply({
+        'items': [
+          {
+            ...fixtures.source(),
+            'id': cursor == null ? 'a' * 32 : 'b' * 32,
+            'topic': cursor == null ? 'Brüche' : 'Vielfache',
+          },
+        ],
+        'has_more': cursor == null,
+        'next_cursor': cursor == null ? 'a' * 32 : null,
+      });
+    };
+    await fixture.mount(tester);
+    await fixtures.tap(tester, find.text('Arbeit planen'));
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Titel der Arbeit'),
+      'Mathearbeit',
+    );
+    await fixtures.tap(tester, find.text('Fach auswählen'));
+    await fixtures.tap(tester, find.text('Mathematik').last);
+    await fixtures.tap(tester, find.text('Weiter'));
+    await fixtures.tap(tester, find.text('Thema aus dem Heft wählen (0/8)'));
+    await fixtures.tap(tester, find.text('Brüche').last);
+    await fixtures.tap(tester, find.text('Weitere Heftseiten laden'));
+    expect(find.text('Brüche'), findsOneWidget);
+    await fixtures.tap(tester, find.text('Thema aus dem Heft wählen (1/8)'));
+    await fixtures.tap(tester, find.text('Vielfache').last);
+    expect(find.text('Brüche'), findsOneWidget);
+    expect(find.text('Vielfache'), findsOneWidget);
+    expect(fixture.writes, isEmpty);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Auch eine leere Zwischenportion kann weitergeladen werden', (
+    tester,
+  ) async {
+    final fixture = fixtures.Fixture();
+    fixture.sourceHandler = (request) async {
+      final next = request.url.queryParameters['cursor'] != null;
+      return fixtures.reply({
+        'items': next ? [fixtures.source()] : [],
+        'has_more': !next,
+        'next_cursor': next ? null : 'a' * 32,
+      });
+    };
+    await fixture.mount(tester);
+    await fixtures.tap(tester, find.text('Arbeit planen'));
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Titel der Arbeit'),
+      'Arbeit',
+    );
+    await fixtures.tap(tester, find.text('Fach auswählen'));
+    await fixtures.tap(tester, find.text('Mathematik').last);
+    await fixtures.tap(tester, find.text('Weiter'));
+    expect(
+      find.textContaining('Hier sind keine geprüften Seiten'),
+      findsNothing,
+    );
+    await fixtures.tap(tester, find.text('Weitere Heftseiten laden'));
+    expect(find.text('Thema aus dem Heft wählen (0/8)'), findsOneWidget);
+    expect(fixture.writes, isEmpty);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Ein Ladefehler lässt sich bewusst erneut lesen', (tester) async {
+    final fixture = fixtures.Fixture();
+    var count = 0;
+    fixture.sourceHandler = (request) async => ++count == 1
+        ? fixtures.reply({'detail': 'Künstlicher Fehler'}, 503)
+        : fixtures.reply({
+            'items': [fixtures.source()],
+            'has_more': false,
+            'next_cursor': null,
+          });
+    await fixture.mount(tester);
+    await fixtures.tap(tester, find.text('Arbeit planen'));
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Titel der Arbeit'),
+      'Mathearbeit',
+    );
+    await fixtures.tap(tester, find.text('Fach auswählen'));
+    await fixtures.tap(tester, find.text('Mathematik').last);
+    await fixtures.tap(tester, find.text('Weiter'));
+    expect(
+      find.text('Die Heftseiten konnten nicht geladen werden.'),
+      findsOneWidget,
+    );
+    expect(count, 1);
+    await fixtures.tap(tester, find.text('Heftseiten neu laden'));
+    expect(count, 2);
+    expect(find.text('Thema aus dem Heft wählen (0/8)'), findsOneWidget);
+    expect(fixture.writes, isEmpty);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Eine unvollständige Serverantwort gilt nicht als leeres Heft', (
+    tester,
+  ) async {
+    final fixture = fixtures.Fixture();
+    fixture.sourceHandler = (_) async => fixtures.reply({'items': []});
+    await fixture.mount(tester);
+    await fixtures.tap(tester, find.text('Arbeit planen'));
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Titel der Arbeit'),
+      'Arbeit',
+    );
+    await fixtures.tap(tester, find.text('Fach auswählen'));
+    await fixtures.tap(tester, find.text('Mathematik').last);
+    await fixtures.tap(tester, find.text('Weiter'));
+    expect(
+      find.text('Die Heftseiten konnten nicht geladen werden.'),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining('Hier sind keine geprüften Seiten'),
+      findsNothing,
+    );
+    expect(fixture.writes, isEmpty);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Älteres Backend zeigt begrenzte vorhandene Seiten', (
+    tester,
+  ) async {
+    final fixture = fixtures.Fixture();
+    fixture.sourceHandler = (_) async =>
+        fixtures.reply({'detail': 'Nicht gefunden'}, 404);
+    await fixture.mount(tester);
+    await fixtures.tap(tester, find.text('Arbeit planen'));
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Titel der Arbeit'),
+      'Mathearbeit',
+    );
+    await fixtures.tap(tester, find.text('Fach auswählen'));
+    await fixtures.tap(tester, find.text('Mathematik').last);
+    await fixtures.tap(tester, find.text('Weiter'));
+    expect(
+      find.text('Hier siehst du die zuletzt geladenen Seiten.'),
+      findsOneWidget,
+    );
+    expect(find.text('Thema aus dem Heft wählen (0/8)'), findsOneWidget);
+    expect(fixture.writes, isEmpty);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Alte Vorschau erscheint bei entzogenem Zugriff nicht erneut', (
+    tester,
+  ) async {
+    final fixture = fixtures.Fixture();
+    await fixture.mount(tester);
+    fixture.sourceHandler = (_) async =>
+        fixtures.reply({'detail': 'Kind nicht gefunden.'}, 404);
+    fixture.examListHandler = (_) async =>
+        fixtures.reply({'detail': 'Kind nicht gefunden.'}, 404);
+    await fixtures.tap(tester, find.text('Arbeit planen'));
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Titel der Arbeit'),
+      'Arbeit',
+    );
+    await fixtures.tap(tester, find.text('Fach auswählen'));
+    await fixtures.tap(tester, find.text('Mathematik').last);
+    await fixtures.tap(tester, find.text('Weiter'));
+    expect(
+      find.text('Die Heftseiten konnten nicht geladen werden.'),
+      findsOneWidget,
+    );
+    expect(
+      find.text('Hier siehst du die zuletzt geladenen Seiten.'),
+      findsNothing,
+    );
+    expect(find.text('Thema aus dem Heft wählen (0/8)'), findsNothing);
+    expect(fixture.writes, isEmpty);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Verspätete Seiten des alten Fachs erscheinen nicht im neuen', (
+    tester,
+  ) async {
+    final fixture = fixtures.Fixture();
+    fixture.subjectOverride = [
+      {'id': 'math', 'title': 'Mathematik'},
+      {'id': 'biology', 'title': 'Biologie'},
+    ];
+    final pending = Completer<http.Response>();
+    fixture.sourceHandler = (request) =>
+        request.url.queryParameters['subject'] == 'Mathematik'
+        ? pending.future
+        : Future.value(
+            fixtures.reply({
+              'items': [],
+              'has_more': false,
+              'next_cursor': null,
+            }),
+          );
+    await fixture.mount(tester);
+    await fixtures.tap(tester, find.text('Arbeit planen'));
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Titel der Arbeit'),
+      'Arbeit',
+    );
+    await fixtures.tap(tester, find.text('Fach auswählen'));
+    await fixtures.tap(tester, find.text('Mathematik').last);
+    await tester.tap(find.text('Weiter'));
+    await tester.pump();
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    await tester.tap(find.text('Zurück'));
+    await tester.pumpAndSettle();
+    await fixtures.tap(tester, find.text('Mathematik').last);
+    await fixtures.tap(tester, find.text('Biologie').last);
+    await fixtures.tap(tester, find.text('Weiter'));
+    pending.complete(
+      fixtures.reply({
+        'items': [fixtures.source()],
+        'has_more': false,
+        'next_cursor': null,
+      }),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.textContaining('Hier sind keine geprüften Seiten'),
+      findsOneWidget,
+    );
+    expect(find.text('Brüche'), findsNothing);
+    expect(fixture.writes, isEmpty);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+    'Unterbrochenes Laden kann nach Rückkehr erneut gestartet werden',
+    (tester) async {
+      final fixture = fixtures.Fixture();
+      final pending = Completer<http.Response>();
+      var requests = 0;
+      fixture.sourceHandler = (_) => ++requests == 1
+          ? pending.future
+          : Future.value(
+              fixtures.reply({
+                'items': [fixtures.source()],
+                'has_more': false,
+                'next_cursor': null,
+              }),
+            );
+      await fixture.mount(tester);
+      await fixtures.tap(tester, find.text('Arbeit planen'));
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Titel der Arbeit'),
+        'Arbeit',
+      );
+      await fixtures.tap(tester, find.text('Fach auswählen'));
+      await fixtures.tap(tester, find.text('Mathematik').last);
+      await tester.tap(find.text('Weiter'));
+      await tester.pump();
+      await fixtures.pause(tester);
+      pending.complete(
+        fixtures.reply({
+          'items': [fixtures.source()],
+          'has_more': false,
+          'next_cursor': null,
+        }),
+      );
+      await tester.pump();
+      await fixtures.resume(tester);
+      await tester.pumpAndSettle();
+      expect(find.text('Thema aus dem Heft wählen (0/8)'), findsNothing);
+      expect(requests, 1);
+      await fixtures.tap(tester, find.text('Arbeit planen'));
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Titel der Arbeit'),
+        'Arbeit',
+      );
+      await fixtures.tap(tester, find.text('Fach auswählen'));
+      await fixtures.tap(tester, find.text('Mathematik').last);
+      await fixtures.tap(tester, find.text('Weiter'));
+      expect(requests, 2);
+      expect(find.text('Thema aus dem Heft wählen (0/8)'), findsOneWidget);
+      expect(fixture.writes, isEmpty);
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets(
     'Weitere geladene Arbeiten werden nicht als leerer Bestand ausgegeben',

@@ -12,7 +12,7 @@ from schulpilot.exam_models import Exam, ExamRound, ExamSession
 from schulpilot.exam_schemas import ExamCreate
 from schulpilot.main import app
 from schulpilot.providers import ProviderError
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from test_providers import configured
 
 
@@ -137,6 +137,89 @@ def test_create_idempotency_and_read_paths_have_no_side_effects(api, book):
         assert db.scalar(select(func.count()).select_from(ExamSession)) == 1
         assert db.scalar(select(func.count()).select_from(ExamRound)) == 1
         assert db.scalar(select(func.count()).select_from(Usage)) == 0
+
+
+def test_subject_sources_page_past_200_without_crossing_subjects_or_children(api, book):
+    child_id = book["child"]["id"]
+    with DB.begin() as db:
+        from schulpilot.subject_registry import resolve
+
+        math = resolve(db, "Mathematik", db.get(Child, child_id).family_id, active_only=True)
+        assert math
+        math_id = math.id
+        user = User(username="second-child", display_name="Second", role="child", verified=True, password_hash="x")
+        db.add(user)
+        db.flush()
+        other = Child(user_id=user.id, family_id=db.get(Child, child_id).family_id, grade=6)
+        db.add(other)
+        db.flush()
+        other_id = other.id
+        historical = Material(child_id=child_id, title="Alte Fachbezeichnung", subject="Mathematik",
+            subject_id=math.id, content="Künstlicher Hefttext.", confirmed=True, status="confirmed", created=900)
+        db.add(historical)
+        db.flush()
+        historical_id = historical.id
+        # A historical snapshot can retain its stable ID after a label change.
+        db.execute(update(Material).where(Material.id == historical_id).values(subject="Mathe alt"))
+        for i in range(205):
+            db.add(Material(child_id=child_id, title=f"Mathe {i}", subject="Mathematik", topic="Brüche",
+                content="Künstlicher Hefttext.", confirmed=True, status="confirmed", created=1000 + i // 5))
+        for i in range(220):
+            db.add(Material(child_id=child_id, title=f"Bio {i}", subject="Biologie", topic="Zellen",
+                content="Künstlicher Hefttext.", confirmed=True, status="confirmed", created=2000 + i))
+        db.add(Material(child_id=other.id, title="Fremd", subject="Mathematik", content="Fremd",
+            confirmed=True, status="confirmed", created=5000))
+        db.add(Material(child_id=child_id, title="Unbestätigt", subject="Mathematik", content="Offen",
+            confirmed=False, created=5001))
+        db.add(Material(child_id=child_id, title="Hausaufgabe", subject="Mathematik", content="Aufgabe",
+            purpose="homework", confirmed=True, status="confirmed", created=5002))
+        for i in range(41):
+            db.add(Material(child_id=child_id, title=f"Leer {i}", subject="Mathematik", content="",
+                confirmed=True, status="confirmed", created=2_100_000_000 + i))
+    path = f"/api/children/{child_id}/exam-sources"
+    params = {"subject": "Mathematik"}
+    seen = []
+    empty_page_with_more = False
+    while True:
+        response = api.get(path, params=params)
+        assert response.status_code == 200, response.text
+        page = response.json()
+        empty_page_with_more |= not page["items"] and page["has_more"]
+        assert len(page["items"]) <= 40
+        seen.extend(page["items"])
+        if not page["has_more"]:
+            assert page["next_cursor"] is None
+            break
+        params["cursor"] = page["next_cursor"]
+    ids = [row["id"] for row in seen]
+    with DB() as db:
+        from schulpilot.source_lineage import usable_source
+        old = db.get(Material, historical_id)
+        assert old is not None and old.subject_id == math_id and usable_source(db, old)
+    assert any(row["title"] == "Alte Fachbezeichnung" for row in seen)
+    assert len(ids) == len(set(ids)) == 207
+    assert book["ref"]["id"] in ids
+    assert empty_page_with_more
+    assert all(row["subject"] in {"Mathematik", "Mathe alt"} for row in seen)
+    assert not {"Fremd", "Unbestätigt", "Hausaufgabe"} & {row["title"] for row in seen}
+    assert all(not row["title"].startswith("Leer ") for row in seen)
+    assert book["client"].get(path, params={"subject": "Mathematik"}).status_code == 200
+    assert book["client"].get(f"/api/children/{other_id}/exam-sources",
+                               params={"subject": "Mathematik"}).status_code == 404
+    assert api.get(path, params={"subject": "nicht vorhanden"}).status_code == 422
+    with DB() as db:
+        assert db.scalar(select(func.count()).select_from(Job)) == 0
+        assert db.scalar(select(func.count()).select_from(Usage)) == 0
+
+
+def test_exam_source_cursor_rejects_changed_or_foreign_source(api, book):
+    path = f"/api/children/{book['child']['id']}/exam-sources"
+    with DB.begin() as db:
+        db.get(Material, book["ref"]["id"]).confirmed = False
+    assert api.get(path, params={"subject": "Mathematik", "cursor": book["ref"]["id"]}).status_code == 409
+    with DB.begin() as db:
+        db.get(User, book["parent"]["id"]).role = "admin"
+    assert api.get(path, params={"subject": "Mathematik"}).status_code == 403
 
 
 def test_update_cas_keeps_history_but_replaces_current_schedule(api, book):

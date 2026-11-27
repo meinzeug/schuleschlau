@@ -1193,16 +1193,22 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
     die bestehende mobile Browseransicht zeigt noch den früheren Stand. Der
     umfassende Hauptpunkt und das Ausrollen bleiben offen.
 
-  - [ ] **Alle passenden Heftseiten für Klassenarbeiten auswählbar machen.**
-    Die aktuelle Quellenliste berücksichtigt höchstens die 200 neuesten
-    bestätigten Seiten insgesamt. Dadurch kann ein Fach in der Planung leer
-    erscheinen, obwohl ältere passende Seiten existieren. Eine serverseitige
-    Fachfilterung mit stabiler, begrenzter Seitennavigation ergänzen; Familien-
-    und Quellenrechte sowie die Bindung an bestätigte Revisionen erhalten.
-    Bereits ausgewählte Themen und Planentwürfe dürfen beim Nachladen nicht
-    verloren gehen. Mit mehr als 200 künstlichen Seiten, mehreren Fächern,
-    Quellenänderungen und mobiler Ansicht prüfen. Der aktuelle Hinweis
-    behauptet lediglich, dass keine passenden Seiten geladen sind.
+  - [x] **Passende Heftseiten für Klassenarbeiten fachweise nachladen.**
+    Die bisherige gemeinsame Vorschau bleibt für alte Clients begrenzt. Die
+    neue Auswahl fragt bestätigte, verwendbare eigene Heftseiten fachweise in
+    Portionen von höchstens 40 ab und kann auch nach einer leeren Zwischen-
+    portion weiterladen. Stabile Fachkennungen berücksichtigen historische
+    Anzeigetexte; für Seiten ohne Kennung gilt weiterhin der bestehende
+    exakte Fachabgleich. Gewählte Themen bleiben beim Nachladen erhalten,
+    Quellenrevisionen werden beim Speichern erneut geprüft. Ein veränderter
+    Cursor führt zum bewussten Neuladen; alte Antworten nach Fach- oder
+    Kontowechsel werden nicht übernommen. Ältere Server liefern nach erneuter
+    Berechtigungsprüfung weiterhin nur ihre gekennzeichnete Vorschau.
+    62 künstliche Backendfälle auf SQLite, davon zwei gezielt auch auf
+    isoliertem PostgreSQL, sowie 77 Flutterfälle und 29 Chrome-Webrunnerfälle
+    bestanden. Sie decken unter anderem über 200 Seiten, leere Portionen,
+    fremde Kinder, Rollen, Fehler und kleine Bildschirmgrößen ab. Eine
+    vollständige Geräteabnahme und das Ausrollen stehen noch aus.
 
   - [x] **Schulwörter eindeutig in der vorhandenen Standardsammlung ergänzen.**
     Eine einzelne, zur gewählten Sprache passende „Meine Schulwörter“-Sammlung
