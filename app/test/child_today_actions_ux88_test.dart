@@ -363,7 +363,8 @@ void main() {
           });
         },
       );
-      await tap(tester, find.text('Gleich große Teile').first);
+      expect(find.text('Gleich große Teile'), findsWidgets);
+      await tap(tester, find.text('Weiterlernen').first);
       expect(find.text('Runde stage'), findsOneWidget);
       expect(seen.every((r) => r.method == 'GET'), isTrue);
       expect(requests, hasLength(1));

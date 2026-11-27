@@ -1201,7 +1201,9 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
     Flutter-Lauf fand eine veraltete Erwartung auf „Nächste Etappe“ und einen
     Zusatztext, die in der Kinderansicht bewusst ersetzt wurden. Der Test
     prüft nun die tatsächliche Aktion „Runde vorbereiten“ und genau einen
-    lesenden Abruf. Dadurch wird weder freiwilliges Lernen behauptet noch eine
+    lesenden Abruf. Für eine vorhandene Runde prüft ein weiterer Test den
+    sichtbaren Knopf „Weiterlernen“ und das richtige Rundenziel ohne
+    Erzeugungsauftrag. Dadurch wird weder freiwilliges Lernen behauptet noch eine
     Runde automatisch gestartet; die ursprüngliche breite Regression wird als
     fehlgeschlagener Lauf ausgewiesen, bis sie erneut vollständig bestanden ist.
 
