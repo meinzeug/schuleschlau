@@ -4027,6 +4027,17 @@ Bestandteil des bestehenden Buildvertrags.
     ohne unklare Schreibvorgänge automatisch zu wiederholen. Der separate
     Cookie-Wettlauf bleibt ebenfalls offen.
 
+    **Geöffnete Heftfotos bei Anmeldebeginn ausblenden:** Die Fotoansicht
+    blendet das private Bild aus und fordert seine Entfernung aus dem Cache an,
+    verwirft verspätete
+    Bildantworten und sperrt alte Zoomaktionen. Ein Seitenwechsel während der
+    Anmeldung lädt kein weiteres Bild über die alte Ansicht. 31 künstliche
+    Fälle für Foto, Galerie und Mobilansicht sowie die zusätzliche gezielte
+    Fotowechselprüfung decken den Ausschnitt ab. Nach einer abgebrochenen
+    Anmeldung muss die Ansicht gegebenenfalls erneut geöffnet werden. Der
+    übergreifende Cookie-Wettlauf und neu während der Anmeldung geöffnete
+    Ansichten bleiben offen.
+
     **Klassenarbeiten zusätzlich abgesichert:** Die Klassenarbeitenansicht
     und ihre Dialoge binden sich an die beim Öffnen aktuelle Anmeldeabsicht.
     Beginnt eine neue Anmeldung, werden alte Inhalte und Dialoge ausgeblendet;

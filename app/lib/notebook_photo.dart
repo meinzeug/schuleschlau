@@ -28,6 +28,7 @@ class NotebookPhoto extends StatefulWidget {
 class _NotebookPhotoState extends State<NotebookPhoto> {
   Json? owner;
   String? family, sessionToken;
+  int? authenticationRevision;
   ImageProvider? image;
   String? error;
   int generation = 0;
@@ -39,7 +40,8 @@ class _NotebookPhotoState extends State<NotebookPhoto> {
       owner != null &&
       identical(widget.state.user, owner) &&
       widget.state.familyId == family &&
-      widget.state.api.token == sessionToken;
+      widget.state.api.token == sessionToken &&
+      widget.state.api.requestIdentity().$3 == authenticationRevision;
 
   @override
   void initState() {
@@ -47,7 +49,9 @@ class _NotebookPhotoState extends State<NotebookPhoto> {
     owner = widget.state.user;
     family = widget.state.familyId;
     sessionToken = widget.state.api.token;
+    authenticationRevision = widget.state.api.requestIdentity().$3;
     widget.state.addListener(identityChanged);
+    widget.state.authenticationChanges.addListener(identityChanged);
     load();
   }
 
@@ -61,6 +65,13 @@ class _NotebookPhotoState extends State<NotebookPhoto> {
 
   void identityChanged() {
     if (!mounted || current) return;
+    if (widget.state.api.requestIdentity().$3 != authenticationRevision) {
+      setState(() {
+        discard();
+        error = null;
+      });
+      return;
+    }
     setState(() {
       discard();
       owner = widget.state.user;
@@ -76,10 +87,13 @@ class _NotebookPhotoState extends State<NotebookPhoto> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.state != widget.state) {
       oldWidget.state.removeListener(identityChanged);
+      oldWidget.state.authenticationChanges.removeListener(identityChanged);
       widget.state.addListener(identityChanged);
+      widget.state.authenticationChanges.addListener(identityChanged);
       owner = widget.state.user;
       family = widget.state.familyId;
       sessionToken = widget.state.api.token;
+      authenticationRevision = widget.state.api.requestIdentity().$3;
     }
     if (oldWidget.state != widget.state ||
         oldWidget.materialId != widget.materialId ||
@@ -94,6 +108,7 @@ class _NotebookPhotoState extends State<NotebookPhoto> {
   @override
   void dispose() {
     widget.state.removeListener(identityChanged);
+    widget.state.authenticationChanges.removeListener(identityChanged);
     discard();
     zoom.dispose();
     super.dispose();
