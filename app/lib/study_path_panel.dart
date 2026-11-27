@@ -50,6 +50,7 @@ class _StudyPathPanelState extends State<StudyPathPanel>
   String get endpoint => '/school-days/${widget.dayId}/study-path';
   bool get ownerMatches =>
       actor != null &&
+      !state.authenticationPending &&
       identical(state.user, actor) &&
       state.familyId == family &&
       state.api.token == session &&

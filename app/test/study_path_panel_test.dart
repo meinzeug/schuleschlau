@@ -47,6 +47,63 @@ void sessionReplacementTest() {
     expect(calls, ['GET /api/school-days/day/study-path']);
     expect(tester.takeException(), isNull);
   });
+  testWidgets('study path opened during sign-in does not read or show data', (
+    tester,
+  ) async {
+    final calls = <String>[];
+    final state = _state(
+      MockClient((request) async {
+        calls.add('${request.method} ${request.url.path}');
+        return _json(_path());
+      }),
+    );
+    state.beginAuthentication();
+    final router = await _open(tester, state);
+    addTearDown(() async {
+      await tester.pumpWidget(const SizedBox());
+      router.dispose();
+      state.dispose();
+    });
+    await tester.pumpAndSettle();
+    expect(calls, isEmpty);
+    expect(find.text('Brüche first'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('replacing state during sign-in does not read the new path', (
+    tester,
+  ) async {
+    final oldCalls = <String>[];
+    final newCalls = <String>[];
+    final oldState = _state(
+      MockClient((request) async {
+        oldCalls.add(request.url.path);
+        return _json(_path());
+      }),
+    );
+    final newState = _state(
+      MockClient((request) async {
+        newCalls.add(request.url.path);
+        return _json(_path());
+      }),
+    );
+    Widget screen(AppState state) => MaterialApp(
+      home: Scaffold(body: StudyPathPanel(state, 'child', 'day')),
+    );
+    await tester.pumpWidget(screen(oldState));
+    await tester.pumpAndSettle();
+    expect(oldCalls, hasLength(1));
+    newState.beginAuthentication();
+    await tester.pumpWidget(screen(newState));
+    await tester.pumpAndSettle();
+    expect(newCalls, isEmpty);
+    expect(find.text('Brüche first'), findsNothing);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+    oldState.dispose();
+    newState.dispose();
+  });
+
   testWidgets('new sign-in intent discards a delayed study path', (
     tester,
   ) async {

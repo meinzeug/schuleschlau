@@ -4402,6 +4402,13 @@ Bestandteil des bestehenden Buildvertrags.
 
   - [ ] **Verspätete gemeinsame API-Antworten nach Kontowechsel absichern.**
 
+    **Lernweg während laufender Anmeldung nicht nachladen:** Wird der
+    Lernweg während einer Anmeldung geöffnet oder auf eine andere App-Instanz
+    umgestellt, startet keine Anfrage und es erscheinen keine alten
+    Lernschritte. 74 künstliche Flutterfälle zu Lernweg und Tagesablauf, fünf
+    gezielte Chrome-Fälle und Flutter Analyze bestanden. Die vollständige
+    Kontowechsel- und Cookie-Abnahme bleibt offen.
+
     **Tagespakete während laufender Anmeldung nicht neu abrufen:** Nach
     Anmeldebeginn bleibt „Erneut laden“ bis zu deren Abschluss deaktiviert;
     direkte alte Rückrufe starten ebenfalls keine Anfrage. Wird die Ansicht
