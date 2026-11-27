@@ -181,7 +181,7 @@ def arithmetic_warnings(answer):
     A mathematical contradiction is not a judgment about handwriting, the
     teacher's markings, or the entire task. Never modify the original report.
     """
-    from .source_lineage import _number, false_equality
+    from .source_lineage import _number, ambiguous_numeric_equality, false_equality
 
     if not isinstance(answer, str):
         return []
@@ -204,7 +204,10 @@ def arithmetic_warnings(answer):
             candidates.append(line.strip())
     warnings = []
     for expression in candidates[:16]:
-        if false_equality(expression):
+        if ambiguous_numeric_equality(expression):
+            warnings.append({"expression": expression,
+                "message": "Die Zahlenschreibweise ist mehrdeutig. Bitte prüfe das Original und die Bedeutung des Trennzeichens."})
+        elif false_equality(expression):
             values = [_number(term) for term in expression.split("=")]
             left, right = next((a, b) for a, b in zip(values, values[1:]) if a != b)
             warnings.append({"expression": expression,

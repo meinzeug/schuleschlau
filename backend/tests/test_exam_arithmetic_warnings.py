@@ -22,6 +22,14 @@ def test_the_warning_explains_the_two_exact_values():
     assert "Links steht 3/4, rechts 3/8" in warning["message"]
 
 
+@pytest.mark.parametrize('answer', ['1.000 = 1000', '1,000 = 1'])
+def test_ambiguous_separator_is_not_called_a_false_equation(answer):
+    warnings = arithmetic_warnings(answer)
+    assert len(warnings) == 1
+    assert 'mehrdeutig' in warnings[0]['message']
+    assert 'rechnerisch nicht' not in warnings[0]['message']
+
+
 @pytest.mark.parametrize("answer", [
     r"\(\frac{6}{8}=\frac{3}{4}\)", "6/8 = 3/4", "x = 2", "1/0 = 0",
     "Vielleicht 6/8 = 2/4", "", None,

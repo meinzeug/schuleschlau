@@ -22,7 +22,7 @@ from .db import Job, LearningUnit, UnitSource, Usage
 from .source_lineage_models import SourceImageReceipt, SourceInvalidation, SourceRevision
 from .subject_content import SourceBlock
 
-POLICY_VERSION = "literal-safety-7"
+POLICY_VERSION = "literal-safety-8"
 PREPROCESS_VERSION = "exif-rgb-max3200-jpeg95-1"
 AUTO_CONFLICT_SUMMARY = "Abweichender Schüler-/Korrekturbereich bleibt ungeklärt."
 AUTO_CONFLICT_LOCAL = "Die beiden Abschriften dieses Schüler-/Korrekturbereichs unterscheiden sich; Original erhalten."
@@ -35,6 +35,7 @@ REASONS = {
     "student_work": "Die Schülerrechnung ist noch keine geprüfte fachliche Regel.",
     "visible_annotation": "Eine sichtbare Korrektur, Einfügung oder Streichung muss getrennt geprüft werden.",
     "false_equality": "Diese wörtliche rationale Gleichung ist rechnerisch falsch; sie bleibt im Original erhalten.",
+    "ambiguous_numeric": "Die Zahlenschreibweise ist mehrdeutig; die Gleichung bleibt im Original erhalten und muss geprüft werden.",
     "false_divisibility": "Diese wörtliche Teilbarkeitsaussage ist rechnerisch falsch; sie bleibt im Original erhalten.",
     "false_unit_conversion": "Diese wörtliche Einheitenumrechnung ist rechnerisch falsch; sie bleibt im Original erhalten.",
     "false_gcd_lcm": "Diese wörtliche ggT-/kgV-Angabe ist rechnerisch falsch; sie bleibt im Original erhalten.",
@@ -145,6 +146,29 @@ def _embedded_false_equality(line):
             continue
         if any(left != right for left, right in zip(values, values[1:])):
             return True
+    return False
+
+
+_AMBIGUOUS_SEPARATOR = re.compile(r"(?<![\d.,])[1-9]\d{0,2}[.,]\d{3}(?![\d.,])")
+
+
+def ambiguous_numeric_equality(text):
+    """A fully numeric equation can use a decimal or thousands separator.
+
+    This does not establish either interpretation or transcription accuracy.
+    Only syntax the bounded arithmetic parser understands is recognized here;
+    unfamiliar notation stays outside this check.
+    """
+    for line in text.splitlines():
+        terms = line.strip().split('=')
+        if not 2 <= len(terms) <= 8 or not _AMBIGUOUS_SEPARATOR.search(line):
+            continue
+        try:
+            for term in terms:
+                _number(term)
+        except (ValueError, SyntaxError, ZeroDivisionError, OverflowError):
+            continue
+        return True
     return False
 
 
@@ -516,6 +540,8 @@ def learning_source(db, material, revision=None):
             or page_warning
         ):
             blocked = "reading_uncertain"
+        if not blocked and ambiguous_numeric_equality(block["text"]):
+            blocked = "ambiguous_numeric"
         if not blocked and false_equality(block["text"], include_embedded=True):
             blocked = "false_equality"
         if not blocked and false_divisibility(block["text"]):

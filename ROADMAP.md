@@ -768,6 +768,18 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – OCR anhand vollständig referenzierter künstlicher Seiten prüfen**
 
+  - [x] **Mehrdeutige Zahlentrenner nicht als Rechenfehler ausgeben.** Eine
+    vollständig numerische Gleichung mit beispielsweise `1.000` oder `1,000`
+    wird bei möglicher Dezimal- oder Tausenderlesung als ungeklärt behandelt;
+    die Abschrift bleibt erhalten und nicht als gesicherter Lernstoff nutzbar.
+    Die Nacharbeit zeigt einen Prüfhinweis statt eines behaupteten Fehlers.
+    Historische Gegenchecks bleiben an ihre Regelversion gebunden. Die Regel
+    deckt nur begrenzt erkannte Schreibweisen ab und belegt weder die
+    Fotoerkennung noch eine fachliche Gesamtprüfung. Die betroffenen
+    künstlichen Regressionen bestanden mit 229 Fällen auf SQLite (zwei
+    übersprungen) und 231 auf isoliertem PostgreSQL.
+    [Umfang und Grenzen](docs/NUMERIC_SEPARATOR_AMBIGUITY_2026_11_27.md).
+
   - [x] **Quellenschutz und kgV-Planung konsistent prüfen.** Ein alter
     Regressionstest erwartete bei einer eindeutig falschen kgV-Gleichung erst
     eine Ablehnung durch die Aufgabenplanung. Die frühere Quellensicherung
