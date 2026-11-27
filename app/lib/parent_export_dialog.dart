@@ -9,7 +9,12 @@ Future<void> showParentChildExport(
   AppState state,
   Json child,
 ) async {
-  if (!context.mounted || !state.isParent || state.familyId == null) return;
+  if (!context.mounted ||
+      !state.isParent ||
+      state.familyId == null ||
+      state.authenticationPending) {
+    return;
+  }
   final account = state.user, family = state.familyId;
   final identity = state.api.requestIdentity();
   bool current() =>
@@ -17,6 +22,7 @@ Future<void> showParentChildExport(
       identical(account, state.user) &&
       family == state.familyId &&
       state.isParent &&
+      !state.authenticationPending &&
       state.api.ownsRequest(identity);
   final route = DialogRoute<void>(
     context: context,

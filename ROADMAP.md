@@ -4171,6 +4171,15 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Echtzeitstatus gezielt und zuverlässig bereitstellen**
 
+  - [x] **Einstellungen und Kinderexport bei beginnender Anmeldung sperren.**
+    Während einer neuen Anmeldeabsicht zeigt die Einstellungsseite ihren
+    bisherigen Inhalt nicht. Bereits offene Einstellungsdialoge werden
+    geschlossen, und alte Bestätigungen bleiben auch nach Abbruch des
+    Kontowechsels wirkungslos. Der Kinderexport lässt sich während einer
+    Anmeldung nicht neu öffnen. Bereits abgesendete Änderungen können auf dem
+    Server angekommen sein. 54 künstliche Flutterfälle und 26 Chrome-Fälle
+    bestanden; der allgemeine Cookie-Wettlauf bleibt offen.
+
   - [x] **Eltern-Kalender beim Anmeldewechsel abgrenzen.** Eine neue
     Anmeldeabsicht schließt den Termin- und Exportdialog. Eingefangene alte
     Export- und Navigationsaktionen bleiben wirkungslos, verspätete Daten

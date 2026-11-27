@@ -80,6 +80,61 @@ Future<void> cleanup(WidgetTester tester, AppState state) async {
 
 void main() {
   testWidgets(
+    'settings content is hidden during login and returns after cancellation',
+    (tester) async {
+      final state = stateFor((_) async => response([]));
+      final router = GoRouter(
+        routes: [GoRoute(path: '/', builder: (_, _) => SettingsScreen(state))],
+      );
+      await tester.pumpWidget(
+        MaterialApp.router(theme: appTheme(), routerConfig: router),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Künstlicher Elternzugang'), findsWidgets);
+      final intent = state.beginAuthentication();
+      await tester.pump();
+      expect(find.text('Anmeldung wird geprüft …'), findsOneWidget);
+      expect(find.text('Künstlicher Elternzugang'), findsNothing);
+      state.cancelAuthentication(intent);
+      await tester.pumpAndSettle();
+      expect(find.text('Anmeldung wird geprüft …'), findsNothing);
+      expect(find.text('Künstlicher Elternzugang'), findsWidgets);
+      await cleanup(tester, state);
+      router.dispose();
+    },
+  );
+  testWidgets(
+    'new login intent closes an old settings form before it can send',
+    (tester) async {
+      final requests = <http.Request>[];
+      final state = stateFor((r) async {
+        requests.add(r);
+        return response({});
+      });
+      await mountDialog(tester, state, (ctx) => inviteDialog(ctx, state));
+      await tester.enterText(
+        field('E-Mail des Elternteils'),
+        'synthetic@example.invalid',
+      );
+      final stale = tester
+          .widget<FilledButton>(
+            find.widgetWithText(FilledButton, 'Einladung senden'),
+          )
+          .onPressed!;
+      final intent = state.beginAuthentication();
+      stale();
+      await tester.pumpAndSettle();
+      expect(find.byType(AlertDialog), findsNothing);
+      expect(requests, isEmpty);
+      state.cancelAuthentication(intent);
+      await tester.pumpAndSettle();
+      stale();
+      await tester.pumpAndSettle();
+      expect(requests, isEmpty);
+      await cleanup(tester, state);
+    },
+  );
+  testWidgets(
     'invitation keeps server error and email in the dialog; empty email stays local',
     (tester) async {
       final requests = <http.Request>[];

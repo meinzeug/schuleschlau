@@ -137,6 +137,31 @@ Json auditData({String? cursor}) => {
 };
 
 void main() {
+  testWidgets('a child export cannot start during a new login intent', (
+    tester,
+  ) async {
+    final f = Fixture();
+    await f.mount(
+      tester,
+      (c) => TextButton(
+        onPressed: () => showParentChildExport(c, f.state, {
+          'id': 'child',
+          'display_name': 'Künstliches Kind',
+        }),
+        child: const Text('Öffnen'),
+      ),
+    );
+    final oldButton = tester
+        .widget<TextButton>(find.widgetWithText(TextButton, 'Öffnen'))
+        .onPressed!;
+    final intent = f.state.beginAuthentication();
+    oldButton();
+    await tester.pumpAndSettle();
+    expect(find.byType(AlertDialog), findsNothing);
+    expect(f.requests, isEmpty);
+    f.state.cancelAuthentication(intent);
+    await tester.pumpAndSettle();
+  });
   testWidgets(
     'PK028 saved report comparison reads exact report without changing current selection',
     (tester) async {

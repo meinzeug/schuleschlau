@@ -116,6 +116,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     sessionToken = state.api.token;
     parentSection = allowedSection(widget.initialSection);
     state.addListener(contextChanged);
+    state.authenticationChanges.addListener(authenticationChanged);
+  }
+
+  void authenticationChanged() {
+    if (!mounted) return;
+    setState(() => confirmations.clear());
   }
 
   String allowedSection(String? value) =>
@@ -146,7 +152,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     super.didUpdateWidget(oldWidget);
     if (!identical(oldWidget.state, state)) {
       oldWidget.state.removeListener(contextChanged);
+      oldWidget.state.authenticationChanges.removeListener(
+        authenticationChanged,
+      );
       state.addListener(contextChanged);
+      state.authenticationChanges.addListener(authenticationChanged);
       account = state.user;
       family = state.familyId;
       sessionToken = state.api.token;
@@ -161,6 +171,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void dispose() {
     state.removeListener(contextChanged);
+    state.authenticationChanges.removeListener(authenticationChanged);
     super.dispose();
   }
 
@@ -199,6 +210,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final scope = _SettingsContext(state);
+    if (state.authenticationPending) {
+      return PageFrame(
+        state: state,
+        title: 'Einstellungen',
+        child: const Text('Anmeldung wird geprüft …'),
+      );
+    }
     if (state.isChild) {
       return ChildAccount(
         state,
@@ -1023,15 +1041,19 @@ class _SettingsContext {
   final AppState state;
   final Json? account;
   final String? familyId, token;
+  final (Object?, String?, int?) identity;
   _SettingsContext(this.state)
     : account = state.user,
       familyId = state.familyId,
-      token = state.api.token;
+      token = state.api.token,
+      identity = state.api.requestIdentity();
   bool get current =>
       account != null &&
       identical(state.user, account) &&
       state.familyId == familyId &&
-      state.api.token == token;
+      state.api.token == token &&
+      !state.authenticationPending &&
+      state.api.ownsRequest(identity);
 }
 
 class _SettingsFormDialog extends StatefulWidget {
@@ -1061,6 +1083,7 @@ class _SettingsFormDialogState extends State<_SettingsFormDialog> {
   void initState() {
     super.initState();
     widget.scope.state.addListener(contextChanged);
+    widget.scope.state.authenticationChanges.addListener(contextChanged);
   }
 
   void contextChanged() {
@@ -1077,6 +1100,7 @@ class _SettingsFormDialogState extends State<_SettingsFormDialog> {
   @override
   void dispose() {
     widget.scope.state.removeListener(contextChanged);
+    widget.scope.state.authenticationChanges.removeListener(contextChanged);
     super.dispose();
   }
 
