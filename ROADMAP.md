@@ -1180,15 +1180,29 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
     Hauptpunkt und das Ausrollen bleiben offen.
 
   - [x] **Klassenarbeit ohne Kinder-Prüfauftrag planen.** Fehlen geprüfte
-    Heftseiten, verweist der Kinderdialog verständlich auf die Eltern, statt
-    das Kind selbst zur Quellenbestätigung aufzufordern. Bei vorhandenen
-    Seiten heißen Auswahl und Hilfetext „Thema“ und „Heft“; die Auswahl bleibt
+    Heftseiten, erklärt der Kinderdialog erst beim Themenschritt, dass Seiten
+    fotografiert werden können und Eltern bei einer offenen Prüfung helfen.
+    Die vorherige pauschale Elternwarnung bei der Fachwahl entfällt. Bei
+    vorhandenen Seiten heißen Auswahl und Hilfetext „Thema“ und „Heft“; sie bleibt
     auf tatsächlich freigegebene Quellen begrenzt. Die Elternhinweise und die
     ausdrückliche Planung bleiben erhalten. Eine mobile Browseransicht mit
     künstlichen Daten sowie Widgettests für beide Rollen, fehlende und
     vorhandene Seiten und die bestehenden Plan-/Nacharbeitsabläufe wurden
-    geprüft (53 Fälle). Der umfassende Hauptpunkt und das Ausrollen bleiben
-    offen.
+    geprüft. Nach der Änderung bestanden 69 künstliche Flutterfälle für
+    beide Rollen, kleine Ansichten, große Schrift und die Planungsabläufe;
+    die bestehende mobile Browseransicht zeigt noch den früheren Stand. Der
+    umfassende Hauptpunkt und das Ausrollen bleiben offen.
+
+  - [ ] **Alle passenden Heftseiten für Klassenarbeiten auswählbar machen.**
+    Die aktuelle Quellenliste berücksichtigt höchstens die 200 neuesten
+    bestätigten Seiten insgesamt. Dadurch kann ein Fach in der Planung leer
+    erscheinen, obwohl ältere passende Seiten existieren. Eine serverseitige
+    Fachfilterung mit stabiler, begrenzter Seitennavigation ergänzen; Familien-
+    und Quellenrechte sowie die Bindung an bestätigte Revisionen erhalten.
+    Bereits ausgewählte Themen und Planentwürfe dürfen beim Nachladen nicht
+    verloren gehen. Mit mehr als 200 künstlichen Seiten, mehreren Fächern,
+    Quellenänderungen und mobiler Ansicht prüfen. Der aktuelle Hinweis
+    behauptet lediglich, dass keine passenden Seiten geladen sind.
 
   - [x] **Schulwörter eindeutig in der vorhandenen Standardsammlung ergänzen.**
     Eine einzelne, zur gewählten Sprache passende „Meine Schulwörter“-Sammlung

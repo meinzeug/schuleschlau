@@ -70,13 +70,8 @@ class _ExamPlanEditorState extends State<ExamPlanEditor> {
 
   bool get review =>
       (widget.existing?['purpose'] ?? widget.purpose) == 'review';
-  List<String> get subjects =>
-      widget.sources
-          .map((item) => '${item['subject'] ?? ''}')
-          .where((item) => item.isNotEmpty)
-          .toSet()
-          .toList()
-        ..sort();
+  bool get hasSourcesForSubject =>
+      widget.sources.any((item) => item['subject'] == subject);
   void changed() {
     if (mounted) setState(() {});
   }
@@ -457,12 +452,6 @@ class _ExamPlanEditorState extends State<ExamPlanEditor> {
         icon: const Icon(Icons.school_outlined),
         label: Text(subject.isEmpty ? 'Fach auswählen' : subject),
       ),
-      if (subjects.isEmpty && !review)
-        Notice(
-          widget.state.isChild
-              ? 'Noch keine geprüften Seiten. Bitte deine Eltern um Hilfe.'
-              : 'Hier fehlen bestätigte Heftquellen. Bestätige zuerst deine Seiten im Hefter.',
-        ),
       gap(),
       OutlinedButton.icon(
         icon: const Icon(Icons.calendar_month_outlined),
@@ -560,15 +549,24 @@ class _ExamPlanEditorState extends State<ExamPlanEditor> {
         ),
         gap(),
       ],
-      OutlinedButton.icon(
-        onPressed: saving || uncertain || topics.length >= 8 ? null : addTopic,
-        icon: const Icon(Icons.add),
-        label: Text(
+      if (hasSourcesForSubject)
+        OutlinedButton.icon(
+          onPressed: saving || uncertain || topics.length >= 8
+              ? null
+              : addTopic,
+          icon: const Icon(Icons.add),
+          label: Text(
+            widget.state.isChild
+                ? 'Thema aus dem Heft wählen (${topics.length}/8)'
+                : 'Thema aus Heftquelle wählen (${topics.length}/8)',
+          ),
+        )
+      else
+        Notice(
           widget.state.isChild
-              ? 'Thema aus dem Heft wählen (${topics.length}/8)'
-              : 'Thema aus Heftquelle wählen (${topics.length}/8)',
+              ? 'Hier sind keine geprüften Seiten für dieses Fach geladen. Fotografiere deine Seiten. Falls eine Prüfung offen ist, helfen deine Eltern.'
+              : 'Hier sind keine bestätigten Seiten für dieses Fach geladen. Ergänze oder bestätige passende Seiten im Hefter.',
         ),
-      ),
       if (review)
         const Text(
           'Für eine geschriebene Arbeit kannst du diesen Schritt überspringen.',

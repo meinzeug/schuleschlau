@@ -75,11 +75,19 @@ void main() {
       };
       await fixture.mount(tester, size: const Size(390, 844));
       await fixtures.tap(tester, find.text('Arbeit planen'));
+      expect(find.textContaining('fehlen geprüfte Heftseiten'), findsNothing);
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Titel der Arbeit'),
+        'Mathearbeit',
+      );
+      await fixtures.tap(tester, find.text('Fach auswählen'));
+      await fixtures.tap(tester, find.text('Mathematik').last);
+      await fixtures.tap(tester, find.text('Weiter'));
       expect(
         find.text(
           role == 'child'
-              ? 'Noch keine geprüften Seiten. Bitte deine Eltern um Hilfe.'
-              : 'Hier fehlen bestätigte Heftquellen. Bestätige zuerst deine Seiten im Hefter.',
+              ? 'Hier sind keine geprüften Seiten für dieses Fach geladen. Fotografiere deine Seiten. Falls eine Prüfung offen ist, helfen deine Eltern.'
+              : 'Hier sind keine bestätigten Seiten für dieses Fach geladen. Ergänze oder bestätige passende Seiten im Hefter.',
         ),
         findsOneWidget,
       );
@@ -101,8 +109,15 @@ void main() {
     };
     await fixture.mount(tester, size: const Size(320, 600), scale: 2);
     await fixtures.tap(tester, find.text('Arbeit planen'));
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Titel der Arbeit'),
+      'Mathearbeit',
+    );
+    await fixtures.tap(tester, find.text('Fach auswählen'));
+    await fixtures.tap(tester, find.text('Mathematik').last);
+    await fixtures.tap(tester, find.text('Weiter'));
     final notice = find.text(
-      'Noch keine geprüften Seiten. Bitte deine Eltern um Hilfe.',
+      'Hier sind keine geprüften Seiten für dieses Fach geladen. Fotografiere deine Seiten. Falls eine Prüfung offen ist, helfen deine Eltern.',
     );
     await tester.ensureVisible(notice);
     await tester.pumpAndSettle();
@@ -136,13 +151,13 @@ void main() {
     await fixtures.tap(tester, find.text('Fach auswählen'));
     await fixtures.tap(tester, find.text('Mathematik').last);
     await fixtures.tap(tester, find.text('Weiter'));
-    await fixtures.tap(tester, find.text('Thema aus dem Heft wählen (0/8)'));
     expect(
       find.text(
-        'Keine geprüften Seiten für dieses Fach. Bitte deine Eltern um Hilfe.',
+        'Hier sind keine geprüften Seiten für dieses Fach geladen. Fotografiere deine Seiten. Falls eine Prüfung offen ist, helfen deine Eltern.',
       ),
       findsOneWidget,
     );
+    expect(find.text('Thema aus dem Heft wählen (0/8)'), findsNothing);
     expect(fixture.writes, isEmpty);
     expect(tester.takeException(), isNull);
   });
@@ -171,6 +186,38 @@ void main() {
     expect(find.text('Wähle ein Thema aus deinem Heft'), findsOneWidget);
     await fixtures.tap(tester, find.text('Brüche').last);
     expect(find.text('Thema aus dem Heft wählen (1/8)'), findsOneWidget);
+    expect(fixture.writes, isEmpty);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Seiten eines anderen Fachs werden nicht als Themen angeboten', (
+    tester,
+  ) async {
+    final fixture = fixtures.Fixture();
+    fixture.subjectOverride = [
+      {'id': 'biology', 'title': 'Biologie'},
+    ];
+    fixture.listOverride = {
+      'child_id': 'child',
+      'can_manage': true,
+      'exams': [],
+      'sources': [fixtures.source()],
+      'has_more': false,
+    };
+    await fixture.mount(tester, size: const Size(390, 844));
+    await fixtures.tap(tester, find.text('Arbeit planen'));
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Titel der Arbeit'),
+      'Bioarbeit',
+    );
+    await fixtures.tap(tester, find.text('Fach auswählen'));
+    await fixtures.tap(tester, find.text('Biologie').last);
+    await fixtures.tap(tester, find.text('Weiter'));
+    expect(
+      find.textContaining('Hier sind keine geprüften Seiten'),
+      findsOneWidget,
+    );
+    expect(find.text('Thema aus dem Heft wählen (0/8)'), findsNothing);
     expect(fixture.writes, isEmpty);
     expect(tester.takeException(), isNull);
   });
