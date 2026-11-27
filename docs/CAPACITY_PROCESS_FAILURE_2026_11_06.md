@@ -171,3 +171,33 @@ keine Aussage über reale Mobilnetze, andere Fotoformate, Hostlast oder eine
 belastbare Anzahl gleichzeitig nutzbarer Familien. Ein produktiver
 Rollbacknachweis und eine längere Mischlast unter tatsächlichen Betriebsgrenzen
 bleiben offen; der übergeordnete Roadmap-Punkt bleibt daher offen.
+
+## Ergänzung: parallele Ausschnitte, 27.11.2026
+
+Ein eigener lokaler synthetischer Stresstest verwendete ein künstliches JPEG
+mit 3.990 × 3.990 Pixeln und acht Threads. Ein Synchronisationspunkt zwang
+alle vollständigen Dekodierungen gleichzeitig; der auf 350 MiB begrenzte
+Prozess wurde mit `oom-kill` beendet. Dies war ein bewusst verschärfter
+Pillow-Mikrotest, keine Messung der Produktions-API oder realer Abrufhäufigkeit.
+
+Der API-Ausschnittspfad verwendet nun denselben nicht wartenden
+Synchronisationsplatz wie der synchrone Teil des regulären Fotoimports.
+Das vorherige Parsen des Multipart-Requests ist davon nicht umfasst und hat
+eine separate Eingangsbegrenzung. Nach erfolgreicher Berechtigungs- und
+Revisionsprüfung erhält eine konkurrierende Anfrage bei
+belegtem Platz `503` mit `Retry-After`; danach ist eine ausdrückliche
+Wiederholung möglich. Der Platz wird auch bei fehlender Datei oder ungültigem
+Bild freigegeben. Das betrifft `/figures`, `/regions` und den darauf
+aufbauenden Quellenblock-Ausschnitt, nicht alle anderen Bildpfade. Die
+Konkurrenzprüfung verwendet ausschließlich künstliche Dateien und überprüft
+auch Authentifizierung, Fehler und fehlende Lern-/KI-Nebenwirkungen. Ein
+zweiter künstlicher Mikrotest mit einem Platz ließ eine von acht gleichzeitig
+gestarteten Berechnungen zu und wies sieben kontrolliert ab; er lief im selben
+350-MiB-Limit durch. Der gemeldete einzelne Speicherspitzenwert dieses sehr
+kurzen erfolgreichen Dienstes ist nicht verlässlich und wird nicht als
+Kapazitätsmessung verwendet.
+
+Die Sicherung gilt pro API-Prozess; die vorhandene Deployment-Unit verwendet
+einen Worker. Zusätzliche API-Worker, Profilfotos, andere Bildoperationen,
+Produktivlast und die vollständige Aktivierungs-/Rückrollkette sind damit
+nicht abgenommen. Der Hauptpunkt bleibt offen; noch kein Release dieser Änderung.

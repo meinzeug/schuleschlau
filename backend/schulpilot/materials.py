@@ -402,26 +402,37 @@ def source_figure(material_id: str, block_index: int, revision: int,
         raise HTTPException(404, "Diesen Abschnitt findest du im vollständigen Heftfoto.")
     from .private_images import read
 
-    data = read(material.path)
-    if data is None:
-        raise HTTPException(404, "Das Heftfoto ist nicht mehr verfügbar.")
+    # Decoding a large source region in the API can temporarily allocate far
+    # more than the JPEG size. Share the synchronous upload slot so requests
+    # cannot overlap the synchronous upload work or another crop in this API
+    # process. Multipart parsing occurs earlier and has its own intake limit.
+    # Never wait while holding a request thread or expose another family's data.
+    if not _SYNC_PHOTO_SLOT.acquire(blocking=False):
+        raise HTTPException(503, "Die Abbildung ist gerade beschäftigt. Bitte versuche es gleich noch einmal.",
+                            headers={"Retry-After": "2", "Cache-Control": "no-store"})
     try:
-        with Image.open(io.BytesIO(data)) as original:
-            # A small margin protects labels against approximate OCR bounds.
-            bounds = (max(0, region["left"] - 12), max(0, region["top"] - 12),
-                      min(1000, region["right"] + 12), min(1000, region["bottom"] + 12))
-            box = (bounds[0] * original.width // 1000, bounds[1] * original.height // 1000,
-                   (bounds[2] * original.width + 999) // 1000, (bounds[3] * original.height + 999) // 1000)
-            crop = original.crop(box).convert("RGB")
-            crop.thumbnail((1600, 2000))
-            output = io.BytesIO()
-            crop.save(output, format="JPEG", quality=92)
-    except (OSError, ValueError, Image.DecompressionBombError):
-        raise HTTPException(422, "Bitte die Abbildung im vollständigen Heftfoto ansehen.") from None
-    # Derived on demand from authenticated original pixels; no disk copy,
-    # provider call, progress write, or public image cache.
-    return Response(output.getvalue(), media_type="image/jpeg",
-        headers={"Cache-Control": "no-store", "X-Content-Type-Options": "nosniff"})
+        data = read(material.path)
+        if data is None:
+            raise HTTPException(404, "Das Heftfoto ist nicht mehr verfügbar.")
+        try:
+            with Image.open(io.BytesIO(data)) as original:
+                # A small margin protects labels against approximate OCR bounds.
+                bounds = (max(0, region["left"] - 12), max(0, region["top"] - 12),
+                          min(1000, region["right"] + 12), min(1000, region["bottom"] + 12))
+                box = (bounds[0] * original.width // 1000, bounds[1] * original.height // 1000,
+                       (bounds[2] * original.width + 999) // 1000, (bounds[3] * original.height + 999) // 1000)
+                crop = original.crop(box).convert("RGB")
+                crop.thumbnail((1600, 2000))
+                output = io.BytesIO()
+                crop.save(output, format="JPEG", quality=92)
+        except (OSError, ValueError, Image.DecompressionBombError):
+            raise HTTPException(422, "Bitte die Abbildung im vollständigen Heftfoto ansehen.") from None
+        # Derived on demand from authenticated original pixels; no disk copy,
+        # provider call, progress write, or public image cache.
+        return Response(output.getvalue(), media_type="image/jpeg",
+            headers={"Cache-Control": "no-store", "X-Content-Type-Options": "nosniff"})
+    finally:
+        _SYNC_PHOTO_SLOT.release()
 
 
 @router.get("/materials/{material_id}/source-blocks/{block_id}/image")

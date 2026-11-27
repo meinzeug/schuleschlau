@@ -192,3 +192,68 @@ def test_operating_admin_cannot_read_a_private_source_figure(api, household):
     assert signed.status_code == 200
     api.headers["Authorization"] = "Bearer " + signed.json()["token"]
     assert api.get(f"/api/materials/{mid}/figures/0", params={"revision": 1}).status_code == 403
+
+
+def test_source_crop_and_photo_import_share_bounded_memory_slot(api, household, monkeypatch):
+    import io
+    import threading
+    from concurrent.futures import ThreadPoolExecutor
+
+    from fastapi.testclient import TestClient
+    from PIL import Image
+    from schulpilot import private_images
+    from schulpilot.config import settings
+    from schulpilot.db import DB, Activity, Job, Usage
+    from schulpilot.main import app
+    from sqlalchemy import func, select
+
+    _, child = household
+    folder = settings.data_dir / 'uploads'
+    folder.mkdir(exist_ok=True)
+    name = 'synthetic-bounded-crop.jpg'
+    Image.new('RGB', (1000, 600), 'white').save(folder / name)
+    block = {'kind': 'diagram_text', 'text': 'Künstlicher Ausschnitt',
+             'image_region': {'left': 100, 'top': 100, 'right': 900, 'bottom': 900}}
+    with DB.begin() as db:
+        material = Material(child_id=child['id'], title='Künstlich', path=name,
+                            content=block['text'], source_blocks=[block])
+        db.add(material)
+        db.flush()
+        mid = material.id
+        before = [db.scalar(select(func.count()).select_from(t)) for t in (Job, Usage, Activity)]
+    started, release = threading.Event(), threading.Event()
+    original = private_images.read
+
+    def delayed_read(*args, **kwargs):
+        started.set()
+        assert release.wait(10)
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(private_images, 'read', delayed_read)
+    route = f'/api/materials/{mid}/figures/0?revision=1'
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        first = pool.submit(api.get, route)
+        try:
+            assert started.wait(10)
+            busy = api.get(route)
+            assert busy.status_code == 503 and busy.headers['retry-after'] == '2'
+            assert busy.headers['cache-control'] == 'no-store'
+            upload = api.post(f'/api/children/{child["id"]}/materials',
+                              files={'file': ('synthetic.jpg', b'not-an-image', 'image/jpeg')})
+            assert upload.status_code == 503 and upload.headers['retry-after'] == '2'
+            with TestClient(app) as anonymous:
+                assert anonymous.get(route).status_code == 401
+        finally:
+            release.set()
+        assert first.result(timeout=10).status_code == 200
+    # Decode failures must not permanently occupy the shared upload slot.
+    monkeypatch.setattr(private_images, 'read', lambda *_args, **_kwargs: b'not-an-image')
+    assert api.get(route).status_code == 422
+    monkeypatch.setattr(private_images, 'read', original)
+    retry = api.get(route)
+    assert retry.status_code == 200 and retry.headers['content-type'] == 'image/jpeg'
+    with Image.open(io.BytesIO(retry.content)) as crop:
+        assert crop.size == (824, 496)
+    with DB() as db:
+        assert [db.scalar(select(func.count()).select_from(t)) for t in (Job, Usage, Activity)] == before
+    (folder / name).unlink()

@@ -2467,6 +2467,17 @@ Bestandteil des bestehenden Buildvertrags.
     Last und allgemeine Kapazitätsgrenzen bleiben offen.
     [Messung](docs/CAPACITY_PROCESS_FAILURE_2026_11_06.md#erneute-isolierte-messung-und-reparatur-des-test-runners-26112026).
 
+  - [x] **Gleichzeitige Heftausschnitte begrenzen.** Ein verschärfter
+    synthetischer Achtfach-Dekodiertest brachte einen lokal auf 350 MiB
+    begrenzten Prozess zum OOM. Quellenbildausschnitte und Fotoimporte teilen
+    nun pro API-Prozess ihren nicht wartenden Platz; bei Überlast ist eine
+    ausdrückliche Wiederholung möglich. SQLite und isoliertes PostgreSQL prüfen
+    Konkurrenz, Zugriffsschutz, Freigabe nach Fehlern und unveränderte
+    Lern-/KI-Daten. Ein begrenzter künstlicher Vergleichslauf bestand mit einem
+    erfolgreichen und sieben abgewiesenen gleichzeitigen Ausschnitten. Andere
+    Bildpfade, mehrere API-Worker und Produktionslast bleiben offen.
+    [Messung und Grenzen](docs/CAPACITY_PROCESS_FAILURE_2026_11_06.md#ergänzung-parallele-ausschnitte-27112026).
+
   - [ ] **API-Speicherschutz beim gleichzeitigen Fotoimport beheben.**
     Die getrennte Prozessprüfung auf PostgreSQL und Loopback reproduzierte bei
     acht künstlichen Familien einen OOM-Kill am produktiven 350-MiB-API-Limit.
