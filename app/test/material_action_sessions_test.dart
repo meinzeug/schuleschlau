@@ -118,6 +118,43 @@ void main() {
   for (final kind in ['pages', 'round', 'reread']) {
     for (final phase in ['preview', 'confirm', 'mutation']) {
       if (kind == 'reread' && phase == 'preview') continue;
+      testWidgets('A login intent stops old $kind $phase work', (tester) async {
+        final f = _Fixture(kind, phase);
+        await f.open(tester);
+        await _tap(tester, 'Künstliche Aktion öffnen');
+        final label = switch (kind) {
+          'pages' => 'Heftseite löschen',
+          'round' => 'Lernrunde löschen',
+          _ => 'Mit KI neu einlesen',
+        };
+        VoidCallback? oldConfirm;
+        if (phase == 'confirm') {
+          oldConfirm = tester
+              .widget<FilledButton>(find.widgetWithText(FilledButton, label))
+              .onPressed;
+        }
+        if (phase == 'mutation') await _tap(tester, label);
+        final before = f.requests.length;
+        final intent = f.state.beginAuthentication();
+        oldConfirm?.call();
+        if (phase != 'confirm') {
+          f.waiting.complete(f.response(preview: phase == 'preview'));
+        }
+        await tester.pumpAndSettle();
+        expect(f.requests.length, before);
+        expect(f.result, isFalse);
+        expect(f.refreshed, 0);
+        expect(find.byType(AlertDialog), findsNothing);
+        expect(tester.takeException(), isNull);
+        f.state.cancelAuthentication(intent);
+        await f.close(tester);
+      });
+    }
+  }
+
+  for (final kind in ['pages', 'round', 'reread']) {
+    for (final phase in ['preview', 'confirm', 'mutation']) {
+      if (kind == 'reread' && phase == 'preview') continue;
       testWidgets(
         'Old $kind $phase work cannot continue in a new session of the same child',
         (tester) async {

@@ -77,6 +77,14 @@ class Api {
       (currentAuthenticationRevision == null ||
           identity.$3 == currentAuthenticationRevision!());
 
+  ApiError _changedAuthentication(String method) => ApiError(
+    method == 'GET'
+        ? 'Die Anmeldung hat sich geändert. Bitte lade die Ansicht erneut.'
+        : 'Die Anmeldung hat sich geändert. Prüfe den gespeicherten Stand, bevor du es erneut versuchst.',
+    0,
+    'authentication_changed',
+  );
+
   // These endpoints use credential checks or the independent setup/web cookie;
   // their 401 does not establish that the current app session was revoked.
   bool _usesSession401(String method, String rawPath) {
@@ -150,10 +158,17 @@ class Api {
         ...?extra,
       });
       if (body != null) request.body = jsonEncode(body);
+      final response = await http.Response.fromStream(
+        await client.send(request).timeout(const Duration(seconds: 35)),
+      ).timeout(const Duration(seconds: 35));
+      // A response sent for an earlier authenticated view must not deliver
+      // private data to a newer session. For writes the server may already
+      // have committed: status 0 keeps retries explicitly uncertain.
+      if (identity.$1 != null && !ownsRequest(identity)) {
+        throw _changedAuthentication(method);
+      }
       return decode(
-        await http.Response.fromStream(
-          await client.send(request).timeout(const Duration(seconds: 35)),
-        ).timeout(const Duration(seconds: 35)),
+        response,
         // Logout handles an already revoked session itself, with the captured
         // account guard. A late 401 must not clear a newer login.
         notifyUnauthorized:
@@ -162,6 +177,9 @@ class Api {
     } on ApiError {
       rethrow;
     } catch (_) {
+      if (identity.$1 != null && !ownsRequest(identity)) {
+        throw _changedAuthentication(method);
+      }
       throw ApiError(
         'Keine Verbindung zu SchuleSchlau. Bitte prüfe deine Internetverbindung und versuche es erneut.',
       );
@@ -827,6 +845,7 @@ class AppState extends ChangeNotifier {
     try {
       await api.post('/auth/logout');
     } on ApiError catch (e) {
+      if (!currentAccount()) return;
       // Another tab may already own the cookie. Never log out that account;
       // an explicit logout can still discard this tab's obsolete local state.
       if (e.status != 401 &&

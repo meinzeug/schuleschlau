@@ -10,17 +10,25 @@ Future<void> editSubjectLevel(
   String subjectId,
 ) async {
   final account = state.user, family = state.familyId;
+  final authentication = state.api.requestIdentity();
   bool current() =>
       account != null &&
       identical(account, state.user) &&
       family == state.familyId &&
+      state.api.ownsRequest(authentication) &&
       state.isParent;
   if (!current()) return;
   Future<List<Json>> read() => Future.wait([
     state.api.get('/children/$childId/subjects'),
     state.api.get('/children/$childId/subjects/$subjectId/levels'),
   ]);
-  final values = await read();
+  late final List<Json> values;
+  try {
+    values = await read();
+  } catch (_) {
+    if (!current()) return;
+    rethrow;
+  }
   if (!context.mounted || !current()) return;
   if (values[0]['can_manage'] != true) {
     throw ApiError('Nur berechtigte Eltern können die Stufe ändern.');
@@ -58,6 +66,7 @@ Future<void> editSubjectLevel(
   }
 
   state.addListener(changed);
+  state.authenticationChanges.addListener(changed);
   try {
     await showDialog<void>(
       context: context,
@@ -244,5 +253,6 @@ Future<void> editSubjectLevel(
     );
   } finally {
     state.removeListener(changed);
+    state.authenticationChanges.removeListener(changed);
   }
 }

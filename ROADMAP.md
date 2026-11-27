@@ -3981,6 +3981,17 @@ Bestandteil des bestehenden Buildvertrags.
 
 ## Laufende Qualitätssicherung und finale Freigabe
 
+- [x] **Verspätete JSON-Antworten beim Anmeldewechsel abfangen.** Für ein
+  bereits angezeigtes Konto verwirft der gemeinsame Flutter-Transport eine
+  Antwort, wenn Konto, Token oder Anmeldeabsicht nicht mehr zur Anfrage passen.
+  Alte 401-Antworten melden das neue Konto nicht ab. Bei Schreibanfragen bleibt
+  der Ausgang ausdrücklich ungewiss; es erfolgt keine automatische Wiederholung.
+  Rückblick, Materialaktionen und Fachstufenwahl behandeln den Wechsel ohne
+  ungebundene Folgeaktionen. 113 lokale und 70 Chrome-Tests mit künstlichem
+  Transport bestanden; die Änderung prüft keine echten Browser-Cookies, keine
+  Binär-/Dateiübertragungen und verhindert keine bereits erfolgte Serveraktion.
+  Umfang und offene Grenzen: `docs/JSON_AUTH_RESPONSE_GUARD_2026_11_27.md`.
+
 - [x] **Browser-Testabschluss vor laufenden Anfragen schützen.** Im
   GitHub-Lauf `45988628610` scheiterte der synthetische Mehrkind-PDF-Test
   beim Aufräumen mit Verbindungsabbrüchen laufender lokaler Schriftdateien.

@@ -482,6 +482,35 @@ void main() {
     },
   );
 
+  testWidgets('A new login intent blocks a previously shown retry', (t) async {
+    final h = Harness();
+    await h.open(t);
+    final retryAction = t.widget<ActionButton>(practiceButton()).onPressed;
+    final revision = h.state.beginAuthentication();
+    await retryAction();
+    await t.pumpAndSettle();
+    expect(h.calls, isEmpty);
+    expect(h.refreshes, 0);
+    h.state.cancelAuthentication(revision);
+    await h.close(t);
+  });
+
+  testWidgets('A new login intent discards the late retry response', (t) async {
+    final response = Completer<http.Response>();
+    final h = Harness(reply: (_) => response.future);
+    await h.open(t);
+    final pending = t.widget<ActionButton>(practiceButton()).onPressed();
+    await t.pump();
+    final revision = h.state.beginAuthentication();
+    response.complete(http.Response('{}', 202));
+    await pending;
+    await t.pumpAndSettle();
+    expect(h.calls, hasLength(1));
+    expect(h.refreshes, 0);
+    h.state.cancelAuthentication(revision);
+    await h.close(t);
+  });
+
   for (final viewport in [(320.0, 2.0), (390.0, 1.0), (1280.0, 1.0)]) {
     testWidgets(
       'Failed-practice actions remain reachable at ${viewport.$1}px and ${viewport.$2}x text',

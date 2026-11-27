@@ -662,6 +662,25 @@ void main() {
     expect(f.requests.every((r) => r.method == 'GET'), true);
     await tester.pumpWidget(const SizedBox());
   });
+  testWidgets('P93 a login intent closes an old level dialog without saving', (
+    tester,
+  ) async {
+    final f = _Fixture();
+    _setupLevels(f);
+    await f.mount(tester, dialog: 'level');
+    final oldSave = tester
+        .widget<FilledButton>(
+          find.widgetWithText(FilledButton, 'Stufe übernehmen'),
+        )
+        .onPressed!;
+    final revision = f.state.beginAuthentication();
+    oldSave();
+    await tester.pumpAndSettle();
+    expect(find.text('Stufe festlegen'), findsNothing);
+    expect(f.requests.every((r) => r.method == 'GET'), isTrue);
+    f.state.cancelAuthentication(revision);
+    await tester.pumpWidget(const SizedBox());
+  });
   testWidgets(
     'P93 clearing a known level keeps nullable API semantics at 320px large text',
     (tester) async {

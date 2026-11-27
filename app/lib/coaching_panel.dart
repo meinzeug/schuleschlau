@@ -521,7 +521,7 @@ class _ChildCoachingPanel extends StatelessWidget {
                 ActionButton(
                   label: 'Rückblick starten',
                   icon: Icons.play_arrow_rounded,
-                  onPressed: () => requestReview(context),
+                  onPressed: () => requestReview(context, currentAction),
                 ),
               ] else if (pending) ...[
                 LinearProgressIndicator(),
@@ -556,7 +556,7 @@ class _ChildCoachingPanel extends StatelessWidget {
                   ActionButton(
                     label: 'Noch einmal versuchen',
                     icon: Icons.refresh_rounded,
-                    onPressed: () => requestReview(context),
+                    onPressed: () => requestReview(context, currentAction),
                   ),
                   SizedBox(height: 8),
                   Text(
@@ -646,7 +646,12 @@ class _ChildCoachingPanel extends StatelessWidget {
                         final current = currentAction;
                         if (!current()) return;
                         final next = coach!['next_unit_id'];
-                        await state.api.post('/units/$next/start');
+                        try {
+                          await state.api.post('/units/$next/start');
+                        } catch (_) {
+                          if (!current()) return;
+                          rethrow;
+                        }
                         if (context.mounted && current()) {
                           openRoute(context, '/unit/$next');
                         }
@@ -713,14 +718,19 @@ class _ChildCoachingPanel extends StatelessWidget {
                         onPressed: () async {
                           final current = currentAction;
                           if (!current()) return;
-                          await state.api.post(
-                            '/units/${unit['id']}/practice',
-                            null,
-                            {
-                              'Idempotency-Key':
-                                  'practice-${DateTime.now().microsecondsSinceEpoch}',
-                            },
-                          );
+                          try {
+                            await state.api.post(
+                              '/units/${unit['id']}/practice',
+                              null,
+                              {
+                                'Idempotency-Key':
+                                    'practice-${DateTime.now().microsecondsSinceEpoch}',
+                              },
+                            );
+                          } catch (_) {
+                            if (!current()) return;
+                            rethrow;
+                          }
                           if (current()) await refresh();
                         },
                       ),
@@ -1093,6 +1103,7 @@ class _ChildCoachingPanel extends StatelessWidget {
   );
 
   bool Function() _currentAction(BuildContext context) {
+    final authentication = state.api.requestIdentity();
     final owner = state.user;
     final family = state.familyId;
     final token = state.api.token;
@@ -1104,15 +1115,23 @@ class _ChildCoachingPanel extends StatelessWidget {
         identical(state.user, owner) &&
         state.familyId == family &&
         state.api.token == token &&
+        state.api.ownsRequest(authentication) &&
         state.isChild &&
         state.user?['child_id'] == child &&
         (route?.isCurrent ?? true);
   }
 
-  Future<void> requestReview(BuildContext context) async {
-    final current = _currentAction(context);
+  Future<void> requestReview(
+    BuildContext context,
+    bool Function() current,
+  ) async {
     if (!current()) return;
-    await state.api.post('/units/${unit['id']}/coaching');
+    try {
+      await state.api.post('/units/${unit['id']}/coaching');
+    } catch (_) {
+      if (!current()) return;
+      rethrow;
+    }
     if (current()) await refresh();
   }
 }

@@ -34,6 +34,7 @@ Future<bool> _confirmAccountAction(
   AppState state,
   Json owner,
   String? family,
+  (Object?, String?, int?) authentication,
   String title,
   String text, {
   String confirmLabel = 'Bestätigen',
@@ -42,7 +43,8 @@ Future<bool> _confirmAccountAction(
   bool current() =>
       context.mounted &&
       identical(state.user, owner) &&
-      state.familyId == family;
+      state.familyId == family &&
+      state.api.ownsRequest(authentication);
   if (!current() || ModalRoute.of(context)?.isCurrent == false) return false;
   ModalRoute<dynamic>? confirmationRoute;
   void accountChanged() {
@@ -57,6 +59,7 @@ Future<bool> _confirmAccountAction(
   }
 
   state.addListener(accountChanged);
+  state.authenticationChanges.addListener(accountChanged);
   try {
     return await showDialog<bool>(
           context: context,
@@ -102,6 +105,19 @@ Future<bool> _confirmAccountAction(
         false;
   } finally {
     state.removeListener(accountChanged);
+    state.authenticationChanges.removeListener(accountChanged);
+  }
+}
+
+Future<T?> _currentMaterialRequest<T>(
+  Future<T> Function() request,
+  bool Function() current,
+) async {
+  try {
+    return await request();
+  } catch (_) {
+    if (!current()) return null;
+    rethrow;
   }
 }
 
@@ -117,20 +133,25 @@ Future<bool> deleteNotebookPages(
 }) async {
   final owner = state.user;
   final family = state.familyId;
+  final authentication = state.api.requestIdentity();
   final route = ModalRoute.of(context);
   bool current() =>
       context.mounted &&
       identical(owner, state.user) &&
       state.familyId == family &&
+      state.api.ownsRequest(authentication) &&
       route?.isCurrent != false;
   if (owner == null || (ids != null && ids.isEmpty)) return false;
-  final preview = await state.api.post(
-    '/children/$childId/materials/delete-preview',
-    ids == null
-        ? {'all_matching': true, 'filters': filters ?? <String, dynamic>{}}
-        : {'ids': ids},
+  final preview = await _currentMaterialRequest(
+    () => state.api.post(
+      '/children/$childId/materials/delete-preview',
+      ids == null
+          ? {'all_matching': true, 'filters': filters ?? <String, dynamic>{}}
+          : {'ids': ids},
+    ),
+    current,
   );
-  if (!context.mounted || !current()) return false;
+  if (preview == null || !context.mounted || !current()) return false;
   final count = (preview['count'] as num? ?? 0).toInt();
   final units = (preview['unit_count'] as num? ?? 0).toInt();
   final answers = (preview['answer_count'] as num? ?? 0).toInt();
@@ -142,6 +163,7 @@ Future<bool> deleteNotebookPages(
     state,
     owner,
     family,
+    authentication,
     count == 1 ? 'Heftseite löschen?' : '$count Heftseiten löschen?',
     '${counted(count, 'ausgewählte Seite wird', 'ausgewählte Seiten werden')} gelöscht${ids == null ? ' – auch auf weiteren Listenseiten' : ''}. '
     'Foto und erkannter Text werden entfernt. '
@@ -155,14 +177,14 @@ Future<bool> deleteNotebookPages(
   if (!context.mounted || !accepted || !current()) {
     return false;
   }
-  final result = await state.api.post(
-    '/children/$childId/materials/bulk-delete',
-    {
+  final result = await _currentMaterialRequest(
+    () => state.api.post('/children/$childId/materials/bulk-delete', {
       'selection_token': preview['selection_token'],
       'delete_linked_units': true,
-    },
+    }),
+    current,
   );
-  if (!context.mounted || !current()) return false;
+  if (result == null || !context.mounted || !current()) return false;
   final deleted = (result['deleted_count'] as num? ?? 0).toInt();
   toast(context, '${counted(deleted, 'Heftseite', 'Heftseiten')} gelöscht.');
   onDeleted?.call();
@@ -177,16 +199,21 @@ Future<bool> deleteLearningRound(
 ) async {
   final owner = state.user;
   final family = state.familyId;
+  final authentication = state.api.requestIdentity();
   final route = ModalRoute.of(context);
   bool current() =>
       context.mounted &&
       identical(owner, state.user) &&
       state.familyId == family &&
+      state.api.ownsRequest(authentication) &&
       route?.isCurrent != false;
   if (owner == null) return false;
   final id = item['id'];
-  final preview = await state.api.post('/units/$id/delete-preview', {});
-  if (!context.mounted || !current()) return false;
+  final preview = await _currentMaterialRequest(
+    () => state.api.post('/units/$id/delete-preview', {}),
+    current,
+  );
+  if (preview == null || !context.mounted || !current()) return false;
   final answers = (preview['answer_count'] as num? ?? 0).toInt();
   if (preview['selection_token'] is! String) {
     throw ApiError('Lade die Liste neu und wähle die Runde erneut aus.');
@@ -196,6 +223,7 @@ Future<bool> deleteLearningRound(
     state,
     owner,
     family,
+    authentication,
     'Lernrunde löschen?',
     '„${[item['subject'], item['topic']].whereType<String>().where((value) => value.trim().isNotEmpty).join(' · ')}“ mit Aufgaben, Rückmeldungen und ${counted(answers, 'gespeichertem Antwortversuch', 'gespeicherten Antwortversuchen')} wird gelöscht. '
         'Die Heftseiten und andere Runden bleiben erhalten. Das kannst du nicht rückgängig machen.',
@@ -205,10 +233,13 @@ Future<bool> deleteLearningRound(
   if (!context.mounted || !accepted || !current()) {
     return false;
   }
-  await state.api.post('/units/$id/delete', {
-    'selection_token': preview['selection_token'],
-  });
-  if (!context.mounted || !current()) return false;
+  final result = await _currentMaterialRequest(
+    () => state.api.post('/units/$id/delete', {
+      'selection_token': preview['selection_token'],
+    }),
+    current,
+  );
+  if (result == null || !context.mounted || !current()) return false;
   toast(context, 'Lernrunde gelöscht.');
   state.refreshState();
   return true;
@@ -223,11 +254,13 @@ Future<bool> reprocessNotebookPage(
 }) async {
   final owner = state.user;
   final family = state.familyId;
+  final authentication = state.api.requestIdentity();
   final route = ModalRoute.of(context);
   bool current() =>
       context.mounted &&
       identical(owner, state.user) &&
       state.familyId == family &&
+      state.api.ownsRequest(authentication) &&
       route?.isCurrent != false;
   if (owner == null || !materialCanReprocess(state, item)) return false;
   if (!await _confirmAccountAction(
@@ -235,6 +268,7 @@ Future<bool> reprocessNotebookPage(
     state,
     owner,
     family,
+    authentication,
     'Seite neu einlesen?',
     state.isChild
         ? 'Die KI liest dein Foto erneut. Falls etwas unklar ist, können deine Eltern den Text prüfen. '
@@ -259,12 +293,15 @@ Future<bool> reprocessNotebookPage(
     'revision': item['revision'],
     'request_key': key,
   };
-  final job = await state.api.post(
-    '/materials/$id/reprocess',
-    {'revision': item['revision']},
-    {'Idempotency-Key': key},
+  final job = await _currentMaterialRequest(
+    () => state.api.post(
+      '/materials/$id/reprocess',
+      {'revision': item['revision']},
+      {'Idempotency-Key': key},
+    ),
+    current,
   );
-  if (!context.mounted || !current()) return false;
+  if (job == null || !context.mounted || !current()) return false;
   if (job['id'] is! String || job['material_id'] is! String) {
     throw ApiError(
       'Die Vorbereitung konnte nicht geöffnet werden. Lade deine Hefte neu.',
