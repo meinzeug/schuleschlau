@@ -2364,42 +2364,47 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
             title: const Text('Seite auswählen'),
             content: SizedBox(
               width: 480,
-              height: min(460.0, MediaQuery.sizeOf(dialog).height * .55),
-              child: Scrollbar(
-                child: ListView.builder(
-                  itemCount: choices.length,
-                  itemBuilder: (_, index) {
-                    final page = choices[index];
-                    return ListTile(
-                      key: ValueKey('school-day-page-choice:${page['id']}'),
-                      title: Text('Seite ${page['page_number']}'),
-                      subtitle: Text(reviewPageStatus(page)),
-                      selected: page['id'] == selected['id'],
-                      enabled: page['confirmed'] != true,
-                      minVerticalPadding: 12,
-                      trailing: Icon(
-                        page['confirmed'] == true
-                            ? Icons.check_circle_outline_rounded
-                            : page['id'] == selected['id']
-                            ? Icons.radio_button_checked_rounded
-                            : Icons.radio_button_unchecked_rounded,
-                      ),
-                      onTap: page['confirmed'] == true
-                          ? null
-                          : () {
-                              if (!current() ||
-                                  ModalRoute.of(dialog)?.isCurrent != true) {
-                                return;
-                              }
-                              setState(() => reviewId = page['id']);
-                              closeDayDialog(dialog);
-                              if (state.isChild &&
-                                  page['id'] != selected['id']) {
-                                showReviewStart(page['id'] as String);
-                              }
-                            },
-                    );
-                  },
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: min(460.0, MediaQuery.sizeOf(dialog).height * .55),
+                ),
+                child: Scrollbar(
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: choices.length,
+                    itemBuilder: (_, index) {
+                      final page = choices[index];
+                      return ListTile(
+                        key: ValueKey('school-day-page-choice:${page['id']}'),
+                        title: Text('Seite ${page['page_number']}'),
+                        subtitle: Text(reviewPageStatus(page)),
+                        selected: page['id'] == selected['id'],
+                        enabled: page['confirmed'] != true,
+                        minVerticalPadding: 12,
+                        trailing: Icon(
+                          page['confirmed'] == true
+                              ? Icons.check_circle_outline_rounded
+                              : page['id'] == selected['id']
+                              ? Icons.radio_button_checked_rounded
+                              : Icons.radio_button_unchecked_rounded,
+                        ),
+                        onTap: page['confirmed'] == true
+                            ? null
+                            : () {
+                                if (!current() ||
+                                    ModalRoute.of(dialog)?.isCurrent != true) {
+                                  return;
+                                }
+                                setState(() => reviewId = page['id']);
+                                closeDayDialog(dialog);
+                                if (state.isChild &&
+                                    page['id'] != selected['id']) {
+                                  showReviewStart(page['id'] as String);
+                                }
+                              },
+                      );
+                    },
+                  ),
                 ),
               ),
             ),
@@ -2483,46 +2488,55 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
             if (!expanded) FocusManager.instance.primaryFocus?.unfocus();
           },
           children: [
-            KeyedSubtree(
-              key: reviewStartKey,
-              child: OutlinedButton(
-                key: const ValueKey('school-day-page-picker'),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
+            if (unconfirmed.length == 1)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text('Seite ${selected['page_number']}'),
                 ),
-                onPressed: active && !locked
-                    ? () => chooseReviewPage(selected)
-                    : null,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Seite ${selected['page_number']} ansehen',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 14,
+              ),
+            if (unconfirmed.length > 1)
+              KeyedSubtree(
+                key: reviewStartKey,
+                child: OutlinedButton(
+                  key: const ValueKey('school-day-page-picker'),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                  ),
+                  onPressed: active && !locked
+                      ? () => chooseReviewPage(selected)
+                      : null,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Seite ${selected['page_number']} ansehen',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 14,
+                                ),
                               ),
-                            ),
-                            Text(
-                              '${counted(pages.length, 'Foto', 'Fotos')} gespeichert',
-                              style: const TextStyle(fontSize: 12),
-                            ),
-                          ],
+                              Text(
+                                '${counted(pages.length, 'Foto', 'Fotos')} gespeichert',
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      const Icon(Icons.expand_more_rounded),
-                    ],
+                        const SizedBox(width: 8),
+                        const Icon(Icons.expand_more_rounded),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 4),
+            if (unconfirmed.length > 1) const SizedBox(height: 4),
             MaterialReview(
               state,
               selected,

@@ -944,6 +944,17 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – Lehrplanabdeckung fachlich kuratieren und offen ausweisen**
 
+  - [x] **Technik und Wirtschaft der Sekundarschule Sachsen-Anhalt ergänzen.**
+    Die amtlichen Überblickstabellen enthalten sieben Technik- und acht
+    Wirtschaftsschwerpunkte in den jeweils genannten Doppeljahrgängen. Die
+    verbindlichen Gegenstände für Jahrgang 9 sowie Hinweise auf schulische
+    Aufsicht und den Schutz privater Finanzdaten bleiben im Planungskontext
+    erhalten. Die Einträge sind keine praktischen Arbeitsaufträge oder
+    Kompetenznachweise. Katalog-, Rechte- und Migrationstests bestanden auf
+    SQLite (47 bestanden, zwei PostgreSQL-Fälle übersprungen) und isoliertem
+    PostgreSQL (49 bestanden). Der umfassende Hauptpunkt und das Ausrollen
+    bleiben offen.
+
   - [x] **Sportübersicht der Sekundarschule Sachsen-Anhalt ergänzen.** Zehn
     amtliche Bewegungsfelder sind für die Doppeljahrgänge 5/6, 7/8 und 9/10
     quellengebunden erfasst. Pflichtfelder, schulische Wahlfelder und
@@ -1138,6 +1149,24 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 ## Kindgerechte Bedienung und Alltagstest
 
 - [ ] **P1 – Alle Kinderansichten sprachlich und in ihrer Bedienung entrümpeln**
+
+  - [x] **Fotoauswahl bei wenigen Seiten verkleinern.** Bei nur einer offenen
+    Seite wird diese nach dem Aufklappen unmittelbar angezeigt; es erscheint
+    kein Auswahldialog mit nur einem Eintrag. Eine kurze Mehrseitenliste passt
+    sich ihrem Inhalt an, längere Listen bleiben begrenzt und scrollbar.
+    Seitenwechsel, Kontowechsel und reine Lesezugriffe sind durch künstliche
+    Widgettests einschließlich 320/390 Pixeln und großer Schrift abgedeckt
+    (61 Fälle). Die lokale Smartphone-Vorschau wurde für eine und mehrere
+    Beispielseiten geöffnet; Auswahl und Seitenwechsel wurden bedient.
+    Die breite Abnahme aller Kinderansichten bleibt offen; nicht ausgerollt.
+
+  - [x] **Lernwegprüfung an die kindgerechte Aktion anpassen.** Der breite
+    Flutter-Lauf fand eine veraltete Erwartung auf „Nächste Etappe“ und einen
+    Zusatztext, die in der Kinderansicht bewusst ersetzt wurden. Der Test
+    prüft nun die tatsächliche Aktion „Runde vorbereiten“ und genau einen
+    lesenden Abruf. Dadurch wird weder freiwilliges Lernen behauptet noch eine
+    Runde automatisch gestartet; die ursprüngliche breite Regression wird als
+    fehlgeschlagener Lauf ausgewiesen, bis sie erneut vollständig bestanden ist.
 
   - [x] **Wartende Heftseiten ohne Kinderprüfauftrag anzeigen.** Der Kindersicht
     steht ein kurzer Hinweis auf gespeicherte Fotos und die mögliche Hilfe der

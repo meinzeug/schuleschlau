@@ -155,6 +155,7 @@ def seed_additional(db):
         "curriculum-st-sekundarschule-musik-2019.json",
         "curriculum-st-sekundarschule-kunst-2019.json",
         "curriculum-st-sekundarschule-sport-2019.json",
+        "curriculum-st-sekundarschule-technik-wirtschaft-2019.json",
     ):
         path = REFERENCE / filename
         if not path.is_file():

@@ -43,15 +43,15 @@ Die Unterstützung weiterer Länder, ihrer Jahrgangssysteme und eigenständiger
 Hochschulprofile ist weiterhin offen.
 
 Die versionierten Dateien `reference/curriculum-sources-v1.json`,
-`reference/curriculum-topics-v1.json` und die zehn ergänzenden Pakete für
-die Sekundarschule Sachsen-Anhalt enthalten 71 Dokumente und 1000 Zuordnungen
+`reference/curriculum-topics-v1.json` und die elf ergänzenden Pakete für
+die Sekundarschule Sachsen-Anhalt enthalten 73 Dokumente und 1015 Zuordnungen
 mit23Fachschlüsseln aus16Bundesländern. Dokumente behalten amtlichen Verweis,
 Fassung, Status und Digest; Themen behalten Abschnitt, gegebenenfalls Seite,
 Klassenband oder Originalphase. Ein Band wird nicht als amtlich festgelegte
 Einzelklasse ausgegeben. Vorgeschlagene kanonische Themenkennungen sind noch
 keine geprüften Kompetenzzuordnungen.
 
-Der Bestand ist ausdrücklich unvollständig: 33 Dokumente/543 Zuordnungen sind als
+Der Bestand ist ausdrücklich unvollständig: 35 Dokumente/558 Zuordnungen sind als
 aktuell geprüft markiert, 38 Dokumente/457 Zuordnungen als Fassung ungeprüft.
 Enthalten sind auch amtliche Indizes, Handreichungen und historische Dokumente.
 48schulformübergreifende Zuordnungen besitzen derzeit keine konkret nutzbare
@@ -115,6 +115,17 @@ behaupten keine konkrete Wahl, Reihenfolge oder Teilnahme. Sicherheitsregeln
 und Aufsicht bei praktischen Übungen bleiben maßgeblich; der Katalog ist keine
 individuelle Belastungsempfehlung oder Bewertung körperlicher Fähigkeiten.
 
+Die amtlichen Fachlehrpläne [Technik](https://www.bildung-lsa.de/files/164f3f97e3adf65ff6f44685dd9e1ced/lp_sks_tech_01_08_2019.pdf)
+und [Wirtschaft](https://www.bildung-lsa.de/files/164f3f97e3adf65ff6f44685dd9e1ced/lp_sks_wirt_01_08_2019.pdf)
+der Sekundarschule waren am 27.11.2026 im Landesindex verlinkt. Die
+Überblickstabellen auf gedruckter Seite 11 ordnen sieben Technikschwerpunkte
+den Doppeljahrgängen 5/6, 7/8 und 9/10 sowie acht Wirtschaftsschwerpunkte
+den Bändern 7/8 und 9/10 zu. Die jeweils besonders markierten Schwerpunkte
+sind verbindlicher Gegenstand in Jahrgang 9; die konkreten Schul- und
+Unterrichtsfolgen bleiben unbekannt. Die Übersicht ersetzt weder Aufsicht und
+Sicherheitsregeln bei praktischen Tätigkeiten noch Finanzberatung und fordert
+keine privaten Finanzdaten oder eigenständigen Vertragsabschlüsse an.
+
 Der [Fachlehrplan Kunsterziehung der Sekundarschule](https://www.bildung-lsa.de/files/164f3f97e3adf65ff6f44685dd9e1ced/lp_sks_kunst_01_08_2019.pdf)
 nennt fünf übergreifende Schwerpunkte und beschreibt diese für die Bänder
 5/6, 7/8 und 9/10. Diese allgemeinen Bereiche sind je Band erfasst; sie
@@ -163,3 +174,7 @@ produktiv ausgerollt.
 Migration 0060 ergänzt die quellengebundene Sportübersicht additiv. Wie bei den
 übrigen Paketen werden alte Lernnachweise nicht geändert; ein Rückbau wird als
 Vorwärtskorrektur behandelt.
+
+Migration 0061 ergänzt analog die Technik- und Wirtschaftsübersichten. Auch
+hier sind Fachüberschriften eine Orientierung, keine belegten Inhalte der
+individuellen Heftseiten oder Nachweise über bereits erworbene Kompetenzen.

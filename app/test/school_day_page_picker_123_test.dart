@@ -15,13 +15,13 @@ import 'school_day_background_test.dart' as day;
 const picker = ValueKey('school-day-page-picker');
 
 class Pages extends day.PreparationServer {
-  Pages()
+  Pages({int count = 19})
     : super(
         stage: 'review',
         pages: List.generate(
-          19,
+          count,
           (i) => {
-            ...day.source(i + 1, confirmed: i < 2),
+            ...day.source(i + 1, confirmed: count == 1 ? false : i < 2),
             'revision': 1,
             'synthetic': false,
             'has_image': true,
@@ -55,12 +55,13 @@ Future<(Pages, AppState)> open(
   WidgetTester tester, {
   double width = 390,
   double scale = 1,
+  int count = 19,
 }) async {
   tester.view.physicalSize = Size(width, 844);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
-  final server = Pages(), state = server.state();
+  final server = Pages(count: count), state = server.state();
   state.api.token = 'synthetic-session';
   final router = day.router(state);
   addTearDown(() async {
@@ -86,7 +87,7 @@ Future<(Pages, AppState)> open(
   await tester.ensureVisible(find.text('Fotos ansehen'));
   await tester.tap(find.text('Fotos ansehen'));
   await tester.pumpAndSettle();
-  await tester.ensureVisible(find.byKey(picker));
+  if (count > 3) await tester.ensureVisible(find.byKey(picker));
   await tester.pumpAndSettle();
   return (server, state);
 }
@@ -115,6 +116,34 @@ void main() {
         name,
       )..addFont(rootBundle.load('assets/fonts/$name.ttf'))).load();
     }
+  });
+  testWidgets('one pending photo opens directly without a redundant selector', (
+    tester,
+  ) async {
+    final (server, _) = await open(tester, count: 1);
+    expect(find.byKey(picker), findsNothing);
+    expect(find.text('Seite 1'), findsOneWidget);
+    expect(find.byType(MaterialReview), findsOneWidget);
+    expect(server.images.toSet(), {'page1'});
+    expect(server.requests.every((r) => r.startsWith('GET ')), isTrue);
+    expect(server.submissions, 0);
+    expect(tester.takeException(), isNull);
+  });
+  testWidgets('a short page list uses a compact dialog', (tester) async {
+    final (server, _) = await open(tester, count: 4);
+    await choose(tester);
+    final dialogSurface = find
+        .descendant(
+          of: find.byType(AlertDialog),
+          matching: find.byType(Material),
+        )
+        .first;
+    expect(tester.getSize(dialogSurface).height, lessThan(550));
+    await tester.tap(choice(4));
+    await tester.pumpAndSettle();
+    expect(find.text('Seite 4 ansehen'), findsOneWidget);
+    onlyReads(server);
+    expect(tester.takeException(), isNull);
   });
   for (final width in [320.0, 390.0]) {
     for (final scale in [1.0, 2.0]) {

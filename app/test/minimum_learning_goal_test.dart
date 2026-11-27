@@ -440,12 +440,13 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      expect(find.text('Nächste Etappe'), findsOneWidget);
       expect(
-        find.text('Die nächste Runde beginnt, wenn du sie auswählst.'),
+        find.widgetWithText(FilledButton, 'Runde vorbereiten'),
         findsOneWidget,
       );
-      expect(requests.every((request) => request.method == 'GET'), true);
+      expect(find.text('Freiwillig weiterlernen'), findsNothing);
+      expect(requests, hasLength(1));
+      expect(requests.single.method, 'GET');
       await tester.pumpWidget(const SizedBox());
     },
   );

@@ -361,7 +361,7 @@ void main() {
     navigation.go('/after-school/child');
     await settleUi(tester);
     await showPhotoDetails(tester);
-    expect(find.text('Seite 1 ansehen'), findsOneWidget);
+    expect(find.text('Seite 1'), findsOneWidget);
     expect(server.submissions, 1);
     expect(server.pages.single['confirmed'], false);
     expect(tester.takeException(), isNull);
@@ -399,7 +399,7 @@ void main() {
       );
       await tapText(tester, 'Heftseite löschen');
       expect(server.pages.single['id'], 'page2');
-      expect(find.text('Seite 2 ansehen'), findsOneWidget);
+      expect(find.text('Seite 2'), findsOneWidget);
       expect(server.pages.single['confirmed'], false);
 
       await tapText(tester, 'Seite löschen');
@@ -495,7 +495,7 @@ void main() {
         findsOneWidget,
       );
       await showPhotoDetails(tester);
-      expect(find.text('1 Foto gespeichert'), findsOneWidget);
+      expect(find.text('Seite 1'), findsOneWidget);
       expect(
         find.text(
           'Diese Seite prüfen deine Eltern. Dein Foto ist gespeichert.',
@@ -528,7 +528,7 @@ void main() {
         find.widgetWithText(ActionButton, 'Zur Startseite'),
         findsOneWidget,
       );
-      expect(find.text('Seite 1 ansehen'), findsNothing);
+      expect(find.text('Seite 1'), findsNothing);
       await tapText(tester, 'Zur Startseite');
       expect(find.text('Startseite'), findsOneWidget);
       expect(server.pages.single['confirmed'], false);
@@ -647,7 +647,7 @@ void main() {
       }
       await settleUi(tester);
       await showPhotoDetails(tester);
-      expect(find.text('Seite 1 ansehen'), findsOneWidget);
+      expect(find.text('Seite 1'), findsOneWidget);
       expect(server.submissions, 0);
       expect(server.starts, 0);
       expect(tester.takeException(), isNull);
@@ -681,7 +681,7 @@ void main() {
     await settleUi(tester);
     expect(server.reads, 2);
     await showPhotoDetails(tester);
-    expect(find.text('Seite 1 ansehen'), findsOneWidget);
+    expect(find.text('Seite 1'), findsOneWidget);
     expect(
       server.requests.where((request) => !request.startsWith('GET ')),
       isEmpty,
@@ -838,7 +838,7 @@ void main() {
     navigation.pop();
     await settleUi(tester);
     await showPhotoDetails(tester);
-    expect(find.text('Seite 1 ansehen'), findsOneWidget);
+    expect(find.text('Seite 1'), findsOneWidget);
     expect(server.submissions, 0);
     expect(tester.takeException(), isNull);
   });
@@ -887,7 +887,7 @@ void main() {
     );
     await settleUi(tester);
     await showPhotoDetails(tester);
-    expect(find.text('Seite 1 ansehen'), findsOneWidget);
+    expect(find.text('Seite 1'), findsOneWidget);
     expect(find.text('Noch eine Seite hinzufügen'), findsNothing);
     expect(find.byType(CheckboxListTile), findsNothing);
     expect(find.text('Stimmt, weiter'), findsNothing);

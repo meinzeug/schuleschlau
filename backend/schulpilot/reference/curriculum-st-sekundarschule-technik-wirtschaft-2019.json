@@ -1,0 +1,317 @@
+{
+  "version": 1,
+  "retrieved": "2026-11-27",
+  "documents": [
+    {
+      "state_code": "DE-ST",
+      "edition": "Stand 01.08.2019",
+      "effective_from": null,
+      "school_form_label": "Sekundarschule",
+      "school_form_id": "de-st.sekundarschule",
+      "school_form_scope": "specific",
+      "applies_to_school_forms": [],
+      "source_status": "current_verified",
+      "retrieved": "2026-11-27",
+      "document_kind": "curriculum",
+      "id": "st-sek-technik-2019",
+      "title": "Fachlehrplan Sekundarschule Technik",
+      "official_url": "https://www.bildung-lsa.de/files/164f3f97e3adf65ff6f44685dd9e1ced/lp_sks_tech_01_08_2019.pdf",
+      "applicability_note": "Die Übersicht gilt für die Doppeljahrgänge. Technische Systeme sind verbindlicher Gegenstand im Schuljahrgang 9; die konkrete Unterrichtsfolge ist unbekannt. Praktische Arbeiten mit Werkzeugen, Maschinen oder Strom erfordern schulische Sicherheitsregeln und Aufsicht; aus dem Katalog folgt keine Aufforderung zu eigenständigen Versuchen.",
+      "source_notes": "Ministerium für Bildung Sachsen-Anhalt; Landesportal Sachsen-Anhalt, CC BY-SA 3.0 (https://creativecommons.org/licenses/by-sa/3.0/); Kapitel 3.1, gedruckte Seite 11. PDF-SHA256 30a958f9c65152d0366c1495919041d7c5a849d7c0212ed74edf57209191b0ce; amtlicher Index https://www.bildung-lsa.de/index.php?KAT_ID=16003."
+    },
+    {
+      "state_code": "DE-ST",
+      "edition": "Stand 01.08.2019",
+      "effective_from": null,
+      "school_form_label": "Sekundarschule",
+      "school_form_id": "de-st.sekundarschule",
+      "school_form_scope": "specific",
+      "applies_to_school_forms": [],
+      "source_status": "current_verified",
+      "retrieved": "2026-11-27",
+      "document_kind": "curriculum",
+      "id": "st-sek-wirtschaft-2019",
+      "title": "Fachlehrplan Sekundarschule Wirtschaft",
+      "official_url": "https://www.bildung-lsa.de/files/164f3f97e3adf65ff6f44685dd9e1ced/lp_sks_wirt_01_08_2019.pdf",
+      "applicability_note": "Die Übersicht gilt für die Doppeljahrgänge. Berufsperspektiven und Soziale Marktwirtschaft sind verbindlicher Gegenstand im Schuljahrgang 9; die konkrete Unterrichtsfolge ist unbekannt. Die Einordnung ist keine Aufforderung zum Kauf, Vertragsschluss oder zur Preisgabe privater Finanzdaten.",
+      "source_notes": "Ministerium für Bildung Sachsen-Anhalt; Landesportal Sachsen-Anhalt, CC BY-SA 3.0 (https://creativecommons.org/licenses/by-sa/3.0/); Kapitel 3.1, gedruckte Seite 11. PDF-SHA256 9573aeebd7f46142168d69b65db85d49ff80eaf35d9bc63550049f9804c1e91b; amtlicher Index https://www.bildung-lsa.de/index.php?KAT_ID=16003."
+    }
+  ],
+  "topics": [
+    {
+      "id": "st-sek-technik-2019.56-computer",
+      "document_id": "st-sek-technik-2019",
+      "subject_key": "technik",
+      "title": "Computer als Werkzeug",
+      "grade_kind": "band",
+      "grades": [
+        5,
+        6
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 11,
+      "quote": "Computer als Werkzeug",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-technik-2019.56-gebrauchsgegenstaende",
+      "document_id": "st-sek-technik-2019",
+      "subject_key": "technik",
+      "title": "Gebrauchsgegenstände aus Holz und Kunststoff",
+      "grade_kind": "band",
+      "grades": [
+        5,
+        6
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 11,
+      "quote": "Gebrauchsgegenstände",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-technik-2019.56-funktionsmodelle",
+      "document_id": "st-sek-technik-2019",
+      "subject_key": "technik",
+      "title": "Funktionsmodelle entwickeln und untersuchen",
+      "grade_kind": "band",
+      "grades": [
+        5,
+        6
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 11,
+      "quote": "Funktionsmodelle",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-technik-2019.78-problemloesungen",
+      "document_id": "st-sek-technik-2019",
+      "subject_key": "technik",
+      "title": "Technische Lösungen untersuchen",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 11,
+      "quote": "technische Probleme",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-technik-2019.78-maschinen",
+      "document_id": "st-sek-technik-2019",
+      "subject_key": "technik",
+      "title": "Funktion und Einsatz von Maschinen",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 11,
+      "quote": "Funktion und Einsatz von Maschinen",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-technik-2019.910-systeme",
+      "document_id": "st-sek-technik-2019",
+      "subject_key": "technik",
+      "title": "Technische Systeme beschreiben und analysieren",
+      "grade_kind": "band",
+      "grades": [
+        9,
+        10
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 11,
+      "quote": "Technische Systeme",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-technik-2019.910-prozesse",
+      "document_id": "st-sek-technik-2019",
+      "subject_key": "technik",
+      "title": "Technische Prozesse steuern",
+      "grade_kind": "band",
+      "grades": [
+        9,
+        10
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 11,
+      "quote": "Technische Prozesse",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-wirtschaft-2019.78-haushalt",
+      "document_id": "st-sek-wirtschaft-2019",
+      "subject_key": "wirtschaft",
+      "title": "Privater Haushalt und Wirtschaft",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 11,
+      "quote": "privaten Haushalt",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-wirtschaft-2019.78-berufe-region",
+      "document_id": "st-sek-wirtschaft-2019",
+      "subject_key": "wirtschaft",
+      "title": "Berufe und Arbeitsplätze in der Region",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 11,
+      "quote": "Berufe und Arbeitsplätze",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-wirtschaft-2019.78-wirtschaftsraum",
+      "document_id": "st-sek-wirtschaft-2019",
+      "subject_key": "wirtschaft",
+      "title": "Regionaler Wirtschaftsraum",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 11,
+      "quote": "regionalen Wirtschaftsraum",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-wirtschaft-2019.78-handel",
+      "document_id": "st-sek-wirtschaft-2019",
+      "subject_key": "wirtschaft",
+      "title": "Entwicklungen im Handel",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 11,
+      "quote": "Entwicklungen im Handel",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-wirtschaft-2019.910-berufsperspektiven",
+      "document_id": "st-sek-wirtschaft-2019",
+      "subject_key": "wirtschaft",
+      "title": "Berufsperspektiven",
+      "grade_kind": "band",
+      "grades": [
+        9,
+        10
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 11,
+      "quote": "Berufsperspektiven",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-wirtschaft-2019.910-soziale-marktwirtschaft",
+      "document_id": "st-sek-wirtschaft-2019",
+      "subject_key": "wirtschaft",
+      "title": "Soziale Marktwirtschaft",
+      "grade_kind": "band",
+      "grades": [
+        9,
+        10
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 11,
+      "quote": "Sozialen Marktwirtschaft",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-wirtschaft-2019.910-unternehmen",
+      "document_id": "st-sek-wirtschaft-2019",
+      "subject_key": "wirtschaft",
+      "title": "Unternehmerisches Handeln",
+      "grade_kind": "band",
+      "grades": [
+        9,
+        10
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 11,
+      "quote": "Unternehmerisches Handeln",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-wirtschaft-2019.910-wirtschaftspolitik",
+      "document_id": "st-sek-wirtschaft-2019",
+      "subject_key": "wirtschaft",
+      "title": "Wirtschaftspolitische Entscheidungen",
+      "grade_kind": "band",
+      "grades": [
+        9,
+        10
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 11,
+      "quote": "Wirtschaftspolitische Entscheidungen",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    }
+  ],
+  "coverage": {
+    "complete": false,
+    "note": "Nur die amtlichen Schwerpunkte der Fächer Technik und Wirtschaft als Orientierung, nicht konkrete Unterrichtsreihenfolge, Werkstattanleitung, Finanzberatung oder individueller Leistungsnachweis."
+  },
+  "coverage_gaps": []
+}

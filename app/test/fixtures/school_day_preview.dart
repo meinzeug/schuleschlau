@@ -19,6 +19,7 @@ void main() {
     'confirmed': true,
     'status': 'confirmed',
     'synthetic': true,
+    'homework': <String>[],
   };
   final day = {
     'id': 'example-day',
@@ -100,19 +101,26 @@ void main() {
                   'preparation': {'status': 'idle'},
                 };
               } else if (request.method == 'GET' &&
-                  request.url.path.endsWith('/school-days/review-day')) {
+                  (request.url.path.endsWith('/school-days/review-day') ||
+                      request.url.path.endsWith(
+                        '/school-days/review-multi-day',
+                      ))) {
+                final multi = request.url.path.endsWith('/review-multi-day');
                 result = {
                   ...day,
-                  'id': 'review-day',
+                  'id': multi ? 'review-multi-day' : 'review-day',
                   'stage': 'review',
                   'pages': [
-                    {
-                      ...page,
-                      'confirmed': false,
-                      'status': 'review',
-                      'content': 'Beispieltext zu Brüchen.',
-                      'uncertainties': ['Eine Stelle ist unklar.'],
-                    },
+                    for (var index = 1; index <= (multi ? 3 : 1); index++)
+                      {
+                        ...page,
+                        'id': 'example-page-$index',
+                        'page_number': index,
+                        'confirmed': false,
+                        'status': 'review',
+                        'content': 'Beispieltext zu Brüchen.',
+                        'uncertainties': ['Eine Stelle ist unklar.'],
+                      },
                   ],
                   'confirmed_count': 0,
                   'preparation': {'status': 'needs_review'},
@@ -158,6 +166,14 @@ void main() {
           state,
           childId: 'example-child',
           dayId: 'review-day',
+        ),
+      ),
+      GoRoute(
+        path: '/review-multi',
+        builder: (_, _) => SchoolDayScreen(
+          state,
+          childId: 'example-child',
+          dayId: 'review-multi-day',
         ),
       ),
       GoRoute(

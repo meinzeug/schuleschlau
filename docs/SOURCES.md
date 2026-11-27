@@ -1,3 +1,17 @@
+## 27.11.2026 · Technik und Wirtschaft Sachsen-Anhalt
+
+Der [amtliche Sekundarschulindex](https://www.bildung-lsa.de/index.php?KAT_ID=16003)
+verlinkte den [Technik-](https://www.bildung-lsa.de/files/164f3f97e3adf65ff6f44685dd9e1ced/lp_sks_tech_01_08_2019.pdf)
+und den [Wirtschaftslehrplan](https://www.bildung-lsa.de/files/164f3f97e3adf65ff6f44685dd9e1ced/lp_sks_wirt_01_08_2019.pdf)
+in der Fassung vom 01.08.2019. Beide Übersichten nennen auf gedruckter Seite 11
+die Doppeljahrgänge und markieren verbindliche Gegenstände für Jahrgang 9.
+Quelle: Ministerium für Bildung und Landesportal Sachsen-Anhalt,
+[CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/). PDF-SHA256
+Technik: `30a958f9c65152d0366c1495919041d7c5a849d7c0212ed74edf57209191b0ce`;
+Wirtschaft: `9573aeebd7f46142168d69b65db85d49ff80eaf35d9bc63550049f9804c1e91b`.
+Die Katalogbezeichnungen sind eigene kurze Themenüberschriften; die konkrete
+Schulreihenfolge und individuelle Unterrichtserfahrungen sind nicht bekannt.
+
 ## 27.11.2026 · Sportlehrplan Sachsen-Anhalt
 
 Der [amtliche Sekundarschulindex](https://www.bildung-lsa.de/index.php?KAT_ID=16003)
