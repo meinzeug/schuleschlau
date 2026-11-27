@@ -47,6 +47,30 @@ void main() {
     }
   }
 
+  testWidgets('Hinweise verschwinden erst nach passender Korrektur', (
+    tester,
+  ) async {
+    final fixture = fixtures.Fixture();
+    await fixture.mount(tester, size: const Size(320, 600));
+    await fixtures.tap(tester, find.text('Arbeit planen'));
+    await fixtures.tap(tester, find.text('Weiter'));
+    expect(find.text('Gib der Arbeit einen kurzen Titel.'), findsOneWidget);
+    final title = find.widgetWithText(TextField, 'Titel der Arbeit');
+    await tester.enterText(title, '   ');
+    await tester.pump();
+    expect(find.text('Gib der Arbeit einen kurzen Titel.'), findsOneWidget);
+    await tester.enterText(title, 'Mathearbeit');
+    await tester.pump();
+    expect(find.text('Gib der Arbeit einen kurzen Titel.'), findsNothing);
+    await fixtures.tap(tester, find.text('Weiter'));
+    expect(find.text('Wähle ein Fach aus.'), findsOneWidget);
+    await fixtures.tap(tester, find.text('Fach auswählen'));
+    await fixtures.tap(tester, find.text('Mathematik').last);
+    expect(find.text('Wähle ein Fach aus.'), findsNothing);
+    expect(fixture.writes, isEmpty);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('Ohne Änderungsrecht bleibt der leere Zustand ehrlich', (
     tester,
   ) async {

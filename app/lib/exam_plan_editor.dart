@@ -370,6 +370,10 @@ class _ExamPlanEditorState extends State<ExamPlanEditor> {
             sourcesGeneration++;
           }
           subjectInput.text = chosen;
+          if (error == 'Wähle ein Fach aus.' ||
+              error == 'Wähle das Fach der bestätigten Quellen.') {
+            error = null;
+          }
         });
       }
     } catch (value) {
@@ -562,6 +566,13 @@ class _ExamPlanEditorState extends State<ExamPlanEditor> {
       TextField(
         controller: title,
         enabled: !saving && !uncertain,
+        onChanged: (value) {
+          if (scope.current &&
+              value.trim().isNotEmpty &&
+              error == 'Gib der Arbeit einen kurzen Titel.') {
+            setState(() => error = null);
+          }
+        },
         maxLength: 160,
         decoration: const InputDecoration(labelText: 'Titel der Arbeit'),
       ),

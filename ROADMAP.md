@@ -1215,6 +1215,14 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – Alle Kinderansichten sprachlich und in ihrer Bedienung entrümpeln**
 
+  - [x] **Korrigierte Hinweise bei der Klassenarbeitsplanung zurücknehmen.**
+    Nach Eingabe eines Titels beziehungsweise Auswahl eines Fachs verschwindet
+    der zugehörige Hinweis unmittelbar. Nur Leerzeichen lösen den Titelhinweis
+    nicht; andere Fehler bleiben erhalten. Ein künstlicher Fall prüft den
+    Ablauf bei 320 Pixeln ohne Schreibauftrag. 30 lokale Flutterfälle
+    bestanden; der gezielte Fall bestand auch im Chrome-Webrunner. Der
+    Hauptpunkt und die Geräteabnahme bleiben offen.
+
   - [x] **Lokale Kinder-Vorschau mit einigen echten Navigationszielen verbinden.**
     Die rein synthetische Vorschau kennt die Kinderpfade für Wörter,
     Hausaufgaben und Klassenarbeiten sowie `/app`. Ein Flutter-Test prüft die
