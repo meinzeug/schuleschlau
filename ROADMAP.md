@@ -1680,6 +1680,15 @@ Die folgenden Punkte beschreiben ausstehende, wiederholbare Betriebs- und Freiga
   automatisierte Freigabeprüfung ersetzt keinen unabhängigen Sicherheitstest.
 - [ ] **P1 – Datenlebenszyklus und Löschung pro Datenart prüfen**
 
+  - [x] **Elternübersicht für Hausaufgaben an die Anmeldeabsicht binden.**
+    Fotos und Zähler verschwinden unmittelbar bei einem neuen Anmeldeversuch;
+    ein bereits ausgelöster Fotoklick und verspätete Listenantworten bleiben
+    unwirksam. Nach Abbruch wird die Liste ausschließlich auf ausdrücklichen
+    Wunsch neu gelesen, ohne Schreib- oder KI-Auftrag. Drei künstliche
+    Anmeldewechselfälle und 21 benachbarte Kartenprüfungen bestanden lokal;
+    die drei Anmeldefälle bestanden auch im Chrome-Webrunner. Die umfassende
+    Eltern- und Cookieabnahme bleibt offen.
+
   - [x] **Hausaufgabenentwurf bei neuer Anmeldeabsicht schützen.** Die offene
     Aufgabenansicht und ihre Dialoge werden verborgen; verzögerte Antworten,
     bereits ausgelöste Hilfeaktionen und weitere automatische Speicherung des

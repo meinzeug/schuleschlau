@@ -41,12 +41,18 @@ class _ParentHomeworkScreenState extends State<ParentHomeworkScreen> {
   bool retryMore = false;
   late Json? owner;
   late String? family, session;
-  bool get own =>
+  late var authentication = widget.state.api.requestIdentity();
+  bool authenticationReload = false;
+  bool get sameAccount =>
       mounted &&
       owner != null &&
       identical(widget.state.user, owner) &&
       family == widget.state.familyId &&
       session == widget.state.api.token;
+  bool get own =>
+      sameAccount &&
+      !authenticationReload &&
+      widget.state.api.ownsRequest(authentication);
   String get cacheKey => 'parent-homework:${widget.childId}';
   @override
   void initState() {
@@ -56,11 +62,37 @@ class _ParentHomeworkScreenState extends State<ParentHomeworkScreen> {
     session = widget.state.api.token;
     restoreView();
     widget.state.addListener(identityChanged);
+    widget.state.authenticationChanges.addListener(authenticationChanged);
+    load();
+  }
+
+  void authenticationChanged() {
+    if (!sameAccount) return;
+    generation++;
+    FocusManager.instance.primaryFocus?.unfocus();
+    setState(() {
+      authenticationReload = true;
+      photos.clear();
+      childName = null;
+      cursor = null;
+      total = 0;
+      loading = false;
+      error = null;
+      collectionTotals = null;
+      subjects.clear();
+    });
+  }
+
+  void reloadAfterAuthentication() {
+    if (!sameAccount || !authenticationReload) return;
+    authentication = widget.state.api.requestIdentity();
+    restoreView();
+    setState(() => authenticationReload = false);
     load();
   }
 
   void identityChanged() {
-    if (!own && mounted) {
+    if (!sameAccount && mounted) {
       generation++;
       setState(() {
         photos.clear();
@@ -148,6 +180,7 @@ class _ParentHomeworkScreenState extends State<ParentHomeworkScreen> {
   @override
   void dispose() {
     widget.state.removeListener(identityChanged);
+    widget.state.authenticationChanges.removeListener(authenticationChanged);
     search.dispose();
     super.dispose();
   }
@@ -251,6 +284,24 @@ class _ParentHomeworkScreenState extends State<ParentHomeworkScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (authenticationReload && sameAccount) {
+      return PageFrame(
+        state: widget.state,
+        title: 'Hausaufgaben',
+        showTitle: false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text('Bitte lade die Hausaufgaben erneut.'),
+            const SizedBox(height: 12),
+            FilledButton(
+              onPressed: reloadAfterAuthentication,
+              child: const Text('Hausaufgaben erneut laden'),
+            ),
+          ],
+        ),
+      );
+    }
     final viewChild = widget.childId;
     return PageFrame(
       state: widget.state,
