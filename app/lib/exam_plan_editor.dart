@@ -37,7 +37,10 @@ class _ExamPlanEditorState extends State<ExamPlanEditor> {
   late DateTime? examDay = DateTime.tryParse(
     '${widget.existing?['exam_date'] ?? ''}',
   );
-  late int minutes = widget.existing?['minutes'] as int? ?? 15;
+  late final minutesInput = TextEditingController(
+    text: '${widget.existing?['minutes'] as int? ?? 15}',
+  );
+  int get minutes => int.tryParse(minutesInput.text) ?? 0;
   late bool reminders = widget.existing?['reminders'] == true;
   late String reminderTime =
       widget.existing?['reminder_time'] as String? ?? '16:00';
@@ -206,6 +209,7 @@ class _ExamPlanEditorState extends State<ExamPlanEditor> {
     scope.dispose();
     title.dispose();
     subjectInput.dispose();
+    minutesInput.dispose();
     for (final value in counters.values) {
       value.dispose();
     }
@@ -483,6 +487,8 @@ class _ExamPlanEditorState extends State<ExamPlanEditor> {
               topic['question_count'] > 50,
         )) {
       problem = 'Wähle pro Thema zwischen 1 und 50 Aufgaben je Lerntag.';
+    } else if (step == 2 && (minutes < 5 || minutes > 60)) {
+      problem = 'Wähle zwischen 5 und 60 Minuten pro Lerntag.';
     } else if (step == 2 && !review && dates.isEmpty) {
       problem = 'Wähle mindestens einen konkreten Lerntag.';
     } else if (step == 2 &&
@@ -837,22 +843,23 @@ class _ExamPlanEditorState extends State<ExamPlanEditor> {
         ],
       ),
       gap(),
-      DropdownButtonFormField<int>(
-        initialValue: minutes,
-        isExpanded: true,
-        decoration: const InputDecoration(
-          labelText: 'Empfohlene Minuten je Sitzung',
-        ),
-        items: [
-          for (var value = 5; value <= 60; value++)
-            DropdownMenuItem(value: value, child: Text('$value Minuten')),
+      TextField(
+        controller: minutesInput,
+        enabled: !saving && !uncertain,
+        keyboardType: TextInputType.number,
+        inputFormatters: [
+          FilteringTextInputFormatter.digitsOnly,
+          LengthLimitingTextInputFormatter(3),
         ],
-        onChanged: saving || uncertain
-            ? null
-            : (value) => edit(() => minutes = value!),
+        decoration: const InputDecoration(
+          labelText: 'Minuten pro Lerntag',
+          suffixText: 'Min.',
+          helperText: '5 bis 60 Minuten',
+        ),
+        onChanged: (_) => edit(() => error = null),
       ),
-      const Text(
-        'Eine Empfehlung, kein Zeitlimit. Ausgelassene Tage erzeugen keinen Nachholberg.',
+      Text(
+        widget.state.isChild ? 'Ein Vorschlag, kein Zeitlimit.' : 'Eine Empfehlung, kein Zeitlimit. Ausgelassene Tage erzeugen keinen Nachholberg.',
       ),
       SwitchListTile(
         contentPadding: EdgeInsets.zero,

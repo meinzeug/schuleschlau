@@ -1166,6 +1166,16 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – Alle Kinderansichten sprachlich und in ihrer Bedienung entrümpeln**
 
+  - [x] **Lernzeit in der Klassenarbeitsplanung kompakt eingeben.** Die
+    Auswahlliste mit 56 Minutenwerten ist durch ein Zahlenfeld ersetzt.
+    Individuelle Werte von 5 bis 60 Minuten bleiben möglich und werden vor
+    dem nächsten Schritt geprüft. Für Kinder steht dabei kurz, dass dies ein
+    Vorschlag und kein Zeitlimit ist. 84 künstliche Flutterfälle bestanden,
+    darunter Grenzwerte, Weiterbearbeitung nach Fehlern und eine Prüfung bei
+    320 Pixeln mit doppelter Schrift und eingeblendeter Bildschirmtastatur.
+    Diese sieben gezielten Fälle bestanden auch im Chrome-Webrunner. Die
+    vollständige Kinderansicht und das Ausrollen bleiben offen.
+
   - [x] **Fortsetzung einer pausierten Runde verständlich begründen.** Die
     tatsächliche mobile Startseite zeigte auf „Warum dieser Lernschritt?“
     bisher lediglich einen Speicherhinweis. Der Lerncontroller nennt bei
