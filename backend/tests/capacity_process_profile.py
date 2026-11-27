@@ -23,7 +23,7 @@ from capacity_worker_profile import percentile, require_private_profile_database
 from conftest import HEADERS, create_child, register
 from fastapi.testclient import TestClient
 from PIL import Image
-from schulpilot.db import DB, Job, Material, Usage, engine
+from schulpilot.db import DB, Job, Material, Usage, UserAvatar, engine
 from schulpilot.main import app
 from sqlalchemy import func, select
 from test_school_day import allow_synthetic_test_transport
@@ -44,16 +44,21 @@ def wait_ready(path, process):
 
 def test_bounded_process_capacity(api, household, mailbox):
     assert engine.dialect.name == 'postgresql'
+    assert os.getenv('CAPACITY_AVATAR_MIX') != '1' or os.getenv('CAPACITY_LARGE') == '1', (
+        'Mixed test requires large-image profile'
+    )
     allow_synthetic_test_transport()
     families = int(os.getenv("CAPACITY_FAMILIES", "4")) if os.getenv("CAPACITY_LARGE") == "1" else 8
     assert (1 <= families <= 4 if os.getenv("CAPACITY_LARGE") == "1" else families == 8)
-    _, child = household
+    parent, child = household
     accounts = [(api.headers['Authorization'], child['id'])]
+    actors = [parent['id']]
     for i in range(1, families):
         with TestClient(app, headers=HEADERS, client=(f'198.18.1.{i + 1}', 50000)) as client:
             parent = register(client, mailbox, email=f'process-load-{i}@example.org')
             other = create_child(client, parent, username=f'process-load-child-{i}')
             accounts.append((client.headers['Authorization'], other['id']))
+            actors.append(parent['id'])
 
     dimensions, quality = ((3990, 3990), 65) if os.getenv("CAPACITY_LARGE") == "1" else ((1800, 1200), 90)
     output = io.BytesIO()
@@ -191,6 +196,47 @@ def test_bounded_process_capacity(api, household, mailbox):
             assert all(r[0] == 201 for r in responses)
             materials = [responses[2 * i][1]['id'] for i in range(families)]
             assert all(responses[2 * i + 1][1]['id'] == materials[i] for i in range(families))
+            if os.getenv('CAPACITY_AVATAR_MIX') == '1':
+                avatar_size = (2828, 2828)
+                avatar_pixels = random.Random(7719).randbytes(avatar_size[0] * avatar_size[1] * 3)
+                avatar_output = io.BytesIO()
+                Image.frombytes('RGB', avatar_size, avatar_pixels).save(avatar_output, format='JPEG', quality=65)
+                del avatar_pixels
+                avatar_image = avatar_output.getvalue()
+                assert 234000 < len(avatar_image) < 6 * 1024 * 1024 - 65536
+                mixed_uploads = []
+                for i, (_, cid) in enumerate(accounts):
+                    mixed_uploads.extend([
+                        (i, 'POST', f'/api/children/{cid}/materials', {
+                            'files': {'file': ('synthetic.jpg', image, 'image/jpeg')},
+                            'headers': {'Idempotency-Key': f'process-upload-{i:04d}'},
+                        }),
+                        (i, 'PUT', '/api/auth/me/avatar', {
+                            'files': {'file': ('synthetic-avatar.jpg', avatar_image, 'image/jpeg')},
+                            'headers': {'If-Match': 'none', 'Idempotency-Key': f'process-avatar-{i:04d}',
+                                        'X-Schulpilot-Account': actors[i]},
+                        }),
+                    ] * 2)
+                concurrent_stop = threading.Event()
+                concurrent_results = []
+                concurrent_reader = threading.Thread(target=keep_reading, daemon=True)
+                concurrent_reader.start()
+                try:
+                    mixed_responses = batch('photo-avatar-replay', mixed_uploads, families)
+                finally:
+                    concurrent_stop.set()
+                    concurrent_reader.join(timeout=30)
+                assert not concurrent_reader.is_alive() and concurrent_results and all(v == 200 for v in concurrent_results)
+                print('CAPACITY_MIXED_GETS=' + json.dumps({'count': len(concurrent_results),
+                      'statuses': dict(Counter(concurrent_results))}), flush=True)
+                for task, result in zip(mixed_uploads, mixed_responses, strict=True):
+                    assert result[0] == (201 if task[1] == 'POST' else 200), result[0]
+                for i, material in enumerate(materials):
+                    assert mixed_responses[4 * i][1]['id'] == material
+                    assert mixed_responses[4 * i + 2][1]['id'] == material
+                    assert mixed_responses[4 * i + 1][1] == mixed_responses[4 * i + 3][1]
+                with DB() as db:
+                    assert db.scalar(select(func.count()).select_from(UserAvatar)) == families
             jobs = [(i, 'POST', f'/api/materials/{material}/extract', {
                 'headers': {'Idempotency-Key': f'process-extract-{i:04d}'},
             }) for i, material in enumerate(materials) for _ in range(2)]

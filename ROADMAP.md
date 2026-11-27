@@ -2534,6 +2534,14 @@ Bestandteil des bestehenden Buildvertrags.
     Bildpfade sind dadurch nicht abgenommen.
     [Prüfumfang](docs/CAPACITY_PROCESS_FAILURE_2026_11_06.md#ergänzung-eingangsschutz-für-profilfoto-uploads-27112026).
 
+  - [x] **Heftfoto- und Profilbildlast gemeinsam isoliert messen.** Zwei
+    synthetische PostgreSQL-Läufe mit vier Familien, großen Fotos,
+    Wiederholungen und parallelen Leseanfragen bestanden ohne OOM. Der höhere
+    API-Spitzenwert ließ lediglich 29,6 MiB bis zum 350-MiB-Limit; daraus
+    folgt keine allgemeine Kapazitätsfreigabe. Der Worker lief erst nach der
+    Mischuploadphase. Produktionslast, längere Mischlast und Rückweg bleiben
+    offen. [Messung](docs/CAPACITY_PROCESS_FAILURE_2026_11_06.md#ergänzung-gemeinsame-foto--und-profilbildlast-27112026).
+
   - [ ] **API-Speicherschutz beim gleichzeitigen Fotoimport beheben.**
     Die getrennte Prozessprüfung auf PostgreSQL und Loopback reproduzierte bei
     acht künstlichen Familien einen OOM-Kill am produktiven 350-MiB-API-Limit.

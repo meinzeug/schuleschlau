@@ -236,3 +236,30 @@ Isolierte synthetische Tests prüfen unauthentifizierte und falsch zugeordnete
 Anfragen, Überlast, erneutes Senden, langsame Übertragungen und konkurrierende
 Datenbankänderungen. Die Begrenzung ist pro Prozess; eine Messung der echten
 Produktivlast, weiterer API-Worker und anderer Bildpfade steht aus.
+
+## Ergänzung: gemeinsame Foto- und Profilbildlast, 27.11.2026
+
+Der isolierte Prozesslauf kann mit `CAPACITY_LARGE=1 CAPACITY_AVATAR_MIX=1`
+zusätzlich Heftfotos und Profilbilder verschränkt senden. Vier künstliche
+Familien senden beide Uploadarten jeweils zweimal mit demselben Schlüssel;
+parallel liest ein weiterer Client Übersichten. Das Heft-JPEG misst
+3.990 × 3.990 Pixel und 8.136.284 Byte, das künstliche Profil-JPEG
+2.828 × 2.828 Pixel. API und Fotodienst liefen mit 350 beziehungsweise
+256 MiB cgroup-Limit und einem CPU-Kern; PostgreSQL und Dateien lagen im tmpfs.
+Der künstliche Worker wurde erst nach dieser Uploadphase gestartet; es gab
+keinen externen Anbieteraufruf.
+
+Zwei Läufe mit parallelen Lesezugriffen lieferten jeweils acht HTTP-201-
+Heftfotoantworten und acht HTTP-200-Profilantworten. Es wurden vier Fotos und
+vier Profilbilder gespeichert; wiederholte Schlüssel lieferten dieselben
+Ergebnisse. Vier beziehungsweise sechs Überlastantworten wurden vom Testclient
+ausdrücklich wiederholt; 73 beziehungsweise 80 parallele Übersichtsabrufe
+lieferten HTTP 200. Die API-cgroup erreichte Spitzen von 335.958.016 und
+299.122.688 Byte, der Fotodienst 225.325.056 und 224.653.312 Byte. Beide
+Läufe meldeten keinen OOM-Kill.
+
+Der höhere API-Spitzenwert lässt nur 29,6 MiB bis zum 350-MiB-Limit. Die
+Messung ist eine kleine synthetische Stichprobe mit wiederholten Bildern und
+belegt weder hinreichende Reserven noch eine sichere Nutzerzahl. Andere
+Bildinhalte, mehrere API-Prozesse, gleichzeitig laufende Worker während der
+Mischuploadphase, längere Last und ein produktiver Rückweg bleiben offen.

@@ -7,6 +7,19 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 
 
+def test_only_explicit_mixed_capacity_switch_is_forwarded(tmp_path, monkeypatch):
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location('runner', ROOT / 'scripts/test_postgres.py')
+    runner = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(runner)
+    monkeypatch.setenv('CAPACITY_AVATAR_MIX', '1')
+    monkeypatch.setenv('SYNTHETIC_SECRET_SHOULD_NOT_PASS', 'private')
+    env = runner.child_environment(tmp_path, tmp_path / 'socket', database='schulpilot_isolated_test')
+    assert env['CAPACITY_AVATAR_MIX'] == '1'
+    assert 'SYNTHETIC_SECRET_SHOULD_NOT_PASS' not in env
+
+
 def test_hostile_parent_environment_cannot_redirect_disposable_cluster(tmp_path):
     probe = tmp_path / 'test_disposable_connection.py'
     probe.write_text('''\
