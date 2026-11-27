@@ -2418,12 +2418,19 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
         actionLabel: allowUploads
             ? 'Heftseite hinzufügen'
             : 'Meine Heftseiten ansehen',
-        onPressed: () => run(() async {
-          await state.api.put('/school-days/${day!['id']}/stage', {
-            'stage': 'collecting',
+        onPressed: () async {
+          if (!active) return;
+          if (!allowUploads) {
+            openRoute(context, '/library/${widget.childId}');
+            return;
+          }
+          await run(() async {
+            await state.api.put('/school-days/${day!['id']}/stage', {
+              'stage': 'collecting',
+            });
           });
-        }),
-        child: Text('Hier ist noch keine Heftseite zum Prüfen vorhanden.'),
+        },
+        child: Text('Hier sind noch keine Heftseiten.'),
       );
     }
     if (selected['status'] == 'uploaded') {

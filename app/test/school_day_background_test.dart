@@ -246,6 +246,10 @@ GoRouter router(AppState state, {bool archived = false}) => GoRouter(
       path: '/unit/:id',
       builder: (_, _) => const Scaffold(body: Text('Freiwillig gestartet')),
     ),
+    GoRoute(
+      path: '/library/:id',
+      builder: (_, _) => const Scaffold(body: Text('Meine Hefte')),
+    ),
   ],
 );
 
@@ -432,6 +436,29 @@ void main() {
     expect(find.text('Startseite'), findsOneWidget);
     expect(server.submissions, 0);
     expect(server.requests.where((r) => r.contains('/confirm')), isEmpty);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Empty archived day opens notebooks without changing the day', (
+    tester,
+  ) async {
+    mobile(tester);
+    final server = PreparationServer(
+      pages: [],
+      stage: 'review',
+      preparation: {'status': 'needs_review', 'phase': 'review'},
+    )..archived = true;
+    final navigation = router(server.state(), archived: true);
+    addTearDown(navigation.dispose);
+    await tester.pumpWidget(
+      MaterialApp.router(theme: appTheme(), routerConfig: navigation),
+    );
+    await settleUi(tester);
+    expect(find.text('Hier sind noch keine Heftseiten.'), findsOneWidget);
+    await tapText(tester, 'Meine Heftseiten ansehen');
+    expect(find.text('Meine Hefte'), findsOneWidget);
+    expect(server.requests.every((r) => r.startsWith('GET ')), isTrue);
+    expect(server.stage, 'review');
     expect(tester.takeException(), isNull);
   });
 

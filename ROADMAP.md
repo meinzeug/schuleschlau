@@ -1137,6 +1137,11 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
     gekennzeichneten lokalen Beispielseite geprüft; künstliche Widgettests
     prüfen die Auswahl, Direktabgabe und die Behandlung fehlerhafter Uploads.
 
+  - [x] **Leeren alten Schultag richtig verlassen.** Wenn ein alter Tag keine
+    Heftseiten enthält und keine neuen Fotos erlaubt sind, öffnet „Meine
+    Heftseiten ansehen“ die Heftübersicht. Die Aktion verändert den alten Tag
+    nicht; ein Widgettest prüft den Rückweg und ausschließlich lesende Zugriffe.
+
   - [x] **Lernweg für Kinder auf den nächsten Schritt ausrichten.** Nach der
     Sichtprüfung der schmalen produktiven Ansicht zeigt der lokale Stand eine
     klare Schaltfläche „Weiterlernen“, das aktuelle Thema und den tatsächlichen
