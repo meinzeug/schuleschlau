@@ -1172,6 +1172,16 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 ## Kindgerechte Bedienung und Alltagstest
 
+- [x] **Arbeitsflächenkopf bei schmalen eingebetteten Bereichen umbrechen.**
+  Ein Chrome-Test zeigte bei einer schmalen Elternansicht einen horizontalen
+  Überlauf, weil der Kopf vom Browsermaß statt vom tatsächlich verfügbaren
+  Platz ausging. Bei begrenzter Breite werden Logo und vollständige Bedienelemente
+  umgebrochen; die Mindestgröße der untersuchten Trefferflächen bleibt erhalten.
+  Die regulären 33 Arbeitsflächentests und zwei synthetische Chrome-Fälle für
+  auf 320 beziehungsweise 390 Pixel begrenzte Bereiche bestanden. Dies ist
+  keine vollständige Smartphone- oder Barrierefreiheitsabnahme.
+  [Prüfumfang](docs/WORKSPACE_HEADER_CONSTRAINTS_2026_11_27.md).
+
 - [ ] **P1 – Alle Kinderansichten sprachlich und in ihrer Bedienung entrümpeln**
 
   - [x] **Leseeinstellungen im Seitentext verständlich benennen.** Die

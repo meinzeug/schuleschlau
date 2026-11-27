@@ -2490,86 +2490,103 @@ class _WorkspaceHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final narrow = compact || MediaQuery.textScalerOf(context).scale(1) > 1.3;
+    Widget title(bool compactTitle) => Row(
+      children: [
+        Flexible(
+          child: Tooltip(
+            message: roleLabel,
+            child: TextButton(
+              key: const ValueKey('workspace-home-breadcrumb'),
+              onPressed: _workspaceLink(
+                context,
+                state,
+                state.isAdmin ? '/admin' : '/app',
+              ),
+              style: TextButton.styleFrom(
+                foregroundColor: context.palette.ink,
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+              ),
+              child: const Text(
+                'SchuleSchlau',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontFamily: 'Nunito',
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: .4,
+                ),
+              ),
+            ),
+          ),
+        ),
+        if (!compactTitle) ...[
+          const SizedBox(width: 12),
+          Flexible(
+            child: Text(
+              section,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: context.palette.muted,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+    List<Widget> actions(bool compactActions) => [
+      if (compactActions)
+        IconButton(
+          key: const ValueKey('workspace-area-switch'),
+          tooltip: 'Bereiche',
+          onPressed: onChooseArea,
+          icon: const Icon(Icons.search_rounded, size: 22),
+        )
+      else
+        TextButton.icon(
+          key: const ValueKey('workspace-area-switch'),
+          onPressed: onChooseArea,
+          icon: const Icon(Icons.search_rounded, size: 20),
+          label: const Text('Bereiche'),
+        ),
+      IconButton(
+        tooltip: 'Tastatur & Bedienung',
+        onPressed: onKeyboardHelp,
+        icon: const Icon(Icons.keyboard_outlined, size: 22),
+      ),
+      SchulbuddyButton(),
+      AppearanceToggle(state),
+      notificationBell,
+      AccountMenu(state, compact: compactActions, nameWidth: 128),
+    ];
     return Container(
       key: const ValueKey('workspace-header'),
       constraints: const BoxConstraints(minHeight: 56),
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-      child: Row(
-        children: [
-          Expanded(
-            child: Row(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          // Embedded panes can be smaller than the overall browser viewport.
+          // Wrap whole controls instead of shrinking touch targets or clipping.
+          if (constraints.maxWidth < (narrow ? 320 : 560)) {
+            return Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                Flexible(
-                  child: Tooltip(
-                    message: roleLabel,
-                    child: TextButton(
-                      key: const ValueKey('workspace-home-breadcrumb'),
-                      onPressed: _workspaceLink(
-                        context,
-                        state,
-                        state.isAdmin ? '/admin' : '/app',
-                      ),
-                      style: TextButton.styleFrom(
-                        foregroundColor: context.palette.ink,
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                      ),
-                      child: const Text(
-                        'SchuleSchlau',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontFamily: 'Nunito',
-                          fontSize: 16,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: .4,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                if (!narrow) ...[
-                  const SizedBox(width: 12),
-                  Flexible(
-                    child: Text(
-                      section,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: context.palette.muted,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
+                SizedBox(width: constraints.maxWidth, child: title(true)),
+                ...actions(true),
               ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          if (narrow)
-            IconButton(
-              key: const ValueKey('workspace-area-switch'),
-              tooltip: 'Bereiche',
-              onPressed: onChooseArea,
-              icon: const Icon(Icons.search_rounded, size: 22),
-            )
-          else
-            TextButton.icon(
-              key: const ValueKey('workspace-area-switch'),
-              onPressed: onChooseArea,
-              icon: const Icon(Icons.search_rounded, size: 20),
-              label: const Text('Bereiche'),
-            ),
-          IconButton(
-            tooltip: 'Tastatur & Bedienung',
-            onPressed: onKeyboardHelp,
-            icon: const Icon(Icons.keyboard_outlined, size: 22),
-          ),
-          SchulbuddyButton(),
-          AppearanceToggle(state),
-          notificationBell,
-          AccountMenu(state, compact: narrow, nameWidth: 128),
-        ],
+            );
+          }
+          return Row(
+            children: [
+              Expanded(child: title(narrow)),
+              const SizedBox(width: 8),
+              ...actions(narrow),
+            ],
+          );
+        },
       ),
     );
   }

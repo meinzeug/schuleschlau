@@ -196,6 +196,70 @@ Future<void> _expectHoveredNavigationLabel(
 }
 
 void main() {
+  for (final width in [320.0, 390.0]) {
+    testWidgets(
+      'browser header wraps usable controls inside a constrained $width pane',
+      (tester) async {
+        tester.view.devicePixelRatio = 1;
+        tester.view.physicalSize = const Size(800, 900);
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        final state = _account('parent').state;
+        addTearDown(state.dispose);
+        final router = GoRouter(
+          initialLocation: '/app',
+          routes: [
+            GoRoute(
+              path: '/app',
+              builder: (_, _) => WorkspaceShell(
+                state: state,
+                title: 'Noten',
+                browser: true,
+                child: const Text('Eigene Noten'),
+              ),
+            ),
+          ],
+        );
+        addTearDown(router.dispose);
+        await tester.pumpWidget(
+          MaterialApp.router(
+            theme: appTheme(),
+            routerConfig: router,
+            builder: (context, child) => MediaQuery(
+              data: MediaQuery.of(context).copyWith(size: const Size(800, 900)),
+              child: Align(
+                alignment: Alignment.topLeft,
+                child: SizedBox(width: width, child: child!),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(find.byKey(const ValueKey('workspace-header')), findsOneWidget);
+        final header = tester.getRect(
+          find.byKey(const ValueKey('workspace-header')),
+        );
+        for (final label in ['Bereiche', 'Tastatur & Bedienung']) {
+          final control = find.byTooltip(label);
+          expect(control, findsOneWidget);
+          expect(control.hitTestable(), findsOneWidget);
+          final bounds = tester.getRect(control);
+          expect(bounds.width, greaterThanOrEqualTo(48));
+          expect(bounds.height, greaterThanOrEqualTo(48));
+          expect(
+            header.contains(bounds.topLeft + const Offset(.5, .5)),
+            isTrue,
+          );
+          expect(
+            header.contains(bounds.bottomRight - const Offset(.5, .5)),
+            isTrue,
+          );
+        }
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
+
   for (final role in ['child', 'parent', 'admin']) {
     for (final width in [320.0, 390.0, 960.0, 1440.0]) {
       testWidgets('$role browser workspace works at ${width.toInt()}px', (
