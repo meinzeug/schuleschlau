@@ -332,18 +332,38 @@ void main() {
         },
       );
       await f.tap(t, find.byTooltip('Wörter hinzufügen'));
+      await f.tap(t, find.text('Mehrere Wörter oder Text'));
       final pairs = find.byWidgetPredicate(
         (w) => w is TextField && w.minLines == 4,
       );
       await t.enterText(pairs, 'pear = Birne');
       await f.tap(t, find.text('Wortpaare prüfen'));
       await f.tap(t, find.byTooltip('Wörter hinzufügen'));
-      expect(t.widget<TextField>(pairs).controller!.text, 'pear = Birne');
       expect(
-        find.textContaining('letzter Sendeversuch ist noch nicht bestätigt'),
+        t
+            .widget<TextField>(
+              find.byKey(const ValueKey('vocabulary-single-word')),
+            )
+            .controller!
+            .text,
+        'pear',
+      );
+      expect(
+        t
+            .widget<TextField>(
+              find.byKey(const ValueKey('vocabulary-single-meaning')),
+            )
+            .controller!
+            .text,
+        'Birne',
+      );
+      expect(
+        find.text(
+          'Das Speichern ist noch offen. Prüfe deine Eingabe und versuche es erneut.',
+        ),
         findsOneWidget,
       );
-      await f.tap(t, find.text('Wortpaare prüfen'));
+      await f.tap(t, find.text('Wort prüfen'));
       final posts = calls.where((q) => q.method == 'POST').toList();
       expect(posts, hasLength(2));
       expect(posts[0].body, posts[1].body);
@@ -361,6 +381,7 @@ void main() {
       final calls = <http.Request>[];
       await f.open(t, calls);
       await f.tap(t, find.byTooltip('Wörter hinzufügen'));
+      await f.tap(t, find.text('Mehrere Wörter oder Text'));
       final pairs = find.byWidgetPredicate(
         (w) => w is TextField && w.minLines == 4,
       );

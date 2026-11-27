@@ -1150,6 +1150,20 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – Alle Kinderansichten sprachlich und in ihrer Bedienung entrümpeln**
 
+  - [x] **Ein einzelnes Schulwort einfach eingeben und prüfen.** Im Kinderzugang
+    stehen Wort, Bedeutung und die gewählte Lernsprache unmittelbar bereit;
+    das Ziel der Sammlung ist sichtbar und kann aufgeklappt geändert werden.
+    Listen- und Texterkennung bleiben ausdrücklich erreichbar. Bei nur einem
+    Wort entfallen Suche, Filter und künstlicher Leerraum im Prüfgespräch;
+    Korrektur, Zurückstellen und ausdrückliche Bestätigung bleiben erhalten.
+    Fehlende Angaben werden angezeigt, ein unklarer Sendeversuch erhält bei
+    unveränderten Daten denselben Schlüssel. Die mobile Browser-Demo verwendet
+    ausschließlich künstliche Wörter; Tests prüfen unterschiedliche Breiten,
+    große Schrift, Sammlungen, Wiederholungen und die unveränderte Elternansicht
+    (108 Fälle bestanden). Die statische Prüfung der geänderten Dateien war
+    fehlerfrei.
+    Der umfassende Hauptpunkt und das Ausrollen bleiben offen.
+
   - [x] **Fotoauswahl bei wenigen Seiten verkleinern.** Bei nur einer offenen
     Seite wird diese nach dem Aufklappen unmittelbar angezeigt; es erscheint
     kein Auswahldialog mit nur einem Eintrag. Eine kurze Mehrseitenliste passt

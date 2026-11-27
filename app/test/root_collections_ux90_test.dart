@@ -182,7 +182,13 @@ void main() {
       );
       await choose(t);
       await f.tap(t, find.byTooltip('Wörter hinzufügen'));
+      expect(find.text('Sammlung: Schulwörter'), findsOneWidget);
+      await f.tap(
+        t,
+        find.byKey(const ValueKey('vocabulary-collection-toggle')),
+      );
       expect(t.widget<TextField>(r.input('Sammlung')).readOnly, isTrue);
+      await f.tap(t, find.text('Mehrere Wörter oder Text'));
       await t.enterText(
         find.byWidgetPredicate((w) => w is TextField && w.minLines == 4),
         'dog = Hund',

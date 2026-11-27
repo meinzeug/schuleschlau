@@ -242,6 +242,7 @@ void main() {
       final requests = <http.Request>[];
       await open(tester, requests, width: 390);
       await tap(tester, find.byTooltip('Wörter hinzufügen'));
+      await tap(tester, find.text('Mehrere Wörter oder Text'));
       final fields = find.descendant(
         of: find.byType(AlertDialog),
         matching: find.byType(TextField),
@@ -266,6 +267,7 @@ void main() {
       final requests = <http.Request>[];
       await open(tester, requests, width: 390);
       await tap(tester, find.byTooltip('Wörter hinzufügen'));
+      await tap(tester, find.text('Mehrere Wörter oder Text'));
       final fields = find.descendant(
         of: find.byType(AlertDialog),
         matching: find.byType(TextField),

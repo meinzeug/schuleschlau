@@ -8,6 +8,7 @@ import 'package:http/testing.dart';
 import 'package:schulpilot/api.dart';
 import 'package:schulpilot/school_day_screen.dart';
 import 'package:schulpilot/ui.dart';
+import 'package:schulpilot/vocabulary_screen.dart';
 
 void main() {
   final page = {
@@ -87,6 +88,45 @@ void main() {
               if (request.method == 'GET' &&
                   request.url.path.endsWith('/study-path')) {
                 result = path;
+              } else if (request.method == 'POST' &&
+                  request.url.path.endsWith('/vocabulary/imports')) {
+                final body = Json.from(jsonDecode(request.body));
+                result = {
+                  'id': 'example-import',
+                  'target_locale': body['target_locale'],
+                  'title': body['title'],
+                  'status': 'review',
+                  'supports_deferred_pairs': true,
+                  'pairs': [
+                    for (final pair in body['pairs'] as List)
+                      {
+                        ...Json.from(pair),
+                        'context': '',
+                        'part_of_speech': '',
+                        'variants': <Object>[],
+                        'meaning_variants': <Object>[],
+                        'uncertainty': '',
+                      },
+                  ],
+                };
+              } else if (request.method == 'GET' &&
+                  request.url.path.endsWith('/vocabulary/imports')) {
+                result = {'imports': <Object>[]};
+              } else if (request.method == 'GET' &&
+                  request.url.path.endsWith('/vocabulary')) {
+                result = {
+                  'items': <Object>[],
+                  'pagination': {'page': 1, 'page_size': 15, 'total': 0},
+                  'collections': <Object>[],
+                  'open_rounds': <Object>[],
+                  'supports_collections': true,
+                  'summary': {
+                    'confirmed_words': 0,
+                    'due_words': 0,
+                    'new_words': 0,
+                    'skills': <Object>[],
+                  },
+                };
               } else if (request.method == 'GET' &&
                   request.url.path.endsWith('/school-days/example-day')) {
                 result = day;
@@ -175,6 +215,10 @@ void main() {
           childId: 'example-child',
           dayId: 'review-multi-day',
         ),
+      ),
+      GoRoute(
+        path: '/vocabulary',
+        builder: (_, _) => VocabularyScreen(state, childId: 'example-child'),
       ),
       GoRoute(
         path: '/unit/:id',

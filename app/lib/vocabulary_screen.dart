@@ -1667,11 +1667,23 @@ class _VocabularyScreenState extends State<_VocabularyBody>
         : widget.materialId == null
         ? 'manual'
         : 'material';
+    final savedPairs = pendingImport?['pairs'];
+    final singleSaved =
+        savedPairs is List && savedPairs.length == 1 && savedPairs.single is Map
+        ? Json.from(savedPairs.single)
+        : null;
+    final word = TextEditingController(text: singleSaved?['word'] ?? '');
+    final meaning = TextEditingController(text: singleSaved?['meaning'] ?? '');
+    var simpleWord =
+        widget.state.isChild &&
+        mode == 'manual' &&
+        (pendingImport == null || singleSaved != null);
+    var showCollection = !widget.state.isChild || pendingImport != null;
     String? pairError;
     String? titleError;
     final result = await scopedDialog<Json>(
       builder: (ctx) => _DialogFields(
-        controllers: [title, text],
+        controllers: [title, text, word, meaning],
         child: StatefulBuilder(
           builder: (ctx, update) => AlertDialog(
             title: const Text('Wörter hinzufügen'),
@@ -1683,8 +1695,10 @@ class _VocabularyScreenState extends State<_VocabularyBody>
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     if (pendingImport != null)
-                      const Notice(
-                        'Dein letzter Sendeversuch ist noch nicht bestätigt. Prüfe deine wiederhergestellte Eingabe. Unveränderte Daten verwenden beim erneuten Senden denselben Schlüssel.',
+                      Notice(
+                        widget.state.isChild
+                            ? 'Das Speichern ist noch offen. Prüfe deine Eingabe und versuche es erneut.'
+                            : 'Dein letzter Sendeversuch ist noch nicht bestätigt. Prüfe deine wiederhergestellte Eingabe. Unveränderte Daten verwenden beim erneuten Senden denselben Schlüssel.',
                       ),
                     DropdownButtonFormField<String>(
                       initialValue: selectedLocale,
@@ -1704,7 +1718,26 @@ class _VocabularyScreenState extends State<_VocabularyBody>
                         targetCollection = null;
                       }),
                     ),
-                    if (data?['supports_collections'] == true) ...[
+                    if (widget.state.isChild)
+                      TextButton.icon(
+                        key: const ValueKey('vocabulary-collection-toggle'),
+                        onPressed: () =>
+                            update(() => showCollection = !showCollection),
+                        icon: Icon(
+                          showCollection
+                              ? Icons.expand_less
+                              : Icons.expand_more,
+                        ),
+                        label: Text(
+                          showCollection
+                              ? 'Sammlung schließen'
+                              : 'Sammlung: ${title.text.trim().isEmpty ? 'Name fehlt' : title.text.trim()}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    if (showCollection &&
+                        data?['supports_collections'] == true) ...[
                       const SizedBox(height: 12),
                       DropdownButtonFormField<String>(
                         key: ValueKey(
@@ -1754,42 +1787,76 @@ class _VocabularyScreenState extends State<_VocabularyBody>
                         }),
                       ),
                     ],
-                    const SizedBox.shrink(),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: title,
-                      readOnly: targetCollection != null,
-                      maxLength: 160,
-                      decoration: InputDecoration(
-                        labelText: 'Sammlung',
-                        errorText: titleError,
-                      ),
-                      onChanged: (_) => update(() => titleError = null),
-                    ),
-                    DropdownButtonFormField<String>(
-                      initialValue: mode,
-                      isExpanded: true,
-                      decoration: const InputDecoration(
-                        labelText: 'Wörter übernehmen aus',
-                      ),
-                      items: [
-                        const DropdownMenuItem(
-                          value: 'manual',
-                          child: Text('Wortpaare selbst eingeben'),
+                    if (showCollection) ...[
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: title,
+                        readOnly: targetCollection != null,
+                        maxLength: 160,
+                        decoration: InputDecoration(
+                          labelText: 'Sammlung',
+                          errorText: titleError,
                         ),
-                        const DropdownMenuItem(
-                          value: 'text',
-                          child: Text('Wörter aus Text erkennen'),
+                        onChanged: (_) => update(() => titleError = null),
+                      ),
+                    ],
+                    if (!simpleWord)
+                      DropdownButtonFormField<String>(
+                        initialValue: mode,
+                        isExpanded: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Wörter übernehmen aus',
                         ),
-                        if (widget.materialId != null)
+                        items: [
                           const DropdownMenuItem(
-                            value: 'material',
-                            child: Text('Diese bestätigte Heftseite'),
+                            value: 'manual',
+                            child: Text('Wortpaare selbst eingeben'),
                           ),
-                      ],
-                      onChanged: (value) => update(() => mode = value!),
-                    ),
-                    if (mode != 'material') ...[
+                          const DropdownMenuItem(
+                            value: 'text',
+                            child: Text('Wörter aus Text erkennen'),
+                          ),
+                          if (widget.materialId != null)
+                            const DropdownMenuItem(
+                              value: 'material',
+                              child: Text('Diese bestätigte Heftseite'),
+                            ),
+                        ],
+                        onChanged: (value) => update(() => mode = value!),
+                      ),
+                    if (simpleWord) ...[
+                      const SizedBox(height: 12),
+                      TextField(
+                        key: const ValueKey('vocabulary-single-word'),
+                        controller: word,
+                        maxLength: 200,
+                        decoration: InputDecoration(
+                          labelText: 'Wort',
+                          errorText: pairError,
+                        ),
+                        onChanged: (_) => update(() => pairError = null),
+                      ),
+                      TextField(
+                        key: const ValueKey('vocabulary-single-meaning'),
+                        controller: meaning,
+                        maxLength: 200,
+                        decoration: const InputDecoration(
+                          labelText: 'Bedeutung',
+                        ),
+                        onChanged: (_) => update(() => pairError = null),
+                      ),
+                      TextButton.icon(
+                        onPressed: () => update(() {
+                          if (word.text.isNotEmpty || meaning.text.isNotEmpty) {
+                            text.text = '${word.text} = ${meaning.text}';
+                          }
+                          simpleWord = false;
+                          pairError = null;
+                        }),
+                        icon: const Icon(Icons.list_alt_rounded),
+                        label: const Text('Mehrere Wörter oder Text'),
+                      ),
+                    ] else if (mode != 'material') ...[
                       const SizedBox(height: 12),
                       TextField(
                         controller: text,
@@ -1834,48 +1901,64 @@ class _VocabularyScreenState extends State<_VocabularyBody>
                   }
                   final pairs = <Json>[];
                   if (mode == 'manual') {
-                    final invalid = <int>[];
-                    final lines = text.text.split('\n');
-                    for (var index = 0; index < lines.length; index++) {
-                      final line = lines[index];
-                      if (line.trim().isEmpty) continue;
-                      final separator = line.indexOf('=');
-                      if (separator < 1 ||
-                          line.substring(0, separator).trim().isEmpty ||
-                          line.substring(separator + 1).trim().isEmpty ||
-                          line.indexOf('=', separator + 1) >= 0) {
-                        invalid.add(index + 1);
-                        continue;
+                    if (simpleWord) {
+                      if (word.text.trim().isEmpty ||
+                          meaning.text.trim().isEmpty) {
+                        update(
+                          () => pairError =
+                              'Gib ein Wort und seine Bedeutung ein.',
+                        );
+                        return;
                       }
                       pairs.add({
-                        'word': line.substring(0, separator).trim(),
-                        'meaning': line.substring(separator + 1).trim(),
+                        'word': word.text.trim(),
+                        'meaning': meaning.text.trim(),
                       });
-                    }
-                    if (pairs.length > 80 ||
-                        pairs.any(
-                          (p) =>
-                              (p['word'] as String).length > 200 ||
-                              (p['meaning'] as String).length > 200,
-                        )) {
-                      update(
-                        () => pairError = 'Bis zu 80 Wortpaare, mit höchstens 200 Zeichen je Wort und Bedeutung. Teile längere Listen auf. Deine Eingabe bleibt erhalten.',
-                      );
-                      return;
-                    }
-                    if (pairs.isEmpty || invalid.isNotEmpty) {
-                      update(
-                        () => pairError = invalid.isEmpty
-                            ? 'Trage ein Wortpaar ein, zum Beispiel: cat = Katze.'
-                            : 'Bitte Zeile ${invalid.join(', ')} ergänzen: Wort = Bedeutung. Deine anderen Zeilen bleiben erhalten.',
-                      );
-                      return;
+                    } else {
+                      final invalid = <int>[];
+                      final lines = text.text.split('\n');
+                      for (var index = 0; index < lines.length; index++) {
+                        final line = lines[index];
+                        if (line.trim().isEmpty) continue;
+                        final separator = line.indexOf('=');
+                        if (separator < 1 ||
+                            line.substring(0, separator).trim().isEmpty ||
+                            line.substring(separator + 1).trim().isEmpty ||
+                            line.indexOf('=', separator + 1) >= 0) {
+                          invalid.add(index + 1);
+                          continue;
+                        }
+                        pairs.add({
+                          'word': line.substring(0, separator).trim(),
+                          'meaning': line.substring(separator + 1).trim(),
+                        });
+                      }
+                      if (pairs.length > 80 ||
+                          pairs.any(
+                            (p) =>
+                                (p['word'] as String).length > 200 ||
+                                (p['meaning'] as String).length > 200,
+                          )) {
+                        update(
+                          () => pairError = 'Bis zu 80 Wortpaare, mit höchstens 200 Zeichen je Wort und Bedeutung. Teile längere Listen auf. Deine Eingabe bleibt erhalten.',
+                        );
+                        return;
+                      }
+                      if (pairs.isEmpty || invalid.isNotEmpty) {
+                        update(
+                          () => pairError = invalid.isEmpty
+                              ? 'Trage ein Wortpaar ein, zum Beispiel: cat = Katze.'
+                              : 'Bitte Zeile ${invalid.join(', ')} ergänzen: Wort = Bedeutung. Deine anderen Zeilen bleiben erhalten.',
+                        );
+                        return;
+                      }
                     }
                   }
                   if ((title.text.trim().isEmpty && targetCollection == null) ||
                       (mode == 'text' && text.text.trim().isEmpty)) {
                     update(() {
                       if (title.text.trim().isEmpty) {
+                        showCollection = true;
                         titleError = 'Gib deiner Sammlung einen Namen.';
                       }
                       if (mode == 'text' && text.text.trim().isEmpty) {
@@ -1902,7 +1985,11 @@ class _VocabularyScreenState extends State<_VocabularyBody>
                   popCurrentRoute(ctx, submission);
                 },
                 child: Text(
-                  mode == 'manual' ? 'Wortpaare prüfen' : 'Wörter erkennen',
+                  simpleWord
+                      ? 'Wort prüfen'
+                      : mode == 'manual'
+                      ? 'Wortpaare prüfen'
+                      : 'Wörter erkennen',
                 ),
               ),
             ],
@@ -2315,6 +2402,7 @@ class _VocabularyScreenState extends State<_VocabularyBody>
       }
     }
 
+    final compactReview = widget.state.isChild && pairs.length == 1;
     var query = '';
     var onlyUndecided = false;
     String? issue;
@@ -2324,10 +2412,15 @@ class _VocabularyScreenState extends State<_VocabularyBody>
         builder: (ctx, update) => PopScope(
           canPop: !saving,
           child: AlertDialog(
-            title: const Text('Stimmen deine Wörter?'),
-            content: SizedBox(
-              width: 620,
-              height: MediaQuery.sizeOf(ctx).height * .58,
+            title: Text(
+              compactReview ? 'Stimmt dieses Wort?' : 'Stimmen deine Wörter?',
+            ),
+            content: ConstrainedBox(
+              constraints: BoxConstraints(
+                minWidth: 620,
+                maxWidth: 620,
+                maxHeight: MediaQuery.sizeOf(ctx).height * .58,
+              ),
               child: SingleChildScrollView(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -2340,72 +2433,81 @@ class _VocabularyScreenState extends State<_VocabularyBody>
                       '${learningLocales[row['target_locale']]} · ${counted(pairs.length, 'Wort', 'Wörter')}',
                       style: const TextStyle(fontWeight: FontWeight.w700),
                     ),
-                    Text(
-                      '${decisions.values.where((v) => v == 'confirm').length} übernehmen · ${decisions.values.where((v) => v == 'skip').length} auslassen · ${pairs.length - decisions.values.where((v) => ['confirm', 'skip'].contains(v)).length} noch prüfen',
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      decoration: const InputDecoration(
-                        labelText: 'Wortvorschläge durchsuchen',
+                    if (!compactReview)
+                      Text(
+                        '${decisions.values.where((v) => v == 'confirm').length} übernehmen · ${decisions.values.where((v) => v == 'skip').length} auslassen · ${pairs.length - decisions.values.where((v) => ['confirm', 'skip'].contains(v)).length} noch prüfen',
                       ),
-                      textInputAction: TextInputAction.search,
-                      onSubmitted: (_) =>
-                          FocusManager.instance.primaryFocus?.unfocus(),
-                      onChanged: saving
-                          ? null
-                          : (v) => update(() => query = v.trim().toLowerCase()),
-                    ),
-                    TextButton.icon(
-                      icon: const Icon(Icons.arrow_downward),
-                      label: const Text('Zum nächsten offenen Wortpaar'),
-                      onPressed: saving
-                          ? null
-                          : () {
-                              if (!ctx.mounted ||
-                                  !current ||
-                                  ModalRoute.of(ctx)?.isCurrent != true) {
-                                return;
-                              }
-                              final open = [
-                                for (var i = 0; i < pairs.length; i++)
-                                  if (![
-                                    'confirm',
-                                    'skip',
-                                  ].contains(decisions[i]))
-                                    i,
-                              ];
-                              if (open.isEmpty) return;
-                              final next =
-                                  open.where((i) => i > lastOpen).firstOrNull ??
-                                  open.first;
-                              update(() {
-                                lastOpen = next;
-                                query = '';
-                                onlyUndecided = true;
-                              });
-                              WidgetsBinding.instance.addPostFrameCallback((_) {
-                                if (!ctx.mounted || !current) return;
-                                final target = pairKeys[next].currentContext;
-                                if (target != null) {
-                                  Scrollable.ensureVisible(
-                                    target,
-                                    duration:
-                                        MediaQuery.disableAnimationsOf(ctx)
-                                        ? Duration.zero
-                                        : const Duration(milliseconds: 180),
-                                  );
-                                  pairFocus[next].requestFocus();
+                    const SizedBox(height: 12),
+                    if (!compactReview)
+                      TextField(
+                        decoration: const InputDecoration(
+                          labelText: 'Wortvorschläge durchsuchen',
+                        ),
+                        textInputAction: TextInputAction.search,
+                        onSubmitted: (_) =>
+                            FocusManager.instance.primaryFocus?.unfocus(),
+                        onChanged: saving
+                            ? null
+                            : (v) =>
+                                  update(() => query = v.trim().toLowerCase()),
+                      ),
+                    if (!compactReview)
+                      TextButton.icon(
+                        icon: const Icon(Icons.arrow_downward),
+                        label: const Text('Zum nächsten offenen Wortpaar'),
+                        onPressed: saving
+                            ? null
+                            : () {
+                                if (!ctx.mounted ||
+                                    !current ||
+                                    ModalRoute.of(ctx)?.isCurrent != true) {
+                                  return;
                                 }
-                              });
-                            },
-                    ),
-                    FilterChip(
-                      label: const Text('Noch nicht entschieden'),
-                      selected: onlyUndecided,
-                      onSelected: saving
-                          ? null
-                          : (v) => update(() => onlyUndecided = v),
-                    ),
+                                final open = [
+                                  for (var i = 0; i < pairs.length; i++)
+                                    if (![
+                                      'confirm',
+                                      'skip',
+                                    ].contains(decisions[i]))
+                                      i,
+                                ];
+                                if (open.isEmpty) return;
+                                final next =
+                                    open
+                                        .where((i) => i > lastOpen)
+                                        .firstOrNull ??
+                                    open.first;
+                                update(() {
+                                  lastOpen = next;
+                                  query = '';
+                                  onlyUndecided = true;
+                                });
+                                WidgetsBinding.instance.addPostFrameCallback((
+                                  _,
+                                ) {
+                                  if (!ctx.mounted || !current) return;
+                                  final target = pairKeys[next].currentContext;
+                                  if (target != null) {
+                                    Scrollable.ensureVisible(
+                                      target,
+                                      duration:
+                                          MediaQuery.disableAnimationsOf(ctx)
+                                          ? Duration.zero
+                                          : const Duration(milliseconds: 180),
+                                    );
+                                    pairFocus[next].requestFocus();
+                                  }
+                                });
+                              },
+                      ),
+                    if (!compactReview)
+                      FilterChip(
+                        label: const Text('Noch nicht entschieden'),
+                        selected: onlyUndecided,
+                        onSelected: saving
+                            ? null
+                            : (v) => update(() => onlyUndecided = v),
+                      ),
                     if (!List.generate(pairs.length, (i) => i).any(
                       (i) =>
                           (!onlyUndecided ||
@@ -2512,6 +2614,7 @@ class _VocabularyScreenState extends State<_VocabularyBody>
                                               ? null
                                               : (_) => update(() {
                                                   decisions[index] = action.$1;
+                                                  issue = null;
                                                   if (action.$1 == 'confirm') {
                                                     pairs[index]['uncertainty'] =
                                                         '';
@@ -2524,7 +2627,9 @@ class _VocabularyScreenState extends State<_VocabularyBody>
                                   if (decisions[index] == null ||
                                       decisions[index] == 'later')
                                     Text(
-                                      'Bleibt zum späteren Prüfen erhalten.',
+                                      compactReview && decisions[index] == null
+                                          ? 'Tippe auf „Stimmt“, wenn das Wort passt.'
+                                          : 'Bleibt zum späteren Prüfen erhalten.',
                                       style: TextStyle(
                                         color: context.palette.muted,
                                         fontSize: 13,
@@ -2656,7 +2761,11 @@ class _VocabularyScreenState extends State<_VocabularyBody>
                         }
                       },
                 child: Text(
-                  saving ? 'Speichern …' : 'Stimmt, Wörter speichern',
+                  saving
+                      ? 'Speichern …'
+                      : compactReview
+                      ? 'Wort speichern'
+                      : 'Stimmt, Wörter speichern',
                 ),
               ),
             ],
