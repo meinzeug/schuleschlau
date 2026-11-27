@@ -36,6 +36,15 @@ Future<void> importMaterial(
       identical(owner, state.user) &&
       family == state.familyId &&
       state.api.ownsRequest(identity);
+  Future<T?> whileCurrent<T>(Future<T> Function() action) async {
+    try {
+      return await action();
+    } catch (_) {
+      if (!current()) return null;
+      rethrow;
+    }
+  }
+
   if (state.isDemo) {
     if (!await confirmDialog(
       context,
@@ -49,17 +58,17 @@ Future<void> importMaterial(
         ModalRoute.of(context)?.isCurrent == false) {
       return;
     }
-    final material = await state.api.post(
-      '/children/$childId/materials/synthetic-fixture',
+    final material = await whileCurrent(
+      () => state.api.post('/children/$childId/materials/synthetic-fixture'),
     );
-    if (context.mounted && current()) {
+    if (material != null && context.mounted && current()) {
       state.refreshState();
       openRoute(context, '/material/${material['id']}');
     }
     return;
   }
-  final status = await state.api.get('/status');
-  if (!context.mounted || !current()) return;
+  final status = await whileCurrent(() => state.api.get('/status'));
+  if (status == null || !context.mounted || !current()) return;
   if (status['real_data_enabled'] != true) {
     throw ApiError(
       'Der Import echter Materialien ist bis zur dokumentierten Datenschutzfreigabe gesperrt.',
@@ -92,14 +101,18 @@ Future<void> importMaterial(
   Uint8List? cropped;
   try {
     if (!context.mounted || !current()) return;
-    cropped = await pickMaterialPhoto(context, source, state: state);
+    cropped = await whileCurrent<Uint8List?>(
+      () => pickMaterialPhoto(context, source, state: state),
+    );
   } finally {
     if (current()) await clearCameraSource(state);
   }
   if (cropped == null) return;
   if (!current()) return;
-  final material = await state.api.upload(childId, cropped);
-  if (context.mounted && current()) {
+  final material = await whileCurrent(
+    () => state.api.upload(childId, cropped!),
+  );
+  if (material != null && context.mounted && current()) {
     state.refreshState();
     openRoute(context, '/material/${material['id']}');
   }

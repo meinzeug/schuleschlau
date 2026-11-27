@@ -269,6 +269,66 @@ void main() {
       await t.pumpWidget(const SizedBox());
     },
   );
+  testWidgets('Später Fotostatusfehler erscheint nicht im neuen Konto', (
+    t,
+  ) async {
+    final completion = Completer<http.Response>();
+    final s = src.account((_) => completion.future);
+    s.user = {'id': 'own', 'role': 'parent'};
+    Object? error;
+    await t.pumpWidget(
+      src.home(
+        Builder(
+          builder: (context) => TextButton(
+            onPressed: () async {
+              try {
+                await importMaterial(context, s, 'child');
+              } catch (value) {
+                error = value;
+              }
+            },
+            child: const Text('Importieren'),
+          ),
+        ),
+      ),
+    );
+    await t.tap(find.text('Importieren'));
+    await t.pump();
+    s.beginAuthentication();
+    completion.complete(http.Response('{"detail":"synthetic"}', 500));
+    await t.pumpAndSettle();
+    expect(error, isNull);
+    expect(find.text('Bild auswählen'), findsNothing);
+    expect(t.takeException(), isNull);
+    await t.pumpWidget(const SizedBox());
+  });
+  testWidgets('Aktueller Fotostatusfehler bleibt sichtbar', (t) async {
+    final s = src.account(
+      (_) async => http.Response('{"detail":"synthetic"}', 500),
+    );
+    s.user = {'id': 'own', 'role': 'parent'};
+    Object? error;
+    await t.pumpWidget(
+      src.home(
+        Builder(
+          builder: (context) => TextButton(
+            onPressed: () async {
+              try {
+                await importMaterial(context, s, 'child');
+              } catch (value) {
+                error = value;
+              }
+            },
+            child: const Text('Importieren'),
+          ),
+        ),
+      ),
+    );
+    await tap(t, find.text('Importieren'));
+    expect(error, isA<ApiError>());
+    expect(find.text('Bild auswählen'), findsNothing);
+    await t.pumpWidget(const SizedBox());
+  });
   testWidgets('Photo import still requires the material privacy approval', (
     t,
   ) async {

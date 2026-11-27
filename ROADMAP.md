@@ -4011,8 +4011,10 @@ Bestandteil des bestehenden Buildvertrags.
     oder späten Antworten an. Bereits abgesendete Prüfungen werden nicht
     rückgängig gemacht. 26 künstliche Fälle zu Bildbefunden, Fotoeinwilligung
     und kindlichen Aktionen sowie 94 angrenzende Heft- und Materialfälle
-    bestanden. Andere Importpfade, Fehlermeldungen und direkte Ressourcen sind
-    damit nicht allgemein abgesichert.
+    bestanden. Verspätete Fehler aus diesem Import werden nach einem
+    Anmeldewechsel nicht mehr im neuen Konto angezeigt; aktuelle Fehler
+    bleiben sichtbar. Weitere 15 künstliche Fälle prüfen diese Wege. Andere
+    Importpfade und direkte Ressourcen sind damit nicht allgemein abgesichert.
 
   - [x] **Andere Sitzung desselben Kontos bei markierten API-Zugriffen ablehnen.**
     Die gemeinsame App erhält bei Login und Wiederaufnahme einen nicht
