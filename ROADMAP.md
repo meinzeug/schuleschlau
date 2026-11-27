@@ -4177,6 +4177,18 @@ Bestandteil des bestehenden Buildvertrags.
   Binär-/Dateiübertragungen und verhindert keine bereits erfolgte Serveraktion.
   Umfang und offene Grenzen: `docs/JSON_AUTH_RESPONSE_GUARD_2026_11_27.md`.
 
+- [x] **Einmalige Netzwerkresets lokaler Test-Schriften abfedern.** Im
+  GitHub-Lauf `46062877498` scheiterte der Mehrkind-PDF-Browsertest an zwei
+  `ECONNRESET`-Fehlern beim Lesen lokaler Schriftdateien. Ein künstlicher
+  Chrome-Fall reproduzierte den Fehlertyp und scheiterte ohne Wiederholung.
+  Der Netzwerkguard wiederholt ausschließlich GETs lokaler Dateien unter
+  `/assets/` mit Schrift-Endung und nur einmal bei ECONNRESET. Elf
+  deterministische Fälle und der lokale Chrome-Schutztest bestanden;
+  permanent gestörte Schriften, API- und Schreibanfragen bleiben begrenzt
+  und Fehler bleiben sichtbar. Origin-, Redirect- und WebSocket-Sperre sind
+  unverändert. Eine bestandene Wiederholung des vollständigen PDF-Tests und
+  ein grüner GitHub-Gesamtlauf sind damit noch nicht nachgewiesen.
+
 - [x] **Browser-Testabschluss vor laufenden Anfragen schützen.** Im
   GitHub-Lauf `45988628610` scheiterte der synthetische Mehrkind-PDF-Test
   beim Aufräumen mit Verbindungsabbrüchen laufender lokaler Schriftdateien.

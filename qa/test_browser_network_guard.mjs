@@ -22,7 +22,7 @@ const withDeadline = async (promise, label, timeoutMs = 10000) => {
     clearTimeout(timer);
   }
 };
-let foreignRequests = 0, foreignUpgrades = 0;
+let foreignRequests = 0, foreignUpgrades = 0, transientFontRequests = 0, permanentFontRequests = 0;
 let slowStarted;
 const slowSeen = new Promise(resolve => { slowStarted = resolve; });
 let closeTimeoutStarted;
@@ -43,6 +43,12 @@ const originServer = http.createServer((req, res) => {
   } else if (req.url === '/slow') {
     slowStarted();
     setTimeout(() => res.end('slow fixture'), 200);
+  } else if (req.url === '/assets/test/font.ttf') {
+    if (++transientFontRequests === 1) req.socket.destroy();
+    else res.end('synthetic font bytes');
+  } else if (req.url === '/assets/test/permanent.ttf') {
+    permanentFontRequests++;
+    req.socket.destroy();
   } else if (req.url === '/fail') {
     req.socket.destroy();
   } else if (req.url === '/timeout') {
@@ -67,6 +73,8 @@ try {
   await page.goto(base);
   assert.equal(await page.evaluate(async () => (await fetch('/cookie')).text()), 'set');
   assert.equal(await page.evaluate(async () => (await fetch('/cookie-check')).text()), 'fixture=yes');
+  assert.equal(await page.evaluate(async () => (await fetch('/assets/test/font.ttf')).text()), 'synthetic font bytes');
+  assert.equal(transientFontRequests, 2, 'only the failed local font read is retried once');
   const external = await page.evaluate(async url => { try { await fetch(url); return true; } catch { return false; } }, foreignOrigin);
   assert.equal(external, false);
   const wsFailed = await page.evaluate(url => new Promise(resolve => {
@@ -97,7 +105,7 @@ try {
   assert.equal(foreignUpgrades, 0, 'teardown must not allow foreign WebSockets');
   // Request failures must be reported, not leak an unhandled rejection or let
   // a journey pass merely because its visible assertions happened to pass.
-  for (const requestPath of ['/fail', '/timeout']) {
+  for (const requestPath of ['/fail', '/timeout', '/assets/test/permanent.ttf']) {
     process.stdout.write(`Checking local ${requestPath} failure\n`);
     const failedContext = await browser.newContext({serviceWorkers: 'block'});
     await restrictBrowserNetwork(failedContext, base, {fetchTimeoutMs: 2000});
@@ -109,6 +117,7 @@ try {
     assert.equal(success, false, `${requestPath} must fail in the page`);
     await assert.rejects(closeRestrictedBrowserContext(failedContext), /Synthetic browser network guard failed/);
   }
+  assert.equal(permanentFontRequests, 2, 'a persistently broken font still fails after one retry');
   process.stdout.write('Checking bounded in-flight timeout during teardown\n');
   const timeoutContext = await browser.newContext({serviceWorkers: 'block'});
   await restrictBrowserNetwork(timeoutContext, base, {fetchTimeoutMs: 2000});

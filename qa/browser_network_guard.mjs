@@ -52,7 +52,12 @@ export async function restrictBrowserNetwork(context, base, {fetchTimeoutMs = 30
       // route.continue() only intercepts the first URL in a redirect chain.
       // Fetch without following redirects, and reject every redirect before it
       // reaches Chromium. No browser fixture needs redirects to succeed.
-      const response = await route.fetch({maxRedirects: 0, timeout: fetchTimeoutMs});
+      // A static font may hit a transient loopback ECONNRESET while Chromium
+      // changes views. Retry only this read once; API calls and every write
+      // remain single-attempt, and repeated failures still fail the test.
+      const isStaticFont = route.request().method() === 'GET' &&
+        url.pathname.startsWith('/assets/') && /\.(?:ttf|otf|woff2?)$/i.test(url.pathname);
+      const response = await route.fetch({maxRedirects: 0, timeout: fetchTimeoutMs, maxRetries: isStaticFont ? 1 : 0});
       if (response.status() >= 300 && response.status() < 400) return await route.abort();
       if (observeResponse) await observeResponse(route.request(), response);
       return await route.fulfill({response});

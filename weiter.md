@@ -591,6 +591,14 @@ Der unabhängige Watchdog aus Commit `96c43ca` ist lokal installiert. Er meldet 
   nicht grün. Ursache und Wiederholbarkeit weiter prüfen; Netzwerksperre nicht
   deaktivieren oder den Fehler unterdrücken.
 
+- Der CI-Reset lokaler Schriften ist in einem isolierten Chrome-Test
+  reproduziert. Der Guard wiederholt ausschließlich lokale statische
+  Schrift-GETs einmal bei ECONNRESET; dauerhafte Fehler, andere Methoden,
+  API-Anfragen und Netzwerksperren sind weiterhin geprüft. Elf Unitfälle und
+  der echte Chrome-Guardtest bestanden. Der erste lokale PDF-Wiederholversuch
+  verwendete versehentlich einen Build ohne die CI-Offlineoptionen und scheiterte
+  vor der Flutter-Ansicht; der korrekte Offlinebuild wird gesondert geprüft.
+
 ## Nützliche Prüfungen
 
 - CI: `gh run list --limit 5` und `gh run view <ID>`; ein laufender oder abgebrochener Workflow ist kein grüner Gesamtnachweis.

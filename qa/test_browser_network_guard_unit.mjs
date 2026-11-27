@@ -22,7 +22,7 @@ function context(overrides = {}) {
   };
 }
 const route = overrides => ({
-  request: () => ({url: () => `${origin}/fixture`}),
+  request: () => ({url: () => `${origin}/fixture`, method: () => 'GET'}),
   async abort() {},
   ...overrides,
 });
@@ -81,7 +81,7 @@ test('synthetic interruption only aborts loopback requests and never bypasses or
   let hookCalls = 0, aborted = 0, fetched = 0, fulfilled = 0;
   await restrictBrowserNetwork(c, origin, {abortRequest: () => ++hookCalls === 1});
   await c.handler(route({
-    request: () => ({url: () => 'https://foreign.invalid/fixture'}),
+    request: () => ({url: () => 'https://foreign.invalid/fixture', method: () => 'GET'}),
     async abort() { aborted++; },
     async fetch() { assert.fail('foreign origin must never be fetched'); },
   }));
@@ -108,7 +108,7 @@ test('response observer sees only successful loopback fetches before fulfilment'
     events.push(['observe',request.url(),response.status()]);
   }});
   await c.handler(route({
-    request: () => ({url: () => 'https://foreign.invalid/fixture'}),
+    request: () => ({url: () => 'https://foreign.invalid/fixture', method: () => 'GET'}),
     async fetch() { assert.fail('foreign origin must never be fetched'); },
   }));
   await c.handler(route({
@@ -119,6 +119,29 @@ test('response observer sees only successful loopback fetches before fulfilment'
     async fulfill() { events.push(['fulfil']); },
   }));
   assert.deepEqual(events,[['observe',`${origin}/fixture`,200],['fulfil']]);
+  await closeRestrictedBrowserContext(c);
+});
+
+test('only loopback static font GETs get one bounded reset retry', async () => {
+  const c = context();
+  await restrictBrowserNetwork(c, origin);
+  for (const [path, method, expected] of [
+    ['/assets/fonts/test.ttf', 'GET', 1],
+    ['/assets/fonts/test.woff2', 'GET', 1],
+    ['/api/fonts/test.ttf', 'GET', 0],
+    ['/assets/fonts/test.ttf', 'POST', 0],
+    ['/assets/script.js', 'GET', 0],
+  ]) {
+    await c.handler(route({
+      request: () => ({url: () => origin + path, method: () => method}),
+      async fetch(options) {
+        assert.equal(options.maxRedirects, 0);
+        assert.equal(options.maxRetries, expected);
+        return {status: () => 200};
+      },
+      async fulfill() {},
+    }));
+  }
   await closeRestrictedBrowserContext(c);
 });
 
