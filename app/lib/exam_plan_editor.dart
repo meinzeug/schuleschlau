@@ -267,8 +267,9 @@ class _ExamPlanEditorState extends State<ExamPlanEditor> {
         .toList();
     if (candidates.isEmpty) {
       setState(
-        () => error =
-            'Bestätige zuerst eine passende Heftquelle für dieses Fach.',
+        () => error = widget.state.isChild
+            ? 'Für dieses Fach fehlen noch geprüfte Heftseiten. Bitte deine Eltern um Hilfe.'
+            : 'Bestätige zuerst eine passende Heftquelle für dieses Fach.',
       );
       return;
     }
@@ -276,7 +277,11 @@ class _ExamPlanEditorState extends State<ExamPlanEditor> {
       context,
       (ctx) => AlertDialog(
         scrollable: true,
-        title: const Text('Bestätigte Heftquelle auswählen'),
+        title: Text(
+          widget.state.isChild
+              ? 'Wähle ein Thema aus deinem Heft'
+              : 'Bestätigte Heftquelle auswählen',
+        ),
         content: SizedBox(
           width: 520,
           child: Column(
@@ -336,11 +341,14 @@ class _ExamPlanEditorState extends State<ExamPlanEditor> {
       if (title.text.trim().isEmpty) {
         problem = 'Gib der Arbeit einen kurzen Titel.';
       } else if (subject.isEmpty) {
-        problem = 'Wähle das Fach der bestätigten Quellen.';
+        problem = widget.state.isChild
+            ? 'Wähle ein Fach aus.'
+            : 'Wähle das Fach der bestätigten Quellen.';
       }
     } else if (step == 1 && !review && topics.isEmpty) {
-      problem =
-          'Wähle mindestens ein Thema aus deinen bestätigten Heftquellen.';
+      problem = widget.state.isChild
+          ? 'Wähle mindestens ein Thema aus deinem Heft.'
+          : 'Wähle mindestens ein Thema aus deinen bestätigten Heftquellen.';
     } else if (step == 1 &&
         topics.any(
           (topic) =>
@@ -450,8 +458,10 @@ class _ExamPlanEditorState extends State<ExamPlanEditor> {
         label: Text(subject.isEmpty ? 'Fach auswählen' : subject),
       ),
       if (subjects.isEmpty && !review)
-        const Notice(
-          'Hier fehlen bestätigte Heftquellen. Bestätige zuerst deine Seiten im Hefter.',
+        Notice(
+          widget.state.isChild
+              ? 'Für deinen Plan fehlen noch geprüfte Heftseiten. Bitte deine Eltern um Hilfe.'
+              : 'Hier fehlen bestätigte Heftquellen. Bestätige zuerst deine Seiten im Hefter.',
         ),
       gap(),
       OutlinedButton.icon(
@@ -482,8 +492,10 @@ class _ExamPlanEditorState extends State<ExamPlanEditor> {
   Widget topicFields() => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      const Text(
-        'Aufgaben je Thema und Lerntag. Die Vorbereitung wird erst beim bewussten Start erzeugt.',
+      Text(
+        widget.state.isChild
+            ? 'Wähle deine Themen und wie viele Aufgaben du üben möchtest.'
+            : 'Aufgaben je Thema und Lerntag. Die Vorbereitung wird erst beim bewussten Start erzeugt.',
       ),
       gap(),
       for (var index = 0; index < topics.length; index++) ...[
@@ -551,7 +563,11 @@ class _ExamPlanEditorState extends State<ExamPlanEditor> {
       OutlinedButton.icon(
         onPressed: saving || uncertain || topics.length >= 8 ? null : addTopic,
         icon: const Icon(Icons.add),
-        label: Text('Thema aus Heftquelle wählen (${topics.length}/8)'),
+        label: Text(
+          widget.state.isChild
+              ? 'Thema aus dem Heft wählen (${topics.length}/8)'
+              : 'Thema aus Heftquelle wählen (${topics.length}/8)',
+        ),
       ),
       if (review)
         const Text(

@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:schulpilot/api.dart';
+import 'package:schulpilot/exams_screen.dart';
 import 'package:schulpilot/homework_screen.dart';
 import 'package:schulpilot/school_day_screen.dart';
 import 'package:schulpilot/ui.dart';
@@ -89,6 +90,24 @@ void main() {
               if (request.method == 'GET' &&
                   request.url.path.endsWith('/study-path')) {
                 result = path;
+              } else if (request.method == 'GET' &&
+                  request.url.path.endsWith('/children/example-child/exams')) {
+                result = {
+                  'child_id': 'example-child',
+                  'can_manage': true,
+                  'exams': <Object>[],
+                  'sources': <Object>[],
+                  'has_more': false,
+                };
+              } else if (request.method == 'GET' &&
+                  request.url.path.endsWith(
+                    '/children/example-child/subjects',
+                  )) {
+                result = {
+                  'items': [
+                    {'id': 'example-math', 'title': 'Mathematik'},
+                  ],
+                };
               } else if (request.method == 'GET' &&
                   request.url.path.endsWith('/homework')) {
                 result = {'photos': <Object>[], 'next_cursor': null};
@@ -227,6 +246,10 @@ void main() {
       GoRoute(
         path: '/homework',
         builder: (_, _) => HomeworkScreen(state, childId: 'example-child'),
+      ),
+      GoRoute(
+        path: '/exams',
+        builder: (_, _) => ExamsScreen(state, childId: 'example-child'),
       ),
       GoRoute(
         path: '/unit/:id',

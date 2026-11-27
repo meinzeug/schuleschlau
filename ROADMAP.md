@@ -1150,6 +1150,17 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – Alle Kinderansichten sprachlich und in ihrer Bedienung entrümpeln**
 
+  - [x] **Klassenarbeit ohne Kinder-Prüfauftrag planen.** Fehlen geprüfte
+    Heftseiten, verweist der Kinderdialog verständlich auf die Eltern, statt
+    das Kind selbst zur Quellenbestätigung aufzufordern. Bei vorhandenen
+    Seiten heißen Auswahl und Hilfetext „Thema“ und „Heft“; die Auswahl bleibt
+    auf tatsächlich freigegebene Quellen begrenzt. Die Elternhinweise und die
+    ausdrückliche Planung bleiben erhalten. Eine mobile Browseransicht mit
+    künstlichen Daten sowie Widgettests für beide Rollen, fehlende und
+    vorhandene Seiten und die bestehenden Plan-/Nacharbeitsabläufe wurden
+    geprüft (53 Fälle). Der umfassende Hauptpunkt und das Ausrollen bleiben
+    offen.
+
   - [x] **Schulwörter eindeutig in der vorhandenen Standardsammlung ergänzen.**
     Eine einzelne, zur gewählten Sprache passende „Meine Schulwörter“-Sammlung
     wird im Kinderzugang nur dann vorgeschlagen, wenn die geladene Übersicht
