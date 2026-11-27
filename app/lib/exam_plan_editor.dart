@@ -470,6 +470,32 @@ class _ExamPlanEditorState extends State<ExamPlanEditor> {
     });
   }
 
+  void clearResolvedValidationHint() {
+    final message = error;
+    final validCounts =
+        topics.isNotEmpty &&
+        topics.every(
+          (topic) =>
+              topic['question_count'] is int &&
+              topic['question_count'] >= 1 &&
+              topic['question_count'] <= 50,
+        );
+    if ((message == 'Wähle pro Thema zwischen 1 und 50 Aufgaben je Lerntag.' &&
+            validCounts) ||
+        (message == 'Wähle zwischen 5 und 60 Minuten pro Lerntag.' &&
+            minutes >= 5 &&
+            minutes <= 60) ||
+        (message == 'Wähle mindestens einen konkreten Lerntag.' &&
+            dates.isNotEmpty) ||
+        (message == 'Lerntage dürfen nicht nach dem Prüfungstermin liegen.' &&
+            (examDay == null ||
+                dates.every(
+                  (date) => date.compareTo(examDate(examDay!)) <= 0,
+                )))) {
+      error = null;
+    }
+  }
+
   bool validateStep() {
     String? problem;
     if (step == 0) {
@@ -662,6 +688,7 @@ class _ExamPlanEditorState extends State<ExamPlanEditor> {
                 onChanged: (value) => edit(() {
                   if (index < topics.length) {
                     topics[index]['question_count'] = int.tryParse(value) ?? 0;
+                    clearResolvedValidationHint();
                   }
                 }),
               ),
@@ -679,6 +706,7 @@ class _ExamPlanEditorState extends State<ExamPlanEditor> {
                               if (index < topics.length) {
                                 topics[index]['question_count'] = count;
                                 counter(topics[index]).text = '$count';
+                                clearResolvedValidationHint();
                               }
                             }),
                     ),
@@ -688,7 +716,10 @@ class _ExamPlanEditorState extends State<ExamPlanEditor> {
                 onPressed: saving || uncertain
                     ? null
                     : () => edit(() {
-                        if (index < topics.length) topics.removeAt(index);
+                        if (index < topics.length) {
+                          topics.removeAt(index);
+                          clearResolvedValidationHint();
+                        }
                       }),
                 icon: const Icon(Icons.close),
                 label: const Text('Thema entfernen'),
@@ -757,7 +788,10 @@ class _ExamPlanEditorState extends State<ExamPlanEditor> {
               label: Text(friendlyDate(date)),
               onDeleted: saving || uncertain
                   ? null
-                  : () => edit(() => dates.remove(date)),
+                  : () => edit(() {
+                      dates.remove(date);
+                      clearResolvedValidationHint();
+                    }),
             ),
         ],
       ),
@@ -770,7 +804,10 @@ class _ExamPlanEditorState extends State<ExamPlanEditor> {
             : () async {
                 final selected = await datePicker(from);
                 if (selected != null && scope.current) {
-                  setState(() => dates.add(examDate(selected)));
+                  setState(() {
+                    dates.add(examDate(selected));
+                    clearResolvedValidationHint();
+                  });
                 }
               },
       ),
@@ -864,7 +901,7 @@ class _ExamPlanEditorState extends State<ExamPlanEditor> {
           suffixText: 'Min.',
           helperText: '5 bis 60 Minuten',
         ),
-        onChanged: (_) => edit(() => error = null),
+        onChanged: (_) => edit(clearResolvedValidationHint),
       ),
       Text(
         widget.state.isChild ? 'Ein Vorschlag, kein Zeitlimit.' : 'Eine Empfehlung, kein Zeitlimit. Ausgelassene Tage erzeugen keinen Nachholberg.',

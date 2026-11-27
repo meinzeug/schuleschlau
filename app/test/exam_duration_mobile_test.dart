@@ -47,6 +47,67 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   }
+  testWidgets('Hinweise bleiben bis zur passenden Korrektur sichtbar', (
+    tester,
+  ) async {
+    final fixture = fixtures.Fixture();
+    await fixture.mount(tester, editor: true, size: const Size(390, 844));
+    await fixtures.tap(tester, find.text('Weiter'));
+    final count = find.widgetWithText(
+      TextField,
+      'Aufgaben je Thema und Lerntag',
+    );
+    await tester.enterText(count, '0');
+    await fixtures.tap(tester, find.text('Weiter'));
+    const countError = 'Wähle pro Thema zwischen 1 und 50 Aufgaben je Lerntag.';
+    expect(find.text(countError), findsOneWidget);
+    await tester.enterText(count, '51');
+    await tester.pump();
+    expect(find.text(countError), findsOneWidget);
+    await tester.enterText(count, '5');
+    await tester.pump();
+    expect(find.text(countError), findsNothing);
+    await fixtures.tap(tester, find.text('Weiter'));
+    final minutes = find.widgetWithText(TextField, 'Minuten pro Lerntag');
+    await tester.ensureVisible(minutes);
+    await tester.enterText(minutes, '4');
+    await fixtures.tap(tester, find.text('Weiter'));
+    const timeError = 'Wähle zwischen 5 und 60 Minuten pro Lerntag.';
+    expect(find.text(timeError), findsOneWidget);
+    await tester.ensureVisible(minutes);
+    await tester.enterText(minutes, '61');
+    await tester.pump();
+    expect(find.text(timeError), findsOneWidget);
+    await tester.enterText(minutes, '30');
+    await tester.pump();
+    expect(find.text(timeError), findsNothing);
+    expect(fixture.writes, isEmpty);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Lerntaghinweis bleibt bei anderer Eingabe bestehen', (
+    tester,
+  ) async {
+    final fixture = fixtures.Fixture();
+    await fixture.mount(tester, editor: true, size: const Size(390, 844));
+    await fixtures.tap(tester, find.text('Weiter'));
+    await fixtures.tap(tester, find.text('Weiter'));
+    final date = find.byType(InputChip);
+    expect(date, findsOneWidget);
+    tester.widget<InputChip>(date).onDeleted!();
+    await tester.pump();
+    await fixtures.tap(tester, find.text('Weiter'));
+    const dateError = 'Wähle mindestens einen konkreten Lerntag.';
+    expect(find.text(dateError), findsOneWidget);
+    final minutes = find.widgetWithText(TextField, 'Minuten pro Lerntag');
+    await tester.ensureVisible(minutes);
+    await tester.enterText(minutes, '30');
+    await tester.pump();
+    expect(find.text(dateError), findsOneWidget);
+    expect(fixture.writes, isEmpty);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('Lernzeit und Weiter bleiben mit Bildschirmtastatur erreichbar', (
     tester,
   ) async {
