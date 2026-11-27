@@ -287,4 +287,28 @@ void main() {
       expect(requests.every((r) => r.method == 'GET'), isTrue);
     },
   );
+  testWidgets('Neue Anmeldung schließt die private Lernschrittbegründung', (
+    tester,
+  ) async {
+    final data = fixture.childDay();
+    data['plan']['today'][0]['status'] = 'active';
+    data['units'][0]['status'] = 'active';
+    data['learning_guidance'] = {
+      'unit_id': data['plan']['today'][0]['id'],
+      'title': 'Mit neuem Blick üben',
+      'reason': 'Ein künstlicher privater Lernhinweis.',
+    };
+    final (state, requests) = await today(tester, data);
+    await old.tap(tester, find.text('Mehr zur Runde'));
+    await old.tap(tester, find.text('Warum dieser Lernschritt?'));
+    expect(find.text('Ein künstlicher privater Lernhinweis.'), findsOneWidget);
+    final before = requests.length;
+    state.beginAuthentication();
+    await tester.pumpAndSettle();
+    expect(find.text('Ein künstlicher privater Lernhinweis.'), findsNothing);
+    expect(find.text('Warum dieser Lernschritt?'), findsNothing);
+    expect(requests, hasLength(before));
+    expect(requests.every((r) => r.method == 'GET'), isTrue);
+    expect(tester.takeException(), isNull);
+  });
 }

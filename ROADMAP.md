@@ -4016,6 +4016,16 @@ Bestandteil des bestehenden Buildvertrags.
     nach einer abgebrochenen Anmeldung gegebenenfalls erneut geöffnet werden.
     Dies behebt weder das globale Transportproblem noch den Cookie-Wettlauf.
 
+    **Heute und Lernüberblick bei Anmeldebeginn abblenden:** Die Übersicht
+    bindet sich an die Anmeldeabsicht, übernimmt alte Statusabfragen nicht
+    mehr und blendet deren Ergebnisse aus. Die Hauptaktionen prüfen diese Bindung auch noch
+    vor dem nächsten Neuzeichnen; ein geöffneter Dialog zur persönlichen
+    Lernschrittbegründung schließt sich. Bereits gesendete Anfragen bleiben
+    serverseitig bestehen. Bei einer abgebrochenen Anmeldung muss die Ansicht
+    gegebenenfalls erneut geöffnet werden. 59 künstliche Fälle zur Kinder-
+    startseite und 38 Fälle zu Statusabgleich und Elternansicht bestanden;
+    andere Dialoge und das globale Cookie-Problem sind nicht abgenommen.
+
     **Fotoimport und elterliche Bildprüfung zusätzlich begrenzt:** Der
     klassische Fotoimport bindet die Zustimmung und den Start des Pickers
     an Konto, Familie, Sitzung und Anmeldeabsicht; ein verspäteter Status

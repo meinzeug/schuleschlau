@@ -374,6 +374,7 @@ void main() {
     for (final invalidation in [
       'new-session',
       'family',
+      'authentication-intent',
       'covered-route',
       'plan-refresh',
     ]) {
@@ -404,12 +405,21 @@ void main() {
           } else if (invalidation == 'family') {
             state.familyId = 'other-family';
             state.notifyListeners();
+          } else if (invalidation == 'authentication-intent') {
+            state.beginAuthentication();
+            final before = calls.length;
+            await oldOpen();
+            expect(calls, hasLength(before));
+            expect(router.routeInformationProvider.value.uri.path, '/app');
           } else if (invalidation == 'plan-refresh') {
             state.refreshState();
           } else {
             router.push('/new');
           }
           await tester.pumpAndSettle();
+          if (invalidation == 'authentication-intent') {
+            expect(find.byType(ChildTodayHero), findsNothing);
+          }
           final location = router.routeInformationProvider.value.uri;
           final count = calls.length;
           await oldOpen();

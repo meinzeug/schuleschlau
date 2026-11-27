@@ -305,4 +305,19 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+  testWidgets('Neue Anmeldung verwirft den verspäteten Heute-Status', (
+    tester,
+  ) async {
+    final home = await mount(tester);
+    await startPoll(tester);
+    final before = home.requests.length;
+    home.state.beginAuthentication();
+    home.recognized();
+    home.reads.single.complete(home.reply());
+    await tester.pumpAndSettle();
+    expect(find.byType(ChildTodayHero), findsNothing);
+    await tester.pump(const Duration(seconds: 10));
+    expect(home.requests, hasLength(before));
+    expect(tester.takeException(), isNull);
+  });
 }

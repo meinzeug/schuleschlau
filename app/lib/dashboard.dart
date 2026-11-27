@@ -747,6 +747,7 @@ class _ChildDetailBodyState extends State<_ChildDetailBody>
   Json? observingAccount;
   String? observingFamily;
   String? observingSession;
+  int? observingAuthenticationRevision;
   Duration? pollInterval;
   int visibilityEpoch = 0, activeReads = 0;
   bool resumeReadPending = false;
@@ -758,7 +759,8 @@ class _ChildDetailBodyState extends State<_ChildDetailBody>
       state.user != null &&
       identical(state.user, observingAccount) &&
       state.familyId == observingFamily &&
-      state.api.token == observingSession;
+      state.api.token == observingSession &&
+      state.api.requestIdentity().$3 == observingAuthenticationRevision;
   void refresh() {
     if (mounted && sameAccount) {
       preparationPoll?.cancel();
@@ -859,6 +861,7 @@ class _ChildDetailBodyState extends State<_ChildDetailBody>
     observingAccount = state.user;
     observingFamily = state.familyId;
     observingSession = state.api.token;
+    observingAuthenticationRevision = state.api.requestIdentity().$3;
     WidgetsBinding.instance.addObserver(this);
   }
 
@@ -959,7 +962,7 @@ class _ChildDetailBodyState extends State<_ChildDetailBody>
 
   @override
   Widget build(BuildContext context) => ListenableBuilder(
-    listenable: state,
+    listenable: Listenable.merge([state, state.authenticationChanges]),
     builder: (context, _) => !sameAccount
         ? SizedBox.shrink()
         : PageFrame(
@@ -1253,10 +1256,12 @@ class _ChildHomeContentState extends State<_ChildHomeContent> {
     final renderedData = widget.data;
     final child = renderedData['child'] as Json;
     final account = state.user, family = state.familyId;
+    final identity = state.api.requestIdentity();
     bool ownContext() =>
         mounted &&
         identical(state.user, account) &&
         state.familyId == family &&
+        state.api.ownsRequest(identity) &&
         widget.data['child']?['id'] == child['id'];
     bool current() =>
         ownContext() &&
@@ -1957,11 +1962,13 @@ Future<void> _showLearningReason(
   String reason,
 ) async {
   final owner = state.user, family = state.familyId;
+  final identity = state.api.requestIdentity();
   bool current() =>
       context.mounted &&
       owner != null &&
       identical(state.user, owner) &&
-      state.familyId == family;
+      state.familyId == family &&
+      state.api.ownsRequest(identity);
   late final DialogRoute<void> route;
   route = DialogRoute<void>(
     context: context,
@@ -1984,10 +1991,12 @@ Future<void> _showLearningReason(
   }
 
   state.addListener(changed);
+  state.authenticationChanges.addListener(changed);
   try {
     await Navigator.of(context).push(route);
   } finally {
     state.removeListener(changed);
+    state.authenticationChanges.removeListener(changed);
   }
 }
 
