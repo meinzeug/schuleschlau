@@ -326,7 +326,12 @@ void main() {
         expect(tester.takeException(), isNull);
       },
     );
-    for (final invalidation in ['new-session', 'family', 'covered-route']) {
+    for (final invalidation in [
+      'new-session',
+      'login-intent',
+      'family',
+      'covered-route',
+    ]) {
       testWidgets(
         'KK012 old $role homework photo card rejects $invalidation navigation',
         (tester) async {
@@ -367,6 +372,13 @@ void main() {
           if (invalidation == 'new-session') {
             state.user = Json.from(state.user!);
             state.notifyListeners();
+          } else if (invalidation == 'login-intent') {
+            state.beginAuthentication();
+            final location = router.routeInformationProvider.value.uri;
+            final count = calls.length;
+            oldOpen(); // A pointer callback already queued before the rebuild.
+            expect(router.routeInformationProvider.value.uri, location);
+            expect(calls, hasLength(count));
           } else if (invalidation == 'family') {
             state.familyId = 'other-family';
             state.notifyListeners();

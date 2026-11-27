@@ -161,6 +161,171 @@ Future<void> tap(WidgetTester tester, String label) async {
 }
 
 void main() {
+  testWidgets('a new login intent immediately hides the homework photo list', (
+    tester,
+  ) async {
+    var reads = 0;
+    final state = account(
+      MockClient((r) async {
+        expect(r.method, 'GET');
+        reads++;
+        return reply({
+          'photos': [
+            {
+              'id': 'photo',
+              'topic': 'Künstliche Aufgabenfotos',
+              'confirmed': false,
+            },
+          ],
+          'next_cursor': null,
+        });
+      }),
+      role: 'parent',
+    );
+    await open(tester, state, overview: true);
+    expect(find.text('Künstliche Aufgabenfotos'), findsOneWidget);
+    final revision = state.beginAuthentication();
+    await tester.pump();
+    expect(find.text('Künstliche Aufgabenfotos'), findsNothing);
+    expect(find.text('Aufgabenfotos erneut laden'), findsOneWidget);
+    expect(reads, 1);
+    state.cancelAuthentication(revision);
+    await tester.pump();
+    expect(reads, 1);
+    await tap(tester, 'Aufgabenfotos erneut laden');
+    expect(reads, 2);
+    expect(find.text('Künstliche Aufgabenfotos'), findsOneWidget);
+  });
+
+  testWidgets('late homework photos cannot restore an old login view', (
+    tester,
+  ) async {
+    final delayed = Completer<http.Response>();
+    var reads = 0;
+    final state = account(
+      MockClient((r) async {
+        expect(r.method, 'GET');
+        if (++reads == 2) return delayed.future;
+        return reply({
+          'photos': [
+            {'id': 'fresh', 'topic': 'Neues Foto', 'confirmed': false},
+          ],
+          'next_cursor': null,
+        });
+      }),
+      role: 'parent',
+    );
+    await open(tester, state, overview: true);
+    await tester.ensureVisible(find.text('Aktualisieren'));
+    await tester.tap(find.text('Aktualisieren'));
+    await tester.pump();
+    expect(reads, 2);
+    final revision = state.beginAuthentication();
+    delayed.complete(
+      reply({
+        'photos': [
+          {'id': 'old', 'topic': 'Veraltetes Foto', 'confirmed': false},
+        ],
+        'next_cursor': null,
+      }),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Veraltetes Foto'), findsNothing);
+    expect(find.text('Neues Foto'), findsNothing);
+    expect(find.text('Aufgabenfotos erneut laden'), findsOneWidget);
+    state.cancelAuthentication(revision);
+    await tester.pump();
+    expect(reads, 2);
+    await tap(tester, 'Aufgabenfotos erneut laden');
+    expect(reads, 3);
+    expect(find.text('Neues Foto'), findsOneWidget);
+  });
+
+  testWidgets('child keeps an unsent photo for explicit retry after login', (
+    tester,
+  ) async {
+    var reads = 0;
+    final state = account(
+      MockClient((r) async {
+        expect(r.method, 'GET');
+        reads++;
+        return reply({'photos': <Object>[], 'next_cursor': null});
+      }),
+    );
+    final image = base64Decode(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jR90AAAAASUVORK5CYII=',
+    );
+    state.collectionViews['homework_photo:child'] = {
+      'account': state.user,
+      'family': state.familyId,
+      'updated': DateTime.now().millisecondsSinceEpoch,
+      'bytes': image,
+      'key': 'synthetic-existing-key',
+    };
+    await open(tester, state, overview: true, openTools: false);
+    expect(find.text('Dieses Foto ist noch nicht abgegeben.'), findsOneWidget);
+    final revision = state.beginAuthentication();
+    await tester.pump();
+    expect(find.text('Dieses Foto ist noch nicht abgegeben.'), findsNothing);
+    expect(reads, 1);
+    state.cancelAuthentication(revision);
+    await tester.pump();
+    await tap(tester, 'Aufgabenfotos erneut laden');
+    expect(reads, 2);
+    expect(find.text('Dieses Foto ist noch nicht abgegeben.'), findsOneWidget);
+    expect(find.text('Foto erneut senden'), findsOneWidget);
+    expect(
+      state.collectionViews['homework_photo:child']?['key'],
+      'synthetic-existing-key',
+    );
+  });
+
+  testWidgets('a late upload receipt cannot start recognition after login', (
+    tester,
+  ) async {
+    final receipt = Completer<http.Response>();
+    final requests = <http.Request>[];
+    final state = account(
+      MockClient((request) async {
+        requests.add(request);
+        if (request.method == 'POST' &&
+            request.url.path.endsWith('/materials')) {
+          return receipt.future;
+        }
+        expect(request.method, 'GET');
+        return reply({'photos': <Object>[], 'next_cursor': null});
+      }),
+    );
+    final image = base64Decode(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jR90AAAAASUVORK5CYII=',
+    );
+    state.collectionViews['homework_photo:child'] = {
+      'account': state.user,
+      'family': state.familyId,
+      'updated': DateTime.now().millisecondsSinceEpoch,
+      'bytes': image,
+      'key': 'synthetic-upload-key',
+    };
+    await open(tester, state, overview: true, openTools: false);
+    await tester.ensureVisible(find.text('Foto erneut senden'));
+    await tester.tap(find.text('Foto erneut senden'));
+    await tester.pump();
+    expect(requests.where((r) => r.method == 'POST'), hasLength(1));
+    final revision = state.beginAuthentication();
+    receipt.complete(reply({'id': 'stored-photo'}));
+    await tester.pumpAndSettle();
+    expect(requests.where((r) => r.method == 'POST'), hasLength(1));
+    expect(
+      state.collectionViews['homework_photo:child']?['key'],
+      'synthetic-upload-key',
+    );
+    state.cancelAuthentication(revision);
+    await tester.pump();
+    await tap(tester, 'Aufgabenfotos erneut laden');
+    expect(find.text('Foto erneut senden'), findsOneWidget);
+    expect(requests.where((r) => r.method == 'POST'), hasLength(1));
+  });
+
   testWidgets('changing child rejects the previous in-flight photo list', (
     tester,
   ) async {

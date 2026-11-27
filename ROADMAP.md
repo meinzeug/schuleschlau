@@ -1680,6 +1680,18 @@ Die folgenden Punkte beschreiben ausstehende, wiederholbare Betriebs- und Freiga
   automatisierte Freigabeprüfung ersetzt keinen unabhängigen Sicherheitstest.
 - [ ] **P1 – Datenlebenszyklus und Löschung pro Datenart prüfen**
 
+  - [x] **Hausaufgabenfoto-Liste beim Anmeldewechsel schützen.** Ein neuer
+    Anmeldeversuch verbirgt bisherige Fotos und schließt den internen
+    Auswahldialog; verspätete Auswahl-, Listen- und Uploadantworten sowie alte
+    Fotoklicks werden nicht übernommen. Ein noch nicht gesendetes Foto bleibt
+    mit seinem Wiederholungsschlüssel im bestehenden kontogebundenen
+    Zwischenspeicher. Nach einem abgebrochenen Anmeldeversuch stellt erst ein
+    bewusstes erneutes Laden die Übersicht wieder her; dabei werden keine
+    Fotos oder KI-Aufträge abgeschickt. 60 angrenzende künstliche Flutterfälle,
+    zwei zusätzliche Klickprüfungen und vier neue Chrome-Webrunnerfälle
+    bestanden. Dies ist keine vollständige Prüfung aller Hausaufgabenseiten
+    oder Browser-Cookies.
+
   - [x] **Eltern-Lernplan bei neuer Anmeldeabsicht sofort ausblenden.**
     Bisher blieben ältere Plandaten bis zur nächsten Aktion sichtbar, obwohl
     die Aktionen bereits an die Anmeldeabsicht gebunden waren. Der Plan wird

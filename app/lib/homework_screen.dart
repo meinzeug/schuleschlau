@@ -39,6 +39,8 @@ class HomeworkScreen extends StatefulWidget {
 
 class _HomeworkScreenState extends State<HomeworkScreen> {
   late final actorToken = widget.state.api.token;
+  late var authentication = widget.state.api.requestIdentity();
+  bool authenticationReload = false;
   final List<Json> photos = [];
   String uploadPhase = '';
   final photoSearch = TextEditingController();
@@ -177,11 +179,15 @@ class _HomeworkScreenState extends State<HomeworkScreen> {
   }
 
   String? uploadKey;
-  bool get own =>
+  bool get sameAccount =>
       actor != null &&
       identical(actor, widget.state.user) &&
       actorFamily == widget.state.familyId &&
       actorToken == widget.state.api.token;
+  bool get own =>
+      sameAccount &&
+      !authenticationReload &&
+      widget.state.api.ownsRequest(authentication);
   VoidCallback openPhotoAction(Json photo) {
     final child = widget.childId, id = photo['id'];
     final route = ModalRoute.of(context);
@@ -208,7 +214,13 @@ class _HomeworkScreenState extends State<HomeworkScreen> {
   void initState() {
     super.initState();
     widget.state.addListener(identity);
+    widget.state.authenticationChanges.addListener(authenticationChanged);
     restoreList();
+    restorePhoto();
+    unawaited(load());
+  }
+
+  void restorePhoto() {
     final local = widget.state.collectionViews[photoMemory];
     if (identical(local?['account'], actor) &&
         local?['family'] == actorFamily &&
@@ -219,6 +231,34 @@ class _HomeworkScreenState extends State<HomeworkScreen> {
     } else {
       widget.state.collectionViews.remove(photoMemory);
     }
+  }
+
+  void authenticationChanged() {
+    if (!mounted || !sameAccount) return;
+    generation++;
+    photoOperation++;
+    closePhotoChoice();
+    localPreview?.evict();
+    localPreview = null;
+    setState(() {
+      authenticationReload = true;
+      photos.clear();
+      photoCursors.clear();
+      pending = null;
+      photoSearch.clear();
+      cursor = null;
+      error = null;
+      retryMore = null;
+      loading = busy = choosing = _requestActive = false;
+    });
+  }
+
+  void reloadAfterAuthentication() {
+    if (!mounted || !sameAccount || !authenticationReload) return;
+    authentication = widget.state.api.requestIdentity();
+    restoreList();
+    restorePhoto();
+    setState(() => authenticationReload = false);
     unawaited(load());
   }
 
@@ -281,6 +321,7 @@ class _HomeworkScreenState extends State<HomeworkScreen> {
     pending = null;
     photoSearch.dispose();
     widget.state.removeListener(identity);
+    widget.state.authenticationChanges.removeListener(authenticationChanged);
     super.dispose();
   }
 
@@ -545,7 +586,26 @@ class _HomeworkScreenState extends State<HomeworkScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => PageFrame(
+  Widget build(BuildContext context) => authenticationReload
+      ? PageFrame(
+          state: widget.state,
+          title: 'Hausaufgaben',
+          showTitle: !widget.state.isChild,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text('Bitte lade deine Aufgabenfotos erneut.'),
+              const SizedBox(height: 12),
+              FilledButton(
+                onPressed: reloadAfterAuthentication,
+                child: const Text('Aufgabenfotos erneut laden'),
+              ),
+            ],
+          ),
+        )
+      : regularView(context);
+
+  Widget regularView(BuildContext context) => PageFrame(
     state: widget.state,
     title: 'Hausaufgaben',
     showTitle: !widget.state.isChild,
