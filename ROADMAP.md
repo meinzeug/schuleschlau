@@ -4057,6 +4057,15 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Echtzeitstatus gezielt und zuverlässig bereitstellen**
 
+  - [x] **Tagesverlauf beim Beginn einer neuen Anmeldung leeren.** Bereits
+    angezeigte Tageskarten und Filter werden entfernt, die Datumsauswahl
+    geschlossen und verspätete Antworten oder Fehler verworfen. Alte
+    Kartenaktionen navigieren nicht; nach einem abgebrochenen Wechsel ist
+    ein ausdrückliches Neuladen möglich. Künstliche Tests prüfen auch die
+    Reihenfolge eines neuen und eines verspäteten alten Abrufs. Ein Abruf,
+    der erst während einer laufenden Anmeldung gestartet wird, sowie der
+    allgemeine Cookie-Wettlauf bleiben gesondert offen.
+
   - [x] **Geöffnete Foto- und Gerätedialoge beim Anmeldewechsel schließen.**
     Eine separate Benachrichtigung über die lokale Anmeldeabsicht schließt
     bereits geöffnete Fotovorschauen, Gerätedetails und Bestätigungen, ohne

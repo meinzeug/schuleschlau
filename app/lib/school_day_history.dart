@@ -35,7 +35,7 @@ class _SchoolDayHistoryState extends State<_SchoolDayHistoryBody> {
   late final sessionToken = widget.state.api.token;
   String? before, pageStart, error;
   String status = 'all', subject = 'all', order = 'newest';
-  bool loading = true, more = true, requestActive = false;
+  bool loading = true, more = true, requestActive = false, needsReload = false;
   int generation = 0;
   ModalRoute<dynamic>? dateRoute;
   String get memoryKey => 'school_history:${widget.childId}';
@@ -63,7 +63,29 @@ class _SchoolDayHistoryState extends State<_SchoolDayHistoryBody> {
       }
     }
     widget.state.addListener(accountChanged);
+    widget.state.authenticationChanges.addListener(authenticationChanged);
     load();
+  }
+
+  void authenticationChanged() {
+    if (!mounted || !current) return;
+    generation++;
+    final route = dateRoute;
+    dateRoute = null;
+    if (route?.isActive == true) route!.navigator?.removeRoute(route);
+    widget.state.collectionViews.remove(memoryKey);
+    FocusManager.instance.primaryFocus?.unfocus();
+    setState(() {
+      days.clear();
+      search.clear();
+      status = subject = 'all';
+      order = 'newest';
+      before = pageStart = null;
+      more = false;
+      requestActive = loading = false;
+      needsReload = true;
+      error = 'Bitte lade deine Tagespakete erneut.';
+    });
   }
 
   void accountChanged() {
@@ -96,6 +118,7 @@ class _SchoolDayHistoryState extends State<_SchoolDayHistoryBody> {
   void dispose() {
     generation++;
     widget.state.removeListener(accountChanged);
+    widget.state.authenticationChanges.removeListener(authenticationChanged);
     final route = dateRoute;
     if (route?.isActive == true) route!.navigator?.removeRoute(route);
     search.dispose();
@@ -118,6 +141,7 @@ class _SchoolDayHistoryState extends State<_SchoolDayHistoryBody> {
     setState(() {
       loading = true;
       error = null;
+      needsReload = false;
       if (reset) {
         days.clear();
         before = pageStart = cursor;
@@ -160,7 +184,10 @@ class _SchoolDayHistoryState extends State<_SchoolDayHistoryBody> {
   }
 
   Future<void> chooseDate() async {
-    if (!current || loading || ModalRoute.of(context)?.isCurrent == false) {
+    if (!current ||
+        needsReload ||
+        loading ||
+        ModalRoute.of(context)?.isCurrent == false) {
       return;
     }
     final today = DateTime.now();
@@ -181,6 +208,7 @@ class _SchoolDayHistoryState extends State<_SchoolDayHistoryBody> {
     if (selected == null ||
         !mounted ||
         !current ||
+        needsReload ||
         ModalRoute.of(context)?.isCurrent == false) {
       return;
     }
@@ -216,7 +244,7 @@ class _SchoolDayHistoryState extends State<_SchoolDayHistoryBody> {
   }
 
   void change(VoidCallback action) {
-    if (!current) return;
+    if (!current || needsReload) return;
     FocusManager.instance.primaryFocus?.unfocus();
     setState(action);
     remember();
@@ -224,6 +252,7 @@ class _SchoolDayHistoryState extends State<_SchoolDayHistoryBody> {
 
   void openDay(Json day) {
     if (!current ||
+        needsReload ||
         loading ||
         ModalRoute.of(context)?.isCurrent == false ||
         !days.any((row) => row['id'] == day['id'])) {
@@ -370,7 +399,7 @@ class _SchoolDayHistoryState extends State<_SchoolDayHistoryBody> {
                     sessionToken,
                     widget.childId,
                   ),
-                  isCurrent: () => current,
+                  isCurrent: () => current && !needsReload,
                   summary: '${days.length} geladene Tagespakete',
                   active:
                       search.text.trim().isNotEmpty ||
@@ -419,7 +448,7 @@ class _SchoolDayHistoryState extends State<_SchoolDayHistoryBody> {
                                 ),
                         ),
                         onChanged: (_) {
-                          if (current) {
+                          if (current && !needsReload) {
                             setState(() {});
                             remember();
                           }
@@ -554,7 +583,7 @@ class _SchoolDayHistoryState extends State<_SchoolDayHistoryBody> {
                         ? 'Heutige Fotos beginnen'
                         : 'Heutigen Tag ansehen',
                     onPressed: () {
-                      if (current) {
+                      if (current && !needsReload) {
                         openRoute(
                           context,
                           '/after-school/${widget.childId}${widget.state.isChild ? '?capture=1' : ''}',
@@ -623,7 +652,7 @@ class _SchoolDayHistoryState extends State<_SchoolDayHistoryBody> {
                 SizedBox(height: 16),
                 OutlinedButton(
                   onPressed: () {
-                    if (current) {
+                    if (current && !needsReload) {
                       openRoute(context, '/after-school/${widget.childId}');
                     }
                   },
