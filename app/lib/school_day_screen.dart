@@ -1573,11 +1573,8 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
               ),
             ],
             SizedBox(height: 18),
-            ExpansionTile(
-              title: Text(
-                'Mehr zu diesem Tag',
-                style: TextStyle(fontSize: 13, color: context.palette.muted),
-              ),
+            _AccessibleDayDetails(
+              key: ValueKey((widget.childId, day!['id'])),
               children: [
                 Align(
                   alignment: Alignment.centerLeft,
@@ -3717,4 +3714,30 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
       ),
     );
   }
+}
+
+/// Keeps the actual tile state and the screenreader state together on rebuild.
+class _AccessibleDayDetails extends StatefulWidget {
+  final List<Widget> children;
+  const _AccessibleDayDetails({super.key, required this.children});
+
+  @override
+  State<_AccessibleDayDetails> createState() => _AccessibleDayDetailsState();
+}
+
+class _AccessibleDayDetailsState extends State<_AccessibleDayDetails> {
+  bool expanded = false;
+
+  @override
+  Widget build(BuildContext context) => ExpansionTile(
+    onExpansionChanged: (value) => setState(() => expanded = value),
+    title: Semantics(
+      expanded: expanded,
+      child: Text(
+        'Mehr zu diesem Tag',
+        style: TextStyle(fontSize: 13, color: context.palette.muted),
+      ),
+    ),
+    children: widget.children,
+  );
 }

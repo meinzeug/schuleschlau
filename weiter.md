@@ -621,6 +621,10 @@ Der unabhängige Watchdog aus Commit `96c43ca` ist lokal installiert. Er meldet 
   weiterhin als unbekannt. Künstliche Tests prüfen den Unterschied; es gab
   hierfür keinen echten Anbieteraufruf.
 
+- „Mehr zu diesem Tag“ meldet seinen geöffneten Zustand nun am bedienbaren
+  Knoten; 18 künstliche Schultagsfälle und der Chrome-Fall mit Größenwechsel
+  bestanden. Dies ist keine vollständige Screenreader- oder Android-Abnahme.
+
 ## Nützliche Prüfungen
 
 - CI: `gh run list --limit 5` und `gh run view <ID>`; ein laufender oder abgebrochener Workflow ist kein grüner Gesamtnachweis.

@@ -1661,6 +1661,14 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – Barrierearme mobile Führung nachweisen**
 
+  - [x] **Tagesdetails beim Auf- und Zuklappen zugänglich kennzeichnen.**
+    „Mehr zu diesem Tag“ meldet seinen tatsächlichen Zustand am bedienbaren
+    Semantikknoten. Der neue Test scheiterte vor der Änderung. 18 künstliche
+    Schultags- und Mobilfälle bestanden; der neue Zustand blieb beim Wechsel
+    von 320 auf 390 Pixel auch im Chrome-Webrunner erhalten. Das Öffnen löst
+    keine Schreibanfrage aus. Eine vollständige Screenreader- und Android-
+    Abnahme bleibt offen.
+
   - [x] **Rückweg im mobilen Kopf eindeutig ansagen.** Der im lokalen
     Browser zeitweise doppelt ausgegebene Tooltip erhält keinen eigenen
     Semantiknamen; die Rückaktion bleibt beschriftet und bedienbar. Der
