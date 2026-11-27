@@ -115,7 +115,7 @@ class FamilyCallService extends ChangeNotifier {
   // A live call must not continue capturing while a different sign-in is
   // being initiated, even before the old account object is replaced.
   void _authenticationChanged() {
-    if (media == null) return;
+    if (media == null && _nativeShown == null) return;
     unawaited(_closeMedia());
     notifyListeners();
   }
@@ -226,14 +226,22 @@ class FamilyCallService extends ChangeNotifier {
         await _closeMedia();
       } else {
         if (incoming && _nativeAndroid && _nativeShown != callId) {
-          _nativeShown = callId;
+          final incomingId = callId!;
+          _nativeShown = incomingId;
           await FamilyCallNative.instance.showIncoming(
-            callId!,
+            incomingId,
             DateTime.fromMillisecondsSinceEpoch(
               (call!['ring_expires'] as num).toInt() * 1000,
             ),
           );
-          if (!valid()) return;
+          if (!valid()) {
+            // A delayed platform completion may have shown the old notice
+            // after cleanup. Do not cancel a newer notice for the same call.
+            if (_current(owner, generation) && _nativeShown != incomingId) {
+              await FamilyCallNative.instance.cancel(incomingId);
+            }
+            return;
+          }
         }
         if (accepted && media != null) {
           await _connect(owner, generation);

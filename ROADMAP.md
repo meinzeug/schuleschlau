@@ -4117,6 +4117,15 @@ Bestandteil des bestehenden Buildvertrags.
     Abfrage, die erst nach Beginn einer noch laufenden Anmeldung startet,
     und der allgemeine Cookie-Wettlauf bleiben offen.
 
+    **Eingehenden Android-Anrufhinweis beim Kontowechsel schließen:** Ein
+    bereits angestoßener Hinweis wird bei neuer Anmeldeabsicht entfernt, auch
+    wenn noch keine Medien geöffnet wurden. Meldet die Plattform seinen Start
+    verspätet zurück, wird die alte Anzeige bei unverändertem bisherigen
+    Konto erneut bereinigt, ohne einen neueren Hinweis derselben ID zu löschen.
+    Ein künstlicher Plattformkanal prüft die Reihenfolge und fehlende
+    Folgeanfragen; eine sichtbare Zustellung auf einem Androidgerät ist damit
+    nicht nachgewiesen.
+
     **Laufende Anrufmedien bei neuer Anmeldung stoppen:** Kinder- und
     Elternanrufe schließen lokale Medien unmittelbar bei neuer Anmeldeabsicht;
     ein Abbruch der Anmeldung öffnet sie nicht automatisch erneut. Die
