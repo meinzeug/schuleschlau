@@ -569,6 +569,11 @@ Der unabhängige Watchdog aus Commit `96c43ca` ist lokal installiert. Er meldet 
 - Zuvor fälschlich abgehakte Punkte zu Serverbetriebssystem, Android-Installerberechtigung, Aufbewahrung und historischen Notenlöschungen wurden wieder geöffnet. Diese nur anhand neuer, vollständiger Belege schließen.
 - Anschließend die übrigen offenen P0-/Sicherheits- und Datenintegritätsarbeiten sowie die pädagogischen, funktionalen und mobilen Abnahmekriterien der Roadmap in sinnvoller Reihenfolge bearbeiten. Bei KI- und Kinderdaten die besonderen Regeln in `AGENTS.md` einhalten; synthetische Tests und echte Nutzerdaten nicht vermischen. Keine Grenzen stillschweigend lockern und keine automatischen Providerwechsel einbauen.
 
+- Kinderfilter, Rundendetails, Schreibwerkzeuge, Textuntersuchung und
+  Klassenarbeitsdetails melden ihren aufgeklappten Zustand nun am bedienbaren
+  Knoten. Die gezielten Fälle liefen in Flutter und Chrome; 89 verwandte
+  Flutterfälle bestanden. Dies ersetzt keine Android- oder Screenreader-Abnahme.
+
 ## Nützliche Prüfungen
 
 - CI: `gh run list --limit 5` und `gh run view <ID>`; ein laufender oder abgebrochener Workflow ist kein grüner Gesamtnachweis.

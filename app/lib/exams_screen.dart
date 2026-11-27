@@ -947,16 +947,20 @@ class _ChildExamDetailsState extends State<_ChildExamDetails> {
         alignment: Alignment.centerLeft,
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 220),
-          child: Semantics(
-            expanded: open,
-            child: IntrinsicWidth(
-              child: TextButton.icon(
-                style: TextButton.styleFrom(minimumSize: const Size(0, 48)),
-                onPressed: () => setState(() => open = !open),
-                icon: Icon(
-                  open ? Icons.expand_less_rounded : Icons.expand_more_rounded,
+          child: MergeSemantics(
+            child: Semantics(
+              expanded: open,
+              child: IntrinsicWidth(
+                child: TextButton.icon(
+                  style: TextButton.styleFrom(minimumSize: const Size(0, 48)),
+                  onPressed: () => setState(() => open = !open),
+                  icon: Icon(
+                    open
+                        ? Icons.expand_less_rounded
+                        : Icons.expand_more_rounded,
+                  ),
+                  label: Text(widget.label),
                 ),
-                label: Text(widget.label),
               ),
             ),
           ),

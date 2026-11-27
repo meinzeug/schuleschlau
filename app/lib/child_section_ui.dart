@@ -529,53 +529,58 @@ class _ChildFilterToolsState extends State<ChildFilterTools> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Semantics(
-          expanded: expanded,
-          child: OutlinedButton(
-            key: const ValueKey('child-mobile-filter-toggle'),
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              minimumSize: const Size(48, 48),
-            ),
-            onPressed: () {
-              FocusManager.instance.primaryFocus?.unfocus();
-              setState(() => expanded = !expanded);
-            },
-            child: Row(
-              children: [
-                Badge(
-                  isLabelVisible: widget.filtered,
-                  child: const Icon(Icons.tune_rounded),
+        MergeSemantics(
+          child: Semantics(
+            expanded: expanded,
+            child: OutlinedButton(
+              key: const ValueKey('child-mobile-filter-toggle'),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        expanded
-                            ? 'Suche & Filter schließen'
-                            : 'Suchen & filtern',
-                        style: const TextStyle(fontWeight: FontWeight.w700),
-                      ),
-                      Text(
-                        '${widget.summary}${widget.filtered ? ' · Filter aktiv' : ''}',
-                        style: TextStyle(
-                          color: context.palette.muted,
-                          fontSize: 12,
-                          height: 1.35,
-                        ),
-                      ),
-                    ],
+                minimumSize: const Size(48, 48),
+              ),
+              onPressed: () {
+                FocusManager.instance.primaryFocus?.unfocus();
+                setState(() => expanded = !expanded);
+              },
+              child: Row(
+                children: [
+                  Badge(
+                    isLabelVisible: widget.filtered,
+                    child: const Icon(Icons.tune_rounded),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Icon(
-                  expanded
-                      ? Icons.expand_less_rounded
-                      : Icons.expand_more_rounded,
-                ),
-              ],
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          expanded
+                              ? 'Suche & Filter schließen'
+                              : 'Suchen & filtern',
+                          style: const TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                        Text(
+                          '${widget.summary}${widget.filtered ? ' · Filter aktiv' : ''}',
+                          style: TextStyle(
+                            color: context.palette.muted,
+                            fontSize: 12,
+                            height: 1.35,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Icon(
+                    expanded
+                        ? Icons.expand_less_rounded
+                        : Icons.expand_more_rounded,
+                  ),
+                ],
+              ),
             ),
           ),
         ),

@@ -277,25 +277,29 @@ class _TextProbePlayerState extends State<TextProbePlayer>
           const SizedBox(height: 12),
           Align(
             alignment: Alignment.centerLeft,
-            child: Semantics(
-              expanded: expanded,
-              child: OutlinedButton.icon(
-                key: const ValueKey('text-probe-toggle'),
-                style: actionStyle,
-                onPressed: active
-                    ? () {
-                        if (!accepts(epoch)) return;
-                        setState(() {
-                          if (expanded) {
-                            reset();
-                          } else {
-                            expanded = true;
-                          }
-                        });
-                      }
-                    : null,
-                icon: Icon(expanded ? Icons.expand_less : Icons.search_rounded),
-                label: const Text('Text untersuchen'),
+            child: MergeSemantics(
+              child: Semantics(
+                expanded: expanded,
+                child: OutlinedButton.icon(
+                  key: const ValueKey('text-probe-toggle'),
+                  style: actionStyle,
+                  onPressed: active
+                      ? () {
+                          if (!accepts(epoch)) return;
+                          setState(() {
+                            if (expanded) {
+                              reset();
+                            } else {
+                              expanded = true;
+                            }
+                          });
+                        }
+                      : null,
+                  icon: Icon(
+                    expanded ? Icons.expand_less : Icons.search_rounded,
+                  ),
+                  label: const Text('Text untersuchen'),
+                ),
               ),
             ),
           ),

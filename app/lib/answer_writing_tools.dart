@@ -194,13 +194,15 @@ class _AnswerWritingToolsState extends State<AnswerWritingTools>
       children: [
         Align(
           alignment: Alignment.centerLeft,
-          child: Semantics(
-            expanded: open,
-            child: TextButton.icon(
-              key: const ValueKey('writing-tools-toggle'),
-              onPressed: usable ? () => setState(() => open = !open) : null,
-              icon: Icon(open ? Icons.expand_less : Icons.edit_note_rounded),
-              label: const Text('Schreibwerkzeuge'),
+          child: MergeSemantics(
+            child: Semantics(
+              expanded: open,
+              child: TextButton.icon(
+                key: const ValueKey('writing-tools-toggle'),
+                onPressed: usable ? () => setState(() => open = !open) : null,
+                icon: Icon(open ? Icons.expand_less : Icons.edit_note_rounded),
+                label: const Text('Schreibwerkzeuge'),
+              ),
             ),
           ),
         ),

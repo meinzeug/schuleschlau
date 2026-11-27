@@ -222,19 +222,21 @@ class _ChildTodayHeroState extends State<ChildTodayHero> {
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 196),
                     child: IntrinsicWidth(
-                      child: Semantics(
-                        expanded: detailsOpen,
-                        child: TextButton.icon(
-                          key: const ValueKey('today-round-details'),
-                          onPressed: () =>
-                              setState(() => detailsOpen = !detailsOpen),
-                          icon: Icon(
-                            detailsOpen
-                                ? Icons.expand_less_rounded
-                                : Icons.expand_more_rounded,
-                            size: 20,
+                      child: MergeSemantics(
+                        child: Semantics(
+                          expanded: detailsOpen,
+                          child: TextButton.icon(
+                            key: const ValueKey('today-round-details'),
+                            onPressed: () =>
+                                setState(() => detailsOpen = !detailsOpen),
+                            icon: Icon(
+                              detailsOpen
+                                  ? Icons.expand_less_rounded
+                                  : Icons.expand_more_rounded,
+                              size: 20,
+                            ),
+                            label: const Text('Mehr zur Runde'),
                           ),
-                          label: const Text('Mehr zur Runde'),
                         ),
                       ),
                     ),

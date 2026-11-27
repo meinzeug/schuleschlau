@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:ui' show SemanticsAction, Tristate;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -95,6 +96,30 @@ Future<void> close(WidgetTester tester, AppState state) async {
 }
 
 void main() {
+  testWidgets('text exploration exposes its current expanded state', (
+    tester,
+  ) async {
+    final semantics = tester.ensureSemantics();
+    final calls = <http.Request>[];
+    final state = actor(calls);
+    try {
+      viewport(tester, 390);
+      await tester.pumpWidget(host(TextProbePlayer(block(), state: state)));
+      await tester.pumpAndSettle();
+      final control = find.byKey(toggle);
+      var data = tester.getSemantics(control).getSemanticsData();
+      expect(data.flagsCollection.isExpanded, Tristate.isFalse);
+      expect(data.hasAction(SemanticsAction.tap), isTrue);
+      await tap(tester, toggle);
+      data = tester.getSemantics(control).getSemanticsData();
+      expect(data.flagsCollection.isExpanded, Tristate.isTrue);
+      expect(calls, isEmpty);
+    } finally {
+      await close(tester, state);
+      semantics.dispose();
+    }
+  });
+
   testWidgets(
     'source-bound variants preserve groups, magnify in context and compare locally',
     (tester) async {

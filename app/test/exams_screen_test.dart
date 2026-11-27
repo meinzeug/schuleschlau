@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:ui' show SemanticsAction, Tristate;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -550,6 +551,27 @@ void main() {
     expect(find.text('6 Aufgaben geplant'), findsWidgets);
     expect(find.textContaining('Aufgaben richtig'), findsNothing);
     expect(fixture.writes, isEmpty);
+  });
+  testWidgets('child exam day details expose their expansion on the button', (
+    tester,
+  ) async {
+    final semantics = tester.ensureSemantics();
+    try {
+      final fixture = Fixture();
+      await fixture.mount(tester, selected: 'exam');
+      final control = find.widgetWithText(TextButton, 'Mehr zum Lerntag');
+      await tester.ensureVisible(control);
+      await tester.pumpAndSettle();
+      var data = tester.getSemantics(control).getSemanticsData();
+      expect(data.flagsCollection.isExpanded, Tristate.isFalse);
+      expect(data.hasAction(SemanticsAction.tap), isTrue);
+      await tap(tester, control);
+      data = tester.getSemantics(control).getSemanticsData();
+      expect(data.flagsCollection.isExpanded, Tristate.isTrue);
+      expect(fixture.writes, isEmpty);
+    } finally {
+      semantics.dispose();
+    }
   });
   testWidgets('view membership cannot open planning editor', (tester) async {
     final fixture = Fixture(role: 'parent');

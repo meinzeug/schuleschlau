@@ -1644,6 +1644,15 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – Barrierearme mobile Führung nachweisen**
 
+  - [x] **Aufgeklappte Lernhilfen und Filter zugänglich kennzeichnen.**
+    Die Zustände der Kinderfilter, Rundendetails, Schreibwerkzeuge,
+    Textuntersuchung und Klassenarbeitsdetails liegen am bedienbaren
+    Semantikknoten. Die Tests für Rundendetails und Schreibwerkzeuge scheiterten
+    vor der Änderung und bestehen danach. 89 verwandte Flutterfälle sowie sechs
+    gezielte Fälle im VM- und Chrome-Webrunner bestanden; die geprüften
+    Filter- und Erkundungsaktionen lösen keine Netzwerkanfragen aus. Eine
+    vollständige Screenreader- und Android-Abnahme ist weiterhin offen.
+
   - [x] **Zustände interaktiver Sachgrafiken zugänglich machen.** Die
     Zustände „Erkunden“ auf-/zugeklappt und die Ein-/Aus-Werte von
     Logikeingaben liegen nun am jeweils bedienbaren Semantikknoten. Der
