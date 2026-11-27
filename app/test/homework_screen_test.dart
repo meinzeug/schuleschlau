@@ -488,11 +488,11 @@ void main() {
           }
           expect(find.byTooltip('Aktualisieren'), findsNothing);
           expect(find.text('Noch keine Aufgabenfotos.'), findsOneWidget);
+          expect(find.byType(LearningCompanionIllustration), findsOneWidget);
+          expect(find.textContaining('Dein Foto wird gelesen'), findsNothing);
           expect(find.text('0 von 0 geladenen Fotos'), findsNothing);
           expect(
-            find.text(
-              'Dein Foto wird gelesen. Falls nötig, prüfen deine Eltern den Text.',
-            ),
+            find.text('Wenn etwas unklar ist, helfen deine Eltern.'),
             findsOneWidget,
           );
           await page_tools.openPageTools(tester, 'homework-photo-tools');

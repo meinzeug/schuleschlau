@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:schulpilot/api.dart';
+import 'package:schulpilot/homework_screen.dart';
 import 'package:schulpilot/school_day_screen.dart';
 import 'package:schulpilot/ui.dart';
 import 'package:schulpilot/vocabulary_screen.dart';
@@ -88,6 +89,9 @@ void main() {
               if (request.method == 'GET' &&
                   request.url.path.endsWith('/study-path')) {
                 result = path;
+              } else if (request.method == 'GET' &&
+                  request.url.path.endsWith('/homework')) {
+                result = {'photos': <Object>[], 'next_cursor': null};
               } else if (request.method == 'POST' &&
                   request.url.path.endsWith('/vocabulary/imports')) {
                 final body = Json.from(jsonDecode(request.body));
@@ -219,6 +223,10 @@ void main() {
       GoRoute(
         path: '/vocabulary',
         builder: (_, _) => VocabularyScreen(state, childId: 'example-child'),
+      ),
+      GoRoute(
+        path: '/homework',
+        builder: (_, _) => HomeworkScreen(state, childId: 'example-child'),
       ),
       GoRoute(
         path: '/unit/:id',

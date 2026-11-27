@@ -599,9 +599,7 @@ class _HomeworkScreenState extends State<HomeworkScreen> {
           ],
           SizedBox(height: 8),
           Text(
-            widget.state.isChild
-                ? 'Dein Foto wird gelesen. Falls nötig, prüfen deine Eltern den Text.'
-                : 'KI erkennt dein Foto. Prüfe danach den Text.',
+            'Wenn etwas unklar ist, helfen deine Eltern.',
             style: TextStyle(color: context.palette.muted, height: 1.5),
           ),
         ],
@@ -918,7 +916,17 @@ class _HomeworkScreenState extends State<HomeworkScreen> {
           ),
         if (!loading && photos.isEmpty && error == null && !listFiltered)
           if (widget.state.isChild && pending == null)
-            const Text('Noch keine Aufgabenfotos.')
+            Column(
+              children: [
+                LearningCompanionIllustration(
+                  size: MediaQuery.textScalerOf(context).scale(1) > 1.4
+                      ? 80
+                      : 112,
+                ),
+                const SizedBox(height: 8),
+                const Text('Noch keine Aufgabenfotos.'),
+              ],
+            )
           else if (!widget.state.isChild)
             Panel(
               child: Text(

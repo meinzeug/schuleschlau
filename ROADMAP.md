@@ -1150,6 +1150,14 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – Alle Kinderansichten sprachlich und in ihrer Bedienung entrümpeln**
 
+  - [x] **Leeren Hausaufgabenbereich ehrlich und freundlich zeigen.** Vor dem
+    ersten Foto behauptet der Hinweis keinen bereits laufenden Lesevorgang;
+    er erklärt knapp die Hilfe durch Eltern. Der vorhandene Schulbuddy lockert
+    ausschließlich den leeren Kinderzustand auf und ist für Screenreader
+    dekorativ. Die Fotoaktion bleibt vorn erreichbar. Die lokale mobile
+    Browser-Demo zeigt ausschließlich Beispieldaten; 34 Widgetfälle und die
+    statische Prüfung bestanden. Die breite Kinderabnahme bleibt offen.
+
   - [x] **Ein einzelnes Schulwort einfach eingeben und prüfen.** Im Kinderzugang
     stehen Wort, Bedeutung und die gewählte Lernsprache unmittelbar bereit;
     das Ziel der Sammlung ist sichtbar und kann aufgeklappt geändert werden.
