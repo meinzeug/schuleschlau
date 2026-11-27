@@ -51,6 +51,7 @@ class _ParentHomeworkScreenState extends State<ParentHomeworkScreen> {
       session == widget.state.api.token;
   bool get own =>
       sameAccount &&
+      !widget.state.authenticationPending &&
       !authenticationReload &&
       widget.state.api.ownsRequest(authentication);
   String get cacheKey => 'parent-homework:${widget.childId}';
@@ -60,10 +61,14 @@ class _ParentHomeworkScreenState extends State<ParentHomeworkScreen> {
     owner = widget.state.user;
     family = widget.state.familyId;
     session = widget.state.api.token;
-    restoreView();
     widget.state.addListener(identityChanged);
     widget.state.authenticationChanges.addListener(authenticationChanged);
-    load();
+    if (widget.state.authenticationPending) {
+      authenticationReload = true;
+    } else {
+      restoreView();
+      load();
+    }
   }
 
   void authenticationChanged() {
@@ -84,7 +89,11 @@ class _ParentHomeworkScreenState extends State<ParentHomeworkScreen> {
   }
 
   void reloadAfterAuthentication() {
-    if (!sameAccount || !authenticationReload) return;
+    if (!sameAccount ||
+        widget.state.authenticationPending ||
+        !authenticationReload) {
+      return;
+    }
     authentication = widget.state.api.requestIdentity();
     restoreView();
     setState(() => authenticationReload = false);
@@ -114,7 +123,7 @@ class _ParentHomeworkScreenState extends State<ParentHomeworkScreen> {
   void didUpdateWidget(covariant ParentHomeworkScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.childId != widget.childId) {
-      restoreView();
+      if (!widget.state.authenticationPending) restoreView();
       generation++;
       photos.clear();
       childName = null;
@@ -295,7 +304,9 @@ class _ParentHomeworkScreenState extends State<ParentHomeworkScreen> {
             const Text('Bitte lade die Hausaufgaben erneut.'),
             const SizedBox(height: 12),
             FilledButton(
-              onPressed: reloadAfterAuthentication,
+              onPressed: widget.state.authenticationPending
+                  ? null
+                  : reloadAfterAuthentication,
               child: const Text('Hausaufgaben erneut laden'),
             ),
           ],

@@ -282,6 +282,68 @@ void main() {
     state.cancelAuthentication(revision);
   });
 
+  testWidgets('homework list opened during login waits for explicit reload', (
+    tester,
+  ) async {
+    var reads = 0;
+    final state = account(
+      MockClient((r) async {
+        expect(r.method, 'GET');
+        reads++;
+        return reply({'photos': [], 'next_cursor': null});
+      }),
+      role: 'parent',
+    );
+    final revision = state.beginAuthentication();
+    await open(tester, state, overview: true);
+    expect(reads, 0);
+    final button = tester.widget<FilledButton>(
+      find.widgetWithText(FilledButton, 'Aufgabenfotos erneut laden'),
+    );
+    expect(button.onPressed, isNull);
+    state.cancelAuthentication(revision);
+    await tester.pump();
+    expect(reads, 0);
+    await tap(tester, 'Aufgabenfotos erneut laden');
+    expect(reads, 1);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('homework detail opened during login cannot read or navigate', (
+    tester,
+  ) async {
+    final calls = <http.Request>[];
+    final state = account(
+      MockClient((r) async {
+        calls.add(r);
+        return reply(fixture());
+      }),
+    );
+    final revision = state.beginAuthentication();
+    final router = await open(tester, state);
+    expect(calls, isEmpty);
+    final button = tester.widget<FilledButton>(
+      find.widgetWithText(FilledButton, 'Zu deinen Aufgabenfotos'),
+    );
+    expect(button.onPressed, isNull);
+    expect(
+      router.routeInformationProvider.value.uri.path,
+      '/homework/child/photo',
+    );
+    state.cancelAuthentication(revision);
+    await tester.pump();
+    expect(calls, isEmpty);
+    expect(
+      tester
+          .widget<FilledButton>(
+            find.widgetWithText(FilledButton, 'Zu deinen Aufgabenfotos'),
+          )
+          .onPressed,
+      isNotNull,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('a new login intent immediately hides the homework photo list', (
     tester,
   ) async {

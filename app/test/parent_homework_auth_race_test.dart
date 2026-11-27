@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:schulpilot/ui.dart';
@@ -7,6 +8,28 @@ import 'package:schulpilot/ui.dart';
 import 'parent_cards_ux88_test.dart' as cards;
 
 void main() {
+  testWidgets('parent overview opened during login waits for explicit reload', (
+    tester,
+  ) async {
+    final f = cards.Fixture();
+    final revision = f.state.beginAuthentication();
+    await f.mount(tester, '/parent-homework/child');
+    expect(f.requests, isEmpty);
+    final button = tester.widget<FilledButton>(
+      find.widgetWithText(FilledButton, 'Hausaufgaben erneut laden'),
+    );
+    expect(button.onPressed, isNull);
+    f.state.cancelAuthentication(revision);
+    await tester.pump();
+    expect(f.requests, isEmpty);
+    await tester.tap(find.text('Hausaufgaben erneut laden'));
+    await tester.pumpAndSettle();
+    expect(f.requests, hasLength(1));
+    expect(f.requests.single.method, 'GET');
+    expect(find.text('Mathematik · Flächen'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('a queued parent photo tap cannot navigate after login starts', (
     tester,
   ) async {

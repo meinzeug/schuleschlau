@@ -4402,6 +4402,16 @@ Bestandteil des bestehenden Buildvertrags.
 
   - [ ] **Verspätete gemeinsame API-Antworten nach Kontowechsel absichern.**
 
+    **Hausaufgaben beim Einstieg während einer Anmeldung sperren:** Kinder-
+    Fotoübersicht und Detailansicht sowie die Elternübersicht laden dann keine
+    privaten Daten und bieten keinen aktiven Neulade- beziehungsweise
+    Navigationsknopf. Nach Anmeldeabbruch erfolgt die Rückkehr oder das
+    Neuladen bewusst; vorhandene Entwürfe bleiben im bestehenden Speicher.
+    73 künstliche Flutterfälle zu Hausaufgaben und 25 Fälle zu Elternkarten
+    bestanden; zwei Kinder- und vier Elternfälle bestanden im Chrome-
+    Webrunner. Flutter Analyze ist fehlerfrei. Der allgemeine Cookie-Wettlauf
+    bleibt offen.
+
     **Heftseiten beim Anmeldewechsel schützen und Entwürfe erhalten:** Eine
     begonnene Anmeldung verbirgt Seiteninhalt und sperrt alte Aktionen. Eine
     Seite, die währenddessen geöffnet wird, führt keinen automatischen Abruf

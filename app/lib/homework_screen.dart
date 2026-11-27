@@ -186,6 +186,7 @@ class _HomeworkScreenState extends State<HomeworkScreen> {
       actorToken == widget.state.api.token;
   bool get own =>
       sameAccount &&
+      !widget.state.authenticationPending &&
       !authenticationReload &&
       widget.state.api.ownsRequest(authentication);
   VoidCallback openPhotoAction(Json photo) {
@@ -215,9 +216,14 @@ class _HomeworkScreenState extends State<HomeworkScreen> {
     super.initState();
     widget.state.addListener(identity);
     widget.state.authenticationChanges.addListener(authenticationChanged);
-    restoreList();
-    restorePhoto();
-    unawaited(load());
+    if (widget.state.authenticationPending) {
+      authenticationReload = true;
+      loading = false;
+    } else {
+      restoreList();
+      restorePhoto();
+      unawaited(load());
+    }
   }
 
   void restorePhoto() {
@@ -254,7 +260,12 @@ class _HomeworkScreenState extends State<HomeworkScreen> {
   }
 
   void reloadAfterAuthentication() {
-    if (!mounted || !sameAccount || !authenticationReload) return;
+    if (!mounted ||
+        !sameAccount ||
+        widget.state.authenticationPending ||
+        !authenticationReload) {
+      return;
+    }
     authentication = widget.state.api.requestIdentity();
     restoreList();
     restorePhoto();
@@ -597,7 +608,9 @@ class _HomeworkScreenState extends State<HomeworkScreen> {
               const Text('Bitte lade deine Aufgabenfotos erneut.'),
               const SizedBox(height: 12),
               FilledButton(
-                onPressed: reloadAfterAuthentication,
+                onPressed: widget.state.authenticationPending
+                    ? null
+                    : reloadAfterAuthentication,
                 child: const Text('Aufgabenfotos erneut laden'),
               ),
             ],
@@ -1124,6 +1137,7 @@ class _HomeworkDetailScreenState extends State<_HomeworkDetailBody>
       actorToken == widget.state.api.token;
   bool get own =>
       sameAccount &&
+      !widget.state.authenticationPending &&
       !authenticationInvalidated &&
       widget.state.api.ownsRequest(authentication);
   bool get canWrite =>
@@ -1169,7 +1183,8 @@ class _HomeworkDetailScreenState extends State<_HomeworkDetailBody>
     );
     draft.addListener(edited);
     question.addListener(editedQuestion);
-    unawaited(load());
+    authenticationInvalidated = widget.state.authenticationPending;
+    if (!authenticationInvalidated) unawaited(load());
   }
 
   void authenticationChanged() {
@@ -2795,14 +2810,16 @@ class _HomeworkDetailScreenState extends State<_HomeworkDetailBody>
             const Text('Öffne deine Aufgabe noch einmal.'),
             const SizedBox(height: 12),
             FilledButton(
-              onPressed: () {
-                if (!sameAccount) return;
-                context.go(
-                  widget.state.isParent
-                      ? '/parent-homework/${widget.childId}'
-                      : '/homework/${widget.childId}',
-                );
-              },
+              onPressed: widget.state.authenticationPending
+                  ? null
+                  : () {
+                      if (!sameAccount) return;
+                      context.go(
+                        widget.state.isParent
+                            ? '/parent-homework/${widget.childId}'
+                            : '/homework/${widget.childId}',
+                      );
+                    },
               child: const Text('Zu deinen Aufgabenfotos'),
             ),
           ],
