@@ -7,6 +7,13 @@ muss. Vorbereitung ist nicht gleich Start: kein Lernzeit- oder Antwortbeleg,
 keine aktive Runde allein durch Erzeugung. Bereits gespeicherte Runden müssen
 erreichbar bleiben. Abrufe/Seitenwechsel bleiben rein lesend.
 
+Die normale Grenze von zwölf Etappenanforderungen pro zehn Minuten und
+anfragendem Konto gilt weiterhin. Ist das Zeitfenster ausgeschöpft, wartet
+der Hintergrundlauf ohne zusätzlichen Anbieteraufruf auf das nächste Fenster.
+Nur ein ausdrücklich angeforderter erfolgreicher Wiederholungsversuch kann
+einen zuvor gestoppten Lauf fortsetzen; ein Fehler wird nicht automatisch
+erneut an den Anbieter gesendet.
+
 ## Beobachteter Iststand
 - `learning.plan` bietet bestätigte Einzelmaterialien und nicht materialisierte
   `study_path`-Etappen als Startkandidaten; `library.learning_subjects` gruppiert
@@ -22,6 +29,17 @@ erreichbar bleiben. Abrufe/Seitenwechsel bleiben rein lesend.
   dürfen für Hintergrundarbeit nicht still umgangen werden.
 
 ## Umsetzung / Nachweis offen
+
+Zwischenstand: Für neue abgeschlossene Schultag-Vorbereitungen ist ein
+quellen- und sitzungsgebundener Hintergrundlauf implementiert. Er reserviert
+jeweils genau einen bestehenden Etappenauftrag, hält bei einem Fehlschlag an
+und erzeugt weder Antworten noch Lernzeit. Die bisherigen Lernweg- und
+Vorbereitungstests liefen mit 64 bestandenen und einem übersprungenen Fall;
+gezielte künstliche PostgreSQL-Tests decken zusätzlich die automatische
+Verarbeitung ab. Eine erfolgreiche echte KI-Probe für diesen neuen Ablauf,
+die vollständige Browserprüfung sowie eigenständige, nicht an einen Schultag
+gebundene Heftseiten sind damit noch nicht nachgewiesen. Deshalb bleibt der
+übergeordnete Punkt offen.
 1. Trigger ausschließlich an einer gespeicherten bestätigten Heft-/Lernweg-
    Revision, nicht bei GET, und ein dauerhaftes revisionsgebundenes Journal:
    Block- und Quell-IDs, Reihenfolge, Zustand, Ursprungssitzung und -familie,

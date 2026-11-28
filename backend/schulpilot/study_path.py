@@ -388,6 +388,7 @@ def plan_sources_current(db, day):
 def path_data(db, day, child):
     value = day.learning_plan or {}
     from .material_review import held
+    from .school_preparation import automatic_rounds_data
 
     pending_review = [m for m in pages(db, day) if not held(db, m) and (not m.confirmed or not m.content.strip())]
     result = {
@@ -406,6 +407,7 @@ def path_data(db, day, child):
         "pending_review_count": len(pending_review),
         "next_review_material_id": pending_review[0].id if pending_review else None,
         "application_missing": False,
+        "automatic_rounds": automatic_rounds_data(day.preparation or {}),
     }
     if not value:
         return result
@@ -543,6 +545,16 @@ def generate(
     p=Depends(child_user),
     db=Depends(get_db),
 ):
+    return enqueue_block(db, p, day_id, block_id, idempotency)
+
+
+def enqueue_block(db, p, day_id, block_id, idempotency, *, automatic=False):
+    """Reserve one block; automatic is exclusively for the internal worker.
+
+    The public route never accepts this flag. Automatic preparation can work
+    ahead without marking a stage started, but retains all source, identity,
+    budget and provider checks used by the regular route.
+    """
     day, child = get_day(db, p, day_id)
     if not idempotency or len(idempotency) > 80:
         raise HTTPException(422, "Bitte einen eindeutigen Anfrageschlüssel verwenden.")
@@ -572,14 +584,14 @@ def generate(
     # The learner can explicitly choose the first available stage of another
     # subject. The planner's voluntary list retains source order within each
     # subject and excludes future or unavailable stages.
-    if state["next_block_id"] != block_id:
+    if not automatic and state["next_block_id"] != block_id:
         from .learning import plan
 
         current = plan(db, child)
         if not any(item.get("kind") == "study_path" and item.get("id") == day.id
                    and item.get("block_id") == block_id for item in current.get("voluntary", [])):
             raise HTTPException(409, "Bitte zuerst die vorherige Etappe dieses Fachs abschließen.")
-    elif state["block_reason"]:
+    elif not automatic and state["block_reason"]:
         raise HTTPException(409, state["block_reason"])
     if db.scalar(select(Job.id).where(Job.child_id == child.id, Job.status.in_(["queued", "running"]))):
         raise HTTPException(409, "Eine Vorbereitung läuft noch. Bitte kurz warten.")
@@ -807,6 +819,9 @@ def process(job_id):
                 unit.id,
             )
             job.status, job.finished, job.result = "completed", int(now()), {"unit_id": unit.id}
+            from .school_preparation import resume_rounds_after_manual_success
+
+            resume_rounds_after_manual_success(db, day, child, job, block)
             settle(db, db.scalar(select(Usage).where(Usage.job_id == job.id)), result)
     except Exception as error:
         reason = (

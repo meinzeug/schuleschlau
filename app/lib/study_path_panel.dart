@@ -712,6 +712,15 @@ class _StudyPathPanelState extends State<StudyPathPanel>
             )
           else ...[
             if (readError != null) Notice(readError!, warning: true),
+            if (data?['automatic_rounds'] is Map &&
+                (data!['automatic_rounds'] as Map)['status'] == 'blocked' &&
+                !hasFailure)
+              Notice(
+                state.isChild
+                    ? 'Eine Runde ist noch nicht bereit. Fertige Runden bleiben für dich da.'
+                    : 'Die automatische Rundenvorbereitung wurde angehalten. Ein fehlgeschlagener Schritt wird nicht automatisch erneut angefordert.',
+                warning: true,
+              ),
             if (actionError != null) ...[
               Notice(actionError!, warning: true),
               TextButton(onPressed: load, child: Text('Stand prüfen')),

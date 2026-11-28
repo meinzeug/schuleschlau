@@ -326,6 +326,36 @@ void _pause(WidgetTester tester) {
 }
 
 void main() {
+  testWidgets('a stopped automatic preparation is visible without a retry', (
+    tester,
+  ) async {
+    _viewport(tester);
+    final requests = <String>[];
+    final state = _state(
+      MockClient((request) async {
+        requests.add(request.method);
+        return _json(
+          _path()
+            ..['automatic_rounds'] = {
+              'status': 'blocked',
+              'prepared': 0,
+              'total': 1,
+            },
+        );
+      }),
+    );
+    final router = await _open(tester, state);
+    expect(
+      find.text(
+        'Eine Runde ist noch nicht bereit. Fertige Runden bleiben für dich da.',
+      ),
+      findsOneWidget,
+    );
+    expect(requests, ['GET']);
+    await _dispose(tester, router);
+    state.dispose();
+  });
+
   testWidgets('Unclear photo is routed to parents rather than child review', (
     tester,
   ) async {

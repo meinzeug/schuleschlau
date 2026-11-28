@@ -278,6 +278,203 @@ def finish():
     return job_id
 
 
+def arm_automatic_rounds(study):
+    from schulpilot.db import Session, User
+    from schulpilot.school_preparation import _arm_rounds, _sources, _write
+
+    create(study)
+    with DB.begin() as db:
+        day = db.get(SchoolDay, study["day_id"])
+        child = db.get(Child, day.child_id)
+        user = db.scalar(select(User).where(User.username == "test-child"))
+        session = db.scalar(select(Session).where(Session.user_id == user.id, Session.revoked.is_(False)))
+        state = {"run_id": uuid.uuid4().hex, "user_id": user.id, "session_id": session.id,
+                 "family_id": child.family_id, "sources": _sources(db, day), "day_revision": day.revision}
+        _arm_rounds(db, day, child, state)
+        _write(day, state, status="ready")
+
+
+def test_automatic_rounds_prepare_each_source_once_without_starting_learning(study, stage_transport):
+    from schulpilot.school_preparation import advance_auto_rounds
+
+    arm_automatic_rounds(study)
+    for _ in range(5):
+        assert advance_auto_rounds(study["day_id"])
+        assert not advance_auto_rounds(study["day_id"])
+        finish()
+        assert advance_auto_rounds(study["day_id"])
+    assert advance_auto_rounds(study["day_id"])
+    assert not advance_auto_rounds(study["day_id"])
+    with DB() as db:
+        day = db.get(SchoolDay, study["day_id"])
+        assert day.preparation["auto_rounds"]["status"] == "complete"
+        assert len(stage_transport["calls"]) == 5
+        assert db.scalar(select(func.count()).select_from(LearningUnit)) == 5
+        assert db.scalar(select(func.count()).select_from(Attempt)) == 0
+        assert db.scalar(select(func.count()).select_from(Usage)) == 5
+
+
+def test_automatic_round_failure_stops_without_retry(study, stage_transport):
+    from schulpilot.school_preparation import advance_auto_rounds
+
+    arm_automatic_rounds(study)
+    stage_transport["effect"] = lambda: (_ for _ in ()).throw(ProviderError("artificial failure"))
+    assert advance_auto_rounds(study["day_id"])
+    finish()
+    assert advance_auto_rounds(study["day_id"])
+    assert not advance_auto_rounds(study["day_id"])
+    with DB() as db:
+        assert db.get(SchoolDay, study["day_id"]).preparation["auto_rounds"]["status"] == "blocked"
+        assert db.scalar(select(func.count()).select_from(Job)) == 1
+
+
+def test_successful_explicit_retry_resumes_later_automatic_rounds(study, stage_transport):
+    from schulpilot.school_preparation import advance_auto_rounds
+
+    arm_automatic_rounds(study)
+    stage_transport["effect"] = lambda: (_ for _ in ()).throw(ProviderError("artificial failure"))
+    assert advance_auto_rounds(study["day_id"])
+    finish()
+    assert advance_auto_rounds(study["day_id"])
+    assert not advance_auto_rounds(study["day_id"])
+    with DB() as db:
+        auto = db.get(SchoolDay, study["day_id"]).preparation["auto_rounds"]
+        block_id = auto["blocks"][auto["position"]]
+    stage_transport["effect"] = None
+    assert generate(study, block_id).status_code == 202
+    finish()
+    with DB() as db:
+        automatic = db.get(SchoolDay, study["day_id"]).preparation["auto_rounds"]
+        assert automatic["status"] == "pending" and automatic["position"] == 1
+    assert advance_auto_rounds(study["day_id"])
+    with DB() as db:
+        assert db.get(SchoolDay, study["day_id"]).preparation["auto_rounds"]["status"] == "pending"
+        assert db.scalar(select(func.count()).select_from(Job)) == 3
+
+
+@pytest.mark.parametrize("different_content", [False, True])
+def test_automatic_rounds_collapse_only_exact_duplicate_sources(study, different_content):
+    with DB.begin() as db:
+        first, second = (db.get(Material, item) for item in study["materials"][:2])
+        first.image_digest = second.image_digest = "a" * 64
+        second.topic = first.topic
+        if different_content:
+            second.content += " Eine später ergänzte Aussage."
+    arm_automatic_rounds(study)
+    with DB() as db:
+        auto = db.get(SchoolDay, study["day_id"]).preparation["auto_rounds"]
+        assert len(auto["blocks"]) == (5 if different_content else 4)
+
+
+def test_automatic_rounds_stop_when_source_changes(study):
+    from schulpilot.school_preparation import advance_auto_rounds
+
+    arm_automatic_rounds(study)
+    with DB.begin() as db:
+        page = db.get(Material, study["materials"][0])
+        page.revision += 1
+    assert advance_auto_rounds(study["day_id"])
+    with DB() as db:
+        assert db.get(SchoolDay, study["day_id"]).preparation["auto_rounds"]["status"] == "blocked"
+        assert db.scalar(select(func.count()).select_from(Job)) == 0
+
+
+def test_automatic_rounds_stop_when_submitting_session_is_revoked(study):
+    from schulpilot.db import Session
+    from schulpilot.school_preparation import advance_auto_rounds
+
+    arm_automatic_rounds(study)
+    with DB.begin() as db:
+        day = db.get(SchoolDay, study["day_id"])
+        db.get(Session, day.preparation["session_id"]).revoked = True
+    assert advance_auto_rounds(study["day_id"])
+    with DB() as db:
+        assert db.get(SchoolDay, study["day_id"]).preparation["auto_rounds"]["status"] == "blocked"
+        assert db.scalar(select(func.count()).select_from(Job)) == 0
+
+
+def test_automatic_rounds_are_dispatched_by_the_normal_worker_tick(study, stage_transport):
+    from schulpilot.school_preparation import advance_one
+
+    arm_automatic_rounds(study)
+    response = study["client"].get(f"/api/school-days/{study['day_id']}")
+    auto = response.json()["preparation"]["automatic_rounds"]
+    assert auto == {"status": "pending", "prepared": 0, "total": 5}
+    assert "session_id" not in str(auto) and "user_id" not in str(auto)
+    with DB() as db:
+        assert db.scalar(select(func.count()).select_from(Job)) == 0
+        assert db.scalar(select(func.count()).select_from(Usage)) == 0
+    assert advance_one()
+    assert not advance_one()
+    finish()
+    with DB() as db:
+        assert db.scalar(select(func.count()).select_from(LearningUnit)) == 1
+        assert db.scalar(select(func.count()).select_from(Attempt)) == 0
+
+
+def test_automatic_round_concurrent_workers_reserve_only_once(study):
+    from schulpilot.school_preparation import advance_auto_rounds
+
+    arm_automatic_rounds(study)
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        results = list(executor.map(advance_auto_rounds, [study["day_id"]] * 2))
+    assert sorted(results) == [False, True]
+    with DB() as db:
+        assert db.scalar(select(func.count()).select_from(Job)) == 1
+        assert db.scalar(select(func.count()).select_from(Usage)) == 1
+
+
+def test_automatic_round_respects_existing_rate_limit_without_paid_retry(study):
+    from schulpilot.db import RateBucket
+    from schulpilot.school_preparation import advance_auto_rounds
+
+    arm_automatic_rounds(study)
+    with DB.begin() as db:
+        state = db.get(SchoolDay, study["day_id"]).preparation
+        tick = int(now()) // 600
+        db.add(RateBucket(id=f"study:{state['user_id']}:{tick}", count=12, expires=(tick + 1) * 600))
+    assert advance_auto_rounds(study["day_id"])
+    assert not advance_auto_rounds(study["day_id"])
+    with DB() as db:
+        automatic = db.get(SchoolDay, study["day_id"]).preparation["auto_rounds"]
+        assert automatic["status"] == "pending"
+        assert automatic["retry_after"] > now()
+        assert db.scalar(select(func.count()).select_from(Job)) == 0
+        assert db.scalar(select(func.count()).select_from(Usage)) == 0
+
+
+def test_automatic_round_changed_source_blocks_start(study, stage_transport):
+    from schulpilot.school_preparation import advance_auto_rounds
+
+    arm_automatic_rounds(study)
+    assert advance_auto_rounds(study["day_id"])
+    job_id = finish()
+    with DB.begin() as db:
+        unit_id = db.get(Job, job_id).result["unit_id"]
+        db.get(Material, study["materials"][0]).revision += 1
+    response = study["client"].post(f"/api/units/{unit_id}/start")
+    assert response.status_code == 409
+    with DB() as db:
+        assert db.scalar(select(func.count()).select_from(Attempt)) == 0
+
+
+def test_automatic_round_changed_source_preserves_prior_answer(study, stage_transport):
+    from schulpilot.school_preparation import advance_auto_rounds
+
+    arm_automatic_rounds(study)
+    assert advance_auto_rounds(study["day_id"])
+    job_id = finish()
+    with DB() as db:
+        unit_id = db.get(Job, job_id).result["unit_id"]
+    assert study["client"].post(f"/api/units/{unit_id}/start").status_code == 200
+    assert study["client"].post(f"/api/units/{unit_id}/questions/q1/answer", json={"answer": "Ein Stern"}).status_code == 200
+    with DB.begin() as db:
+        db.get(Material, study["materials"][0]).revision += 1
+    assert study["client"].post(f"/api/units/{unit_id}/questions/q2/answer", json={"answer": "Ein Stern"}).status_code == 409
+    with DB() as db:
+        assert db.scalar(select(func.count()).select_from(Attempt)) == 1
+
+
 def test_five_confirmed_pages_plan_twenty_questions_without_generating_or_writing_on_get(api, study):
     with DB() as db:
         initial = copy.deepcopy(db.get(SchoolDay, study["day_id"]).learning_plan)

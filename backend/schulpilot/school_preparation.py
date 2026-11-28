@@ -56,6 +56,75 @@ def _write(day, state, **values):
     day.preparation = state
 
 
+def _arm_rounds(db, day, child, state):
+    """Remember a finite set of source-bound blocks after explicit submission."""
+    from .school_day import planning_fingerprint
+    from .study_path import plan_sources_current, sources
+
+    plan = day.learning_plan or {}
+    if not state.get("run_id") or not plan_sources_current(db, day):
+        return
+    # Identical uploaded files may be stored as separate pages on purpose.
+    # Only collapse automatic work if their confirmed teaching content and
+    # contextual markings are also exactly identical; differing corrections
+    # or transcription must remain separately eligible.
+    seen, duplicate_ids = set(), set()
+    for material in sources(db, day):
+        if not material.image_digest:
+            continue
+        signature = json.dumps({
+            "image": material.image_digest,
+            "subject": material.subject,
+            "topic": material.topic,
+            "content": material.content,
+            "uncertainties": material.uncertainties,
+            "blocks": material.source_blocks,
+            "observations": material.visual_observations,
+        }, sort_keys=True, ensure_ascii=False)
+        if signature in seen:
+            duplicate_ids.add(material.id)
+        else:
+            seen.add(signature)
+    pending = [b["id"] for b in plan.get("blocks", []) if not b.get("unit_id")
+               and (not b.get("material_ids") or not set(b["material_ids"]).issubset(duplicate_ids))]
+    state["auto_rounds"] = {
+        "version": 1,
+        "run_id": state["run_id"],
+        "source_hash": plan["source_hash"],
+        "planning": planning_fingerprint(db, child),
+        "blocks": pending,
+        "position": 0,
+        "status": "pending" if pending else "complete",
+        "error": None,
+    }
+
+
+def resume_rounds_after_manual_success(db, day, child, job, block):
+    """Resume only the existing plan after a deliberately requested success."""
+    from .school_day import planning_fingerprint
+    from .study_path import plan_sources_current
+
+    state = _state(day)
+    auto = state.get("auto_rounds") or {}
+    position, blocks = auto.get("position"), auto.get("blocks")
+    if (auto.get("status") != "blocked" or auto.get("run_id") != state.get("run_id")
+            or type(position) is not int or not isinstance(blocks, list) or not 0 <= position < len(blocks)
+            or blocks[position] != block.get("id") or not job.idempotency
+            or job.idempotency.endswith(f":auto:{state['run_id']}:{block['id']}")):
+        return
+    try:
+        authority(db, day, state)
+        _check_sources(db, day, state)
+        if (not plan_sources_current(db, day)
+                or (day.learning_plan or {}).get("source_hash") != auto.get("source_hash")
+                or planning_fingerprint(db, child) != auto.get("planning")):
+            return
+    except (HTTPException, ProviderError):
+        return
+    auto.update(status="pending", position=position + 1, error=None)
+    _write(day, state, auto_rounds=auto)
+
+
 def authority(db, day, state):
     """The submitting session/family remains authoritative, also after inference."""
     session = db.get(Session, state.get("session_id")) if state.get("session_id") else None
@@ -143,6 +212,7 @@ def _saved(db, day, state, *, job=None):
         item.get("usable") is False and item.get("material_id") in group["new_material_ids"]
         for group in plan["groups"] for item in group["excluded_sources"]
     )
+    _arm_rounds(db, day, db.get(Child, day.child_id), state)
     _notify(db, day, state, "needs_review" if review_needed else "saved")
     _write(
         day,
@@ -332,6 +402,16 @@ def _part_progress(state, job):
     return {"total_parts": total, "completed_parts": completed, "active_part": active}
 
 
+def automatic_rounds_data(state):
+    """Expose only bounded progress, never actor IDs or source contents."""
+    automatic = state.get("auto_rounds")
+    if isinstance(automatic, dict) and automatic.get("status") in ("pending", "complete", "blocked"):
+        blocks, position = automatic.get("blocks"), automatic.get("position")
+        if isinstance(blocks, list) and type(position) is int and 0 <= position <= len(blocks):
+            return {"status": automatic["status"], "prepared": position, "total": len(blocks)}
+    return None
+
+
 def preparation_data(db, day, child=None):
     """Small read-only metadata; never expose actor/session IDs or private state."""
     state = _state(day)
@@ -439,6 +519,7 @@ def preparation_data(db, day, child=None):
         "job": {"id": job.id, "kind": job.kind, "status": job.status} if job else None,
         "error": error,
         "can_retry": can_retry,
+        "automatic_rounds": automatic_rounds_data(state),
         **_part_progress(state, job),
     }
 
@@ -701,6 +782,7 @@ def _advance_parts(db, day, child, family, state, job):
         # The aggregate saver may change private state; never restore stale JSON.
         state = _state(day)
         state.pop("package_outputs", None)
+        _arm_rounds(db, day, child, state)
         _notify(db, day, state, "ready")
         _write(day, state, status="ready", phase="complete", job_id=final_job.id,
             day_revision=day.revision, package_completed_parts=len(plan["parts"]), error=None, error_code=None)
@@ -749,6 +831,7 @@ def _advance(db, day):
         if job.kind == "package" and job.status == "completed":
             status = "saved" if job.result and job.result.get("deferred") else "ready"
             if status == "ready":
+                _arm_rounds(db, day, child, state)
                 _notify(db, day, state, status)
             _write(day, state, status=status, phase="deferred" if status == "saved" else "complete", error=None)
             return
@@ -876,4 +959,114 @@ def advance_one():
     changed = False
     for day_id in ids:
         changed = advance(day_id) or changed
+    changed = advance_auto_rounds_one() or changed
+    return changed
+
+
+def advance_auto_rounds(day_id):
+    """Reserve at most one prepared stage, without retrying failed AI calls."""
+    from .school_day import planning_fingerprint
+    from .study_path import enqueue_block, plan_sources_current
+
+    run_id = None
+    position = None
+    try:
+        with DB() as db:
+            day = db.get(SchoolDay, day_id)
+            if not day:
+                return False
+            db.execute(update(Child).where(Child.id == day.child_id).values(grade=Child.grade))
+            db.refresh(day)
+            state = _state(day)
+            auto = state.get("auto_rounds") or {}
+            if auto.get("status") != "pending":
+                return False
+            run_id, position = auto.get("run_id"), auto.get("position")
+            if run_id != state.get("run_id") or type(position) is not int or position < 0:
+                raise ProviderError("Die Vorbereitung ist nicht mehr aktuell.")
+            if type(auto.get("retry_after")) is int and auto["retry_after"] > now():
+                return False
+            child, _family = authority(db, day, state)
+            _check_sources(db, day, state)
+            if (not plan_sources_current(db, day)
+                    or (day.learning_plan or {}).get("source_hash") != auto.get("source_hash")
+                    or planning_fingerprint(db, child) != auto.get("planning")):
+                raise ProviderError("Die Seiten oder die Lernplanung wurden geändert. Bitte neu vorbereiten.")
+            blocks = auto.get("blocks")
+            if not isinstance(blocks, list) or position > len(blocks):
+                raise ProviderError("Die Vorbereitung ist nicht mehr aktuell.")
+            if position == len(blocks):
+                auto["status"] = "complete"
+                _write(day, state, auto_rounds=auto)
+                db.commit()
+                return True
+            block_id = blocks[position]
+            block = next((b for b in day.learning_plan.get("blocks", []) if b.get("id") == block_id), None)
+            if not block:
+                raise ProviderError("Die Lernreise wurde geändert. Bitte neu vorbereiten.")
+            if block.get("unit_id"):
+                auto["position"] = position + 1
+                _write(day, state, auto_rounds=auto)
+                db.commit()
+                return True
+            if block.get("job_id"):
+                job = db.get(Job, block["job_id"])
+                if not job or job.child_id != child.id or job.kind != "study_block":
+                    raise ProviderError("Der Vorbereitungsauftrag ist nicht mehr verfügbar.")
+                if job.status in ACTIVE:
+                    return False
+                if job.status == "failed":
+                    raise ProviderError("Eine Runde konnte nicht vorbereitet werden. Deine Seiten bleiben gespeichert.")
+                raise ProviderError("Das Ergebnis der Vorbereitung ist nicht mehr verfügbar.")
+            if db.scalar(select(Job.id).where(Job.child_id == child.id, Job.status.in_(ACTIVE))):
+                return False
+            from .db import RateBucket
+
+            tick = int(now()) // 600
+            bucket = db.get(RateBucket, f"study:{state['user_id']}:{tick}")
+            if bucket and bucket.count >= 12:
+                auto["retry_after"] = (tick + 1) * 600
+                _write(day, state, auto_rounds=auto)
+                db.commit()
+                return True
+            principal = Principal(db.get(User, state["user_id"]), db.get(Session, state["session_id"]))
+            # The key is deterministic across worker crashes. enqueue_block
+            # commits the job and the block link in the same transaction.
+            try:
+                enqueue_block(db, principal, day.id, block_id, f"auto:{run_id}:{block_id}", automatic=True)
+            except HTTPException as error:
+                # Another child of the same owner may have consumed the last
+                # slot after the check; a later tick will inspect the bucket.
+                if error.status_code == 429 and error.detail == "Zu viele Anfragen. Bitte später erneut versuchen.":
+                    db.rollback()
+                    return False
+                raise
+            return True
+    except (HTTPException, ProviderError):
+        with DB.begin() as db:
+            day = db.get(SchoolDay, day_id)
+            if not day:
+                return False
+            db.execute(update(Child).where(Child.id == day.child_id).values(grade=Child.grade))
+            db.refresh(day)
+            state = _state(day)
+            auto = state.get("auto_rounds") or {}
+            if (auto.get("status") == "pending" and auto.get("run_id") == run_id
+                    and auto.get("position") == position):
+                auto.update(status="blocked", error="Die Vorbereitung braucht eine Prüfung. Deine Seiten bleiben gespeichert.")
+                _write(day, state, auto_rounds=auto)
+                return True
+        return False
+
+
+def advance_auto_rounds_one():
+    with DB() as db:
+        ids = list(db.scalars(
+            select(SchoolDay.id)
+            .where(SchoolDay.preparation["auto_rounds"]["status"].as_string() == "pending")
+            .order_by(SchoolDay.created, SchoolDay.id).limit(100)
+        ))
+    changed = False
+    for day_id in ids:
+        changed = advance_auto_rounds(day_id) or changed
     return changed

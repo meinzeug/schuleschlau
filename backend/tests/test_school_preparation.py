@@ -152,11 +152,13 @@ def test_child_background_ocr_stops_for_review_then_explicit_package_no_autostar
         ready = kid.get(f"/api/school-days/{day['id']}").json()
         assert ready["preparation"]["status"] == "ready"
         assert ready["units"] and all(u["status"] == "not_started" for u in ready["units"])
-        assert submit(kid, day)["status"] == "ready" and step() is None
+        assert submit(kid, day)["status"] == "ready"
         assert "session_id" not in str(ready["preparation"]) and "user_id" not in str(ready["preparation"])
     with DB() as db:
-        assert db.scalar(select(func.count()).select_from(Usage)) == 4
-        assert db.scalar(select(func.count()).select_from(Job)) == 4
+        assert db.scalar(select(func.count()).select_from(Usage)) == 5
+        assert db.scalar(select(func.count()).select_from(Job)) == 5
+        assert db.scalar(select(func.count()).select_from(Job).where(Job.kind == "study_block", Job.status == "queued")) == 1
+        assert db.scalar(select(func.count()).select_from(Attempt)) == 0
         messages = list(db.scalars(select(Message).where(Message.kind == "preparation")))
         assert len(messages) == 2 and all(m.sender_id is None for m in messages)
         assert all("SEITENINHALT" not in m.body for m in messages)
@@ -354,7 +356,7 @@ def test_midnight_ocr_and_explicit_package_finish_without_a_new_day_time_gate(ap
     result = submit(api, day)
     assert result["status"] == "processing" and result["phase"] == "package"
     assert step()
-    assert submit(api, day)["status"] == "ready" and step() is None
+    assert submit(api, day)["status"] == "ready"
     assert calls == ["extract", "extract", "package"]
     with DB() as db:
         saved = db.get(SchoolDay, day["id"])
