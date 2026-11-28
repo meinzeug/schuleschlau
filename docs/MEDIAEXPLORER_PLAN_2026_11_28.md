@@ -48,7 +48,7 @@ automatischen Lösch-/Aktualisierungsfrist nicht mit echten YouTube-API-Daten
 befüllt werden. Die Auswahlfunktion selbst stellt die Quelle nicht dar und
 bildet noch keine Autorisierungsgrenze für einen zukünftigen Endpunkt. Sie ist
 nicht mit Sofatutor verbunden und verändert dessen Leerlisten nicht. Es gibt
-noch keine Recherche, Admin-Bedienung, Videoanalyse, Bewertung oder
+noch keine Recherche, grafische Admin-Bedienung, Videoanalyse, Bewertung oder
 Schüleroberfläche; eine erfolgreiche Inhaltsprüfung oder rechtliche
 Freigabe wird damit nicht behauptet. Unbekanntes Alter oder unbekannte
 Stufenart liefert weiterhin keine Empfehlung. Die erste Auswahl unterstützt
@@ -57,6 +57,22 @@ Sprachlernjahre, Vorschule und Hochschule bleiben offen. Eine redaktionelle
 Zuordnung darf den belegten Klassenbereich nicht erweitern. Gespeicherte
 Prüfungen belegen die Erklärung der Prüferin oder des Prüfers, nicht eine
 kryptographische Unveränderlichkeit des externen Videos.
+
+Für vorhandene Kandidaten gibt es einen begrenzten Admin-API-Pfad mit
+blätterbarer Übersicht und revisionsgebundenen redaktionellen Entscheidungen.
+Nur verifizierte, aktive Administratoren mit gültiger Sitzung können ihn
+nutzen; bei Änderungen gelten die bestehenden Origin-/Requestheader-Prüfungen,
+Sitzungssperre, ein begrenztes Kontingent und ein Auditereignis. Gleichzeitige
+oder veraltete Entscheidungen erhalten einen Konflikt, statt eine neuere
+Entscheidung zu überschreiben. Freigabe setzt die ausdrücklich bestätigte
+inhaltliche Sichtung und frische, verfügbare Metadaten voraus. Historische
+Quellen brauchen Einordnung, sensible Inhalte und Propaganda zusätzlich eine
+Gegenperspektive. Eine spätere Sperre verdrängt eine frühere Freigabe sofort
+bei der nächsten Auswahl. Freitext darf keine privaten Schülerdaten enthalten.
+Die API importiert keine Medien, prüft kein externes Video und stellt keinen
+Nachweis dar, dass die erklärende Person es tatsächlich angesehen hat. Eine
+Oberfläche, Urheber-/Nutzungsrechte, Kontrollworkflow und Fristenbehandlung
+bleiben offen.
 
 Die von der Netzschicht unabhängige YouTube-Metadatenprüfung kann in
 synthetischen Tests bereits Suchergebnisse und Videoantworten auf tatsächlich
