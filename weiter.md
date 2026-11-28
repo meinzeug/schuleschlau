@@ -1,5 +1,13 @@
 # Übergabe an die nächste Coding-KI
 
+## Ergänzung 28. November 2026: Lerntipps beim Anmeldewechsel
+
+Lerntipps und Themenauswahl laden beim erstmaligen Öffnen während einer
+Anmeldung keine privaten Daten. Alte Lerntipps werden beim Anmeldebeginn
+geleert; nach Abbruch ist ein bewusster erneuter Einstieg erforderlich.
+21 künstliche Flutter-Fälle und zwei gezielte Chrome-Fälle bestanden. Der
+allgemeine Cookie-Wettlauf ist damit nicht behoben.
+
 ## Ergänzung 28. November 2026: Klassenarbeiten und Anmeldewechsel
 
 Der gemeinsame Klassenarbeitskontext sperrt auch Ansichten, die erstmals

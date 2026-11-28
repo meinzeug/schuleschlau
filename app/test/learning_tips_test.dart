@@ -49,6 +49,8 @@ Future<AppState> mount(
   double height = 800,
   double scale = 1,
   double keyboard = 0,
+  bool initiallyExpanded = false,
+  void Function(AppState)? beforeMount,
 }) async {
   tester.view.devicePixelRatio = 1;
   tester.view.physicalSize = Size(width, height);
@@ -68,6 +70,7 @@ Future<AppState> mount(
           'role': parent ? 'parent' : 'child',
           'child_id': 'child',
         };
+  beforeMount?.call(state);
   await tester.pumpWidget(
     MaterialApp(
       theme: appTheme(),
@@ -85,6 +88,7 @@ Future<AppState> mount(
                   childId: 'child',
                   kind: 'material',
                   resourceId: 'page',
+                  initiallyExpanded: initiallyExpanded,
                 ),
               ),
       ),
@@ -101,6 +105,44 @@ Future<void> tap(WidgetTester tester, Finder finder) async {
 }
 
 void main() {
+  for (final browser in [false, true]) {
+    testWidgets(
+      'opening ${browser ? 'topics' : 'tips'} during login does not read',
+      (tester) async {
+        final requests = <http.Request>[];
+        late int intent;
+        final state = await mount(
+          tester,
+          (request) async {
+            requests.add(request);
+            return reply(tips());
+          },
+          browser: browser,
+          initiallyExpanded: true,
+          beforeMount: (value) => intent = value.beginAuthentication(),
+        );
+        expect(requests, isEmpty);
+        expect(find.text('Künstlicher Lerntipp 1'), findsNothing);
+        state.cancelAuthentication(intent);
+        await tester.pumpAndSettle();
+        expect(requests, isEmpty);
+        if (browser) {
+          expect(
+            find.text(
+              'Die Anmeldung hat sich geändert. Öffne die Themen erneut.',
+            ),
+            findsOneWidget,
+          );
+        } else {
+          await tap(tester, find.text('Lerntipps'));
+          expect(find.text('Künstlicher Lerntipp 1'), findsOneWidget);
+          expect(requests, hasLength(1));
+        }
+        await tester.pumpWidget(const SizedBox.shrink());
+        state.dispose();
+      },
+    );
+  }
   testWidgets(
     'a new login intent discards delayed tips and requires deliberate reload',
     (tester) async {

@@ -368,6 +368,7 @@ class _LearningTipsState extends State<LearningTips>
   bool get current =>
       mounted &&
       owner != null &&
+      !widget.state.authenticationPending &&
       identical(owner, widget.state.user) &&
       ownerFamily == widget.state.familyId &&
       ownerSession == widget.state.api.token;
@@ -391,7 +392,7 @@ class _LearningTipsState extends State<LearningTips>
   }
 
   void authenticationChanged() {
-    if (!current) return;
+    if (!mounted) return;
     generation++;
     pendingSelection = null;
     tipSearch.clear();
@@ -1144,7 +1145,10 @@ class _TopicBrowserState extends State<_TopicBrowserBody> {
       ownerFamily == widget.state.familyId &&
       ownerSession == widget.state.api.token;
   bool get current =>
-      own && !invalidated && widget.state.api.ownsRequest(authentication);
+      own &&
+      !widget.state.authenticationPending &&
+      !invalidated &&
+      widget.state.api.ownsRequest(authentication);
   String get path => '/children/${widget.childId}/subjects/${widget.subjectId}';
   @override
   void initState() {
@@ -1152,6 +1156,7 @@ class _TopicBrowserState extends State<_TopicBrowserBody> {
     owner = widget.state.user;
     ownerSession = widget.state.api.token;
     authentication = widget.state.api.requestIdentity();
+    invalidated = widget.state.authenticationPending;
     widget.state.addListener(changed);
     widget.state.authenticationChanges.addListener(authenticationChanged);
     load();
@@ -1589,6 +1594,7 @@ class _TopicRowState extends State<_TopicRow> {
   int generation = 0;
   bool get current =>
       mounted &&
+      !widget.state.authenticationPending &&
       identical(owner, widget.state.user) &&
       family == widget.state.familyId &&
       session == widget.state.api.token &&

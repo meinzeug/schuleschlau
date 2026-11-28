@@ -4673,6 +4673,14 @@ Bestandteil des bestehenden Buildvertrags.
 
   - [ ] **Verspätete gemeinsame API-Antworten nach Kontowechsel absichern.**
 
+    **Lerntipps und Themenauswahl beim Anmeldewechsel schützen:** Bereits
+    geöffnete private Tipps werden beim Anmeldebeginn geleert; während einer
+    laufenden Anmeldung erstmals aufgebaute Tipps und Themenauswahlen senden
+    keine Anfragen. Nach Abbruch fordert die Themenauswahl ein erneutes Öffnen;
+    Tipps werden erst durch bewusste Aktion nachgeladen. 21 künstliche Flutter-
+    Fälle und die zwei neuen Fälle im Chrome-Webrunner bestanden. Der
+    serverseitige Cookie-Wettlauf und andere Module bleiben offen.
+
     **Klassenarbeiten während einer Anmeldung nicht öffnen:** Werden Kinder-
     oder Elternansicht beziehungsweise eine einzelne Nacharbeit erst während
     einer laufenden Anmeldung aufgebaut, laden sie keine privaten Arbeiten und
