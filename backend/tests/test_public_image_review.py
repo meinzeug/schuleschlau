@@ -850,3 +850,99 @@ def test_local_review_jpeg_failure_has_zero_provider_cost(monkeypatch, problem):
     assert rejected.value.billing_result.cost_source == 'cancelled'
     assert rejected.value.billing_result.cost_micros == 0
     assert calls == []
+
+
+def test_review_revoked_during_second_local_preflight_is_not_sent(api, image_case, monkeypatch):
+    """An updated local policy before transport must not leave an unknown charge."""
+    import httpx
+    from schulpilot.db import UsageBucket
+    from schulpilot.providers import ProviderError
+
+    _, creator = generated(api, image_case)
+    enqueue_after_image(creator)
+    with DB.begin() as db:
+        job = db.scalar(select(Job).where(Job.kind == 'public_image_review'))
+        job.status = 'running'
+        jid = job.id
+        usage = db.scalar(select(Usage).where(Usage.job_id == jid))
+        reserved = usage.reserved_micros
+        before = {key: (db.get(UsageBucket, key).encumbered_micros,
+                        db.get(UsageBucket, key).unknown_calls)
+                  for key in usage.bucket_ids}
+        assert reserved > 0 and before
+
+    checks, transports = [], []
+    def local_policy(_config, *args, **kwargs):
+        checks.append(kwargs.get('db') is not None)
+        if kwargs.get('db') is None:
+            raise ProviderError('Synthetische Freigabe entzogen', code='not_configured')
+    def no_transport(*_args, **_kwargs):
+        transports.append(True)
+        raise AssertionError('A failed preflight must not start transport')
+    monkeypatch.setattr('schulpilot.providers.external_allowed', local_policy)
+    monkeypatch.setattr(httpx.Client, 'stream', no_transport)
+    review_image(jid)
+    with DB() as db:
+        job = db.get(Job, jid)
+        usage = db.scalar(select(Usage).where(Usage.job_id == jid))
+        assert job.status == 'failed' and job.error_code == 'not_configured'
+        assert usage.status == 'failed_not_sent'
+        assert usage.cost_micros == 0 and usage.cost_source == 'cancelled'
+        for key, (held, unknown) in before.items():
+            bucket = db.get(UsageBucket, key)
+            assert bucket.encumbered_micros == held - reserved
+            assert bucket.unknown_calls == unknown - 1
+    assert checks == [True, False] and transports == []
+
+
+@pytest.mark.parametrize('problem', ['provider', 'route', 'input'])
+def test_review_rejects_invalid_local_preflight_without_provider_cost(monkeypatch, problem):
+    from types import SimpleNamespace
+
+    import httpx
+    from schulpilot.providers import ProviderError
+    from schulpilot.public_image_review_contract import request_review
+
+    config = SimpleNamespace(provider='openrouter', image_capable=True, model='synthetic/vision')
+    image = SimpleNamespace(model='synthetic/image')
+    route = {'region': 'standard', 'route': {'upstreams': ['synthetic']}}
+    value = {'subject': 'Biologie', 'topic': 'Insekten', 'public_facts': '', 'reference_available': False}
+    if problem == 'provider':
+        config.provider = 'disabled'
+    elif problem == 'route':
+        route['route']['upstreams'] = []
+    else:
+        value['reference_available'] = 'not-a-boolean'
+    monkeypatch.setattr('schulpilot.providers.external_allowed', lambda *args, **kwargs: None)
+    calls = []
+    def never_send(_request):
+        calls.append(True)
+        raise AssertionError('Local preflight must not send a provider request')
+    with httpx.Client(transport=httpx.MockTransport(never_send)) as client, pytest.raises(ProviderError) as rejected:
+        request_review(client, config, image, value, token='synthetic', route=route)
+    assert rejected.value.billing_result is not None
+    assert rejected.value.billing_result.cost_source == 'cancelled'
+    assert rejected.value.billing_result.cost_micros == 0
+    assert calls == []
+
+
+def test_review_preflight_preserves_an_existing_provider_receipt(monkeypatch):
+    from types import SimpleNamespace
+
+    import httpx
+    from schulpilot.providers import ProviderError, Result
+    from schulpilot.public_image_review_contract import request_review
+
+    receipt = Result({}, 1, 2, 1000, cost_source='reported')
+    def denied(*_args, **_kwargs):
+        raise ProviderError('Synthetischer Fehler mit Beleg', code='not_configured', billing_result=receipt)
+    monkeypatch.setattr('schulpilot.providers.external_allowed', denied)
+    config = SimpleNamespace(provider='openrouter', image_capable=True, model='synthetic/vision')
+    image = SimpleNamespace(model='synthetic/image')
+    route = {'region': 'standard', 'route': {'upstreams': ['synthetic']}}
+    value = {'subject': 'Biologie', 'topic': 'Insekten', 'public_facts': '', 'reference_available': False}
+    with httpx.Client(transport=httpx.MockTransport(lambda _: pytest.fail('no transport'))) as client:
+        with pytest.raises(ProviderError) as rejected:
+            request_review(client, config, image, value, token='synthetic', route=route)
+    assert rejected.value.billing_result is receipt
+    assert receipt.cost_micros == 1000 and receipt.cost_source == 'reported'

@@ -47,3 +47,19 @@ Nach der Ergänzung für die Bilderzeugung bestand die gemeinsame Suite aus
 Bildvertrag, Bilderzeugung, Bildprüfung und Kostenkontrollen mit 68 Fällen auf
 SQLite (fünf übersprungen) und 71 Fällen auf isoliertem PostgreSQL (zwei
 übersprungen). Die künstlichen Fälle ersetzen keinen echten Anbieterbeleg.
+
+## Lokale Prüfbedingungen vor dem Versand
+
+Auch eine ungültige Prüfanbieter-Konfiguration, eine ungültige unabhängige
+Route, eine fehlerhafte öffentliche Prüfgrundlage und ein bei der zweiten
+lokalen Prüfung bereits entzogener Zugang werden vor dem Transport abgewiesen.
+Diese genau bestimmten Fälle werden als nicht gesendet und mit null Kosten
+abgerechnet. Ein bereits vorhandener Kostenbeleg bleibt unverändert erhalten.
+Fehler nach möglichem Versand bleiben weiterhin konservativ unbekannt.
+
+Künstliche Tests prüfen die einzelnen lokalen Prüfungen, eine zwischenzeitlich
+entzogene Freigabe, ausbleibenden Transport, Kostenstände und die Erhaltung
+eines vorhandenen Belegs. Die Bildprüf-, Bildauftrags- und Kostentests ergaben
+58 bestandene und fünf übersprungene Fälle auf SQLite sowie 61 bestandene und
+zwei übersprungene Fälle auf isoliertem PostgreSQL. Dies belegt weder einen
+echten Anbieteraufruf noch die fachliche Qualität der Bildprüfung.

@@ -72,15 +72,26 @@ def request_review(client, config, image, public_input, *, token, route):
     )
 
     if config.provider != 'openrouter' or not config.image_capable:
-        raise ProviderError('Für die Bildprüfung fehlt eine geprüfte Bildroute.', code='not_configured')
+        raise ProviderError('Für die Bildprüfung fehlt eine geprüfte Bildroute.', code='not_configured',
+                            billing_result=Result({}, 0, 0, 0, cost_source='cancelled'))
     if (not route or len(route.get('route', {}).get('upstreams', [])) != 1
             or route.get('region') not in HOSTS or config.model == image.model):
-        raise ProviderError('Die unabhängige Bildprüfroute ist nicht verfügbar.', code='not_configured')
-    external_allowed(config, image=True)
+        raise ProviderError('Die unabhängige Bildprüfroute ist nicht verfügbar.', code='not_configured',
+                            billing_result=Result({}, 0, 0, 0, cost_source='cancelled'))
+    try:
+        external_allowed(config, image=True)
+    except ProviderError as error:
+        # This local policy recheck runs before image processing and transport.
+        # Preserve an existing receipt, if any, instead of replacing it.
+        if error.billing_result is not None:
+            raise
+        raise ProviderError(str(error), code=error.code,
+                            billing_result=Result({}, 0, 0, 0, cost_source='cancelled')) from None
     if (not isinstance(public_input, dict) or set(public_input) != {'subject', 'topic', 'public_facts', 'reference_available'}
             or type(public_input['reference_available']) is not bool
             or any(not isinstance(public_input[k], str) for k in ('subject', 'topic', 'public_facts'))):
-        raise ProviderError('Die öffentliche Prüfgrundlage ist ungültig.', code='invalid_output')
+        raise ProviderError('Die öffentliche Prüfgrundlage ist ungültig.', code='invalid_output',
+                            billing_result=Result({}, 0, 0, 0, cost_source='cancelled'))
     try:
         with Image.open(io.BytesIO(image.png)) as source:
             if source.format != 'PNG' or source.width * source.height > 4_194_304:

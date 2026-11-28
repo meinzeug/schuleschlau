@@ -3326,6 +3326,14 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Erklärgrafiken und Animationen fachlich und technisch abnehmen**
 
+  - [x] **Lokale Voraussetzungen der Bildprüfung eindeutig abrechnen.**
+    Ungültige Anbieter- und Routenkonfigurationen, eine ungültige öffentliche
+    Prüfgrundlage und eine vor Versand entzogene Freigabe werden als nicht
+    gesendet behandelt. Vorhandene Kostenbelege bleiben erhalten; mögliche
+    Transportkosten bleiben unbekannt. Künstliche Tests prüfen auch die
+    Kostenstände auf SQLite und PostgreSQL.
+    [Nachweis und Grenzen](docs/IMAGE_REVIEW_PRESEND_COST_2026_11_28.md).
+
   - [x] **Lokale Bilderzeugungsfehler von Transportfehlern unterscheiden.**
     Ungültige Routenparameter oder ein ungültiger öffentlicher Prompt werden
     bereits vor dem Anbietertransport abgewiesen und als nicht gesendet mit

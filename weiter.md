@@ -625,6 +625,12 @@ Der unabhängige Watchdog aus Commit `96c43ca` ist lokal installiert. Er meldet 
   Knoten; 18 künstliche Schultagsfälle und der Chrome-Fall mit Größenwechsel
   bestanden. Dies ist keine vollständige Screenreader- oder Android-Abnahme.
 
+- Vor dem Versand lokal abgelehnte Voraussetzungen der KI-Bildprüfung geben
+  die eigene Reservierung frei. Das gilt auch, wenn die erneute lokale
+  Freigabeprüfung scheitert; vorhandene Kostenbelege bleiben unverändert.
+  Die künstlichen Bild- und Kostenfälle bestanden mit SQLite und PostgreSQL;
+  die fachliche Bildabnahme und ein echter Anbieteraufruf bleiben davon getrennt.
+
 ## Nützliche Prüfungen
 
 - CI: `gh run list --limit 5` und `gh run view <ID>`; ein laufender oder abgebrochener Workflow ist kein grüner Gesamtnachweis.
