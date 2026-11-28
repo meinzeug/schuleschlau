@@ -820,7 +820,11 @@ class _StudyPathPanelState extends State<StudyPathPanel>
               ],
               SizedBox(height: state.isChild ? 6 : 14),
               if (total > 0 && !state.isChild) ...[
-                LinearProgressIndicator(value: (completed / total).clamp(0, 1)),
+                ExcludeSemantics(
+                  child: LinearProgressIndicator(
+                    value: (completed / total).clamp(0, 1),
+                  ),
+                ),
                 SizedBox(height: 10),
                 Text(
                   '$completed von $total Aufgaben bearbeitet',
@@ -1021,7 +1025,11 @@ class _StudyPathPanelState extends State<StudyPathPanel>
               ],
               if (total > 0 && state.isChild) ...[
                 const SizedBox(height: 16),
-                LinearProgressIndicator(value: (completed / total).clamp(0, 1)),
+                ExcludeSemantics(
+                  child: LinearProgressIndicator(
+                    value: (completed / total).clamp(0, 1),
+                  ),
+                ),
                 const SizedBox(height: 8),
                 Text(
                   '$completed von $total Aufgaben bearbeitet',

@@ -1215,6 +1215,13 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – Alle Kinderansichten sprachlich und in ihrer Bedienung entrümpeln**
 
+  - [x] **Lernwegfortschritt ohne doppelte Zahl ausgeben.** Der sichtbare
+    Fortschrittsbalken bleibt erhalten; Hilfstechnologien erhalten die bereits
+    vorhandene klare Angabe „x von y Aufgaben bearbeitet“ statt zusätzlich
+    einer isolierten Prozentzahl. 57 künstliche Lernwegtests bestanden; der
+    Semantikfall bestand zusätzlich im Chrome-Webrunner. Eine Abnahme mit
+    tatsächlichem Screenreader und die gesamte Kinderoberfläche bleiben offen.
+
   - [x] **Einzelne Fotoentfernung klar benennen.** Auf der Fotoauswahl heißen
     Aktion und Rückfrage nun „Foto entfernen“ statt „vorgemerktes Foto“; der
     Hinweis auf das noch nicht gesendete Foto und der Schutz anderer Fotos

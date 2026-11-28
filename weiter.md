@@ -602,6 +602,9 @@ Der unabhängige Watchdog aus Commit `96c43ca` ist lokal installiert. Er meldet 
   mit künstlichen Daten. Ein grüner GitHub-Gesamtlauf steht weiterhin aus.
 
 - Der vollständige GitHub-Lauf `46066281027` für `f21d4f0` war erfolgreich.
+- Auch der vollständige GitHub-Lauf `46083894113` für `5201819` war erfolgreich.
+  Der Lauf `46086299918` für `cda0c82` wurde nach dem Push gestartet; sein
+  Ergebnis ist zum Zeitpunkt dieses Eintrags noch offen.
 - Quellausschnitte prüfen nun die bestehende 16-Megapixel-Grenze, bevor sie
   Pixel älterer Speicherdateien laden. Bei Profilbildern werden zu Fehlern
   verschärfte Pillow-Warnungen als ungültige Eingabe behandelt. Die gezielten
@@ -630,6 +633,11 @@ Der unabhängige Watchdog aus Commit `96c43ca` ist lokal installiert. Er meldet 
   Freigabeprüfung scheitert; vorhandene Kostenbelege bleiben unverändert.
   Die künstlichen Bild- und Kostenfälle bestanden mit SQLite und PostgreSQL;
   die fachliche Bildabnahme und ein echter Anbieteraufruf bleiben davon getrennt.
+
+- Im Lernweg bleibt der sichtbare Fortschrittsbalken erhalten, sein isolierter
+  Zahlenwert wird für Hilfstechnologien zugunsten des vorhandenen Aufgabentexts
+  ausgeblendet. 57 künstliche Flutterfälle und der gezielte Chrome-Webrunnerfall
+  bestanden. Ein tatsächlicher Screenreadertest steht weiter aus.
 
 ## Nützliche Prüfungen
 

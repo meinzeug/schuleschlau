@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:schulpilot/api.dart';
@@ -33,6 +34,38 @@ Json path(List<Json> blocks) => {
 Future<void> open(WidgetTester tester, AppState state) =>
     f.show(tester, StudyPathPanel(state, 'child', 'day'));
 void main() {
+  testWidgets('Lernfortschritt ist ohne zusätzliche Prozentzahl verständlich',
+      (tester) async {
+    final semantics = tester.ensureSemantics();
+    try {
+      final requests = <http.Request>[];
+      final state = f.account((request) async {
+        requests.add(request);
+        return f.reply(path([block('A', 'completed'), block('B', 'ready')]));
+      });
+      await open(tester, state);
+      expect(find.text('4 von 8 Aufgaben bearbeitet'), findsOneWidget);
+      expect(
+        tester.getSemantics(find.text('4 von 8 Aufgaben bearbeitet')).label,
+        '4 von 8 Aufgaben bearbeitet',
+      );
+      final root = tester.getSemantics(find.text('4 von 8 Aufgaben bearbeitet'))
+          .owner!.rootSemanticsNode!;
+      final values = <String>[];
+      void collect(SemanticsNode node) {
+        values.add(node.getSemanticsData().value);
+        node.visitChildren((child) {
+          collect(child);
+          return true;
+        });
+      }
+      collect(root);
+      expect(values, isNot(contains('50')));
+      expect(requests.every((request) => request.method == 'GET'), isTrue);
+    } finally {
+      semantics.dispose();
+    }
+  });
   for (final size in [const Size(320, 600), const Size(390, 844)]) {
     for (final scale in [1.0, 2.0]) {
       testWidgets(
