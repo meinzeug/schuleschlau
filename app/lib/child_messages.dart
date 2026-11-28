@@ -276,13 +276,19 @@ class _ChildMessagesHubState extends State<_ChildMessagesBody> {
     final openHelp = messages
         .where((row) => row['kind'] == 'help' && row['resolved'] != true)
         .length;
+    final hasFilters =
+        search.text.trim().isNotEmpty ||
+        sender != 'all' ||
+        order != 'newest' ||
+        (isWish && wishKind != 'all');
+    final showTools = rows.isNotEmpty || hasFilters;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         ChildSectionHero(
           eyebrow: 'Familie',
           title: 'Deine Familie erreichen.',
-          description: 'Eine Frage beim Lernen? Hole deine Eltern live dazu. Für später kannst du auch eine Nachricht oder Idee hinterlassen.',
+          description: 'Hole deine Eltern dazu oder schreibe ihnen.',
           icon: Icons.forum_rounded,
           action: Wrap(
             spacing: 12,
@@ -358,153 +364,151 @@ class _ChildMessagesHubState extends State<_ChildMessagesBody> {
           const SizedBox(height: 16),
         ],
         heading(switch (section) {
-          'wishes' => 'Deine Ideen und Planwünsche',
+          'wishes' => 'Deine Wünsche',
           'done' => 'Schon besprochen',
-          _ => 'Nachrichten für dich und von dir',
+          _ => 'Nachrichten',
         }),
         const SizedBox(height: 12),
-        PageToolsGroup(
-          id: 'child-message-tools',
-          title: 'Nachrichten suchen & ordnen',
-          scope: (
-            ObjectKey(account),
-            widget.state.familyId,
-            widget.state.api.token,
-            widget.data['child']['id'],
-            section,
-          ),
-          isCurrent: () => current,
-          summary: '${rows.length} Nachrichten in dieser Ansicht',
-          active:
-              search.text.trim().isNotEmpty ||
-              sender != 'all' ||
-              order != 'newest' ||
-              (isWish && wishKind != 'all'),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              TextField(
-                controller: search,
-                textInputAction: TextInputAction.search,
-                decoration: InputDecoration(
-                  labelText: 'Nachrichten durchsuchen',
-                  prefixIcon: Icon(Icons.search_rounded),
-                  suffixIcon: search.text.isEmpty
-                      ? null
-                      : IconButton(
-                          tooltip: 'Nachrichtensuche leeren',
-                          onPressed: () {
-                            if (!current) return;
-                            FocusManager.instance.primaryFocus?.unfocus();
-                            setState(search.clear);
-                            remember();
-                          },
-                          icon: Icon(Icons.clear_rounded),
-                        ),
-                ),
-                onChanged: (_) {
-                  if (current) {
-                    setState(() {});
-                    remember();
-                  }
-                },
-                onSubmitted: (_) =>
-                    FocusManager.instance.primaryFocus?.unfocus(),
-              ),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                children: [
-                  SizedBox(
-                    width: 230,
-                    child: DropdownButtonFormField<String>(
-                      key: ValueKey(('sender', sender)),
-                      initialValue: sender,
-                      isExpanded: true,
-                      decoration: InputDecoration(labelText: 'Absender'),
-                      items: [
-                        for (final item in [
-                          ('all', 'Alle Nachrichten'),
-                          ('parent', 'Von meinen Eltern'),
-                          ('child', 'Von mir'),
-                          ('system', 'Von SchuleSchlau'),
-                        ])
-                          DropdownMenuItem(
-                            value: item.$1,
-                            child: Text(item.$2),
+        if (showTools)
+          PageToolsGroup(
+            id: 'child-message-tools',
+            title: 'Nachrichten suchen & ordnen',
+            scope: (
+              ObjectKey(account),
+              widget.state.familyId,
+              widget.state.api.token,
+              widget.data['child']['id'],
+              section,
+            ),
+            isCurrent: () => current,
+            summary: '${rows.length} Nachrichten in dieser Ansicht',
+            active: hasFilters,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                TextField(
+                  controller: search,
+                  textInputAction: TextInputAction.search,
+                  decoration: InputDecoration(
+                    labelText: 'Nachrichten durchsuchen',
+                    prefixIcon: Icon(Icons.search_rounded),
+                    suffixIcon: search.text.isEmpty
+                        ? null
+                        : IconButton(
+                            tooltip: 'Nachrichtensuche leeren',
+                            onPressed: () {
+                              if (!current) return;
+                              FocusManager.instance.primaryFocus?.unfocus();
+                              setState(search.clear);
+                              remember();
+                            },
+                            icon: Icon(Icons.clear_rounded),
                           ),
-                      ],
-                      onChanged: (value) {
-                        if (!current || value == null) return;
-                        FocusManager.instance.primaryFocus?.unfocus();
-                        setState(() => sender = value);
-                        remember();
-                      },
-                    ),
                   ),
-                  SizedBox(
-                    width: 230,
-                    child: DropdownButtonFormField<String>(
-                      key: ValueKey(('order', order)),
-                      initialValue: order,
-                      isExpanded: true,
-                      decoration: InputDecoration(labelText: 'Reihenfolge'),
-                      items: [
-                        DropdownMenuItem(
-                          value: 'newest',
-                          child: Text('Neueste zuerst'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'oldest',
-                          child: Text('Älteste zuerst'),
-                        ),
-                      ],
-                      onChanged: (value) {
-                        if (!current || value == null) return;
-                        FocusManager.instance.primaryFocus?.unfocus();
-                        setState(() => order = value);
-                        remember();
-                      },
-                    ),
-                  ),
-                ],
-              ),
-              if (isWish) ...[
-                SizedBox(height: 12),
+                  onChanged: (_) {
+                    if (current) {
+                      setState(() {});
+                      remember();
+                    }
+                  },
+                  onSubmitted: (_) =>
+                      FocusManager.instance.primaryFocus?.unfocus(),
+                ),
+                const SizedBox(height: 12),
                 Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
+                  spacing: 10,
+                  runSpacing: 10,
                   children: [
-                    for (final item in [
-                      ('all', 'Alle Wünsche'),
-                      ('interest', 'Lernideen'),
-                      ('plan_change', 'Planwünsche'),
-                    ])
-                      ChoiceChip(
-                        label: Text(item.$2),
-                        selected: wishKind == item.$1,
-                        onSelected: (_) {
-                          if (!current) return;
+                    SizedBox(
+                      width: 230,
+                      child: DropdownButtonFormField<String>(
+                        key: ValueKey(('sender', sender)),
+                        initialValue: sender,
+                        isExpanded: true,
+                        decoration: InputDecoration(labelText: 'Absender'),
+                        items: [
+                          for (final item in [
+                            ('all', 'Alle Nachrichten'),
+                            ('parent', 'Von meinen Eltern'),
+                            ('child', 'Von mir'),
+                            ('system', 'Von SchuleSchlau'),
+                          ])
+                            DropdownMenuItem(
+                              value: item.$1,
+                              child: Text(item.$2),
+                            ),
+                        ],
+                        onChanged: (value) {
+                          if (!current || value == null) return;
                           FocusManager.instance.primaryFocus?.unfocus();
-                          setState(() => wishKind = item.$1);
+                          setState(() => sender = value);
                           remember();
                         },
                       ),
+                    ),
+                    SizedBox(
+                      width: 230,
+                      child: DropdownButtonFormField<String>(
+                        key: ValueKey(('order', order)),
+                        initialValue: order,
+                        isExpanded: true,
+                        decoration: InputDecoration(labelText: 'Reihenfolge'),
+                        items: [
+                          DropdownMenuItem(
+                            value: 'newest',
+                            child: Text('Neueste zuerst'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'oldest',
+                            child: Text('Älteste zuerst'),
+                          ),
+                        ],
+                        onChanged: (value) {
+                          if (!current || value == null) return;
+                          FocusManager.instance.primaryFocus?.unfocus();
+                          setState(() => order = value);
+                          remember();
+                        },
+                      ),
+                    ),
                   ],
                 ),
+                if (isWish) ...[
+                  SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final item in [
+                        ('all', 'Alle Wünsche'),
+                        ('interest', 'Lernideen'),
+                        ('plan_change', 'Planwünsche'),
+                      ])
+                        ChoiceChip(
+                          label: Text(item.$2),
+                          selected: wishKind == item.$1,
+                          onSelected: (_) {
+                            if (!current) return;
+                            FocusManager.instance.primaryFocus?.unfocus();
+                            setState(() => wishKind = item.$1);
+                            remember();
+                          },
+                        ),
+                    ],
+                  ),
+                ],
+                const SizedBox(height: 12),
               ],
-              const SizedBox(height: 12),
-            ],
+            ),
           ),
-        ),
-        Semantics(
-          liveRegion: true,
-          child: Text(
-            '${rows.length} ${rows.length == 1 ? 'Nachricht in dieser Ansicht' : 'Nachrichten in dieser Ansicht'}',
-            style: TextStyle(color: context.palette.muted),
+        if (showTools)
+          Semantics(
+            liveRegion: true,
+            child: Text(
+              '${rows.length} ${rows.length == 1 ? 'Nachricht in dieser Ansicht' : 'Nachrichten in dieser Ansicht'}',
+              style: TextStyle(color: context.palette.muted),
+            ),
           ),
-        ),
         if (search.text.trim().isNotEmpty ||
             sender != 'all' ||
             order != 'newest' ||
@@ -579,9 +583,9 @@ class _ChildMessagesHubState extends State<_ChildMessagesBody> {
                 ),
                 const SizedBox(height: 14),
                 Text(switch (section) {
-                  'wishes' => 'Hier sammeln sich deine Lernideen und Planwünsche. Du kannst oben einen neuen Wunsch mitteilen.',
-                  'done' => 'Wenn ein Hilfewunsch besprochen wurde, findest du ihn hier wieder.',
-                  _ => 'Noch keine Nachrichten. Du kannst deinen Eltern oben eine Frage schreiben oder sie live dazuholen.',
+                  'wishes' => 'Deine Ideen erscheinen hier.',
+                  'done' => 'Besprochene Wünsche erscheinen hier.',
+                  _ => 'Noch keine Nachrichten. Schreibe deinen Eltern oder hole sie dazu.',
                 }, textAlign: TextAlign.center),
               ],
             ),
