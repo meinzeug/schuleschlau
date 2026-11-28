@@ -1,14 +1,29 @@
 # Übergabe an die nächste Coding-KI
 
+## Ergänzung 28. November 2026: Release und Bruchhinweis
+
+Version 1.38.169 (`2985266`) ist auf schuleschlau.dorfspy.de aktiv;
+Healthcheck, signierte Direct-APK und Dienste wurden geprüft. Die aktuelle
+Sicherung wurde verschlüsselt offsite übertragen und isoliert mit dem
+authentifizierten Löschjournal wiederhergestellt. Die historische
+Vollständigkeit dieses Journals ist damit nicht nachgewiesen.
+
+Bei der Aufgabe `3/8 · 12` erläutert die neue Hinweisprojektion für eindeutig
+geprüfte gekürzte Auswahlaufgaben den Zwischenschritt und das Kürzen. Alte
+Hilfsereignisse und Antworten bleiben unverändert; Hilfen zählen weiterhin als
+Unterstützung. Die Veröffentlichung und der erneute Browsernachweis dieses
+Fixes sind separat zu prüfen. Der echte End-to-End-Nachweis für die
+automatische Rundenvorbereitung und die dreißigtägige Alltagserprobung bleiben
+offen.
+
 ## Ergänzung 28. November 2026: echte Fotoprobe und automatische Runden
 
 Version 1.38.168 (`5a8d171`) wurde nach abgeglichenem Offsite-Journal und
-isolierter echter Wiederherstellung aktiviert; öffentlicher Healthcheck und
-API-/Worker-/Fotodienst waren erfolgreich. Der danach entwickelte Stand
-enthält automatische, quellen-/sitzungsgebundene Vorbereitung
+isolierter echter Wiederherstellung aktiviert. Version 1.38.169 enthält die
+danach entwickelte automatische, quellen-/sitzungsgebundene Vorbereitung
 für bestätigte Schultag-Lernwege und neue einzelne Heftseiten sowie einen
-MediaExplorer-Grundbaustein mit redaktionellen Entscheidungen; er ist noch
-nicht ausgerollt. Ein echter End-to-End-KI-Test der neuen automatischen
+MediaExplorer-Grundbaustein mit redaktionellen Entscheidungen. Ein echter
+End-to-End-KI-Test der neuen automatischen
 Vorbereitung und die Anpassung vorgefertigter Runden an späteren Lernstand
 bleiben offen. Fehler bei Mehrseitenaufträgen und gleichzeitigem
 Sitzungsentzug wurden mit künstlichen SQLite- und PostgreSQL-Fällen
@@ -16,7 +31,7 @@ nachgestellt und lokal korrigiert. Ein versuchter Downgrade darf die neuen
 Vorbereitungsaufträge nicht löschen; der Schutz wurde auf SQLite und
 PostgreSQL geprüft. Der Build für `8b1d401` wurde wegen dieses inzwischen
 behobenen CI-Befunds abgebrochen und darf nicht verwendet werden. Die neue
-Fassung benötigt noch einen frischen Build und den Live-Test. Einzelheiten
+Fassung benötigt noch den Live-Test. Einzelheiten
 und offene Abnahme:
 `docs/AUTO_ROUND_PLAN_2026_11_28.md` und
 `docs/MEDIAEXPLORER_PLAN_2026_11_28.md`.
@@ -28,9 +43,9 @@ Elternprüfung. Die klar als künstlich benannten Testarbeiten liegen im vom
 Betreiber ausdrücklich für Tests freigegebenen Kinderkonto. Eine separat
 angelegte Beta-Bewerbung des künstlichen Testhaushalts ist noch offen; sie
 ist keine erteilte Freigabe. Im Live-Test traten bei parallelen Ausschnitten
-vorübergehend Foto-503 auf. Ein lokaler Fix mit begrenzter Warteschlange und
-Pausierung bei verdeckter Seite ist getestet und gepusht, aber noch nicht
-auf dem Live-Stand geprüft.
+vorübergehend Foto-503 auf. Der Fix mit begrenzter Warteschlange und
+Pausierung bei verdeckter Seite ist in 1.38.169 enthalten, aber noch nicht
+unter vergleichbarer Last auf dem Live-Stand geprüft.
 
 ## Ergänzung 28. November 2026: Einheiten mit mehrdeutigen Zahlentrennern
 
