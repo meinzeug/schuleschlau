@@ -1,8 +1,9 @@
 """Artificial standalone material: finite auto-reservation, never provider calls."""
+import pytest
 import test_material_auto_review as review_tests
 import test_notebook_practice as notebook_tests
 from schulpilot import notebook_auto
-from schulpilot.db import DB, Child, Job, Material, Session
+from schulpilot.db import DB, Attempt, Child, Job, Material, Membership, Session, UnitSource, Usage, engine
 from schulpilot.notebook_auto_models import NotebookAutoIntent
 from sqlalchemy import func, select
 
@@ -41,6 +42,36 @@ def test_duplicate_arm_and_reservation_then_provider_failure_has_no_retry(notebo
         intent = db.get(NotebookAutoIntent, intent_id)
         assert intent.status == "blocked"
         assert db.scalar(select(func.count()).select_from(Job).where(Job.child_id == intent.child_id)) == 1
+        assert db.scalar(select(func.count()).select_from(Usage).where(Usage.child_id == intent.child_id)) == 1
+
+
+def test_failed_manual_multi_page_job_is_not_retried_for_a_secondary_page(notebook):
+    intent_id, _ = prepare(notebook)
+    other, this = notebook.refs[1], notebook.refs[0]
+    with DB.begin() as db:
+        db.add(Job(child_id=notebook.child["id"], kind="unit", status="failed", idempotency="failed-multi-page",
+                   payload={"material_id": other["id"], "material_revision": other["revision"],
+                            "sources": [other, this]}))
+    notebook_auto.advance_one()
+    with DB() as db:
+        intent = db.get(NotebookAutoIntent, intent_id)
+        assert intent.status == "blocked"
+        assert db.scalar(select(func.count()).select_from(Job).where(Job.child_id == intent.child_id)) == 1
+        assert db.scalar(select(func.count()).select_from(Usage).where(Usage.child_id == intent.child_id)) == 0
+
+
+def test_failed_multi_page_job_with_another_revision_does_not_block_this_revision(notebook):
+    intent_id, _ = prepare(notebook)
+    other, this = notebook.refs[1], notebook.refs[0]
+    with DB.begin() as db:
+        db.add(Job(child_id=notebook.child["id"], kind="unit", status="failed", idempotency="old-multi-page",
+                   payload={"material_id": other["id"], "material_revision": other["revision"],
+                            "sources": [other, {"id": this["id"], "revision": this["revision"] + 1}]}))
+    notebook_auto.advance_one()
+    with DB() as db:
+        intent = db.get(NotebookAutoIntent, intent_id)
+        assert intent.status == "queued"
+        assert db.scalar(select(func.count()).select_from(Job).where(Job.child_id == intent.child_id)) == 2
 
 
 def test_source_change_before_reservation_blocks(notebook):
@@ -62,6 +93,93 @@ def test_revoked_session_blocks(notebook):
     with DB() as db:
         assert db.get(NotebookAutoIntent, intent_id).status == "blocked"
         assert db.scalar(select(func.count()).select_from(Job).where(Job.child_id == notebook.child["id"])) == 0
+
+
+def test_auto_publication_serializes_with_session_revocation(notebook, monkeypatch):
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Event
+
+    from schulpilot import worker
+
+    if engine.dialect.name != "postgresql":
+        pytest.skip("PostgreSQL transaction and row locks required")
+    intent_id, session_id = prepare(notebook)
+    notebook_auto.advance_one()
+    with DB() as db:
+        job_id = db.get(NotebookAutoIntent, intent_id).job_id
+    original = worker.validate_submission_authority
+    observed, calls, attempted, finished = [], [], Event(), Event()
+    executor = ThreadPoolExecutor(max_workers=1)
+
+    def revoke():
+        attempted.set()
+        with DB.begin() as db:
+            db.get(Session, session_id).revoked = True
+        finished.set()
+
+    def check(db, job):
+        original(db, job)
+        calls.append(True)
+        if len(calls) == 2:
+            executor.submit(revoke)
+            assert attempted.wait(3)
+            observed.append(finished.wait(1))
+
+    monkeypatch.setattr(worker, "validate_submission_authority", check)
+    try:
+        result, _ = notebook_tests.process(notebook, monkeypatch, job_id, 3)
+        assert result["status"] == "completed", result
+        assert finished.wait(3)
+    finally:
+        executor.shutdown(wait=True)
+    assert observed == [False], "Revocation must not commit between final authority check and publication"
+
+
+@pytest.mark.parametrize("when", ["before", "during"])
+def test_auto_session_revocation_before_or_during_ai_preserves_usage(notebook, monkeypatch, when):
+    intent_id, session_id = prepare(notebook)
+    notebook_auto.advance_one()
+    with DB() as db:
+        job_id = db.get(NotebookAutoIntent, intent_id).job_id
+        attempts_before = db.scalar(select(func.count()).select_from(Attempt))
+
+    def revoke():
+        with DB.begin() as db:
+            db.get(Session, session_id).revoked = True
+
+    if when == "before":
+        revoke()
+    result, calls = notebook_tests.process(notebook, monkeypatch, job_id, 3,
+                                           callback=revoke if when == "during" else None)
+    assert result["status"] == "failed"
+    assert len(calls) == (1 if when == "during" else 0)
+    assert result["cost"] == (200 if when == "during" else 0)
+    with DB() as db:
+        assert db.scalar(select(func.count()).select_from(Attempt)) == attempts_before
+        assert db.scalar(select(func.count()).select_from(UnitSource).where(
+            UnitSource.material_id == notebook.refs[0]["id"])) == 0
+
+
+def test_auto_parent_membership_removed_during_ai_does_not_publish(notebook, monkeypatch):
+    intent_id, _ = prepare(notebook)
+    with DB.begin() as db:
+        intent = db.get(NotebookAutoIntent, intent_id)
+        session = db.scalar(select(Session).where(Session.user_id == notebook.parent["id"]))
+        intent.user_id, intent.session_id = notebook.parent["id"], session.id
+    notebook_auto.advance_one()
+    with DB() as db:
+        job_id = db.get(NotebookAutoIntent, intent_id).job_id
+
+    def remove_membership():
+        with DB.begin() as db:
+            membership = db.scalar(select(Membership).where(Membership.user_id == notebook.parent["id"]))
+            db.delete(membership)
+
+    result, calls = notebook_tests.process(notebook, monkeypatch, job_id, 3, callback=remove_membership)
+    assert result["status"] == "failed" and len(calls) == 1 and result["cost"] == 200
+    with DB() as db:
+        assert db.scalar(select(func.count()).select_from(UnitSource).where(
+            UnitSource.material_id == notebook.refs[0]["id"])) == 0
 
 
 def test_foreign_family_cannot_schedule(notebook):

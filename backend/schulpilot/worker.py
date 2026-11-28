@@ -621,6 +621,10 @@ def _process(job_id):
             if not db.execute(update(Child).where(Child.id == job.child_id).values(grade=Child.grade)).rowcount:
                 return
             validate_job(db, job)
+            if job.kind == "unit":
+                from .notebook_auto import lock_publication_session
+
+                lock_publication_session(db, job)
             validate_submission_authority(db, job)
             validate_first(db, job)
             from .material_actions import validate_reprocess_job

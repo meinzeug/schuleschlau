@@ -13,7 +13,7 @@ from .material_vocabulary import preview
 from .notebook_auto_models import NotebookAutoIntent
 from .notebook_practice import selection
 from .providers import ProviderError
-from .security import Principal
+from .security import Principal, lock_session_after_child
 
 _cursor = None
 
@@ -37,6 +37,45 @@ def arm(db, child, material, authority):
     db.add(NotebookAutoIntent(child_id=child.id, material_id=material.id, revision=material.revision,
                               user_id=authority["user_id"], session_id=authority["session_id"],
                               family_id=authority["family_id"], selection=chosen))
+
+
+def _includes_source(payload, material):
+    """Include non-primary pages of an existing multi-page job, too."""
+    if not isinstance(payload, dict):
+        return False
+    if (payload.get("material_id") == material.id
+            and type(payload.get("material_revision")) is int
+            and payload.get("material_revision") == material.revision):
+        return True
+    refs = payload.get("sources")
+    return isinstance(refs, list) and any(
+        isinstance(ref, dict) and ref.get("id") == material.id
+        and type(ref.get("revision")) is int and ref["revision"] == material.revision
+        for ref in refs
+    )
+
+
+def lock_publication_session(db, job):
+    """Serialize an auto-round publication with revocation, never the AI call.
+
+    The worker already holds the child lock. Restrict this to a persisted
+    automatic intent so older manual notebook jobs retain their contract.
+    """
+    payload = job.payload if isinstance(job.payload, dict) else {}
+    material_id, revision = payload.get("material_id"), payload.get("material_revision")
+    if not payload.get("notebook_practice") or not material_id or type(revision) is not int:
+        return
+    intent = db.scalar(select(NotebookAutoIntent).where(
+        NotebookAutoIntent.material_id == material_id, NotebookAutoIntent.revision == revision,
+        NotebookAutoIntent.child_id == job.child_id, NotebookAutoIntent.job_id == job.id,
+    ))
+    if not intent:
+        return
+    origin = payload.get("completion_origin")
+    if (not isinstance(origin, dict) or not isinstance(origin.get("user_id"), str)
+            or not isinstance(origin.get("session_id"), str)):
+        raise ProviderError("Die Anmeldung für diese Runde ist nicht mehr gültig.")
+    lock_session_after_child(db, origin["user_id"], origin["session_id"])
 
 
 def _advance(db, intent_id):
@@ -82,12 +121,20 @@ def _advance(db, intent_id):
     if existing_unit:
         intent.status = "completed"
         return
-    previous = list(db.scalars(select(Job).where(
-        Job.child_id == child.id, Job.kind == "unit",
-        Job.payload["material_id"].as_string() == material.id,
-        Job.payload["material_revision"].as_integer() == material.revision)))
+    # Jobs may contain this page as a secondary source. Check all the child's
+    # retained unit payloads without loading the complete history into memory.
+    # A multi-page failure must not silently become another paid auto request.
+    previous = False
+    for status, job_payload in db.execute(
+        select(Job.status, Job.payload).where(Job.child_id == child.id, Job.kind == "unit")
+        .execution_options(yield_per=100)
+    ):
+        if _includes_source(job_payload, material):
+            if status in ("queued", "running"):
+                return
+            previous = True
     if previous:
-        intent.status = "blocked" if all(j.status not in ("queued", "running") for j in previous) else "pending"
+        intent.status = "blocked"
         return
     if db.scalar(select(Job.id).where(Job.child_id == child.id, Job.status.in_(("queued", "running")))):
         return
