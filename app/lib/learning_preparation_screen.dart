@@ -354,7 +354,9 @@ class _LearningPreparationScreenState extends State<_LearningPreparationBody>
                       ? 'Status wird geladen …'
                       : job?['status'] == 'queued'
                       ? widget.state.isChild
-                            ? 'Deine Runde wartet.'
+                            ? planning
+                                  ? 'Dein Lernplan wartet.'
+                                  : 'Deine Runde wartet.'
                             : 'Deine Vorbereitung wartet auf ihren Start.'
                       : planning
                       ? 'Dein Lernplan entsteht …'
@@ -376,7 +378,11 @@ class _LearningPreparationScreenState extends State<_LearningPreparationBody>
                     SizedBox(height: 16),
                     Text(
                       widget.state.isChild
-                          ? 'Deine Lernhilfe bereitet passende Aufgaben vor. Du kannst später zurückkommen.'
+                          ? (job?['status'] == 'queued'
+                                ? 'Du kannst später zurückkommen.'
+                                : planning
+                                ? 'Deine Lernhilfe plant den nächsten Schritt. Du kannst später zurückkommen.'
+                                : 'Deine Lernhilfe bereitet passende Aufgaben vor. Du kannst später zurückkommen.')
                           : 'Du kannst die App schließen. Wir arbeiten weiter.',
                     ),
                   ],

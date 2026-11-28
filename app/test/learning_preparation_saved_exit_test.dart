@@ -67,12 +67,7 @@ void main() {
     await tester.pump();
     await tester.pump();
     expect(find.text('Deine Runde wartet.'), findsOneWidget);
-    expect(
-      find.text(
-        'Deine Lernhilfe bereitet passende Aufgaben vor. Du kannst später zurückkommen.',
-      ),
-      findsOneWidget,
-    );
+    expect(find.text('Du kannst später zurückkommen.'), findsOneWidget);
     expect(find.text('Zur Startseite'), findsOneWidget);
     expect(find.text('Status neu laden'), findsNothing);
     expect(find.text('Zum Lernen'), findsNothing);
