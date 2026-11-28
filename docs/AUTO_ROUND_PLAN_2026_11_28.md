@@ -70,6 +70,12 @@ Ein weiterer synthetischer Test widerruft Kindersitzung beziehungsweise
 Eltern-Familienmitgliedschaft vor und während des Aufrufs und prüft dasselbe
 Erhaltungs- und Abrechnungsverhalten auf SQLite und PostgreSQL. Das ist keine
 Prüfung des Push-Opt-ins oder einer Gerätezustellung.
+Weitere synthetische PostgreSQL-Renntests prüfen beide Reihenfolgen zwischen
+Worker-Veröffentlichung und Wiederherstellung eines unterbrochenen Auftrags:
+Ein verspätetes Ergebnis wird zurückgerollt; bei zuerst abgeschlossener
+Veröffentlichung entsteht genau eine In-App-Meldung. Wiederholte Recovery
+startet keinen neuen Anbieteraufruf, und unbekannte Kosten bleiben reserviert.
+Dies belegt weder tatsächliche Push-Zustellung noch allgemeine Deadlockfreiheit.
 1. Trigger ausschließlich an einer gespeicherten bestätigten Heft-/Lernweg-
    Revision, nicht bei GET, und ein dauerhaftes revisionsgebundenes Journal:
    Block- und Quell-IDs, Reihenfolge, Zustand, Ursprungssitzung und -familie,
