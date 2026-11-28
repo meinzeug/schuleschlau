@@ -10,6 +10,7 @@ from typing import Literal
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import and_, case, func, or_, select
 
+from .attempt_order import conservative_independence_uncertain, valid_attempt_number
 from .db import Activity, Attempt, LearningUnit, User, get_db, now
 from .grades import subject_key
 from .security import authenticated, child_access
@@ -26,6 +27,9 @@ def _latest_attempts(child_id, unit_ids=None):
             return None
         conditions.append(LearningUnit.id.in_(unit_ids))
     partition = (Attempt.unit_id, Attempt.question_id)
+    by_time = (*partition, Attempt.created)
+    number = valid_attempt_number(Attempt.evaluation)
+    invalid_number = and_(Attempt.evaluation["attempt_number"].as_string().is_not(None), number.is_(None))
     latest = (
         select(
             Attempt.unit_id,
@@ -34,14 +38,18 @@ def _latest_attempts(child_id, unit_ids=None):
             Attempt.assisted,
             Attempt.created,
             func.coalesce(Attempt.evaluation["method"].as_string(), "").label("evaluation_method"),
-            func.coalesce(Attempt.evaluation["independence_uncertain"].as_boolean(), False).label("independence_uncertain"),
+            conservative_independence_uncertain(Attempt.evaluation).label("independence_uncertain"),
             func.count().over(partition_by=partition).label("attempts"),
+            invalid_number.label("invalid_attempt_number"),
+            func.count().over(partition_by=by_time).label("same_time_count"),
+            func.sum(case((number.is_(None), 1), else_=0)).over(partition_by=by_time).label("same_time_unordered"),
+            func.count().over(partition_by=(*by_time, number)).label("same_time_same_number"),
             # Preserve the recorded order when exact timestamps tie. Current
             # answers already store their per-question attempt number; random
             # UUID order must not turn a later success back into an old error.
             # Legacy rows without that number retain the stable old fallback.
             func.row_number().over(partition_by=partition, order_by=(Attempt.created.desc(),
-                func.coalesce(Attempt.evaluation["attempt_number"].as_integer(), 0).desc(),
+                func.coalesce(number, 0).desc(),
                 Attempt.id.desc())).label("position"),
         )
         .join(LearningUnit, LearningUnit.id == Attempt.unit_id)
@@ -56,23 +64,32 @@ def read_task_ledger(db, child_id, unit_ids=None):
     latest = _latest_attempts(child_id, unit_ids)
     if latest is None:
         return []
-    return [dict(row) for row in db.execute(select(latest).where(latest.c.position == 1)).mappings()]
+    rows = [dict(row) for row in db.execute(select(latest).where(latest.c.position == 1)).mappings()]
+    for row in rows:
+        ambiguous = row["same_time_count"] > 1 and (row["same_time_unordered"] > 0 or row["same_time_same_number"] > 1)
+        if ambiguous:
+            row.update(outcome="uncertain", evaluation_method="", independence_uncertain=True)
+        elif row["invalid_attempt_number"]:
+            row["independence_uncertain"] = True
+    return rows
 
 
 def read_ledger(db, child_id, unit_ids=None, *, category: EvidenceCategory | None = None, since: float | None = None):
     latest = _latest_attempts(child_id, unit_ids)
     if latest is None:
         return []
-    reflection = latest.c.evaluation_method == "open_learning_v1"
+    ambiguous = and_(latest.c.same_time_count > 1,
+                     or_(latest.c.same_time_unordered > 0, latest.c.same_time_same_number > 1))
+    reflection = and_(~ambiguous, latest.c.evaluation_method == "open_learning_v1")
     correct = latest.c.outcome == "correct"
     # Possible exposure cannot erase a recorded earlier attempt. A later
     # correct answer is a retry, even when its independence marker is stale.
     uncertain_independence = and_(correct, ~reflection, latest.c.attempts == 1,
-                                  latest.c.independence_uncertain.is_(True))
-    independent = and_(correct, ~reflection, latest.c.assisted.is_(False), latest.c.attempts == 1, ~uncertain_independence)
-    supported = and_(correct, ~reflection, ~independent, ~uncertain_independence)
-    needs_practice = and_(latest.c.outcome == "incorrect", ~reflection)
-    uncertain = or_(and_(latest.c.outcome.not_in(("correct", "incorrect")), ~reflection), uncertain_independence)
+                                  or_(latest.c.independence_uncertain.is_(True), latest.c.invalid_attempt_number))
+    independent = and_(correct, ~reflection, ~ambiguous, latest.c.assisted.is_(False), latest.c.attempts == 1, ~uncertain_independence)
+    supported = and_(correct, ~reflection, ~ambiguous, ~independent, ~uncertain_independence)
+    needs_practice = and_(latest.c.outcome == "incorrect", ~reflection, ~ambiguous)
+    uncertain = or_(ambiguous, and_(latest.c.outcome.not_in(("correct", "incorrect")), ~reflection), uncertain_independence)
     categories = {
         "independent": independent,
         "assisted": supported,

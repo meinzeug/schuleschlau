@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from sqlalchemy import and_, case, func, or_, select, update
 from sqlalchemy.orm import aliased, defer, load_only
 
+from .attempt_order import valid_attempt_number
 from . import schemas as s
 from .daily_planner import completed_portions, distribute, period_starts, voluntary_steps
 from .db import (
@@ -524,7 +525,7 @@ def unit_data(db, unit, include_answers=False, *, include_progress=True):
     from .visual_references import projection as visual_projection
 
     sources = unit_source_texts(db, unit)
-    attempts = list(db.scalars(select(Attempt).where(Attempt.unit_id == unit.id).order_by(Attempt.created, func.coalesce(Attempt.evaluation["attempt_number"].as_integer(), 0), Attempt.id)))
+    attempts = list(db.scalars(select(Attempt).where(Attempt.unit_id == unit.id).order_by(Attempt.created, func.coalesce(valid_attempt_number(Attempt.evaluation), 0), Attempt.id)))
     events = list(db.scalars(select(Activity).where(Activity.unit_id == unit.id)))
     history = {}
     for row in db.scalars(select(AttemptAssessment).where(AttemptAssessment.attempt_id.in_([a.id for a in attempts]))
@@ -1623,8 +1624,12 @@ def start(unit_id: str, p=Depends(child_user), db=Depends(get_db),
     if CAPABILITY in (capabilities.split(",") if isinstance(capabilities, str) else []):
         memory = db.get(LearningMemory, unit.id)
         memory.working = {**memory.working, "controller_version": 2}
+    # Build the response in the same transaction. A projection failure must
+    # not leave a round marked active after the client receives an error. HTTP
+    # serialization or delivery can still fail after the commit below.
+    response = unit_data(db, unit)
     db.commit()
-    return unit_data(db, unit)
+    return response
 
 
 @router.post("/units/{unit_id}/pause")
@@ -1758,7 +1763,7 @@ def hint(unit_id: str, question_id: str, p=Depends(child_user), db=Depends(get_d
     if unit.status not in ("active", "paused"):
         raise HTTPException(409, "Diese Runde ist abgeschlossen. Du kannst die gespeicherte Erklärung im Rückblick lesen.")
     previous = db.scalar(select(Attempt).where(Attempt.unit_id == unit.id, Attempt.question_id == question_id)
-                         .order_by(Attempt.created.desc(), func.coalesce(Attempt.evaluation["attempt_number"].as_integer(), 0).desc(), Attempt.id.desc()).limit(1))
+                         .order_by(Attempt.created.desc(), func.coalesce(valid_attempt_number(Attempt.evaluation), 0).desc(), Attempt.id.desc()).limit(1))
     if previous and previous.outcome in ("correct", "uncertain"):
         raise HTTPException(409, "Diese Antwort ist gespeichert. Öffne die Erklärung oder kläre die offene Prüfung mit der Lernhilfe.")
     count = len(list(db.scalars(select(Activity.id).where(Activity.unit_id == unit.id, Activity.kind == "hint"))))
@@ -2357,7 +2362,7 @@ def acknowledge_recovered_feedback(unit_id: str, data: s.FeedbackAcknowledgement
            and e.detail.get("attempt_id") == attempt.id for e in events):
         return {"acknowledged": True}
     attempts = list(db.scalars(select(Attempt).where(Attempt.unit_id == unit.id).order_by(
-        Attempt.created, func.coalesce(Attempt.evaluation["attempt_number"].as_integer(), 0), Attempt.id)))
+        Attempt.created, func.coalesce(valid_attempt_number(Attempt.evaluation), 0), Attempt.id)))
     # Another device could have displayed any still-unread response before
     # it was superseded. This list never displays its solution, so represent
     # only the possibility, not a claim that a child viewed it.

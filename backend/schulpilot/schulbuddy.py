@@ -14,6 +14,7 @@ from pydantic import ValidationError
 from sqlalchemy import delete, func, select, update
 from sqlalchemy.exc import OperationalError
 
+from .attempt_order import valid_attempt_number
 from .db import (
     DB,
     Activity,
@@ -228,7 +229,7 @@ def scope_context(db, p, scope):
             # Match unit_data's exact saved order and its latest unread
             # feedback rule. The visible feedback precedes the next open task.
             attempts = list(db.scalars(select(Attempt).where(Attempt.unit_id == unit.id).order_by(
-                Attempt.created, func.coalesce(Attempt.evaluation["attempt_number"].as_integer(), 0), Attempt.id)))
+                Attempt.created, func.coalesce(valid_attempt_number(Attempt.evaluation), 0), Attempt.id)))
             events = list(db.scalars(select(Activity).where(Activity.unit_id == unit.id)))
             pending = pending_feedback(unit, attempts, events)
             if pending:

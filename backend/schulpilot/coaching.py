@@ -16,6 +16,7 @@ from zoneinfo import ZoneInfo
 from fastapi import APIRouter, Depends, Header, HTTPException
 from sqlalchemy import func, or_, select, update
 
+from .attempt_order import valid_attempt_number
 from . import schemas as s
 from .db import (
     DB,
@@ -64,7 +65,7 @@ def _verified_prior_checks(db, unit):
 
 def observations(db, unit):
     attempts = list(db.scalars(select(Attempt).where(Attempt.unit_id == unit.id).order_by(
-        Attempt.question_id, Attempt.created, func.coalesce(Attempt.evaluation["attempt_number"].as_integer(), 0), Attempt.id)))
+        Attempt.question_id, Attempt.created, func.coalesce(valid_attempt_number(Attempt.evaluation), 0), Attempt.id)))
     events = list(db.scalars(select(Activity).where(Activity.unit_id == unit.id)))
     return [
         {

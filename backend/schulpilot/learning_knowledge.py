@@ -9,6 +9,7 @@ from zoneinfo import ZoneInfo
 
 from sqlalchemy import func, or_, select
 
+from .attempt_order import valid_attempt_number
 from .db import Attempt, Child, LearningUnit, Subject, SubjectAlias, UnitCoaching, UnitSource
 from .schemas import Preferences
 
@@ -101,7 +102,7 @@ def evidence(db, unit, sources):
         current_subject[0] in ("unknown-id", "ambiguous-label", "label") or
         subject_identity(candidate)[0] in ("unknown-id", "ambiguous-label", "label")]
     attempts = list(db.scalars(select(Attempt).where(Attempt.unit_id.in_([u.id for u in units])).order_by(
-        Attempt.created, func.coalesce(Attempt.evaluation["attempt_number"].as_integer(), 0), Attempt.id)))
+        Attempt.created, func.coalesce(valid_attempt_number(Attempt.evaluation), 0), Attempt.id)))
     reports = {r.unit_id: r for r in db.scalars(select(UnitCoaching).where(UnitCoaching.unit_id.in_([u.id for u in units])))}
     grouped = {}
     for attempt in attempts:
