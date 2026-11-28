@@ -85,7 +85,9 @@ führt der Status bei unveränderter Quelle zur Heftseite, wo eine spätere
 POST aus einer veralteten Ansicht wird während des automatischen Wartens oder
 Laufens unter Child-Sperre vor der Reservierung abgewiesen; Elternaufträge
 und ausdrückliche Heftauswahlen bleiben separat. Bisherige Antworten und
-Runden bleiben erhalten. Die vollständige Browser- und Echtanbieterabnahme
+Runden bleiben erhalten. Fertige Job-Quellen werden je höchstens 500 Seiten
+gebündelt geprüft; ein Test mit 35 Einträgen benötigt zwei SELECT-Abfragen.
+Die vollständige Browser- und Echtanbieterabnahme
 steht weiterhin aus.
 1. Trigger ausschließlich an einer gespeicherten bestätigten Heft-/Lernweg-
    Revision, nicht bei GET, und ein dauerhaftes revisionsgebundenes Journal:

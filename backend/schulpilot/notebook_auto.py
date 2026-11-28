@@ -68,43 +68,49 @@ def annotate_plan(db, child, lists):
     if not ids:
         return
     identifiers = sorted(ids)
-    rows = []
+    statuses = {}
     for start in range(0, len(identifiers), 500):
-        rows.extend(db.execute(select(NotebookAutoIntent, Material, Job).select_from(NotebookAutoIntent).join(
+        batch = identifiers[start:start + 500]
+        rows = list(db.execute(select(NotebookAutoIntent, Material, Job).select_from(NotebookAutoIntent).join(
             Material, Material.id == NotebookAutoIntent.material_id).outerjoin(
             Job, and_(Job.id == NotebookAutoIntent.job_id, Job.child_id == child.id, Job.kind == "unit")).where(
             NotebookAutoIntent.child_id == child.id, NotebookAutoIntent.family_id == child.family_id,
-            Material.id.in_(identifiers[start:start + 500]), Material.child_id == child.id,
+            Material.id.in_(batch), Material.child_id == child.id,
             Material.confirmed.is_(True), Material.revision == NotebookAutoIntent.revision,
         ).options(load_only(NotebookAutoIntent.id, NotebookAutoIntent.status),
                   load_only(Material.id, Material.revision),
                   load_only(Job.id, Job.child_id, Job.kind, Job.status, Job.payload, Job.result))))
-    statuses = {}
-    for intent, material, job in rows:
-        valid_job = (job is not None and job.child_id == child.id and job.kind == "unit"
-                     and _includes_source(job.payload, material))
-        if valid_job and job.status == "completed":
-            result = job.result if isinstance(job.result, dict) else {}
-            unit_id = result.get("unit_id")
-            valid_job = bool(isinstance(unit_id, str) and db.scalar(select(UnitSource.unit_id).join(
-                LearningUnit, LearningUnit.id == UnitSource.unit_id).where(
-                LearningUnit.child_id == child.id, UnitSource.unit_id == unit_id,
-                UnitSource.material_id == material.id, UnitSource.revision == material.revision)))
-        if intent.status == "pending":
-            status = "pending"
-        elif intent.status == "queued":
-            status = job.status if valid_job and job.status in ("queued", "running") else (
-                "ready" if valid_job and job.status == "completed" else "blocked")
-        elif intent.status == "blocked":
-            status = "blocked"
-        elif intent.status == "completed" and valid_job and job.status == "completed":
-            status = "ready"
-        else:
-            continue
-        value = {"status": status}
-        if valid_job and (intent.status != "pending"):
-            value["job_id"] = job.id
-        statuses[material.id] = value
+        # A completed job is ready only when its claimed result still exists
+        # for this child and binds the precise page revision. Query the entire
+        # page of job results at once; never fetch one unit per result card.
+        completed_ids = {job.result.get("unit_id") for _, _, job in rows
+                         if job is not None and job.status == "completed" and isinstance(job.result, dict)
+                         and isinstance(job.result.get("unit_id"), str)}
+        sources = set(db.execute(select(UnitSource.unit_id, UnitSource.material_id, UnitSource.revision).join(
+            LearningUnit, LearningUnit.id == UnitSource.unit_id).where(
+            LearningUnit.child_id == child.id, UnitSource.unit_id.in_(completed_ids),
+            UnitSource.material_id.in_(batch)))) if completed_ids else set()
+        for intent, material, job in rows:
+            valid_job = (job is not None and job.child_id == child.id and job.kind == "unit"
+                         and _includes_source(job.payload, material))
+            if valid_job and job.status == "completed":
+                result = job.result if isinstance(job.result, dict) else {}
+                valid_job = (result.get("unit_id"), material.id, material.revision) in sources
+            if intent.status == "pending":
+                status = "pending"
+            elif intent.status == "queued":
+                status = job.status if valid_job and job.status in ("queued", "running") else (
+                    "ready" if valid_job and job.status == "completed" else "blocked")
+            elif intent.status == "blocked":
+                status = "blocked"
+            elif intent.status == "completed" and valid_job and job.status == "completed":
+                status = "ready"
+            else:
+                continue
+            value = {"status": status}
+            if valid_job and intent.status != "pending":
+                value["job_id"] = job.id
+            statuses[material.id] = value
     for item in items:
         if item.get("id") in statuses:
             item["automatic_preparation"] = dict(statuses[item["id"]])

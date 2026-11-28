@@ -243,3 +243,46 @@ def test_pending_intent_added_during_stale_post_blocks_before_reservation(notebo
             event.remove(engine, "before_cursor_execute", gate)
     assert response.status_code == 409, response.text
     assert counts(notebook.child["id"]) == before
+
+
+def test_many_completed_intents_use_batched_source_validation(notebook):
+    from schulpilot.db import Child, engine
+    from sqlalchemy import event
+
+    material_ids = []
+    with DB.begin() as db:
+        child = db.get(Child, notebook.child["id"])
+        for index in range(35):
+            material = Material(child_id=child.id, subject="Mathematik", topic=f"Künstlich {index}",
+                title="Künstliche Seite", content="Künstlicher Inhalt", confirmed=True,
+                status="confirmed", purpose="notebook")
+            db.add(material)
+            db.flush()
+            unit = LearningUnit(child_id=child.id, subject="Mathematik", topic=f"Künstlich {index}",
+                explanation="Künstlich", questions=[], status="not_started", provider="fixture")
+            db.add(unit)
+            db.flush()
+            db.add(UnitSource(unit_id=unit.id, material_id=material.id, revision=material.revision))
+            job = Job(child_id=child.id, kind="unit", status="completed", idempotency=f"batch-status-{index}",
+                      payload={"material_id": material.id, "material_revision": material.revision},
+                      result={"unit_id": unit.id})
+            db.add(job)
+            db.flush()
+            db.add(NotebookAutoIntent(child_id=child.id, material_id=material.id, revision=material.revision,
+                family_id=child.family_id, selection={}, status="completed", job_id=job.id))
+            material_ids.append(material.id)
+    with DB() as db:
+        child = db.get(Child, notebook.child["id"])
+        rows = [{"id": ident, "kind": "material"} for ident in material_ids]
+        statements = []
+        def count_sql(_conn, _cursor, statement, _parameters, _context, _executemany):
+            if statement.lstrip().upper().startswith("SELECT"):
+                statements.append(statement)
+        event.listen(engine, "before_cursor_execute", count_sql)
+        try:
+            notebook_auto.annotate_plan(db, child, [rows])
+        finally:
+            event.remove(engine, "before_cursor_execute", count_sql)
+        assert len(statements) <= 2
+        assert len(rows) == 35
+        assert all(row["automatic_preparation"]["status"] == "ready" for row in rows)
