@@ -1329,6 +1329,13 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – Alle Kinderansichten sprachlich und in ihrer Bedienung entrümpeln**
 
+  - [x] **Vorbereitung ehrlich und knapp beschreiben.** Ein wartender
+    Lernplan wird nicht als bereits entstehende Runde dargestellt; laufende
+    Planung und tatsächliche Aufgabenerstellung erhalten passende Texte.
+    Synthetische Widgettests prüfen kleine Anzeigen, große Schrift,
+    Sitzungswechsel und wiederholte lesende Statusabfragen. Die echte
+    geräteübergreifende Abnahme bleibt offen.
+
   - [x] **Aus einer leeren Heftsuche direkt zurückführen.** Bei einem
     Filter ohne Treffer steht für Kinder „Alle Seiten zeigen“ im Vordergrund;
     ein tatsächlich leerer Hefter bietet weiterhin direkt ein erstes Foto an.
