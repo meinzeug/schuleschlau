@@ -81,6 +81,19 @@ def test_completed_job_without_matching_saved_round_is_not_reported_ready(notebo
     assert item(notebook)["automatic_preparation"] == {"status": "blocked"}
 
 
+@pytest.mark.parametrize("unit_id", [None, 42, True, [], {"malformed": "unit"}])
+def test_completed_job_with_invalid_unit_id_stays_readable_and_blocked(notebook, unit_id):
+    intent_id, _ = prepare(notebook)
+    notebook_auto.advance_one()
+    with DB.begin() as db:
+        intent = db.get(NotebookAutoIntent, intent_id)
+        job = db.get(Job, intent.job_id)
+        job.status, job.result = "completed", {"unit_id": unit_id}
+    before = counts(notebook.child["id"])
+    assert item(notebook)["automatic_preparation"] == {"status": "blocked"}
+    assert counts(notebook.child["id"]) == before
+
+
 def test_failed_job_exposes_only_current_source_and_explicit_manual_start(notebook):
     intent_id, _ = prepare(notebook)
     notebook_auto.advance_one()

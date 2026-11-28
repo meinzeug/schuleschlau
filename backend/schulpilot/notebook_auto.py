@@ -95,7 +95,8 @@ def annotate_plan(db, child, lists):
                          and _includes_source(job.payload, material))
             if valid_job and job.status == "completed":
                 result = job.result if isinstance(job.result, dict) else {}
-                valid_job = (result.get("unit_id"), material.id, material.revision) in sources
+                unit_id = result.get("unit_id")
+                valid_job = isinstance(unit_id, str) and (unit_id, material.id, material.revision) in sources
             if intent.status == "pending":
                 status = "pending"
             elif intent.status == "queued":
