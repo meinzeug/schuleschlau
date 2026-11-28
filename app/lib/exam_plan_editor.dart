@@ -632,8 +632,10 @@ class _ExamPlanEditorState extends State<ExamPlanEditor> {
         icon: const Icon(Icons.calendar_month_outlined),
         label: Text(
           examDay == null
-              ? 'Termin auswählen (optional)'
-              : 'Termin: ${friendlyDate(examDate(examDay!))}',
+              ? (review
+                    ? 'Geschrieben am (optional)'
+                    : 'Termin auswählen (optional)')
+              : '${review ? 'Geschrieben am' : 'Termin'}: ${friendlyDate(examDate(examDay!))}',
         ),
         onPressed: saving || uncertain
             ? null
@@ -649,7 +651,7 @@ class _ExamPlanEditorState extends State<ExamPlanEditor> {
           onPressed: saving || uncertain
               ? null
               : () => edit(() => examDay = null),
-          child: const Text('Termin offen lassen'),
+          child: Text(review ? 'Datum entfernen' : 'Termin offen lassen'),
         ),
     ],
   );

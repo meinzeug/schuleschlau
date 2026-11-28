@@ -1299,6 +1299,13 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – Alle Kinderansichten sprachlich und in ihrer Bedienung entrümpeln**
 
+  - [x] **Datum einer geschriebenen Arbeit eindeutig benennen.** In der
+    mobilen Vorschau war bei der Nacharbeit nur von einem „Termin“ die Rede.
+    Das optionale Datum heißt nun „Geschrieben am“ und kann wieder entfernt
+    werden; die Planung künftiger Arbeiten behält den bisherigen Terminbegriff.
+    Künstliche Fluttertests prüfen beide Fälle und unveränderte Schreibaktionen.
+    Die vollständige mobile Abnahme des Nacharbeitungsablaufs bleibt offen.
+
   - [x] **Fehlende Wortpaare direkt und lesbar kennzeichnen.** In der
     mobilen lokalen Vorschau war der allgemeine Fehlertext abgeschnitten. Die
     Eingabe zeigt nun kurze Hinweise am jeweils fehlenden Feld; während eines

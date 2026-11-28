@@ -709,6 +709,41 @@ void main() {
     );
   }
   testWidgets(
+    'written work labels its optional date as the day it was written',
+    (tester) async {
+      final fixture = Fixture();
+      fixture.listOverride = {
+        'child_id': 'child',
+        'can_manage': true,
+        'exams': [],
+        'sources': [],
+        'has_more': false,
+      };
+      await fixture.mount(tester, tab: 'review');
+      await tap(tester, find.text('Arbeit hinzufügen'));
+      expect(find.text('Geschrieben am (optional)'), findsOneWidget);
+      expect(find.text('Termin auswählen (optional)'), findsNothing);
+      await tap(tester, find.text('Geschrieben am (optional)'));
+      await tap(tester, find.text('OK'));
+      expect(find.textContaining('Geschrieben am:'), findsOneWidget);
+      await tap(tester, find.text('Datum entfernen'));
+      expect(find.text('Geschrieben am (optional)'), findsOneWidget);
+      expect(fixture.writes, isEmpty);
+      expect(tester.takeException(), isNull);
+    },
+  );
+  testWidgets('upcoming work still labels the optional date as a Termin', (
+    tester,
+  ) async {
+    final fixture = Fixture();
+    await fixture.mount(tester);
+    await tap(tester, find.text('Arbeit planen'));
+    expect(find.text('Termin auswählen (optional)'), findsOneWidget);
+    expect(find.text('Geschrieben am (optional)'), findsNothing);
+    expect(fixture.writes, isEmpty);
+    expect(tester.takeException(), isNull);
+  });
+  testWidgets(
     'written-work creation needs no unrelated existing notebook topic',
     (tester) async {
       final fixture = Fixture();

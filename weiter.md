@@ -929,6 +929,18 @@ Der unabhängige Watchdog aus Commit `96c43ca` ist lokal installiert. Er meldet 
   und der Nachweis für Produktivlast bleiben offen; Einzelheiten und
   Messgrenzen stehen in `docs/CAPACITY_PROCESS_FAILURE_2026_11_06.md`.
 
+- GitHub-CI-Lauf `46110437390` für `127935b` wurde vollständig erfolgreich
+  abgeschlossen (Flutter, Backend, Betrieb und PostgreSQL). Dies belegt nicht
+  automatisch den nachfolgenden Foto-Commit `a4806a8`; dessen neuer CI-Lauf
+  muss gesondert geprüft werden. Es wurde kein Release ausgelöst.
+
+- Release 1.38.168+323 wurde auf ausdrücklichen Wunsch vorbereitet. Die
+  Nacharbeit nennt ihr optionales Datum „Geschrieben am“, während die
+  Vorbereitung beim Begriff „Termin“ bleibt. 43 künstliche Flutter-Fälle
+  bestanden. Der eigene CI-Lauf, der Releasebuild, die Aktivierung und ein
+  echter Anbietertest mit einer künstlichen Klassenarbeit sind gesondert zu
+  prüfen; Vorbereitung allein ist kein Deploymentnachweis.
+
 ## Nützliche Prüfungen
 
 - CI: `gh run list --limit 5` und `gh run view <ID>`; ein laufender oder abgebrochener Workflow ist kein grüner Gesamtnachweis.

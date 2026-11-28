@@ -9,6 +9,25 @@ import 'exams_screen_test.dart' as exam;
 void main() {
   setUp(() => FlutterSecureStorage.setMockInitialValues({}));
 
+  testWidgets('written work date is clear and can be removed', (tester) async {
+    final fixture = exam.Fixture()
+      ..listOverride = {
+        'child_id': 'child',
+        'can_manage': true,
+        'exams': [],
+        'sources': [],
+        'has_more': false,
+      };
+    await fixture.mount(tester, tab: 'review', size: const Size(390, 844));
+    await exam.tap(tester, find.text('Arbeit hinzufügen'));
+    await exam.tap(tester, find.text('Geschrieben am (optional)'));
+    await exam.tap(tester, find.text('OK'));
+    expect(find.textContaining('Geschrieben am:'), findsOneWidget);
+    await exam.tap(tester, find.text('Datum entfernen'));
+    expect(find.text('Geschrieben am (optional)'), findsOneWidget);
+    expect(fixture.writes, isEmpty);
+  });
+
   testWidgets('child saves a written work after the compact entry', (
     tester,
   ) async {
