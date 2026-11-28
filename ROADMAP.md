@@ -1329,6 +1329,13 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – Alle Kinderansichten sprachlich und in ihrer Bedienung entrümpeln**
 
+  - [x] **Ungesendete Fotos im Kinderkonto verständlich benennen.** Jedes
+    lokale Foto ist als noch nicht gesendet gekennzeichnet; ein doppelter
+    Nullzähler entfällt. Gerätebindung, Aufbewahrungsdauer und Öffnen ohne
+    Versand bleiben erklärt. 26 synthetische Flutterfälle einschließlich
+    kleiner Anzeigen, großer Schrift und Kontowechsel bestanden. Die
+    umfassende Abnahme durch Kinder bleibt offen.
+
   - [x] **Vorbereitung ehrlich und knapp beschreiben.** Ein wartender
     Lernplan wird nicht als bereits entstehende Runde dargestellt; laufende
     Planung und tatsächliche Aufgabenerstellung erhalten passende Texte.
