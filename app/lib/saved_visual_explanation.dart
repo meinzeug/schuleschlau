@@ -58,6 +58,7 @@ class SavedVisualExplanation extends StatefulWidget {
   final List<Json> steps;
   final Object sourceKey;
   final bool Function()? isCurrent;
+  final bool showFullTextAfterSteps;
   final int initialStep;
   final ValueChanged<int>? onStepChanged;
   const SavedVisualExplanation({
@@ -70,6 +71,7 @@ class SavedVisualExplanation extends StatefulWidget {
     this.questionId,
     this.prompt,
     this.isCurrent,
+    this.showFullTextAfterSteps = false,
     this.initialStep = 0,
     this.onStepChanged,
   });
@@ -329,6 +331,7 @@ class _SavedVisualExplanationState extends State<SavedVisualExplanation>
         state: widget.state,
         sourceKey: widget.sourceKey,
         isCurrent: widget.isCurrent,
+        showFullTextAfterSteps: widget.showFullTextAfterSteps,
         initialStep: widget.initialStep,
         onStepChanged: widget.onStepChanged,
         initialPosition: restored,

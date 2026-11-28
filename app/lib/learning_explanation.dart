@@ -155,6 +155,10 @@ class LearningExplanation extends StatefulWidget {
   final AppState? state;
   final Object? sourceKey;
   final bool Function()? isCurrent;
+
+  /// The caller must first record an explicit explanation-opening event.
+  /// Automatic introductions must not expose the separate full text here.
+  final bool showFullTextAfterSteps;
   final int initialStep;
   final ValueChanged<int>? onStepChanged;
   const LearningExplanation({
@@ -169,6 +173,7 @@ class LearningExplanation extends StatefulWidget {
     this.state,
     this.sourceKey,
     this.isCurrent,
+    this.showFullTextAfterSteps = false,
     this.initialStep = 0,
     this.onStepChanged,
   });
@@ -485,6 +490,20 @@ class _LearningExplanationState extends State<LearningExplanation>
     final epoch = scopeRevision;
     final index = step.clamp(0, values.length - 1);
     final selected = values[index];
+    String normalized(String value) =>
+        value.trim().replaceAll(RegExp(r'\s+'), ' ');
+    final fullText = widget.text.trim();
+    final showFullText =
+        widget.showFullTextAfterSteps &&
+        index == values.length - 1 &&
+        fullText.isNotEmpty &&
+        !values.any(
+          (value) =>
+              normalized(value['text'] as String) == normalized(fullText),
+        );
+    final visibleExplanation = showFullText
+        ? '${selected['text']}\n\n${widget.text}'
+        : selected['text'] as String;
     final blocks = selected['presentation']['blocks'] as List;
     final activeGraphic = graphicIndex.clamp(0, blocks.length - 1);
     Widget body = Column(
@@ -614,8 +633,8 @@ class _LearningExplanationState extends State<LearningExplanation>
         _QuestionAndExplanation(
           prompt: widget.prompt,
           reader: LearningReader(
-            selected['text'],
-            visibleText: _explanationParagraphs(selected['text']),
+            visibleExplanation,
+            visibleText: _explanationParagraphs(visibleExplanation),
             state: widget.state,
             sourceKey: (widget.sourceKey, selected['id']),
             isCurrent: widget.isCurrent,
@@ -626,9 +645,9 @@ class _LearningExplanationState extends State<LearningExplanation>
           spacing: 8,
           runSpacing: 8,
           children: [
-            ReadAloudButton(text: MathText.spoken(selected['text'])),
+            ReadAloudButton(text: MathText.spoken(visibleExplanation)),
             ReadAloudButton(
-              text: MathText.spoken(selected['text']),
+              text: MathText.spoken(visibleExplanation),
               slow: true,
             ),
             if (widget.unitId != null)

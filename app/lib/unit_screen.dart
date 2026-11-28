@@ -5001,6 +5001,9 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
                   SavedVisualExplanation(
                     unitId: widget.unitId,
                     questionId: data['question_id']?.toString(),
+                    // The successful explanation POST above already records
+                    // this explicit opening before disclosing its full text.
+                    showFullTextAfterSteps: true,
                     steps: (data['explanation_steps'] as List? ?? [])
                         .whereType<Map>()
                         .map((value) => Json.from(value))
