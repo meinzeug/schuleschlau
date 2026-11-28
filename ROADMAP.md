@@ -4562,6 +4562,16 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Echtzeitstatus gezielt und zuverlässig bereitstellen**
 
+  - [x] **Familienhilfe an die ursprüngliche Anmeldung binden.** Eine neue
+    Anmeldung schließt die frühere Auswahl für Anruf oder Nachricht, auch
+    wenn sie danach abgebrochen wird. Während einer Anmeldung öffnet sie sich
+    nicht; eine noch nicht wirksam gewordene Auswahl kann keinen Anruf und
+    keine Nachricht auslösen. Auch die Ersatzdialoge sind sitzungsgebunden.
+    61 künstliche Flutterfälle mit simulierten Medien und drei gezielte
+    Chrome-Fälle bestanden. Bereits ausgelöste Aktionen können serverseitig
+    angekommen sein; eine echte geräteübergreifende Anrufabnahme ist das
+    nicht.
+
   - [x] **Themenkatalog und Grafikzoom bei neuer Anmeldung schützen.**
     Eine neue Anmeldeabsicht verbirgt die gespeicherte Themenansicht und
     schließt eine vergrößerte Grafik. Eingefangene alte Aktionen bleiben auch

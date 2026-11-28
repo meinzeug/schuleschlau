@@ -118,6 +118,15 @@ Future<void> showFamilyHelp(
 }) async {
   final expectedAccount = state.user;
   final expectedFamily = state.familyId;
+  final expectedIdentity = state.api.requestIdentity();
+  bool current() =>
+      context.mounted &&
+      expectedAccount != null &&
+      !state.authenticationPending &&
+      identical(state.user, expectedAccount) &&
+      state.familyId == expectedFamily &&
+      state.api.ownsRequest(expectedIdentity);
+  if (!current()) return;
   if (!state.isChild) {
     await sendMessage();
     return;
@@ -128,10 +137,8 @@ Future<void> showFamilyHelp(
     showDragHandle: true,
     isScrollControlled: true,
     builder: (sheet) => _FamilyModalGuard(
-      changes: state,
-      current: () =>
-          identical(state.user, expectedAccount) &&
-          state.familyId == expectedFamily,
+      changes: Listenable.merge([state, state.authenticationChanges]),
+      current: current,
       child: StatefulBuilder(
         builder: (sheet, update) => SafeArea(
           child: SingleChildScrollView(
@@ -187,9 +194,7 @@ Future<void> showFamilyHelp(
       ),
     ),
   );
-  if (!context.mounted ||
-      !identical(state.user, expectedAccount) ||
-      state.familyId != expectedFamily) {
+  if (!context.mounted || !current()) {
     return;
   }
   if (choice == 'message') {
@@ -203,9 +208,7 @@ Future<void> showFamilyHelp(
     contextId: contextId,
     camera: camera,
   );
-  if (!context.mounted ||
-      !identical(state.user, expectedAccount) ||
-      state.familyId != expectedFamily) {
+  if (!context.mounted || !current()) {
     return;
   }
   if (id != null) {
@@ -216,10 +219,8 @@ Future<void> showFamilyHelp(
     final fallback = await showDialog<String>(
       context: context,
       builder: (dialog) => _FamilyModalGuard(
-        changes: state,
-        current: () =>
-            identical(state.user, expectedAccount) &&
-            state.familyId == expectedFamily,
+        changes: Listenable.merge([state, state.authenticationChanges]),
+        current: current,
         child: AlertDialog(
           title: const Text('Gerade nicht verbunden'),
           content: Text(
@@ -244,9 +245,7 @@ Future<void> showFamilyHelp(
         ),
       ),
     );
-    if (!context.mounted ||
-        !identical(state.user, expectedAccount) ||
-        state.familyId != expectedFamily) {
+    if (!current()) {
       return;
     }
     if (fallback == 'message') await sendMessage();
@@ -256,9 +255,7 @@ Future<void> showFamilyHelp(
         contextId: contextId,
         camera: false,
       );
-      if (!context.mounted ||
-          !identical(state.user, expectedAccount) ||
-          state.familyId != expectedFamily) {
+      if (!context.mounted || !current()) {
         return;
       }
       if (audioId != null) {

@@ -102,6 +102,127 @@ class ClosingMedia extends f.FakeMedia {
 
 void main() {
   scenario(
+    'family help cannot complete a choice across an authentication change',
+    (tester) async {
+      var messages = 0;
+      final state = stateFor((_) async => f.response({}), role: 'child');
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) => Scaffold(
+              body: TextButton(
+                onPressed: () => unawaited(
+                  showFamilyHelp(
+                    context,
+                    state,
+                    sendMessage: () async {
+                      messages++;
+                    },
+                  ),
+                ),
+                child: const Text('Hilfe holen'),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('Hilfe holen'));
+      await tester.pumpAndSettle();
+      final choose = tester
+          .widget<OutlinedButton>(
+            find.widgetWithText(OutlinedButton, 'Lieber eine Nachricht senden'),
+          )
+          .onPressed!;
+      choose();
+      final revision = state.beginAuthentication();
+      await tester.pumpAndSettle();
+      state.cancelAuthentication(revision);
+      await tester.pumpAndSettle();
+      expect(messages, 0);
+    },
+  );
+
+  scenario('family help does not open while authentication is pending', (
+    tester,
+  ) async {
+    var messages = 0;
+    final state = stateFor((_) async => f.response({}), role: 'child');
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: TextButton(
+              onPressed: () => unawaited(
+                showFamilyHelp(
+                  context,
+                  state,
+                  sendMessage: () async {
+                    messages++;
+                  },
+                ),
+              ),
+              child: const Text('Hilfe holen'),
+            ),
+          ),
+        ),
+      ),
+    );
+    final revision = state.beginAuthentication();
+    await tester.tap(find.text('Hilfe holen'));
+    await tester.pumpAndSettle();
+    expect(find.text('Gemeinsam geht’s weiter.'), findsNothing);
+    expect(messages, 0);
+    state.cancelAuthentication(revision);
+  });
+
+  scenario(
+    'a new authentication closes old family help without sending a message',
+    (tester) async {
+      var messages = 0, writes = 0;
+      final state = stateFor((request) async {
+        if (request.method != 'GET') writes++;
+        return f.response({});
+      }, role: 'child');
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) => Scaffold(
+              body: TextButton(
+                onPressed: () => unawaited(
+                  showFamilyHelp(
+                    context,
+                    state,
+                    sendMessage: () async {
+                      messages++;
+                    },
+                  ),
+                ),
+                child: const Text('Hilfe holen'),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('Hilfe holen'));
+      await tester.pumpAndSettle();
+      final oldMessage = tester
+          .widget<OutlinedButton>(
+            find.widgetWithText(OutlinedButton, 'Lieber eine Nachricht senden'),
+          )
+          .onPressed!;
+      final revision = state.beginAuthentication();
+      await tester.pumpAndSettle();
+      expect(find.text('Gemeinsam geht’s weiter.'), findsNothing);
+      state.cancelAuthentication(revision);
+      await tester.pumpAndSettle();
+      oldMessage();
+      await tester.pumpAndSettle();
+      expect(messages, 0);
+      expect(writes, 0);
+    },
+  );
+
+  scenario(
     'RR037 a new same-ID session invalidates the old page request before it can display a call',
     (tester) async {
       final old = Completer<http.Response>();

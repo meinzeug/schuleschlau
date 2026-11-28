@@ -1,5 +1,14 @@
 # Übergabe an die nächste Coding-KI
 
+## Ergänzung 28. November 2026: Familienhilfe bei Anmeldung
+
+Die Auswahl zwischen Anruf und Nachricht und ihr Ersatzdialog sind an die
+Anmeldeabsicht gebunden. Eine neue Anmeldung schließt den alten Dialog und
+sperrt nachträgliche Aktionen; bereits ausgeführte Aktionen können nicht
+zurückgenommen werden. 61 künstliche Flutterfälle mit simulierten Medien und
+drei Chrome-Fälle bestanden. Das ersetzt keine geräteübergreifende
+Anrufabnahme.
+
 ## Ergänzung 28. November 2026: Benutzerverwaltung bei Anmeldung
 
 Eine neue Anmeldeabsicht blendet Kontodaten aus, schließt Verwaltungs- und
