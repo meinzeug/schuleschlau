@@ -1,5 +1,26 @@
 # Übergabe an die nächste Coding-KI
 
+## Ergänzung 28. November 2026: echte Fotoprobe und automatische Runden
+
+Version 1.38.168 (`5a8d171`) wurde nach abgeglichenem Offsite-Journal und
+isolierter echter Wiederherstellung aktiviert; öffentlicher Healthcheck und
+API-/Worker-/Fotodienst waren erfolgreich. Der danach gepushte Stand
+`055e68b` enthält eine erste automatische, quellen-/sitzungsgebundene
+Vorbereitung für bestätigte Schultag-Lernwege sowie einen MediaExplorer-
+Grundbaustein; er ist noch nicht ausgerollt. Stand und offene Abnahme:
+`docs/AUTO_ROUND_PLAN_2026_11_28.md` und
+`docs/MEDIAEXPLORER_PLAN_2026_11_28.md`. Unabhängige Heftseiten und
+Anpassung vorgefertigter Runden an späteren Lernstand bleiben offen.
+
+Der echte Browser-Fototest mit ausschließlich künstlichen Klassenarbeiten ist
+in `docs/EXAM_REAL_AI_2026_11_28.md` dokumentiert. Sol und Luna verarbeiteten
+die Bilder; die eigentliche Nacharbeit wartet auf die vorgesehene
+Elternprüfung. Die klar als künstlich benannten Testarbeiten liegen im vom
+Betreiber ausdrücklich für Tests freigegebenen Kinderkonto. Eine separat
+angelegte Beta-Bewerbung des künstlichen Testhaushalts ist noch offen; sie
+ist keine erteilte Freigabe. Im Live-Test traten bei parallelen Ausschnitten
+vorübergehend Foto-503 auf, deren Fix separat geprüft wird.
+
 ## Ergänzung 28. November 2026: Einheiten mit mehrdeutigen Zahlentrennern
 
 `literal-safety-10` behandelt begrenzte vollständige Einheitenumrechnungen
