@@ -16,8 +16,8 @@ from zoneinfo import ZoneInfo
 from fastapi import APIRouter, Depends, Header, HTTPException
 from sqlalchemy import func, or_, select, update
 
-from .attempt_order import valid_attempt_number
 from . import schemas as s
+from .attempt_order import valid_attempt_number
 from .db import (
     DB,
     Activity,

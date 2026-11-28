@@ -7,8 +7,8 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from sqlalchemy import and_, case, func, or_, select, update
 from sqlalchemy.orm import aliased, defer, load_only
 
-from .attempt_order import valid_attempt_number
 from . import schemas as s
+from .attempt_order import valid_attempt_number
 from .daily_planner import completed_portions, distribute, period_starts, voluntary_steps
 from .db import (
     Activity,

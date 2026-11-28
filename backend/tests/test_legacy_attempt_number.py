@@ -1,9 +1,9 @@
 """Malformed historic metadata never breaks reads or invents independent evidence."""
 
 import pytest
-from sqlalchemy import select
 from schulpilot.db import DB, Activity, Attempt, LearningUnit
 from schulpilot.learning_progress import read_ledger, read_task_ledger, totals
+from sqlalchemy import select
 from test_learning import child_client, prepared
 
 
