@@ -41,6 +41,23 @@ def test_latex_product_uses_the_same_validated_intermediate(fraction_command, pr
     assert "zuerst 36/8" in next_hint(question, None, [])
 
 
+@pytest.mark.parametrize("text", [
+    "Multipliziere Zähler und Nenner mit 12.",
+    "Multipliziere den Zähler und den Nenner jeweils mit der Zahl 12!",
+])
+def test_multiply_both_is_corrected_for_a_verified_product(text):
+    shown = clarify_fraction_product_hint(product_question(), text)
+    assert shown == ("Multipliziere den Zähler mit 12 und behalte den Nenner bei. "
+                     "Das ergibt zuerst 36/8. Kürze nun Zähler und Nenner durch dieselbe Zahl. "
+                     "Wähle den vollständig gekürzten Bruch.")
+
+
+def test_expansion_really_does_multiply_both_and_is_never_rewritten():
+    question = product_question() | {"prompt": "Erweitere 3/8 mit dem Faktor 12.", "answer": "36/96"}
+    hint = "Multipliziere Zähler und Nenner mit 12."
+    assert clarify_fraction_product_hint(question, hint) == hint
+
+
 @pytest.mark.parametrize("changes", [
     {"answer": "9/8"},
     {"options": ["9/2", "18/4", "3/2"]},
@@ -57,9 +74,14 @@ def test_ambiguous_or_unverified_tasks_keep_the_original_hint(changes):
     assert clarify_fraction_product_hint(question, original) == original
 
 
-def test_saved_hint_projection_replay_and_assisted_answer(api, household):
+@pytest.mark.parametrize("old_hint", [
+    "Multipliziere drei mit zwölf und behalte den Nenner acht bei.",
+    "Multipliziere Zähler und Nenner mit 12.",
+])
+def test_saved_hint_projection_replay_and_assisted_answer(api, household, old_hint):
     _, child = household
     q = product_question()
+    q["hints"][0] = old_hint
     q["prompt"] = (r"Übung: Berechne \(\frac{3}{8}\cdot12\). "
                    "Welcher vollständig gekürzte Bruch ist das Ergebnis?")
     original = copy.deepcopy(q)
@@ -79,6 +101,8 @@ def test_saved_hint_projection_replay_and_assisted_answer(api, household):
         assert overview.status_code == 200, overview.text
         shown = overview.json()["questions"][0]["shown_hints"]
         assert len(shown) == 1 and "zuerst 36/8" in shown[0]["text"]
+        if "Zähler und Nenner" in old_hint:
+            assert "Zähler mit 12" in shown[0]["text"] and old_hint not in shown[0]["text"]
         replay = kid.post(f"/api/units/{uid}/questions/fraction/hint", headers={"Idempotency-Key": request_key})
         assert replay.status_code == 200 and replay.json()["hint"] == shown[0]["text"]
         second = kid.post(f"/api/units/{uid}/questions/fraction/hint",

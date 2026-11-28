@@ -54,6 +54,17 @@ def clarify_fraction_product_hint(question, text):
     parsed = [fraction_parts(option) for option in options if isinstance(option, str)]
     if sum(parts is not None and Fraction(*parts) == result for parts in parsed) != 1 or key_parts not in parsed:
         return text
+    # This exact model error is not a valid first step for multiplying a
+    # fraction by a whole number: changing both parts preserves the fraction.
+    # Only replace a complete, unambiguous instruction; do not guess at longer
+    # explanations or alter the saved event. Genuine expansion questions do
+    # not pass the verified product/result guard above.
+    if re.fullmatch(
+        r"\s*multipliziere\s+(?:den\s+)?zähler\s+und\s+(?:den\s+)?nenner\s+"
+        r"(?:(?:jeweils|beide)\s+)?mit\s+(?:der\s+zahl\s+)?\d{1,3}\s*[.!]?\s*",
+        text, re.I,
+    ):
+        text = f"Multipliziere den Zähler mit {factor} und behalte den Nenner bei."
     return (f"{text.rstrip()} Das ergibt zuerst {product}/{denominator}. "
             "Kürze nun Zähler und Nenner durch dieselbe Zahl. "
             "Wähle den vollständig gekürzten Bruch.")
