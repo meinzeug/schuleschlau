@@ -11,11 +11,25 @@ Future<void> showKnowledgeSheet(
   required String unitId,
   bool Function()? isCurrent,
 }) async {
-  if (state.user == null || ModalRoute.of(context)?.isCurrent == false) return;
+  final owner = state.user;
+  if (owner == null ||
+      state.authenticationPending ||
+      isCurrent?.call() == false ||
+      ModalRoute.of(context)?.isCurrent == false) {
+    return;
+  }
+  final family = state.familyId;
+  final authentication = state.api.requestIdentity();
   await showDialog<void>(
     context: context,
-    builder: (_) =>
-        _KnowledgeSheet(state, unitId: unitId, isCurrent: isCurrent),
+    builder: (_) => _KnowledgeSheet(
+      state,
+      unitId: unitId,
+      isCurrent: isCurrent,
+      owner: owner,
+      family: family,
+      authentication: authentication,
+    ),
   );
 }
 
@@ -23,16 +37,23 @@ class _KnowledgeSheet extends StatefulWidget {
   final AppState state;
   final String unitId;
   final bool Function()? isCurrent;
-  const _KnowledgeSheet(this.state, {required this.unitId, this.isCurrent});
+  final Json owner;
+  final String? family;
+  final (Object?, String?, int?) authentication;
+  const _KnowledgeSheet(
+    this.state, {
+    required this.unitId,
+    this.isCurrent,
+    required this.owner,
+    required this.family,
+    required this.authentication,
+  });
   @override
   State<_KnowledgeSheet> createState() => _KnowledgeSheetState();
 }
 
 class _KnowledgeSheetState extends State<_KnowledgeSheet>
     with WidgetsBindingObserver {
-  late final Json? owner = widget.state.user;
-  late final String? family = widget.state.familyId;
-  late final String? token = widget.state.api.token;
   final query = TextEditingController();
   String goalStatus = 'all';
   String? selectedGoal;
@@ -44,10 +65,10 @@ class _KnowledgeSheetState extends State<_KnowledgeSheet>
   int generation = 0;
   bool get current =>
       mounted &&
-      owner != null &&
-      identical(owner, widget.state.user) &&
-      family == widget.state.familyId &&
-      token == widget.state.api.token &&
+      identical(widget.owner, widget.state.user) &&
+      widget.family == widget.state.familyId &&
+      !widget.state.authenticationPending &&
+      widget.state.api.ownsRequest(widget.authentication) &&
       (widget.isCurrent?.call() ?? true);
   void identity() {
     if (current) return;
@@ -56,13 +77,20 @@ class _KnowledgeSheetState extends State<_KnowledgeSheet>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (old?.isActive == true) old!.navigator?.removeRoute(old);
     });
-    if (mounted) setState(() => data = null);
+    if (mounted) {
+      query.clear();
+      setState(() {
+        data = null;
+        error = null;
+      });
+    }
   }
 
   @override
   void initState() {
     super.initState();
     widget.state.addListener(identity);
+    widget.state.authenticationChanges.addListener(identity);
     WidgetsBinding.instance.addObserver(this);
     load();
   }
@@ -71,6 +99,7 @@ class _KnowledgeSheetState extends State<_KnowledgeSheet>
   void dispose() {
     generation++;
     widget.state.removeListener(identity);
+    widget.state.authenticationChanges.removeListener(identity);
     WidgetsBinding.instance.removeObserver(this);
     query.dispose();
     super.dispose();
@@ -309,10 +338,15 @@ class _KnowledgeSheetState extends State<_KnowledgeSheet>
                                 labelText:
                                     'In den vorhandenen Lernzielen suchen',
                               ),
-                              onChanged: (_) => setState(() {}),
+                              onChanged: (_) {
+                                if (current) setState(() {});
+                              },
                               textInputAction: TextInputAction.search,
-                              onSubmitted: (_) =>
-                                  FocusManager.instance.primaryFocus?.unfocus(),
+                              onSubmitted: (_) {
+                                if (current) {
+                                  FocusManager.instance.primaryFocus?.unfocus();
+                                }
+                              },
                             ),
                             DropdownButtonFormField<String>(
                               key: ValueKey(('goal-filter', goalStatus)),
@@ -347,8 +381,11 @@ class _KnowledgeSheetState extends State<_KnowledgeSheet>
                                     child: Text(option.$2),
                                   ),
                               ],
-                              onChanged: (value) =>
-                                  setState(() => goalStatus = value ?? 'all'),
+                              onChanged: (value) {
+                                if (current) {
+                                  setState(() => goalStatus = value ?? 'all');
+                                }
+                              },
                             ),
                             const SizedBox(height: 12),
                             Text(
@@ -360,10 +397,13 @@ class _KnowledgeSheetState extends State<_KnowledgeSheet>
                               ),
                             if (query.text.isNotEmpty || goalStatus != 'all')
                               TextButton(
-                                onPressed: () => setState(() {
-                                  query.clear();
-                                  goalStatus = 'all';
-                                }),
+                                onPressed: () {
+                                  if (!current) return;
+                                  setState(() {
+                                    query.clear();
+                                    goalStatus = 'all';
+                                  });
+                                },
                                 child: const Text('Alle Lernziele zeigen'),
                               ),
                             for (final g in goals.where(matchesGoal))

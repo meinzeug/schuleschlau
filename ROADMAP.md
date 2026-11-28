@@ -4897,6 +4897,15 @@ Bestandteil des bestehenden Buildvertrags.
     wurden dort übersprungen. Flutter Analyze war fehlerfrei. Schon vom Server
     angenommene Änderungen und der allgemeine Cookie-Wettlauf bleiben gesondert.
 
+  - [x] **Lernzielübersicht bei beginnender Anmeldung schließen.** Die
+    private Übersicht und ihr Suchtext verschwinden bei geänderter
+    Anmeldeabsicht. Während einer Anmeldung öffnet sie sich nicht und sendet
+    keine Anfrage; alte Aktualisierungsaktionen und verspätete Erfolge oder
+    Fehler können sie nicht wiederherstellen. Vier gezielte künstliche Fälle
+    bestanden nativ und im Chrome-Webrunner; 47 Fälle der angrenzenden
+    Lernwerkzeugsammlung sowie Flutter Analyze bestanden. Bereits versandte
+    Abrufe und der allgemeine Cookie-Wettlauf bleiben gesondert zu betrachten.
+
   - [ ] **Verspätete gemeinsame API-Antworten nach Kontowechsel absichern.**
 
     **Hefte- und Lernübersicht während Anmeldewechsel schützen:** Fachregal
