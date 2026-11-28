@@ -36,10 +36,17 @@ jeweils genau einen bestehenden Etappenauftrag, hält bei einem Fehlschlag an
 und erzeugt weder Antworten noch Lernzeit. Die bisherigen Lernweg- und
 Vorbereitungstests liefen mit 64 bestandenen und einem übersprungenen Fall;
 gezielte künstliche PostgreSQL-Tests decken zusätzlich die automatische
-Verarbeitung ab. Eine erfolgreiche echte KI-Probe für diesen neuen Ablauf,
-die vollständige Browserprüfung sowie eigenständige, nicht an einen Schultag
-gebundene Heftseiten sind damit noch nicht nachgewiesen. Deshalb bleibt der
-übergeordnete Punkt offen.
+Verarbeitung ab. Für neu bestätigte einzelne Heftseiten ohne Schultag gibt es
+ebenfalls einen revisions- und sitzungsgebundenen Hintergrundauftrag. Dabei
+wurden 14 künstliche PostgreSQL-Fälle einschließlich paralleler Worker sowie
+Export, Löschung und Aufbewahrung geprüft. Beide Warteschlangen durchlaufen
+auch bei mehr als 100 wartenden Einträgen alle Seiten in begrenzten Portionen.
+Gleiche Fotos mit verschiedenen Uploadkennungen werden noch nicht allgemein
+als Duplikate erkannt. Eine erfolgreiche echte KI-Probe für die neuen Abläufe
+und ihre vollständige Browserprüfung stehen noch aus. Die bei automatischen
+Etappen beobachtete Lernstandsänderung ist noch nicht atomar vollständig
+abgesichert; siehe [Evidenzbeobachtung](AUTOMATIC_EVIDENCE_OBSERVATION.md).
+Deshalb bleibt der übergeordnete Punkt offen.
 1. Trigger ausschließlich an einer gespeicherten bestätigten Heft-/Lernweg-
    Revision, nicht bei GET, und ein dauerhaftes revisionsgebundenes Journal:
    Block- und Quell-IDs, Reihenfolge, Zustand, Ursprungssitzung und -familie,

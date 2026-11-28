@@ -56,6 +56,28 @@ def test_automatic_scheduler_does_not_starve_later_days(study, monkeypatch):
     assert len(visited) == 201
 
 
+def test_school_preparation_scheduler_does_not_starve_later_days(study, monkeypatch):
+    from schulpilot import school_preparation
+
+    with DB.begin() as db:
+        child_id = db.get(SchoolDay, study["day_id"]).child_id
+        for index in range(101):
+            db.add(SchoolDay(id=f"{index:032x}", child_id=child_id,
+                             school_date=f"test-{index}", created=10,
+                             preparation={"status": "processing"}))
+    visited = []
+    monkeypatch.setattr(school_preparation, "_preparation_cursor", None)
+    monkeypatch.setattr(school_preparation, "advance", lambda day_id: visited.append(day_id) and False)
+    monkeypatch.setattr(school_preparation, "advance_auto_rounds_one", lambda: False)
+    assert not school_preparation.advance_one()
+    assert len(visited) == 100
+    assert not school_preparation.advance_one()
+    assert len(visited) == 101
+    assert len(set(visited)) == 101
+    assert not school_preparation.advance_one()
+    assert len(visited) == 201
+
+
 def test_large_dense_batches_keep_every_page_inside_the_total_cap():
     from types import SimpleNamespace
 

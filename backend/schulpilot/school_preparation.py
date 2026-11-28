@@ -25,6 +25,7 @@ MAX_ATTEMPTS = 2
 ACTIVE = ("queued", "running")
 _MISSING_JOB = "Die Vorbereitung wurde unterbrochen. Deine Seiten und fertigen Runden sind gespeichert."
 _auto_rounds_cursor = None
+_preparation_cursor = None
 
 
 def _state(day):
@@ -952,17 +953,22 @@ def advance(day_id):
 
 def advance_one():
     """Worker tick, independent of browser polling and safe after server restart."""
+    global _preparation_cursor
     with DB() as db:
-        ids = list(
-            db.scalars(
-                select(SchoolDay.id)
-                .where(SchoolDay.preparation["status"].as_string() == "processing")
-                .order_by(SchoolDay.created, SchoolDay.id)
-                .limit(100)
-            )
+        query = (
+            select(SchoolDay.created, SchoolDay.id)
+            .where(SchoolDay.preparation["status"].as_string() == "processing")
+            .order_by(SchoolDay.created, SchoolDay.id)
+            .limit(100)
         )
+        if _preparation_cursor is not None:
+            created, day_id = _preparation_cursor
+            query = query.where(or_(SchoolDay.created > created,
+                                    and_(SchoolDay.created == created, SchoolDay.id > day_id)))
+        rows = list(db.execute(query))
+        _preparation_cursor = tuple(rows[-1]) if len(rows) == 100 else None
     changed = False
-    for day_id in ids:
+    for _, day_id in rows:
         changed = advance(day_id) or changed
     changed = advance_auto_rounds_one() or changed
     return changed
