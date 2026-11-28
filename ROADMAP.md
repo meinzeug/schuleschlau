@@ -38,8 +38,9 @@ physischer Hardware. Historische Testangaben bleiben als solche erhalten.
     Klassenbereich und die Medienregion. Wiederholte Zuordnungen sind
     idempotent, veraltete und widersprüchliche Eingaben werden abgewiesen;
     neue Zuordnungen werden auditiert. Eine Zuordnung ist ausdrücklich
-    keine Inhaltsprüfung oder Freigabe. Die Recherche, eine grafische
-    Redaktion und das Ändern oder Entfernen von Zuordnungen bleiben offen.
+    keine Inhaltsprüfung oder Freigabe. Korrekturen und Entfernungen sind
+    revisionsgebunden und historisiert, entfernte Zuordnungen werden sofort
+    ausgeblendet. Die Recherche und eine grafische Redaktion bleiben offen.
 
 - [x] **Klassenarbeitsfotos in der Kinderansicht verständlicher benennen.**
   Bei ungeprüften Fotos erklärt die lokale Oberfläche kurz die Zuständigkeit

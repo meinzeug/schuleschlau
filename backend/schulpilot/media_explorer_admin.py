@@ -12,7 +12,7 @@ from sqlalchemy import func, select, update
 
 from .curriculum_models import CurriculumTopic
 from .db import get_db, now
-from .media_explorer_models import MediaCurriculumLink, MediaEditorialReview, MediaResource
+from .media_explorer_models import MediaCurriculumLink, MediaCurriculumLinkEvent, MediaEditorialReview, MediaResource
 from .media_explorer_policy import METADATA_MAX_AGE, public_media_url
 from .media_youtube_metadata import curated_query
 from .operator_incidents import reauthorize
@@ -52,6 +52,15 @@ class TopicAssignment(Strict):
     max_level: int = Field(ge=1, le=13, strict=True)
 
 
+class TopicAssignmentUpdate(TopicAssignment):
+    assignment_revision: int = Field(ge=1, le=2147483646, strict=True)
+
+
+class TopicAssignmentRemoval(Strict):
+    resource_revision: int = Field(ge=1, strict=True)
+    assignment_revision: int = Field(ge=1, le=2147483646, strict=True)
+
+
 def _topic_assignment_source(db, topic_id):
     """A link may only use an intact, public, grade-bound curriculum source."""
     topic = db.get(CurriculumTopic, topic_id, populate_existing=True)
@@ -67,6 +76,49 @@ def _topic_assignment_source(db, topic_id):
             or not grades or any(type(grade) is not int or not 1 <= grade <= 13 for grade in grades)):
         raise HTTPException(409, "Für dieses Thema ist keine passende Klassenstufe belegt.")
     return topic, sorted(set(grades))
+
+
+def _event(db, link, actor_id, action):
+    db.add(MediaCurriculumLinkEvent(resource_id=link.resource_id, topic_id=link.topic_id,
+        revision=link.revision, actor_id=actor_id, action=action, topic_digest=link.topic_digest,
+        min_level=link.min_level, max_level=link.max_level))
+
+
+def _record_inherited_if_needed(db, link):
+    exists = db.scalar(select(MediaCurriculumLinkEvent.id).where(
+        MediaCurriculumLinkEvent.resource_id == link.resource_id,
+        MediaCurriculumLinkEvent.topic_id == link.topic_id,
+        MediaCurriculumLinkEvent.revision == link.revision))
+    if exists:
+        return
+    if link.revision != 1:
+        raise HTTPException(409, "Die Zuordnungshistorie ist unvollständig. Bitte administrativ prüfen.")
+    # Only an observed pre-migration snapshot, not a claim about who created it
+    # or when the original editorial decision was made.
+    _event(db, link, None, "inherited")
+
+
+def _assignment_audit(db, actor, link, action):
+    topic_hash = hashlib.sha256(link.topic_id.encode("utf-8")).hexdigest()[:32]
+    audit(db, actor, "media.topic_" + action, f"{link.resource_id}:{topic_hash}:{link.revision}")
+
+
+def _claim_link(db, p, resource_id, topic_id, resource_revision, assignment_revision):
+    reauthorize(db, p, lock=True)
+    if p.session.user_id != p.user.id:
+        raise HTTPException(401, "Bitte erneut anmelden.")
+    rate_limit(db, "media-topic:" + p.user.id, 120, 60, commit=False)
+    resource_claim = db.execute(update(MediaResource).where(MediaResource.id == resource_id,
+        MediaResource.revision == resource_revision).values(revision=MediaResource.revision))
+    if resource_claim.rowcount != 1:
+        raise HTTPException(409, "Das Medium wurde geändert oder ist nicht mehr vorhanden. Bitte neu laden.")
+    link_claim = db.execute(update(MediaCurriculumLink).where(MediaCurriculumLink.resource_id == resource_id,
+        MediaCurriculumLink.topic_id == topic_id, MediaCurriculumLink.revision == assignment_revision)
+        .values(revision=MediaCurriculumLink.revision))
+    if link_claim.rowcount != 1:
+        raise HTTPException(409, "Die Zuordnung wurde geändert oder ist nicht mehr vorhanden. Bitte neu laden.")
+    return (db.get(MediaResource, resource_id, populate_existing=True),
+            db.get(MediaCurriculumLink, (resource_id, topic_id), populate_existing=True))
 
 
 def _review_data(review):
@@ -135,7 +187,8 @@ def assignment_preview(resource_id: str, topic_id: str, p=Depends(admin), db=Dep
             "school_form_id": topic.school_form_id, "grades": grades,
             "region_matches": resource.checked_region == topic.state_code[:2],
             "assignment": None if existing is None else {"topic_digest": existing.topic_digest,
-                "level_kind": existing.level_kind, "min_level": existing.min_level, "max_level": existing.max_level}}
+                "level_kind": existing.level_kind, "min_level": existing.min_level, "max_level": existing.max_level,
+                "active": existing.active, "revision": existing.revision}}
 
 
 @router.get("/admin/media-explorer/{resource_id}/topics")
@@ -150,7 +203,8 @@ def list_assignments(resource_id: str, after: str = Query("", max_length=140),
     page = rows[:limit]
     return {"resource_revision": resource.revision,
             "items": [{"topic_id": row.topic_id, "topic_digest": row.topic_digest, "level_kind": row.level_kind,
-                       "min_level": row.min_level, "max_level": row.max_level} for row in page],
+                       "min_level": row.min_level, "max_level": row.max_level,
+                       "active": row.active, "revision": row.revision} for row in page],
             "next": page[-1].topic_id if len(rows) > limit else None}
 
 
@@ -178,18 +232,92 @@ def assign_topic(resource_id: str, topic_id: str, data: TopicAssignment, p=Depen
         raise HTTPException(422, "Der Klassenbereich muss im Lehrplanbeleg enthalten sein.")
     existing = db.get(MediaCurriculumLink, (resource_id, topic_id))
     if existing:
+        if not existing.active:
+            raise HTTPException(409, "Die Zuordnung wurde entfernt. Bitte gezielt wiederherstellen.")
         if (existing.topic_digest, existing.level_kind, existing.min_level, existing.max_level) != (
                 topic.digest, "klasse", data.min_level, data.max_level):
             raise HTTPException(409, "Für dieses Medium und Thema besteht bereits eine andere Zuordnung.")
-        return {"created": False, "topic_id": topic.id, "resource_revision": resource.revision}
-    db.add(MediaCurriculumLink(resource_id=resource.id, topic_id=topic.id, topic_digest=topic.digest,
-                               level_kind="klasse", min_level=data.min_level, max_level=data.max_level))
-    topic_hash = hashlib.sha256(topic.id.encode("utf-8")).hexdigest()[:32]
-    audit(db, p.user.id, "media.topic_assigned", resource.id + ":" + topic_hash)
+        return {"created": False, "topic_id": topic.id, "resource_revision": resource.revision,
+                "assignment_revision": existing.revision}
+    link = MediaCurriculumLink(resource_id=resource.id, topic_id=topic.id, topic_digest=topic.digest,
+                               level_kind="klasse", min_level=data.min_level, max_level=data.max_level,
+                               revision=1, active=True)
+    db.add(link)
+    _event(db, link, p.user.id, "created")
+    _assignment_audit(db, p.user.id, link, "assigned")
     db.flush()
-    result = {"created": True, "topic_id": topic.id, "resource_revision": resource.revision}
+    result = {"created": True, "topic_id": topic.id, "resource_revision": resource.revision,
+              "assignment_revision": link.revision}
     db.commit()
     return result
+
+
+@router.post("/admin/media-explorer/{resource_id}/topics/{topic_id}/change")
+def change_assignment(resource_id: str, topic_id: str, data: TopicAssignmentUpdate,
+                      p=Depends(admin), db=Depends(get_db)):
+    """Explicitly change or restore one revision-bound assignment."""
+    resource, link = _claim_link(db, p, resource_id, topic_id, data.resource_revision, data.assignment_revision)
+    topic_claim = db.execute(update(CurriculumTopic).where(CurriculumTopic.id == topic_id,
+        CurriculumTopic.digest == data.topic_digest).values(digest=CurriculumTopic.digest))
+    if topic_claim.rowcount != 1:
+        raise HTTPException(409, "Das Lehrplanthema wurde geändert oder ist nicht mehr vorhanden. Bitte neu laden.")
+    topic, grades = _topic_assignment_source(db, topic_id)
+    if resource.checked_region != topic.state_code[:2]:
+        raise HTTPException(409, "Die geprüfte Medienregion passt nicht zum Lehrplan.")
+    if data.min_level > data.max_level or not set(range(data.min_level, data.max_level + 1)).issubset(grades):
+        raise HTTPException(422, "Der Klassenbereich muss im Lehrplanbeleg enthalten sein.")
+    if (link.active and link.topic_digest == topic.digest and link.level_kind == "klasse"
+            and link.min_level == data.min_level and link.max_level == data.max_level):
+        return {"changed": False, "active": True, "assignment_revision": link.revision}
+    _record_inherited_if_needed(db, link)
+    action = "updated" if link.active else "restored"
+    link.active = True
+    link.topic_digest = topic.digest
+    link.level_kind = "klasse"
+    link.min_level = data.min_level
+    link.max_level = data.max_level
+    link.revision += 1
+    _event(db, link, p.user.id, action)
+    _assignment_audit(db, p.user.id, link, action)
+    db.flush()
+    result = {"changed": True, "active": True, "assignment_revision": link.revision}
+    db.commit()
+    return result
+
+
+@router.post("/admin/media-explorer/{resource_id}/topics/{topic_id}/remove")
+def remove_assignment(resource_id: str, topic_id: str, data: TopicAssignmentRemoval,
+                      p=Depends(admin), db=Depends(get_db)):
+    """Remove availability immediately, preserving history and version."""
+    _, link = _claim_link(db, p, resource_id, topic_id, data.resource_revision, data.assignment_revision)
+    if not link.active:
+        return {"changed": False, "active": False, "assignment_revision": link.revision}
+    _record_inherited_if_needed(db, link)
+    link.active = False
+    link.revision += 1
+    _event(db, link, p.user.id, "removed")
+    _assignment_audit(db, p.user.id, link, "removed")
+    db.flush()
+    result = {"changed": True, "active": False, "assignment_revision": link.revision}
+    db.commit()
+    return result
+
+
+@router.get("/admin/media-explorer/{resource_id}/topics/{topic_id}/history")
+def assignment_history(resource_id: str, topic_id: str, after: int = Query(0, ge=0),
+                       limit: int = Query(30, ge=1, le=50), p=Depends(admin), db=Depends(get_db)):
+    link = db.get(MediaCurriculumLink, (resource_id, topic_id))
+    if not link:
+        raise HTTPException(404, "Zuordnung nicht gefunden.")
+    rows = list(db.scalars(select(MediaCurriculumLinkEvent).where(MediaCurriculumLinkEvent.resource_id == resource_id,
+        MediaCurriculumLinkEvent.topic_id == topic_id, MediaCurriculumLinkEvent.revision > after)
+        .order_by(MediaCurriculumLinkEvent.revision).limit(limit + 1)))
+    page = rows[:limit]
+    return {"current_revision": link.revision, "active": link.active,
+        "items": [{"revision": row.revision, "action": row.action, "actor_id": row.actor_id,
+                   "topic_digest": row.topic_digest, "min_level": row.min_level, "max_level": row.max_level,
+                   "recorded_at": row.created} for row in page],
+        "next": page[-1].revision if len(rows) > limit else None}
 
 
 @router.post("/admin/media-explorer/{resource_id}/decisions")

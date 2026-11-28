@@ -36,7 +36,8 @@ def eligible(resource, link, topic, review, reviewer, *, state_code, school_form
     if (type(current_time) is not int or type(resource.checked_at) is not int
             or resource.checked_at > current_time or current_time - resource.checked_at >= METADATA_MAX_AGE):
         return False
-    if (link.resource_id != resource.id or link.topic_id != topic.id or link.topic_digest != topic.digest
+    if (link.active is not True or type(link.revision) is not int or link.revision < 1
+            or link.resource_id != resource.id or link.topic_id != topic.id or link.topic_digest != topic.digest
             or topic.state_code != state_code or topic.school_form_id != school_form_id
             or not isinstance(state_code, str) or not re.fullmatch(r"[A-Z]{2}-[A-Z0-9]{1,3}", state_code)
             or resource.checked_region != state_code[:2]
@@ -105,7 +106,7 @@ def select_for_topic(db, *, topic_id, subject_id, state_code, school_form_id,
     latest = (select(MediaEditorialReview.resource_id,
                      func.max(MediaEditorialReview.review_number).label("number"))
               .join(MediaCurriculumLink, MediaCurriculumLink.resource_id == MediaEditorialReview.resource_id)
-              .where(MediaCurriculumLink.topic_id == topic.id)
+              .where(MediaCurriculumLink.topic_id == topic.id, MediaCurriculumLink.active.is_(True))
               .group_by(MediaEditorialReview.resource_id).subquery())
     rows = db.execute(
         select(MediaResource, MediaCurriculumLink, MediaEditorialReview, User)
@@ -114,7 +115,7 @@ def select_for_topic(db, *, topic_id, subject_id, state_code, school_form_id,
         .join(MediaEditorialReview, (MediaEditorialReview.resource_id == latest.c.resource_id)
               & (MediaEditorialReview.review_number == latest.c.number))
         .join(User, User.id == MediaEditorialReview.reviewer_id)
-        .where(MediaCurriculumLink.topic_id == topic.id, MediaResource.available.is_(True),
+        .where(MediaCurriculumLink.topic_id == topic.id, MediaCurriculumLink.active.is_(True), MediaResource.available.is_(True),
                MediaEditorialReview.decision == "approved", MediaEditorialReview.evidence_scope == "content")
         .order_by(MediaResource.id).limit(100)
     )

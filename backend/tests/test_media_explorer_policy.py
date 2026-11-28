@@ -19,7 +19,7 @@ def example():
     topic = SimpleNamespace(id="topic", digest=fingerprint(data), state_code="DE-ST",
                             school_form_id="de-st.sekundarschule", document_id="source", title="Brüche", data=data)
     link = SimpleNamespace(resource_id="media", topic_id="topic", topic_digest=topic.digest,
-        level_kind="klasse", min_level=5, max_level=6)
+        level_kind="klasse", min_level=5, max_level=6, active=True, revision=1)
     review = SimpleNamespace(resource_id="media", resource_revision=1, decision="approved", evidence_scope="content",
         reviewer_id="editor", reviewed_at=1_000_000, min_age=10, content_kind="general", context="", counterpoint="")
     reviewer = SimpleNamespace(id="editor", role="admin", verified=True, disabled=False)
@@ -47,6 +47,7 @@ def test_canonical_url_excludes_redirects_credentials_and_unrelated_video():
 @pytest.mark.parametrize("index,field,value", [
     (0, "available", False), (0, "revision", 2), (0, "checked_at", 1_000_002), (0, "checked_region", "AT"),
     (1, "topic_digest", "b" * 64), (1, "resource_id", "other"), (1, "level_kind", "lernjahr"),
+    (1, "active", False), (1, "revision", 0),
     (2, "state_code", "DE-BY"), (2, "school_form_id", "de-st.gymnasium"),
     (2, "data", {"grade_kind": "phase", "grades": []}),
     (2, "data", {"grade_kind": "band", "grades": [5, 6, 7]}),

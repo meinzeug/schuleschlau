@@ -80,13 +80,22 @@ explizitem, belegtem Klassenbereich zuordnen. Vor der Zuordnung werden die
 Medienrevision, der Themendigest, Fach und Herkunft des Lehrplans sowie die
 passende Medienregion geprüft. Gleiche Zuordnungen sind idempotent, parallele
 Schreibaufträge werden serialisiert und eine abweichende alte Zuordnung wird
-nicht überschrieben. Erfolgreiche Neuanlagen erhalten ein Audit; eine
-seitenweise Liste zeigt bestehende Zuordnungen. Keine dieser Aktionen startet
+nicht versehentlich überschrieben. Ein ausdrücklich revisionsgebundener
+Korrekturweg erlaubt Änderung, Entfernung und erneute Aktivierung. Entfernte
+Zuordnungen bleiben als inaktive Version erhalten und verschwinden sofort aus
+der Medienauswahl. Änderungen besitzen eine eigene Metadatenhistorie und Audit;
+ein vorhandener Inhaltsprüfentscheid wird weder gelöscht noch erneuert. Bei
+vor der Migration bestehenden Zuordnungen dokumentiert der erste spätere
+Eingriff den damaligen Zustand als übernommen, ohne eine ursprüngliche
+Entscheidungsperson oder ein Ursprungsdatum zu behaupten. Die Historie ist
+nicht kryptografisch manipulationssicher und folgt den Löschbeziehungen des
+jeweiligen öffentlichen Mediums und Themas. Eine seitenweise Liste zeigt
+bestehende und entfernte Zuordnungen. Keine dieser Aktionen startet
 einen externen Abruf, erzeugt Lernfortschritt oder ersetzt die separate
 menschliche Inhaltsfreigabe. Die Freigabepolitik prüft weiterhin jede
-Zuordnung beim Lesen. Ein Änderungs-/Entfernungsworkflow und eine grafische
-Redaktionsoberfläche fehlen; bestehende Zuordnungen sind über diesen Pfad
-noch nicht änderbar. Es wurden ausschließlich künstliche Daten getestet.
+Zuordnung beim Lesen. Eine grafische Redaktionsoberfläche fehlt. Es wurden
+ausschließlich künstliche Daten getestet; eine Prüfung mit einem echten
+Medienanbieter hat dabei nicht stattgefunden.
 
 Die von der Netzschicht unabhängige YouTube-Metadatenprüfung kann in
 synthetischen Tests bereits Suchergebnisse und Videoantworten auf tatsächlich

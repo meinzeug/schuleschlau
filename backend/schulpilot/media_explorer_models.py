@@ -4,7 +4,18 @@ A candidate is not a recommendation merely because metadata exists.  The
 separate policy checks source freshness, educational placement and an actual
 editorial content review before a record may be shown to a child.
 """
-from sqlalchemy import Boolean, CheckConstraint, Column, ForeignKey, Index, Integer, String, Text, UniqueConstraint
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    Column,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+    true,
+)
 
 from .db import Base, now, uid
 
@@ -42,9 +53,34 @@ class MediaCurriculumLink(Base):
     level_kind = Column(String(16), nullable=False)
     min_level = Column(Integer, nullable=False)
     max_level = Column(Integer, nullable=False)
+    # A removed link is a tombstone: its monotonically increasing version
+    # prevents a stale editor from silently recreating an old assignment.
+    revision = Column(Integer, nullable=False, default=1, server_default="1")
+    active = Column(Boolean, nullable=False, default=True, server_default=true())
     __table_args__ = (
         CheckConstraint("min_level >= 1 AND max_level >= min_level", name="ck_media_level_range"),
         Index("ix_media_topic_level", "topic_id", "level_kind", "min_level", "max_level"),
+    )
+
+
+class MediaCurriculumLinkEvent(Base):
+    """Immutable metadata-only record of an editorial mapping change."""
+    __tablename__ = "media_curriculum_link_events"
+
+    id = Column(String(32), primary_key=True, default=uid)
+    resource_id = Column(ForeignKey("media_resources.id", ondelete="CASCADE"), nullable=False)
+    topic_id = Column(ForeignKey("curriculum_topics.id", ondelete="CASCADE"), nullable=False)
+    revision = Column(Integer, nullable=False)
+    actor_id = Column(ForeignKey("users.id", ondelete="SET NULL"))
+    action = Column(String(16), nullable=False)
+    topic_digest = Column(String(64), nullable=False)
+    min_level = Column(Integer, nullable=False)
+    max_level = Column(Integer, nullable=False)
+    created = Column(Integer, nullable=False, default=lambda: int(now()))
+    __table_args__ = (
+        UniqueConstraint("resource_id", "topic_id", "revision", name="uq_media_link_event_revision"),
+        CheckConstraint("action IN ('inherited', 'created', 'updated', 'removed', 'restored')", name="ck_media_link_event_action"),
+        Index("ix_media_link_event_history", "resource_id", "topic_id", "revision"),
     )
 
 
