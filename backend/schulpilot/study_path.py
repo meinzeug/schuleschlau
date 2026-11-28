@@ -618,6 +618,7 @@ def enqueue_block(db, p, day_id, block_id, idempotency, *, automatic=False):
             "planning": planning_fingerprint(db, child),
             "study_authority": authority,
             "completion_origin": authority,
+            **({"automatic_study_stage": True} if automatic else {}),
         },
     )
     db.add(job)
@@ -678,6 +679,12 @@ def process(job_id):
             if not job or job.status != "running":
                 return
             day, child, block, items = job_context(db, job)
+            automatic = job.payload.get("automatic_study_stage") is True
+            evidence_marker = None
+            if automatic:
+                from .learning_evidence_marker import snapshot
+
+                evidence_marker = snapshot(db, child.id, block["subject"])
             config = job_config(db, job, "unit")
             usage = db.scalar(select(Usage).where(Usage.job_id == job.id))
             if not usage or (usage.provider, usage.model, usage.config_revision) != (
@@ -767,6 +774,11 @@ def process(job_id):
                 return
             db.execute(update(Child).where(Child.id == job.child_id).values(grade=Child.grade))
             day, child, block, items = job_context(db, job)
+            if automatic:
+                from .learning_evidence_marker import matches, snapshot
+
+                if not matches(evidence_marker, snapshot(db, child.id, block["subject"])):
+                    raise ProviderError("Dein Lernstand hat sich während der Vorbereitung geändert. Bitte erneut öffnen.")
             from .package_decimal_addition import validate_history as validate_decimal_history
 
             validate_decimal_history(db, child.id, {"units": [data]})
@@ -811,6 +823,13 @@ def process(job_id):
             value = copy.deepcopy(day.learning_plan)
             next(b for b in value["blocks"] if b["id"] == block["id"])["unit_id"] = unit.id
             day.learning_plan = value
+            if automatic:
+                # Observation only: answer paths do not all lock Child. This
+                # is not an atomic proof that no evidence changed, and cannot
+                # be used as a start-time mastery or freshness guarantee.
+                job.payload = {**job.payload, "automatic_evidence_observation": {
+                    "consistency": "best_effort", "marker": evidence_marker,
+                }}
             record(
                 db,
                 child.id,
