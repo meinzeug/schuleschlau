@@ -4684,6 +4684,16 @@ Bestandteil des bestehenden Buildvertrags.
 
   - [ ] **Verspätete gemeinsame API-Antworten nach Kontowechsel absichern.**
 
+    **Rundenvorbereitung beim Anmeldewechsel pausieren:** Die Statusseite
+    fragt während einer laufenden Anmeldung keine Aufträge ab und verwirft
+    alte Anzeigen. Nach einem Abbruch startet erst „Status neu laden“ den
+    lesenden Abgleich erneut; eine vorher sichtbare Startaktion löst während
+    des Wechsels keinen POST aus. Ein noch ausstehender alter Abruf wird vor
+    dem ausdrücklichen Neuabruf abgewickelt und kann den frischen Status nicht
+    ersetzen. 26 künstliche Flutter-Fälle sowie drei gezielte Chrome-Fälle
+    bestanden; einer davon prüft 320 Pixel Breite. Der allgemeine Cookie-
+    Wettlauf und bereits serverseitig begonnene Aktionen bleiben offen.
+
     **Familienanrufe während einer Anmeldung sperren:** Anrufsuche, Öffnen,
     Annehmen und neue Medienfreigaben senden während einer laufenden Anmeldung
     keine Anfragen und starten keine Kamera oder kein Mikrofon. Bereits aktive

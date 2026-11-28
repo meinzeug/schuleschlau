@@ -60,12 +60,16 @@ class _LearningPreparationScreenState extends State<_LearningPreparationBody>
   late final Json? owner;
   late final String? family, session;
   bool foreground = true;
+  bool authenticationPaused = false;
+  int authenticationEpoch = 0;
   bool get sameOwner =>
       mounted &&
       owner != null &&
       identical(widget.state.user, owner) &&
       widget.state.familyId == family &&
       widget.state.api.token == session;
+  bool get canRead =>
+      sameOwner && !widget.state.authenticationPending && !authenticationPaused;
   bool get waiting =>
       job == null || ['queued', 'running'].contains(job?['status']);
   bool get recoverableReadError =>
@@ -85,16 +89,51 @@ class _LearningPreparationScreenState extends State<_LearningPreparationBody>
         WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
     WidgetsBinding.instance.addObserver(this);
     widget.state.addListener(accountChanged);
-    load();
+    widget.state.authenticationChanges.addListener(authenticationChanged);
+    authenticationPaused = widget.state.authenticationPending;
+    if (canRead) {
+      load();
+      startPolling();
+    }
+  }
+
+  void startPolling() {
+    poll?.cancel();
+    if (!canRead) return;
     poll = Timer.periodic(Duration(seconds: 3), (_) {
       if (foreground &&
-          sameOwner &&
+          canRead &&
           waiting &&
           error == null &&
           (ModalRoute.of(context)?.isCurrent ?? true)) {
         load();
       }
     });
+  }
+
+  void authenticationChanged() {
+    if (!mounted) return;
+    poll?.cancel();
+    authenticationEpoch++;
+    refreshAfterRead = false;
+    setState(() {
+      authenticationPaused = true;
+      job = null;
+      error = null;
+      startError = null;
+      startTargetUnavailable = false;
+    });
+  }
+
+  void resumeStatus() {
+    if (!sameOwner || widget.state.authenticationPending) return;
+    setState(() => authenticationPaused = false);
+    startPolling();
+    if (readingJob != null) {
+      refreshAfterRead = true;
+    } else {
+      unawaited(load());
+    }
   }
 
   void accountChanged() {
@@ -115,7 +154,7 @@ class _LearningPreparationScreenState extends State<_LearningPreparationBody>
   void didChangeAppLifecycleState(AppLifecycleState lifecycle) {
     foreground = lifecycle == AppLifecycleState.resumed;
     if (foreground &&
-        sameOwner &&
+        canRead &&
         waiting &&
         recoverableReadError &&
         (ModalRoute.of(context)?.isCurrent ?? true)) {
@@ -131,16 +170,20 @@ class _LearningPreparationScreenState extends State<_LearningPreparationBody>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     widget.state.removeListener(accountChanged);
+    widget.state.authenticationChanges.removeListener(authenticationChanged);
     poll?.cancel();
     super.dispose();
   }
 
   Future<void> load() async {
     final id = widget.jobId;
-    if (readingJob == id || !sameOwner) return;
+    if (readingJob == id || !canRead) return;
+    final epoch = authenticationEpoch;
     final requestIdentity = widget.state.api.requestIdentity();
     bool currentRequest() =>
-        sameOwner && widget.state.api.ownsRequest(requestIdentity);
+        canRead &&
+        epoch == authenticationEpoch &&
+        widget.state.api.ownsRequest(requestIdentity);
     readingJob = id;
     try {
       var result = await widget.state.api.get('/jobs/$id');
@@ -174,7 +217,9 @@ class _LearningPreparationScreenState extends State<_LearningPreparationBody>
       }
     } finally {
       if (readingJob == id) readingJob = null;
-      if (sameOwner && !widget.state.api.ownsRequest(requestIdentity)) {
+      if (canRead &&
+          epoch == authenticationEpoch &&
+          !widget.state.api.ownsRequest(requestIdentity)) {
         setState(() {
           job = null;
           error = ApiError(
@@ -187,7 +232,7 @@ class _LearningPreparationScreenState extends State<_LearningPreparationBody>
         refreshAfterRead = false;
         if (mounted &&
             foreground &&
-            sameOwner &&
+            canRead &&
             waiting &&
             recoverableReadError &&
             (ModalRoute.of(context)?.isCurrent ?? true)) {
@@ -200,6 +245,30 @@ class _LearningPreparationScreenState extends State<_LearningPreparationBody>
   @override
   Widget build(BuildContext context) {
     if (!sameOwner) return SizedBox.shrink();
+    if (!canRead) {
+      return PageFrame(
+        state: widget.state,
+        title: 'Deine Lernrunde',
+        child: Panel(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                widget.state.authenticationPending
+                    ? 'Anmeldung läuft …'
+                    : 'Lade den Status erneut.',
+              ),
+              if (!widget.state.authenticationPending)
+                ActionButton(
+                  label: 'Status neu laden',
+                  icon: Icons.refresh_rounded,
+                  onPressed: () async => resumeStatus(),
+                ),
+            ],
+          ),
+        ),
+      );
+    }
     final checking = job == null && error == null;
     final ready =
         job?['status'] == 'completed' && job?['result']?['unit_id'] is String;
@@ -349,13 +418,13 @@ class _LearningPreparationScreenState extends State<_LearningPreparationBody>
                         ? Icons.play_arrow_rounded
                         : Icons.visibility_outlined,
                     onPressed: () async {
-                      if (!sameOwner) return;
+                      if (!canRead) return;
                       final route = ModalRoute.of(context);
                       if (route?.isCurrent == false) return;
                       final requestIdentity = widget.state.api
                           .requestIdentity();
                       bool currentRequest() =>
-                          sameOwner &&
+                          canRead &&
                           widget.state.api.ownsRequest(requestIdentity);
                       final requestJob = widget.jobId;
                       final id = job!['result']['unit_id'];
@@ -395,7 +464,7 @@ class _LearningPreparationScreenState extends State<_LearningPreparationBody>
                     label: 'Zum Lernen',
                     icon: Icons.auto_stories_outlined,
                     onPressed: () async {
-                      if (!sameOwner) return;
+                      if (!canRead) return;
                       openRoute(context, '/learn/${widget.childId}');
                     },
                   )
@@ -404,7 +473,7 @@ class _LearningPreparationScreenState extends State<_LearningPreparationBody>
                     label: 'Zum Lernen',
                     icon: Icons.auto_stories_outlined,
                     onPressed: () async {
-                      if (sameOwner) {
+                      if (canRead) {
                         openRoute(context, '/learn/${widget.childId}');
                       }
                     },
@@ -418,7 +487,7 @@ class _LearningPreparationScreenState extends State<_LearningPreparationBody>
                 if (missingVisual)
                   TextButton.icon(
                     onPressed: () {
-                      if (!sameOwner) return;
+                      if (!canRead) return;
                       openRoute(
                         context,
                         validMaterial
@@ -438,7 +507,7 @@ class _LearningPreparationScreenState extends State<_LearningPreparationBody>
                   SizedBox(height: 12),
                   OutlinedButton.icon(
                     onPressed: () {
-                      if (sameOwner) {
+                      if (canRead) {
                         openRoute(context, '/learn/${widget.childId}');
                       }
                     },
@@ -455,7 +524,7 @@ class _LearningPreparationScreenState extends State<_LearningPreparationBody>
                 SizedBox(height: 12),
                 TextButton.icon(
                   onPressed: () {
-                    if (!sameOwner) return;
+                    if (!canRead) return;
                     openRoute(
                       context,
                       widget.state.isParent

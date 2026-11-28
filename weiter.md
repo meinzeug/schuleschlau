@@ -1,5 +1,14 @@
 # Übergabe an die nächste Coding-KI
 
+## Ergänzung 28. November 2026: Vorbereitungsstatus beim Anmeldewechsel
+
+Die Vorbereitungsseite liest während einer Anmeldung keinen Auftragsstatus,
+verwirft alte Anzeigen und sperrt alte Startaktionen. Nach Abbruch startet
+erst ein bewusster Statusabgleich die Anzeige wieder; ein spät eintreffender
+alter Status ersetzt den neuen nicht. 26 künstliche Flutter-Fälle und drei
+gezielte Chrome-Fälle bestanden, darunter eine 320-Pixel-Ansicht. Der
+serverseitige Cookie-Wettlauf und bereits gesendete Aktionen bleiben offen.
+
 ## Ergänzung 28. November 2026: Familienanrufe beim Anmeldewechsel
 
 Anrufsuche, Öffnen, Annehmen und Medienstart sind während einer Anmeldung
