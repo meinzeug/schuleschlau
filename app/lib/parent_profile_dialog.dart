@@ -13,17 +13,32 @@ Future<void> showParentProfileDialog(
   AppState state,
   Json child,
 ) async {
-  if (!context.mounted || !state.isParent || !state.canManage) return;
+  if (!context.mounted ||
+      !state.isParent ||
+      !state.canManage ||
+      state.authenticationPending) {
+    return;
+  }
   final account = state.user, family = state.familyId;
+  if (account == null) return;
+  final authentication = state.api.requestIdentity();
   final route = DialogRoute<bool>(
     context: context,
     barrierDismissible: false,
-    builder: (_) => _ParentProfileEditor(state, child: Json.from(child)),
+    builder: (_) => _ParentProfileEditor(
+      state,
+      child: Json.from(child),
+      account: account,
+      family: family,
+      authentication: authentication,
+    ),
   );
   final changed = await Navigator.of(context, rootNavigator: true).push(route);
   await route.completed;
   if (changed == true &&
       context.mounted &&
+      !state.authenticationPending &&
+      state.api.ownsRequest(authentication) &&
       identical(state.user, account) &&
       state.familyId == family) {
     toast(context, 'Lernangaben gespeichert.');
@@ -33,7 +48,16 @@ Future<void> showParentProfileDialog(
 class _ParentProfileEditor extends StatefulWidget {
   final AppState state;
   final Json child;
-  const _ParentProfileEditor(this.state, {required this.child});
+  final Json account;
+  final String? family;
+  final (Object?, String?, int?) authentication;
+  const _ParentProfileEditor(
+    this.state, {
+    required this.child,
+    required this.account,
+    required this.family,
+    required this.authentication,
+  });
   @override
   State<_ParentProfileEditor> createState() => _ParentProfileEditorState();
 }
@@ -52,6 +76,8 @@ class _ParentProfileEditorState extends State<_ParentProfileEditor> {
   bool get current =>
       mounted &&
       !closing &&
+      !widget.state.authenticationPending &&
+      widget.state.api.ownsRequest(widget.authentication) &&
       identical(account, widget.state.user) &&
       family == widget.state.familyId &&
       widget.state.canManage;
@@ -67,8 +93,8 @@ class _ParentProfileEditorState extends State<_ParentProfileEditor> {
   @override
   void initState() {
     super.initState();
-    account = widget.state.user;
-    family = widget.state.familyId;
+    account = widget.account;
+    family = widget.family;
     final child = widget.child;
     name = TextEditingController(text: child['display_name']);
     grade = TextEditingController(text: '${child['grade']}');
@@ -80,11 +106,16 @@ class _ParentProfileEditorState extends State<_ParentProfileEditor> {
     revision = child['profile_revision'] as String?;
     baseline = fingerprint();
     widget.state.addListener(identityChanged);
+    widget.state.authenticationChanges.addListener(identityChanged);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && !current) identityChanged();
+    });
   }
 
   void identityChanged() {
     if (current || closing) return;
     closing = true;
+    FocusManager.instance.primaryFocus?.unfocus();
     final route = ModalRoute.of(context), extra = discardRoute;
     setState(() {});
     Future<void>.microtask(() {
@@ -96,6 +127,7 @@ class _ParentProfileEditorState extends State<_ParentProfileEditor> {
   @override
   void dispose() {
     widget.state.removeListener(identityChanged);
+    widget.state.authenticationChanges.removeListener(identityChanged);
     for (final c in controllers) {
       c.dispose();
     }

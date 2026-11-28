@@ -2091,6 +2091,16 @@ Die folgenden Punkte beschreiben ausstehende, wiederholbare Betriebs- und Freiga
   automatisierte Freigabeprüfung ersetzt keinen unabhängigen Sicherheitstest.
 - [ ] **P1 – Datenlebenszyklus und Löschung pro Datenart prüfen**
 
+  - [x] **Kinderprofilentwurf an die Elternsitzung binden.** Eine neue
+    Anmeldeabsicht schließt den privaten Profilentwurf und einen eventuell
+    offenen Verwerfen-Dialog. Verspätete Vergleiche und Speicherantworten
+    erscheinen nicht in einer neuen Anmeldung; ein bereits abgesandter
+    Schreibauftrag kann serverseitig trotzdem erfolgt sein. Bei abgebrochener
+    Anmeldung muss der Dialog ausdrücklich neu geöffnet werden. Sechs
+    künstliche Anmelde-/Sitzungswechselfälle bestanden lokal und im Chrome-
+    Webrunner; zehn benachbarte Profil- und Elternfälle bestanden zusätzlich.
+    Die übergreifende Cookie- und Geräteabnahme bleibt offen.
+
   - [x] **Benutzerverwaltung bei neuer Anmeldung schützen.** Eine neue
     Anmeldeabsicht blendet Kontodaten aus und schließt eigene Bestätigungs-
     und Filterdialoge. Alte Bestätigungen und verspätete Antworten bleiben
