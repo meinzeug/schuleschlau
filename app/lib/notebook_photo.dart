@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
@@ -26,6 +27,10 @@ class NotebookPhoto extends StatefulWidget {
 }
 
 class _NotebookPhotoState extends State<NotebookPhoto> {
+  // The server deliberately permits only one expensive source crop at a time.
+  // Multiple figures on the same screen should queue rather than race for it.
+  // No photo bytes or account information are stored in this shared tail.
+  static Future<void>? _figureTail;
   Json? owner;
   String? family, sessionToken;
   int? authenticationRevision;
@@ -119,13 +124,12 @@ class _NotebookPhotoState extends State<NotebookPhoto> {
     final request = ++generation;
     setState(() => error = null);
     try {
-      final bytes = await widget.state.api
-          .bytes(
-            widget.figureIndex == null
-                ? '/materials/${widget.materialId}/image'
-                : '/materials/${widget.materialId}/figures/${widget.figureIndex}?revision=${widget.revision}',
-          )
-          .timeout(const Duration(seconds: 30));
+      final bytes = widget.figureIndex == null
+          ? await widget.state.api
+                .bytes('/materials/${widget.materialId}/image')
+                .timeout(const Duration(seconds: 30))
+          : await _readFigure(request);
+      if (bytes == null) return;
       if (!current || request != generation) return;
       setState(
         () => image = ResizeImage.resizeIfNeeded(
@@ -148,6 +152,35 @@ class _NotebookPhotoState extends State<NotebookPhoto> {
               : 'Das Foto konnte nicht geladen werden.',
         );
       }
+    }
+  }
+
+  Future<Uint8List?> _readFigure(int request) async {
+    final previous = _figureTail;
+    final release = Completer<void>();
+    _figureTail = release.future;
+    try {
+      if (previous != null) await previous;
+      if (!current || request != generation) return null;
+      // A second device or an upload can still occupy the server slot. Retry
+      // only the temporary 503, at most twice; all other errors stay visible.
+      for (var attempt = 0; attempt < 3; attempt++) {
+        try {
+          return await widget.state.api
+              .bytes(
+                '/materials/${widget.materialId}/figures/${widget.figureIndex}?revision=${widget.revision}',
+              )
+              .timeout(const Duration(seconds: 30));
+        } on ApiError catch (error) {
+          if (error.status != 503 || attempt == 2) rethrow;
+          await Future<void>.delayed(const Duration(seconds: 2));
+          if (!current || request != generation) return null;
+        }
+      }
+      throw StateError('Figure retry loop exhausted');
+    } finally {
+      if (identical(_figureTail, release.future)) _figureTail = null;
+      release.complete();
     }
   }
 
