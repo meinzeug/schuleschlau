@@ -4684,6 +4684,19 @@ Bestandteil des bestehenden Buildvertrags.
 
   - [ ] **Verspätete gemeinsame API-Antworten nach Kontowechsel absichern.**
 
+    **Familienanrufe während einer Anmeldung sperren:** Anrufsuche, Öffnen,
+    Annehmen und neue Medienfreigaben senden während einer laufenden Anmeldung
+    keine Anfragen und starten keine Kamera oder kein Mikrofon. Bereits aktive
+    Medien und alte Anrufanzeigen werden beendet beziehungsweise verborgen.
+    Ein verzögerter Android-Initialisierungsablauf erhält beim Kontowechsel
+    eine erneute Chance für das neue Konto; nach abgebrochener Anmeldung wird
+    ein vorher zurückgestellter nativer Einstieg erst beim bewussten Öffnen
+    wieder eingerichtet. 54 künstliche Flutter-Fälle bestanden, darunter vier
+    simulierte native Kanaltests; zwei Einstiegssperren bestanden auch im
+    Chrome-Webrunner. Eine echte Android-, Kamera- oder Mikrofonabnahme ist
+    dies nicht. Bereits serverseitig begonnene Anrufe werden nicht als sicher
+    beendet behauptet; der allgemeine Cookie-Wettlauf bleibt offen.
+
     **Sprachwerkstatt während Anmeldewechsel schützen:** Beim Öffnen während
     einer Anmeldung werden keine Wortschatz-, Material- oder Projektanfragen
     gestartet. Eine zuvor offene Ansicht verbirgt ihre Inhalte, stoppt ihre

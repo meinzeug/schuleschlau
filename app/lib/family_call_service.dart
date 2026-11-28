@@ -69,6 +69,8 @@ class FamilyCallService extends ChangeNotifier {
   String? _nativeShown;
   String? _mediaCallId;
   bool _nativeInitialized = false;
+  bool _nativeInitializing = false;
+  bool _nativeInitializationWanted = false;
   bool _watchingAuthentication = false;
   String? _startKey;
   void Function(String callId, String action)? onNativeIntent;
@@ -115,8 +117,8 @@ class FamilyCallService extends ChangeNotifier {
   // A live call must not continue capturing while a different sign-in is
   // being initiated, even before the old account object is replaced.
   void _authenticationChanged() {
-    if (media == null && _nativeShown == null) return;
-    unawaited(_closeMedia());
+    if (state.authenticationPending) call = null;
+    if (media != null || _nativeShown != null) unawaited(_closeMedia());
     notifyListeners();
   }
 
@@ -132,7 +134,15 @@ class FamilyCallService extends ChangeNotifier {
 
   void activate(Json? user) {
     final allowed = ['child', 'parent'].contains(user?['role']) ? user : null;
-    if (identical(_owner, allowed)) return;
+    if (identical(_owner, allowed)) {
+      if (allowed != null &&
+          _nativeAndroid &&
+          !state.authenticationPending &&
+          _nativeSubscription == null) {
+        unawaited(_initializeNative());
+      }
+      return;
+    }
     _generation++;
     _owner = allowed;
     _watchAuthentication(allowed != null);
@@ -151,26 +161,47 @@ class FamilyCallService extends ChangeNotifier {
     _ending = false;
     unawaited(_closeMedia());
     if (allowed != null) {
-      if (_nativeAndroid) unawaited(_initializeNative());
+      if (_nativeAndroid && !state.authenticationPending) {
+        unawaited(_initializeNative());
+      }
       _timer = Timer.periodic(pollInterval, (_) => unawaited(refresh()));
       unawaited(refresh());
     }
   }
 
   Future<void> _initializeNative() async {
+    if (_nativeInitializing) {
+      _nativeInitializationWanted = true;
+      return;
+    }
+    _nativeInitializing = true;
     final owner = _owner, generation = _generation;
-    await FamilyCallNative.instance.initialize();
-    _nativeInitialized = true;
-    if (!_current(owner, generation)) return;
-    await _nativeSubscription?.cancel();
-    _nativeSubscription = FamilyCallNative.instance.intents.listen((intent) {
-      if (_current(owner, generation)) {
-        onNativeIntent?.call(intent.callId, intent.action);
+    try {
+      await FamilyCallNative.instance.initialize();
+      _nativeInitialized = true;
+      if (!_current(owner, generation) || state.authenticationPending) return;
+      await _nativeSubscription?.cancel();
+      _nativeSubscription = FamilyCallNative.instance.intents.listen((intent) {
+        if (_current(owner, generation) && !state.authenticationPending) {
+          onNativeIntent?.call(intent.callId, intent.action);
+        }
+      });
+      final initial = await FamilyCallNative.instance.initialIntent();
+      if (initial != null &&
+          _current(owner, generation) &&
+          !state.authenticationPending) {
+        onNativeIntent?.call(initial.callId, initial.action);
       }
-    });
-    final initial = await FamilyCallNative.instance.initialIntent();
-    if (initial != null && _current(owner, generation)) {
-      onNativeIntent?.call(initial.callId, initial.action);
+    } finally {
+      _nativeInitializing = false;
+      final wanted = _nativeInitializationWanted;
+      _nativeInitializationWanted = false;
+      if (wanted &&
+          _owner != null &&
+          !state.authenticationPending &&
+          (!_current(owner, generation) || _nativeSubscription == null)) {
+        unawaited(_initializeNative());
+      }
     }
   }
 
@@ -198,9 +229,16 @@ class FamilyCallService extends ChangeNotifier {
     final family = state.familyId, identity = state.api.requestIdentity();
     bool valid() =>
         _current(owner, generation) &&
+        !state.authenticationPending &&
         state.familyId == family &&
         state.api.ownsRequest(identity);
-    if (owner == null || _polling || _ending || (!_foreground && !live)) return;
+    if (owner == null ||
+        !valid() ||
+        _polling ||
+        _ending ||
+        (!_foreground && !live)) {
+      return;
+    }
     final now = DateTime.now().millisecondsSinceEpoch;
     if (!live && !force && now - _lastDiscovery < 10000) return;
     _polling = true;
@@ -287,19 +325,26 @@ class FamilyCallService extends ChangeNotifier {
 
   Future<void> open(String id, {bool Function()? isCurrent}) async {
     final owner = _owner, generation = _generation;
-    if (owner == null || isCurrent?.call() == false) return;
+    final family = state.familyId, identity = state.api.requestIdentity();
+    bool valid() =>
+        _current(owner, generation) &&
+        !state.authenticationPending &&
+        state.familyId == family &&
+        state.api.ownsRequest(identity) &&
+        isCurrent?.call() != false;
+    if (owner == null || !valid()) return;
     // Old notification links must not replace or close a newer live call.
     if (live && callId != id) {
       throw ApiError('Ein anderes Gespräch ist bereits geöffnet.');
     }
     final previousCall = callId;
     final response = await state.api.get('/family-calls/$id');
-    if (!_current(owner, generation) || isCurrent?.call() == false) return;
+    if (!valid()) return;
     if (callId != previousCall && callId != id) return;
     if (live && callId != id) return;
     if (callId != id) {
       await _closeMedia();
-      if (!_current(owner, generation) || isCurrent?.call() == false) return;
+      if (!valid()) return;
       if (callId != previousCall && callId != id) return;
       _cursor = 0;
       _connected = false;
@@ -336,12 +381,15 @@ class FamilyCallService extends ChangeNotifier {
     String? contextId,
     bool camera = true,
   }) async {
-    if (!isChild || busy || _ending) return callId;
+    if (state.authenticationPending || !isChild || busy || _ending) {
+      return callId;
+    }
     if (live) return callId;
     final owner = _owner, generation = _generation;
     final family = state.familyId, identity = state.api.requestIdentity();
     bool valid() =>
         _current(owner, generation) &&
+        !state.authenticationPending &&
         state.familyId == family &&
         state.api.ownsRequest(identity);
     void invalidate() {
@@ -407,11 +455,18 @@ class FamilyCallService extends ChangeNotifier {
   }
 
   Future<void> join({bool camera = true}) async {
-    if (busy || _ending || !live || media != null) return;
+    if (state.authenticationPending ||
+        busy ||
+        _ending ||
+        !live ||
+        media != null) {
+      return;
+    }
     final owner = _owner, generation = _generation;
     final family = state.familyId, identity = state.api.requestIdentity();
     bool valid() =>
         _current(owner, generation) &&
+        !state.authenticationPending &&
         state.familyId == family &&
         state.api.ownsRequest(identity);
     void invalidate() {
@@ -486,7 +541,13 @@ class FamilyCallService extends ChangeNotifier {
   }
 
   Future<void> _connect(Json? owner, int generation) async {
-    if (_connecting || _connected || media == null || !accepted) return;
+    if (state.authenticationPending ||
+        _connecting ||
+        _connected ||
+        media == null ||
+        !accepted) {
+      return;
+    }
     _connecting = true;
     final currentMedia = media!;
     final id = callId!;
@@ -524,7 +585,11 @@ class FamilyCallService extends ChangeNotifier {
     Json? owner,
     int generation,
   ) async {
-    if (!_current(owner, generation) || !accepted) return false;
+    if (state.authenticationPending ||
+        !_current(owner, generation) ||
+        !accepted) {
+      return false;
+    }
     try {
       await state.api.post('/family-calls/$callId/signals', {
         'idempotency_key': familyCallKey(),
@@ -614,7 +679,9 @@ class FamilyCallService extends ChangeNotifier {
   Future<void> toggleMicrophone() async {
     final owner = _owner, generation = _generation;
     final currentMedia = media;
-    if (currentMedia == null || !accepted) return;
+    if (state.authenticationPending || currentMedia == null || !accepted) {
+      return;
+    }
     try {
       await currentMedia.toggleMicrophone();
       if (_current(owner, generation) && media == currentMedia) {
@@ -632,7 +699,9 @@ class FamilyCallService extends ChangeNotifier {
   Future<void> toggleCamera() async {
     final owner = _owner, generation = _generation;
     final currentMedia = media;
-    if (currentMedia == null || !accepted) return;
+    if (state.authenticationPending || currentMedia == null || !accepted) {
+      return;
+    }
     try {
       final addedTrack = await currentMedia.toggleCamera();
       if (!_current(owner, generation) || media != currentMedia) return;
@@ -669,7 +738,8 @@ class FamilyCallService extends ChangeNotifier {
   }
 
   Future<void> shareScreen() async {
-    if (!isChild ||
+    if (state.authenticationPending ||
+        !isChild ||
         media == null ||
         !accepted ||
         !_connected ||
@@ -683,6 +753,7 @@ class FamilyCallService extends ChangeNotifier {
     final family = state.familyId, identity = state.api.requestIdentity();
     bool valid() =>
         _current(owner, generation) &&
+        !state.authenticationPending &&
         state.familyId == family &&
         state.api.ownsRequest(identity) &&
         media == currentMedia;
@@ -733,7 +804,13 @@ class FamilyCallService extends ChangeNotifier {
 
   Future<bool> _renegotiate() async {
     final owner = _owner, generation = _generation;
-    if (!isChild || media == null || !accepted || !_connected) return false;
+    if (state.authenticationPending ||
+        !isChild ||
+        media == null ||
+        !accepted ||
+        !_connected) {
+      return false;
+    }
     if (_offerPending) {
       _renegotiatePending = true;
       return true;
@@ -760,7 +837,9 @@ class FamilyCallService extends ChangeNotifier {
     }
     // Stop tracks immediately even if the server cannot be reached.
     await _closeMedia();
-    if (id == null || !_current(owner, generation)) {
+    if (id == null ||
+        state.authenticationPending ||
+        !_current(owner, generation)) {
       if (_current(owner, generation)) _ending = false;
       return;
     }

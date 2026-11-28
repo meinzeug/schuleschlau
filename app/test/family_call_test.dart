@@ -192,6 +192,46 @@ void main() {
     FlutterSecureStorage.setMockInitialValues({});
   });
 
+  for (final role in ['child', 'parent']) {
+    testWidgets('pending login blocks $role call reads and media setup', (
+      tester,
+    ) async {
+      final requests = <http.Request>[];
+      var created = 0;
+      final state = makeState((request) async {
+        requests.add(request);
+        return response(
+          request.url.path.endsWith('/config')
+              ? {'available': true}
+              : {'calls': []},
+        );
+      }, role: role);
+      final intent = state.beginAuthentication();
+      final calls = FamilyCallService(
+        state,
+        nativeEnabled: false,
+        mediaFactory: () {
+          created++;
+          return FakeMedia();
+        },
+      );
+      calls.activate(state.user);
+      await tester.pump();
+      await calls.refresh(force: true);
+      await calls.open(callId);
+      await calls.start();
+      calls.call = metadata('ringing', role: role);
+      await calls.join();
+      expect(requests, isEmpty);
+      expect(created, 0);
+      expect(calls.media, isNull);
+      await calls.clear();
+      state.cancelAuthentication(intent);
+      calls.dispose();
+      state.dispose();
+    });
+  }
+
   testWidgets(
     'Incoming discovery and open are read-only and never capture media',
     (tester) async {
@@ -526,7 +566,7 @@ void main() {
         calls.activate(state.user);
         await tester.pump();
         await calls.start();
-        final before = calls.call;
+        expect(calls.call, isNotNull);
         final refreshing = calls.refresh(force: true);
         await tester.pump();
         state.beginAuthentication();
@@ -536,7 +576,7 @@ void main() {
               : response(metadata('accepted')),
         );
         await refreshing;
-        expect(calls.call, same(before));
+        expect(calls.call, isNull);
         expect(calls.error, isNull);
         expect(heartbeats, 0);
         expect(fake.closed, isTrue);

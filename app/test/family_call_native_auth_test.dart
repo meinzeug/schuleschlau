@@ -13,6 +13,92 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUp(() => FlutterSecureStorage.setMockInitialValues({}));
   test(
+    'new account receives native intent after delayed old initialization',
+    () async {
+      final channel =
+          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+      final started = Completer<void>(),
+          release = Completer<void>(),
+          delivered = Completer<void>();
+      var initialCalls = 0;
+      channel.setMockMethodCallHandler(FamilyCallNative.channel, (call) async {
+        if (call.method == 'initialIntent') {
+          if (++initialCalls == 1) {
+            started.complete();
+            await release.future;
+            return null;
+          }
+          return {'call_id': callId, 'action': 'open'};
+        }
+        return null;
+      });
+      addTearDown(
+        () => channel.setMockMethodCallHandler(FamilyCallNative.channel, null),
+      );
+      final state = makeState(
+        (request) async => response({'calls': []}),
+        role: 'parent',
+      );
+      final calls = FamilyCallService(state)
+        ..onNativeIntent = (id, action) {
+          if (id == callId && action == 'open' && !delivered.isCompleted) {
+            delivered.complete();
+          }
+        };
+      calls.activate(state.user);
+      await started.future.timeout(const Duration(seconds: 5));
+      state.user = {...state.user!, 'id': 'new-parent'};
+      calls.activate(state.user);
+      release.complete();
+      await delivered.future.timeout(const Duration(seconds: 5));
+      expect(initialCalls, 2);
+      await calls.clear();
+      calls.dispose();
+      state.dispose();
+    },
+    skip: kIsWeb,
+  );
+  test(
+    'native intent waits until explicit activation after cancelled login',
+    () async {
+      final channel =
+          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+      final methods = <String>[], received = <String>[];
+      channel.setMockMethodCallHandler(FamilyCallNative.channel, (call) async {
+        methods.add(call.method);
+        if (call.method == 'initialIntent') {
+          return {'call_id': callId, 'action': 'open'};
+        }
+        return null;
+      });
+      addTearDown(
+        () => channel.setMockMethodCallHandler(FamilyCallNative.channel, null),
+      );
+      final state = makeState(
+        (request) async => response({'calls': []}),
+        role: 'parent',
+      );
+      final intent = state.beginAuthentication();
+      final calls = FamilyCallService(state)
+        ..onNativeIntent = (id, action) => received.add('$id:$action');
+      calls.activate(state.user);
+      await Future<void>.delayed(Duration.zero);
+      expect(methods, isNot(contains('initialIntent')));
+      expect(received, isEmpty);
+      state.cancelAuthentication(intent);
+      calls.activate(state.user);
+      for (var i = 0; i < 5 && received.isEmpty; i++) {
+        await Future<void>.delayed(Duration.zero);
+      }
+      expect(received, ['$callId:open']);
+      expect(methods, isNot(contains('startMedia')));
+      await calls.clear();
+      calls.dispose();
+      state.dispose();
+    },
+    skip: kIsWeb,
+  );
+  test(
     'Late incoming Android notice is cancelled after sign-in starts',
     () async {
       final messenger =

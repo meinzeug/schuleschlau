@@ -1,5 +1,15 @@
 # Übergabe an die nächste Coding-KI
 
+## Ergänzung 28. November 2026: Familienanrufe beim Anmeldewechsel
+
+Anrufsuche, Öffnen, Annehmen und Medienstart sind während einer Anmeldung
+gesperrt. Laufende lokale Medien werden beendet, alte Anrufangaben verborgen.
+Die native Initialisierung behandelt einen verspäteten alten Ablauf und lässt
+sich nach abgebrochener Anmeldung durch erneutes Öffnen wieder aufnehmen.
+54 künstliche Flutter-Fälle, darunter vier simulierte Android-Kanaltests, und
+zwei Chrome-Fälle bestanden. Dies ist keine echte Geräte-/Medienabnahme und
+belegt kein serverseitiges Ende bereits abgeschickter Anrufe.
+
 ## Ergänzung 28. November 2026: Sprachwerkstatt beim Anmeldewechsel
 
 Die Sprachwerkstatt bindet Abrufe und Aktionen nun an die Anmeldeabsicht und
