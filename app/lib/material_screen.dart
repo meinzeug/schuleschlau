@@ -2755,6 +2755,7 @@ class _MaterialReviewState extends State<MaterialReview>
                         : null,
                     compact: longText,
                     separatePreviousReading: true,
+                    compactSourceFigures: true,
                   ),
                 ),
                 if (longText)
@@ -2774,6 +2775,7 @@ class _MaterialReviewState extends State<MaterialReview>
                             ? d['source_blocks'] as List?
                             : null,
                         separatePreviousReading: true,
+                        compactSourceFigures: true,
                       ),
                     ],
                   ),

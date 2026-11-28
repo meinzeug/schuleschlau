@@ -37,6 +37,9 @@ class LearningContent extends StatelessWidget {
   final bool compact;
   final bool interactive;
   final bool separatePreviousReading;
+
+  /// Keep source annotations visible, but load their large photo on request.
+  final bool compactSourceFigures;
   final TextStyle? style;
   final Widget? Function(int index, Map<String, dynamic> block)? figureBuilder;
   const LearningContent(
@@ -46,6 +49,7 @@ class LearningContent extends StatelessWidget {
     this.compact = false,
     this.interactive = false,
     this.separatePreviousReading = false,
+    this.compactSourceFigures = false,
     this.style,
     this.figureBuilder,
   });
@@ -115,6 +119,7 @@ class LearningContent extends StatelessWidget {
       block,
       style: style,
       interactive: interactive,
+      compactSourceFigures: compactSourceFigures,
       figure: figure,
     );
     const preservedReading =
@@ -138,11 +143,13 @@ class _Section extends StatelessWidget {
   final Widget? figure;
   final TextStyle? style;
   final bool interactive;
+  final bool compactSourceFigures;
   const _Section(
     this.block, {
     this.figure,
     this.style,
     this.interactive = false,
+    this.compactSourceFigures = false,
   });
   TextStyle get body => style ?? const TextStyle(fontSize: 17, height: 1.5);
 
@@ -197,7 +204,13 @@ class _Section extends StatelessWidget {
               style: TextStyle(fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 8),
-            if (figure != null) ...[figure!, const SizedBox(height: 8)],
+            if (figure != null) ...[
+              if (compactSourceFigures)
+                _SourceFigureDisclosure(figure!)
+              else
+                figure!,
+              const SizedBox(height: 8),
+            ],
             for (final mark in marks)
               Padding(
                 padding: const EdgeInsets.only(bottom: 12),
@@ -410,6 +423,40 @@ class _Section extends StatelessWidget {
     }
     return MathText(text, style: body);
   }
+}
+
+class _SourceFigureDisclosure extends StatefulWidget {
+  final Widget figure;
+  const _SourceFigureDisclosure(this.figure);
+
+  @override
+  State<_SourceFigureDisclosure> createState() =>
+      _SourceFigureDisclosureState();
+}
+
+class _SourceFigureDisclosureState extends State<_SourceFigureDisclosure> {
+  bool expanded = false;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      MergeSemantics(
+        child: Semantics(
+          expanded: expanded,
+          child: TextButton.icon(
+            key: const ValueKey('source-figure-toggle'),
+            onPressed: () => setState(() => expanded = !expanded),
+            icon: Icon(expanded ? Icons.expand_less : Icons.photo_outlined),
+            label: Text(
+              expanded ? 'Ausschnitt schließen' : 'Ausschnitt im Foto ansehen',
+            ),
+          ),
+        ),
+      ),
+      if (expanded) widget.figure,
+    ],
+  );
 }
 
 List<List<String>>? _tableRows(String text, {bool explicit = false}) {
