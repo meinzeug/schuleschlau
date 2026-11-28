@@ -4673,6 +4673,17 @@ Bestandteil des bestehenden Buildvertrags.
 
   - [ ] **Verspätete gemeinsame API-Antworten nach Kontowechsel absichern.**
 
+    **Klassenarbeiten während einer Anmeldung nicht öffnen:** Werden Kinder-
+    oder Elternansicht beziehungsweise eine einzelne Nacharbeit erst während
+    einer laufenden Anmeldung aufgebaut, laden sie keine privaten Arbeiten und
+    starten keine Aufträge. Nach einem Anmeldeabbruch lädt die veraltete Ansicht
+    nicht automatisch nach; ein bewusster Rückweg zur Übersicht wird angeboten.
+    50 künstliche Flutter-Fälle zu Klassenarbeiten, Fotos und Kontowechsel
+    bestanden; vier gesonderte Kontowechselfälle bestanden auch im Chrome-
+    Webrunner. Ein erster Weblauf der gesamten Datei blieb beim Testschrift-
+    Ladevorgang hängen und wurde abgebrochen. Der serverseitige Cookie-
+    Wettlauf zwischen Tabs bleibt offen.
+
     **Hausaufgaben beim Einstieg während einer Anmeldung sperren:** Kinder-
     Fotoübersicht und Detailansicht sowie die Elternübersicht laden dann keine
     privaten Daten und bieten keinen aktiven Neulade- beziehungsweise

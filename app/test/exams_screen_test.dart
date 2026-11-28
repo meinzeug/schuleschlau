@@ -293,6 +293,10 @@ class Fixture {
       initialLocation: '/exams/child',
       routes: [
         GoRoute(
+          path: '/app',
+          builder: (_, _) => const Scaffold(body: Text('Übersicht')),
+        ),
+        GoRoute(
           path: '/exams/:child',
           builder: (_, route) => editor
               ? Scaffold(

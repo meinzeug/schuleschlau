@@ -1,5 +1,16 @@
 # Übergabe an die nächste Coding-KI
 
+## Ergänzung 28. November 2026: Klassenarbeiten und Anmeldewechsel
+
+Der gemeinsame Klassenarbeitskontext sperrt auch Ansichten, die erstmals
+während einer Anmeldung erstellt werden. Kinder- und Elternlisten sowie eine
+einzelne Nacharbeit senden dann keine privaten Klassenarbeitsanfragen. Nach
+Abbruch erfolgt kein automatisches Nachladen; die Liste bietet einen bewussten
+Rückweg zur Übersicht. 50 künstliche Flutter-Fälle und vier gesonderte
+Chrome-Fälle bestanden. Ein erster Chrome-Lauf der großen Testdatei blieb beim
+Laden der Testschrift hängen und wurde abgebrochen. Der allgemeine Cookie-
+Wettlauf und Schutz älterer Clients bleiben offen.
+
 ## Ergänzung 28. November 2026: Kurze Lernwege
 
 Kinder sehen bei bis zu drei Lernschritten die Schritte vor dem weiterhin

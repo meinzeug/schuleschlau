@@ -44,6 +44,7 @@ class ExamScope extends ChangeNotifier with WidgetsBindingObserver {
   bool get owner =>
       _alive &&
       account != null &&
+      !state.authenticationPending &&
       identical(account, state.user) &&
       family == state.familyId &&
       token == state.api.token &&

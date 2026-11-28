@@ -776,8 +776,28 @@ class _ExamsBodyState extends State<_ExamsBody> {
   @override
   Widget build(BuildContext context) {
     scope.bind(context);
-    if (!scope.owner ||
-        (state.isChild && state.user?['child_id'] != widget.childId)) {
+    if (!scope.owner) {
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                state.authenticationPending
+                    ? 'Anmeldung läuft …'
+                    : 'Öffne Klassenarbeiten bitte erneut.',
+              ),
+              if (!state.authenticationPending)
+                TextButton(
+                  onPressed: () => openRoute(context, '/app'),
+                  child: const Text('Zur Übersicht'),
+                ),
+            ],
+          ),
+        ),
+      );
+    }
+    if (state.isChild && state.user?['child_id'] != widget.childId) {
       return const SizedBox.shrink();
     }
     return SchulbuddyPageContext(

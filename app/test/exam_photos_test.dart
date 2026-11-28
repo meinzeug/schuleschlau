@@ -165,6 +165,25 @@ Future<void> tap(WidgetTester tester, String text) async {
 
 void main() {
   setUp(() => FlutterSecureStorage.setMockInitialValues({}));
+  testWidgets('standalone review does not load while login is pending', (
+    tester,
+  ) async {
+    final fixture = PhotoFixture();
+    final intent = fixture.state.beginAuthentication();
+    await fixture.mount(tester);
+    expect(
+      fixture.calls.where((call) => call.url.path.endsWith('/review')),
+      isEmpty,
+    );
+    expect(fixture.writes, isEmpty);
+    fixture.state.cancelAuthentication(intent);
+    await tester.pumpAndSettle();
+    expect(
+      fixture.calls.where((call) => call.url.path.endsWith('/review')),
+      isEmpty,
+    );
+    expect(fixture.writes, isEmpty);
+  });
   testWidgets(
     'multiple photos save first then one explicit persistent scan submission',
     (tester) async {
