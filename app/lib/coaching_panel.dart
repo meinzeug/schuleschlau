@@ -859,7 +859,7 @@ class _ChildCoachingPanel extends StatelessWidget {
                   _roundResultScope(
                     state,
                     unit,
-                    RoundAnswerExplorer(questions: questions),
+                    RoundAnswerExplorer(questions: questions, state: state),
                   ),
                 ],
               ),
@@ -1461,13 +1461,40 @@ class RoundQuestionCards extends StatelessWidget {
 /// changes an attempt or asks a provider for a new explanation.
 class RoundAnswerExplorer extends StatefulWidget {
   final List questions;
-  const RoundAnswerExplorer({super.key, required this.questions});
+  final AppState? state;
+  const RoundAnswerExplorer({super.key, required this.questions, this.state});
   @override
   State<RoundAnswerExplorer> createState() => _RoundAnswerExplorerState();
 }
 
 class _RoundAnswerExplorerState extends State<RoundAnswerExplorer> {
   String? chosen;
+
+  late final Json? owner;
+  late final AppState? sourceState;
+  late final String? family, token;
+  late final (Object?, String?, int?)? authentication;
+  @override
+  void initState() {
+    super.initState();
+    sourceState = widget.state;
+    owner = widget.state?.user;
+    family = widget.state?.familyId;
+    token = widget.state?.api.token;
+    authentication = widget.state?.api.requestIdentity();
+  }
+
+  bool get current =>
+      mounted &&
+      (ModalRoute.of(context)?.isCurrent ?? true) &&
+      identical(widget.state, sourceState) &&
+      (widget.state == null ||
+          (owner != null &&
+              identical(widget.state!.user, owner) &&
+              widget.state!.familyId == family &&
+              widget.state!.api.token == token &&
+              !widget.state!.authenticationPending &&
+              widget.state!.api.ownsRequest(authentication!)));
 
   final query = TextEditingController();
   bool searchAnswers = false;
@@ -1565,8 +1592,19 @@ class _RoundAnswerExplorerState extends State<RoundAnswerExplorer> {
                   controller: query,
                   maxLength: 100,
                   textInputAction: TextInputAction.search,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'In diesen gespeicherten Aufgaben suchen',
+                    suffixIcon: query.text.isEmpty
+                        ? null
+                        : IconButton(
+                            tooltip: 'Aufgabensuche leeren',
+                            onPressed: () {
+                              if (!current) return;
+                              FocusManager.instance.primaryFocus?.unfocus();
+                              setState(query.clear);
+                            },
+                            icon: const Icon(Icons.clear_rounded),
+                          ),
                   ),
                   onChanged: (_) => setState(() {}),
                   onSubmitted: (_) =>
@@ -1583,15 +1621,21 @@ class _RoundAnswerExplorerState extends State<RoundAnswerExplorer> {
                     'Keine gespeicherte Aufgabe passt zu deiner Suche. Ändere die Suche oder die Ergebnisgruppe.',
                   ),
                 if (chosen == 'all') ...[
-                  SavedAttemptTools(
-                    questions: visible,
-                    sourceKey: jsonEncode(visible),
+                  Offstage(
+                    key: const ValueKey('round-answer-attempt-tools'),
+                    offstage: visible.isEmpty,
+                    child: SavedAttemptTools(
+                      questions: visible,
+                      sourceKey: jsonEncode(widget.questions),
+                    ),
                   ),
-                  const Text(
-                    'Letzte gespeicherte Antwort je Aufgabe · ohne Versuchsfilter',
-                    style: TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                  const SizedBox(height: 12),
+                  if (visible.isNotEmpty) ...[
+                    const Text(
+                      'Letzte gespeicherte Antwort je Aufgabe · ohne Versuchsfilter',
+                      style: TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
                 ],
                 for (final question in visible) _SavedQuestionResult(question),
                 TextButton.icon(
