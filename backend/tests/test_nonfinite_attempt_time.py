@@ -1,9 +1,10 @@
 """Synthetic historical timestamps must not invent learning evidence."""
 import math
+
 import pytest
-from sqlalchemy import select
 from schulpilot.db import DB, Attempt, LearningUnit
 from schulpilot.learning_progress import read_ledger, totals
+from sqlalchemy import select
 from test_learning import child_client, prepared
 
 

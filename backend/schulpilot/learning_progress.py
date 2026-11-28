@@ -5,8 +5,8 @@ Retried tasks count once as tasks and separately as attempts. Historic records
 are included immediately, without backfilling or changing their assessments.
 """
 
-from typing import Literal
 import sys
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import and_, case, func, or_, select

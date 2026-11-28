@@ -1,5 +1,6 @@
 """Combined ledger + coaching behavior, without real child data."""
 import copy
+
 from schulpilot.db import DB, LearningUnit, UnitCoaching
 from schulpilot.synthetic import CONTENT
 from test_coaching import normal_unit as normal_unit

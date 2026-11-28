@@ -1,15 +1,15 @@
 """Non-finite historical attempt dates are not independent coaching evidence."""
 
+import math
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
-import math
 
 import pytest
-from sqlalchemy import select
 from schulpilot import coaching
 from schulpilot.db import DB, Attempt, Child, LearningUnit, UnitCoaching
 from schulpilot.learning import local_day
 from schulpilot.synthetic import CONTENT
+from sqlalchemy import select
 from test_coaching import normal_unit as normal_unit
 from test_coaching_encounter_order import make_round
 
