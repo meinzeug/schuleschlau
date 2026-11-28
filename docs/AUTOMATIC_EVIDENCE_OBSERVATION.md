@@ -102,6 +102,16 @@ mehrdeutiger Marker bedeutet unbekannt, nicht „aktuell“. Der Job kann nach
 Ablauf der Aufbewahrung fehlen. Die Anzeige ist deshalb keine Garantie für
 Aktualität und beantwortete oder bereits begonnene Runden bleiben unverändert.
 
+Beim ausdrücklichen Start wird der private Marker für eine noch nicht
+begonnene Runde direkt vor deren Aktivierung erneut beobachtet. Wenn erst nach
+dem Öffnen der Rundenansicht eine Änderung erkennbar wurde, meldet die App sie
+kurz und lässt das Kind fortfahren. Der Start löst keine neue KI-Erzeugung aus.
+Eine PostgreSQL-Prüfung lässt zwischen Ansicht und Startbeobachtung eine andere
+Transaktion eine Antwort speichern. Dies belegt diesen konkreten Fall, keine
+Atomarität: Eine spätere Änderung nach der Beobachtung kann weiterhin
+unbemerkt bleiben; eine verlorene Startantwort übermittelt den Hinweis nicht
+nachträglich an ein anderes Gerät.
+
 Eine ausdrückliche Neuvorbereitung derselben bereits gespeicherten Etappe ist
 noch nicht verfügbar. Der bestehende Generator lehnt eine belegte `unit_id`
 ab. Eine neue Version benötigt einen eigenen idempotenten POST, Unit→Child-

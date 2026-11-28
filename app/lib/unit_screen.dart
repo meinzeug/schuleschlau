@@ -1733,7 +1733,17 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
     final requestedOwner = ownerAccount;
     if (!requestIsCurrent(id, requestedOwner)) return;
     final data = await state.api.post('/units/$id/start');
-    if (!requestIsCurrent(id, requestedOwner)) return;
+    if (!mounted || !requestIsCurrent(id, requestedOwner)) return;
+    if (u['practice_evidence_may_have_changed'] != true &&
+        data['practice_evidence_may_have_changed'] == true) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Dein Lernstand könnte sich geändert haben. Du kannst trotzdem weiterlernen.',
+          ),
+        ),
+      );
+    }
     needsTimeBaseline = true;
     setState(() {
       unit = data;

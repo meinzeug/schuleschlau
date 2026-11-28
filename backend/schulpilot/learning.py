@@ -1609,6 +1609,14 @@ def start(unit_id: str, p=Depends(child_user), db=Depends(get_db),
         raise HTTPException(
             409, f"Dieser Lernauftrag beginnt am {assignment.scheduled_for}. Deine Eltern können ihn neu planen."
         )
+    # The landing view may have been open while another device recorded an
+    # answer. Recheck the private observation once just before activation; it
+    # remains advisory and cannot prove freshness through this commit.
+    evidence_changed = False
+    if unit.status == "not_started":
+        from .prepared_round_observation import may_have_changed
+
+        evidence_changed = may_have_changed(db, unit)
     prefs = s.Preferences(**child.preferences)
     if unit.break_until:
         unit.segment_seconds = 0
@@ -1628,6 +1636,8 @@ def start(unit_id: str, p=Depends(child_user), db=Depends(get_db),
     # not leave a round marked active after the client receives an error. HTTP
     # serialization or delivery can still fail after the commit below.
     response = unit_data(db, unit)
+    if evidence_changed:
+        response["practice_evidence_may_have_changed"] = True
     db.commit()
     return response
 
