@@ -212,4 +212,69 @@ void main() {
     expect(tester.takeException(), isNull);
     state.dispose();
   });
+
+  testWidgets('a covered but mounted page skips queued figures until return', (
+    tester,
+  ) async {
+    final pending = Completer<http.Response>();
+    final paths = <String>[];
+    final state = account(
+      MockClient((request) {
+        paths.add(request.url.path);
+        return paths.length == 1 ? pending.future : Future.value(picture());
+      }),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => Column(
+              children: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) =>
+                          const Scaffold(body: Text('Andere Seite')),
+                    ),
+                  ),
+                  child: const Text('Andere Seite öffnen'),
+                ),
+                for (var index = 0; index < 2; index++)
+                  SizedBox(
+                    height: 150,
+                    child: NotebookPhoto(
+                      state,
+                      materialId: 'page',
+                      figureIndex: index,
+                      revision: 1,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(paths, ['/api/materials/page/figures/0']);
+    await tester.tap(find.text('Andere Seite öffnen'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    pending.complete(picture());
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 5));
+    expect(paths, ['/api/materials/page/figures/0']);
+    expect(find.byType(NotebookPhoto, skipOffstage: false), findsNWidgets(2));
+
+    tester.state<NavigatorState>(find.byType(Navigator)).pop();
+    await tester.pump();
+    await tester.pumpAndSettle();
+    expect(paths.length, 3);
+    expect(paths.where((path) => path.endsWith('/0')), hasLength(2));
+    expect(paths.where((path) => path.endsWith('/1')), hasLength(1));
+    expect(find.byType(Image), findsNWidgets(2));
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+    state.dispose();
+  });
 }

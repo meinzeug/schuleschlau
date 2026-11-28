@@ -37,6 +37,9 @@ class _NotebookPhotoState extends State<NotebookPhoto> {
   ImageProvider? image;
   String? error;
   int generation = 0;
+  bool _routeCurrent = true;
+  bool _reloadOnReturn = false;
+  bool _initialLoadStarted = false;
   final zoom = TransformationController();
   Size photoViewport = Size.zero;
   int quarterTurns = 0;
@@ -57,7 +60,6 @@ class _NotebookPhotoState extends State<NotebookPhoto> {
     authenticationRevision = widget.state.api.requestIdentity().$3;
     widget.state.addListener(identityChanged);
     widget.state.authenticationChanges.addListener(identityChanged);
-    load();
   }
 
   void discard() {
@@ -66,6 +68,32 @@ class _NotebookPhotoState extends State<NotebookPhoto> {
     image = null;
     zoom.value = Matrix4.identity();
     quarterTurns = 0;
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final visible = ModalRoute.isCurrentOf(context) ?? true;
+    if (!_initialLoadStarted) {
+      _initialLoadStarted = true;
+      _routeCurrent = visible;
+      load();
+      return;
+    }
+    if (visible == _routeCurrent) return;
+    _routeCurrent = visible;
+    if (widget.figureIndex == null) return;
+    if (!visible && image == null && error == null) {
+      // A route can remain mounted under another page or a full-screen photo.
+      // Invalidate both the queued request and any response already in flight.
+      generation++;
+      _reloadOnReturn = true;
+    } else if (visible && _reloadOnReturn) {
+      _reloadOnReturn = false;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (current && _routeCurrent && image == null) load();
+      });
+    }
   }
 
   void identityChanged() {
@@ -121,6 +149,10 @@ class _NotebookPhotoState extends State<NotebookPhoto> {
 
   Future<void> load() async {
     if (!current) return;
+    if (widget.figureIndex != null && !_routeCurrent) {
+      _reloadOnReturn = true;
+      return;
+    }
     final request = ++generation;
     setState(() => error = null);
     try {
@@ -161,7 +193,7 @@ class _NotebookPhotoState extends State<NotebookPhoto> {
     _figureTail = release.future;
     try {
       if (previous != null) await previous;
-      if (!current || request != generation) return null;
+      if (!current || request != generation || !_routeCurrent) return null;
       // A second device or an upload can still occupy the server slot. Retry
       // only the temporary 503, at most twice; all other errors stay visible.
       for (var attempt = 0; attempt < 3; attempt++) {
@@ -174,7 +206,7 @@ class _NotebookPhotoState extends State<NotebookPhoto> {
         } on ApiError catch (error) {
           if (error.status != 503 || attempt == 2) rethrow;
           await Future<void>.delayed(const Duration(seconds: 2));
-          if (!current || request != generation) return null;
+          if (!current || request != generation || !_routeCurrent) return null;
         }
       }
       throw StateError('Figure retry loop exhausted');
