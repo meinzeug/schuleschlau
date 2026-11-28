@@ -1977,6 +1977,18 @@ Die folgenden Punkte beschreiben ausstehende, wiederholbare Betriebs- und Freiga
   automatisierte Freigabeprüfung ersetzt keinen unabhängigen Sicherheitstest.
 - [ ] **P1 – Datenlebenszyklus und Löschung pro Datenart prüfen**
 
+  - [x] **Benutzerverwaltung bei neuer Anmeldung schützen.** Eine neue
+    Anmeldeabsicht blendet Kontodaten aus und schließt eigene Bestätigungs-
+    und Filterdialoge. Alte Bestätigungen und verspätete Antworten bleiben
+    unwirksam; nach einem Abbruch öffnet nur eine ausdrückliche Aktion die
+    Übersicht neu. Schlüssel unklarer Verwaltungsaufträge bleiben bei
+    Anmeldewechsel und Hintergrundunterbrechung für eine bewusste Wiederholung
+    erhalten. Noch nicht gesendete Dialogeingaben werden beim Schließen
+    verworfen; bereits gesendete Änderungen können serverseitig angekommen
+    sein. 40 künstliche Flutterfälle und ein zusätzlicher Hintergrundfall
+    bestanden, fünf Anmeldewechsel auch im Chrome-Webrunner. Die umfassende
+    Cookie- und Datenlebenszyklusprüfung bleibt offen.
+
   - [x] **Elternübersicht für Hausaufgaben an die Anmeldeabsicht binden.**
     Fotos und Zähler verschwinden unmittelbar bei einem neuen Anmeldeversuch;
     ein bereits ausgelöster Fotoklick und verspätete Listenantworten bleiben

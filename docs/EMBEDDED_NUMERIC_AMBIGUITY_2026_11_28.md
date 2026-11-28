@@ -27,3 +27,6 @@ keinen Anbieteraufruf. Ein zusätzlicher Versuch mit derselben Testumgebung im
 Sandbox-Modus konnte den benötigten lokalen Unix-Socket nicht anlegen; die
 erfolgreiche Wiederholung lief außerhalb dieser Einschränkung im isolierten
 Testcluster.
+
+Weitere 24 künstliche Fälle zur Mehrdeutigkeit und zu eingebetteten
+Gleichungen bestanden auf isoliertem SQLite.

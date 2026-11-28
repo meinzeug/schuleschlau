@@ -56,12 +56,15 @@ class _AdminUsersScreenState extends State<AdminUsersScreen>
   String? selected, error, notice;
   int page = 1, epoch = 0, listRead = 0, detailRead = 0;
   bool loading = false, reading = false, acting = false, foreground = true;
+  bool authenticationPaused = false;
   bool foreignCover = false;
   ModalRoute<dynamic>? host;
   DialogRoute<dynamic>? ownedDialog;
 
-  bool get current =>
+  bool get sameOwner =>
       mounted && identical(actor.state, widget.state) && actor.current;
+  bool get current =>
+      sameOwner && !widget.state.authenticationPending && !authenticationPaused;
   bool get active => current && foreground && host?.isCurrent != false;
   bool get ownCover => ownedDialog?.isCurrent == true;
   Map<String, String> get actorHeader => {
@@ -82,8 +85,10 @@ class _AdminUsersScreenState extends State<AdminUsersScreen>
         WidgetsBinding.instance.lifecycleState == null ||
         WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
     widget.state.addListener(changed);
+    widget.state.authenticationChanges.addListener(authenticationChanged);
     WidgetsBinding.instance.addObserver(this);
-    load();
+    authenticationPaused = widget.state.authenticationPending;
+    if (current) load();
   }
 
   void invalidate({bool identity = false}) {
@@ -105,8 +110,8 @@ class _AdminUsersScreenState extends State<AdminUsersScreen>
         listing = detail = null;
         loading = reading = acting = false;
         error = notice = null;
-        requestKeys.clear();
         if (identity) {
+          requestKeys.clear();
           search.clear();
           selected = null;
         }
@@ -115,9 +120,25 @@ class _AdminUsersScreenState extends State<AdminUsersScreen>
   }
 
   void changed() {
-    if (!current) {
+    if (!sameOwner) {
       invalidate(identity: true);
     }
+  }
+
+  void authenticationChanged() {
+    authenticationPaused = true;
+    invalidate();
+  }
+
+  void resume(int viewEpoch) {
+    if (!sameOwner ||
+        !foreground ||
+        widget.state.authenticationPending ||
+        viewEpoch != epoch) {
+      return;
+    }
+    setState(() => authenticationPaused = false);
+    load();
   }
 
   @override
@@ -125,7 +146,11 @@ class _AdminUsersScreenState extends State<AdminUsersScreen>
     super.didUpdateWidget(oldWidget);
     if (!identical(oldWidget.state, widget.state)) {
       oldWidget.state.removeListener(changed);
+      oldWidget.state.authenticationChanges.removeListener(
+        authenticationChanged,
+      );
       widget.state.addListener(changed);
+      widget.state.authenticationChanges.addListener(authenticationChanged);
       invalidate(identity: true);
       return;
     }
@@ -194,6 +219,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen>
   void dispose() {
     epoch++;
     widget.state.removeListener(changed);
+    widget.state.authenticationChanges.removeListener(authenticationChanged);
     WidgetsBinding.instance.removeObserver(this);
     final dialog = ownedDialog;
     if (dialog?.isActive == true) {
@@ -562,6 +588,27 @@ class _AdminUsersScreenState extends State<AdminUsersScreen>
 
   @override
   Widget build(BuildContext context) {
+    final viewEpoch = epoch;
+    bool sameView() => current && foreground && viewEpoch == epoch;
+    bool shown() => sameView() && host?.isCurrent != false;
+    if (sameOwner &&
+        authenticationPaused &&
+        !widget.state.authenticationPending) {
+      return PageFrame(
+        state: widget.state,
+        title: 'Benutzer',
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Diese Ansicht ist pausiert.'),
+            TextButton(
+              onPressed: () => resume(viewEpoch),
+              child: const Text('Ansicht wieder öffnen'),
+            ),
+          ],
+        ),
+      );
+    }
     if (!current) {
       return const SizedBox.shrink();
     }
@@ -583,7 +630,11 @@ class _AdminUsersScreenState extends State<AdminUsersScreen>
               alignment: Alignment.centerLeft,
               child: TextButton.icon(
                 key: const ValueKey('admin-users-back'),
-                onPressed: acting ? null : () => openUser(null),
+                onPressed: acting
+                    ? null
+                    : () {
+                        if (shown()) openUser(null);
+                      },
                 icon: const Icon(Icons.arrow_back_rounded),
                 label: const Text('Benutzerliste'),
               ),
@@ -597,7 +648,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen>
               id: 'admin-user-filters',
               title: 'Suche & Kontofilter',
               scope: (actor.user, actor.token, actor.family),
-              isCurrent: () => current && foreground,
+              isCurrent: sameView,
               active: query.isNotEmpty || status != 'all' || role != 'parent',
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -611,7 +662,9 @@ class _AdminUsersScreenState extends State<AdminUsersScreen>
                       labelText: 'Konto suchen',
                       hintText: 'Name, Benutzername oder E-Mail',
                     ),
-                    onSubmitted: (_) => applyFilters(),
+                    onSubmitted: (_) {
+                      if (shown()) applyFilters();
+                    },
                   ),
                   const SizedBox(height: 8),
                   Wrap(
@@ -629,7 +682,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen>
                           onSelected: loading || acting
                               ? null
                               : (_) {
-                                  if (active && selected == null) {
+                                  if (shown() && selected == null) {
                                     setState(() => role = item.$1);
                                     applyFilters();
                                   }
@@ -658,7 +711,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen>
                           onSelected: loading || acting
                               ? null
                               : (_) {
-                                  if (active && selected == null) {
+                                  if (shown() && selected == null) {
                                     setState(() => status = item.$1);
                                     applyFilters();
                                   }
@@ -672,12 +725,20 @@ class _AdminUsersScreenState extends State<AdminUsersScreen>
                     runSpacing: 8,
                     children: [
                       FilledButton.icon(
-                        onPressed: loading || acting ? null : applyFilters,
+                        onPressed: loading || acting
+                            ? null
+                            : () {
+                                if (shown()) applyFilters();
+                              },
                         icon: const Icon(Icons.search_rounded),
                         label: const Text('Suchen'),
                       ),
                       OutlinedButton.icon(
-                        onPressed: loading || acting ? null : load,
+                        onPressed: loading || acting
+                            ? null
+                            : () {
+                                if (shown()) load();
+                              },
                         icon: const Icon(Icons.refresh_rounded),
                         label: const Text('Konten aktualisieren'),
                       ),
@@ -710,7 +771,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen>
                       onPressed: loading
                           ? null
                           : () {
-                              if (active && selected == null) {
+                              if (shown() && selected == null) {
                                 search.clear();
                                 setState(() {
                                   role = 'parent';
@@ -736,7 +797,11 @@ class _AdminUsersScreenState extends State<AdminUsersScreen>
             Align(
               alignment: Alignment.centerLeft,
               child: OutlinedButton.icon(
-                onPressed: loading || reading || acting ? null : load,
+                onPressed: loading || reading || acting
+                    ? null
+                    : () {
+                        if (shown()) load();
+                      },
                 icon: const Icon(Icons.refresh_rounded),
                 label: const Text('Erneut laden'),
               ),

@@ -1,5 +1,16 @@
 # Übergabe an die nächste Coding-KI
 
+## Ergänzung 28. November 2026: Benutzerverwaltung bei Anmeldung
+
+Eine neue Anmeldeabsicht blendet Kontodaten aus, schließt Verwaltungs- und
+Filterdialoge und invalidiert alte Aktionen und Antworten. Nach Abbruch ist
+ein ausdrückliches Wiederöffnen nötig. Nicht gesendete Dialogeingaben werden
+verworfen; Schlüssel unklarer gesendeter Vorgänge bleiben bei Anmeldung und
+Hintergrundunterbrechung für bewusste Wiederholungen erhalten. 40 künstliche
+Flutterfälle, ein zusätzlicher Hintergrundfall und fünf Chrome-Fälle
+bestanden. Bereits gesendete Änderungen können serverseitig erfolgt sein;
+der allgemeine Cookie-Wettlauf bleibt offen.
+
 ## Ergänzung 28. November 2026: Themen und Grafikzoom bei Anmeldung
 
 Eine neue Anmeldeabsicht verbirgt die Themenansicht und schließt die

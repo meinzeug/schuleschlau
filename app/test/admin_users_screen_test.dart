@@ -392,6 +392,123 @@ Future<void> lifecycle(WidgetTester tester, bool resumed) async {
 
 void main() {
   setUp(() => FlutterSecureStorage.setMockInitialValues({}));
+  testWidgets(
+    'authentication closes the user dialog and invalidates old confirmation',
+    (tester) async {
+      final f = Fixture();
+      await f.mount(tester, selected: parentId);
+      await tap(tester, key('admin-user-edit'));
+      await tester.enterText(
+        key('admin-user-edit-name'),
+        'Künstlicher Entwurf',
+      );
+      final old = tester
+          .widget<FilledButton>(find.widgetWithText(FilledButton, 'Speichern'))
+          .onPressed!;
+      final revision = f.state.beginAuthentication();
+      await tester.pumpAndSettle();
+      expect(key('admin-user-edit-dialog'), findsNothing);
+      expect(find.text('Künstliches Elternkonto'), findsNothing);
+      old();
+      await tester.pump();
+      expect(f.writes, isEmpty);
+      f.state.cancelAuthentication(revision);
+      await tester.pumpAndSettle();
+      expect(find.text('Künstliches Elternkonto'), findsNothing);
+      await tap(tester, find.text('Ansicht wieder öffnen'));
+      old();
+      await tester.pumpAndSettle();
+      expect(f.writes, isEmpty);
+      expect(find.text('Künstliches Elternkonto'), findsWidgets);
+    },
+  );
+
+  testWidgets('uncertain admin save retains its key after authentication', (
+    tester,
+  ) async {
+    final f = Fixture()..failFirstSave = true;
+    await f.mount(tester, selected: parentId);
+    await tap(tester, key('admin-user-edit'));
+    await tester.enterText(key('admin-user-edit-name'), 'Künstlicher Entwurf');
+    await tap(tester, find.widgetWithText(FilledButton, 'Speichern'));
+    final keyValue = f.writes.single.headers['Idempotency-Key'];
+    final revision = f.state.beginAuthentication();
+    await tester.pumpAndSettle();
+    f.state.cancelAuthentication(revision);
+    await tester.pumpAndSettle();
+    await tap(tester, find.text('Ansicht wieder öffnen'));
+    await tap(tester, key('admin-user-edit'));
+    await tester.enterText(key('admin-user-edit-name'), 'Künstlicher Entwurf');
+    await tap(tester, find.widgetWithText(FilledButton, 'Speichern'));
+    expect(f.writes.length, 2);
+    expect(f.writes.last.headers['Idempotency-Key'], keyValue);
+  });
+  testWidgets('late admin detail cannot reopen the paused account', (
+    tester,
+  ) async {
+    final f = Fixture()..lateRead = Completer<http.Response>();
+    await f.mount(tester, selected: parentId, settle: false);
+    final revision = f.state.beginAuthentication();
+    await tester.pump();
+    f.lateRead!.complete(reply(f.detail(parentId)));
+    await tester.pumpAndSettle();
+    f.state.cancelAuthentication(revision);
+    await tester.pumpAndSettle();
+    expect(key('admin-user-name'), findsNothing);
+    expect(f.calls.where((r) => r.method == 'GET').length, 1);
+    f.lateRead = null;
+    await tap(tester, find.text('Ansicht wieder öffnen'));
+    expect(key('admin-user-name'), findsOneWidget);
+    expect(f.calls.where((r) => r.method == 'GET').length, 2);
+    expect(f.writes, isEmpty);
+  });
+
+  testWidgets(
+    'a replacement operator cannot resume the previous account view',
+    (tester) async {
+      final f = Fixture();
+      await f.mount(tester, selected: parentId);
+      final revision = f.state.beginAuthentication();
+      await tester.pump();
+      f.state.user = {...f.state.user!, 'id': otherParentId};
+      f.state.notifyListeners();
+      f.state.cancelAuthentication(revision);
+      await tester.pumpAndSettle();
+      expect(find.text('Ansicht wieder öffnen'), findsNothing);
+      expect(key('admin-user-name'), findsNothing);
+      expect(f.writes, isEmpty);
+    },
+  );
+  testWidgets('authentication closes the user filter menu', (tester) async {
+    final f = Fixture();
+    await f.mount(tester);
+    await tap(tester, key('page-tools-button').hitTestable().first);
+    expect(find.byType(Dialog), findsOneWidget);
+    final revision = f.state.beginAuthentication();
+    await tester.pumpAndSettle();
+    expect(find.byType(Dialog), findsNothing);
+    f.state.cancelAuthentication(revision);
+    await tester.pumpAndSettle();
+    expect(f.writes, isEmpty);
+  });
+  testWidgets('an uncertain admin save keeps its key after backgrounding', (
+    tester,
+  ) async {
+    final f = Fixture()..failFirstSave = true;
+    await f.mount(tester, selected: parentId);
+    await tap(tester, key('admin-user-edit'));
+    await tester.enterText(key('admin-user-edit-name'), 'Künstlicher Entwurf');
+    await tap(tester, find.widgetWithText(FilledButton, 'Speichern'));
+    final keyValue = f.writes.single.headers['Idempotency-Key'];
+    await lifecycle(tester, false);
+    await lifecycle(tester, true);
+    await tester.pumpAndSettle();
+    await tap(tester, key('admin-user-edit'));
+    await tester.enterText(key('admin-user-edit-name'), 'Künstlicher Entwurf');
+    await tap(tester, find.widgetWithText(FilledButton, 'Speichern'));
+    expect(f.writes.length, 2);
+    expect(f.writes.last.headers['Idempotency-Key'], keyValue);
+  });
   testWidgets('admin users load only explicit paginated operator metadata', (
     tester,
   ) async {
