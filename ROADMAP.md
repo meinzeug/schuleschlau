@@ -4305,6 +4305,17 @@ Bestandteil des bestehenden Buildvertrags.
 
 ## Laufende Qualitätssicherung und finale Freigabe
 
+- [x] **Veraltete Katalog- und Migrationsannahmen nach Facherweiterung korrigieren.**
+  Der GitHub-Lauf für `d09c546` meldete drei fehlerhafte Testannahmen:
+  feste 24 Fächer und zweimal den Wortlaut eines älteren Migrationskopfs.
+  Der Katalogtest vergleicht nun den vollständigen Fachzustand vor und nach
+  beiden Importen. Die historischen Migrationstests prüfen weiterhin einen
+  abgelehnten Rückweg und erhaltene Daten; Migration 0065 wird zusätzlich
+  direkt auf unveränderten Stand nach verweigerter Rückmigration getestet.
+  Die betroffenen Prüfungen bestanden isoliert auf SQLite und PostgreSQL.
+  Der fehlgeschlagene vollständige GitHub-Lauf ist damit nicht nachträglich
+  erfolgreich; eine erneute Gesamtprüfung des gepushten Fixes bleibt nötig.
+
 - [x] **Verspätete JSON-Antworten beim Anmeldewechsel abfangen.** Für ein
   bereits angezeigtes Konto verwirft der gemeinsame Flutter-Transport eine
   Antwort, wenn Konto, Token oder Anmeldeabsicht nicht mehr zur Anfrage passen.

@@ -71,6 +71,15 @@ def test_cover_migration_is_additive_and_keeps_private_subjects(tmp_path, dialec
                 for key in ('hauswirtschaft', 'astronomie'):
                     assert con.scalar(text('SELECT cover_key FROM subjects WHERE key=:key AND owner_family_id IS NULL'), {'key': key}) == key
                 assert con.scalar(text('SELECT cover_key FROM subjects WHERE id=:id'), {'id': private}) == 'other'
+        downgrade = subprocess.run([*command[:-1], 'downgrade', '0064'], env=env, capture_output=True)
+        assert downgrade.returncode != 0
+        assert b'Published subject cover identities require a forward correction' in downgrade.stderr
+        with engine.begin() as con:
+            scope(con)
+            assert con.scalar(text('SELECT version_num FROM alembic_version')) == '0065'
+            assert con.scalar(text('SELECT cover_key FROM subjects WHERE id=:id'), {'id': private}) == 'other'
+            for key in ('hauswirtschaft', 'astronomie'):
+                assert con.scalar(text('SELECT cover_key FROM subjects WHERE key=:key AND owner_family_id IS NULL'), {'key': key}) == key
     finally:
         if schema:
             with test_engine.begin() as con:

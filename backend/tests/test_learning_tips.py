@@ -83,6 +83,10 @@ def test_full_retained_catalog_can_be_validated_and_imported_twice(api):
         },
     }
     with DB.begin() as db:
+        subjects_before = set(db.execute(select(
+            Subject.id, Subject.key, Subject.title, Subject.owner_family_id,
+            Subject.cover_key, Subject.active, Subject.sort_order, Subject.created,
+        )).all())
         first = import_catalog(db, data, snapshot)
     with DB.begin() as db:
         second = import_catalog(db, data, snapshot)
@@ -94,9 +98,12 @@ def test_full_retained_catalog_can_be_validated_and_imported_twice(api):
             (CatalogProvenance, 24459),
             (CatalogSnapshot, 1),
             (CatalogRefresh, 1),
-            (Subject, 24),
         ):
             assert db.scalar(select(func.count()).select_from(model)) == expected
+        assert set(db.execute(select(
+            Subject.id, Subject.key, Subject.title, Subject.owner_family_id,
+            Subject.cover_key, Subject.active, Subject.sort_order, Subject.created,
+        )).all()) == subjects_before
 
 
 @pytest.mark.parametrize(

@@ -86,9 +86,9 @@ def test_family_call_migration_preserves_accounts_answers_and_push_opt_in(tmp_pa
             assert not bool(con.scalar(text("SELECT revoked FROM sessions WHERE id='s'")))
         blocked = subprocess.run([*command, "downgrade", "0025"], env=env, capture_output=True)
         assert blocked.returncode != 0
-        # The latest published curriculum migration refuses the downgrade
-        # before the older 0047 guard is reached. 0047 has its own direct test.
-        assert b"Published curriculum evidence requires a forward correction" in blocked.stderr
+        # The current head blocks destructive downgrades before the older
+        # 0047 guard is reached. Each guard has its own direct migration test.
+        assert b"forward correction" in blocked.stderr
         with tested.begin() as con:
             scoped(con)
             assert con.scalar(text("SELECT version_num FROM alembic_version")) == expected_head

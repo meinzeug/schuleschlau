@@ -1,5 +1,15 @@
 # Übergabe an die nächste Coding-KI
 
+## Ergänzung 28. November 2026: Fehlgeschlagener CI-Lauf
+
+GitHub-Lauf `46091286305` für `d09c546` schlug wegen drei veralteter
+Testerwartungen fehl: Der Katalogtest erwartete 24 statt 26 Fächer, zwei
+Migrationstests erwarteten die Meldung eines älteren Kopfs. Der lokale Fix
+prüft stattdessen den vollständigen unveränderten Fachzustand und ergänzt die
+direkte Rückmigrationssperre von 0065. Die betroffenen künstlichen SQLite-
+und PostgreSQL-Prüfungen bestanden. Der komplette GitHub-Lauf muss für den
+gepushten Fix neu bestanden werden; den alten Lauf nicht als grün bezeichnen.
+
 ## Ergänzung 28. November 2026: Lerntipps beim Anmeldewechsel
 
 Lerntipps und Themenauswahl laden beim erstmaligen Öffnen während einer
