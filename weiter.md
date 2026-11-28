@@ -16,6 +16,12 @@ Dieser Folgestand ist noch nicht deployed.
 Der Evidenzmarker für automatisch vorbereitete Etappen liest seine Metadaten
 jetzt in einer SQL-Anweisung und damit auf PostgreSQL `READ COMMITTED` aus
 einem Statement-Snapshot. Format und Versionskennung bleiben unverändert.
+Eine erneute Beobachtung beim ausdrücklichen Start meldet erkannte spätere
+Änderungen vorsichtig. Beschädigte historische Versuchszahlen und
+Selbstständigkeitsmarker werden in den geprüften Ledger-/Sortierpfaden
+konservativ behandelt; ein Fehler beim Aufbau der Startprojektion rollt den
+Start zurück. Netzwerk-/Serialisierungsfehler nach Commit und nicht endliche
+Zeitstempel in anderen Pfaden bleiben offen.
 Die Zeit zwischen Vergleich und Veröffentlichung ist weiterhin nicht atomar
 geschützt; der fachgebundene Evidenzversionszähler und echte KI-/Browserproben
 bleiben offen. Synthetische Gegenproben belegen zudem, dass ein auf beiden

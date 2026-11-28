@@ -114,13 +114,15 @@ nachträglich an ein anderes Gerät. Nicht interpretierbare historische
 Marker-Payloads und ausdrücklich erkannte ungültige Evidenzmetadaten ergeben
 für diesen Hinweis „unbekannt“ und blockieren die Runde nicht. Datenbank-,
 Berechtigungs- und unerwartete Programmfehler werden nicht verschluckt.
-Separat offen: Eine ungültige historische `attempt_number` kann beim Lesen
-des Lernstands in `learning_progress.read_ledger` PostgreSQL-`DataError`
-auslösen. Isoliert auf PostgreSQL reproduziert: Der Start wird zunächst
-committet, anschließend scheitert die Erstellung der Antwort mit HTTP 500;
-die Runde bleibt aktiv. Ein nicht endlicher Zeitstempel kann andere
-Antwortpfade ebenfalls mit einem `ValueError` unterbrechen. Diese unabhängigen
-Pfade sind durch die fehlertolerante Beratungsbeobachtung nicht repariert.
+Ein zuvor isoliert auf PostgreSQL reproduzierter `DataError` durch ungültige
+historische `attempt_number`-Metadaten wird in den geprüften Lernstands- und
+Sortierpfaden jetzt durch typ- und wertegeprüfte Ausdrücke vermieden;
+beschädigte Belege werden konservativ eingeordnet und nicht verändert. Die
+reguläre Startprojektion wird vor dem Commit erstellt, sodass ihr Scheitern
+den Start zurückrollt. Dies sichert keine spätere HTTP-Serialisierung oder
+Netzwerkzustellung ab. Andere Kompetenzprojektionen sind separat zu prüfen;
+ein nicht endlicher Zeitstempel kann weitere Antwortpfade weiterhin
+unterbrechen. Der vollständige Evidenzversionszähler bleibt offen.
 
 Eine ausdrückliche Neuvorbereitung derselben bereits gespeicherten Etappe ist
 noch nicht verfügbar. Der bestehende Generator lehnt eine belegte `unit_id`
