@@ -1329,6 +1329,14 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – Alle Kinderansichten sprachlich und in ihrer Bedienung entrümpeln**
 
+  - [x] **Unklare Übungsbelege verständlich und korrekt anzeigen.** In
+    Wortschatz und Rückblick zählt eine unassistierte Antwort mit unklarer
+    Selbstständigkeit nicht als sicherer Erstversuch. Nachgewiesene Hilfe
+    bleibt sichtbar; bei unbekannter Versuchsreihenfolge wird kein letzter
+    Versuch behauptet. Synthetische Flutterfälle prüfen Kinder- und
+    Elternansichten. Der Umgang älterer Clients und die vollständige
+    Lernstandsabnahme bleiben offen.
+
   - [x] **Leeren Lernweg ruhig und verständlich darstellen.** Ohne Schritte
     und ohne aktive Filter entfallen wirkungslose Such- und Rücksetzknöpfe.
     Aktive Filter bleiben bei leeren Ergebnissen zurücksetzbar; veraltete
