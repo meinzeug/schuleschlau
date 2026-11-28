@@ -1508,6 +1508,29 @@ def get_unit(db, p, unit_id, child_only=False, lock=False, *, allow_deferred=Fal
     return unit
 
 
+def lock_evidence_writer(db, p, unit):
+    """Serialize an evidence write after Unit against stage publication.
+
+    Call only with the unit already locked. Publication locks the same Child
+    before its final evidence snapshot and keeps it until commit. Revalidate
+    the session and ownership after waiting; neither lock is held over a model
+    call. This protects participating writers, not every evidence source.
+    """
+    db.execute(update(Child).where(Child.id == unit.child_id).values(grade=Child.grade))
+    from .security import lock_session_after_child
+
+    lock_session_after_child(db, p.user.id, p.session.id)
+    if p.user.role != "child":
+        raise HTTPException(403, "Aufgaben werden mit dem Kinderzugang bearbeitet.")
+    db.refresh(unit)
+    # The request may have waited behind another transaction: do not rely on
+    # cached ownership or family expiry loaded before acquiring Child.
+    child = db.get(Child, unit.child_id, populate_existing=True)
+    if not child or not db.get(Family, child.family_id, populate_existing=True):
+        raise HTTPException(404, "Kind nicht gefunden.")
+    child_access(db, p, unit.child_id)
+
+
 @router.get("/units/{unit_id}")
 def unit_view(unit_id: str, p=Depends(authenticated), db=Depends(get_db),
               capabilities: str | None = Header(None, alias="X-Schulpilot-Capabilities")):
@@ -1712,8 +1735,12 @@ def heartbeat(unit_id: str, data: s.HeartbeatRequest | None = None, p=Depends(ch
 
 @router.post("/units/{unit_id}/explanation")
 def explanation(unit_id: str, data: s.ExplanationRequest | None = None, p=Depends(child_user), db=Depends(get_db)):
-    unit = get_unit(db, p, unit_id, True, True)
+    # The rate limiter commits, so validate first and acquire the actual Unit
+    # lock afterwards rather than inadvertently releasing it before recording.
+    get_unit(db, p, unit_id, True)
     rate_limit(db, "explain:" + p.user.id, 30)
+    unit = get_unit(db, p, unit_id, True, True)
+    lock_evidence_writer(db, p, unit)
     q = question(unit, data.question_id) if data else None
     text = q["explanation"] if q else unit.explanation
     from .subject_content import legacy_presentation, public_presentation
@@ -1770,6 +1797,7 @@ def hint(unit_id: str, question_id: str, p=Depends(child_user), db=Depends(get_d
             return {"hint": clarify_fraction_product_hint(q, replay.detail["text"]), "hints_used": replay.detail["number"],
                     "exhausted": replay.detail["number"] >= 3,
                     "presentation": hint_presentation(q, replay.detail["number"])}
+    lock_evidence_writer(db, p, unit)
     if unit.status not in ("active", "paused"):
         raise HTTPException(409, "Diese Runde ist abgeschlossen. Du kannst die gespeicherte Erklärung im Rückblick lesen.")
     previous = db.scalar(select(Attempt).where(Attempt.unit_id == unit.id, Attempt.question_id == question_id)
@@ -2033,6 +2061,7 @@ def answer(unit_id: str, question_id: str, data: s.AnswerRequest, p=Depends(chil
             if saved.request_digest != request_digest:
                 raise HTTPException(409, "Dieser Antwortschlüssel gehört zu einer anderen Antwort.")
             return answer_response(db, unit, question(unit, question_id), saved)
+    lock_evidence_writer(db, p, unit)
     if unit.status != "active":
         raise HTTPException(409, "Bitte die Lerneinheit zuerst starten oder fortsetzen.")
     if reason := learning_block(db, unit):
