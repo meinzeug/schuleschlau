@@ -2388,12 +2388,15 @@ class _MaterialReviewState extends State<MaterialReview>
           TextButton.icon(
             icon: Icon(Icons.chat_bubble_outline_rounded),
             label: Text('Fragen zu dieser Heftseite'),
-            onPressed: () => showTutorSheet(
-              context,
-              widget.state,
-              childId: d['child_id'],
-              materialId: d['id'],
-            ),
+            onPressed: () {
+              if (!sourceCurrent(d)) return;
+              showTutorSheet(
+                context,
+                widget.state,
+                childId: d['child_id'],
+                materialId: d['id'],
+              );
+            },
           ),
         if (d['purpose'] != 'exam' &&
             d['synthetic'] != true &&
@@ -2875,12 +2878,15 @@ class _MaterialReviewState extends State<MaterialReview>
           TextButton.icon(
             icon: Icon(Icons.chat_bubble_outline_rounded),
             label: Text('Frag nach'),
-            onPressed: () => showTutorSheet(
-              context,
-              widget.state,
-              childId: d['child_id'],
-              materialId: d['id'],
-            ),
+            onPressed: () {
+              if (!sourceCurrent(d)) return;
+              showTutorSheet(
+                context,
+                widget.state,
+                childId: d['child_id'],
+                materialId: d['id'],
+              );
+            },
           ),
         ],
         if (d['purpose'] != 'exam' &&

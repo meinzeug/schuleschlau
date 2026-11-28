@@ -238,20 +238,20 @@ void main() {
       ];
       await showDay(tester, server.state());
       await old.tap(tester, 'Was ist im Paket?');
-      expect(f.input('In diesem Tagespaket suchen'), findsNothing);
+      expect(f.input('Seiten und Runden suchen'), findsNothing);
       await old.tap(tester, 'Suchen und filtern');
       await tester.enterText(
-        f.input('In diesem Tagespaket suchen'),
+        f.input('Seiten und Runden suchen'),
         'Bruchaufgabe 2',
       );
       await tester.pump();
       expect(find.text('Künstliche Bruchaufgabe 2'), findsOneWidget);
       expect(find.text('Künstliche Bruchaufgabe 1'), findsNothing);
-      await tester.enterText(f.input('In diesem Tagespaket suchen'), 'Nichts');
+      await tester.enterText(f.input('Seiten und Runden suchen'), 'Nichts');
       await tester.pump();
       await old.tap(tester, 'Alle Inhalte dieses Pakets zeigen');
       expect(find.text('Künstliche Bruchaufgabe 1'), findsOneWidget);
-      await tester.showKeyboard(f.input('In diesem Tagespaket suchen'));
+      await tester.showKeyboard(f.input('Seiten und Runden suchen'));
       final searchFocus = FocusManager.instance.primaryFocus;
       expect(searchFocus, isNotNull);
       await old.tap(tester, 'Suchen und filtern');

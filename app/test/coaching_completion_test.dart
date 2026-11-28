@@ -340,6 +340,36 @@ void main() {
   });
 
   testWidgets(
+    'An old clarification action cannot expose an answer after sign-in',
+    (tester) async {
+      final fixture = _Fixture(
+        _unit(
+          questions: [
+            _question('open', [_attempt('uncertain')]),
+          ],
+        ),
+      );
+      await _open(tester, fixture);
+      await _tap(tester, 'Deine Antworten');
+      final action = tester
+          .widget<TextButton>(
+            find.widgetWithText(TextButton, 'Mit der Lernhilfe klären'),
+          )
+          .onPressed!;
+      final before = fixture.requests.length;
+      final intent = fixture.state.beginAuthentication();
+      action();
+      await tester.pumpAndSettle();
+      fixture.state.cancelAuthentication(intent);
+      action();
+      await tester.pumpAndSettle();
+      expect(fixture.requests.length, before);
+      expect(find.byType(BottomSheet), findsNothing);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
+  testWidgets(
     'Existing targeted continuation takes priority over the daily minimum plan',
     (tester) async {
       final fixture = _Fixture(_unit());

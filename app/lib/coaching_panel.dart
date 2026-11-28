@@ -1086,19 +1086,22 @@ class _ChildCoachingPanel extends StatelessWidget {
                           'Diese Antwort lässt sich hier nicht sicher erneut prüfen. Du kannst die Lernhilfe fragen.',
                         ),
                       TextButton.icon(
-                        onPressed: () => showTutorSheet(
-                          context,
-                          state,
-                          childId: unit['child_id'],
-                          unitId: unit['id'],
-                          initialQuestion: tutorQuestionForUnclearAnswer(
-                            question['prompt']?.toString() ?? '',
-                            _savedAnswerText(
-                              question,
-                              (question['attempts'] as List).last['answer'],
+                        onPressed: () {
+                          if (!currentAction()) return;
+                          showTutorSheet(
+                            context,
+                            state,
+                            childId: unit['child_id'],
+                            unitId: unit['id'],
+                            initialQuestion: tutorQuestionForUnclearAnswer(
+                              question['prompt']?.toString() ?? '',
+                              _savedAnswerText(
+                                question,
+                                (question['attempts'] as List).last['answer'],
+                              ),
                             ),
-                          ),
-                        ),
+                          );
+                        },
                         icon: Icon(Icons.chat_bubble_outline),
                         label: Text('Mit der Lernhilfe klären'),
                       ),

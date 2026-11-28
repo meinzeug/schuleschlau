@@ -1269,6 +1269,17 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – Alle Kinderansichten sprachlich und in ihrer Bedienung entrümpeln**
 
+  - [x] **Heftseiten im Schultag direkt erreichbar machen.** Ein Öffnen von
+    „Meine Heftseiten“ zeigt die vorhandenen Seiten und Runden unmittelbar,
+    statt eine weitere Liste vorauszusetzen. Bei bis zu drei Einträgen stehen
+    sie vor Suche und Tutor; bei längeren Listen bleibt die Suche vorn. Ihr
+    Feld heißt verständlich „Seiten und Runden suchen“. Der Elternhinweis und
+    die bewusste Fotoabgabe bleiben erhalten. 68 künstliche Schultags-, Foto-
+    und Suchfälle bestanden; ein zusätzlicher Navigationstest öffnet die
+    gespeicherte Seite ohne KI-Auftrag. Der Ablauf wurde mit Beispieldaten bei
+    390 Pixeln im Browser angesehen. Eine vollständige Kinderabnahme bleibt
+    offen.
+
   - [x] **Kurze Lernwege vor Suchwerkzeugen anzeigen.** Bei höchstens drei
     Lernschritten in der Kinderansicht stehen die Schritte vor der weiterhin
     erreichbaren Suche; bei längeren Listen bleibt sie davor. Suche und Filter
@@ -1739,6 +1750,15 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
   **Abnahme:** Dokumentierte Personen können Fotoabgabe, Unsicherheit prüfen, eine Runde bearbeiten, Hilfe nutzen, Rückmeldung lesen und Ergebnis erreichen; Schwierigkeiten und Abbrüche werden erfasst und behoben oder als offene Einschränkung geführt. Keine Wirksamkeit oder generelle Altersfreigabe aus Screenshots oder einer einzelnen Beobachtung ableiten.
 
 - [ ] **P1 – Barrierearme mobile Führung nachweisen**
+
+  - [x] **Lernweg und Heftseiten als aufklappbar kennzeichnen.** Die
+    Lernschritte, ihre Suche sowie die Heft- und Fotoansicht melden geöffneten
+    und geschlossenen Zustand am bedienbaren Semantikknoten. Das Auf- und
+    Zuklappen startet keine Verarbeitung. Der neue Test schlug vor der
+    Änderung fehl; 60 Lernweg- und 68 Schultags-/Fotofälle bestanden mit
+    künstlichen Daten. Der Lernwegzustand bestand im Chrome-Webrunner, und
+    Heft- und Fotozustände waren im lokalen Browser sichtbar. Eine Prüfung
+    mit echtem Screenreader bleibt offen.
 
   - [x] **Tagesdetails beim Auf- und Zuklappen zugänglich kennzeichnen.**
     „Mehr zu diesem Tag“ meldet seinen tatsächlichen Zustand am bedienbaren
@@ -3584,6 +3604,15 @@ Bestandteil des bestehenden Buildvertrags.
   **Abnahme:** Fachkundige Prüfung und tatsächliche Webdarstellung decken ausgewählte Mathematik-, Sprach-, Natur- und Gesellschaftsfachfälle ab; fehlerhafte oder fehlende Grafik wird sicher korrigiert beziehungsweise nicht als vollständig ausgegeben. Erkunden allein erzeugt keinen Leistungsnachweis.
 
 - [ ] **P1 – Schulbuddy als sicheren kontextbezogenen Lernbegleiter prüfen**
+
+  - [x] **Schulbuddy-Aufrufe bei Anmeldewechsel binden.** Eine bereits laufende
+    Anmeldung verhindert das Öffnen und Laden des Tutorverlaufs. Überholte
+    Aktionen aus Heftseiten, Schultag, Rückblick und Aufgabenfeedback bleiben
+    nach einem Anmeldeabbruch wirkungslos; ein aktuelles Feedback öffnet seine
+    eigene bearbeitbare Frage weiterhin bewusst. Ein künstlicher Test zeigte
+    zuvor einen Verlaufabruf während laufender Anmeldung. Die Elternansicht
+    für bestehende Tutorverläufe bleibt erhalten. Bereits versandte Anfragen
+    und der allgemeine Browser-Cookie-Wettlauf bleiben gesondert offen.
 
   - [x] **Regressionstests für offene Tutorfragen an Lösungsschutz anpassen.**
     Bei künstlichen Folgefragen enthalten weder Antwort noch sichtbares Zitat

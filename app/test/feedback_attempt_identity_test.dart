@@ -1,4 +1,8 @@
+import 'dart:convert';
+
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
 
 import 'learning_room_test.dart' as fixtures;
 
@@ -105,6 +109,85 @@ void main() {
     expect(find.text('Antwort erneut prüfen'), findsNothing);
     expect(find.textContaining('nicht sicher erneut prüfen'), findsOneWidget);
     expect(find.text('Mit der Lernhilfe klären'), findsOneWidget);
+  });
+
+  testWidgets(
+    'Old feedback cannot open a tutor after an authentication intent',
+    (tester) async {
+      final server = fixtures.SavedRound();
+      server.pending(answer: 'Meine Antwort', outcome: 'uncertain');
+      server.value['supports_recheck'] = true;
+      final question = (server.value['questions'] as List).first as Map;
+      question['attempts'] = [
+        {
+          'id': 'saved-attempt',
+          'answer': 'Meine Antwort',
+          'outcome': 'uncertain',
+          'assisted': false,
+        },
+      ];
+      final harness = await fixtures.openRound(tester, server);
+      final action = tester
+          .widget<TextButton>(
+            find.widgetWithText(TextButton, 'Mit der Lernhilfe klären'),
+          )
+          .onPressed!;
+      final before = server.calls.length;
+      final intent = harness.state.beginAuthentication();
+      action();
+      await tester.pump();
+      harness.state.cancelAuthentication(intent);
+      action();
+      await tester.pump();
+      expect(server.calls.length, before);
+      expect(find.byType(BottomSheet), findsNothing);
+      await harness.close();
+    },
+  );
+
+  testWidgets('Current unclear feedback opens its editable tutor question', (
+    tester,
+  ) async {
+    final server = fixtures.SavedRound();
+    server.pending(answer: 'Meine Antwort', outcome: 'uncertain');
+    server.value['supports_recheck'] = true;
+    final question = (server.value['questions'] as List).first as Map;
+    question['attempts'] = [
+      {
+        'id': 'saved-attempt',
+        'answer': 'Meine Antwort',
+        'outcome': 'uncertain',
+        'assisted': false,
+      },
+    ];
+    var reads = 0;
+    final harness = await fixtures.openRound(
+      tester,
+      server,
+      handle: (request) async {
+        if (request.method == 'GET' &&
+            request.url.path.endsWith('/tutor/questions')) {
+          reads++;
+          return http.Response(
+            jsonEncode({'questions': [], 'next_cursor': null}),
+            200,
+            headers: {'content-type': 'application/json'},
+          );
+        }
+        return server.handle(request);
+      },
+    );
+    final button = find.widgetWithText(TextButton, 'Mit der Lernhilfe klären');
+    await tester.ensureVisible(button);
+    await tester.tap(button);
+    await tester.pumpAndSettle();
+    expect(reads, 1);
+    expect(find.byType(BottomSheet), findsOneWidget);
+    expect(
+      tester.widget<TextField>(find.byType(TextField).last).controller!.text,
+      contains('Meine Antwort'),
+    );
+    await harness.close();
   });
 
   testWidgets(

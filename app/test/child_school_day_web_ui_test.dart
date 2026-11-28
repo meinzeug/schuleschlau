@@ -1,5 +1,6 @@
 // Synthetic complete-page checks, runnable in the Flutter VM and Chrome.
 import 'dart:convert';
+import 'dart:ui' show SemanticsAction, Tristate;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -162,12 +163,43 @@ void main() {
         expect(find.text('Fragen zu meinen Heftseiten'), findsNothing);
         expect(find.text('Heftseiten und bisherige Runden'), findsNothing);
         await tester.ensureVisible(find.text('Meine Heftseiten'));
-        await tester.tap(find.text('Meine Heftseiten'));
-        await tester.pumpAndSettle();
-        expect(find.text('Fragen zu meinen Heftseiten'), findsOneWidget);
-        expect(find.text('Heftseiten und bisherige Runden'), findsOneWidget);
-        await tester.tap(find.text('Meine Heftseiten'));
-        await tester.pumpAndSettle();
+        final semantics = tester.ensureSemantics();
+        try {
+          await tester.pump();
+          var disclosure = tester
+              .getSemantics(find.text('Meine Heftseiten'))
+              .getSemanticsData();
+          expect(disclosure.flagsCollection.isExpanded, Tristate.isFalse);
+          expect(disclosure.hasAction(SemanticsAction.tap), isTrue);
+          await tester.tap(find.text('Meine Heftseiten'));
+          await tester.pumpAndSettle();
+          disclosure = tester
+              .getSemantics(find.text('Meine Heftseiten'))
+              .getSemanticsData();
+          expect(disclosure.flagsCollection.isExpanded, Tristate.isTrue);
+          expect(find.text('Fragen zu meinen Heftseiten'), findsOneWidget);
+          expect(find.text('Heftseiten und bisherige Runden'), findsOneWidget);
+          expect(find.text('Heftseite 1 · Mathematik'), findsOneWidget);
+          expect(find.text('Brüche'), findsOneWidget);
+          expect(
+            tester.getTopLeft(find.text('Heftseite 1 · Mathematik')).dy,
+            lessThan(tester.getTopLeft(find.text('Suchen und filtern')).dy),
+          );
+          expect(
+            tester.getTopLeft(find.text('Heftseite 1 · Mathematik')).dy,
+            lessThan(
+              tester.getTopLeft(find.text('Fragen zu meinen Heftseiten')).dy,
+            ),
+          );
+          await tester.tap(find.text('Meine Heftseiten'));
+          await tester.pumpAndSettle();
+          disclosure = tester
+              .getSemantics(find.text('Meine Heftseiten'))
+              .getSemanticsData();
+          expect(disclosure.flagsCollection.isExpanded, Tristate.isFalse);
+        } finally {
+          semantics.dispose();
+        }
         await tester.ensureVisible(find.text('Weiterlernen'));
         await tester.tap(find.text('Weiterlernen'));
         await tester.pumpAndSettle();

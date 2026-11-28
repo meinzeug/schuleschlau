@@ -2584,11 +2584,8 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
           },
         ),
         const SizedBox(height: 8),
-        ExpansionTile(
-          title: const Text('Fotos ansehen'),
-          onExpansionChanged: (expanded) {
-            if (!expanded) FocusManager.instance.primaryFocus?.unfocus();
-          },
+        _AccessibleSchoolDayExpansion(
+          title: 'Fotos ansehen',
           children: [
             if (unconfirmed.length == 1)
               Padding(
@@ -2720,6 +2717,7 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
     String title,
     List<Json> units, {
     List<Json> groups = const [],
+    bool inline = false,
   }) {
     final query = packageSearch.text.trim().toLowerCase();
     bool matches(Json item) =>
@@ -2737,132 +2735,137 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
         ? <Json>[]
         : units.where(matches).toList();
     final version = generation, dayId = day?['id'];
-    return ExpansionTile(
-      title: Text(title),
+    final shortInline = inline && pages.length + units.length <= 3;
+    final filter = _AccessibleSchoolDayExpansion(
+      title: query.isNotEmpty || packageKind != 'all'
+          ? 'Suchen und filtern · aktiv'
+          : 'Suchen und filtern',
       children: [
-        ExpansionTile(
-          title: Text(
-            query.isNotEmpty || packageKind != 'all'
-                ? 'Suchen und filtern · aktiv'
-                : 'Suchen und filtern',
-          ),
-          onExpansionChanged: (expanded) {
-            if (!expanded) FocusManager.instance.primaryFocus?.unfocus();
-          },
-          children: [
-            TextField(
-              controller: packageSearch,
-              textInputAction: TextInputAction.search,
-              decoration: InputDecoration(
-                labelText: 'In diesem Tagespaket suchen',
-                prefixIcon: Icon(Icons.search_rounded),
-                suffixIcon: query.isEmpty
-                    ? null
-                    : IconButton(
-                        tooltip: 'Paketsuche leeren',
-                        onPressed: () {
-                          if (ownerMatches) setState(packageSearch.clear);
-                        },
-                        icon: Icon(Icons.close_rounded),
-                      ),
-              ),
-              onChanged: (_) {
-                if (ownerMatches) setState(() {});
-              },
-              onSubmitted: (_) => FocusManager.instance.primaryFocus?.unfocus(),
-            ),
-            SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final item in [
-                  ('all', 'Alles'),
-                  ('pages', 'Heftseiten'),
-                  ('units', 'Lernrunden'),
-                ])
-                  ChoiceChip(
-                    label: Text(item.$2),
-                    selected: packageKind == item.$1,
-                    onSelected: (_) {
-                      if (!ownerMatches) return;
-                      FocusManager.instance.primaryFocus?.unfocus();
-                      setState(() => packageKind = item.$1);
+        TextField(
+          controller: packageSearch,
+          textInputAction: TextInputAction.search,
+          decoration: InputDecoration(
+            labelText: 'Seiten und Runden suchen',
+            prefixIcon: Icon(Icons.search_rounded),
+            suffixIcon: query.isEmpty
+                ? null
+                : IconButton(
+                    tooltip: 'Paketsuche leeren',
+                    onPressed: () {
+                      if (ownerMatches) setState(packageSearch.clear);
                     },
+                    icon: Icon(Icons.close_rounded),
                   ),
-              ],
-            ),
+          ),
+          onChanged: (_) {
+            if (ownerMatches) setState(() {});
+          },
+          onSubmitted: (_) => FocusManager.instance.primaryFocus?.unfocus(),
+        ),
+        SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final item in [
+              ('all', 'Alles'),
+              ('pages', 'Heftseiten'),
+              ('units', 'Lernrunden'),
+            ])
+              ChoiceChip(
+                label: Text(item.$2),
+                selected: packageKind == item.$1,
+                onSelected: (_) {
+                  if (!ownerMatches) return;
+                  FocusManager.instance.primaryFocus?.unfocus();
+                  setState(() => packageKind = item.$1);
+                },
+              ),
           ],
         ),
-        Semantics(
-          liveRegion: true,
-          child: Text(
-            '${counted(visiblePages.length, 'Heftseite', 'Heftseiten')} · ${counted(visibleUnits.length, 'Lernrunde', 'Lernrunden')}',
-          ),
-        ),
-        if (visiblePages.isEmpty && visibleUnits.isEmpty)
-          TextButton(
-            onPressed: () {
-              if (ownerMatches) {
-                FocusManager.instance.primaryFocus?.unfocus();
-                setState(() {
-                  packageSearch.clear();
-                  packageKind = 'all';
-                });
-              }
-            },
-            child: Text('Alle Inhalte dieses Pakets zeigen'),
-          ),
-        if (query.isEmpty && packageKind == 'all')
-          for (final group in groups)
-            ListTile(
-              title: Text('${group['subject']}'),
-              subtitle: Text((group['topics'] as List? ?? []).join(' · ')),
-              onTap:
-                  (group['material_ids'] as List? ?? []).any(
-                    (id) => pages.any((page) => page['id'] == id),
-                  )
-                  ? () {
-                      if (active && sameDay(version, dayId)) {
-                        openSourceGroup(group);
-                      }
-                    }
-                  : null,
-            ),
-        for (final unit in visibleUnits)
-          ListTile(
-            title: Text(
-              '${unit['subject'] ?? ''} · ${unit['topic'] ?? 'Lernrunde'}',
-            ),
-            subtitle: Text(statusLabel(unit['status'])),
-            trailing: Icon(Icons.chevron_right_rounded),
-            onTap: () {
-              if (active &&
-                  sameDay(version, dayId) &&
-                  (day?['units'] as List? ?? []).any(
-                    (u) => u['id'] == unit['id'],
-                  )) {
-                openRoute(context, '/unit/${unit['id']}');
-              }
-            },
-          ),
-        for (final page in visiblePages)
-          ListTile(
-            title: Text(
-              'Heftseite ${page['page_number']} · ${page['subject'] ?? 'Fach noch offen'}',
-            ),
-            subtitle: Text(page['topic'] ?? 'Thema noch offen'),
-            trailing: Icon(Icons.chevron_right_rounded),
-            onTap: () {
-              if (active &&
-                  sameDay(version, dayId) &&
-                  pages.any((p) => p['id'] == page['id'])) {
-                openRoute(context, '/material/${page['id']}');
-              }
-            },
-          ),
       ],
     );
+    final children = <Widget>[
+      if (!shortInline) filter,
+      Semantics(
+        liveRegion: true,
+        child: Text(
+          '${counted(visiblePages.length, 'Heftseite', 'Heftseiten')} · ${counted(visibleUnits.length, 'Lernrunde', 'Lernrunden')}',
+        ),
+      ),
+      if (visiblePages.isEmpty && visibleUnits.isEmpty)
+        TextButton(
+          onPressed: () {
+            if (ownerMatches) {
+              FocusManager.instance.primaryFocus?.unfocus();
+              setState(() {
+                packageSearch.clear();
+                packageKind = 'all';
+              });
+            }
+          },
+          child: Text('Alle Inhalte dieses Pakets zeigen'),
+        ),
+      if (query.isEmpty && packageKind == 'all')
+        for (final group in groups)
+          ListTile(
+            title: Text('${group['subject']}'),
+            subtitle: Text((group['topics'] as List? ?? []).join(' · ')),
+            onTap:
+                (group['material_ids'] as List? ?? []).any(
+                  (id) => pages.any((page) => page['id'] == id),
+                )
+                ? () {
+                    if (active && sameDay(version, dayId)) {
+                      openSourceGroup(group);
+                    }
+                  }
+                : null,
+          ),
+      for (final unit in visibleUnits)
+        ListTile(
+          title: Text(
+            '${unit['subject'] ?? ''} · ${unit['topic'] ?? 'Lernrunde'}',
+          ),
+          subtitle: Text(statusLabel(unit['status'])),
+          trailing: Icon(Icons.chevron_right_rounded),
+          onTap: () {
+            if (active &&
+                sameDay(version, dayId) &&
+                (day?['units'] as List? ?? []).any(
+                  (u) => u['id'] == unit['id'],
+                )) {
+              openRoute(context, '/unit/${unit['id']}');
+            }
+          },
+        ),
+      for (final page in visiblePages)
+        ListTile(
+          title: Text(
+            'Heftseite ${page['page_number']} · ${page['subject'] ?? 'Fach noch offen'}',
+          ),
+          subtitle: Text(page['topic'] ?? 'Thema noch offen'),
+          trailing: Icon(Icons.chevron_right_rounded),
+          onTap: () {
+            if (active &&
+                sameDay(version, dayId) &&
+                pages.any((p) => p['id'] == page['id'])) {
+              openRoute(context, '/material/${page['id']}');
+            }
+          },
+        ),
+      if (shortInline) filter,
+    ];
+    if (inline) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
+          ...children,
+        ],
+      );
+    }
+    return _AccessibleSchoolDayExpansion(title: title, children: children);
   }
 
   Widget childPackage(BuildContext context) {
@@ -2911,23 +2914,27 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
             ),
           ],
           SizedBox(height: 14),
-          ExpansionTile(
-            title: const Text('Meine Heftseiten'),
-            onExpansionChanged: (expanded) {
-              if (!expanded) FocusManager.instance.primaryFocus?.unfocus();
-            },
+          _AccessibleSchoolDayExpansion(
+            title: 'Meine Heftseiten',
             children: [
+              packageOverview(
+                'Heftseiten und bisherige Runden',
+                units,
+                inline: true,
+              ),
               TextButton.icon(
                 icon: Icon(Icons.chat_bubble_outline_rounded),
                 label: Text('Fragen zu meinen Heftseiten'),
-                onPressed: () => showTutorSheet(
-                  context,
-                  state,
-                  childId: widget.childId,
-                  dayId: day!['id'],
-                ),
+                onPressed: () {
+                  if (!active) return;
+                  showTutorSheet(
+                    context,
+                    state,
+                    childId: widget.childId,
+                    dayId: day!['id'],
+                  );
+                },
               ),
-              packageOverview('Heftseiten und bisherige Runden', units),
             ],
           ),
           if (allowUploads)
@@ -3596,12 +3603,15 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
                 TextButton.icon(
                   icon: Icon(Icons.chat_bubble_outline_rounded),
                   label: Text('Fragen zum Heft ansehen'),
-                  onPressed: () => showTutorSheet(
-                    context,
-                    state,
-                    childId: widget.childId,
-                    dayId: day!['id'],
-                  ),
+                  onPressed: () {
+                    if (!active) return;
+                    showTutorSheet(
+                      context,
+                      state,
+                      childId: widget.childId,
+                      dayId: day!['id'],
+                    );
+                  },
                 ),
               ],
               ExpansionTile(
@@ -3714,6 +3724,35 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
       ),
     );
   }
+}
+
+/// Keeps the actual tile state and the screenreader state together on rebuild.
+class _AccessibleSchoolDayExpansion extends StatefulWidget {
+  final String title;
+  final List<Widget> children;
+  const _AccessibleSchoolDayExpansion({
+    required this.title,
+    required this.children,
+  });
+
+  @override
+  State<_AccessibleSchoolDayExpansion> createState() =>
+      _AccessibleSchoolDayExpansionState();
+}
+
+class _AccessibleSchoolDayExpansionState
+    extends State<_AccessibleSchoolDayExpansion> {
+  bool expanded = false;
+
+  @override
+  Widget build(BuildContext context) => ExpansionTile(
+    title: Semantics(expanded: expanded, child: Text(widget.title)),
+    onExpansionChanged: (value) {
+      setState(() => expanded = value);
+      if (!value) FocusManager.instance.primaryFocus?.unfocus();
+    },
+    children: widget.children,
+  );
 }
 
 /// Keeps the actual tile state and the screenreader state together on rebuild.

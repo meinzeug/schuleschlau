@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' show SemanticsAction, Tristate;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -115,6 +116,27 @@ void main() {
       await (FontLoader(
         name,
       )..addFont(rootBundle.load('assets/fonts/$name.ttf'))).load();
+    }
+  });
+  testWidgets('photo disclosure reports its expanded state without a write', (
+    tester,
+  ) async {
+    final semantics = tester.ensureSemantics();
+    try {
+      final (server, _) = await open(tester, count: 1);
+      final control = find.text('Fotos ansehen');
+      var data = tester.getSemantics(control).getSemanticsData();
+      expect(data.flagsCollection.isExpanded, Tristate.isTrue);
+      expect(data.hasAction(SemanticsAction.tap), isTrue);
+      await tester.ensureVisible(control);
+      await tester.tap(control);
+      await tester.pumpAndSettle();
+      data = tester.getSemantics(control).getSemanticsData();
+      expect(data.flagsCollection.isExpanded, Tristate.isFalse);
+      expect(server.requests.every((r) => r.startsWith('GET ')), isTrue);
+      expect(server.submissions, 0);
+    } finally {
+      semantics.dispose();
     }
   });
   testWidgets('one pending photo opens directly without a redundant selector', (

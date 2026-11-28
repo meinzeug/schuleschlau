@@ -280,4 +280,31 @@ void main() {
       expect(value.writes, isEmpty);
     },
   );
+
+  for (final role in ['child', 'parent']) {
+    testWidgets(
+      'An old $role notebook tutor action stays bound to its session',
+      (tester) async {
+        final value = PaperFixture(role: role, purpose: 'notebook');
+        value.data.remove('vocabulary_preview');
+        await value.mount(tester);
+        final label = role == 'child'
+            ? 'Frag nach'
+            : 'Fragen zu dieser Heftseite';
+        final action = tester
+            .widget<TextButton>(find.widgetWithText(TextButton, label))
+            .onPressed!;
+        final before = value.requests.length;
+        final intent = value.state.beginAuthentication();
+        action();
+        await tester.pumpAndSettle();
+        value.state.cancelAuthentication(intent);
+        action();
+        await tester.pumpAndSettle();
+        expect(value.requests.length, before);
+        expect(find.byType(BottomSheet), findsNothing);
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
 }

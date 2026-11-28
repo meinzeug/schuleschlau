@@ -668,15 +668,10 @@ class _StudyPathPanelState extends State<StudyPathPanel>
         actionError != null ||
         blocks.any((block) => (block['error'] as String? ?? '').isNotEmpty);
     final shortChildPath = state.isChild && blocks.length <= 3;
-    final childFilter = ExpansionTile(
-      title: Text(
-        blockFilter != 'all' || blockSearch.text.trim().isNotEmpty
-            ? 'Suchen und filtern · aktiv'
-            : 'Suchen und filtern',
-      ),
-      onExpansionChanged: (open) {
-        if (!open) FocusManager.instance.primaryFocus?.unfocus();
-      },
+    final childFilter = _AccessibleStudyPathExpansion(
+      title: blockFilter != 'all' || blockSearch.text.trim().isNotEmpty
+          ? 'Suchen und filtern · aktiv'
+          : 'Suchen und filtern',
       children: [blockFilterControls(total, ready, completed)],
     );
     return Panel(
@@ -1049,15 +1044,8 @@ class _StudyPathPanelState extends State<StudyPathPanel>
                 ),
               ],
               SizedBox(height: 10),
-              ExpansionTile(
-                title: Text(
-                  state.isChild ? 'Alle Lernschritte' : 'Alle Etappen',
-                ),
-                onExpansionChanged: (open) {
-                  if (!open) {
-                    FocusManager.instance.primaryFocus?.unfocus();
-                  }
-                },
+              _AccessibleStudyPathExpansion(
+                title: state.isChild ? 'Alle Lernschritte' : 'Alle Etappen',
                 children: [
                   if (state.isChild && !shortChildPath)
                     childFilter
@@ -1149,6 +1137,35 @@ class _StudyPathPanelState extends State<StudyPathPanel>
       ),
     );
   }
+}
+
+/// Keeps the disclosure state on the same semantics node as its tap action.
+class _AccessibleStudyPathExpansion extends StatefulWidget {
+  final String title;
+  final List<Widget> children;
+  const _AccessibleStudyPathExpansion({
+    required this.title,
+    required this.children,
+  });
+
+  @override
+  State<_AccessibleStudyPathExpansion> createState() =>
+      _AccessibleStudyPathExpansionState();
+}
+
+class _AccessibleStudyPathExpansionState
+    extends State<_AccessibleStudyPathExpansion> {
+  bool expanded = false;
+
+  @override
+  Widget build(BuildContext context) => ExpansionTile(
+    title: Semantics(expanded: expanded, child: Text(widget.title)),
+    onExpansionChanged: (value) {
+      setState(() => expanded = value);
+      if (!value) FocusManager.instance.primaryFocus?.unfocus();
+    },
+    children: widget.children,
+  );
 }
 
 const _studyPreparationLimits = {

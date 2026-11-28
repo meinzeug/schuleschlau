@@ -20,6 +20,9 @@ Future<void> showTutorSheet(
   String? unitId,
   String? initialQuestion,
 }) async {
+  if (!context.mounted || state.authenticationPending || state.user == null) {
+    return;
+  }
   final scope = <String, String>{
     if (dayId != null && dayId.isNotEmpty) 'day_id': dayId,
     if (materialId != null && materialId.isNotEmpty) 'material_id': materialId,
@@ -203,6 +206,7 @@ class _TutorSheetState extends State<_TutorSheet> with WidgetsBindingObserver {
   AppState get state => widget.state;
   bool get ownerMatches =>
       actor != null &&
+      !state.authenticationPending &&
       identical(state.user, actor) &&
       family == state.familyId &&
       session == state.api.token &&

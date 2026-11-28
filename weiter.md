@@ -1,5 +1,20 @@
 # Übergabe an die nächste Coding-KI
 
+## Ergänzung 28. November 2026: Kinderführung und Tutor bei Anmeldung
+
+„Meine Heftseiten“ zeigt kurze Listen nach einem Klick direkt; Suche und
+Schulbuddy folgen, bei langen Listen steht die Suche vorne. Der Suchtext nennt
+Seiten und Runden. Lernweg, Suchfilter, Heftseiten und Fotoansicht geben ihren
+Aufklappzustand an Hilfstechnologien weiter; eine echte Screenreader-Abnahme
+steht aus. Der Tutor öffnet und lädt nicht während einer Anmeldung; alte
+Einstiege aus Rückblick, Feedback, Heftseite und Schultag prüfen ihren Kontext.
+Aktuelle Hilfe und elterlicher Lesezugang bleiben verfügbar. Der Fall wurde
+mit künstlichen Daten zunächst rot reproduziert und danach getestet. Die
+Schultagsansichten wurden lokal auf 390 Pixeln mit Beispieldaten angesehen.
+189 zusammenhängende Flutterfälle bestanden; die direkte Seitennavigation
+wurde zusätzlich ohne KI-Auftrag geprüft. Bereits gesendete Anfragen und der
+allgemeine Cookie-Wettlauf bleiben offen.
+
 ## Ergänzung 28. November 2026: Lehrplanvorschau und Anmeldung
 
 Das elterliche Bildungsprofil bietet eine reine Themenvorschau nach bewusster
@@ -11,9 +26,9 @@ Ansicht ist ein ausdrücklicher Einstieg nötig. Künstliche Widgettests prüfen
 u. a. überholte Aktionen und Antworten: 54 Elternprofil-/Vorschaufälle,
 17 Fachseitenfälle und 37 Sammlungsfälle bestanden lokal; die sieben Vorschau-
 und 17 Fachseitenfälle bestanden auch im Chrome-Webrunner. Der allgemeine
-Cookie-Wettlauf und bereits versandte Anfragen bleiben offen. Der GitHub-Lauf 46101188257 hatte
-vor dieser Korrektur eine fehlgeschlagene Flutter-Testgruppe; ein neuer Lauf
-muss am tatsächlichen Commit geprüft werden.
+Cookie-Wettlauf und bereits versandte Anfragen bleiben offen. Der GitHub-Lauf
+46101188257 hatte vor dieser Korrektur eine fehlgeschlagene Flutter-Testgruppe;
+der vollständige Lauf 46103487516 für Commit `41b42bc` war erfolgreich.
 
 ## Ergänzung 28. November 2026: Französisch-Lehrplan Sachsen-Anhalt
 

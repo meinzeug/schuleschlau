@@ -115,6 +115,31 @@ void _pause(WidgetTester tester) {
 }
 
 void main() {
+  testWidgets('A tutor cannot open or read while a new login is pending', (
+    tester,
+  ) async {
+    _viewport(tester);
+    final requests = <http.Request>[];
+    final state = _state(
+      MockClient((request) async {
+        requests.add(request);
+        return _json({'questions': [], 'next_cursor': null});
+      }),
+    );
+    final intent = state.beginAuthentication();
+    await _open(tester, state);
+    expect(requests, isEmpty);
+    expect(find.byType(TextField), findsNothing);
+    state.cancelAuthentication(intent);
+    await tester.tap(find.text('Fragen öffnen'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(requests, hasLength(1));
+    expect(requests.single.method, 'GET');
+    expect(find.byType(TextField), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets(
     'clarification prepares editable context without sending or replacing a draft',
     (tester) async {

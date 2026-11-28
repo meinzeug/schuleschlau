@@ -606,9 +606,108 @@ void main() {
     await tapText(tester, 'Meine Heftseiten');
     expect(find.text('Heftseiten und bisherige Runden'), findsOneWidget);
     expect(find.text('Fragen zu meinen Heftseiten'), findsOneWidget);
+    expect(find.text('Heftseite 1 · Mathematik'), findsOneWidget);
     expect(server.stage, 'ready');
     expect(server.requests.where((r) => r.startsWith('PUT ')), isEmpty);
     expect(server.submissions, 0);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('A stale notebook tutor action cannot reopen across sign-in', (
+    tester,
+  ) async {
+    mobile(tester);
+    final server = PreparationServer(
+      pages: [source(1, confirmed: true)],
+      stage: 'ready',
+      preparation: {'status': 'completed', 'phase': null},
+    )..realUploads = true;
+    final state = server.state();
+    final navigation = router(state);
+    addTearDown(navigation.dispose);
+    await tester.pumpWidget(
+      MaterialApp.router(theme: appTheme(), routerConfig: navigation),
+    );
+    await settleUi(tester);
+    await tapText(tester, 'Meine Heftseiten');
+    final oldAction = tester
+        .widget<TextButton>(
+          find.widgetWithText(TextButton, 'Fragen zu meinen Heftseiten'),
+        )
+        .onPressed!;
+    final before = server.requests.length;
+    final intent = state.beginAuthentication();
+    oldAction();
+    await tester.pumpAndSettle();
+    expect(server.requests.length, before);
+    state.cancelAuthentication(intent);
+    oldAction();
+    await tester.pumpAndSettle();
+    expect(server.requests.length, before);
+    expect(find.byType(BottomSheet), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('A long notebook list keeps search before the pages', (
+    tester,
+  ) async {
+    mobile(tester);
+    final server = PreparationServer(
+      pages: [for (var n = 1; n <= 4; n++) source(n, confirmed: true)],
+      stage: 'ready',
+      preparation: {'status': 'completed', 'phase': null},
+    )..realUploads = true;
+    final navigation = router(server.state());
+    addTearDown(navigation.dispose);
+    await tester.pumpWidget(
+      MaterialApp.router(theme: appTheme(), routerConfig: navigation),
+    );
+    await settleUi(tester);
+    await tapText(tester, 'Meine Heftseiten');
+    expect(
+      tester.getTopLeft(find.text('Suchen und filtern')).dy,
+      lessThan(tester.getTopLeft(find.text('Heftseite 1 · Mathematik')).dy),
+    );
+    expect(server.requests.every((r) => r.startsWith('GET ')), isTrue);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('A short notebook list opens its page after one disclosure', (
+    tester,
+  ) async {
+    mobile(tester);
+    final server = PreparationServer(
+      pages: [source(1, confirmed: true)],
+      stage: 'ready',
+      preparation: {'status': 'completed', 'phase': null},
+    )..realUploads = true;
+    final state = server.state();
+    final navigation = GoRouter(
+      initialLocation: '/after-school/child',
+      routes: [
+        GoRoute(
+          path: '/after-school/:id',
+          builder: (_, _) => SchoolDayScreen(state, childId: 'child'),
+        ),
+        GoRoute(
+          path: '/material/:id',
+          builder: (_, route) => Scaffold(
+            body: Text('Gespeicherte Seite ${route.pathParameters['id']}'),
+          ),
+        ),
+      ],
+    );
+    addTearDown(navigation.dispose);
+    await tester.pumpWidget(
+      MaterialApp.router(theme: appTheme(), routerConfig: navigation),
+    );
+    await settleUi(tester);
+    await tapText(tester, 'Meine Heftseiten');
+    await tapText(tester, 'Heftseite 1 · Mathematik');
+    expect(find.text('Gespeicherte Seite page1'), findsOneWidget);
+    expect(server.requests.every((r) => r.startsWith('GET ')), isTrue);
+    expect(server.submissions, 0);
+    expect(server.starts, 0);
     expect(tester.takeException(), isNull);
   });
 
