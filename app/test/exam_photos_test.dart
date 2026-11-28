@@ -185,6 +185,19 @@ void main() {
     expect(fixture.writes, isEmpty);
   });
   testWidgets(
+    'one selected photo uses the singular and stays local until submission',
+    (tester) async {
+      final fixture = PhotoFixture();
+      await fixture.mount(tester, choose: 1);
+      await tap(tester, 'Bilder auswählen');
+      expect(
+        find.text('1 Foto ausgewählt · noch nicht abgegeben'),
+        findsOneWidget,
+      );
+      expect(fixture.writes, isEmpty);
+    },
+  );
+  testWidgets(
     'multiple photos save first then one explicit persistent scan submission',
     (tester) async {
       final fixture = PhotoFixture();

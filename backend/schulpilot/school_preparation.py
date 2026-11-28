@@ -75,11 +75,15 @@ def _arm_rounds(db, day, child, state):
         signature = json.dumps({
             "image": material.image_digest,
             "subject": material.subject,
+            "subject_id": material.subject_id,
             "topic": material.topic,
             "content": material.content,
             "uncertainties": material.uncertainties,
             "blocks": material.source_blocks,
             "observations": material.visual_observations,
+            "task_decisions": material.task_decisions,
+            "homework": material.homework,
+            "legibility": material.legibility,
         }, sort_keys=True, ensure_ascii=False)
         if signature in seen:
             duplicate_ids.add(material.id)

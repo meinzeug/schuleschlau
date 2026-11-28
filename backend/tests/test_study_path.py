@@ -352,18 +352,20 @@ def test_successful_explicit_retry_resumes_later_automatic_rounds(study, stage_t
         assert db.scalar(select(func.count()).select_from(Job)) == 3
 
 
-@pytest.mark.parametrize("different_content", [False, True])
-def test_automatic_rounds_collapse_only_exact_duplicate_sources(study, different_content):
+@pytest.mark.parametrize("difference", ["none", "content", "homework"])
+def test_automatic_rounds_collapse_only_exact_duplicate_sources(study, difference):
     with DB.begin() as db:
         first, second = (db.get(Material, item) for item in study["materials"][:2])
         first.image_digest = second.image_digest = "a" * 64
         second.topic = first.topic
-        if different_content:
+        if difference == "content":
             second.content += " Eine später ergänzte Aussage."
+        elif difference == "homework":
+            second.homework = ["Eine zusätzlich bestätigte Aufgabe."]
     arm_automatic_rounds(study)
     with DB() as db:
         auto = db.get(SchoolDay, study["day_id"]).preparation["auto_rounds"]
-        assert len(auto["blocks"]) == (5 if different_content else 4)
+        assert len(auto["blocks"]) == (4 if difference == "none" else 5)
 
 
 def test_automatic_rounds_stop_when_source_changes(study):
