@@ -479,7 +479,7 @@ void main() {
       await f.show(tester, ChildAccount(state));
       await f.tap(tester, find.text('Lokale Fotos'));
       expect(
-        find.text('2 von höchstens 8 vorgemerkten Fotos auf diesem Gerät'),
+        find.text('2 Fotos auf diesem Gerät · höchstens 8 Fotos möglich'),
         findsOneWidget,
       );
       await f.tap(tester, find.text('Zum zugehörigen Tag').last);

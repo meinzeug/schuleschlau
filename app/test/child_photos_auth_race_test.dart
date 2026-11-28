@@ -120,11 +120,11 @@ void main() {
       final intent = state.beginAuthentication();
       storage.resume.complete();
       await tester.pumpAndSettle();
-      expect(find.text('Vorgemerktes Foto 1'), findsNothing);
+      expect(find.text('Foto 1 · noch nicht gesendet'), findsNothing);
       expect(find.text('Bitte lade die lokalen Fotos erneut.'), findsOneWidget);
       state.cancelAuthentication(intent);
       await helpers.tap(tester, find.text('Erneut laden'));
-      expect(find.text('Vorgemerktes Foto 1'), findsOneWidget);
+      expect(find.text('Foto 1 · noch nicht gesendet'), findsOneWidget);
     },
   );
   testWidgets(

@@ -386,7 +386,7 @@ class _ChildAccountState extends State<ChildAccount> {
                   title:
                       state.user?['display_name'] ??
                       'Dein Platz bei SchuleSchlau',
-                  description: 'Dein Zugang, deine Geräte. Du entscheidest, welche Mitteilungen du hier bekommen möchtest.',
+                  description: 'Dein Zugang und deine Geräte.',
                   icon: Icons.face_rounded,
                   facts: [
                     const ChildHeroFact(
@@ -787,9 +787,10 @@ class _ChildAccountState extends State<ChildAccount> {
                             Notice(
                               'Hier warten keine Fotos auf das Senden. Deine gespeicherten Heftseiten findest du unter Hefte.',
                             ),
-                          Text(
-                            '${photos.length} von höchstens 8 vorgemerkten Fotos auf diesem Gerät',
-                          ),
+                          if (photos.isNotEmpty)
+                            Text(
+                              '${counted(photos.length, 'Foto', 'Fotos')} auf diesem Gerät · höchstens 8 Fotos möglich',
+                            ),
                           for (final photo in photos)
                             Padding(
                               padding: EdgeInsets.only(top: 12),
@@ -799,14 +800,14 @@ class _ChildAccountState extends State<ChildAccount> {
                                       CrossAxisAlignment.stretch,
                                   children: [
                                     Text(
-                                      'Vorgemerktes Foto ${photos.indexOf(photo) + 1}',
+                                      'Foto ${photos.indexOf(photo) + 1} · noch nicht gesendet',
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
                                     if (photo['created'] is num)
                                       Text(
-                                        'Vorgemerkt am ${DateFormat('dd.MM.yyyy · HH:mm').format(DateTime.fromMillisecondsSinceEpoch((photo['created'] as num).toInt()).toLocal())}',
+                                        'Gespeichert am ${DateFormat('dd.MM.yyyy · HH:mm').format(DateTime.fromMillisecondsSinceEpoch((photo['created'] as num).toInt()).toLocal())}',
                                       ),
                                     Wrap(
                                       spacing: 8,
