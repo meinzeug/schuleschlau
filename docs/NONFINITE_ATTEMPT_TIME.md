@@ -90,9 +90,14 @@ datierten Prüferfolge daraus und berücksichtigen bei identischen Fragen deren
 unklare frühere Exposition. Im kombinierten synthetischen Test blieben die
 kompakte Heute-Seite und eine getrennte Fachrunde auf SQLite und PostgreSQL
 verfügbar. Pauschale Ausnahmen im gemeinsamen Coaching wurden nicht eingebaut.
-Quellengebundene Lernziel- und Kompetenzberechnungen und deren Abruf- und
-Tagesplanung müssen nicht-endliche Zeiten und fachübergreifende Exposition noch
-gesondert konservativ berücksichtigen; die Coaching-Prüfung belegt sie nicht.
+Die quellengebundenen Lernziel- und Kompetenzprojektionen behandeln inzwischen
+ebenfalls die einzelne betroffene Aufgabe als unklar. Andere Aufgaben bleiben
+als eigene Belege erhalten. Ein undatiertes Vorkommen sperrt die Einordnung
+einer identischen Aufgabe als neuen Abruf. Für das betroffene Lernziel wird bei
+unbekannter Reihenfolge weder ein sicherer Wiederholungsstand noch ein
+Wiederholungstermin behauptet; die datierten Nachweise anderer Aufgaben bleiben
+sichtbar. Die allgemeine fachübergreifende Tagesplanung ist damit nicht
+vollständig abgenommen.
 
 Endliche, aber außerhalb der vom Datumsdienst unterstützten Kalendergrenzen
 liegende Zeiten sowie Zeitangaben anderer Tabellen sind hier nicht abgedeckt.
@@ -119,19 +124,18 @@ ebenfalls kein nachgewiesener kompatibler Altvertrag. Auch ein nachträglich
 fehlschlagender Schreibaufruf darf keinen Erfolg oder Wiederholbedarf
 vortäuschen, wenn die Änderung bereits gespeichert wurde.
 
-Ein weiterer konkreter Blocker ist der quellengebundene Abruf
-`GET /units/{id}/learning-session/knowledge`: Mit einer künstlichen,
-bestätigten Bruchquelle und einem korrekten, unassistierten Versuch verursacht
-`+Infinity` HTTP 500 durch `OverflowError`; `-Infinity` und PostgreSQL-NaN
-führen zu einer falschen unabhängigen Lernzielbewertung. Die strikten XFAILs in
-`test_nonfinite_knowledge_contract.py` dokumentieren diese Fälle. SQLite kann
-wegen seiner NOT-NULL-Regel NaN nicht einfügen. Die gespeicherten Originale
-werden in einem gesonderten Test nach dem Abruf überprüft und nicht geändert. Ein bloßer
-JSON-Ersatz von `created` durch `null` behebt diese Projektionen nicht.
+Der quellengebundene Abruf `GET /units/{id}/learning-session/knowledge`
+verursachte mit `+Infinity` HTTP 500 und bewertete `-Infinity` und
+PostgreSQL-NaN fälschlich als unabhängig. Die Fälle in
+`test_nonfinite_knowledge_contract.py` prüfen nun beide Projektionen, den Erhalt
+der Originalbelege, mehrfache Versuche, vorhandene Hilfe, andere Aufgaben und
+identische undatierte Vorexposition. SQLite kann wegen seiner NOT-NULL-Regel
+NaN nicht einfügen. Endliche Werte außerhalb gültiger Kalendergrenzen bleiben
+gesondert offen. Ein bloßer JSON-Ersatz von `created` durch `null` hätte die
+Projektionen nicht repariert.
 
-Vor einer Umsetzung müssen neben Rundendetail und Übersicht auch Lernziel- und
-Kompetenzprojektionen, Wiederholungsexposition sowie die betroffenen schreibenden
-Routen geprüft werden; danach sind konkrete alte und neue Clients einschließlich
-Kinder- und Elternansicht sowie isolierte Familien und andere Fächer zu testen.
-Bis dahin bleiben die beiden Rundendetail-/Übersichts-XFAILs und die neuen
-Wissens-XFAILs offen. Es wird keine globale Capability angekündigt.
+Vor einer API-Umsetzung müssen neben Rundendetail und Übersicht insbesondere
+die betroffenen schreibenden Routen geprüft werden; danach sind konkrete alte
+und neue Clients einschließlich Kinder- und Elternansicht sowie isolierte
+Familien und andere Fächer zu testen. Bis dahin bleiben die beiden Rundendetail-/
+Übersichts-XFAILs offen. Es wird keine globale Capability angekündigt.

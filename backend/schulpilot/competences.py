@@ -6,14 +6,16 @@ only while persisting a validated generated unit, never from a list/detail GET.
 
 import hashlib
 import json
+import math
 import re
+import sys
 import unicodedata
 from datetime import date, datetime
 from pathlib import Path
 from types import SimpleNamespace
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import case, func, or_, select
 
 from .db import Attempt, Child, LearningUnit, Material, Subject, SubjectAlias, UnitSource
 from .schemas import Preferences
@@ -160,7 +162,8 @@ def first_question_encounters(db, child, subjects):
 
     if not subjects:
         return {}
-    first = db.execute(select(Attempt.unit_id, Attempt.question_id, func.min(Attempt.created)).join(
+    unknown = func.sum(case((Attempt.created.between(-sys.float_info.max, sys.float_info.max), 0), else_=1))
+    first = db.execute(select(Attempt.unit_id, Attempt.question_id, func.min(Attempt.created), unknown).join(
         LearningUnit, LearningUnit.id == Attempt.unit_id).where(LearningUnit.child_id == child.id).group_by(
         Attempt.unit_id, Attempt.question_id)).all()
     if not first:
@@ -192,7 +195,7 @@ def first_question_encounters(db, child, subjects):
         return identities[key]
 
     earliest = {}
-    for unit_id, question_id, stamp in first:
+    for unit_id, question_id, stamp, unknown_count in first:
         unit = units.get(unit_id)
         if not unit:
             continue
@@ -203,7 +206,12 @@ def first_question_encounters(db, child, subjects):
         for subject in subject_keys(unit) & subjects:
             signature = (fraction_task_signature(prompt) if subject == "mathematik" else None) or normalized(prompt)
             key = (subject, signature)
-            if key not in earliest or stamp < earliest[key][0]:
+            if unknown_count:
+                # An undated exposure may precede all otherwise dated copies.
+                earliest[key] = (None, 1)
+            elif key in earliest and earliest[key][0] is None:
+                continue
+            elif key not in earliest or stamp < earliest[key][0]:
                 earliest[key] = (stamp, 1)
             elif stamp == earliest[key][0]:
                 earliest[key] = (stamp, earliest[key][1] + 1)
@@ -245,6 +253,7 @@ def evidence(db, child_id, competence_ids=None):
     zone = ZoneInfo(Preferences(**child.preferences).timezone)
     encounters = []
     review_anchors = {}
+    unknown_competences = set()
     for binding in bindings:
         unit = units.get(binding.unit_id)
         question = next((q for q in unit.questions if q["id"] == binding.question_id), None) if unit else None
@@ -255,6 +264,13 @@ def evidence(db, child_id, competence_ids=None):
         state = result[binding.competence_id]
         if not binding_current(db, binding, unit, question):
             state["historical_tasks"] += 1
+            continue
+        if any(not math.isfinite(a.created) for a in values):
+            state["tasks"] += 1
+            state["attempts"] += len(values)
+            state["uncertain"] += 1
+            state["evidence_refs"].extend("attempt:" + a.id for a in values)
+            unknown_competences.add(binding.competence_id)
             continue
         last = values[-1]
         reflection = (last.evaluation or {}).get("method") == "open_learning_v1"
@@ -297,12 +313,17 @@ def evidence(db, child_id, competence_ids=None):
         state["successful_check_dates"] = days
         difficulty = datetime.fromtimestamp(state["last_difficulty"], zone).date().isoformat() if state["last_difficulty"] else None
         current = [day for day in days if difficulty is None or day > difficulty]
-        secure = len(current) >= 3 and (date.fromisoformat(current[-1]) - date.fromisoformat(current[0])).days >= 7
+        secure = state["id"] not in unknown_competences and len(current) >= 3 and (date.fromisoformat(current[-1]) - date.fromisoformat(current[0])).days >= 7
         subject = db.get(Subject, identity(rows[state["id"]]["subject_key"]))
         stamp = review_anchors.get(state["id"])
         state["review_due"] = planned_review(child, subject.title if subject else "", current,
             difficult=not secure and bool(state["needs_practice"] or state["supported"]),
-            anchor=datetime.fromtimestamp(stamp, zone).date()) if stamp else None
+            anchor=datetime.fromtimestamp(stamp, zone).date()) if stamp and state["id"] not in unknown_competences else None
+        if state["id"] in unknown_competences:
+            state["last_observation"] = None
+            state["last_assessment_observation"] = None
+            state["last_independent_success"] = None
+            state["last_difficulty"] = None
         today = datetime.now(zone).date().isoformat()
         state["status"] = "review_due" if secure and state["review_due"] and state["review_due"] <= today else "repeated_independent" if secure else "building" if state["tasks"] - state["reflection_tasks"] else "unknown"
         state["confidence"] = "repeated_recall" if secure else "initial_evidence" if state["independent"] else "support_needed" if state["supported"] or state["needs_practice"] else "unverified"

@@ -4,6 +4,7 @@ No model percentage, video click, draft or new copy of an answer is evidence.
 The original Attempts and their source snapshots remain authoritative.
 """
 
+import math
 from datetime import date, datetime
 from zoneinfo import ZoneInfo
 
@@ -110,6 +111,8 @@ def evidence(db, unit, sources):
     zone = ZoneInfo(Preferences(**child.preferences).timezone)
     observations = []
     review_anchors = {}
+    unknown_signatures = set()
+    unknown_goals = set()
     for old in sorted(units, key=lambda item: (item.created, item.id)):
         # A legacy material_id only identifies a page, not the revision used by
         # that old exercise. Keep its original practice, but never attribute it
@@ -135,8 +138,14 @@ def evidence(db, unit, sources):
                 (not same_subject(old) and unit.subject.casefold() in ("mathe", "mathematik")))
             signature = ((fraction_task_signature(q["prompt"]) or normalized_prompt(q["prompt"]))
                 if is_math else normalized(q["prompt"]))
+            time_unknown = any(not math.isfinite(a.created) for a in values)
+            if time_unknown:
+                # An undated exposure may have happened before any apparently
+                # new question with this signature, even in another unit.
+                unknown_signatures.add(signature)
             position = len(observations)
-            observations.append((values[0].created, old.id, q["id"], values[-1].created, None, signature, False))
+            if not time_unknown:
+                observations.append((values[0].created, old.id, q["id"], values[-1].created, None, signature, False))
             if not same_subject(old):
                 continue
             extra = q.get("controller_goal")
@@ -153,6 +162,16 @@ def evidence(db, unit, sources):
             state = result[goal]
             if not valid:
                 state["historical_tasks"] += 1
+                continue
+            if time_unknown:
+                # The stored verdicts, support flags and timestamps stay in
+                # the original Attempts. No ordering can be inferred for this
+                # question, even if some of its other attempts are dated.
+                state["tasks"] += 1
+                state["attempts"] += len(values)
+                state["uncertain"] += 1
+                state["evidence_refs"].extend("attempt:" + a.id for a in values)
+                unknown_goals.add(goal)
                 continue
             last = values[-1]
             reflection = (last.evaluation or {}).get("method") == "open_learning_v1"
@@ -190,7 +209,7 @@ def evidence(db, unit, sources):
     for first, _, _, created, goal, signature, eligible in sorted(observations, key=lambda item: item[:3]):
         # Equal timestamps from separate answers do not tell us which exposure
         # happened first, so neither is a safe new recall observation.
-        if goal is not None and earliest[signature] == (first, 1) and eligible:
+        if goal is not None and signature not in unknown_signatures and earliest[signature] == (first, 1) and eligible:
             stamp = datetime.fromtimestamp(created, zone).date().isoformat()
             if stamp not in result[goal]["successful_check_dates"]:
                 result[goal]["successful_check_dates"].append(stamp)
@@ -199,12 +218,19 @@ def evidence(db, unit, sources):
         state["successful_check_dates"] = days
         difficulty_day = datetime.fromtimestamp(state["last_difficulty"], zone).date().isoformat() if state["last_difficulty"] else None
         recent_days = [day for day in days if difficulty_day is None or day > difficulty_day]
-        secure = len(recent_days) >= 3 and (date.fromisoformat(recent_days[-1]) - date.fromisoformat(recent_days[0])).days >= 7
+        secure = state["id"] not in unknown_goals and len(recent_days) >= 3 and (date.fromisoformat(recent_days[-1]) - date.fromisoformat(recent_days[0])).days >= 7
         state["confidence"] = "repeated_recall" if secure else "initial_evidence" if state["independent"] else "support_needed" if state["needs_practice"] or state["supported"] else "unverified"
         stamp = review_anchors.get(state["id"])
         anchor = datetime.fromtimestamp(stamp, zone).date() if stamp else None
         state["review_due"] = planned_review(child, unit.subject, recent_days,
-            difficult=not secure and bool(state["needs_practice"] or state["supported"]), anchor=anchor) if stamp else None
+            difficult=not secure and bool(state["needs_practice"] or state["supported"]), anchor=anchor) if stamp and state["id"] not in unknown_goals else None
+        if state["id"] in unknown_goals:
+            # Unknown chronology cannot establish which observation/difficulty
+            # was last, and cannot anchor a future review date.
+            state["last_observation"] = None
+            state["last_assessment_observation"] = None
+            state["last_independent_success"] = None
+            state["last_difficulty"] = None
         state["evidence_total"] = len(state["evidence_refs"])
         state["evidence_refs"] = state["evidence_refs"][-12:]
     return list(result.values())
