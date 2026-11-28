@@ -6,7 +6,7 @@ import uuid
 import zipfile
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date
-from threading import Barrier
+from threading import Barrier, BoundedSemaphore, Event
 
 import httpx
 import pytest
@@ -246,6 +246,10 @@ def test_parallel_confirm_and_parallel_repeat_upload_do_not_duplicate(api, house
 def test_parallel_preview_upload_rechecks_idempotency_after_unlocked_parsing(api, household, monkeypatch, changed_file):
     from schulpilot import grade_imports
 
+    # Different API workers each have their own parser slot. Keep testing the
+    # database race that can occur across workers even with a local bound.
+    monkeypatch.setattr(grade_imports, '_PDF_READ_SLOT', BoundedSemaphore(2))
+
     _, child = household
     year = today_year(child["id"])
     first = pdf(year)
@@ -276,6 +280,70 @@ def test_parallel_preview_upload_rechecks_idempotency_after_unlocked_parsing(api
         assert db.scalar(select(func.count()).select_from(SchoolGrade)) == 0
         assert db.scalar(select(func.count()).select_from(GradeSourceSlot)) == 0
         assert db.scalar(select(func.count()).select_from(Usage)) == 0
+
+
+def test_busy_pdf_parser_allows_explicit_retry_without_creating_preview(api, household, monkeypatch):
+    from schulpilot import grade_imports
+
+    _, child = household
+    slot = BoundedSemaphore(1)
+    monkeypatch.setattr(grade_imports, '_PDF_READ_SLOT', slot)
+    assert slot.acquire(blocking=False)
+    key = 'synthetic-busy-pdf-retry'
+    raw = pdf(today_year(child['id']))
+    try:
+        # Capacity failures must not consume the twelve-reader attempt limit.
+        for _ in range(13):
+            response = upload(api, child, raw, key=key)
+            assert response.status_code == 503
+            assert response.headers['retry-after'] == '2'
+        with DB() as db:
+            assert db.scalar(select(func.count()).select_from(GradeImport)) == 0
+            assert db.scalar(select(func.count()).select_from(SchoolGrade)) == 0
+            assert db.scalar(select(func.count()).select_from(Usage)) == 0
+    finally:
+        slot.release()
+    response = upload(api, child, raw, key=key)
+    assert response.status_code == 201, response.text
+
+
+def test_failed_pdf_parser_releases_capacity_for_next_attempt(api, household):
+    _, child = household
+    assert upload(api, child, b'%PDF-invalid-synthetic').status_code == 422
+    response = upload(api, child)
+    assert response.status_code == 201, response.text
+
+
+def test_parallel_pdf_uploads_bound_reader_then_allow_retry(api, household, monkeypatch):
+    from schulpilot import grade_imports
+
+    _, child = household
+    entered, proceed = Event(), Event()
+    original = grade_imports.isolated_extract
+    raw = pdf(today_year(child['id']))
+    headers = dict(api.headers)
+
+    def paused_reader(data):
+        entered.set()
+        assert proceed.wait(timeout=10)
+        return original(data)
+
+    monkeypatch.setattr(grade_imports, 'isolated_extract', paused_reader)
+
+    def first_upload():
+        with TestClient(app, headers=headers) as client:
+            return upload(client, child, raw, key='synthetic-parallel-pdf-1')
+
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        first = pool.submit(first_upload)
+        try:
+            assert entered.wait(timeout=10)
+            second = upload(api, child, raw, key='synthetic-parallel-pdf-2')
+            assert second.status_code == 503
+        finally:
+            proceed.set()
+        assert first.result(timeout=15).status_code == 201
+    assert upload(api, child, raw, key='synthetic-parallel-pdf-2').status_code == 201
 
 
 def test_failed_pdf_reads_remain_rate_limited_without_importing_or_calling_ai(api, household, monkeypatch):

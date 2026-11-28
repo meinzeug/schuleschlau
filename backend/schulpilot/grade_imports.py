@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import threading
 from decimal import Decimal
 from typing import Literal
 
@@ -18,6 +19,11 @@ from .security import audit, child_access, parent, rate_limit
 from .vocabulary import KEY, lock_child
 
 router = APIRouter(tags=["Notenimport"])
+
+# Each isolated PDF reader can use substantial memory. Do not let concurrent
+# requests in one API process start an unbounded number of reader subprocesses.
+# Separate API processes have separate slots; this is not a host-wide limit.
+_PDF_READ_SLOT = threading.BoundedSemaphore(1)
 
 
 def digest(value):
@@ -150,16 +156,22 @@ def upload_pdf(child_id: str, file: UploadFile, idempotency_key: str = KEY, p=De
         if previous.file_digest != file_digest:
             raise HTTPException(409, "Dieser Uploadschlüssel gehört zu einer anderen PDF.")
         return projection(db, child, previous)
-    rate_limit(db, "grade-pdf:" + p.user.id, 12, 3600, commit=False)
-    initial_context = grade_context_revision(db, child.id)
-    # Reserve the bounded parse attempt, then release all locks while reading
-    # untrusted PDF data. Logout and permission changes must remain possible.
-    db.commit()
-    db.expunge_all()
+    if not _PDF_READ_SLOT.acquire(blocking=False):
+        raise HTTPException(503, "Die PDF wird gerade verarbeitet. Bitte versuche es gleich erneut.",
+                            headers={"Retry-After": "2"})
     try:
-        parsed = isolated_extract(raw)
-    except ValueError as error:
-        raise HTTPException(422, str(error)) from None
+        rate_limit(db, "grade-pdf:" + p.user.id, 12, 3600, commit=False)
+        initial_context = grade_context_revision(db, child.id)
+        # Reserve the bounded parse attempt, then release all locks while reading
+        # untrusted PDF data. Logout and permission changes must remain possible.
+        db.commit()
+        db.expunge_all()
+        try:
+            parsed = isolated_extract(raw)
+        except ValueError as error:
+            raise HTTPException(422, str(error)) from None
+    finally:
+        _PDF_READ_SLOT.release()
     # Another upload may have completed while parsing. Reacquire the same
     # child lock and recheck fresh authority and idempotency before any write.
     lock_child(db, child)

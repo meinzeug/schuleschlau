@@ -972,7 +972,7 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
   gespeichert werden; ein automatischer Übergang ist nicht implementiert.
   Als erste fachlich belegte Erweiterung wurden Mathematik, Deutsch, Englisch,
   Geschichte, Biologie, Physik, Chemie, Geographie sowie Übersichten für Ethik,
-  Informatik, Musik, Kunst, Sport, Technik, Wirtschaft, Sozialkunde und
+  Informatik, Musik, Kunst, Sport, Technik, Wirtschaft, Sozialkunde,
   Hauswirtschaft und Astronomie der
   Sekundarschule Sachsen-Anhalt für die jeweils belegten Jahrgänge bzw.
   Abschlussphasen ergänzt. Weitere Fächer, Österreich,
@@ -2879,6 +2879,19 @@ Bestandteil des bestehenden Buildvertrags.
     CPU-Kern und isoliertem PostgreSQL wurden gemessen. Der simulierte
     Anbieter ist kein Produktivlastnachweis; reale Betriebs- und Alarmgrenzen
     bleiben offen. [Messwerte](docs/CAPACITY_PROFILE_2026_11_04B.md).
+
+  - [x] **Parallele Noten-PDF-Parser pro API-Prozess begrenzen.** Der lokale
+    PDF-Leser startet für jede Auswertung einen isolierten Prozess mit eigener
+    Speichergrenze. Für den normalen Import ist nun pro API-Prozess höchstens
+    ein Leser gleichzeitig aktiv. Eine belegte Kapazität führt zu einem
+    ausdrücklichen Wiederholungsweg mit HTTP 503 und `Retry-After`; ein solcher
+    Versuch verbraucht nicht das Limit tatsächlicher Leseversuche und erzeugt
+    weder eine Vorschau noch Noten. Der Slot wird auch bei Lesefehlern und
+    Ratenbegrenzung freigegeben. Künstliche Parallel-, Fehler-, Wiederholungs-
+    und Berechtigungsfälle bestanden (je 40 auf SQLite und isoliertem
+    PostgreSQL). Die Grenze ist
+    nicht serverweit und begrenzt weder den Multipart-Eingang noch andere
+    Bildverarbeitung; eine Gesamtlast- oder Produktionsabnahme bleibt offen.
 
   **04.11.2026, isoliertes Lastprofil:** Parallele Übersichts-GETs sowie
   gleichzeitige Upload- und Auftragswiederholungen wurden auf temporärem

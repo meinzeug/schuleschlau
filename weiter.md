@@ -1,5 +1,15 @@
 # Übergabe an die nächste Coding-KI
 
+## Ergänzung 28. November 2026: Noten-PDF-Parser
+
+Der reguläre Notenimport lässt je API-Prozess nur einen isolierten PDF-Leser
+gleichzeitig starten. Bei Auslastung ist eine ausdrückliche Wiederholung mit
+demselben Schlüssel möglich; dieser Fall verbraucht keinen der begrenzten
+Leseversuche. Der Slot wird auch nach Fehlern freigegeben. Je 40 künstliche
+SQLite- und PostgreSQL-Fälle bestanden, darunter Parallelität, Wiederholung und
+Berechtigungsänderungen. Eine serverweite Kapazitätsgrenze, die Begrenzung
+des Multipart-Eingangs und eine produktive Lastabnahme sind damit nicht belegt.
+
 ## Ergänzung 28. November 2026: Neue öffentliche Heftcover
 
 Hauswirtschaft und Astronomie haben eigene allgemein erzeugte Heftcover,
