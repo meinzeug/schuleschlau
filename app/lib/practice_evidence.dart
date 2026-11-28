@@ -3,6 +3,22 @@ import 'package:flutter/material.dart';
 import 'api.dart';
 import 'ui.dart';
 
+/// A missing legacy field carries no new claim; an explicit null is unknown.
+bool storedAttemptTimeUnknown(Map attempt) {
+  if (!attempt.containsKey('created')) return false;
+  final value = attempt['created'];
+  if (value is String) {
+    final date = DateTime.tryParse(value);
+    return date == null || date.year < 1 || date.year > 9999;
+  }
+  return value is! num || !value.isFinite;
+}
+
+bool storedAttemptIndependenceUnknown(Map attempt) =>
+    storedAttemptTimeUnknown(attempt) ||
+    (attempt['evaluation'] is Map &&
+        attempt['evaluation']['independence_uncertain'] == true);
+
 /// Reasons from the saved attempt, shared by child and parent result views.
 List<String> supportReasonLabels(Json attempt) {
   final reasons = (attempt['evaluation']?['support_reasons'] as List? ?? [])

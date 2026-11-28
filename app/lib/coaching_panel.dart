@@ -976,6 +976,13 @@ class _ChildCoachingPanel extends StatelessWidget {
                     SizedBox(height: 8),
                     if ((question['attempts'] as List? ?? []).isEmpty)
                       Text('Noch keine Antwort gespeichert.'),
+                    if ((question['attempts'] as List? ?? []).length > 1 &&
+                        (question['attempts'] as List).whereType<Map>().any(
+                          storedAttemptTimeUnknown,
+                        ))
+                      const Text(
+                        'Die Reihenfolge der Versuche ist nicht sicher bekannt.',
+                      ),
                     for (final entry
                         in (question['attempts'] as List? ?? []).indexed)
                       Builder(
@@ -987,7 +994,12 @@ class _ChildCoachingPanel extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Versuch ${entry.$1 + 1}${entry.$1 + 1 == (question['attempts'] as List).length ? ' · zuletzt gespeichert' : ''}',
+                                  (question['attempts'] as List).length > 1 &&
+                                          (question['attempts'] as List)
+                                              .whereType<Map>()
+                                              .any(storedAttemptTimeUnknown)
+                                      ? 'Gespeicherter Versuch'
+                                      : 'Versuch ${entry.$1 + 1}${entry.$1 + 1 == (question['attempts'] as List).length ? ' · zuletzt gespeichert' : ''}',
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w800,
@@ -1182,15 +1194,17 @@ class _ChildCoachingPanel extends StatelessWidget {
 String storedQuestionCategory(Map question) {
   final attempts = question['attempts'] as List? ?? [];
   if (attempts.isEmpty) return 'none';
+  if (attempts.length > 1 &&
+      attempts.whereType<Map>().any(storedAttemptTimeUnknown)) {
+    return 'uncertain';
+  }
   final last = attempts.last;
   if (last['evaluation']?['method'] == 'open_learning_v1') {
     return 'contribution';
   }
   if (last['outcome'] == 'correct') {
-    if (last['evaluation']?['independence_uncertain'] == true) {
-      return 'uncertain';
-    }
     if (attempts.length > 1 || last['assisted'] == true) return 'assisted';
+    if (storedAttemptIndependenceUnknown(last as Map)) return 'uncertain';
     if (last['assisted'] == false) return 'independent';
     return 'unclassified';
   }
@@ -1378,7 +1392,9 @@ class RoundQuestionCards extends StatelessWidget {
                   category = storedQuestionCategory(raw);
               final attempts = question['attempts'] as List? ?? [];
               final possibleExposure =
-                  attempts.isNotEmpty &&
+                  category == 'uncertain' &&
+                  attempts.length == 1 &&
+                  attempts.last['assisted'] != true &&
                   attempts.last['evaluation']?['independence_uncertain'] ==
                       true;
               final status = _roundStatus(
@@ -1608,7 +1624,9 @@ class _SavedQuestionResult extends StatelessWidget {
     final label = switch (category) {
       'contribution' => 'Eigener Beitrag · ohne Richtig/Falsch-Wertung',
       'uncertain' =>
-        last['evaluation']?['independence_uncertain'] == true
+        attempts.length == 1 &&
+                last['assisted'] != true &&
+                last['evaluation']?['independence_uncertain'] == true
             ? 'Richtig · allein gelöst?'
             : 'Prüfung offen',
       'practice' => 'Weiter üben',
@@ -1630,6 +1648,11 @@ class _SavedQuestionResult extends StatelessWidget {
             question['prompt'] ?? '',
             style: TextStyle(fontWeight: FontWeight.w700),
           ),
+          if (attempts.length > 1 &&
+              attempts.whereType<Map>().any(storedAttemptTimeUnknown))
+            const Text(
+              'Die Reihenfolge der Versuche ist nicht sicher bekannt.',
+            ),
           MathText(
             'Deine Antwort: ${_savedAnswerText(question, last['answer'])}',
           ),
@@ -1651,7 +1674,11 @@ class _SavedQuestionResult extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         Text(
-                          'Versuch ${index + 1}',
+                          attempts.whereType<Map>().any(
+                                storedAttemptTimeUnknown,
+                              )
+                              ? 'Gespeicherter Versuch'
+                              : 'Versuch ${index + 1}',
                           style: const TextStyle(fontWeight: FontWeight.w700),
                         ),
                         MathText(

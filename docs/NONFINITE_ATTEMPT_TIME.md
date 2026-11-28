@@ -31,6 +31,10 @@ Datum; nachgewiesene Unterstützung bleibt sichtbar. Bereits installierte alte
 Clients erhalten diese Änderung jedoch erst durch ein Update. Ein Umsetzen
 gespeicherter `outcome`- oder `assisted`-Werte wäre eine falsche Darstellung
 der Originaldaten und ist keine sichere Kompatibilitätslösung.
+Auch die aktuelle Wörterrunde und die Ergebniskarten mussten den Marker und
+ausdrücklich unbekannte Zeiten berücksichtigen. Eine gespeicherte Hilfe bleibt
+dabei als Hilfe sichtbar; bekannte Wiederholungen gelten nicht als
+selbstständiger Erstversuch. Das ist mit künstlichen Widgetfällen geprüft.
 
 Ein möglicher nächster Schritt ist ein ausdrücklich versionierter
 Capability-Vertrag: Nur nachgewiesen kompatible Clients erhalten einen
@@ -40,6 +44,11 @@ ungekürzte Übersicht muss zusätzlich ein mit alten Clients nachweislich
 kompatibler Umgang mit einem einzelnen nicht darstellbaren Eintrag gefunden
 werden. Solange dies nicht belegt ist, bleiben beide XFAILs offen. Eine
 Capability selbst darf weder Rechte noch Datenfreigaben ersetzen.
+Die globale Capability darf erst gesetzt werden, wenn sämtliche Wege, die
+`unit_data` ausliefern (auch Start, Antwort, Lerncontroller, Heft-/Schultag und
+Grafikposition), sowie alle quellen- und kompetenzgebundenen Projektionen mit
+dem neuen Vertrag getestet sind. Ein isolierter Test von zwei GET-Endpunkten
+belegt diese Voraussetzungen nicht.
 
 Coaching-Beobachtungen behandeln betroffene Aufgaben als unklar, vergeben keine
 datierten Prüferfolge daraus und berücksichtigen bei identischen Fragen deren

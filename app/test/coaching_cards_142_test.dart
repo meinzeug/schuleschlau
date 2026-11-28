@@ -85,7 +85,7 @@ void main() {
     )..addFont(rootBundle.load('assets/fonts/Nunito.ttf'))).load();
   });
   testWidgets(
-    'A correct answer with possible exposure remains correct but not independent',
+    'Recorded help stays visible even if the independence marker is uncertain',
     (tester) async {
       final item = question('exposure', [
         {
@@ -98,7 +98,7 @@ void main() {
           },
         },
       ]);
-      expect(storedQuestionCategory(item), 'uncertain');
+      expect(storedQuestionCategory(item), 'assisted');
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -108,13 +108,11 @@ void main() {
           ),
         ),
       );
-      expect(find.textContaining('Richtig · allein gelöst?'), findsOneWidget);
       expect(
-        find.textContaining(
-          'Vielleicht hast du die Lösung vorher schon gesehen.',
-        ),
+        find.textContaining('Mit Hilfe oder erneut richtig'),
         findsOneWidget,
       );
+      expect(find.textContaining('Richtig · allein gelöst?'), findsNothing);
     },
   );
   for (final role in ['child', 'parent']) {

@@ -122,6 +122,12 @@ void main() {
       'id': 'retry',
     };
     await mount(tester, [first, second]);
+    expect(
+      find.text('Die Reihenfolge der Versuche ist nicht sicher bekannt.'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('Versuch 1'), findsNothing);
+    expect(find.textContaining('Gespeicherter Versuch'), findsNWidgets(2));
     expect(answerWith('mit Unterstützung oder erneut'), findsOneWidget);
     expect(answerWith('Selbstständigkeit offen'), findsOneWidget);
     await choose(tester, 'Bewertung offen');

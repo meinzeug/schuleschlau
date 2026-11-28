@@ -2073,25 +2073,14 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
         )
       : SizedBox.shrink();
 
-  bool _attemptTimeUnknown(Map attempt) {
-    if (!attempt.containsKey('created')) return false;
-    final value = attempt['created'];
-    return value is! num || !value.isFinite;
-  }
-
-  bool _attemptIndependenceUnknown(Map attempt) =>
-      _attemptTimeUnknown(attempt) ||
-      (attempt['evaluation'] is Map &&
-          attempt['evaluation']['independence_uncertain'] == true);
-
   String _parentAttemptOutcome(Map attempt, List attempts) {
     final label = outcomeLabel(attempt['outcome']);
     if (attempt['outcome'] != 'correct') return label;
     if (attempt['assisted'] == true) {
       return '$label · mit Unterstützung oder erneut';
     }
-    if (_attemptIndependenceUnknown(attempt) ||
-        attempts.whereType<Map>().any(_attemptTimeUnknown)) {
+    if (storedAttemptIndependenceUnknown(attempt) ||
+        attempts.whereType<Map>().any(storedAttemptTimeUnknown)) {
       return '$label · Selbstständigkeit offen';
     }
     return '$label · selbstständig';
@@ -2105,12 +2094,12 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
     final verdict = attempts.lastOrNull?['outcome'];
     final unknownOrder =
         attempts.length > 1 &&
-        attempts.whereType<Map>().any(_attemptTimeUnknown);
+        attempts.whereType<Map>().any(storedAttemptTimeUnknown);
     final unknownIndependence =
         verdict == 'correct' &&
         attempts.length == 1 &&
         attempts.first['assisted'] == false &&
-        _attemptIndependenceUnknown(attempts.first as Map);
+        storedAttemptIndependenceUnknown(attempts.first as Map);
     final uncertain =
         verdict == 'uncertain' || unknownOrder || unknownIndependence;
     final independent =
@@ -2377,6 +2366,13 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
                           'Nicht begonnen.',
                           style: TextStyle(color: context.palette.muted),
                         ),
+                      if ((q['attempts'] as List).length > 1 &&
+                          (q['attempts'] as List).whereType<Map>().any(
+                            storedAttemptTimeUnknown,
+                          ))
+                        const Text(
+                          'Die Reihenfolge der Versuche ist nicht sicher bekannt.',
+                        ),
                       for (final a in q['attempts'] as List)
                         Padding(
                           padding: EdgeInsets.only(bottom: 8),
@@ -2384,7 +2380,7 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Versuch ${(q['attempts'] as List).indexOf(a) + 1}${a['created'] is num ? ' · ${friendlyDate(a['created'])}' : ''}',
+                                '${(q['attempts'] as List).length > 1 && (q['attempts'] as List).whereType<Map>().any(storedAttemptTimeUnknown) ? 'Gespeicherter Versuch' : 'Versuch ${(q['attempts'] as List).indexOf(a) + 1}'}${a['created'] is num ? ' · ${friendlyDate(a['created'])}' : ''}',
                               ),
                               if (q['type'] == 'grouped')
                                 GroupedAnswerSummary(
@@ -3192,7 +3188,8 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
       final attempts = q['attempts'] as List;
       return attempts.length == 1 &&
           attempts.first['outcome'] == 'correct' &&
-          attempts.first['assisted'] == false;
+          attempts.first['assisted'] == false &&
+          !storedAttemptIndependenceUnknown(attempts.first as Map);
     }).length;
     final result = u['vocabulary_result'] as Map? ?? {};
     return Column(

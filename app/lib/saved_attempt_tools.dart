@@ -173,7 +173,7 @@ class _SavedAttemptToolsBodyState extends State<_SavedAttemptToolsBody> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
-                    'Versuch ${row.ordinal} · ${attemptDate(row.attempt['created'])}',
+                    '${unknownAttemptOrder(row.question) ? 'Gespeicherte Antwort ${row.ordinal}' : 'Versuch ${row.ordinal}'} · ${storedAttemptTimeUnknown(row.attempt) ? 'Zeitpunkt nicht verfügbar' : attemptDate(row.attempt['created'])}',
                     style: const TextStyle(fontWeight: FontWeight.w700),
                   ),
                   MathText(row.question['prompt']?.toString() ?? ''),
@@ -232,6 +232,12 @@ String attemptDate(Object? value) {
   return '${two(date.day)}.${two(date.month)}.${date.year} · ${two(date.hour)}:${two(date.minute)}${date.isUtc ? ' UTC' : ''}';
 }
 
+bool unknownAttemptOrder(Map question) {
+  final attempts = question['attempts'] as List? ?? [];
+  return attempts.length > 1 &&
+      attempts.whereType<Map>().any(storedAttemptTimeUnknown);
+}
+
 class SavedAttemptComparison extends StatefulWidget {
   final Map question;
   const SavedAttemptComparison({super.key, required this.question});
@@ -263,7 +269,14 @@ class _SavedAttemptComparisonState extends State<SavedAttemptComparison> {
             ),
             items: [
               for (var i = 0; i < attempts.length; i++)
-                DropdownMenuItem(value: i, child: Text('Versuch ${i + 1}')),
+                DropdownMenuItem(
+                  value: i,
+                  child: Text(
+                    unknownAttemptOrder(widget.question)
+                        ? 'Gespeicherte Antwort ${i + 1}'
+                        : 'Versuch ${i + 1}',
+                  ),
+                ),
             ],
             onChanged: (value) {
               if (value != null) setState(() => change(value));
@@ -274,7 +287,11 @@ class _SavedAttemptComparisonState extends State<SavedAttemptComparison> {
             readableSavedAnswer(widget.question, attempts[index]['answer']),
           ),
           Text(outcomeLabel(attempts[index]['outcome'])),
-          Text(attemptDate(attempts[index]['created'])),
+          Text(
+            storedAttemptTimeUnknown(attempts[index])
+                ? 'Zeitpunkt nicht verfügbar'
+                : attemptDate(attempts[index]['created']),
+          ),
           AnswerSupport(Json.from(attempts[index])),
         ],
       ),
@@ -283,6 +300,8 @@ class _SavedAttemptComparisonState extends State<SavedAttemptComparison> {
       title: const Text('Zwei Versuche dieser Frage vergleichen'),
       subtitle: MathText(widget.question['prompt']?.toString() ?? ''),
       children: [
+        if (unknownAttemptOrder(widget.question))
+          const Text('Die Reihenfolge der Versuche ist nicht sicher bekannt.'),
         const Text(
           'Zwei gespeicherte Antworten derselben Frage · keine neue Bewertung',
         ),
