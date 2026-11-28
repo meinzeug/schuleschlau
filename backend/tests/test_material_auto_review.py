@@ -1024,7 +1024,12 @@ def test_automatic_many_pages_use_existing_finite_separately_reserved_package_pa
         assert saved.preparation["status"] == "ready", saved.preparation.get("error")
         assert saved.preparation["package_completed_parts"] == 2
         assert db.scalar(select(func.count()).select_from(LearningUnit)) == 2
-        assert db.scalar(select(func.count()).select_from(Usage)) == 10
+        # Eight image checks and two package parts have run. The newly
+        # prepared learning path may reserve its first background stage in
+        # this worker tick, but must not execute it implicitly here.
+        reservations = list(db.scalars(select(Job).where(Job.kind == "study_block")))
+        assert len(reservations) == 1 and reservations[0].status == "queued"
+        assert db.scalar(select(func.count()).select_from(Usage)) == 11
         assert all(db.get(Material, p["id"]).confirmed for p in pages)
     assert [c["package_partition"] for c in calls] == [0, 1]
 
