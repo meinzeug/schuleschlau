@@ -146,6 +146,10 @@ Future<(AppState, GoRouter)> open(
         builder: (_, s) =>
             Scaffold(body: Text('Vorbereitung ${s.pathParameters['job']}')),
       ),
+      GoRoute(
+        path: '/after-school/:child',
+        builder: (_, _) => const Scaffold(body: Text('Fotoeinstieg')),
+      ),
     ],
   );
   addTearDown(router.dispose);
@@ -420,41 +424,43 @@ void main() {
     });
   }
 
-  testWidgets('Empty topic list does not ask the child to pick a topic', (
-    t,
-  ) async {
-    final calls = <http.Request>[];
-    await open(
-      t,
-      calls,
-      initial: '/learn/child/subject/$math',
-      respond: (q) async {
-        if (q.url.path.endsWith('/learning/subjects')) {
-          return response(catalog());
-        }
-        if (q.url.path.endsWith('/learning')) {
-          return response({
-            ...listing(),
-            'items': <Json>[],
-            'total': 0,
-            'random_available': false,
-          });
-        }
-        return response({'items': []});
-      },
-    );
-    expect(find.text('Wähle ein Thema.'), findsNothing);
-    expect(find.text('Gerade ist keine Lernrunde eingeplant.'), findsOneWidget);
-    expect(
-      t
-          .widget<OutlinedButton>(
-            find.byKey(const ValueKey('random-subject-round')),
-          )
-          .onPressed,
-      isNull,
-    );
-    expect(calls.every((q) => q.method == 'GET'), isTrue);
-  });
+  for (final width in [320.0, 390.0]) {
+    testWidgets('Empty subject offers photo entry at $width px', (t) async {
+      final calls = <http.Request>[];
+      await open(
+        t,
+        calls,
+        width: width,
+        scale: 2,
+        initial: '/learn/child/subject/$math',
+        respond: (q) async {
+          if (q.url.path.endsWith('/learning/subjects')) {
+            return response(catalog());
+          }
+          if (q.url.path.endsWith('/learning')) {
+            return response({
+              ...listing(),
+              'items': <Json>[],
+              'total': 0,
+              'random_available': false,
+            });
+          }
+          return response({'items': []});
+        },
+      );
+      expect(find.text('Wähle ein Thema.'), findsNothing);
+      expect(
+        find.text('Gerade ist keine Lernrunde eingeplant.'),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey('random-subject-round')), findsNothing);
+      expect(find.text('Heftseiten hinzufügen'), findsOneWidget);
+      await tap(t, find.text('Heftseiten hinzufügen'));
+      expect(find.text('Fotoeinstieg'), findsOneWidget);
+      expect(calls.every((q) => q.method == 'GET'), isTrue);
+      expect(t.takeException(), isNull);
+    });
+  }
 
   testWidgets('Random saved round starts once and opens its own route', (
     t,
@@ -564,13 +570,16 @@ void main() {
     },
   );
 
-  testWidgets(
-    'Existing preparation disables new random requests and keeps status accessible',
-    (t) async {
+  for (final width in [320.0, 390.0]) {
+    testWidgets('Existing preparation remains accessible at $width px', (
+      t,
+    ) async {
       final calls = <http.Request>[];
       final (_, _) = await open(
         t,
         calls,
+        width: width,
+        scale: 2,
         initial: '/learn/child/subject/$math',
         respond: (q) async {
           if (q.url.path.endsWith('/learning/subjects')) {
@@ -582,19 +591,14 @@ void main() {
           return response({'items': []});
         },
       );
-      expect(
-        t
-            .widget<OutlinedButton>(
-              find.byKey(const ValueKey('random-subject-round')),
-            )
-            .onPressed,
-        isNull,
-      );
+      expect(find.byKey(const ValueKey('random-subject-round')), findsNothing);
+      expect(find.text('Laufende Vorbereitung ansehen'), findsOneWidget);
       await tap(t, find.text('Laufende Vorbereitung ansehen'));
       expect(find.text('Vorbereitung existing'), findsOneWidget);
       expect(calls.where((q) => q.method != 'GET'), isEmpty);
-    },
-  );
+      expect(t.takeException(), isNull);
+    });
+  }
 
   testWidgets(
     'Account change discards a delayed random selection without a write',

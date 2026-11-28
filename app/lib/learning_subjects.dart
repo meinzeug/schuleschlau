@@ -548,25 +548,26 @@ class _LearningSubjectsState extends State<LearningSubjectsScreen> {
                 const Text('Wähle ein Thema.'),
                 const SizedBox(height: 8),
               ],
-              OutlinedButton.icon(
-                key: const ValueKey('random-subject-round'),
-                onPressed:
-                    starting ||
-                        listing?['random_available'] != true ||
-                        listing?['learning_preparation'] != null
-                    ? null
-                    : randomRound,
-                icon: starting
-                    ? const SizedBox.square(
-                        dimension: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.shuffle_rounded),
-                label: Text(
-                  starting ? 'Runde wird geöffnet …' : 'Zufälliges Thema üben',
+              if (starting ||
+                  (listing?['random_available'] == true &&
+                      listing?['learning_preparation'] == null)) ...[
+                OutlinedButton.icon(
+                  key: const ValueKey('random-subject-round'),
+                  onPressed: starting ? null : randomRound,
+                  icon: starting
+                      ? const SizedBox.square(
+                          dimension: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.shuffle_rounded),
+                  label: Text(
+                    starting
+                        ? 'Runde wird geöffnet …'
+                        : 'Zufälliges Thema üben',
+                  ),
                 ),
-              ),
-              const SizedBox(height: 8),
+                const SizedBox(height: 8),
+              ],
               if (listing?['learning_preparation'] is Map) ...[
                 TextButton.icon(
                   onPressed: () => openRoute(
