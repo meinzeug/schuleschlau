@@ -1329,6 +1329,12 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – Alle Kinderansichten sprachlich und in ihrer Bedienung entrümpeln**
 
+  - [x] **Aus einer leeren Heftsuche direkt zurückführen.** Bei einem
+    Filter ohne Treffer steht für Kinder „Alle Seiten zeigen“ im Vordergrund;
+    ein tatsächlich leerer Hefter bietet weiterhin direkt ein erstes Foto an.
+    Synthetische Mobil- und Sitzungswechseltests prüfen den lesenden Reset;
+    die vollständige Kinderabnahme bleibt offen.
+
   - [x] **Pause mit ungesichertem Entwurf verständlich machen.** Der
     scrollbare Dialog warnt kurz vor möglichem Verlust und lässt das Kind in
     der Runde bleiben. Synthetische Widgettests prüfen 320/390 Pixel,

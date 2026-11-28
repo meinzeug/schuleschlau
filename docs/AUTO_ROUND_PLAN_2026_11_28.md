@@ -66,6 +66,10 @@ Ein künstlicher Anbietergrenzfall deckt zudem Quellenrevisionen vor und
 während eines Einzelrundenauftrags ab: Die Ausgabe wird verworfen, Kosten
 werden entsprechend dem Versandzustand geführt und bestehende Antworten
 bleiben erhalten. Ein automatischer Retry findet dabei nicht statt.
+Ein weiterer synthetischer Test widerruft Kindersitzung beziehungsweise
+Eltern-Familienmitgliedschaft vor und während des Aufrufs und prüft dasselbe
+Erhaltungs- und Abrechnungsverhalten auf SQLite und PostgreSQL. Das ist keine
+Prüfung des Push-Opt-ins oder einer Gerätezustellung.
 1. Trigger ausschließlich an einer gespeicherten bestätigten Heft-/Lernweg-
    Revision, nicht bei GET, und ein dauerhaftes revisionsgebundenes Journal:
    Block- und Quell-IDs, Reihenfolge, Zustand, Ursprungssitzung und -familie,
