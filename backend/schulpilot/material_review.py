@@ -820,6 +820,10 @@ def process(job_id):
             material.confirmation_digest = None  # never impersonate a human reading consent
             material.status = "confirmed"
             saved = save_snapshot(db, material, "auto_check", pass_receipt, allow_empty=True)
+            from .notebook_auto import arm
+
+            actor = job.payload[KEY]["origin"]
+            arm(db, db.get(Child, job.child_id), material, {key: actor[key] for key in ("version", "user_id", "session_id", "family_id")})
             job.result = {"material_id": material.id, "source_snapshot_id": saved.id, "check_status": "checked"}
             job.status, job.finished = "completed", int(now())
             usage = db.scalar(select(Usage).where(Usage.job_id == job.id))

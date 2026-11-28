@@ -1223,6 +1223,9 @@ def _maintenance():
             period = bucket.id.rsplit(":", 1)[-1]
             if len(period) == 7 and period[4] == "-" and period.replace("-", "").isdigit() and period < oldest_period:
                 db.delete(bucket)
+        from .notebook_auto import purge_expired as purge_notebook_auto
+
+        purge_notebook_auto(db, int(now()) - 365 * 86400)
         expired_pages = list(db.scalars(select(Material).where(Material.created < int(now()) - 365 * 86400)
                                        .order_by(Material.child_id, Material.id)))
         for child_id in sorted({m.child_id for m in expired_pages}):
@@ -1431,6 +1434,9 @@ def main():
             from .material_review import advance_one as advance_material_review
 
             advance_material_review()
+            from .notebook_auto import advance_one as advance_notebook_rounds
+
+            advance_notebook_rounds()
             from .exam_review import advance_scan_one
 
             advance_scan_one()

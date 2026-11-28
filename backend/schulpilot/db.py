@@ -1000,6 +1000,7 @@ from . import (  # noqa: E402,F401  # noqa: E402,F401
     exam_review_models,
     learning_asset_models,
     media_explorer_models,
+    notebook_auto_models,
     order_withdrawal_models,
     parent_reminder_models,
     payment_models,

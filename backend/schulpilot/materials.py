@@ -611,6 +611,10 @@ def confirm(material_id: str, data: s.MaterialConfirm, p=Depends(authenticated),
     if data.vocabulary and (data.vocabulary.selections is not None or material_vocabulary.preview(material.subject, material.topic, material.content, material.source_blocks)):
         words = material_vocabulary.transfer(db, p, child, material,
             data.vocabulary.model_copy(update={"revision": material.revision}))
+    from .notebook_auto import arm
+
+    if not data.vocabulary:
+        arm(db, child, material, {"version": 1, "user_id": p.user.id, "session_id": p.session.id, "family_id": child.family_id})
     db.commit()
     return material_data(material) | {"task_transfer": tasks} | ({"vocabulary_transfer": words} if words is not None else {})
 

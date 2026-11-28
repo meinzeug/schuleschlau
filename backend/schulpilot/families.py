@@ -655,7 +655,13 @@ def export_child(db, child):
     from . import child_cost_controls, competences, curriculum, source_lineage, visual_positions, visual_references
     from .exam_review import export_review
     from .exams import export_exams
+    from .notebook_auto_models import NotebookAutoIntent
 
+    result["notebook_auto_intents"] = [
+        {"id": row.id, "material_id": row.material_id, "revision": row.revision,
+         "status": row.status, "job_id": row.job_id, "created": row.created}
+        for row in db.scalars(select(NotebookAutoIntent).where(NotebookAutoIntent.child_id == child.id))
+    ]
     result["source_lineage"] = source_lineage.export_sources(db, child.id)
     from .learning_assets import export_child as export_asset_instances
 
