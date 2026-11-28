@@ -5,11 +5,20 @@
 Gespeicherte Heftfotos in der Sammelansicht lassen sich auch bei einer
 Unleserlichkeitsmarkierung direkt vergrößern; ohne Bild wird keine kaputte
 Vorschau angeboten. Große Schrift und kleine Breiten sind in Widgettests
-abgedeckt. Ein synthetischer End-to-End-Test prüft Foto-Upload, zwei
+abgedeckt. Die Vorschau ist gegen alte Klicks nach Kontowechsel und geänderte
+Seitenrevisionen abgesichert. Ein synthetischer End-to-End-Test prüft Foto-Upload, zwei
 Erkennungsschritte, höchstens einen automatisch reservierten Rundenauftrag,
 wiederholte GETs und Providerfehler ohne automatischen Retry. Zwei SQLite- und
-zwei PostgreSQL-Fälle bestanden; er ersetzt keinen echten KI- und Browsertest.
+zwei PostgreSQL-Fälle bestanden; ein weiterer Paralleltest deckt gleiche
+Uploadschlüssel ab. Diese Tests ersetzen keinen echten KI- und Browsertest.
 Dieser Folgestand ist noch nicht deployed.
+
+Auch der Kinderbriefkasten verwirft alte Dialoge und Aktionen bei einer neuen
+Anmeldeabsicht oder einem Token-/Familienwechsel. Die umfassende Kontowechsel-
+und Cookie-Abnahme bleibt offen. Ein zusätzlicher Hinweisfilter korrigiert
+bei verifizierter Bruchmultiplikation den eindeutig falschen Rat, Zähler und
+Nenner gleichzeitig mit der ganzen Zahl zu multiplizieren; dieser Schutz ist
+ebenfalls noch nicht ausgerollt.
 
 ## Ergänzung 28. November 2026: Release und Bruchhinweis
 
