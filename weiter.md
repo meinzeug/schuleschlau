@@ -1,5 +1,18 @@
 # Übergabe an die nächste Coding-KI
 
+## Ergänzung 28. November 2026: Lernrunde beim Anmeldewechsel
+
+Lernrunden zeigen während einer Anmeldung keine privaten Inhalte und starten
+keine neuen Antworten oder Zeitbuchungen. Nach Abbruch benötigt die Fortsetzung
+eine ausdrückliche Aktion und einen frischen Ansichtsstatus; ein verzögerter
+alter Antwortklick bleibt wirkungslos. Unsicher gespeicherte Eingaben bleiben
+bei einem lokalen Speicherfehler für einen erneuten Versuch im Arbeitsspeicher.
+Die zwei älteren CI-Tests zur Vorbereitung prüften den Abruf während einer
+laufenden Anmeldung und schlugen in GitHub-Lauf `46096682192` fehl. Sie prüfen
+nun erst den Anmeldeabbruch und danach den ausdrücklichen Statusabruf; 40
+künstliche Flutter-Fälle und zehn Chrome-Fälle bestanden lokal. Der allgemeine Cookie-Wettlauf, bereits an den
+Server gesendete Aktionen und eine umfassende Android-Abnahme bleiben offen.
+
 ## Ergänzung 28. November 2026: Wortschatz beim Anmeldewechsel
 
 Wortschatz und elterliche Familienübersicht blenden bei einer Anmeldung alte

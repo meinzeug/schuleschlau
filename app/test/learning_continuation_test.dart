@@ -87,7 +87,7 @@ void main() {
       MaterialApp.router(theme: appTheme(), routerConfig: router),
     );
     await tester.pump();
-    state.beginAuthentication();
+    final intent = state.beginAuthentication();
     pending.complete(
       response({
         'kind': 'unit',
@@ -97,8 +97,12 @@ void main() {
     );
     await tester.pump();
     expect(find.text('Los geht’s'), findsNothing);
-    expect(find.text('Status neu laden'), findsOneWidget);
+    expect(find.text('Anmeldung läuft …'), findsOneWidget);
+    expect(find.text('Status neu laden'), findsNothing);
     expect(reads, 1);
+    state.cancelAuthentication(intent);
+    await tester.pump();
+    expect(find.text('Status neu laden'), findsOneWidget);
     await tester.tap(find.text('Status neu laden'));
     await tester.pumpAndSettle();
     expect(find.text('Los geht’s'), findsOneWidget);

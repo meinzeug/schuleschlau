@@ -89,12 +89,16 @@ void main() {
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
       await tester.pump();
-      state.beginAuthentication();
+      final intent = state.beginAuthentication();
       expect(reads, 1);
       oldRead.complete(fixture.response({'kind': 'unit', 'status': 'running'}));
       await tester.pump();
       await tester.pump();
       expect(reads, 1);
+      expect(find.text('Anmeldung läuft …'), findsOneWidget);
+      expect(find.text('Status neu laden'), findsNothing);
+      state.cancelAuthentication(intent);
+      await tester.pump();
       expect(find.text('Status neu laden'), findsOneWidget);
       await tester.tap(find.text('Status neu laden'));
       await tester.pumpAndSettle();

@@ -557,6 +557,10 @@ class _SchulpilotAppState extends State<SchulpilotApp>
         path: '/unit/:id',
         builder: (context, s) => UnitScreen(
           widget.state,
+          key: ValueKey((
+            s.pathParameters['id'],
+            widget.state.api.requestIdentity().$3,
+          )),
           unitId: s.pathParameters['id']!,
           initialQuestionId: s.uri.queryParameters['frage'],
           initialOutcome: s.uri.queryParameters['ergebnis'],

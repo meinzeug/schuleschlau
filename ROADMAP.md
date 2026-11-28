@@ -4684,6 +4684,20 @@ Bestandteil des bestehenden Buildvertrags.
 
   - [ ] **Verspätete gemeinsame API-Antworten nach Kontowechsel absichern.**
 
+    **Aktive Lernrunde beim Anmeldewechsel schützen:** Alte Fragen und
+    Rückmeldungen verschwinden, während einer Anmeldung werden keine neuen
+    Abrufe, Antwortaktionen oder Zeitbuchungen begonnen. Nach Abbruch wartet
+    die ausdrückliche Wiederaufnahme ausstehende Aktionen ab und öffnet einen
+    neuen Ansichtsstatus, damit verzögerte alte Antwortklicks nicht später
+    abgesendet werden. Ungesendete Eingaben werden lokal kontogebunden
+    gesichert; bei einem Speicherfehler bleibt die Wiederaufnahme gesperrt
+    und ein erneuter Versuch möglich. Künstliche Tests decken den verzögerten
+    Antwortklick, den Speicherausfall und die Wiederaufnahme ab. 66
+    Flutter-Lernrundenfälle und zehn gezielte Chrome-Fälle bestanden; die
+    statische Analyse war fehlerfrei. Bereits gesendete Aktionen lassen sich
+    dadurch nicht zurücknehmen; die allgemeine
+    Cookie-Lücke bleibt offen.
+
     **Wortschatz und Familienübersicht beim Anmeldewechsel schützen:** Kinder-
     und Elternansichten laden während einer Anmeldung keine Wörter oder
     Familiendaten, verbergen alte Inhalte und bieten nach Abbruch einen

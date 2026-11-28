@@ -117,6 +117,11 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
   Json? ownerAccount;
   String? ownerFamily;
   String? ownerToken;
+  late (Object?, String?, int?) ownerAuthentication;
+  bool authenticationPaused = false, resumingAuthentication = false;
+  Future<bool>? authenticationDraftSave;
+  Json? authenticationDraftSnapshot;
+  bool authenticationDraftError = false;
   Json? resetInput;
   String? parentQuestionFilter, parentExactQuestion;
   bool parentSearchAnswers = false;
@@ -168,6 +173,7 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
   bool helpExpanded = false;
   bool clockDetails = false;
   bool actionBusy = false;
+  Completer<void>? actionDone;
   Object? actionError;
   bool updatingDraft = false;
   bool leaving = false;
@@ -178,6 +184,9 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
   DateTime get interactionNow => widget.activityClock?.call() ?? DateTime.now();
   bool requestIsCurrent(String id, Json? requestedOwner) =>
       mounted &&
+      !state.authenticationPending &&
+      !authenticationPaused &&
+      state.api.ownsRequest(ownerAuthentication) &&
       requestedOwner != null &&
       widget.unitId == id &&
       identical(ownerAccount, requestedOwner) &&
@@ -196,13 +205,20 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
 
   Future<T?> pushPrivateRoute<T>(PopupRoute<T> route) async {
     if (!requestIsCurrent(widget.unitId, ownerAccount)) return null;
+    final identity = state.api.requestIdentity();
+    final id = widget.unitId, owner = ownerAccount;
+    T? result;
     privateRoutes[route] = (id: widget.unitId, account: ownerAccount);
     try {
-      return await Navigator.of(context, rootNavigator: true).push(route);
+      result = await Navigator.of(context, rootNavigator: true).push(route);
     } finally {
       await route.completed;
       privateRoutes.remove(route);
     }
+    if (!requestIsCurrent(id, owner) || !state.api.ownsRequest(identity)) {
+      return null;
+    }
+    return result;
   }
 
   Future<T?> showUnitDialog<T>({
@@ -251,6 +267,8 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
     ownerAccount = state.user;
     ownerFamily = state.familyId;
     ownerToken = state.api.token;
+    ownerAuthentication = state.api.requestIdentity();
+    authenticationPaused = state.authenticationPending;
     readParentView();
     lastInteraction = interactionNow;
     visible =
@@ -258,6 +276,7 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
         WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
     WidgetsBinding.instance.addObserver(this);
     state.addListener(accountChanged);
+    state.authenticationChanges.addListener(authenticationChanged);
     text.addListener(draftChanged);
     load();
     timer = Timer.periodic(Duration(seconds: 20), (_) => beat());
@@ -285,7 +304,11 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.state != state) {
       oldWidget.state.removeListener(accountChanged);
+      oldWidget.state.authenticationChanges.removeListener(
+        authenticationChanged,
+      );
       state.addListener(accountChanged);
+      state.authenticationChanges.addListener(authenticationChanged);
       accountChanged();
     }
     if (oldWidget.initialQuestionId != widget.initialQuestionId ||
@@ -321,6 +344,8 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
       ownerAccount = state.user;
       ownerFamily = state.familyId;
       ownerToken = state.api.token;
+      ownerAuthentication = state.api.requestIdentity();
+      authenticationPaused = state.authenticationPending;
       savedDraftSignature = pendingDraftKey = pendingDraftSignature = null;
       draftOffline = draftConflict = false;
       needsTimeBaseline = true;
@@ -350,6 +375,7 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
     unawaited(saveDraft());
     WidgetsBinding.instance.removeObserver(this);
     state.removeListener(accountChanged);
+    state.authenticationChanges.removeListener(authenticationChanged);
     timer?.cancel();
     liveClock?.cancel();
     coachingPoll?.cancel();
@@ -385,6 +411,7 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
   }
 
   void noteInteraction() {
+    if (!requestIsCurrent(widget.unitId, ownerAccount)) return;
     final stamp = interactionNow;
     final idle = stamp.difference(lastInteraction).inSeconds > 60;
     if (idle) {
@@ -396,7 +423,11 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
   }
 
   void scheduleDraft() {
-    if (!state.isChild || updatingDraft || awaitingContinue || draftConflict) {
+    if (!requestIsCurrent(widget.unitId, ownerAccount) ||
+        !state.isChild ||
+        updatingDraft ||
+        awaitingContinue ||
+        draftConflict) {
       return;
     }
     draftTimer?.cancel();
@@ -571,7 +602,12 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
 
   Future<void> resolveDraft({required bool keepMine}) async {
     final id = widget.unitId, owner = ownerAccount;
-    if (!state.isChild || owner == null || savingDraft) return;
+    if (!state.isChild ||
+        owner == null ||
+        savingDraft ||
+        !requestIsCurrent(id, owner)) {
+      return;
+    }
     final latest = await state.api.get('/units/$id');
     if (!requestIsCurrent(id, owner)) return;
     if (!keepMine) {
@@ -609,6 +645,7 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
             state.api.token == ownerToken)) {
       return;
     }
+    authenticationDraftSnapshot = null;
     resetInput = null;
     savedExplanationPracticeKey = null;
     matchUndo.clear();
@@ -639,6 +676,126 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
       matches = {};
       clockAnchor = null;
     });
+  }
+
+  Future<bool> saveAuthenticationDraft(
+    Json snapshot,
+    Json owner,
+    String id,
+  ) async {
+    try {
+      await state.learningDrafts.save(owner['id'] as String, id, snapshot);
+      if (!identical(state.user, owner)) {
+        await state.learningDrafts.remove(owner['id'] as String, id);
+        return false;
+      }
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  void authenticationChanged() {
+    if (!mounted) return;
+    if (!authenticationPaused && state.authenticationPending) {
+      final draft = draftSnapshot();
+      final owner = ownerAccount;
+      if (draft != null &&
+          owner != null &&
+          !draftConflict &&
+          identical(state.user, owner) &&
+          draft.toString() != savedDraftSignature) {
+        authenticationDraftSnapshot = {
+          ...draft,
+          'source_signature': unit?['learning_session']?['source_signature'],
+        };
+        authenticationDraftSave = saveAuthenticationDraft(
+          authenticationDraftSnapshot!,
+          owner,
+          widget.unitId,
+        );
+      }
+    }
+    authenticationPaused = true;
+    loadEpoch++;
+    loading = false;
+    reloadAfterResume = false;
+    draftTimer?.cancel();
+    coachingPoll?.cancel();
+    closePrivateRoutes();
+    FocusManager.instance.primaryFocus?.unfocus();
+    needsTimeBaseline = true;
+    updatingDraft = true;
+    text.clear();
+    updatingDraft = false;
+    setState(() {
+      unit = null;
+      error = actionError = null;
+      answeredQuestion = null;
+      answeredText = explanation = hint = choice = null;
+      matches = {};
+      awaitingContinue = false;
+      feedbackAttemptId = null;
+      clockAnchor = null;
+      pendingSeconds = 0;
+      clockWasRunning = false;
+    });
+  }
+
+  Future<void> resumeAfterAuthentication() async {
+    if (!mounted ||
+        state.authenticationPending ||
+        resumingAuthentication ||
+        !identical(state.user, ownerAccount) ||
+        state.familyId != ownerFamily ||
+        state.api.token != ownerToken) {
+      return;
+    }
+    final identity = state.api.requestIdentity();
+    setState(() => resumingAuthentication = true);
+    try {
+      var draftSaved = await authenticationDraftSave ?? true;
+      if (!draftSaved &&
+          authenticationDraftSnapshot != null &&
+          ownerAccount != null) {
+        draftSaved = await saveAuthenticationDraft(
+          authenticationDraftSnapshot!,
+          ownerAccount!,
+          widget.unitId,
+        );
+      }
+      if (!draftSaved) {
+        if (mounted) setState(() => authenticationDraftError = true);
+        return;
+      }
+      authenticationDraftSnapshot = null;
+      await actionDone?.future;
+      await heartbeatDone?.future;
+      if (!mounted ||
+          state.authenticationPending ||
+          !state.api.ownsRequest(identity) ||
+          !identical(state.user, ownerAccount) ||
+          state.familyId != ownerFamily ||
+          state.api.token != ownerToken) {
+        return;
+      }
+      // A fresh widget keeps every old in-flight callback bound to the old
+      // authentication intent. Rebinding this State would let a delayed
+      // answer action continue after the child explicitly reopens the round.
+      final route = GoRouterState.of(context).uri;
+      context.go(
+        route
+            .replace(
+              queryParameters: {
+                ...route.queryParameters,
+                '_resume': '${identity.$3}',
+              },
+            )
+            .toString(),
+      );
+    } finally {
+      if (mounted) setState(() => resumingAuthentication = false);
+    }
   }
 
   Json? get currentQuestion {
@@ -877,6 +1034,7 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
 
   bool get clockRunning =>
       mounted &&
+      requestIsCurrent(widget.unitId, ownerAccount) &&
       state.isChild &&
       identical(state.user, ownerAccount) &&
       state.api.token == ownerToken &&
@@ -985,7 +1143,11 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
   }
 
   Future<void> load() async {
-    if (loading || loadRateLimited) return;
+    if (!requestIsCurrent(widget.unitId, ownerAccount) ||
+        loading ||
+        loadRateLimited) {
+      return;
+    }
     loading = true;
     final requestedId = widget.unitId;
     final requestedOwner = ownerAccount;
@@ -1090,12 +1252,18 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
   Widget askButton(Json u) => TextButton.icon(
     icon: Icon(Icons.chat_bubble_outline_rounded),
     label: Text('Frag nach'),
-    onPressed: () => showTutorSheet(
-      context,
-      state,
-      childId: u['child_id'] ?? state.user!['child_id'],
-      unitId: u['id'],
-    ),
+    onPressed: () {
+      if (!requestIsCurrent(widget.unitId, ownerAccount) ||
+          !identical(unit, u)) {
+        return;
+      }
+      showTutorSheet(
+        context,
+        state,
+        childId: u['child_id'] ?? state.user!['child_id'],
+        unitId: u['id'],
+      );
+    },
   );
 
   bool done(dynamic q) {
@@ -1112,7 +1280,39 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
     if (!requestIsCurrent(widget.unitId, ownerAccount)) {
       return Scaffold(
         body: SafeArea(
-          child: Center(child: MathText('Bitte melde dich erneut an.')),
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                MathText(
+                  state.authenticationPending
+                      ? 'Anmeldung läuft …'
+                      : authenticationPaused
+                      ? 'Lade deine Runde erneut.'
+                      : 'Bitte melde dich erneut an.',
+                ),
+                if (authenticationDraftError && !state.authenticationPending)
+                  const Text(
+                    'Deine Eingabe ist noch nicht gespeichert. Versuche es erneut.',
+                  ),
+                if (authenticationPaused &&
+                    !state.authenticationPending &&
+                    identical(state.user, ownerAccount) &&
+                    state.familyId == ownerFamily &&
+                    state.api.token == ownerToken)
+                  TextButton(
+                    onPressed: resumingAuthentication
+                        ? null
+                        : resumeAfterAuthentication,
+                    child: Text(
+                      resumingAuthentication
+                          ? 'Einen Moment …'
+                          : 'Runde neu laden',
+                    ),
+                  ),
+              ],
+            ),
+          ),
         ),
       );
     }
@@ -1373,9 +1573,11 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
   }
 
   Future<void> perform(Future<void> Function() action) async {
-    if (actionBusy || !identical(state.user, ownerAccount)) return;
+    if (actionBusy || !requestIsCurrent(widget.unitId, ownerAccount)) return;
     final requestedId = widget.unitId;
     final requestedOwner = ownerAccount;
+    final completed = Completer<void>();
+    actionDone = completed;
     setState(() {
       actionBusy = true;
       actionError = null;
@@ -1387,6 +1589,8 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
         setState(() => actionError = e);
       }
     } finally {
+      if (identical(actionDone, completed)) actionDone = null;
+      completed.complete();
       if (requestIsCurrent(requestedId, requestedOwner)) {
         setState(() => actionBusy = false);
       }
@@ -1556,6 +1760,7 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
 
   Future<void> controllerAction(Json u, String kind) async {
     final id = u['id'] as String, owner = ownerAccount;
+    if (!requestIsCurrent(id, owner)) return;
     final session = await state.api.get('/units/$id/learning-session');
     if (!requestIsCurrent(id, owner)) return;
     final data = await state.api.post('/units/$id/learning-session/action', {
@@ -2762,7 +2967,10 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
                     slow: slow,
                     enabled: !actionBusy,
                     onReadCompleted: () async {
-                      if (!mounted || currentQuestion?['id'] != q['id']) return;
+                      if (!requestIsCurrent(widget.unitId, ownerAccount) ||
+                          currentQuestion?['id'] != q['id']) {
+                        return;
+                      }
                       await state.api.post(
                         '/units/${unit!['id']}/questions/${q['id']}/language-stimulus',
                         {'kind': 'listen'},
@@ -3527,6 +3735,7 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
   Future<void> openFeedbackText(Json u, Json q) async {
     final attemptId = feedbackAttemptId;
     final requestedOwner = ownerAccount;
+    if (!requestIsCurrent(u['id'], requestedOwner)) return;
     if (attemptId == null || !awaitingContinue) {
       throw ApiError('Bitte lade die gespeicherte Rückmeldung erneut.');
     }
@@ -4412,6 +4621,7 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
 
   Future<void> prepareInstructionalPlan({bool supportCheck = false}) async {
     final id = widget.unitId, owner = ownerAccount;
+    if (!requestIsCurrent(id, owner)) return;
     final route = ModalRoute.of(context);
     final session = await state.api.get('/units/$id/learning-session');
     if (!requestIsCurrent(id, owner) || route?.isCurrent == false) return;

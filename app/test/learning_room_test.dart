@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
@@ -218,6 +219,8 @@ Future<RoundHarness> openRound(
   double textScale = 1,
   bool parent = false,
   Future<http.Response> Function(http.Request)? handle,
+  void Function(AppState)? beforeMount,
+  FlutterSecureStorage? storage,
 }) async {
   tester.view.physicalSize = Size(320, height);
   tester.view.devicePixelRatio = 1;
@@ -229,6 +232,7 @@ Future<RoundHarness> openRound(
             base: 'https://example.invalid/api',
             client: MockClient(handle ?? server.handle),
           ),
+          storage: storage,
         )
         ..user = {
           'id': parent ? 'parent' : 'own-child',
@@ -237,12 +241,20 @@ Future<RoundHarness> openRound(
           'display_name': 'Kunstkind',
           'families': <Json>[],
         };
+  beforeMount?.call(state);
   final router = GoRouter(
     initialLocation: '/unit/unit',
     routes: [
       GoRoute(
         path: '/unit/:id',
-        builder: (_, _) => UnitScreen(state, unitId: 'unit'),
+        builder: (_, route) => UnitScreen(
+          state,
+          key: ValueKey((
+            route.pathParameters['id'],
+            state.api.requestIdentity().$3,
+          )),
+          unitId: 'unit',
+        ),
       ),
       GoRoute(
         path: '/app',
