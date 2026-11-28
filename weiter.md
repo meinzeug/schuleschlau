@@ -1,5 +1,15 @@
 # Übergabe an die nächste Coding-KI
 
+## Ergänzung 28. November 2026: Wortschatz beim Anmeldewechsel
+
+Wortschatz und elterliche Familienübersicht blenden bei einer Anmeldung alte
+Inhalte aus und laden nach Abbruch erst auf ausdrücklichen Wunsch neu. Alte
+Familienkarten und Dialogergebnisse bleiben an ihr ursprüngliches Konto und
+ihre Sitzung gebunden. Ein bereits begonnener Wortimport behält seinen
+Wiederholungsschlüssel. 48 künstliche Flutter- und neun Chrome-Fälle bestanden;
+ohne Dialogbindung konnte ein Test den alten Import-POST reproduzieren. Der
+allgemeine Cookie-Wettlauf und bereits gesendete Aktionen bleiben offen.
+
 ## Ergänzung 28. November 2026: Vorbereitungsstatus beim Anmeldewechsel
 
 Die Vorbereitungsseite liest während einer Anmeldung keinen Auftragsstatus,

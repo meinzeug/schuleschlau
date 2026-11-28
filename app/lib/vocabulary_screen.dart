@@ -49,7 +49,87 @@ class FamilyVocabularyScreen extends StatelessWidget {
   final AppState state;
   const FamilyVocabularyScreen(this.state, {super.key});
   @override
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: state,
+    builder: (context, _) => _FamilyVocabularyGate(
+      state,
+      key: ValueKey((
+        ObjectKey(state),
+        ObjectKey(state.user),
+        state.familyId,
+        state.api.token,
+      )),
+    ),
+  );
+}
+
+class _FamilyVocabularyGate extends StatefulWidget {
+  final AppState state;
+  const _FamilyVocabularyGate(this.state, {super.key});
+  @override
+  State<_FamilyVocabularyGate> createState() => _FamilyVocabularyGateState();
+}
+
+class _FamilyVocabularyGateState extends State<_FamilyVocabularyGate> {
+  late bool paused;
+  AppState get state => widget.state;
+  late final Json? owner = state.user;
+  late final String? family = state.familyId;
+  late final String? session = state.api.token;
+  bool get current =>
+      identical(owner, state.user) &&
+      family == state.familyId &&
+      session == state.api.token &&
+      !state.authenticationPending &&
+      !paused;
+
+  @override
+  void initState() {
+    super.initState();
+    paused = state.authenticationPending;
+    state.authenticationChanges.addListener(authenticationChanged);
+  }
+
+  void authenticationChanged() {
+    if (mounted) setState(() => paused = true);
+  }
+
+  @override
+  void dispose() {
+    state.authenticationChanges.removeListener(authenticationChanged);
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (!identical(owner, state.user) ||
+        family != state.familyId ||
+        session != state.api.token) {
+      return const SizedBox.shrink();
+    }
+    if (state.authenticationPending || paused) {
+      return PageFrame(
+        state: state,
+        title: 'Wörter deiner Kinder',
+        child: Panel(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                state.authenticationPending
+                    ? 'Anmeldung läuft …'
+                    : 'Lade die Wörterübersicht erneut.',
+              ),
+              if (!state.authenticationPending)
+                TextButton(
+                  onPressed: () => setState(() => paused = false),
+                  child: const Text('Wörter neu laden'),
+                ),
+            ],
+          ),
+        ),
+      );
+    }
     if (state.isChild) {
       return VocabularyScreen(state, childId: state.user!['child_id']);
     }
@@ -83,8 +163,11 @@ class FamilyVocabularyScreen extends StatelessWidget {
                           ),
                           subtitle: const Text('Wortschatz & Wiederholungen'),
                           trailing: const Icon(Icons.chevron_right_rounded),
-                          onTap: () =>
-                              openRoute(context, '/vocabulary/${child['id']}'),
+                          onTap: () {
+                            if (current) {
+                              openRoute(context, '/vocabulary/${child['id']}');
+                            }
+                          },
                         ),
                       ),
                     ),
@@ -155,6 +238,8 @@ class _VocabularyScreenState extends State<_VocabularyBody>
   bool sourceOffered = false;
   late Json? owner;
   late final family = widget.state.familyId;
+  late (Object?, String?, int?) authentication;
+  bool authenticationPaused = false;
   final ownedDialogs = <ModalRoute<dynamic>>{};
   Timer? poll;
   String? importRequestBody,
@@ -184,12 +269,17 @@ class _VocabularyScreenState extends State<_VocabularyBody>
   String get pendingImportMemory => '$memoryKey:pending-import';
   String get memoryKey =>
       'vocabulary:${widget.childId}:${widget.materialId ?? 'all'}:${widget.initialLocale}';
-  bool get current =>
+  bool get sameOwner =>
       mounted &&
       owner != null &&
       identical(owner, widget.state.user) &&
       family == widget.state.familyId &&
       sessionToken == widget.state.api.token;
+  bool get current =>
+      sameOwner &&
+      !widget.state.authenticationPending &&
+      !authenticationPaused &&
+      widget.state.api.ownsRequest(authentication);
 
   Widget vocabularyTools({
     required String summary,
@@ -219,6 +309,8 @@ class _VocabularyScreenState extends State<_VocabularyBody>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     owner = widget.state.user;
+    authentication = widget.state.api.requestIdentity();
+    authenticationPaused = widget.state.authenticationPending;
     locale = learningLocales.containsKey(widget.initialLocale)
         ? widget.initialLocale
         : 'en-GB';
@@ -249,11 +341,41 @@ class _VocabularyScreenState extends State<_VocabularyBody>
       searchContext = saved['search_context'] == true;
     }
     widget.state.addListener(accountChanged);
+    widget.state.authenticationChanges.addListener(authenticationChanged);
     load();
   }
 
+  void authenticationChanged() {
+    if (!mounted) return;
+    poll?.cancel();
+    generation++;
+    closeOwnedDialogs();
+    FocusManager.instance.primaryFocus?.unfocus();
+    setState(() {
+      authenticationPaused = true;
+      data = null;
+      imports = [];
+      pendingImports = null;
+      collections = [];
+      revealed.clear();
+      loadedQuery = readingQuery = null;
+      loading = false;
+      busy = false;
+      error = null;
+      localMenuOpen = false;
+      menuScope = null;
+    });
+  }
+
+  void resumeWords() {
+    if (!sameOwner || widget.state.authenticationPending) return;
+    authentication = widget.state.api.requestIdentity();
+    setState(() => authenticationPaused = false);
+    unawaited(load());
+  }
+
   void accountChanged() {
-    if (!current && mounted) {
+    if (!sameOwner && mounted) {
       poll?.cancel();
       generation++;
       closeOwnedDialogs();
@@ -278,6 +400,7 @@ class _VocabularyScreenState extends State<_VocabularyBody>
     poll?.cancel();
     generation++;
     widget.state.removeListener(accountChanged);
+    widget.state.authenticationChanges.removeListener(authenticationChanged);
     search.dispose();
     super.dispose();
   }
@@ -348,9 +471,11 @@ class _VocabularyScreenState extends State<_VocabularyBody>
 
   Future<T?> scopedDialog<T>({required WidgetBuilder builder}) async {
     if (!current) return null;
+    final identity = widget.state.api.requestIdentity();
     ModalRoute<dynamic>? dialogRoute;
+    T? result;
     try {
-      return await showDialog<T>(
+      result = await showDialog<T>(
         context: context,
         builder: (dialogContext) {
           dialogRoute ??= ModalRoute.of(dialogContext);
@@ -365,6 +490,8 @@ class _VocabularyScreenState extends State<_VocabularyBody>
         ownedDialogs.remove(dialogRoute);
       }
     }
+    if (!current || !widget.state.api.ownsRequest(identity)) return null;
+    return result;
   }
 
   Future<void> load() async {
@@ -1007,6 +1134,7 @@ class _VocabularyScreenState extends State<_VocabularyBody>
 
   Future<void> run(Future<void> Function() action) async {
     if (busy || !current) return;
+    final actionIdentity = widget.state.api.requestIdentity();
     setState(() {
       busy = true;
       error = null;
@@ -1014,13 +1142,15 @@ class _VocabularyScreenState extends State<_VocabularyBody>
     try {
       await action();
     } catch (e) {
-      if (current) {
+      if (current && widget.state.api.ownsRequest(actionIdentity)) {
         setState(
           () => error = e is ApiError ? e.message : 'Die Aktion ist noch nicht bestätigt. Deine Eingaben bleiben erhalten. Versuche es bewusst erneut.',
         );
       }
     } finally {
-      if (current) setState(() => busy = false);
+      if (current && widget.state.api.ownsRequest(actionIdentity)) {
+        setState(() => busy = false);
+      }
     }
   }
 
@@ -3304,7 +3434,25 @@ class _VocabularyScreenState extends State<_VocabularyBody>
           : '${data!['child']['display_name']} · Wortschatz',
       showTitle: false,
       child: !current
-          ? const SizedBox.shrink()
+          ? sameOwner
+                ? Panel(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          widget.state.authenticationPending
+                              ? 'Anmeldung läuft …'
+                              : 'Lade deine Wörter erneut.',
+                        ),
+                        if (!widget.state.authenticationPending)
+                          TextButton(
+                            onPressed: resumeWords,
+                            child: const Text('Wörter neu laden'),
+                          ),
+                      ],
+                    ),
+                  )
+                : const SizedBox.shrink()
           : Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [

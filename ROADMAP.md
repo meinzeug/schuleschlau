@@ -4684,6 +4684,17 @@ Bestandteil des bestehenden Buildvertrags.
 
   - [ ] **Verspätete gemeinsame API-Antworten nach Kontowechsel absichern.**
 
+    **Wortschatz und Familienübersicht beim Anmeldewechsel schützen:** Kinder-
+    und Elternansichten laden während einer Anmeldung keine Wörter oder
+    Familiendaten, verbergen alte Inhalte und bieten nach Abbruch einen
+    bewussten Neuabruf. Alte Familienkarten prüfen Konto, Familie und Sitzung
+    auch vor einer Navigation. Offene Wortimport-Schlüssel bleiben erhalten;
+    ein verspätetes Ergebnis eines alten Dialogs kann nach erneutem Laden
+    keinen Import absenden. 48 künstliche Flutter-Fälle und neun Chrome-Fälle
+    bestanden. Der Dialogfall löste ohne die neue Bindung reproduzierbar einen
+    unerwünschten POST aus. Bereits serverseitig gesendete Aktionen und der
+    allgemeine Cookie-Wettlauf bleiben offen.
+
     **Rundenvorbereitung beim Anmeldewechsel pausieren:** Die Statusseite
     fragt während einer laufenden Anmeldung keine Aufträge ab und verwirft
     alte Anzeigen. Nach einem Abbruch startet erst „Status neu laden“ den
