@@ -2320,7 +2320,6 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
                                       child: InkWell(
                                         onTap: () {
                                           if (!active ||
-                                              locked ||
                                               !sameDay(
                                                 photoGeneration,
                                                 photoDayId,
