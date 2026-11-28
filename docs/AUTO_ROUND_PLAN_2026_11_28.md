@@ -62,6 +62,10 @@ nachgewiesen.
 Dieselben Eigenschaften wurden auch für automatisch vorbereitete einzelne
 Heftseiten geprüft, einschließlich paralleler Recovery-Läufe und
 Quellenänderungen vor und nach dem Bereitstellen der In-App-Meldung.
+Ein künstlicher Anbietergrenzfall deckt zudem Quellenrevisionen vor und
+während eines Einzelrundenauftrags ab: Die Ausgabe wird verworfen, Kosten
+werden entsprechend dem Versandzustand geführt und bestehende Antworten
+bleiben erhalten. Ein automatischer Retry findet dabei nicht statt.
 1. Trigger ausschließlich an einer gespeicherten bestätigten Heft-/Lernweg-
    Revision, nicht bei GET, und ein dauerhaftes revisionsgebundenes Journal:
    Block- und Quell-IDs, Reihenfolge, Zustand, Ursprungssitzung und -familie,
