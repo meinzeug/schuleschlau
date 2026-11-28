@@ -1785,6 +1785,7 @@ def question(unit, question_id):
 def hint(unit_id: str, question_id: str, p=Depends(child_user), db=Depends(get_db),
          idempotency_key: str | None = Header(None, alias="Idempotency-Key", min_length=16, max_length=80, pattern=r"^[A-Za-z0-9_-]+$")):
     unit = get_unit(db, p, unit_id, True, True)
+    lock_evidence_writer(db, p, unit)
     q = question(unit, question_id)
     saved = list(db.scalars(select(Activity).where(Activity.unit_id == unit.id, Activity.kind == "hint")))
     if idempotency_key:
@@ -1797,7 +1798,6 @@ def hint(unit_id: str, question_id: str, p=Depends(child_user), db=Depends(get_d
             return {"hint": clarify_fraction_product_hint(q, replay.detail["text"]), "hints_used": replay.detail["number"],
                     "exhausted": replay.detail["number"] >= 3,
                     "presentation": hint_presentation(q, replay.detail["number"])}
-    lock_evidence_writer(db, p, unit)
     if unit.status not in ("active", "paused"):
         raise HTTPException(409, "Diese Runde ist abgeschlossen. Du kannst die gespeicherte Erklärung im Rückblick lesen.")
     previous = db.scalar(select(Attempt).where(Attempt.unit_id == unit.id, Attempt.question_id == question_id)
@@ -2034,6 +2034,7 @@ def schedule_completed_review(db, unit):
 def answer(unit_id: str, question_id: str, data: s.AnswerRequest, p=Depends(child_user), db=Depends(get_db),
            capabilities: str | None = Header(None, alias="X-Schulpilot-Capabilities")):
     unit = get_unit(db, p, unit_id, True, True)
+    lock_evidence_writer(db, p, unit)
     language_capability(unit, capabilities, db)
     try:
         q = question(unit, question_id)
@@ -2061,7 +2062,6 @@ def answer(unit_id: str, question_id: str, data: s.AnswerRequest, p=Depends(chil
             if saved.request_digest != request_digest:
                 raise HTTPException(409, "Dieser Antwortschlüssel gehört zu einer anderen Antwort.")
             return answer_response(db, unit, question(unit, question_id), saved)
-    lock_evidence_writer(db, p, unit)
     if unit.status != "active":
         raise HTTPException(409, "Bitte die Lerneinheit zuerst starten oder fortsetzen.")
     if reason := learning_block(db, unit):

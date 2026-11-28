@@ -195,8 +195,9 @@ def test_waiting_evidence_action_rechecks_revoked_session(study, kind):
 
 
 @pytest.mark.parametrize("kind", ["answer", "hint"])
-def test_idempotent_replay_does_not_wait_for_child_or_duplicate_evidence(study, kind):
-    from schulpilot.db import Child
+@pytest.mark.parametrize("access", ["valid", "revoked", "expired"])
+def test_replay_rechecks_session_after_waiting_for_unit(study, kind, access):
+    from schulpilot.db import Family, Session, User, now
     from sqlalchemy import update
 
     unit_id, _job_id = start(study)
@@ -205,19 +206,42 @@ def test_idempotent_replay_does_not_wait_for_child_or_duplicate_evidence(study, 
     payload = {"answer": "nein", "request_id": "synthetic-replay-key-123"} if kind == "answer" else None
     first = study["client"].post(path, json=payload, headers=headers)
     assert first.status_code == 200, first.text
+    waiting, writer_pid = threading.Event(), []
+    def sql_gate(_conn, cursor, statement, _parameters, _context, _executemany):
+        if statement.lstrip().lower().startswith("update learning_units"):
+            writer_pid.append(cursor.connection.info.backend_pid)
+            waiting.set()
     with DB() as holder:
-        holder.execute(update(Child).where(Child.id == study["child"]["id"]).values(grade=Child.grade))
-        with ThreadPoolExecutor(max_workers=1) as writers:
-            def replay():
-                with TestClient(app, headers=dict(study["client"].headers)) as client:
-                    return client.post(path, json=payload, headers=headers)
-            task = writers.submit(replay)
-            try:
-                response = task.result(timeout=5)
-            finally:
-                holder.rollback()
-    assert response.status_code == 200, response.text
-    assert response.json() == first.json()
+        holder.execute(update(LearningUnit).where(LearningUnit.id == unit_id).values(status=LearningUnit.status))
+        event.listen(engine, "before_cursor_execute", sql_gate)
+        try:
+            with ThreadPoolExecutor(max_workers=1) as writers:
+                def replay():
+                    with TestClient(app, headers=dict(study["client"].headers)) as client:
+                        return client.post(path, json=payload, headers=headers)
+                task = writers.submit(replay)
+                try:
+                    assert waiting.wait(15)
+                    wait_for_db_lock(writer_pid[0])
+                    if access != "valid":
+                        with DB.begin() as db:
+                            if access == "revoked":
+                                user = db.scalar(select(User).where(User.username == "test-child"))
+                                db.execute(update(Session).where(Session.user_id == user.id).values(revoked=True))
+                            else:
+                                family = db.get(Family, study["parent"]["families"][0]["id"])
+                                family.expires = int(now()) - 1
+                finally:
+                    holder.rollback()
+                response = task.result(timeout=15)
+        finally:
+            event.remove(engine, "before_cursor_execute", sql_gate)
+            holder.rollback()
+    if access == "valid":
+        assert response.status_code == 200, response.text
+        assert response.json() == first.json()
+    else:
+        assert response.status_code == (401 if access == "revoked" else 410), response.text
     with DB() as db:
         if kind == "answer":
             assert len(list(db.scalars(select(Attempt).where(Attempt.unit_id == unit_id)))) == 2
@@ -288,5 +312,23 @@ def test_waiting_answer_rechecks_child_role(study):
             event.remove(engine, "before_cursor_execute", sql_gate)
             holder.rollback()
     assert response.status_code == 403, response.text
+    with DB() as db:
+        assert len(list(db.scalars(select(Attempt).where(Attempt.unit_id == unit_id)))) == 1
+
+
+def test_busy_session_never_deadlocks_evidence_write(study):
+    from schulpilot.db import Session, User
+
+    unit_id, _job_id = start(study)
+    with DB() as holder:
+        user = holder.scalar(select(User).where(User.username == "test-child"))
+        holder.scalar(select(Session).where(Session.user_id == user.id, Session.revoked.is_(False)).with_for_update())
+        with ThreadPoolExecutor(max_workers=1) as writers:
+            task = writers.submit(call, study, unit_id, "answer")
+            try:
+                response = task.result(timeout=8)
+            finally:
+                holder.rollback()
+    assert response.status_code == 409, response.text
     with DB() as db:
         assert len(list(db.scalars(select(Attempt).where(Attempt.unit_id == unit_id)))) == 1

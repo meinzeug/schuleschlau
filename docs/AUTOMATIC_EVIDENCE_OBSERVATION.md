@@ -26,8 +26,8 @@ Units und keine Änderung oder Überschreibung vorhandener Antworten.
 
 | Pfad | Veränderung und Sperrung | Konsequenz für einen künftigen Zähler |
 |---|---|---|
-| `learning.answer`, `get_unit` | Neue Antworten sperren Unit, danach Child und prüfen die Sitzung erneut; Replays bleiben lesend. | Reguläre Antworten serialisieren damit gegen die Veröffentlichung; ein vollständiger Zähler und alle anderen Schreibpfade bleiben offen. |
-| `learning.hint`, `learning.explanation`, `learning_tips` | Neue Hinweise und explizit geöffnete Erklärungen sperren Unit und Child und prüfen die Sitzung erneut. Hinweis-Replays bleiben lesend; `learning_tips` ist separat zu prüfen. | Auch übrige Hilfen und geänderte Unterstützungssemantik erfassen; einen ungelesenen Hinweis nicht als Antwort zählen. |
+| `learning.answer`, `get_unit` | Antworten und Replays sperren Unit, danach Child und prüfen die Sitzung erneut. | Reguläre Antworten serialisieren damit gegen die Veröffentlichung; ein vollständiger Zähler und alle anderen Schreibpfade bleiben offen. |
+| `learning.hint`, `learning.explanation`, `learning_tips` | Hinweise, ihre Replays und explizit geöffnete Erklärungen sperren Unit und Child und prüfen die Sitzung erneut; `learning_tips` ist separat zu prüfen. | Auch übrige Hilfen und geänderte Unterstützungssemantik erfassen; einen ungelesenen Hinweis nicht als Antwort zählen. |
 | `assessments.recheck` über `learning.recheck_answer` | Unit zuerst, anschließend Child; neuer revisionsgebundener `AttemptAssessment` und aktualisierter Ausgangsversuch in derselben Transaktion. | Genau einmal pro neuer Nachbewertung erhöhen; vorhandene Nachprüfung ist Replay. |
 | `schulbuddy.process` / `record_help` | Betroffene laufende Units sortiert vor Child sperren; Erklärung als Hilfsaktivität, keine alten Antworten umschreiben. | Alle betroffenen Fachschlüssel sortiert behandeln; Marker-Version 2 beobachtet auch die Aktivitätsmetadaten von `explanation`, nicht deren Text. |
 | `learning_entry.remember_generated` / `QuestionCompetence` | Zuordnung von Aufgaben zu versionierten Kompetenzen beim Erzeugen der Unit. | Änderungen oder Löschung vorhandener Bindungen für bereits beantwortete Aufgaben beachten; neue unbeantwortete Units sind kein Leistungsnachweis. |
@@ -43,14 +43,17 @@ administrativen, Migrations-, Import- und Wiederherstellungspfade erfasst sind.
 
 Die drei regulären Kinderaktionen Antwort, Hinweis und Erklärung halten nach
 der Unit-Sperre die Child-Sperre bis zum Commit; nach dem Warten werden die
-Sitzung und der eigene Kinderzugang nochmals geprüft. Ein gespeicherter,
-idempotenter Antwort- oder Hinweis-Replay bleibt ohne neue Child-Sperre rein
-lesend. Bei der Erklärung wird die transaktional sperrende Unit-Abfrage erst
-nach dem unabhängig commitenden Rate-Limit ausgeführt.
+Sitzung und der eigene Kinderzugang nochmals geprüft. Auch idempotente Antwort-
+und Hinweis-Replays prüfen nach dem Warten Unit→Child→Session, bevor gespeicherte
+Ergebnisse zurückgegeben werden; sie erzeugen keine zusätzlichen Belege. Bei
+der Erklärung wird die transaktional sperrende Unit-Abfrage erst nach dem
+unabhängig commitenden Rate-Limit ausgeführt.
 
-Dreizehn synthetische PostgreSQL-Fälle zeigen die zwei Commit-Reihenfolgen für alle
+18 synthetische PostgreSQL-Fälle zeigen die zwei Commit-Reihenfolgen für alle
 drei Aktionen, wartenden Sitzungsentzug, geänderte Rolle, abgelaufenen Zugang
-und unveränderte Replays. Eine nach
+und Replays nach Unit-Wartezeit mit intaktem beziehungsweise entzogenem Zugang.
+Bei einer bereits gesperrten Sitzung bricht eine Antwort ohne Warteschleife
+ab; dies belegt nicht die Abwesenheit aller möglichen Deadlocks. Eine nach
 der Veröffentlichung gespeicherte Änderung bleibt erkennbar und löst beim
 Öffnen der vorbereiteten Runde einen vorsichtigen Hinweis aus. Diese Tests
 belegen keine vollständige Atomarität: insbesondere Quellen- und Unit-Löschung,
