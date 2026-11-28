@@ -668,6 +668,9 @@ class _StudyPathPanelState extends State<StudyPathPanel>
         actionError != null ||
         blocks.any((block) => (block['error'] as String? ?? '').isNotEmpty);
     final shortChildPath = state.isChild && blocks.length <= 3;
+    final hasBlockFilter =
+        blockFilter != 'all' || blockSearch.text.trim().isNotEmpty;
+    final displayedGeneration = generation;
     final childFilter = _AccessibleStudyPathExpansion(
       title: blockFilter != 'all' || blockSearch.text.trim().isNotEmpty
           ? 'Suchen und filtern · aktiv'
@@ -1053,93 +1056,106 @@ class _StudyPathPanelState extends State<StudyPathPanel>
                 ),
               ],
               SizedBox(height: 10),
-              _AccessibleStudyPathExpansion(
-                title: state.isChild ? 'Alle Lernschritte' : 'Alle Etappen',
-                children: [
-                  if (state.isChild && !shortChildPath)
-                    childFilter
-                  else if (!state.isChild)
-                    blockFilterControls(total, ready, completed),
-                  if (!state.isChild ||
-                      blockFilter != 'all' ||
-                      blockSearch.text.trim().isNotEmpty)
-                    Semantics(
-                      liveRegion: true,
-                      child: Text(
-                        state.isChild
-                            ? '${visibleBlocks.length} von ${blocks.length} Lernschritten'
-                            : '${visibleBlocks.length} von ${blocks.length} Etappen in dieser Ansicht',
+              if (blocks.isEmpty && !hasBlockFilter)
+                Text(
+                  state.isChild
+                      ? 'Hier sind noch keine Lernschritte zu sehen.'
+                      : 'Hier sind noch keine Etappen zu sehen.',
+                )
+              else
+                _AccessibleStudyPathExpansion(
+                  title: state.isChild ? 'Alle Lernschritte' : 'Alle Etappen',
+                  children: [
+                    if (state.isChild && !shortChildPath)
+                      childFilter
+                    else if (!state.isChild)
+                      blockFilterControls(total, ready, completed),
+                    if (!state.isChild ||
+                        blockFilter != 'all' ||
+                        blockSearch.text.trim().isNotEmpty)
+                      Semantics(
+                        liveRegion: true,
+                        child: Text(
+                          state.isChild
+                              ? '${visibleBlocks.length} von ${blocks.length} Lernschritten'
+                              : '${visibleBlocks.length} von ${blocks.length} Etappen in dieser Ansicht',
+                        ),
                       ),
-                    ),
-                  if (visibleBlocks.isEmpty)
-                    TextButton(
-                      onPressed: () {
-                        if (ownerMatches) {
-                          FocusManager.instance.primaryFocus?.unfocus();
-                          setState(() {
-                            blockSearch.clear();
-                            blockFilter = 'all';
-                          });
-                        }
-                      },
-                      child: Text(
-                        state.isChild
-                            ? 'Alle Lernschritte zeigen'
-                            : 'Alle Etappen zeigen',
+                    if (visibleBlocks.isEmpty)
+                      TextButton(
+                        onPressed: () {
+                          if (active &&
+                              displayedGeneration == generation &&
+                              identical(path, data) &&
+                              ModalRoute.of(context)?.isCurrent != false) {
+                            FocusManager.instance.primaryFocus?.unfocus();
+                            setState(() {
+                              blockSearch.clear();
+                              blockFilter = 'all';
+                            });
+                          }
+                        },
+                        child: Text(
+                          state.isChild
+                              ? 'Alle Lernschritte zeigen'
+                              : 'Alle Etappen zeigen',
+                        ),
                       ),
-                    ),
-                  for (final block in visibleBlocks)
-                    PlanRow(
-                      leading: Icon(
-                        block['status'] == 'completed'
-                            ? Icons.task_alt_rounded
-                            : _phaseIcon(block['phase']),
-                        color: context.palette.teal,
+                    for (final block in visibleBlocks)
+                      PlanRow(
+                        leading: Icon(
+                          block['status'] == 'completed'
+                              ? Icons.task_alt_rounded
+                              : _phaseIcon(block['phase']),
+                          color: context.palette.teal,
+                        ),
+                        title: Text(
+                          block['title'] ?? _phaseLabel(block['phase']),
+                        ),
+                        subtitle: Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: [
+                            PlanPill(
+                              state.isChild
+                                  ? (block['round_deferred'] == true
+                                        ? 'Zur Seite gelegt'
+                                        : _blockLabel(block['status']))
+                                  : '${block['label'] ?? _phaseLabel(block['phase'])} · ${block['question_count'] ?? 0} Aufgaben · ${block['round_deferred'] == true ? 'Zur Seite gelegt' : _blockLabel(block['status'])}',
+                              tone: block['round_deferred'] == true
+                                  ? PlanPillTone.neutral
+                                  : block['status'] == 'completed'
+                                  ? PlanPillTone.success
+                                  : block['status'] == 'ready'
+                                  ? PlanPillTone.info
+                                  : PlanPillTone.neutral,
+                            ),
+                          ],
+                        ),
+                        trailing: Icon(
+                          block['unit_id'] != null
+                              ? Icons.chevron_right_rounded
+                              : Icons.info_outline_rounded,
+                        ),
+                        onTap: block['unit_id'] == null
+                            ? () => blockDetails(block)
+                            : () {
+                                if (active &&
+                                    blocks.any(
+                                      (row) =>
+                                          row['id'] == block['id'] &&
+                                          row['unit_id'] == block['unit_id'],
+                                    )) {
+                                  openRoute(
+                                    context,
+                                    '/unit/${block['unit_id']}',
+                                  );
+                                }
+                              },
                       ),
-                      title: Text(
-                        block['title'] ?? _phaseLabel(block['phase']),
-                      ),
-                      subtitle: Wrap(
-                        spacing: 6,
-                        runSpacing: 6,
-                        children: [
-                          PlanPill(
-                            state.isChild
-                                ? (block['round_deferred'] == true
-                                      ? 'Zur Seite gelegt'
-                                      : _blockLabel(block['status']))
-                                : '${block['label'] ?? _phaseLabel(block['phase'])} · ${block['question_count'] ?? 0} Aufgaben · ${block['round_deferred'] == true ? 'Zur Seite gelegt' : _blockLabel(block['status'])}',
-                            tone: block['round_deferred'] == true
-                                ? PlanPillTone.neutral
-                                : block['status'] == 'completed'
-                                ? PlanPillTone.success
-                                : block['status'] == 'ready'
-                                ? PlanPillTone.info
-                                : PlanPillTone.neutral,
-                          ),
-                        ],
-                      ),
-                      trailing: Icon(
-                        block['unit_id'] != null
-                            ? Icons.chevron_right_rounded
-                            : Icons.info_outline_rounded,
-                      ),
-                      onTap: block['unit_id'] == null
-                          ? () => blockDetails(block)
-                          : () {
-                              if (active &&
-                                  blocks.any(
-                                    (row) =>
-                                        row['id'] == block['id'] &&
-                                        row['unit_id'] == block['unit_id'],
-                                  )) {
-                                openRoute(context, '/unit/${block['unit_id']}');
-                              }
-                            },
-                    ),
-                  if (shortChildPath) childFilter,
-                ],
-              ),
+                    if (shortChildPath) childFilter,
+                  ],
+                ),
             ],
           ],
         ],
