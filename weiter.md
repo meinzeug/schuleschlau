@@ -13,6 +13,15 @@ zwei PostgreSQL-Fälle bestanden; ein weiterer Paralleltest deckt gleiche
 Uploadschlüssel ab. Diese Tests ersetzen keinen echten KI- und Browsertest.
 Dieser Folgestand ist noch nicht deployed.
 
+Der Evidenzmarker für automatisch vorbereitete Etappen liest seine Metadaten
+jetzt in einer SQL-Anweisung und damit auf PostgreSQL `READ COMMITTED` aus
+einem Statement-Snapshot. Format und Versionskennung bleiben unverändert.
+Die Zeit zwischen Vergleich und Veröffentlichung ist weiterhin nicht atomar
+geschützt; der fachgebundene Evidenzversionszähler und echte KI-/Browserproben
+bleiben offen. Synthetische Gegenproben belegen zudem, dass ein auf beiden
+Seiten fehlender Löschbeleg durch den bloßen Journalabgleich nicht erkennbar
+ist; die Produktionswarnung zur historischen Vollständigkeit bleibt bestehen.
+
 Auch der Kinderbriefkasten verwirft alte Dialoge und Aktionen bei einer neuen
 Anmeldeabsicht oder einem Token-/Familienwechsel. Die umfassende Kontowechsel-
 und Cookie-Abnahme bleibt offen. Ein zusätzlicher Hinweisfilter korrigiert
