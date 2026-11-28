@@ -285,6 +285,38 @@ Future<void> refreshNotebook(WidgetTester tester, {bool settle = true}) async {
 }
 
 void main() {
+  testWidgets('Hauswirtschaft öffnet sein eigenes Fachheft mobil', (tester) async {
+    const homeId = '33333333333333333333333333333333';
+    final (_, _, requests) = await open(
+      tester,
+      shelf: true,
+      respond: (request) async {
+        if (request.url.path.endsWith('/subjects')) {
+          final value = subjects();
+          (value['items'] as List).add({
+            'id': homeId,
+            'title': 'Hauswirtschaft',
+            'cover_key': 'other',
+            'page_count': 1,
+            'review_count': 0,
+            'selected': false,
+          });
+          return jsonReply(value);
+        }
+        return jsonReply(pages(request, photos: false));
+      },
+    );
+    expect(find.text('Hauswirtschaft'), findsOneWidget);
+    await tap(tester, find.text('Hauswirtschaft'));
+    expect(requests.every((request) => request.method == 'GET'), isTrue);
+    expect(
+      requests.where((request) => request.url.path.endsWith('/materials')).last
+          .url.queryParameters['subject_id'],
+      homeId,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
   test(
     'Only known cover keys are paths; private subjects use the generic picture',
     () {

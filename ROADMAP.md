@@ -997,7 +997,9 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
     separat erscheinen. 125 künstliche SQLite-Fälle bestanden (drei
     PostgreSQL-Fälle übersprungen), ebenso 128 Fälle mit isoliertem PostgreSQL.
     Zwei neue künstliche Darstellungen und ihr Grafik-Ausgabeschema wurden
-    zusätzlich geprüft. Die umfassende DACH-Abdeckung und das Ausrollen bleiben
+    zusätzlich geprüft. Ein mobiler Flutter- und Chrome-Fall öffnet das Fach
+    anhand seiner Kennung mit künstlichen API-Antworten. Die umfassende
+    DACH-Abdeckung und das Ausrollen bleiben
     offen. [Quelle und Grenzen](docs/SOURCES.md).
 
   - [x] **Sozialkunde der Sekundarschule Sachsen-Anhalt ergänzen.** Die

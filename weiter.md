@@ -656,7 +656,9 @@ Der unabhängige Watchdog aus Commit `96c43ca` ist lokal installiert. Er meldet 
   Migration `0063` erhält bestehende private Fachkennungen und Lernbelege;
   gleichnamige private Fächer können weiterhin separat erscheinen. 125 SQLite-
   und 128 PostgreSQL-Fälle sowie gezielte künstliche Grafikschemafälle
-  bestanden. Weitere Regionen und eine umfassende Fachabnahme bleiben offen.
+  bestanden. Die mobile Fachheftnavigation wurde mit künstlichen Daten auf
+  Flutter und im Chrome-Webrunner geprüft. Weitere Regionen und eine umfassende
+  Fachabnahme bleiben offen.
 
 ## Nützliche Prüfungen
 
