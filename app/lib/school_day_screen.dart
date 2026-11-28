@@ -2288,6 +2288,8 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
                 separatorBuilder: (_, _) => SizedBox(width: 12),
                 itemBuilder: (context, index) {
                   final page = freshPages[index];
+                  final photoGeneration = generation;
+                  final photoDayId = day?['id'];
                   final hasPhoto =
                       page['has_image'] != false &&
                       !(page['synthetic'] == true &&
@@ -2316,11 +2318,27 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
                                     child: Material(
                                       color: Colors.transparent,
                                       child: InkWell(
-                                        onTap: () => zoomNotebookPhoto(
-                                          context,
-                                          state,
-                                          page,
-                                        ),
+                                        onTap: () {
+                                          if (!active ||
+                                              locked ||
+                                              !sameDay(
+                                                photoGeneration,
+                                                photoDayId,
+                                              ) ||
+                                              !pages.any(
+                                                (p) =>
+                                                    p['id'] == page['id'] &&
+                                                    p['revision'] ==
+                                                        page['revision'],
+                                              )) {
+                                            return;
+                                          }
+                                          zoomNotebookPhoto(
+                                            context,
+                                            state,
+                                            page,
+                                          );
+                                        },
                                         child: Stack(
                                           fit: StackFit.expand,
                                           children: [
