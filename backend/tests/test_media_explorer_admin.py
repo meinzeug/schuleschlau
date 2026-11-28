@@ -78,6 +78,20 @@ def test_sensitive_content_needs_context_and_counterpoint(operator, candidate):
     assert operator.post(PATH + "/decisions", json=value).status_code == 200
 
 
+@pytest.mark.parametrize("kind", ["historical_source", "propaganda", "sensitive"])
+@pytest.mark.parametrize("whitespace", [" ", "\t\n "])
+def test_whitespace_is_not_a_suitable_context_for_approval(operator, candidate, kind, whitespace):
+    assert operator.post(PATH + "/decisions", json=decision(content_kind=kind, context=whitespace,
+        counterpoint="Vergleichsquelle")).status_code == 422
+
+
+@pytest.mark.parametrize("kind", ["propaganda", "sensitive"])
+@pytest.mark.parametrize("whitespace", [" ", "\t\n "])
+def test_whitespace_is_not_a_counterpoint_for_approval(operator, candidate, kind, whitespace):
+    assert operator.post(PATH + "/decisions", json=decision(content_kind=kind, context="Einordnung",
+        counterpoint=whitespace)).status_code == 422
+
+
 def test_admin_list_is_bounded_and_uses_stable_cursor(operator, candidate):
     with DB.begin() as db:
         db.add(MediaResource(id="b" * 32, provider="youtube", provider_id="Abcdefgh_13", title="Anderes Medium",

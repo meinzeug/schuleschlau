@@ -35,9 +35,9 @@ class EditorialDecision(Strict):
         if self.decision == "approved":
             if self.evidence_scope != "content" or not self.content_reviewed:
                 raise ValueError("Für eine Freigabe muss der Inhalt tatsächlich geprüft und bestätigt sein.")
-            if self.content_kind != "general" and not self.context:
+            if self.content_kind != "general" and not self.context.strip():
                 raise ValueError("Für diese Quelle ist eine altersgerechte Einordnung erforderlich.")
-            if self.content_kind in ("propaganda", "sensitive") and not self.counterpoint:
+            if self.content_kind in ("propaganda", "sensitive") and not self.counterpoint.strip():
                 raise ValueError("Für diesen Inhalt ist eine Gegenperspektive erforderlich.")
         return self
 
