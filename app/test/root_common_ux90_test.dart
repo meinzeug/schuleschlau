@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -287,6 +288,45 @@ void main() {
       state.refreshState();
       await t.pumpAndSettle();
       expect(find.byType(InteractiveViewer), findsNothing);
+      expect(calls, isEmpty);
+    },
+  );
+  testWidgets(
+    'graphic zoom closes on new authentication and ignores an old action',
+    (t) async {
+      final calls = <http.Request>[];
+      final state = account((r) async {
+        calls.add(r);
+        return response({});
+      })..user = {'id': 'own', 'role': 'parent'};
+      await t.pumpWidget(
+        MaterialApp(
+          theme: appTheme(),
+          home: Scaffold(
+            body: GraphicZoom(
+              state: state,
+              block: {'title': 'Künstliche Grafik', 'kind': 'test'},
+              render: (_) => const Text('Künstlicher privater Inhalt'),
+            ),
+          ),
+        ),
+      );
+      final button = find.byKey(const ValueKey('open-graphic-zoom'));
+      final oldAction = t.widget<OutlinedButton>(button).onPressed!;
+      await t.tap(button);
+      await t.pumpAndSettle();
+      expect(find.text('Künstlicher privater Inhalt'), findsOneWidget);
+      final revision = state.beginAuthentication();
+      await t.pumpAndSettle();
+      expect(find.text('Künstlicher privater Inhalt'), findsNothing);
+      state.cancelAuthentication(revision);
+      await t.pumpAndSettle();
+      oldAction();
+      await t.pumpAndSettle();
+      expect(find.text('Künstlicher privater Inhalt'), findsNothing);
+      await t.tap(button);
+      await t.pumpAndSettle();
+      expect(find.text('Künstlicher privater Inhalt'), findsOneWidget);
       expect(calls, isEmpty);
     },
   );

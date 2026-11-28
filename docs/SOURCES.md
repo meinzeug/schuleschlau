@@ -4283,3 +4283,13 @@ Der lokale Release-Quellnachweis und seine Grenzen sind in [RELEASE_ATTESTATION.
 ## 22.11.2026 · Chemie und Geographie, Sekundarschule Sachsen-Anhalt
 
 [Landesbildungsserver: Fachlehrplan Chemie, Fassung 01.08.2019](https://www.bildung-lsa.de/files/164f3f97e3adf65ff6f44685dd9e1ced/lp_sks_chemie_01_08_2019.pdf), PDF-SHA256 `f331d1430396c833b5aa8957f31f456b3f0a9b0eb42fd05c7d7505d15f2ae442`, und [Fachlehrplan Geographie, Fassung 01.08.2019](https://www.bildung-lsa.de/files/164f3f97e3adf65ff6f44685dd9e1ced/lp_sks_geo_01_08_2019.pdf), PDF-SHA256 `fb6907714a209c8e2932c6aadb4e9680a080fb51205acf768c2400dc27ceecd8`; abgerufen am 22.11.2026. Quelle: Landesportal Sachsen-Anhalt, CC BY-SA 3.0; beide sind im [amtlichen Lehrplanindex](https://www.bildung-lsa.de/informationsportal/unterricht/sekundarschule/schulformbezogene_informationen/lehrplan.html) verlinkt. Eigene Kurzbezeichnungen mit gedruckten Seiten und kurzen Belegwörtern. Die jeweiligen Übersichten und Fußnoten kennzeichnen drei Chemie- und zwei Geographie-Schwerpunkte ausdrücklich für Jahrgang 9; die übrigen Einträge behalten die amtlichen Jahrgangsbänder. Schulinterne Reihenfolge und Unterrichtsstand sind nicht belegt.
+
+## 28.11.2026 · künstlicher OCR-Anbietercheck
+
+Der öffentliche [NVIDIA-Free-Modelleintrag](https://openrouter.ai/nvidia/nemotron-3.5-super-vl%3Afree)
+und die [OpenRouter-Anbieterliste](https://openrouter.ai/providers) benennen
+Datensammlung für diesen Endpunkt. Ein daran gebundener Test mit künstlichem
+Bild und weiterhin verlangtem `data_collection: deny` wurde mit HTTP 404 ohne
+Modellantwort abgelehnt. Die genaue Ursache der kombinierten Routingablehnung
+ist nicht belegt; die Anbieterangaben und das Einzelergebnis sind keine
+OCR-Qualitätsprüfung. [Details](OCR_FREE_PROVIDER_PROBE_2026_11_28.md).

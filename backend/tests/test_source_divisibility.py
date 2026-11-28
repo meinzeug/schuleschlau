@@ -38,7 +38,7 @@ def test_unsafe_block_is_excluded_but_the_original_is_unchanged():
     material = SimpleNamespace(id="a" * 32, revision=1, purpose="notebook", confirmed=True,
                                legibility="readable", uncertainties=[], content=original, source_blocks=blocks)
     result = learning_source(None, material)
-    assert result["policy_version"] == "literal-safety-8"
+    assert result["policy_version"] == "literal-safety-9"
     assert result["content"] == blocks[0]["text"]
     assert [item["reason"] for item in result["exclusions"]] == ["false_divisibility"]
     assert material.content == original and material.source_blocks == blocks

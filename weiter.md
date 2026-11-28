@@ -1,5 +1,35 @@
 # Übergabe an die nächste Coding-KI
 
+## Ergänzung 28. November 2026: Themen und Grafikzoom bei Anmeldung
+
+Eine neue Anmeldeabsicht verbirgt die Themenansicht und schließt die
+Grafikvergrößerung; alte Aktionen bleiben nach Abbruch unwirksam. Bewusstes
+Wiederöffnen lädt nur den gespeicherten Stand. Bei unsicherem abgeschicktem
+Auftrag bleibt der Schlüssel zur idempotenten Wiederholung erhalten. 39
+künstliche Flutterfälle und 63 benachbarte Grafikfälle bestanden; die drei
+neuen Fälle bestanden ebenfalls im Chrome-Webrunner. Bereits abgesendete
+Anfragen und der allgemeine Browser-Cookie-Wettlauf bleiben gesondert offen.
+
+## Ergänzung 28. November 2026: Mehrdeutige Gleichungen im Fließtext
+
+Die Quellenpolicy `literal-safety-9` behandelt auch isolierte Beispiele wie
+`Beispiel: 1.000 = 1000` als ungeklärt. Originale bleiben unverändert; Tutor,
+Lernweg und Gegenprüfung nutzen die entsprechend begrenzte Projektion.
+Historische Gegenchecks behalten Version 8. 157 künstliche Fälle bestanden
+auf einem temporären PostgreSQL-Cluster. Die Regel ist keine Foto- oder
+vollständige Mathematikprüfung. Details:
+docs/EMBEDDED_NUMERIC_AMBIGUITY_2026_11_28.md.
+
+## Ergänzung 28. November 2026: erneuter künstlicher OCR-Anbietercheck
+
+Ein echter Aufruf des neu ausgewiesenen kostenlosen NVIDIA-Bildendpunkts mit
+der fest geprüften künstlichen Bruchseite und unverändertem `deny`-Routing
+endete mit HTTP 404 ohne Modellantwort. OpenRouter weist für diesen freien
+Endpunkt Datensammlung aus. Die exakte Ursache des Routingfehlers ist nicht
+belegt; OCR-Güte und reguläre Abrechnung bleiben offen. Keine Route oder
+Datenschutzvorgabe wurde geändert. Details und Quellen:
+docs/OCR_FREE_PROVIDER_PROBE_2026_11_28.md.
+
 ## Ergänzung 28. November 2026: Kinderführung und Tutor bei Anmeldung
 
 „Meine Heftseiten“ zeigt kurze Listen nach einem Klick direkt; Suche und

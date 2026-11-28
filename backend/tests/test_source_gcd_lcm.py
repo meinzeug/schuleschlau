@@ -34,7 +34,7 @@ def test_source_preserves_original_and_quarantines_only_the_false_block():
     material = SimpleNamespace(id='a' * 32, revision=1, purpose='notebook', confirmed=True,
                                legibility='readable', uncertainties=[], content=original, source_blocks=blocks)
     safe = learning_source(None, material)
-    assert safe['policy_version'] == 'literal-safety-8'
+    assert safe['policy_version'] == 'literal-safety-9'
     assert safe['content'] == blocks[0]['text']
     assert [row['reason'] for row in safe['exclusions']] == ['false_gcd_lcm']
     assert material.content == original and material.source_blocks == blocks

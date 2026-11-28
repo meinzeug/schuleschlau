@@ -31,6 +31,53 @@ def test_obvious_error_is_still_excluded_as_error():
     assert learning_source(None, _material('1/2 = 2/3'))['exclusions'][0]['reason'] == 'false_equality'
 
 
+@pytest.mark.parametrize('text', [
+    'Beispiel: 1.000 = 1000',
+    'Rechnung: 1,000 = 1',
+    'Ergebnis 2.345 = 2.345.',
+])
+def test_embedded_ambiguous_equation_is_not_given_to_learning(text):
+    material = _material(text)
+    projected = learning_source(None, material)
+    assert projected['content'] == ''
+    assert [row['reason'] for row in projected['exclusions']] == ['ambiguous_numeric']
+    assert material.content == text
+
+
+@pytest.mark.parametrize('text', [
+    'Die Strecke ist 1.000 Meter lang.',
+    'x + 1.000 = 2',
+    '1.000 + x = 2',
+    '1.000 Euro = 1000 Euro',
+])
+def test_ambiguous_number_without_isolated_numeric_equation_is_not_guessed(text):
+    assert learning_source(None, _material(text))['content'] == text
+
+
+def test_historical_countercheck_does_not_reinterpret_embedded_ambiguity():
+    original = {'kind': 'paragraph', 'text': 'Beispiel: 1.000 = 1000'}
+    replacement = {'kind': 'paragraph', 'text': 'Beispiel: 1 = 1000'}
+    data = {'source_blocks': [replacement], 'content': '', 'legibility': 'readable', 'uncertainties': []}
+    old = SimpleNamespace(snapshot={'source_blocks': [original]}, receipt={'policy_version': 'literal-safety-8'})
+    new = SimpleNamespace(snapshot={'source_blocks': [original]}, receipt={'policy_version': 'literal-safety-9'})
+    assert _protected_readings(data, old)['source_blocks'][0]['text'] == replacement['text']
+    result = _protected_readings(data, new)
+    assert any(block['text'] == original['text'] for block in result['source_blocks'])
+    assert result['legibility'] == 'partial'
+
+
+def test_new_embedded_exclusion_does_not_reuse_a_previously_unsafe_plan(monkeypatch):
+    from schulpilot import source_lineage, study_path
+
+    material = _material('Beispiel: 1.000 = 1000')
+    current_check = source_lineage.ambiguous_numeric_equality
+    with monkeypatch.context() as patch:
+        patch.setattr(source_lineage, 'ambiguous_numeric_equality',
+                      lambda text: current_check(text, include_embedded=False))
+        previous = study_path.fingerprint([material])
+    assert previous not in study_path.compatible_fingerprints([material], None)
+
+
 def test_new_countercheck_protects_uncertain_original_but_old_receipt_is_reproducible():
     first = {'kind': 'paragraph', 'text': '1,000 = 1'}
     second = {'kind': 'paragraph', 'text': '1 = 1'}

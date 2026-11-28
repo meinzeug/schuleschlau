@@ -1,5 +1,11 @@
 # Mehrdeutige Zahlentrenner in Abschriften
 
+**Ergänzung 28.11.2026:** Die Nachfolgeregel `literal-safety-9` erfasst auch
+bestimmte isolierte Gleichungen innerhalb von Text, etwa `Beispiel: 1.000 =
+1000`. Dabei wird die Bedeutung des Trennzeichens weiterhin nicht geraten;
+frühere Gegenchecks bleiben an ihre ursprüngliche Regelversion gebunden. Die
+nachfolgenden Angaben beschreiben den ursprünglichen Umfang von Version 8.
+
 Bei vollständig numerischen Gleichungen konnte die bisherige Prüfung etwa
 `1.000 = 1000` als falsch melden, weil sie den Punkt als Dezimalzeichen las.
 Umgekehrt konnte `1,000 = 1` ohne Hinweis als belegter Stoff durchgehen. Ohne

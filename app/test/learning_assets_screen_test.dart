@@ -757,6 +757,59 @@ void main() {
     expect(f.writes, hasLength(1));
   });
 
+  testWidgets(
+    'new authentication hides saved topics and invalidates the old prepare action',
+    (tester) async {
+      final f = Fixture(history: [saved()]);
+      await f.mount(tester);
+      await f.choose(tester);
+      final button = find.widgetWithText(FilledButton, 'Thema entdecken');
+      await tester.ensureVisible(button);
+      final oldAction = tester.widget<FilledButton>(button).onPressed!;
+      final revision = f.state.beginAuthentication();
+      await tester.pumpAndSettle();
+      expect(find.text('Bruchteile entdecken'), findsNothing);
+      oldAction();
+      await tester.pump();
+      expect(f.writes, isEmpty);
+      f.state.cancelAuthentication(revision);
+      await tester.pumpAndSettle();
+      expect(find.text('Bruchteile entdecken'), findsNothing);
+      await tester.tap(find.text('Ansicht wieder öffnen'));
+      await tester.pumpAndSettle();
+      oldAction();
+      await tester.pump();
+      expect(f.writes, isEmpty);
+      expect(find.text('Bruchteile entdecken'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'an uncertain old preparation retains its idempotency key after authentication',
+    (tester) async {
+      final f = Fixture()..postWait = Completer<http.Response>();
+      await f.mount(tester);
+      await f.choose(tester);
+      await f.prepare(tester);
+      final key = f.writes.single.headers['Idempotency-Key'];
+      final revision = f.state.beginAuthentication();
+      await tester.pump();
+      f.state.cancelAuthentication(revision);
+      await tester.pump();
+      f.postWait!.complete(f.reply(saved(), 202));
+      await tester.pumpAndSettle();
+      expect(find.text('Bruchteile entdecken'), findsNothing);
+      await tester.tap(find.text('Ansicht wieder öffnen'));
+      await tester.pumpAndSettle();
+      expect(f.writes, hasLength(1));
+      f.postWait = null;
+      await f.prepare(tester);
+      await tester.pumpAndSettle();
+      expect(f.writes, hasLength(2));
+      expect(f.writes.last.headers['Idempotency-Key'], key);
+    },
+  );
+
   for (final width in [320.0, 390.0, 800.0, 1280.0]) {
     testWidgets(
       'readable selection and graphic at width $width and 200 percent',

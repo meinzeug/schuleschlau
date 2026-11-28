@@ -768,6 +768,24 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – OCR anhand vollständig referenzierter künstlicher Seiten prüfen**
 
+  **28.11.2026, erneuter Anbietercheck:** Ein echter, gebundener Free-Test mit
+  einer künstlichen Bruchseite und dem neu ausgewiesenen NVIDIA-Bildendpunkt
+  wurde mit HTTP 404 ohne Modellantwort abgewiesen. OpenRouter weist für den
+  kostenlosen Endpunkt Datensammlung aus; keine Schutzvorgabe wurde gelockert.
+  Die genaue Ursache der kombinierten Routingablehnung ist nicht bewiesen.
+  [Prüfbericht und Grenzen](docs/OCR_FREE_PROVIDER_PROBE_2026_11_28.md).
+  Der Hauptpunkt bleibt offen.
+
+  - [x] **Mehrdeutige Gleichungen in Fließtext von Lernquellen trennen.**
+    Isolierte Beispiele wie `Beispiel: 1.000 = 1000` werden ebenfalls als
+    ungeklärt behandelt; weder Zahl noch Originalabschrift werden umgedeutet.
+    Alte Gegenchecks behalten ihre Regelversion, und geänderte sichere
+    Quellenprojektionen erhalten einen neuen Lernweg-Fingerabdruck. 157
+    künstliche Quellen-, Mathematik-, Nacharbeits- und Tutorprüfungen bestanden
+    auf einem isolierten PostgreSQL-Cluster. Die Regel ist keine Prüfung des
+    Originalfotos und deckt keine beliebigen mathematischen Texte ab.
+    [Umfang und Grenzen](docs/EMBEDDED_NUMERIC_AMBIGUITY_2026_11_28.md).
+
   - [x] **Kostenfreien Bildtest mit festen Kunstseiten absichern.** Der
     separate Testpfad akzeptiert vier prüfsummengebundene künstliche Fotos,
     prüft Endpunkt und Nullpreise und erzwingt Datensammlungsverbot sowie
@@ -4531,6 +4549,17 @@ Bestandteil des bestehenden Buildvertrags.
   **Abnahme:** Dokumentation, Bewertung, gegebenenfalls Folgenabschätzung, vereinbarte Maßnahmen und Zuständigkeiten liegen für den vorgesehenen Freigabeumfang vor; offene Risiken sind vor der jeweiligen Freigabe entschieden.
 
 - [ ] **P1 – Echtzeitstatus gezielt und zuverlässig bereitstellen**
+
+  - [x] **Themenkatalog und Grafikzoom bei neuer Anmeldung schützen.**
+    Eine neue Anmeldeabsicht verbirgt die gespeicherte Themenansicht und
+    schließt eine vergrößerte Grafik. Eingefangene alte Aktionen bleiben auch
+    nach einem Abbruch wirkungslos. Ein ausdrückliches Wiederöffnen liest den
+    gespeicherten Stand erneut, startet aber keine neue KI-Erzeugung; bei
+    ungewissem vorherigem Auftrag bleibt der Wiederholungsschlüssel erhalten.
+    39 künstliche Widgetfälle und 63 benachbarte Grafikfälle bestanden; die
+    drei neuen Anmeldewechselfälle bestanden auch im Chrome-Webrunner. Bereits
+    versandte Aufträge und der allgemeine Cookie-Wettlauf bleiben gesondert zu
+    behandeln.
 
   - [x] **Fachansicht bei neuer Anmeldung anhalten.** Die Themen- und
     Fächerliste wird ausgeblendet, solange eine Anmeldung läuft. Überholte

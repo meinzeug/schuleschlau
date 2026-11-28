@@ -28,5 +28,9 @@ Für eine OCR-Abnahme müssen die Bilder einzeln über den regulären Import
 verarbeitet werden. Anschließend jede Referenzzeile, die Zuordnung in Tabelle
 und Grafik sowie die absichtlich verdeckte Stelle mit der jeweiligen Antwort
 vergleichen; Auslassungen und unzutreffende Ergänzungen einzeln dokumentieren.
-Ein Ankertreffer allein genügt nicht. Ein echter Anbieteraufruf wurde für diese
-Seiten noch nicht durchgeführt; der übergeordnete Roadmap-Punkt bleibt offen.
+Ein Ankertreffer allein genügt nicht. Für die Bruchseite wurden echte
+Anbieteranfragen versucht, aber die gebundenen Free-Routen vom
+[27.11.](OCR_FREE_PROVIDER_PROBE_2026_11_27.md) und
+[28.11.](OCR_FREE_PROVIDER_PROBE_2026_11_28.md) lieferten HTTP 404 ohne
+Modellantwort. Eine erfolgreiche Anbietererkennung
+dieser Seiten ist weiterhin nicht nachgewiesen; der Roadmap-Punkt bleibt offen.

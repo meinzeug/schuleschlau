@@ -27,14 +27,18 @@ class _LearningAssetsScreenState extends State<LearningAssetsScreen>
   List<Json> history = [];
   Object? error;
   bool loading = true, busy = false, topicBusy = false, foreground = true;
+  bool authenticationPaused = false;
   int epoch = 0;
   Timer? timer;
 
-  bool get current =>
+  bool get sameOwner =>
       mounted &&
+      owner != null &&
       identical(widget.state.user, owner) &&
       widget.state.api.token == token &&
       widget.state.familyId == family;
+  bool get current =>
+      sameOwner && !widget.state.authenticationPending && !authenticationPaused;
 
   Map<String, String> get actor => {
     'X-Schulpilot-Account': owner?['id']?.toString() ?? '',
@@ -51,11 +55,40 @@ class _LearningAssetsScreenState extends State<LearningAssetsScreen>
         WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
     WidgetsBinding.instance.addObserver(this);
     widget.state.addListener(identityChanged);
-    load();
+    widget.state.authenticationChanges.addListener(authenticationChanged);
+    authenticationPaused = widget.state.authenticationPending;
+    if (current) load();
+  }
+
+  void authenticationChanged() {
+    if (!mounted) return;
+    epoch++;
+    timer?.cancel();
+    setState(() {
+      authenticationPaused = true;
+      instance = null;
+      busy = false;
+      topicBusy = false;
+      loading = false;
+      error = null;
+    });
+  }
+
+  void resume(int actionEpoch) {
+    if (!sameOwner ||
+        widget.state.authenticationPending ||
+        actionEpoch != epoch) {
+      return;
+    }
+    setState(() {
+      authenticationPaused = false;
+      loading = true;
+    });
+    unawaited(load());
   }
 
   void identityChanged() {
-    if (current) return;
+    if (sameOwner) return;
     epoch++;
     timer?.cancel();
     if (mounted) {
@@ -89,7 +122,9 @@ class _LearningAssetsScreenState extends State<LearningAssetsScreen>
       return;
     }
     oldWidget.state.removeListener(identityChanged);
+    oldWidget.state.authenticationChanges.removeListener(authenticationChanged);
     widget.state.addListener(identityChanged);
+    widget.state.authenticationChanges.addListener(authenticationChanged);
     epoch++;
     timer?.cancel();
     owner = widget.state.user;
@@ -102,13 +137,15 @@ class _LearningAssetsScreenState extends State<LearningAssetsScreen>
     busy = false;
     topicBusy = false;
     error = null;
-    load();
+    authenticationPaused = widget.state.authenticationPending;
+    if (current) load();
   }
 
   @override
   void dispose() {
     timer?.cancel();
     widget.state.removeListener(identityChanged);
+    widget.state.authenticationChanges.removeListener(authenticationChanged);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -169,6 +206,7 @@ class _LearningAssetsScreenState extends State<LearningAssetsScreen>
   }
 
   Future<void> load() async {
+    if (!current) return;
     final generation = ++epoch;
     try {
       final results = await Future.wait([
@@ -294,6 +332,7 @@ class _LearningAssetsScreenState extends State<LearningAssetsScreen>
   }
 
   Future<void> refreshInstance(String id) async {
+    if (!current) return;
     final generation = epoch;
     try {
       final value = await widget.state.api.call(
@@ -386,6 +425,8 @@ class _LearningAssetsScreenState extends State<LearningAssetsScreen>
 
   Widget selection(BuildContext context) {
     final sourceOptions = sources;
+    final viewEpoch = epoch;
+    bool active() => current && viewEpoch == epoch;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -410,7 +451,11 @@ class _LearningAssetsScreenState extends State<LearningAssetsScreen>
                 child: Text(item.toString()),
               ),
           ],
-          onChanged: busy ? null : changeSubject,
+          onChanged: busy
+              ? null
+              : (value) {
+                  if (active()) changeSubject(value);
+                },
         ),
         const SizedBox(height: 16),
         DropdownButtonFormField<String>(
@@ -431,13 +476,21 @@ class _LearningAssetsScreenState extends State<LearningAssetsScreen>
                 ),
               ),
           ],
-          onChanged: busy ? null : selectSource,
+          onChanged: busy
+              ? null
+              : (value) {
+                  if (active()) selectSource(value);
+                },
         ),
         if (catalogue?['pagination']?['has_more'] == true)
           Align(
             alignment: Alignment.centerLeft,
             child: TextButton(
-              onPressed: busy || topicBusy ? null : moreTopics,
+              onPressed: busy || topicBusy
+                  ? null
+                  : () {
+                      if (active()) moreTopics();
+                    },
               child: Text(
                 topicBusy ? 'Themen werden geladen …' : 'Weitere Themen laden',
               ),
@@ -457,7 +510,7 @@ class _LearningAssetsScreenState extends State<LearningAssetsScreen>
                 RadioGroup<String>(
                   groupValue: selectedRecipe?['id']?.toString(),
                   onChanged: (value) {
-                    if (busy) return;
+                    if (busy || !active()) return;
                     setState(() {
                       recipeId = value;
                       requestKey = null;
@@ -493,10 +546,13 @@ class _LearningAssetsScreenState extends State<LearningAssetsScreen>
                 ],
                 onChanged: busy
                     ? null
-                    : (value) => setState(() {
-                        level = value!;
-                        requestKey = null;
-                      }),
+                    : (value) {
+                        if (!active()) return;
+                        setState(() {
+                          level = value!;
+                          requestKey = null;
+                        });
+                      },
               ),
             ],
           ),
@@ -504,7 +560,9 @@ class _LearningAssetsScreenState extends State<LearningAssetsScreen>
         FilledButton.icon(
           onPressed: busy || selectedSource == null || selectedRecipe == null
               ? null
-              : prepare,
+              : () {
+                  if (active()) prepare();
+                },
           icon: const Icon(Icons.auto_awesome_outlined),
           label: Text(busy ? 'Wird angefragt …' : 'Thema entdecken'),
         ),
@@ -518,6 +576,8 @@ class _LearningAssetsScreenState extends State<LearningAssetsScreen>
   }
 
   Widget savedContent(BuildContext context) {
+    final viewEpoch = epoch;
+    bool active() => current && viewEpoch == epoch;
     final build = Json.from(instance!['build'] as Map);
     final asset = build['asset'] is Map ? Json.from(build['asset']) : null;
     final status = build['status'];
@@ -549,6 +609,7 @@ class _LearningAssetsScreenState extends State<LearningAssetsScreen>
               onPressed: busy
                   ? null
                   : () {
+                      if (!active()) return;
                       timer?.cancel();
                       setState(() {
                         instance = null;
@@ -628,7 +689,11 @@ class _LearningAssetsScreenState extends State<LearningAssetsScreen>
         ],
         if (status != 'ready')
           TextButton.icon(
-            onPressed: () => refreshInstance(instance!['id'].toString()),
+            onPressed: () {
+              if (active() && instance != null) {
+                refreshInstance(instance!['id'].toString());
+              }
+            },
             icon: const Icon(Icons.refresh_rounded),
             label: const Text('Gespeicherten Stand laden'),
           ),
@@ -640,59 +705,79 @@ class _LearningAssetsScreenState extends State<LearningAssetsScreen>
   }
 
   @override
-  Widget build(BuildContext context) => PageFrame(
-    key: ValueKey((widget.childId, instance?['id'])),
-    state: widget.state,
-    title: 'Themen entdecken',
-    showTitle: instance == null,
-    child: !current
-        ? const SizedBox.shrink()
-        : Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              if (loading) const Center(child: CircularProgressIndicator()),
-              if (!loading && catalogue != null)
-                if (instance == null)
-                  Panel(child: selection(context))
-                else
-                  savedContent(context),
-              if (error != null) ...[
-                Notice(error.toString(), warning: true),
-                if (catalogue == null)
-                  TextButton(
-                    onPressed: load,
-                    child: const Text('Erneut laden'),
-                  ),
-              ],
-              if (!loading && history.isNotEmpty && instance == null) ...[
-                const SizedBox(height: 20),
-                Text(
-                  'Gespeicherte Themen',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: 8),
-                for (final saved in history)
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: const Icon(Icons.auto_stories_outlined),
-                    title: Text(
-                      saved['build']?['asset']?['title']?.toString() ??
-                          saved['title']?.toString() ??
-                          'Gespeichertes Thema',
+  Widget build(BuildContext context) {
+    final viewEpoch = epoch;
+    bool active() => current && viewEpoch == epoch;
+    return PageFrame(
+      key: ValueKey((widget.childId, instance?['id'])),
+      state: widget.state,
+      title: 'Themen entdecken',
+      showTitle: instance == null,
+      child: sameOwner && authenticationPaused
+          ? (widget.state.authenticationPending
+                ? const SizedBox.shrink()
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Diese Ansicht ist pausiert.'),
+                      TextButton(
+                        onPressed: () => resume(viewEpoch),
+                        child: const Text('Ansicht wieder öffnen'),
+                      ),
+                    ],
+                  ))
+          : !current
+          ? const SizedBox.shrink()
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (loading) const Center(child: CircularProgressIndicator()),
+                if (!loading && catalogue != null)
+                  if (instance == null)
+                    Panel(child: selection(context))
+                  else
+                    savedContent(context),
+                if (error != null) ...[
+                  Notice(error.toString(), warning: true),
+                  if (catalogue == null)
+                    TextButton(
+                      onPressed: () {
+                        if (active()) load();
+                      },
+                      child: const Text('Erneut laden'),
                     ),
-                    subtitle: Text(
-                      '${saved['subject'] == null ? '' : '${saved['subject']} · '}${saved['build']?['status'] == 'ready' ? 'Öffnen' : 'Gespeicherten Stand öffnen'}',
-                    ),
-                    trailing: const Icon(Icons.chevron_right_rounded),
-                    onTap: busy
-                        ? null
-                        : () {
-                            epoch++;
-                            refreshInstance(saved['id'].toString());
-                          },
+                ],
+                if (!loading && history.isNotEmpty && instance == null) ...[
+                  const SizedBox(height: 20),
+                  Text(
+                    'Gespeicherte Themen',
+                    style: Theme.of(context).textTheme.titleMedium,
                   ),
+                  const SizedBox(height: 8),
+                  for (final saved in history)
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.auto_stories_outlined),
+                      title: Text(
+                        saved['build']?['asset']?['title']?.toString() ??
+                            saved['title']?.toString() ??
+                            'Gespeichertes Thema',
+                      ),
+                      subtitle: Text(
+                        '${saved['subject'] == null ? '' : '${saved['subject']} · '}${saved['build']?['status'] == 'ready' ? 'Öffnen' : 'Gespeicherten Stand öffnen'}',
+                      ),
+                      trailing: const Icon(Icons.chevron_right_rounded),
+                      onTap: busy
+                          ? null
+                          : () {
+                              if (!active()) return;
+                              epoch++;
+                              refreshInstance(saved['id'].toString());
+                            },
+                    ),
+                ],
               ],
-            ],
-          ),
-  );
+            ),
+    );
+  }
 }

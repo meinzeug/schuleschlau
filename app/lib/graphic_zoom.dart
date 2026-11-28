@@ -29,8 +29,10 @@ class _GraphicZoomState extends State<GraphicZoom> {
   late String? family = widget.state.familyId;
   late String? token = widget.state.api.token;
   DialogRoute<void>? view;
+  int authenticationEpoch = 0;
   bool get current =>
       mounted &&
+      !widget.state.authenticationPending &&
       owner != null &&
       identical(widget.state.user, owner) &&
       widget.state.familyId == family &&
@@ -53,10 +55,17 @@ class _GraphicZoomState extends State<GraphicZoom> {
     if (!current) closeView();
   }
 
+  void authenticationChanged() {
+    authenticationEpoch++;
+    closeView();
+    if (mounted) setState(() {});
+  }
+
   @override
   void initState() {
     super.initState();
     widget.state.addListener(changed);
+    widget.state.authenticationChanges.addListener(authenticationChanged);
   }
 
   @override
@@ -66,22 +75,27 @@ class _GraphicZoomState extends State<GraphicZoom> {
         jsonEncode(old.block) != jsonEncode(widget.block)) {
       closeView();
       old.state.removeListener(changed);
+      old.state.authenticationChanges.removeListener(authenticationChanged);
+      authenticationEpoch++;
       owner = widget.state.user;
       family = widget.state.familyId;
       token = widget.state.api.token;
       widget.state.addListener(changed);
+      widget.state.authenticationChanges.addListener(authenticationChanged);
     }
   }
 
   @override
   void dispose() {
     widget.state.removeListener(changed);
+    widget.state.authenticationChanges.removeListener(authenticationChanged);
     closeView();
     super.dispose();
   }
 
-  Future<void> open() async {
+  Future<void> open(int actionEpoch) async {
     if (!current ||
+        actionEpoch != authenticationEpoch ||
         view != null ||
         ModalRoute.of(context)?.isCurrent == false) {
       return;
@@ -134,7 +148,11 @@ class _GraphicZoomState extends State<GraphicZoom> {
                       tooltip: control.$2,
                       icon: Icon(control.$1),
                       onPressed: () {
-                        if (!current || !route.isCurrent) return;
+                        if (!current ||
+                            actionEpoch != authenticationEpoch ||
+                            !route.isCurrent) {
+                          return;
+                        }
                         final scale = control.$3 == 0
                             ? 1.0
                             : (controller.value.getMaxScaleOnAxis() *
@@ -198,24 +216,27 @@ class _GraphicZoomState extends State<GraphicZoom> {
   }
 
   @override
-  Widget build(BuildContext context) => Align(
-    alignment: Alignment.centerRight,
-    child: widget.compact
-        ? IconButton.outlined(
-            key: const ValueKey('open-graphic-zoom'),
-            tooltip: 'Grafik vergrößern',
-            onPressed: current ? open : null,
-            style: IconButton.styleFrom(
-              minimumSize: const Size(48, 48),
-              padding: const EdgeInsets.all(12),
+  Widget build(BuildContext context) {
+    final actionEpoch = authenticationEpoch;
+    return Align(
+      alignment: Alignment.centerRight,
+      child: widget.compact
+          ? IconButton.outlined(
+              key: const ValueKey('open-graphic-zoom'),
+              tooltip: 'Grafik vergrößern',
+              onPressed: current ? () => open(actionEpoch) : null,
+              style: IconButton.styleFrom(
+                minimumSize: const Size(48, 48),
+                padding: const EdgeInsets.all(12),
+              ),
+              icon: const Icon(Icons.zoom_in_rounded, size: 22),
+            )
+          : OutlinedButton.icon(
+              key: const ValueKey('open-graphic-zoom'),
+              onPressed: current ? () => open(actionEpoch) : null,
+              icon: const Icon(Icons.zoom_in_rounded),
+              label: const Text('Grafik vergrößern'),
             ),
-            icon: const Icon(Icons.zoom_in_rounded, size: 22),
-          )
-        : OutlinedButton.icon(
-            key: const ValueKey('open-graphic-zoom'),
-            onPressed: current ? open : null,
-            icon: const Icon(Icons.zoom_in_rounded),
-            label: const Text('Grafik vergrößern'),
-          ),
-  );
+    );
+  }
 }

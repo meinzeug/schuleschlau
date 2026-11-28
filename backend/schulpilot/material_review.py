@@ -416,11 +416,11 @@ def _protected_readings(data, snapshot):
     # an absent or older receipt keeps the old merge reproducible.
     receipt = getattr(snapshot, "receipt", None)
     policy = receipt.get("policy_version") if isinstance(receipt, dict) else None
-    embedded_check = policy in {"literal-safety-4", "literal-safety-5", "literal-safety-6", "literal-safety-7", "literal-safety-8"}
-    divisibility_check = policy in {"literal-safety-5", "literal-safety-6", "literal-safety-7", "literal-safety-8"}
-    unit_check = policy in {"literal-safety-6", "literal-safety-7", "literal-safety-8"}
-    gcd_lcm_check = policy in {"literal-safety-7", "literal-safety-8"}
-    ambiguity_check = policy == "literal-safety-8"
+    embedded_check = policy in {"literal-safety-4", "literal-safety-5", "literal-safety-6", "literal-safety-7", "literal-safety-8", "literal-safety-9"}
+    divisibility_check = policy in {"literal-safety-5", "literal-safety-6", "literal-safety-7", "literal-safety-8", "literal-safety-9"}
+    unit_check = policy in {"literal-safety-6", "literal-safety-7", "literal-safety-8", "literal-safety-9"}
+    gcd_lcm_check = policy in {"literal-safety-7", "literal-safety-8", "literal-safety-9"}
+    ambiguity_check = policy in {"literal-safety-8", "literal-safety-9"}
     result = copy.deepcopy(data)
     result["visual_observations"] = _merged_visual_observations(data, snapshot)[0][:20]
     blocks = result["source_blocks"]
@@ -455,7 +455,8 @@ def _protected_readings(data, snapshot):
     def protected(block):
         return (block.get("literal_role") in ("student_work", "annotation")
             or any(mark.get("kind") != "ink" for mark in block.get("annotations", []))
-            or (ambiguity_check and ambiguous_numeric_equality(block["text"]))
+            or (ambiguity_check and ambiguous_numeric_equality(
+                block["text"], include_embedded=policy == "literal-safety-9"))
             or false_equality(block["text"], include_embedded=embedded_check)
             or (divisibility_check and false_divisibility(block["text"]))
             or (unit_check and false_unit_conversion(block["text"]))

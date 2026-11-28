@@ -22,7 +22,7 @@ from .db import Job, LearningUnit, UnitSource, Usage
 from .source_lineage_models import SourceImageReceipt, SourceInvalidation, SourceRevision
 from .subject_content import SourceBlock
 
-POLICY_VERSION = "literal-safety-8"
+POLICY_VERSION = "literal-safety-9"
 PREPROCESS_VERSION = "exif-rgb-max3200-jpeg95-1"
 AUTO_CONFLICT_SUMMARY = "Abweichender Schüler-/Korrekturbereich bleibt ungeklärt."
 AUTO_CONFLICT_LOCAL = "Die beiden Abschriften dieses Schüler-/Korrekturbereichs unterscheiden sich; Original erhalten."
@@ -104,10 +104,10 @@ _EMBEDDED_EQUATION = re.compile(
 )
 
 
-def _embedded_false_equality(line):
-    """Check isolated numeric spans only; never parse a fragment of algebra."""
+def _embedded_numeric_equalities(line):
+    """Yield bounded, isolated numeric spans; never infer missing algebra."""
     if '=' not in line or len(line) > 12000:
-        return False
+        return
     # The bounded input and term count avoid pathological scans; normalization
     # leaves all numeric characters and token order intact.
     line = re.sub(r'\s+', ' ', line)
@@ -130,10 +130,6 @@ def _embedded_false_equality(line):
         if after and (after[0] in '+-−*/·×÷:^%=)]}\\' or after[0].isalpha()):
             continue
         expression = re.sub(r'\bmal\b', '*', match.group(1), flags=re.IGNORECASE)
-        # A separator followed by three digits can be a thousands separator
-        # or a decimal mark; OCR alone cannot choose the intended locale.
-        if re.search(r'(?<![\d.,])\d{1,3}[.,]\d{3}(?!\d)', expression):
-            continue
         terms = expression.split('=')
         # A*b/c*d is often an OCR-flattened stacked fraction; interpreting
         # operator order as the photographed grouping would be speculation.
@@ -144,6 +140,16 @@ def _embedded_false_equality(line):
             values = [_number(term) for term in terms]
         except (ValueError, SyntaxError, ZeroDivisionError, OverflowError):
             continue
+        yield expression, values
+
+
+def _embedded_false_equality(line):
+    """Check isolated numeric spans only; never parse a fragment of algebra."""
+    for expression, values in _embedded_numeric_equalities(line):
+        # A separator followed by three digits can be a thousands separator
+        # or a decimal mark; OCR alone cannot choose the intended locale.
+        if re.search(r'(?<![\d.,])\d{1,3}[.,]\d{3}(?!\d)', expression):
+            continue
         if any(left != right for left, right in zip(values, values[1:])):
             return True
     return False
@@ -152,7 +158,7 @@ def _embedded_false_equality(line):
 _AMBIGUOUS_SEPARATOR = re.compile(r"(?<![\d.,])[1-9]\d{0,2}[.,]\d{3}(?![\d.,])")
 
 
-def ambiguous_numeric_equality(text):
+def ambiguous_numeric_equality(text, *, include_embedded=True):
     """A fully numeric equation can use a decimal or thousands separator.
 
     This does not establish either interpretation or transcription accuracy.
@@ -161,14 +167,21 @@ def ambiguous_numeric_equality(text):
     """
     for line in text.splitlines():
         terms = line.strip().split('=')
-        if not 2 <= len(terms) <= 8 or not _AMBIGUOUS_SEPARATOR.search(line):
+        if not _AMBIGUOUS_SEPARATOR.search(line):
             continue
-        try:
-            for term in terms:
-                _number(term)
-        except (ValueError, SyntaxError, ZeroDivisionError, OverflowError):
-            continue
-        return True
+        if 2 <= len(terms) <= 8:
+            try:
+                for term in terms:
+                    _number(term)
+            except (ValueError, SyntaxError, ZeroDivisionError, OverflowError):
+                pass
+            else:
+                return True
+        if include_embedded and any(
+            _AMBIGUOUS_SEPARATOR.search(expression)
+            for expression, _ in _embedded_numeric_equalities(line)
+        ):
+            return True
     return False
 
 
