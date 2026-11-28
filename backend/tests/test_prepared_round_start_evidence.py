@@ -181,3 +181,15 @@ def test_other_child_cannot_start_or_trigger_observation(api, study, monkeypatch
     assert not observed
     with DB() as db:
         assert db.get(LearningUnit, unit_id).status == "not_started"
+
+
+def test_excessively_long_historical_number_does_not_block_start(study):
+    earlier, unit_id, _ = prepared(study)
+    with DB.begin() as db:
+        add_attempt(db, earlier)
+        attempt = db.scalar(select(Attempt).where(Attempt.unit_id == earlier))
+        attempt.evaluation = {**attempt.evaluation, "attempt_number": "9" * 5000}
+    result = study["client"].post(f"/api/units/{unit_id}/start")
+    assert result.status_code == 200, result.text
+    assert result.json()["status"] == "active"
+    assert "practice_evidence_may_have_changed" not in result.json()

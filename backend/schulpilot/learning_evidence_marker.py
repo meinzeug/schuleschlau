@@ -126,7 +126,10 @@ def snapshot(db, child_id: str, subject: str, *, exclude_unit_id: str | None = N
             value = row[8]
             if type(value) is int:
                 row[8] = value
-            elif isinstance(value, str) and re.fullmatch(r"[+-]?[0-9]+", value):
+            elif isinstance(value, str) and len(value) <= 32 and re.fullmatch(r"[+-]?[0-9]+", value):
+                # The marker is advisory. A corrupted unbounded decimal string
+                # must not reach Python's bounded integer conversion and turn
+                # the observation into an unexpected start failure.
                 row[8] = int(value)
             else:
                 raise EvidenceMetadataError("Invalid attempt number")
