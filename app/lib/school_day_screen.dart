@@ -2028,6 +2028,8 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
                     child: Text(
                       hasPhotos
                           ? 'Hast du alle Seiten?'
+                          : savedCount > 0
+                          ? 'Deine Seiten sind gespeichert'
                           : 'Zeig mir deine Heftseiten',
                       style: TextStyle(
                         fontSize: 20,
@@ -2131,6 +2133,24 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
                   onPressed: () => run(prepareInBackground),
                 ),
               ],
+              if (!hasPhotos && savedCount > 0 && allowUploads) ...[
+                const SizedBox(height: 12),
+                ActionButton(
+                  label: 'Mit diesen Seiten weiter',
+                  icon: Icons.arrow_forward_rounded,
+                  onPressed: () => run(() async {
+                    final version = generation, id = day?['id'];
+                    if (day!['stage'] != 'ready') {
+                      await state.api.put('/school-days/${day!['id']}/stage', {
+                        'stage': 'review',
+                      });
+                    }
+                    if (sameDay(version, id)) {
+                      setState(() => captureRequested = false);
+                    }
+                  }),
+                ),
+              ],
               SizedBox(height: 16),
               if (allowUploads && day!['synthetic'] == true && pages.isEmpty)
                 ActionButton(
@@ -2147,7 +2167,7 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
                   label: pages.isEmpty && pendingPhotos.isEmpty
                       ? 'Erste Seite fotografieren'
                       : 'Noch eine Seite fotografieren',
-                  secondary: hasPhotos,
+                  secondary: hasPhotos || savedCount > 0,
                   icon: Icons.camera_alt_rounded,
                   onPressed: () => run(() => capture(ImageSource.camera)),
                 ),
@@ -2237,31 +2257,12 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
               ),
             ),
           ),
-        if (savedCount > 0)
+        if (savedCount > 0 && hasPhotos)
           Padding(
             padding: EdgeInsets.only(top: 12),
             child: Text(
               '${counted(savedCount, 'Seite', 'Seiten')} ${savedCount == 1 ? 'ist' : 'sind'} bereits gespeichert. Hier sammelst du nur die neuen Fotos.',
               style: TextStyle(color: context.palette.muted),
-            ),
-          ),
-        if (!hasPhotos && savedCount > 0 && allowUploads)
-          Padding(
-            padding: EdgeInsets.only(top: 16),
-            child: ActionButton(
-              label: 'Mit diesen Seiten weiter',
-              icon: Icons.arrow_forward_rounded,
-              onPressed: () => run(() async {
-                final version = generation, id = day?['id'];
-                if (day!['stage'] != 'ready') {
-                  await state.api.put('/school-days/${day!['id']}/stage', {
-                    'stage': 'review',
-                  });
-                }
-                if (sameDay(version, id)) {
-                  setState(() => captureRequested = false);
-                }
-              }),
             ),
           ),
         if (hasPhotos) ...[

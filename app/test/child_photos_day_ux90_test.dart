@@ -21,8 +21,9 @@ Future<GoRouter> showDay(
   WidgetTester tester,
   AppState state, {
   double scale = 1,
+  double width = 320,
 }) async {
-  tester.view.physicalSize = Size(320, 1000);
+  tester.view.physicalSize = Size(width, 1000);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
