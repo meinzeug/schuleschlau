@@ -1329,6 +1329,14 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – Alle Kinderansichten sprachlich und in ihrer Bedienung entrümpeln**
 
+  - [x] **Hilfebereich nach dem letzten Tipp vereinfachen.** Ein als
+    ausgeschöpft bestätigter Hinweiszustand zeigt einen kurzen Text und den
+    erreichbaren Weg zu weiterer Hilfe statt eines dauerhaft deaktivierten
+    Tippknopfs. Künstliche Widgettests prüfen kleine Anzeigen, große Schrift,
+    Wiederaufnahme, Sitzungswechsel und die Anrechnung von Unterstützung.
+    Die übergreifende Kinderabnahme bleibt offen; bei Wiederaufnahme leitet
+    der Client die Erschöpfung weiterhin aus drei gespeicherten Tipps ab.
+
   - [x] **Leere spätere Wörterseiten verständlich machen.** Eine nach
     Änderungen leer gewordene Listenseite behauptet keinen insgesamt leeren
     Wortschatz mehr und bietet direkt den Rückweg. Fünf künstliche Widgetfälle
