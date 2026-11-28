@@ -2288,8 +2288,18 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
                 separatorBuilder: (_, _) => SizedBox(width: 12),
                 itemBuilder: (context, index) {
                   final page = freshPages[index];
+                  final hasPhoto =
+                      page['has_image'] != false &&
+                      !(page['synthetic'] == true &&
+                          page['fixture_id'] == null);
                   return SizedBox(
-                    width: 108,
+                    width:
+                        120 +
+                        (MediaQuery.textScalerOf(context).scale(12) - 12).clamp(
+                              0,
+                              48,
+                            ) *
+                            6,
                     child: Panel(
                       padding: EdgeInsets.all(8),
                       child: Column(
@@ -2299,11 +2309,63 @@ class _SchoolDayScreenState extends State<_SchoolDayContext>
                             child: Stack(
                               fit: StackFit.expand,
                               children: [
-                                _SchoolPagePhoto(
-                                  state: state,
-                                  page: page,
-                                  key: ValueKey(page['id']),
-                                ),
+                                if (hasPhoto)
+                                  Tooltip(
+                                    message:
+                                        'Foto ${page['page_number']} ansehen',
+                                    child: Material(
+                                      color: Colors.transparent,
+                                      child: InkWell(
+                                        onTap: () => zoomNotebookPhoto(
+                                          context,
+                                          state,
+                                          page,
+                                        ),
+                                        child: Stack(
+                                          fit: StackFit.expand,
+                                          children: [
+                                            _SchoolPagePhoto(
+                                              state: state,
+                                              page: page,
+                                              key: ValueKey(page['id']),
+                                            ),
+                                            Align(
+                                              alignment: Alignment.bottomLeft,
+                                              child: DecoratedBox(
+                                                decoration: BoxDecoration(
+                                                  color: context
+                                                      .palette
+                                                      .panelSurface,
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
+                                                ),
+                                                child: const Padding(
+                                                  padding: EdgeInsets.all(2),
+                                                  child: Icon(
+                                                    Icons.zoom_in_rounded,
+                                                    size: 20,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  )
+                                else if (page['has_image'] == false)
+                                  const Center(
+                                    child: Icon(
+                                      Icons.description_outlined,
+                                      size: 32,
+                                    ),
+                                  )
+                                else
+                                  _SchoolPagePhoto(
+                                    state: state,
+                                    page: page,
+                                    key: ValueKey(page['id']),
+                                  ),
                                 if (page['confirmed'] != true &&
                                     day!['synthetic'] != true)
                                   Align(
