@@ -1,5 +1,14 @@
 # Übergabe an die nächste Coding-KI
 
+## Ergänzung 28. November 2026: Lernstand und Fachhefter beim Login
+
+Beide Ansichten sperren private Abrufe während einer Anmeldung und verbergen
+vorherige Inhalte. Nach Abbruch ist ein bewusster erneuter Einstieg nötig;
+offene Seiten- und Filterdialoge schließen und alte Aktionen bleiben gesperrt.
+36 künstliche Lernstands- und 75 Hefterfälle sowie die sechs neuen Fälle im
+Chrome-Webrunner bestanden; die statische Analyse war fehlerfrei. Bereits gesendete Transporte und der allgemeine Cookie-Wettlauf
+bleiben offen.
+
 ## Ergänzung 28. November 2026: Lernrunde beim Anmeldewechsel
 
 Lernrunden zeigen während einer Anmeldung keine privaten Inhalte und starten

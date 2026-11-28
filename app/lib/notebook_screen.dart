@@ -85,6 +85,7 @@ class _NotebookScreenState extends State<_NotebookContext>
   bool refreshAfterActiveQuery = false;
   double swipeDistance = 0;
   bool loading = true;
+  bool authenticationPaused = false;
   bool deleting = false, selecting = false, allMatching = false;
   final selectedIds = <String>{};
   final comparePages = <String, Json>{};
@@ -92,12 +93,14 @@ class _NotebookScreenState extends State<_NotebookContext>
   bool groupDays = false;
   bool canManage = false;
   static const pageSize = 20;
-  bool get current =>
+  bool get sameOwner =>
       mounted &&
       owner != null &&
       identical(widget.state.user, owner) &&
       widget.state.familyId == family &&
       widget.state.api.token == session;
+  bool get current =>
+      sameOwner && !widget.state.authenticationPending && !authenticationPaused;
   String get memoryKey => 'notebook:${widget.childId}:${widget.subjectId}';
   List<Json> get items => [
     for (final item in data?['items'] as List? ?? []) Json.from(item),
@@ -116,7 +119,9 @@ class _NotebookScreenState extends State<_NotebookContext>
     family = widget.state.familyId;
     session = widget.state.api.token;
     stateRevision = widget.state.revision;
+    authenticationPaused = widget.state.authenticationPending;
     widget.state.addListener(identityChanged);
+    widget.state.authenticationChanges.addListener(authenticationChanged);
     final saved = widget.state.collectionViews[memoryKey];
     view = saved?['view'] ?? 'album';
     sort = saved?['sort'] ?? 'newest';
@@ -135,7 +140,7 @@ class _NotebookScreenState extends State<_NotebookContext>
   }
 
   void identityChanged() {
-    if (mounted && !current) {
+    if (mounted && !sameOwner) {
       closePrivateRoutes();
       generation++;
       setState(() {
@@ -151,6 +156,22 @@ class _NotebookScreenState extends State<_NotebookContext>
     }
   }
 
+  void authenticationChanged() {
+    if (!mounted) return;
+    closePrivateRoutes();
+    generation++;
+    toolsEpoch++;
+    setState(() {
+      authenticationPaused = true;
+      data = subject = null;
+      error = null;
+      search.clear();
+      clearSelection();
+      comparePages.clear();
+      loading = false;
+    });
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state != AppLifecycleState.resumed) {
@@ -164,6 +185,7 @@ class _NotebookScreenState extends State<_NotebookContext>
     WidgetsBinding.instance.removeObserver(this);
     generation++;
     widget.state.removeListener(identityChanged);
+    widget.state.authenticationChanges.removeListener(authenticationChanged);
     closePrivateRoutes();
     search.dispose();
     listPosition.dispose();
@@ -1281,7 +1303,32 @@ class _NotebookScreenState extends State<_NotebookContext>
 
   @override
   Widget build(BuildContext context) {
-    if (!current) return SizedBox();
+    if (!current) {
+      return PageFrame(
+        state: widget.state,
+        title: 'Hefte',
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                widget.state.authenticationPending
+                    ? 'Anmeldung läuft …'
+                    : sameOwner
+                    ? 'Öffne deinen Hefter erneut.'
+                    : 'Bitte melde dich erneut an.',
+              ),
+              if (!widget.state.authenticationPending && sameOwner)
+                TextButton(
+                  onPressed: () =>
+                      openRoute(context, '/library/${widget.childId}'),
+                  child: const Text('Zu meinen Heften'),
+                ),
+            ],
+          ),
+        ),
+      );
+    }
     final compactNotebook = widget.state.isChild;
     final renderedScope = toolsScope;
     final renderedRoute = ModalRoute.of(context);

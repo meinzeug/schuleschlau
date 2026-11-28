@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import 'api.dart';
@@ -44,7 +46,9 @@ class ProgressScreen extends StatefulWidget {
 class _ProgressScreenState extends State<ProgressScreen> {
   Json? data;
   Object? error;
-  String? subject, topic, category, childName, ownerFamily;
+  String? subject, topic, category, childName, ownerFamily, ownerToken;
+  bool authenticationPaused = false;
+  DialogRoute<int>? pagePicker;
   int page = 1, generation = 0;
   bool loading = true;
   final viewSearch = TextEditingController();
@@ -100,11 +104,14 @@ class _ProgressScreenState extends State<ProgressScreen> {
 
   late Json? owner;
   String get cacheKey => 'progress:${widget.childId}';
-  bool get current =>
+  bool get sameOwner =>
       mounted &&
       owner != null &&
       identical(widget.state.user, owner) &&
-      ownerFamily == widget.state.familyId;
+      ownerFamily == widget.state.familyId &&
+      ownerToken == widget.state.api.token;
+  bool get current =>
+      sameOwner && !widget.state.authenticationPending && !authenticationPaused;
 
   static const categories = <String, String>{
     'independent': 'Selbstständig gelöst',
@@ -121,6 +128,8 @@ class _ProgressScreenState extends State<ProgressScreen> {
     super.initState();
     owner = widget.state.user;
     ownerFamily = widget.state.familyId;
+    ownerToken = widget.state.api.token;
+    authenticationPaused = widget.state.authenticationPending;
     final saved = widget.state.collectionViews[cacheKey];
     readView(saved);
     final explicitFilters =
@@ -132,15 +141,19 @@ class _ProgressScreenState extends State<ProgressScreen> {
       explicitFilters ? widget.initialCategory : saved?['category'],
     );
     widget.state.addListener(identityChanged);
+    widget.state.authenticationChanges.addListener(authenticationChanged);
     load();
   }
 
   void identityChanged() {
-    if (mounted && !current) {
+    if (mounted && !sameOwner) {
+      closePagePicker();
       generation++;
       setState(() {
         owner = widget.state.user;
         ownerFamily = widget.state.familyId;
+        ownerToken = widget.state.api.token;
+        authenticationPaused = widget.state.authenticationPending;
         data = null;
         error = null;
         childName = null;
@@ -155,12 +168,30 @@ class _ProgressScreenState extends State<ProgressScreen> {
     }
   }
 
+  void authenticationChanged() {
+    if (!mounted) return;
+    closePagePicker();
+    generation++;
+    setState(() {
+      authenticationPaused = true;
+      data = null;
+      error = null;
+      childName = null;
+      loading = false;
+      viewSearch.clear();
+    });
+  }
+
   @override
   void didUpdateWidget(covariant ProgressScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (!identical(oldWidget.state, widget.state)) {
       oldWidget.state.removeListener(identityChanged);
+      oldWidget.state.authenticationChanges.removeListener(
+        authenticationChanged,
+      );
       widget.state.addListener(identityChanged);
+      widget.state.authenticationChanges.addListener(authenticationChanged);
       owner = null;
       identityChanged();
       return;
@@ -188,6 +219,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
               widget.initialRoundKind == roundKind)) {
         return;
       }
+      closePagePicker();
       generation++;
       subject = widget.initialSubject;
       topic = widget.initialTopic;
@@ -200,9 +232,21 @@ class _ProgressScreenState extends State<ProgressScreen> {
     }
   }
 
+  void closePagePicker() {
+    final route = pagePicker;
+    pagePicker = null;
+    if (route != null) {
+      scheduleMicrotask(() {
+        if (route.isActive) route.navigator?.removeRoute(route);
+      });
+    }
+  }
+
   @override
   void dispose() {
+    closePagePicker();
     widget.state.removeListener(identityChanged);
+    widget.state.authenticationChanges.removeListener(authenticationChanged);
     viewSearch.dispose();
     super.dispose();
   }
@@ -355,7 +399,30 @@ class _ProgressScreenState extends State<ProgressScreen> {
     title: widget.state.isChild ? 'Dein Lernstand' : 'Lernstand',
     showTitle: widget.state.isChild,
     child: !current
-        ? const SizedBox()
+        ? Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  widget.state.authenticationPending
+                      ? 'Anmeldung läuft …'
+                      : sameOwner
+                      ? 'Öffne den Lernstand erneut.'
+                      : 'Bitte melde dich erneut an.',
+                ),
+                if (!widget.state.authenticationPending && sameOwner)
+                  TextButton(
+                    onPressed: () => openRoute(
+                      context,
+                      widget.state.isChild
+                          ? '/app'
+                          : '/child/${widget.childId}',
+                    ),
+                    child: const Text('Zurück zur Übersicht'),
+                  ),
+              ],
+            ),
+          )
         : Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -771,9 +838,16 @@ class _ProgressScreenState extends State<ProgressScreen> {
   }
 
   Future<void> pickPage(Json snapshot, int request) async {
+    if (!current ||
+        loading ||
+        !identical(data, snapshot) ||
+        pagePicker != null) {
+      return;
+    }
     final input = TextEditingController();
     String? issue;
-    final result = await showDialog<int>(
+    late final DialogRoute<int> route;
+    route = DialogRoute<int>(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, update) => AlertDialog(
@@ -789,11 +863,16 @@ class _ProgressScreenState extends State<ProgressScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(ctx),
+              onPressed: () {
+                if (current && identical(pagePicker, route) && ctx.mounted) {
+                  Navigator.pop(ctx);
+                }
+              },
               child: const Text('Abbrechen'),
             ),
             FilledButton(
               onPressed: () {
+                if (!current || !identical(pagePicker, route)) return;
                 final v = int.tryParse(input.text.trim());
                 if (v == null || v < 1 || v > snapshot['pagination']['pages']) {
                   update(
@@ -810,6 +889,10 @@ class _ProgressScreenState extends State<ProgressScreen> {
         ),
       ),
     );
+    pagePicker = route;
+    final result = await Navigator.of(context, rootNavigator: true).push(route);
+    await route.completed;
+    if (identical(pagePicker, route)) pagePicker = null;
     await WidgetsBinding.instance.endOfFrame;
     input.dispose();
     if (!mounted) return;

@@ -99,6 +99,7 @@ Future<(AppState, GoRouter, List<http.Request>)> open(
   bool settle = true,
   Brightness brightness = Brightness.light,
   Future<http.Response> Function(http.Request)? respond,
+  void Function(AppState)? beforeMount,
 }) async {
   tester.view.physicalSize = Size(width, height);
   tester.view.devicePixelRatio = 1;
@@ -143,6 +144,7 @@ Future<(AppState, GoRouter, List<http.Request>)> open(
                 'child_id': 'child',
                 'display_name': 'Beispiel',
               };
+  beforeMount?.call(state);
   if (shelfView != null) {
     state.collectionViews['notebook-shelf:child'] = Json.from(shelfView);
   }

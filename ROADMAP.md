@@ -4684,6 +4684,15 @@ Bestandteil des bestehenden Buildvertrags.
 
   - [ ] **Verspätete gemeinsame API-Antworten nach Kontowechsel absichern.**
 
+    **Lernstand und Fachhefter beim Anmeldewechsel schützen:** Beide Ansichten
+    laden während der Anmeldung keine privaten Daten, verbergen vorherige
+    Inhalte und verlangen nach Abbruch einen bewussten erneuten Einstieg.
+    Bereits geöffnete Seitenwahl und Hefterfilter werden geschlossen; alte
+    Bestätigungen und Kartenaktionen bleiben wirkungslos. 36 künstliche Fälle
+    zum Lernstand und 75 zum Hefter bestanden lokal; die sechs neuen Fälle
+    bestanden auch in Chrome und die statische Analyse war fehlerfrei. Schon laufende Transporte und die übergreifende Cookie-Lücke
+    sind damit nicht rückgängig gemacht.
+
     **Aktive Lernrunde beim Anmeldewechsel schützen:** Alte Fragen und
     Rückmeldungen verschwinden, während einer Anmeldung werden keine neuen
     Abrufe, Antwortaktionen oder Zeitbuchungen begonnen. Nach Abbruch wartet
