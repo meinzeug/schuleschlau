@@ -2073,22 +2073,58 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
         )
       : SizedBox.shrink();
 
+  bool _attemptTimeUnknown(Map attempt) {
+    if (!attempt.containsKey('created')) return false;
+    final value = attempt['created'];
+    return value is! num || !value.isFinite;
+  }
+
+  bool _attemptIndependenceUnknown(Map attempt) =>
+      _attemptTimeUnknown(attempt) ||
+      (attempt['evaluation'] is Map &&
+          attempt['evaluation']['independence_uncertain'] == true);
+
+  String _parentAttemptOutcome(Map attempt, List attempts) {
+    final label = outcomeLabel(attempt['outcome']);
+    if (attempt['outcome'] != 'correct') return label;
+    if (attempt['assisted'] == true) {
+      return '$label · mit Unterstützung oder erneut';
+    }
+    if (_attemptIndependenceUnknown(attempt) ||
+        attempts.whereType<Map>().any(_attemptTimeUnknown)) {
+      return '$label · Selbstständigkeit offen';
+    }
+    return '$label · selbstständig';
+  }
+
   bool parentQuestionMatches(Json q) {
     if (parentExactQuestion != null && q['id'] != parentExactQuestion) {
       return false;
     }
     final attempts = q['attempts'] as List? ?? [];
     final verdict = attempts.lastOrNull?['outcome'];
+    final unknownOrder =
+        attempts.length > 1 &&
+        attempts.whereType<Map>().any(_attemptTimeUnknown);
+    final unknownIndependence =
+        verdict == 'correct' &&
+        attempts.length == 1 &&
+        attempts.first['assisted'] == false &&
+        _attemptIndependenceUnknown(attempts.first as Map);
+    final uncertain =
+        verdict == 'uncertain' || unknownOrder || unknownIndependence;
     final independent =
         verdict == 'correct' &&
         attempts.length == 1 &&
-        attempts.first['assisted'] == false;
+        attempts.first['assisted'] == false &&
+        !uncertain;
     final matchesOutcome = switch (parentQuestionFilter) {
       null => true,
       'unanswered' => attempts.isEmpty,
       'independent' => independent,
-      'supported' => verdict == 'correct' && !independent,
-      _ => verdict == parentQuestionFilter,
+      'supported' => verdict == 'correct' && !independent && !uncertain,
+      'uncertain' => uncertain,
+      _ => !unknownOrder && verdict == parentQuestionFilter,
     };
     final haystack = parentSearchAnswers
         ? attempts
@@ -2359,7 +2395,7 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
                                   parts: a['evaluation']?['parts'],
                                 ),
                               MathText(
-                                '${q['type'] == 'grouped' ? '' : 'Antwort: ${a['answer']}\n'}${outcomeLabel(a['outcome'])}${a['outcome'] == 'correct' ? ' · ${a['assisted'] ? 'mit Unterstützung oder erneut' : 'selbstständig'}' : ''}',
+                                '${q['type'] == 'grouped' ? '' : 'Antwort: ${a['answer']}\n'}${_parentAttemptOutcome(a as Map, q['attempts'] as List)}',
                               ),
                               AnswerSupport(Json.from(a)),
                               AssessmentTrail(

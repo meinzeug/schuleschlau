@@ -22,6 +22,25 @@ Clients eine Aufgabenliste erwarten könnten und eine leere Ersatzliste falsche
 Tatsachen vorgäbe. Beide Probleme sind als strikte XFAIL-Regressionen in
 `test_nonfinite_attempt_time.py` reproduziert; sie sind nicht gelöst.
 
+Ein bloßes Ersetzen des ungültigen Werts durch `null` löst den Altclientkonflikt
+nicht: Eine bereits veröffentlichte Elternansicht (beispielsweise Stand
+`833f910`) bezeichnet `outcome=correct` und `assisted=false` unmittelbar als
+„selbstständig“, auch bei `evaluation.independence_uncertain=true`. Die neue
+Elternansicht berücksichtigt diesen Marker und ein ausdrücklich unbekanntes
+Datum; nachgewiesene Unterstützung bleibt sichtbar. Bereits installierte alte
+Clients erhalten diese Änderung jedoch erst durch ein Update. Ein Umsetzen
+gespeicherter `outcome`- oder `assisted`-Werte wäre eine falsche Darstellung
+der Originaldaten und ist keine sichere Kompatibilitätslösung.
+
+Ein möglicher nächster Schritt ist ein ausdrücklich versionierter
+Capability-Vertrag: Nur nachgewiesen kompatible Clients erhalten einen
+unbekannten Zeitwert und erklären dessen Bedeutung; ältere Clients erhalten
+für die betroffene Runde einen verständlichen Update-/Prüfhinweis. Für die
+ungekürzte Übersicht muss zusätzlich ein mit alten Clients nachweislich
+kompatibler Umgang mit einem einzelnen nicht darstellbaren Eintrag gefunden
+werden. Solange dies nicht belegt ist, bleiben beide XFAILs offen. Eine
+Capability selbst darf weder Rechte noch Datenfreigaben ersetzen.
+
 Coaching-Beobachtungen behandeln betroffene Aufgaben als unklar, vergeben keine
 datierten Prüferfolge daraus und berücksichtigen bei identischen Fragen deren
 unklare frühere Exposition. Im kombinierten synthetischen Test blieben die
