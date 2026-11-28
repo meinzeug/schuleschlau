@@ -1,5 +1,16 @@
 # Übergabe an die nächste Coding-KI
 
+## Ergänzung 28. November 2026: Französisch-Lehrplan Sachsen-Anhalt
+
+Acht quellengestützte Inhaltsüberschriften für die amtlichen Phasen 7/8 und
+9/10 sind im versionierten öffentlichen Katalog. Die Katalog-API kann die
+Phasen gezielt filtern; eine Auswahloberfläche und eine Nutzung im Lernplan
+nach bestätigter Sprachwahl fehlen noch. Es wird kein Sprachlernjahr aus der
+Klassenstufe abgeleitet. Migration 0066 ist additiv und erhielt künstliche
+Antworten und Lernzeit in SQLite- und PostgreSQL-Tests. 33 SQLite-Fälle (ein
+PostgreSQL-Fall übersprungen), 34 PostgreSQL-Fälle sowie der ergänzte
+Planungstest auf beiden Datenbanken bestanden. Details: docs/SOURCES.md.
+
 ## Ergänzung 28. November 2026: Hefte- und Lernübersichten beim Login
 
 Das Fachregal und paginierte Sammlungen senden während einer Anmeldung keine

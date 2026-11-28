@@ -973,7 +973,7 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
   Als erste fachlich belegte Erweiterung wurden Mathematik, Deutsch, Englisch,
   Geschichte, Biologie, Physik, Chemie, Geographie sowie Übersichten für Ethik,
   Informatik, Musik, Kunst, Sport, Technik, Wirtschaft, Sozialkunde,
-  Hauswirtschaft und Astronomie der
+  Hauswirtschaft, Astronomie und eine als Phase filterbare Französischübersicht der
   Sekundarschule Sachsen-Anhalt für die jeweils belegten Jahrgänge bzw.
   Abschlussphasen ergänzt. Weitere Fächer, Österreich,
   die Schweiz und Hochschulen bleiben offen; keine Vollständigkeit behaupten.
@@ -985,6 +985,18 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
   Clients getestet.
 
 - [ ] **P1 – Lehrplanabdeckung fachlich kuratieren und offen ausweisen**
+
+  - [x] **Französisch für Sachsen-Anhalts Sekundarschule im Katalog belegen.**
+    Acht kurze eigene Inhaltsüberschriften stammen aus den amtlichen Phasen
+    7/8 und 9/10. Die Phasen können über die Katalog-API explizit gefiltert
+    werden; eine Auswahloberfläche und automatische Planung nach bestätigtem
+    Sprachkurs sind noch nicht angebunden. Die Klassenstufe allein erzeugt
+    deshalb keine Sprachwahl und zieht diese Inhalte nicht in den KI-Kontext.
+    Die additive Migration erhält vorhandene Antworten und Lernzeit und ist
+    wiederholbar. 33 SQLite-Fälle (ein PostgreSQL-Fall übersprungen) und 34
+    isolierte PostgreSQL-Fälle bestanden; der zusätzliche Planungstest bestand
+    auf beiden Datenbanken. Weitere Fächer, Schulen und fachliche Abnahme
+    bleiben offen. [Amtliche Quelle und Grenzen](docs/SOURCES.md).
 
   - [x] **Astronomie der Sekundarschule Sachsen-Anhalt ergänzen.** Das Fach
     erhält eine eigenständige versionierte Stammkennung und vier amtlich für

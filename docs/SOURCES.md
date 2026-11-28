@@ -1,3 +1,22 @@
+## 28.11.2026 · Französisch Sachsen-Anhalt
+
+Der [amtliche Sekundarschulindex](https://www.bildung-lsa.de/informationsportal/unterricht/sekundarschule/schulformbezogene_informationen/lehrplan.htm)
+verlinkt den [Fachlehrplan Französisch, Stand 01.08.2019](https://www.bildung-lsa.de/files/164f3f97e3adf65ff6f44685dd9e1ced/lp_sks_franz_01_08_2019.pdf).
+Die gedruckten Seiten 12 und 17 unterscheiden kommunikative Inhaltsfelder für
+die Schuljahrgänge 7/8 und 9/10. Die Katalogtitel fassen diese Bereiche in
+eigenen Worten zusammen. Beide Bänder bleiben über die Katalog-API ausdrücklich
+filterbare Phasen ohne automatische Klassenfilterung; eine Auswahloberfläche
+für diese Phasen ist noch nicht angebunden. Weder Sprachwahl noch Sprachlernjahr,
+konkrete schulische Reihenfolge oder individueller Lernstand sind dadurch
+belegt. Eine Einbindung in die automatische Lernplanung anhand einer Klasse
+allein findet nicht statt.
+
+Quelle: Ministerium für Bildung und Landesportal Sachsen-Anhalt,
+[CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/); abgerufen am
+28.11.2026. PDF-SHA256:
+`5ba6720beecf5bf80ebcbe9349cdf5a43c63c0af8ae0192341119deb0c5f8039`.
+Die Übersicht ist unvollständig und ersetzt keine fachkundige Abnahme.
+
 ## 28.11.2026 · Astronomie Sachsen-Anhalt
 
 Der [amtliche Sekundarschulindex](https://www.bildung-lsa.de/index.php?KAT_ID=16003)

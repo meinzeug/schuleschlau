@@ -1,0 +1,141 @@
+{
+  "version": 1,
+  "retrieved": "2026-11-28",
+  "coverage": {
+    "complete": false,
+    "note": "Kuratierte Übersicht zu kommunikativen Inhaltsfeldern; keine vollständige Facherfassung, keine automatische Spracheinschreibung oder Zuordnung von Sprachlernjahren aus der Schulklasse."
+  },
+  "documents": [
+    {
+      "id": "st-sek-franzoesisch-2019",
+      "state_code": "DE-ST",
+      "title": "Fachlehrplan Sekundarschule Französisch",
+      "official_url": "https://www.bildung-lsa.de/files/164f3f97e3adf65ff6f44685dd9e1ced/lp_sks_franz_01_08_2019.pdf",
+      "edition": "Stand 01.08.2019",
+      "effective_from": null,
+      "school_form_label": "Sekundarschule",
+      "school_form_id": "de-st.sekundarschule",
+      "school_form_scope": "specific",
+      "applies_to_school_forms": [],
+      "applicability_note": "Französisch ist eine ausdrücklich gewählte Sprache. Die Phasen 7/8 und 9/10 stammen aus dem Fachlehrplan; sie belegen keine individuelle Kursbelegung, kein Sprachlernjahr, keine Reihenfolge und keinen Lernstand. Themen nur bei passender bestätigter Sprachwahl verwenden.",
+      "document_kind": "curriculum",
+      "source_notes": "Amtlicher Bildungsserver, abgerufen 28.11.2026; Index Stand 05.11.2026 verlinkt diese Fassung. Quelle: Landesportal Sachsen-Anhalt, CC BY-SA 3.0. PDF-SHA256 5ba6720beecf5bf80ebcbe9349cdf5a43c63c0af8ae0192341119deb0c5f8039. Seitenzahlen sind gedruckte Seiten; Themenlabels eigene Kurzfassungen.",
+      "source_status": "current_verified",
+      "retrieved": "2026-11-28"
+    }
+  ],
+  "topics": [
+    {
+      "id": "st-sek-franzoesisch-2019.78-person",
+      "document_id": "st-sek-franzoesisch-2019",
+      "subject_key": "franzoesisch",
+      "title": "Französisch: Über sich und das Umfeld sprechen",
+      "grade_kind": "phase",
+      "grades": null,
+      "phase_label": "Schuljahrgänge 7/8",
+      "section": "3.1 Kommunikative Inhalte",
+      "page": 12,
+      "quote": "Person",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "st-sek-franzoesisch-2019.78-alltag",
+      "document_id": "st-sek-franzoesisch-2019",
+      "subject_key": "franzoesisch",
+      "title": "Französisch: Alltag und Medien beschreiben",
+      "grade_kind": "phase",
+      "grades": null,
+      "phase_label": "Schuljahrgänge 7/8",
+      "section": "3.1 Kommunikative Inhalte",
+      "page": 12,
+      "quote": "Tägliches",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "st-sek-franzoesisch-2019.78-wohnen",
+      "document_id": "st-sek-franzoesisch-2019",
+      "subject_key": "franzoesisch",
+      "title": "Französisch: Wohnen und Verkehr beschreiben",
+      "grade_kind": "phase",
+      "grades": null,
+      "phase_label": "Schuljahrgänge 7/8",
+      "section": "3.1 Kommunikative Inhalte",
+      "page": 12,
+      "quote": "Lebensbedingungen",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "st-sek-franzoesisch-2019.78-kultur",
+      "document_id": "st-sek-franzoesisch-2019",
+      "subject_key": "franzoesisch",
+      "title": "Französisch: Städte und regionale Kultur erkunden",
+      "grade_kind": "phase",
+      "grades": null,
+      "phase_label": "Schuljahrgänge 7/8",
+      "section": "3.1 Kommunikative Inhalte",
+      "page": 12,
+      "quote": "Geografie",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "st-sek-franzoesisch-2019.910-beruf",
+      "document_id": "st-sek-franzoesisch-2019",
+      "subject_key": "franzoesisch",
+      "title": "Französisch: Ausbildung und Zukunftspläne besprechen",
+      "grade_kind": "phase",
+      "grades": null,
+      "phase_label": "Schuljahrgänge 9/10",
+      "section": "3.2 Kommunikative Inhalte",
+      "page": 17,
+      "quote": "Berufsfindung",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "st-sek-franzoesisch-2019.910-alltag",
+      "document_id": "st-sek-franzoesisch-2019",
+      "subject_key": "franzoesisch",
+      "title": "Französisch: Einrichtungen und Digitalisierung besprechen",
+      "grade_kind": "phase",
+      "grades": null,
+      "phase_label": "Schuljahrgänge 9/10",
+      "section": "3.2 Kommunikative Inhalte",
+      "page": 17,
+      "quote": "Digitalisierung",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "st-sek-franzoesisch-2019.910-umwelt",
+      "document_id": "st-sek-franzoesisch-2019",
+      "subject_key": "franzoesisch",
+      "title": "Französisch: Umwelt und Rechte Jugendlicher besprechen",
+      "grade_kind": "phase",
+      "grades": null,
+      "phase_label": "Schuljahrgänge 9/10",
+      "section": "3.2 Kommunikative Inhalte",
+      "page": 17,
+      "quote": "Umwelt",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    },
+    {
+      "id": "st-sek-franzoesisch-2019.910-kultur",
+      "document_id": "st-sek-franzoesisch-2019",
+      "subject_key": "franzoesisch",
+      "title": "Französisch: Frankophone Regionen und Kultur kennenlernen",
+      "grade_kind": "phase",
+      "grades": null,
+      "phase_label": "Schuljahrgänge 9/10",
+      "section": "3.2 Kommunikative Inhalte",
+      "page": 17,
+      "quote": "frankophone",
+      "canonical_topic_key": null,
+      "common_fact_keywords": []
+    }
+  ]
+}
