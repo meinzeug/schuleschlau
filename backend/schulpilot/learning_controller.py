@@ -4,6 +4,7 @@ Observations refer to existing attempts/activities. Decisions are versioned
 product rules, not diagnoses. Reading a projection never writes learning data.
 """
 
+import math
 import re
 from fractions import Fraction
 from typing import Literal
@@ -92,7 +93,8 @@ def independent_first_answer(values):
         return False
     attempt = values[0]
     evaluation = attempt.evaluation or {}
-    return (attempt.outcome == "correct" and not attempt.assisted
+    return (math.isfinite(attempt.created)
+        and attempt.outcome == "correct" and not attempt.assisted
         and not evaluation.get("independence_uncertain")
         and evaluation.get("method") != "open_learning_v1")
 

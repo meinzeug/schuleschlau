@@ -50,6 +50,41 @@ Grafikposition), sowie alle quellen- und kompetenzgebundenen Projektionen mit
 dem neuen Vertrag getestet sind. Ein isolierter Test von zwei GET-Endpunkten
 belegt diese Voraussetzungen nicht.
 
+### Tatsächlicher Altclient und weiterer Controller-Befund
+
+Der historische Flutter-Stand `833f910` (App-Version `1.22.0+90`) wurde
+separat ausgecheckt und mit dem künstlichen Widgetfall
+`qa/nonfinite_legacy/client_833f910_test.dart` sowohl nativ als auch im echten
+Chrome-Webrunner ausgeführt. Die Antwort wurde tatsächlich als JSON kodiert:
+`created: null`, unverändertes `outcome: correct`, unverändertes
+`assisted: false` und `independence_uncertain: true`. Der ursprüngliche Client
+dekodiert sie ohne Absturz, zeigt aber tatsächlich „selbstständig“. Sein
+Capability-Header enthält keine neue Zeitstempel-Capability. Ein erfolgreicher
+Transport beweist hier also keine fachlich korrekte Darstellung.
+Im selben historischen Widgettest zeigen Kinder- und Elternansicht eine
+künstliche HTTP-409-Antwort mit verständlichem Text und einem erneuten Versuch
+an. Das belegt den Dialog für **direkte Rundendetails** dieses konkreten
+Clients; es ist kein implementierter Serververtrag und kein Nachweis für die
+alte unkompakte Übersicht oder weitere installierte APK-Versionen.
+
+Der Test ist ein **Fehlernachweis**, keine Sollvorgabe. Reproduktion: Einen
+temporären Git-Worktree auf `833f910` anlegen, die genannte Datei in dessen
+`app/test/` kopieren, dort die bereits vorhandenen Abhängigkeiten offline
+auflösen und den Widgettest nativ sowie mit `flutter test -d chrome` ausführen.
+Es werden ausschließlich künstliche Daten und `example.invalid` verwendet.
+Der Teststand deckt genau diese historische App-Version ab, nicht sämtliche
+installierten APKs. Im selben Stand setzt die Rundendetailansicht
+`questions` als Liste voraus; eine Ersatzvorschau mit fehlendem oder erfundenem
+leeren Inhalt ist daher kein nachgewiesener kompatibler Vertrag.
+
+Zusätzlich wurde der reguläre `/learning-session`-Endpunkt mit künstlicher
+Quelle und einem nicht-endlichen Antwortzeitpunkt geprüft. Zuvor zählte er die
+Antwort als unabhängigen Erstversuch; der begrenzte Controller-Fix behandelt
+diesen einzelnen Beleg nicht mehr als unabhängig und lässt seine gespeicherte
+Antwort und Bewertung unverändert. Dies löst die zwei oben beschriebenen
+Rundendetail- und Legacy-Übersichtsfehler nicht und erlaubt noch keine globale
+Capability-Ankündigung.
+
 Coaching-Beobachtungen behandeln betroffene Aufgaben als unklar, vergeben keine
 datierten Prüferfolge daraus und berücksichtigen bei identischen Fragen deren
 unklare frühere Exposition. Im kombinierten synthetischen Test blieben die
