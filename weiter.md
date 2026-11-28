@@ -4,16 +4,20 @@
 
 Version 1.38.168 (`5a8d171`) wurde nach abgeglichenem Offsite-Journal und
 isolierter echter Wiederherstellung aktiviert; öffentlicher Healthcheck und
-API-/Worker-/Fotodienst waren erfolgreich. Der danach gepushte Stand
-`000c01b` enthält automatische, quellen-/sitzungsgebundene Vorbereitung
+API-/Worker-/Fotodienst waren erfolgreich. Der danach entwickelte Stand
+enthält automatische, quellen-/sitzungsgebundene Vorbereitung
 für bestätigte Schultag-Lernwege und neue einzelne Heftseiten sowie einen
 MediaExplorer-Grundbaustein mit redaktionellen Entscheidungen; er ist noch
 nicht ausgerollt. Ein echter End-to-End-KI-Test der neuen automatischen
 Vorbereitung und die Anpassung vorgefertigter Runden an späteren Lernstand
 bleiben offen. Fehler bei Mehrseitenaufträgen und gleichzeitigem
 Sitzungsentzug wurden mit künstlichen SQLite- und PostgreSQL-Fällen
-nachgestellt und lokal korrigiert; die neue Fassung benötigt noch den
-Live-Test. Einzelheiten und offene Abnahme:
+nachgestellt und lokal korrigiert. Ein versuchter Downgrade darf die neuen
+Vorbereitungsaufträge nicht löschen; der Schutz wurde auf SQLite und
+PostgreSQL geprüft. Der Build für `8b1d401` wurde wegen dieses inzwischen
+behobenen CI-Befunds abgebrochen und darf nicht verwendet werden. Die neue
+Fassung benötigt noch einen frischen Build und den Live-Test. Einzelheiten
+und offene Abnahme:
 `docs/AUTO_ROUND_PLAN_2026_11_28.md` und
 `docs/MEDIAEXPLORER_PLAN_2026_11_28.md`.
 
