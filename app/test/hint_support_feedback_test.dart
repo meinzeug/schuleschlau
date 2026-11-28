@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:schulpilot/api.dart';
@@ -38,8 +41,18 @@ void main() {
     expect(find.text('Deine Antwort zählt mit Tipp.'), findsOneWidget);
     await room.tapText(tester, 'Noch ein Tipp');
     expect(find.text('Cat heißt Katze.'), findsOneWidget);
+    // Browsing already disclosed tips is local and must not record new help.
+    final chooser = find.byType(DropdownButtonFormField<int>);
+    expect(chooser, findsOneWidget);
+    await tester.ensureVisible(chooser);
+    await tester.tap(chooser);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Tipp 1').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Denke an das Wort.'), findsOneWidget);
     expect(server.hints, 2);
     expect(server.answers, 0);
+    expect(server.calls.where((call) => call.endsWith('/hint')), hasLength(2));
     await first.close();
 
     await room.openRound(tester, server, handle: handle);
@@ -47,6 +60,41 @@ void main() {
     expect(find.text('Deine Antwort zählt mit Tipp.'), findsOneWidget);
     expect(server.hints, 2);
     expect(server.answers, 0);
+  });
+
+  testWidgets('a late hint from the previous account is never displayed', (
+    tester,
+  ) async {
+    final server = room.SavedRound();
+    final pending = Completer<http.Response>();
+    final h = await room.openRound(
+      tester,
+      server,
+      handle: (request) {
+        if (request.url.path.endsWith('/hint')) {
+          server.calls.add('${request.method} ${request.url.path}');
+          return pending.future;
+        }
+        return server.handle(request);
+      },
+    );
+    await tester.ensureVisible(find.text('Hilfe'));
+    await tester.tap(find.text('Hilfe'));
+    await tester.pump();
+    expect(server.calls.where((call) => call.endsWith('/hint')), hasLength(1));
+    h.state.beginAuthentication();
+    pending.complete(
+      room.jsonReply({
+        'hint': 'Veralteter privater Tipp',
+        'hints_used': 1,
+        'exhausted': false,
+      }),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.text('Veralteter privater Tipp'), findsNothing);
+    expect(server.answers, 0);
+    await h.close();
   });
 
   testWidgets('saved correct feedback names the hint after reopening', (

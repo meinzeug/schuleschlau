@@ -3627,7 +3627,8 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
           'Idempotency-Key': hintRequestKey!,
       },
     );
-    if (requestIsCurrent(id, requestedOwner)) {
+    if (requestIsCurrent(id, requestedOwner) &&
+        currentQuestion?['id'] == q['id']) {
       setState(() {
         hint = data['hint'];
         // currentQuestion is a copy. Keep the server's disclosed projection in
@@ -3645,7 +3646,22 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
           if (data['presentation'] is Map) {
             target['presentation'] = Json.from(data['presentation']);
           }
-          if (returned != null) target['hints_used'] = returned;
+          if (returned != null) {
+            target['hints_used'] = returned;
+            // Keep the server-confirmed tips reachable immediately. The
+            // question projection is otherwise refreshed only on reload.
+            final confirmed = data['hint'];
+            if (returned > 0 && returned <= 3 && confirmed is String) {
+              final shown = (target['shown_hints'] as List? ?? [])
+                  .whereType<Map>()
+                  .map((item) => Json.from(item))
+                  .toList();
+              if (!shown.any((item) => item['number'] == returned)) {
+                shown.add({'number': returned, 'text': confirmed});
+                target['shown_hints'] = shown;
+              }
+            }
+          }
         }
         hintRequestKey = null;
         hintExhausted = data['exhausted'] == true;
