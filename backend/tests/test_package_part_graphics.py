@@ -20,7 +20,7 @@ DATA = Path(__file__).parents[2] / "testdata"
 
 def cases():
     result = []
-    for name in ("subject_cases_v1.json", "subject_cases_hauswirtschaft_v2.json", "science_graphics_v1.json", "learning_scenes_v1.json", "text_probes_v1.json"):
+    for name in ("subject_cases_v1.json", "subject_cases_hauswirtschaft_v2.json", "subject_cases_astronomie_v3.json", "science_graphics_v1.json", "learning_scenes_v1.json", "text_probes_v1.json"):
         for case in json.loads((DATA / name).read_text())["cases"]:
             for index, block in enumerate((case["question"].get("presentation") or {}).get("blocks", [])):
                 result.append((case["id"] + ":" + str(index), case["subject"], block))

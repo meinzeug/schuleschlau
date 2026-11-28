@@ -21,6 +21,7 @@ from .db import Assignment, Child, ChildSubject, LearningUnit, Mastery, Material
 
 SEED = Path(__file__).with_name("reference") / "subjects-v1.json"
 ADDITIONAL_SEED_V2 = Path(__file__).with_name("reference") / "subjects-additions-v2.json"
+ADDITIONAL_SEED_V3 = Path(__file__).with_name("reference") / "subjects-additions-v3.json"
 PRIVATE_MODELS = (Material, Assignment, LearningUnit, SchoolGrade, Mastery)
 
 
@@ -133,13 +134,11 @@ def seed_connection(connection):
     return {"seed_version": 1, "reference_subjects": len(provider_rows), "general_subjects": len(known)}
 
 
-def seed_additional_v2(connection):
-    """Add independently versioned public subjects without rewriting v1."""
-    seed = json.loads(ADDITIONAL_SEED_V2.read_text())
-    if seed.get("seed_version") != 2:
+def _seed_addition(connection, path, version, start):
+    seed = json.loads(path.read_text())
+    if seed.get("seed_version") != version:
         raise ValueError("Ungültige Fachstamm-Ergänzung.")
     subjects, aliases, _ = tables()
-    start = len(json.loads(SEED.read_text())["subjects"])
     for index, row in enumerate(seed["subjects"]):
         existing = connection.execute(sa.select(subjects.c.id).where(
             subjects.c.key == row["key"], subjects.c.owner_family_id.is_(None))).scalar_one_or_none()
@@ -158,6 +157,17 @@ def seed_additional_v2(connection):
             "key": alias_key(label), "subject_id": subject_id, "family_id": None,
             "normalized": normalized(label),
         } for label in {row["title"], *row["aliases"]}])
+
+
+def seed_additional_v2(connection):
+    """Add the immutable v2 subjects without rewriting the original seed."""
+    _seed_addition(connection, ADDITIONAL_SEED_V2, 2, len(json.loads(SEED.read_text())["subjects"]))
+
+
+def seed_additional_v3(connection):
+    """Add the immutable v3 subjects after the existing v1 and v2 entries."""
+    start = len(json.loads(SEED.read_text())["subjects"]) + len(json.loads(ADDITIONAL_SEED_V2.read_text())["subjects"])
+    _seed_addition(connection, ADDITIONAL_SEED_V3, 3, start)
 
 
 def create_private_connection(connection, label, family_id, *, legacy=False):

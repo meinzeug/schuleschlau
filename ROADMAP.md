@@ -973,7 +973,7 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
   Als erste fachlich belegte Erweiterung wurden Mathematik, Deutsch, Englisch,
   Geschichte, Biologie, Physik, Chemie, Geographie sowie Übersichten für Ethik,
   Informatik, Musik, Kunst, Sport, Technik, Wirtschaft, Sozialkunde und
-  Hauswirtschaft der
+  Hauswirtschaft und Astronomie der
   Sekundarschule Sachsen-Anhalt für die jeweils belegten Jahrgänge bzw.
   Abschlussphasen ergänzt. Weitere Fächer, Österreich,
   die Schweiz und Hochschulen bleiben offen; keine Vollständigkeit behaupten.
@@ -985,6 +985,19 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
   Clients getestet.
 
 - [ ] **P1 – Lehrplanabdeckung fachlich kuratieren und offen ausweisen**
+
+  - [x] **Astronomie der Sekundarschule Sachsen-Anhalt ergänzen.** Das Fach
+    erhält eine eigenständige versionierte Stammkennung und vier amtlich für
+    Jahrgang 10 belegte mögliche Schwerpunkte. Laut Quelle unterrichtet die
+    Schule drei davon; ihre konkrete Auswahl und Reihenfolge bleiben offen.
+    Der Planungskontext erhält einen Hinweis zur sicheren Sonnenbeobachtung.
+    Die additive Migration erhält private Fachkennungen, Antworten und
+    Lernzeit; gleichnamige private Fächer können weiterhin separat erscheinen.
+    131 künstliche SQLite-Fälle bestanden (vier PostgreSQL-Fälle übersprungen),
+    ebenso 135 auf isoliertem PostgreSQL. Künstliche Grafikschemafälle und die
+    mobile Fachnavigation bestanden zusätzlich auf Flutter und im Chrome-
+    Webrunner. Weitere Regionen, echte Fachabnahme und Ausrollen bleiben offen.
+    [Quelle und Grenzen](docs/SOURCES.md).
 
   - [x] **Hauswirtschaft der Sekundarschule Sachsen-Anhalt ergänzen.** Das
     Fach erhält eine eigenständige versionierte Stammkennung. Sieben amtliche

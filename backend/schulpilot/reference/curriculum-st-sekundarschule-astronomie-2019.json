@@ -1,0 +1,97 @@
+{
+  "version": 1,
+  "retrieved": "2026-11-28",
+  "documents": [
+    {
+      "id": "st-sek-astronomie-2019",
+      "state_code": "DE-ST",
+      "edition": "Stand 01.08.2019",
+      "effective_from": null,
+      "school_form_label": "Sekundarschule",
+      "school_form_id": "de-st.sekundarschule",
+      "school_form_scope": "specific",
+      "applies_to_school_forms": [],
+      "source_status": "current_verified",
+      "retrieved": "2026-11-28",
+      "document_kind": "curriculum",
+      "official_url": "https://www.bildung-lsa.de/files/164f3f97e3adf65ff6f44685dd9e1ced/lp_sks_astro_01_08_2019.pdf",
+      "title": "Fachlehrplan Sekundarschule Astronomie",
+      "applicability_note": "Die Übersicht betrifft Schuljahrgang 10. Von vier Schwerpunkten werden laut Fachlehrplan drei unterrichtet; die tatsächliche Auswahl und Reihenfolge der Schule sind unbekannt. Keine Beobachtung der Sonne mit bloßen Augen oder optischen Geräten anleiten; Beobachtungsaufgaben nur unter passenden schulischen Sicherheitsregeln und Aufsicht. Astronomische Modelle sind begrenzte wissenschaftliche Beschreibungen.",
+      "source_notes": "Ministerium für Bildung Sachsen-Anhalt; Landesportal Sachsen-Anhalt, CC BY-SA 3.0 (https://creativecommons.org/licenses/by-sa/3.0/); Kapitel 3.1, gedruckte Seite 10. PDF-SHA256 5e95c1c0c351243523a2eba23fe91d67a3a402b8b7cf7d899c707dec3f93a897; amtlicher Index https://www.bildung-lsa.de/index.php?KAT_ID=16003."
+    }
+  ],
+  "topics": [
+    {
+      "id": "st-sek-astronomie-2019.10-himmel",
+      "document_id": "st-sek-astronomie-2019",
+      "subject_key": "astronomie",
+      "title": "Alltagsphänomene und Sternhimmel",
+      "grade_kind": "exact",
+      "grades": [
+        10
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 10,
+      "quote": "Alltagsphänomene",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-astronomie-2019.10-sonnensystem",
+      "document_id": "st-sek-astronomie-2019",
+      "subject_key": "astronomie",
+      "title": "Unser Platz im Sonnensystem",
+      "grade_kind": "exact",
+      "grades": [
+        10
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 10,
+      "quote": "Sonnensystem",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-astronomie-2019.10-forschung",
+      "document_id": "st-sek-astronomie-2019",
+      "subject_key": "astronomie",
+      "title": "Astronomische Forschung und Erkenntnisse",
+      "grade_kind": "exact",
+      "grades": [
+        10
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 10,
+      "quote": "Astronomische Forschung",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-astronomie-2019.10-weltall",
+      "document_id": "st-sek-astronomie-2019",
+      "subject_key": "astronomie",
+      "title": "Entwicklung des Weltalls",
+      "grade_kind": "exact",
+      "grades": [
+        10
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 10,
+      "quote": "Das Weltall",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    }
+  ],
+  "coverage": {
+    "complete": false,
+    "note": "Vier mögliche Überblicksschwerpunkte, davon drei schulisch auszuwählen; keine individuelle Kursbelegung, Unterrichtsfolge oder vollständige Fachabdeckung."
+  }
+}

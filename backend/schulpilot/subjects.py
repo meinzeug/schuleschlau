@@ -44,7 +44,7 @@ def owned_subject(db, child, subject_id, viewer=None):
 @router.get("/subjects")
 def public_subjects(db=Depends(get_db)):
     # Only fixed/general metadata; no family-specific names or statistics.
-    return {"items": [subject_data(row) for row in visible(db)], "seed_version": 2}
+    return {"items": [subject_data(row) for row in visible(db)], "seed_version": 3}
 
 
 @router.get("/children/{child_id}/subjects")

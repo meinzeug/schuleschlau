@@ -174,6 +174,16 @@ def seed_additional(db):
             raise ValueError("Ein versionierter Lehrplanbestand fehlt.")
         import_catalogue(db, json.loads(path.read_text()))
 
+    # Astronomie is likewise introduced after historical migration 0041.
+    # Migration 0064 imports it after creating its stable public subject.
+    if db.scalar(select(Subject.id).where(
+        Subject.key == "astronomie", Subject.owner_family_id.is_(None)
+    )) is not None:
+        path = REFERENCE / "curriculum-st-sekundarschule-astronomie-2019.json"
+        if not path.is_file():
+            raise ValueError("Ein versionierter Lehrplanbestand fehlt.")
+        import_catalogue(db, json.loads(path.read_text()))
+
 
 @router.post("/admin/curriculum/import")
 def import_reviewed(data: CatalogueInput, p=Depends(admin), db=Depends(get_db)):

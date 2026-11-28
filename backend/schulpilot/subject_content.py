@@ -88,6 +88,7 @@ PROFILES = {
     "Technik": ("gears", "forces"),
     "Wirtschaft": ("money", "statements"),
     "Hauswirtschaft": ("statements",),
+    "Astronomie": ("statements", "timeline"),
 }
 for _subject, _kinds in {
     "Mathematik": ("function_graph", "data_plot"),
@@ -112,7 +113,7 @@ _profile_aliases = {}
 _reference = Path(__file__).with_name("reference")
 _subject_rows = [
     row
-    for filename in ("subjects-v1.json", "subjects-additions-v2.json")
+    for filename in ("subjects-v1.json", "subjects-additions-v2.json", "subjects-additions-v3.json")
     for row in json.loads((_reference / filename).read_text())["subjects"]
 ]
 for _row in _subject_rows:

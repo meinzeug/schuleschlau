@@ -98,7 +98,7 @@ def test_postgres_catalog_upgrade_keeps_private_sources_answers_and_stable_subje
             assert db.scalar(text("SELECT id FROM subjects WHERE key='mathematik'")) == subject
             assert db.scalar(text("SELECT content FROM materials WHERE id='m'")) == "Artificial source"
             assert db.scalar(text("SELECT answer FROM attempts WHERE id='a'")) == "Synthetic answer"
-            assert db.scalar(text("SELECT count(*) FROM subjects")) == 25
+            assert db.scalar(text("SELECT count(*) FROM subjects")) == 26
             assert db.scalar(text("SELECT count(*) FROM catalog_topics")) == 0
             assert "gin" in db.scalar(
                 text(

@@ -1036,10 +1036,11 @@ def init_db():
 
     with DB.begin() as db:
         insert_ignore(db, ProviderConfig, {"id": 1})
-        from .subject_registry import seed_additional_v2, seed_connection
+        from .subject_registry import seed_additional_v2, seed_additional_v3, seed_connection
 
         seed_connection(db.connection())
         seed_additional_v2(db.connection())
+        seed_additional_v3(db.connection())
         from .competences import seed_connection as seed_competences
 
         seed_competences(db.connection())

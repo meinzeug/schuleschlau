@@ -602,9 +602,9 @@ Der unabhängige Watchdog aus Commit `96c43ca` ist lokal installiert. Er meldet 
   mit künstlichen Daten. Ein grüner GitHub-Gesamtlauf steht weiterhin aus.
 
 - Der vollständige GitHub-Lauf `46066281027` für `f21d4f0` war erfolgreich.
-- Auch der vollständige GitHub-Lauf `46083894113` für `5201819` war erfolgreich.
-  Der Lauf `46086299918` für `cda0c82` wurde nach dem Push gestartet; sein
-  Ergebnis ist zum Zeitpunkt dieses Eintrags noch offen.
+- Auch die vollständigen GitHub-Läufe `46083894113` für `5201819` und
+  `46086299918` für `cda0c82` waren erfolgreich. Der Lauf `46089340719` für
+  `7c3a7bf` ist zum Zeitpunkt dieses Eintrags noch offen.
 - Quellausschnitte prüfen nun die bestehende 16-Megapixel-Grenze, bevor sie
   Pixel älterer Speicherdateien laden. Bei Profilbildern werden zu Fehlern
   verschärfte Pillow-Warnungen als ungültige Eingabe behandelt. Die gezielten
@@ -659,6 +659,15 @@ Der unabhängige Watchdog aus Commit `96c43ca` ist lokal installiert. Er meldet 
   bestanden. Die mobile Fachheftnavigation wurde mit künstlichen Daten auf
   Flutter und im Chrome-Webrunner geprüft. Weitere Regionen und eine umfassende
   Fachabnahme bleiben offen.
+
+- Astronomie ist mit eigenem Fach und dem amtlichen Überblick für Jahrgang 10
+  der Sekundarschule Sachsen-Anhalt vorbereitet. Von vier möglichen
+  Schwerpunkten wählt die Schule laut Quelle drei; welche, ist unbekannt.
+  Migration `0064` erhält bestehende private Fachkennungen und Lernbelege.
+  131 künstliche SQLite- und 135 PostgreSQL-Fälle, Grafikschemafälle sowie die
+  mobile Fachnavigation auf Flutter und im Chrome-Webrunner bestanden.
+  Gleichnamige private Fächer können separat sichtbar bleiben; weitere
+  Regionen, echte fachliche Abnahme und Ausrollen bleiben offen.
 
 ## Nützliche Prüfungen
 

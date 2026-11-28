@@ -1,0 +1,92 @@
+{
+  "version": 3,
+  "provenance": "Zwei künstliche, lokal geprüfte Regressionsbeispiele; keine OCR- oder KI-Ausgaben.",
+  "cases": [
+    {
+      "id": "AST01",
+      "subject": "Astronomie",
+      "source": "Die Erde umkreist die Sonne. Die Erde benötigt dafür ungefähr ein Jahr.",
+      "question": {
+        "id": "ast01",
+        "type": "choice",
+        "prompt": "Wie lange dauert ein Umlauf der Erde um die Sonne ungefähr?",
+        "answer": "ungefähr ein Jahr",
+        "options": [
+          "ungefähr ein Jahr",
+          "Das Gegenteil der beschriebenen Eigenschaft",
+          "Die Heftstelle enthält diese Behauptung nicht"
+        ],
+        "accepted": [],
+        "hints": [
+          "Lies die passende Heftstelle.",
+          "Vergleiche die wichtigen Merkmale.",
+          "Schau dir das Beispiel im Heft noch einmal an."
+        ],
+        "explanation": "Die Erde umkreist die Sonne. Die Erde benötigt dafür ungefähr ein Jahr.",
+        "presentation": {
+          "version": 1,
+          "evidence_kind": "knowledge",
+          "blocks": [
+            {
+              "kind": "statements",
+              "title": "Zum Heftinhalt",
+              "disclosure": "solution",
+              "source_excerpt": "Die Erde umkreist die Sonne. Die Erde benötigt dafür ungefähr ein Jahr.",
+              "labels": [
+                "Erde",
+                "Sonne"
+              ],
+              "numbers": [],
+              "connections": [],
+              "unit": "",
+              "variant": ""
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "AST02",
+      "subject": "Astronomie",
+      "source": "Die Erde dreht sich um ihre eigene Achse. Das dauert ungefähr 24 Stunden.",
+      "question": {
+        "id": "ast02",
+        "type": "choice",
+        "prompt": "Wie lange dauert eine Drehung der Erde ungefähr?",
+        "answer": "ungefähr 24 Stunden",
+        "options": [
+          "ungefähr 24 Stunden",
+          "Das Gegenteil der beschriebenen Eigenschaft",
+          "Die Heftstelle enthält diese Behauptung nicht"
+        ],
+        "accepted": [],
+        "hints": [
+          "Lies die passende Heftstelle.",
+          "Vergleiche die wichtigen Merkmale.",
+          "Schau dir das Beispiel im Heft noch einmal an."
+        ],
+        "explanation": "Die Erde dreht sich um ihre eigene Achse. Das dauert ungefähr 24 Stunden.",
+        "presentation": {
+          "version": 1,
+          "evidence_kind": "knowledge",
+          "blocks": [
+            {
+              "kind": "statements",
+              "title": "Zum Heftinhalt",
+              "disclosure": "solution",
+              "source_excerpt": "Die Erde dreht sich um ihre eigene Achse. Das dauert ungefähr 24 Stunden.",
+              "labels": [
+                "Erde",
+                "Achse"
+              ],
+              "numbers": [],
+              "connections": [],
+              "unit": "",
+              "variant": ""
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

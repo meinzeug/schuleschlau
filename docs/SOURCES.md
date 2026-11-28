@@ -1,3 +1,21 @@
+## 28.11.2026 · Astronomie Sachsen-Anhalt
+
+Der [amtliche Sekundarschulindex](https://www.bildung-lsa.de/index.php?KAT_ID=16003)
+verlinkt den [Fachlehrplan Astronomie, Stand 01.08.2019](https://www.bildung-lsa.de/files/164f3f97e3adf65ff6f44685dd9e1ced/lp_sks_astro_01_08_2019.pdf).
+Die Übersicht auf gedruckter Seite 10 nennt vier mögliche Schwerpunkte für
+Jahrgang 10; drei davon werden laut Fußnote unterrichtet. Welche die jeweilige
+Schule auswählt, ist unbekannt. Die kurzen Katalogtitel sind eigene
+Formulierungen und stellen keine tatsächliche Kursbelegung dar. Der
+Planungskontext weist auf sicheren Umgang mit Sonnenbeobachtung und die
+begrenzte Aussagekraft von Modellen hin.
+
+Quelle: Ministerium für Bildung und Landesportal Sachsen-Anhalt,
+[CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/); abgerufen am
+28.11.2026. PDF-SHA256:
+`5e95c1c0c351243523a2eba23fe91d67a3a402b8b7cf7d899c707dec3f93a897`.
+Ein zuvor privat angelegtes gleichnamiges Fach und seine Lernnachweise werden
+nicht automatisch umgehängt und können weiterhin separat sichtbar sein.
+
 ## 28.11.2026 · Hauswirtschaft Sachsen-Anhalt
 
 Der [amtliche Sekundarschulindex](https://www.bildung-lsa.de/index.php?KAT_ID=16003)
