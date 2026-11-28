@@ -41,6 +41,10 @@ ebenfalls einen revisions- und sitzungsgebundenen Hintergrundauftrag. Dabei
 wurden 14 künstliche PostgreSQL-Fälle einschließlich paralleler Worker sowie
 Export, Löschung und Aufbewahrung geprüft. Beide Warteschlangen durchlaufen
 auch bei mehr als 100 wartenden Einträgen alle Seiten in begrenzten Portionen.
+Ein ausgeschöpftes kurzes Anfragelimit verzögert die Reservierung bis zum
+nächsten Fenster; Kosten- und Kontingentsperren bleiben davon getrennt und
+stoppen den Auftrag. Ein fehlgeschlagener Anbieterauftrag wird nicht dadurch
+wiederholt.
 Gleiche Fotos mit verschiedenen Uploadkennungen werden noch nicht allgemein
 als Duplikate erkannt. Eine erfolgreiche echte KI-Probe für die neuen Abläufe
 und ihre vollständige Browserprüfung stehen noch aus. Die bei automatischen
