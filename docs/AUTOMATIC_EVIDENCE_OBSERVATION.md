@@ -29,7 +29,7 @@ Units und keine Änderung oder Überschreibung vorhandener Antworten.
 | `learning.answer`, `get_unit` | Antwort und Aktivitäten unter Unit-Sperre; reguläre Sachantworten benötigen nicht durchgängig eine Child-Sperre. Sprachantworten sperren zusätzlich Child. Wiederholungen mit passendem Antwortschlüssel sind idempotent. | Antwort, ggf. Hilfen und Version in derselben Transaktion; Unit vor Child/Zähler. Keine Erhöhung beim Replay oder Rollback. |
 | `learning.hint`, `learning.explanation`, `learning_tips` | Hilfe-/Erklärungsaktivitäten für konkrete Unit; Hinweise nutzen einen optionalen idempotenten Schlüssel. | Auch relevante Hilfen und geänderte Unterstützungssemantik erfassen; einen ungelesenen Hinweis nicht als Antwort zählen. |
 | `assessments.recheck` über `learning.recheck_answer` | Unit zuerst, anschließend Child; neuer revisionsgebundener `AttemptAssessment` und aktualisierter Ausgangsversuch in derselben Transaktion. | Genau einmal pro neuer Nachbewertung erhöhen; vorhandene Nachprüfung ist Replay. |
-| `schulbuddy.process` / `record_help` | Betroffene laufende Units sortiert vor Child sperren; Erklärung als Hilfsaktivität, keine alten Antworten umschreiben. | Alle betroffenen Fachschlüssel sortiert behandeln; bisheriger Marker erfasst nur `hint`, nicht die Tutor-Aktivität `explanation`. |
+| `schulbuddy.process` / `record_help` | Betroffene laufende Units sortiert vor Child sperren; Erklärung als Hilfsaktivität, keine alten Antworten umschreiben. | Alle betroffenen Fachschlüssel sortiert behandeln; Marker-Version 2 beobachtet auch die Aktivitätsmetadaten von `explanation`, nicht deren Text. |
 | `learning_entry.remember_generated` / `QuestionCompetence` | Zuordnung von Aufgaben zu versionierten Kompetenzen beim Erzeugen der Unit. | Änderungen oder Löschung vorhandener Bindungen für bereits beantwortete Aufgaben beachten; neue unbeantwortete Units sind kein Leistungsnachweis. |
 | `materials.confirm`, `lock_material_units`, `delete_material` | Beteiligte Units in ID-Reihenfolge vor Child; Seitenrevision und -bestätigung bzw. Löschen beeinflussen referenzierte Quellen. | Alte und neue Fachschlüssel bei Fachwechsel berücksichtigen; Quellen-/Planungsrevision zusätzlich prüfen, Zähler nicht als Ersatz. |
 | `worker` Aufbewahrung / Löschung und `unit_erasure` | Löschung alter Units samt abhängigen Antworten bzw. separater Aktivitäten; bestehendes Löschjournal wird fortgeführt. | Dieselbe deterministische Sperrordnung, atomare Zähleränderung und Restore-/Journalbehandlung nachweisen; nicht nur die normalen API-Pfade instrumentieren. |
@@ -91,6 +91,24 @@ Umbau statt einzelner nachträglicher Updates:
    SQLite-Entwicklungstests ergänzen. Erst danach darf ein Start-Hinweis die
    Version als verlässlich verwenden; begonnene/beantwortete Units bleiben
    unverändert.
+
+### Erweiterte Beobachtung von Hilfeereignissen
+
+Neue private Marker der Version 2 beziehen auch ID, Einheit und Zeitpunkt von
+`explanation`-Aktivitäten bereits beantworteter Einheiten ein. Dazu gehören
+Schulbuddy-Hilfen; nicht ausgewählte Einheiten und andere Kinder oder Fächer
+werden weiterhin ausgeschlossen. Der Marker liest weder Aktivitätsdetails
+noch Hilfetexte und ist kein Leistungsnachweis. Bei einer festgestellten
+Änderung während der KI-Erzeugung wird das Ergebnis wie bisher verworfen und
+der tatsächliche Kostenbeleg erhalten. Eine zusätzliche Anfrage erfolgt nicht.
+
+Bereits gespeicherte Marker der Version 1 werden beim Wiederöffnen weiterhin
+mit der unveränderten Version-1-Regel verglichen. Dadurch entsteht allein
+durch das Upgrade kein falscher Änderungshinweis; solche Marker beobachten
+Erklärungen weiterhin nicht. Nicht unterstützte Marker bleiben unbekannt.
+Diese Ergänzung schließt weder die Lücke zwischen Vergleich und Commit noch
+erfasst sie alle möglichen Evidenz- und Planungsänderungen. Sie ist keine
+atomare Aktualitätsgarantie und ersetzt keinen Versionszähler.
 
 ## Vorsichtiger Hinweis vor einer Runde
 

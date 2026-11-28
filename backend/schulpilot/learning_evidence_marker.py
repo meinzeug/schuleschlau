@@ -25,14 +25,17 @@ from .competences import VERSION as COMPETENCE_VERSION
 from .db import Activity, Attempt, AttemptAssessment, Child, LearningUnit, Material, UnitSource
 from .grades import subject_key
 
-VERSION = "practice-evidence-marker-1"
+LEGACY_VERSION = "practice-evidence-marker-1"
+VERSION = "practice-evidence-marker-2"
+SUPPORTED_VERSIONS = frozenset((LEGACY_VERSION, VERSION))
 
 
 class EvidenceMetadataError(ValueError):
     """Invalid evidence metadata; callers must not treat this as fresh evidence."""
 
 
-def snapshot(db, child_id: str, subject: str, *, exclude_unit_id: str | None = None) -> dict[str, str]:
+def snapshot(db, child_id: str, subject: str, *, exclude_unit_id: str | None = None,
+             version: str = VERSION) -> dict[str, str]:
     """Return a child/subject-bound change marker from saved practice metadata.
 
     Optional exclusion avoids treating the target round's own later answers as
@@ -52,6 +55,8 @@ def snapshot(db, child_id: str, subject: str, *, exclude_unit_id: str | None = N
         raise EvidenceMetadataError("Invalid subject")
     if exclude_unit_id is not None and (not isinstance(exclude_unit_id, str) or not exclude_unit_id):
         raise EvidenceMetadataError("Invalid excluded unit")
+    if not isinstance(version, str) or version not in SUPPORTED_VERSIONS:
+        raise EvidenceMetadataError("Unsupported evidence marker version")
     key = subject_key(subject)
 
     # Read all evidence rows in one SQL statement. At PostgreSQL READ COMMITTED
@@ -93,8 +98,14 @@ def snapshot(db, child_id: str, subject: str, *, exclude_unit_id: str | None = N
              QuestionCompetence.role, QuestionCompetence.question_digest)
             .select_from(QuestionCompetence).join(LearningUnit, LearningUnit.id == QuestionCompetence.unit_id)
             .where(QuestionCompetence.child_id == child_id, LearningUnit.child_id == child_id),
+        *([rows("help", Activity.id, Activity.unit_id, Activity.created)
+            .select_from(Activity).join(LearningUnit, LearningUnit.id == Activity.unit_id)
+            .where(Activity.child_id == child_id, LearningUnit.child_id == child_id,
+                   Activity.kind == "explanation")] if version == VERSION else []),
     )
     grouped = {name: [] for name in ("unit", "attempt", "correction", "hint", "source", "binding")}
+    if version == VERSION:
+        grouped["help"] = []
     for kind, data in db.execute(statement):
         try:
             grouped[kind].append(json.loads(data))
@@ -153,7 +164,7 @@ def snapshot(db, child_id: str, subject: str, *, exclude_unit_id: str | None = N
     def canonical(values):
         return sorted(values, key=lambda item: json.dumps(item, ensure_ascii=False, sort_keys=True, separators=(",", ":")))
     payload = {
-        "version": VERSION,
+        "version": version,
         "competence_catalog_version": COMPETENCE_VERSION,
         "child": child_id,
         "subject": key,
@@ -164,11 +175,15 @@ def snapshot(db, child_id: str, subject: str, *, exclude_unit_id: str | None = N
         "sources": canonical(sources),
         "bindings": canonical(bindings),
     }
+    if version == VERSION:
+        # Include only event metadata, never the explanation or tutor turn.
+        # Like hints, help on a wholly unanswered unit is not itself practice.
+        payload["explanations"] = canonical([row for row in grouped["help"] if row[1] in attempted_units])
     try:
         data = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
     except (ValueError, TypeError, OverflowError) as error:
         raise EvidenceMetadataError("Invalid evidence metadata") from error
-    return {"version": VERSION, "digest": hashlib.sha256(data).hexdigest()}
+    return {"version": version, "digest": hashlib.sha256(data).hexdigest()}
 
 
 def matches(previous, current) -> bool:
@@ -178,7 +193,8 @@ def matches(previous, current) -> bool:
     expected = {"version", "digest"}
     if set(previous) != expected or set(current) != expected:
         return False
-    if previous["version"] != VERSION or current["version"] != VERSION:
+    if (not isinstance(previous["version"], str) or previous["version"] not in SUPPORTED_VERSIONS
+            or current["version"] != previous["version"]):
         return False
     a, b = previous["digest"], current["digest"]
     return (isinstance(a, str) and isinstance(b, str) and len(a) == len(b) == 64

@@ -32,7 +32,8 @@ def may_have_changed(db, unit):
     if not matches(marker, marker):
         return False
     try:
-        current = snapshot(db, unit.child_id, unit.subject, exclude_unit_id=unit.id)
+        current = snapshot(db, unit.child_id, unit.subject, exclude_unit_id=unit.id,
+                           version=marker["version"])
     except EvidenceMetadataError:
         # Invalid private metadata is unknown, never a freshness verdict and
         # never a reason to block an otherwise authorised, valid round. DB,

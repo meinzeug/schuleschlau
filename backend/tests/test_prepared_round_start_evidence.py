@@ -6,8 +6,8 @@ from threading import Event
 import pytest
 from fastapi.testclient import TestClient
 from schulpilot import prepared_round_observation
-from schulpilot.db import DB, Attempt, Job, LearningUnit, Material, UnitSource, Usage, engine
-from schulpilot.learning_evidence_marker import snapshot
+from schulpilot.db import DB, Activity, Attempt, Job, LearningUnit, Material, UnitSource, Usage, engine
+from schulpilot.learning_evidence_marker import LEGACY_VERSION, snapshot
 from schulpilot.main import app
 from sqlalchemy import func, select
 from test_automatic_evidence_guard import add_attempt, make_practice
@@ -50,6 +50,24 @@ def test_start_rechecks_after_earlier_read_without_starting_new_job(study):
         assert tuple(db.scalar(select(func.count()).select_from(model)) for model in (Job, Usage, Attempt)) == before
     # An already-started unit does not produce a renewed warning or new evidence.
     assert "practice_evidence_may_have_changed" not in client.post(f"/api/units/{unit_id}/start").json()
+
+
+def test_legacy_marker_keeps_original_comparison_without_false_warning(study):
+    earlier, unit_id, _ = prepared(study)
+    with DB.begin() as db:
+        add_attempt(db, earlier)
+        unit = db.get(LearningUnit, unit_id)
+        old = snapshot(db, unit.child_id, unit.subject, version=LEGACY_VERSION)
+        job = db.scalar(select(Job).where(Job.idempotency == "artificial-prepared-start"))
+        job.payload = {**job.payload, "automatic_evidence_observation": {"consistency": "best_effort", "marker": old}}
+        db.add(Activity(child_id=unit.child_id, unit_id=earlier, kind="explanation", detail={"via": "schulbuddy"}))
+    response = study["client"].get(f"/api/units/{unit_id}")
+    assert response.status_code == 200 and "practice_evidence_may_have_changed" not in response.json()
+    with DB.begin() as db:
+        add_attempt(db, earlier)
+    response = study["client"].get(f"/api/units/{unit_id}")
+    assert response.status_code == 200 and response.json()["practice_evidence_may_have_changed"] is True
+    assert old["digest"] not in response.text
 
 
 @pytest.mark.skipif(engine.dialect.name != "postgresql", reason="Real PostgreSQL concurrent transactions")

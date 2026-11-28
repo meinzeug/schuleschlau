@@ -1,10 +1,11 @@
 """Automatic study stages use a private changing-evidence guard; no real AI."""
 
 import json
+from types import SimpleNamespace
 
 from conftest import create_child
-from schulpilot import study_path
-from schulpilot.db import DB, Attempt, Job, LearningUnit, Usage
+from schulpilot import schulbuddy, study_path
+from schulpilot.db import DB, Activity, Attempt, Job, LearningUnit, Usage
 from schulpilot.school_preparation import advance_auto_rounds
 from sqlalchemy import func, select
 from test_study_path import arm_automatic_rounds, finish, generate, path
@@ -52,6 +53,39 @@ def test_auto_change_during_call_preserves_paid_usage_and_existing_evidence(stud
         assert db.scalar(select(func.count()).select_from(LearningUnit)) == 1
         assert db.scalar(select(func.count()).select_from(Attempt)) == 1
         assert "automatic_evidence_observation" not in job.payload
+    assert len(stage_transport["calls"]) == 1
+    advance_auto_rounds(study["day_id"])
+    assert not advance_auto_rounds(study["day_id"])
+    assert len(stage_transport["calls"]) == 1
+
+
+def test_tutor_help_during_call_invalidates_new_auto_stage_without_retry(study, stage_transport, monkeypatch):
+    with DB.begin() as db:
+        previous = make_practice(db, study["child"]["id"])
+        add_attempt(db, previous)
+    arm_automatic_rounds(study)
+    def helped():
+        with DB.begin() as db:
+            turn = SimpleNamespace(child_id=study["child"]["id"], id="synthetic-turn",
+                                   scope={"unit_id": previous, "question_id": "evidence"})
+            schulbuddy.record_help(db, turn, [db.get(LearningUnit, previous)], [], {"sources": []})
+    stage_transport["effect"] = helped
+    provider = study_path.request_provider
+    def paid(*args, **kwargs):
+        value = provider(*args, **kwargs)
+        value.cost_micros, value.cost_source = 1234, "reported"
+        return value
+    monkeypatch.setattr(study_path, "request_provider", paid)
+    assert advance_auto_rounds(study["day_id"])
+    job_id = finish()
+    with DB() as db:
+        job = db.get(Job, job_id)
+        usage = db.scalar(select(Usage).where(Usage.job_id == job_id))
+        assert job.status == "failed" and "Lernstand" in job.error
+        assert usage.status == "failed_billed" and usage.cost_micros == 1234
+        assert db.scalar(select(func.count()).select_from(Attempt)) == 1
+        assert db.scalar(select(func.count()).select_from(Activity).where(Activity.kind == "explanation")) == 1
+        assert db.scalar(select(func.count()).select_from(LearningUnit)) == 1
     assert len(stage_transport["calls"]) == 1
     advance_auto_rounds(study["day_id"])
     assert not advance_auto_rounds(study["day_id"])
