@@ -256,6 +256,10 @@ void main() {
       expect(find.text('Alle Seiten zeigen'), findsOneWidget);
       expect(
         find.widgetWithText(FilledButton, 'Heftfoto hinzufügen'),
+        findsNothing,
+      );
+      expect(
+        find.widgetWithText(FilledButton, 'Alle Seiten zeigen'),
         findsOneWidget,
       );
       final heading = find.byKey(const ValueKey('notebook-compact-heading'));

@@ -1336,6 +1336,17 @@ class _NotebookScreenState extends State<_NotebookContext>
         current &&
         renderedScope == toolsScope &&
         renderedRoute?.isCurrent == true;
+    final hasActiveFilter =
+        search.text.isNotEmpty || status != 'all' || dates != null;
+    void clearDisplayedFilters() {
+      if (!renderedCurrent()) return;
+      change(() {
+        search.clear();
+        status = 'all';
+        dates = null;
+      });
+    }
+
     return SchulbuddyPageContext(
       contextValue: SchulbuddyContext(
         'notebooks',
@@ -1512,31 +1523,29 @@ class _NotebookScreenState extends State<_NotebookContext>
                       ),
                       SizedBox(height: 14),
                       Text(
-                        search.text.isEmpty && status == 'all' && dates == null
+                        !hasActiveFilter
                             ? 'Hier sind noch keine Heftseiten vorhanden.'
                             : 'Dazu gibt es gerade keine Seiten.',
                         textAlign: TextAlign.center,
                       ),
                       SizedBox(height: 16),
-                      if (search.text.isNotEmpty ||
-                          status != 'all' ||
-                          dates != null)
+                      if (hasActiveFilter && widget.state.isChild)
+                        FilledButton(
+                          onPressed: clearDisplayedFilters,
+                          child: const Text('Alle Seiten zeigen'),
+                        )
+                      else if (hasActiveFilter)
                         OutlinedButton(
-                          onPressed: () => change(() {
-                            search.clear();
-                            status = 'all';
-                            dates = null;
-                          }),
+                          onPressed: clearDisplayedFilters,
                           child: Text('Alle Seiten zeigen'),
                         ),
-                      if (widget.state.isChild || canManage)
+                      if ((widget.state.isChild || canManage) &&
+                          (!widget.state.isChild || !hasActiveFilter))
                         FilledButton.icon(
                           onPressed: addPhoto,
                           icon: Icon(Icons.add_a_photo_outlined),
                           label: Text(
-                            search.text.isEmpty &&
-                                    status == 'all' &&
-                                    dates == null
+                            !hasActiveFilter
                                 ? 'Erstes Heftfoto hinzufügen'
                                 : 'Heftfoto hinzufügen',
                           ),
