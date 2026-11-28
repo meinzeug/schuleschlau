@@ -63,7 +63,8 @@ def child_environment(root: Path, socket: Path, *, database: str) -> dict[str, s
         if os.environ.get("DBUS_SESSION_BUS_ADDRESS") == address:
             result["DBUS_SESSION_BUS_ADDRESS"] = address
     for name in ("SCHULPILOT_LAB_SUDO_STDIN", "SCHULPILOT_TEST_REAL_SSH",
-                 "CAPACITY_LARGE", "CAPACITY_FAMILIES", "CAPACITY_PNG", "CAPACITY_AVATAR_MIX"):
+                 "CAPACITY_LARGE", "CAPACITY_FAMILIES", "CAPACITY_PNG", "CAPACITY_AVATAR_MIX",
+                 "CAPACITY_OVERLAP_WORKER", "CAPACITY_DISK_STORAGE"):
         if name in os.environ:
             result[name] = os.environ[name]
     return result

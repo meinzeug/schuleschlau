@@ -212,7 +212,14 @@ def upload_avatar(
     try:
         user_id, session_id = p.user.id, p.session.id
         rate_limit(db, "profile-photo:" + user_id, 20, 3600)
-        data = normalize(file.file.read(MAX_UPLOAD + 1))
+        try:
+            raw = file.file.read(MAX_UPLOAD + 1)
+        finally:
+            file.file.close()
+        try:
+            data = normalize(raw)
+        finally:
+            del raw
         return mutate(db, user_id, session_id, expected, idempotency_key, data)
     finally:
         SYNC_IMAGE_SLOT.release()

@@ -919,6 +919,16 @@ Der unabhängige Watchdog aus Commit `96c43ca` ist lokal installiert. Er meldet 
   Gleichnamige private Fächer können separat sichtbar bleiben; weitere
   Regionen, echte fachliche Abnahme und Ausrollen bleiben offen.
 
+- Der isolierte Fotolasttest startet nun einen künstlichen Worker während
+  erfolgreicher Heft- und Profilfoto-Uploads und prüft Wiederholungen sowie
+  gleichzeitige Lesezugriffe. Multipartdateien und Rohpuffer werden früher
+  freigegeben; beim Fotodienstempfang entfallen vollständige Zusatzkopien.
+  Foto-, Profil-, Socket- und PostgreSQL-Regressionen bestanden. Vier
+  anschließende Mischlastläufe bestanden zwar ohne OOM, aber drei erreichten
+  das 350-MiB-API-Limit und meldeten `max`-Ereignisse. Die Kapazitätsfreigabe
+  und der Nachweis für Produktivlast bleiben offen; Einzelheiten und
+  Messgrenzen stehen in `docs/CAPACITY_PROCESS_FAILURE_2026_11_06.md`.
+
 ## Nützliche Prüfungen
 
 - CI: `gh run list --limit 5` und `gh run view <ID>`; ein laufender oder abgebrochener Workflow ist kein grüner Gesamtnachweis.

@@ -14,9 +14,13 @@ def test_only_explicit_mixed_capacity_switch_is_forwarded(tmp_path, monkeypatch)
     runner = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(runner)
     monkeypatch.setenv('CAPACITY_AVATAR_MIX', '1')
+    monkeypatch.setenv('CAPACITY_OVERLAP_WORKER', '1')
+    monkeypatch.setenv('CAPACITY_DISK_STORAGE', '1')
     monkeypatch.setenv('SYNTHETIC_SECRET_SHOULD_NOT_PASS', 'private')
     env = runner.child_environment(tmp_path, tmp_path / 'socket', database='schulpilot_isolated_test')
     assert env['CAPACITY_AVATAR_MIX'] == '1'
+    assert env['CAPACITY_OVERLAP_WORKER'] == '1'
+    assert env['CAPACITY_DISK_STORAGE'] == '1'
     assert 'SYNTHETIC_SECRET_SHOULD_NOT_PASS' not in env
 
 

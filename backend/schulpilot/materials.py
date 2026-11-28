@@ -119,7 +119,12 @@ def _upload_under_slot(child_id, file, school_day_id, purpose, idempotency_key, 
         raise HTTPException(503, "Materialimport echter Daten ist bis zur dokumentierten Datenschutzfreigabe gesperrt.")
     if idempotency_key is not None and not re.fullmatch(r"[A-Za-z0-9_-]{16,80}", idempotency_key):
         raise HTTPException(422, "Bitte einen gültigen Upload-Schlüssel verwenden.")
-    raw = file.file.read(10 * 1024 * 1024 + 1)
+    try:
+        raw = file.file.read(10 * 1024 * 1024 + 1)
+    finally:
+        # The decoder receives the bounded byte string, not the multipart
+        # spool. Release the duplicate temporary file before starting it.
+        file.file.close()
     try:
         if len(raw) > 10 * 1024 * 1024:
             raise HTTPException(413, "Das Bild darf höchstens 10 MB groß sein.")
@@ -133,6 +138,10 @@ def _upload_under_slot(child_id, file, school_day_id, purpose, idempotency_key, 
             if receipt:
                 error.headers = {**(error.headers or {}), "X-Processing-Receipt": receipt}
         raise
+    finally:
+        # The normalized JPEG and its digest are sufficient for all later
+        # authorization, idempotency and persistence checks.
+        del raw
     digest = hashlib.sha256(output.getvalue()).hexdigest()
     # One lock per child also serializes replay checks, day state and file ownership.
     db.execute(update(Child).where(Child.id == child.id).values(grade=Child.grade))

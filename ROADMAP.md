@@ -2952,6 +2952,12 @@ Bestandteil des bestehenden Buildvertrags.
     Die vorhandene Bildqualität und 16-MP-Grenze nicht still absenken.
     [Test, Messwerte und offene Lösung](docs/CAPACITY_PROCESS_FAILURE_2026_11_06.md).
 
+    **28.11.2026, weitere isolierte Prüfung:** Fotodaten werden nach dem
+    Lesen beziehungsweise Normalisieren früher freigegeben. Der neue Test
+    belegt gleichzeitige erfolgreiche Uploads und laufende Workeraufträge.
+    Der Plattentest erreichte trotz Erfolg kurz das volle API-Limit;
+    deshalb bleibt dieser Punkt offen.
+
     **06.11.2026, lokal umgesetzt:** Die Normalisierung läuft in einem eigenen,
     begrenzten Fotodienst; die API begrenzt die Aufnahme und prüft Sitzung,
     Familienrechte und Freigabe nach dem Dekodieren erneut. Zwei künstliche

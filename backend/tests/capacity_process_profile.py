@@ -16,6 +16,7 @@ import threading
 import time
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import nullcontext
 from pathlib import Path
 
 import httpx
@@ -44,9 +45,19 @@ def wait_ready(path, process):
 
 def test_bounded_process_capacity(api, household, mailbox):
     assert engine.dialect.name == 'postgresql'
+    overlap_value = os.getenv('CAPACITY_OVERLAP_WORKER', '0')
+    assert overlap_value in ('0', '1'), 'Invalid synthetic overlap option'
+    overlap_worker = overlap_value == '1'
+    disk_value = os.getenv('CAPACITY_DISK_STORAGE', '0')
+    assert disk_value in ('0', '1'), 'Invalid synthetic storage option'
+    disk_storage = disk_value == '1'
     assert os.getenv('CAPACITY_AVATAR_MIX') != '1' or os.getenv('CAPACITY_LARGE') == '1', (
         'Mixed test requires large-image profile'
     )
+    assert not overlap_worker or (os.getenv('CAPACITY_AVATAR_MIX') == '1' and os.getenv('CAPACITY_LARGE') == '1'), (
+        'Worker overlap requires the explicitly selected large mixed-image profile'
+    )
+    assert not disk_storage or overlap_worker, 'Disk comparison requires the explicit overlap profile'
     allow_synthetic_test_transport()
     families = int(os.getenv("CAPACITY_FAMILIES", "4")) if os.getenv("CAPACITY_LARGE") == "1" else 8
     assert (1 <= families <= 4 if os.getenv("CAPACITY_LARGE") == "1" else families == 8)
@@ -76,8 +87,15 @@ def test_bounded_process_capacity(api, household, mailbox):
     port = listener.getsockname()[1]
     listener.close()
     results = []
-    with tempfile.TemporaryDirectory(prefix='schulpilot-capacity-process-') as directory:
+    disk_context = (tempfile.TemporaryDirectory(prefix='schulpilot-capacity-data-', dir='/tmp')
+                    if disk_storage else nullcontext(None))
+    with disk_context as disk_data, tempfile.TemporaryDirectory(prefix='schulpilot-capacity-process-') as directory:
         root = Path(directory)
+        if disk_data:
+            storage = Path(disk_data)
+            assert (storage.parent == Path('/tmp') and storage.name.startswith('schulpilot-capacity-data-')
+                    and storage.resolve() == storage and storage.stat().st_uid == os.getuid()
+                    and (storage.stat().st_mode & 0o777) == 0o700)
         helper = str(Path(__file__).with_name('capacity_process_service.py').resolve())
         processes = []
         stop_sampling = threading.Event()
@@ -107,6 +125,8 @@ def test_bounded_process_capacity(api, household, mailbox):
                 cmd = ['systemd-run', '--user', '--quiet', '--scope', '-p', 'MemoryMax=' + memory,
                        '-p', 'TasksMax=64', sys.executable, helper, role, str(root), str(port), *args]
                 env = {**os.environ, 'PHOTO_TEST_SOCKET': str(photo_socket)}
+                if disk_data:
+                    env['DATA_DIR'] = disk_data
                 proc = subprocess.Popen(cmd, stdout=log, stderr=log, start_new_session=True, env=env)
                 processes.append((proc, log))
                 return proc
@@ -134,6 +154,10 @@ def test_bounded_process_capacity(api, household, mailbox):
             assert int((cgroups['api']['path'] / 'memory.max').read_text()) == 350 * 1024 * 1024
             base = f'http://127.0.0.1:{port}'
             samples = {'api_rss': [], 'worker_rss': [], 'queue': []}
+            photo_request_lock = threading.Lock()
+            photo_requests = set()
+            requests_observed_with_worker = set()
+            observed_worker_during_photo = threading.Event()
 
             def batch(label, tasks, parallel):
                 def one(task):
@@ -143,7 +167,22 @@ def test_bounded_process_capacity(api, household, mailbox):
                         start_time = time.perf_counter()
                         overloads = 0
                         while True:
-                            response = client.request(method, path, **kwargs)
+                            watch_photo = label == 'photo-avatar-overlap' and method == 'POST'
+                            request_marker = object()
+                            if watch_photo:
+                                with photo_request_lock:
+                                    photo_requests.add(request_marker)
+                            try:
+                                response = client.request(method, path, **kwargs)
+                                if watch_photo and response.status_code == 201:
+                                    with photo_request_lock:
+                                        if request_marker in requests_observed_with_worker:
+                                            observed_worker_during_photo.set()
+                            finally:
+                                if watch_photo:
+                                    with photo_request_lock:
+                                        photo_requests.discard(request_marker)
+                                        requests_observed_with_worker.discard(request_marker)
                             if response.status_code != 503 or response.headers.get('retry-after') != '2':
                                 break
                             overloads += 1
@@ -196,6 +235,27 @@ def test_bounded_process_capacity(api, household, mailbox):
             assert all(r[0] == 201 for r in responses)
             materials = [responses[2 * i][1]['id'] for i in range(families)]
             assert all(responses[2 * i + 1][1]['id'] == materials[i] for i in range(families))
+            jobs = [(i, 'POST', f'/api/materials/{material}/extract', {
+                'headers': {'Idempotency-Key': f'process-extract-{i:04d}'},
+            }) for i, material in enumerate(materials) for _ in range(2)]
+
+            def reserve_jobs():
+                reservations = batch('reservation-replay', jobs, families)
+                assert all(r[0] == 202 for r in reservations)
+                ids = [reservations[2 * i][1]['id'] for i in range(families)]
+                assert len(set(ids)) == families and all(
+                    reservations[2 * i + 1][1]['id'] == ids[i] for i in range(families)
+                )
+                with DB() as db:
+                    assert db.scalar(select(func.count()).select_from(Job).where(Job.status == 'queued')) == families
+
+            def start_worker(delay):
+                process = start('worker', '300M', str(families), str(delay))
+                pid = wait_ready(root / 'worker.ready', process)
+                track('worker', pid)
+                assert int((cgroups['worker']['path'] / 'memory.max').read_text()) == 300 * 1024 * 1024
+                return process, pid
+
             if os.getenv('CAPACITY_AVATAR_MIX') == '1':
                 avatar_size = (2828, 2828)
                 avatar_pixels = random.Random(7719).randbytes(avatar_size[0] * avatar_size[1] * 3)
@@ -209,7 +269,8 @@ def test_bounded_process_capacity(api, household, mailbox):
                     mixed_uploads.extend([
                         (i, 'POST', f'/api/children/{cid}/materials', {
                             'files': {'file': ('synthetic.jpg', image, 'image/jpeg')},
-                            'headers': {'Idempotency-Key': f'process-upload-{i:04d}'},
+                            'headers': {'Idempotency-Key': f'process-overlap-{i:04d}' if overlap_worker
+                                        else f'process-upload-{i:04d}'},
                         }),
                         (i, 'PUT', '/api/auth/me/avatar', {
                             'files': {'file': ('synthetic-avatar.jpg', avatar_image, 'image/jpeg')},
@@ -217,40 +278,72 @@ def test_bounded_process_capacity(api, household, mailbox):
                                         'X-Schulpilot-Account': actors[i]},
                         }),
                     ] * 2)
+                if overlap_worker:
+                    reserve_jobs()
+                    worker_started = time.perf_counter()
+                    worker, worker_pid = start_worker(6)
+                    deadline = time.monotonic() + 25
+                    running = 0
+                    while time.monotonic() < deadline:
+                        with DB() as db:
+                            running = db.scalar(select(func.count()).select_from(Job).where(Job.status == 'running'))
+                        if running:
+                            break
+                        assert worker.poll() is None, 'Synthetic worker exited before overlap'
+                        time.sleep(.05)
+                    assert running, 'Synthetic worker did not start an observed job'
+
+                observer_stop = threading.Event()
+                def observe_overlap():
+                    while not observer_stop.wait(.05):
+                        with photo_request_lock:
+                            active_photos = set(photo_requests)
+                        if active_photos:
+                            with DB() as db:
+                                running_jobs = db.scalar(select(func.count()).select_from(Job).where(Job.status == 'running'))
+                            with photo_request_lock:
+                                if running_jobs:
+                                    requests_observed_with_worker.update(active_photos & photo_requests)
+
+                observer = threading.Thread(target=observe_overlap, daemon=True) if overlap_worker else None
+                if observer:
+                    observer.start()
                 concurrent_stop = threading.Event()
                 concurrent_results = []
                 concurrent_reader = threading.Thread(target=keep_reading, daemon=True)
                 concurrent_reader.start()
                 try:
-                    mixed_responses = batch('photo-avatar-replay', mixed_uploads, families)
+                    mixed_responses = batch('photo-avatar-overlap' if overlap_worker else 'photo-avatar-replay',
+                                            mixed_uploads, families)
                 finally:
                     concurrent_stop.set()
                     concurrent_reader.join(timeout=30)
+                    observer_stop.set()
+                    if observer:
+                        observer.join(timeout=30)
                 assert not concurrent_reader.is_alive() and concurrent_results and all(v == 200 for v in concurrent_results)
+                if observer:
+                    assert not observer.is_alive() and observed_worker_during_photo.is_set(), (
+                        'No successful photo request overlapped an observed running synthetic worker job'
+                    )
                 print('CAPACITY_MIXED_GETS=' + json.dumps({'count': len(concurrent_results),
                       'statuses': dict(Counter(concurrent_results))}), flush=True)
                 for task, result in zip(mixed_uploads, mixed_responses, strict=True):
                     assert result[0] == (201 if task[1] == 'POST' else 200), result[0]
                 for i, material in enumerate(materials):
-                    assert mixed_responses[4 * i][1]['id'] == material
-                    assert mixed_responses[4 * i + 2][1]['id'] == material
+                    new_material = mixed_responses[4 * i][1]['id']
+                    if overlap_worker:
+                        assert new_material != material
+                    else:
+                        assert new_material == material
+                    assert mixed_responses[4 * i + 2][1]['id'] == new_material
                     assert mixed_responses[4 * i + 1][1] == mixed_responses[4 * i + 3][1]
                 with DB() as db:
                     assert db.scalar(select(func.count()).select_from(UserAvatar)) == families
-            jobs = [(i, 'POST', f'/api/materials/{material}/extract', {
-                'headers': {'Idempotency-Key': f'process-extract-{i:04d}'},
-            }) for i, material in enumerate(materials) for _ in range(2)]
-            responses = batch('reservation-replay', jobs, families)
-            assert all(r[0] == 202 for r in responses)
-            ids = [responses[2 * i][1]['id'] for i in range(families)]
-            assert len(set(ids)) == families and all(responses[2 * i + 1][1]['id'] == ids[i] for i in range(families))
-            with DB() as db:
-                assert db.scalar(select(func.count()).select_from(Job).where(Job.status == 'queued')) == families
-            worker_started = time.perf_counter()
-            worker = start('worker', '300M', str(families))
-            worker_pid = wait_ready(root / 'worker.ready', worker)
-            track('worker', worker_pid)
-            assert int((cgroups['worker']['path'] / 'memory.max').read_text()) == 300 * 1024 * 1024
+            if not overlap_worker:
+                reserve_jobs()
+                worker_started = time.perf_counter()
+                worker, worker_pid = start_worker(2)
             mixed = [(i, 'GET', f'/api/children/{cid}/overview', {}) for i, (_, cid) in enumerate(accounts)]
             mixed += [(i, 'GET', f'/api/children/{cid}/materials?page=1&page_size=20', {})
                       for i, (_, cid) in enumerate(accounts)]
@@ -269,11 +362,14 @@ def test_bounded_process_capacity(api, household, mailbox):
                 states = list(db.scalars(select(Job.status)))
                 assert states.count('completed') == families and len(states) == families
                 assert db.scalar(select(func.sum(Job.attempts))) == families
-                assert db.scalar(select(func.count()).select_from(Material)) == families
+                assert db.scalar(select(func.count()).select_from(Material)) == families * (2 if overlap_worker else 1)
                 assert db.scalar(select(func.count()).select_from(Usage)) == families
             report = {'families': families, 'cpu_affinity': sorted(os.sched_getaffinity(0)),
-                      'provider_delay_s': 2, 'external_calls': 0, 'image_bytes': len(image),
-                      'worker_s': round(time.perf_counter() - worker_started, 3), 'stages': results,
+                      'provider_delay_s': 6 if overlap_worker else 2, 'external_calls': 0, 'image_bytes': len(image),
+                      'photo_worker_overlap_observed': observed_worker_during_photo.is_set(),
+                      'synthetic_storage': 'disk' if disk_storage else 'temporary_runner_filesystem',
+                      **{('worker_elapsed_upper_bound_s' if overlap_worker else 'worker_s'):
+                         round(time.perf_counter() - worker_started, 3)}, 'stages': results,
                       'sampled_max_rss_kib': {k: max(samples[k], default=0) for k in ('api_rss', 'worker_rss')},
                       'queue_max_sampled': max(samples['queue'], default=0), 'completed': families}
             print('\nCAPACITY_PROCESSES=' + json.dumps(report, sort_keys=True), flush=True)

@@ -60,7 +60,7 @@ elif role == 'worker':
     def fake_provider(config, function, payload, image_bytes=None, *, synthetic_fixture=False):
         if function != 'extract' or not image_bytes or synthetic_fixture:
             raise RuntimeError('Unexpected synthetic provider request')
-        time.sleep(2)
+        time.sleep(provider_delay)
         return Result({'subject': 'Mathematik', 'topic': 'Künstlicher Test',
                        'content': 'Künstlicher Seiteninhalt: 1 + 1 = 2.',
                        'uncertainties': [], 'homework': []}, 10, 20, 0)
@@ -68,7 +68,8 @@ elif role == 'worker':
     worker.request_provider = fake_provider
     (root / 'worker.ready').write_text(str(os.getpid()))
     count = int(args[0])
-    if not 1 <= count <= 16:
+    provider_delay = int(args[1]) if len(args) == 2 else 2
+    if not 1 <= count <= 16 or len(args) > 2 or provider_delay not in (2, 6):
         raise RuntimeError('Invalid synthetic job count')
     completed = 0
     deadline = time.monotonic() + 75

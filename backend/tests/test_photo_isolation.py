@@ -106,6 +106,28 @@ def test_invalid_photo_and_decoder_failure_are_safe(monkeypatch):
     assert exc.value.status_code == 503 and exc.value.headers['Retry-After'] == '2'
 
 
+@pytest.mark.parametrize('buffer_type', [bytes, bytearray])
+@pytest.mark.parametrize('case', ['valid', 'bad_signature', 'wrong_length'])
+def test_photo_response_buffer_preserves_output_and_validation(monkeypatch, buffer_type, case):
+    from schulpilot import photo_isolation
+
+    raw = b'synthetic input'
+    image = b'\xff\xd8\xffsynthetic' if case != 'bad_signature' else b'BADsynthetic'
+    geometry = {'width': 1, 'height': 1, 'input_width': 1, 'input_height': 1,
+                'input_bytes': len(raw), 'output_bytes': len(image) + (case == 'wrong_length'),
+                'orientation': 'baked'}
+    metadata = json.dumps({'status': 'ok', 'geometry': geometry, 'warnings': []}).encode()
+    payload = buffer_type(len(metadata).to_bytes(4, 'big') + metadata + image)
+    monkeypatch.setattr(photo_isolation, '_isolated_test_result', lambda _raw: payload)
+    if case == 'valid':
+        actual, actual_geometry, warnings = normalize_photo(raw)
+        assert actual.getvalue() == image and actual_geometry == geometry and warnings == []
+    else:
+        with pytest.raises(HTTPException) as exc:
+            normalize_photo(raw)
+        assert exc.value.status_code == 503
+
+
 def test_busy_intake_preserves_upload_and_idempotent_retry(api, household):
     allow_synthetic_test_transport()
     _, child = household

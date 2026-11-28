@@ -16,6 +16,22 @@ HEALTH = SERVICE.with_name('photo_health.py')
 API_USER = pwd.getpwuid(os.getuid()).pw_name
 
 
+def test_receive_reassembles_fragments_without_copy_and_rejects_truncation():
+    class Fragmented:
+        def __init__(self, chunks):
+            self.chunks = iter(chunks)
+
+        def recv(self, maximum):
+            chunk = next(self.chunks, b'')
+            assert len(chunk) <= maximum
+            return chunk
+
+    value = photo_isolation._recv_exact(Fragmented([b'abc', b'def']), 6)
+    assert isinstance(value, bytearray) and value == b'abcdef'
+    with pytest.raises(photo_isolation.DecoderUnavailable):
+        photo_isolation._recv_exact(Fragmented([b'abc']), 6)
+
+
 @pytest.fixture
 def photo_service(tmp_path, monkeypatch):
     directory = tmp_path / 'private'

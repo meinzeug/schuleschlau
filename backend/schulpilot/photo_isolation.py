@@ -32,7 +32,8 @@ def _recv_exact(connection, length):
         if not part:
             raise DecoderUnavailable()
         result.extend(part)
-    return bytes(result)
+    # Keep the mutable receive buffer instead of copying the entire JPEG.
+    return result
 
 
 def _result_from_private_socket(raw, path, expected_uid):
@@ -100,8 +101,9 @@ def normalize_photo(raw):
                 or geometry['input_width'] < 1 or geometry['input_height'] < 1
                 or geometry['input_width'] * geometry['input_height'] > 16_000_000):
             raise DecoderUnavailable()
-        content = payload[4 + size:]
-        if len(content) != geometry['output_bytes'] or not content.startswith(b'\xff\xd8\xff'):
+        # A view avoids another full-sized slice while validating the output.
+        content = memoryview(payload)[4 + size:]
+        if len(content) != geometry['output_bytes'] or content[:3] != b'\xff\xd8\xff':
             raise DecoderUnavailable()
         return io.BytesIO(content), geometry, warnings
     except HTTPException:

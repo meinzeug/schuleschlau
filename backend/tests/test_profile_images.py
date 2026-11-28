@@ -73,6 +73,30 @@ def assert_meta(data, present):
     assert isinstance(data["avatar_updated_at"], int)
 
 
+@pytest.mark.parametrize('valid', [True, False])
+def test_avatar_releases_multipart_file_before_normalizing(api, mailbox, monkeypatch, valid):
+    from starlette import formparsers
+
+    register(api, mailbox)
+    opened = []
+    original_file = formparsers.SpooledTemporaryFile
+    original_normalize = profile_images.normalize
+
+    def create_file(*args, **kwargs):
+        file = original_file(*args, **kwargs)
+        opened.append(file)
+        return file
+
+    def normalize(raw):
+        assert opened and opened[-1].closed
+        return original_normalize(raw)
+
+    monkeypatch.setattr(formparsers, 'SpooledTemporaryFile', create_file)
+    monkeypatch.setattr(profile_images, 'normalize', normalize)
+    response = upload(api, raw=picture() if valid else b'invalid synthetic image')
+    assert response.status_code == (200 if valid else 422)
+
+
 def test_avatar_intake_checks_account_before_admission_and_can_retry(api, mailbox, monkeypatch):
     from schulpilot import main
 

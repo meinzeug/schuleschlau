@@ -15,6 +15,33 @@ from test_photo_isolation import fixture
 from test_school_day import allow_synthetic_test_transport
 
 
+@pytest.mark.parametrize('valid', [True, False])
+def test_upload_releases_multipart_file_before_normalizing(api, household, monkeypatch, valid):
+    allow_synthetic_test_transport()
+    _, child = household
+    observed = []
+    original_upload = materials._upload_under_slot
+    original_normalize = materials.normalize_photo
+
+    def capture(child_id, file, *args, **kwargs):
+        observed.append(file.file)
+        return original_upload(child_id, file, *args, **kwargs)
+
+    def normalize(raw):
+        assert observed[-1].closed
+        return original_normalize(raw)
+
+    monkeypatch.setattr(materials, '_upload_under_slot', capture)
+    monkeypatch.setattr(materials, 'normalize_photo', normalize)
+    image = fixture('JPEG') if valid else b'invalid synthetic image'
+    response = api.post(f"/api/children/{child['id']}/materials",
+                        files={'file': ('synthetic.jpg', image, 'image/jpeg')},
+                        headers={'Idempotency-Key': 'synthetic-upload-release-0001'})
+    assert response.status_code == (201 if valid else 422)
+    with DB() as db:
+        assert db.scalar(select(func.count()).select_from(Material)) == (1 if valid else 0)
+
+
 @pytest.mark.parametrize('method,path', [
     ('POST', '/api/children/synthetic/materials'),
     ('POST', '/api/exams/synthetic/pages'),

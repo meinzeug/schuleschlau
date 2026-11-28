@@ -263,3 +263,56 @@ Messung ist eine kleine synthetische Stichprobe mit wiederholten Bildern und
 belegt weder hinreichende Reserven noch eine sichere Nutzerzahl. Andere
 Bildinhalte, mehrere API-Prozesse, gleichzeitig laufende Worker während der
 Mischuploadphase, längere Last und ein produktiver Rückweg bleiben offen.
+
+## Ergänzung: gleichzeitiger Worker und früher freigegebene Fotodaten, 28.11.2026
+
+Eine zusätzliche künstliche PostgreSQL-Probe lässt den Worker bereits während
+neuer Heft- und Profilfoto-Uploads laufen. Der Test beobachtet einen laufenden
+Auftrag in der Datenbank während einer noch aktiven Fotoanfrage und verlangt,
+dass diese anschließend HTTP 201 liefert. Er verwendet vier künstliche
+Familien, das oben beschriebene 15,9-MP-JPEG, einen verzögerten künstlichen
+Anbieter und keine externen Aufrufe. Wiederholte Uploadschlüssel und parallele
+Leseanfragen werden geprüft. Zwei Vorherläufe zeigten einmal 358.772.736 Byte
+API-Spitze und einmal einen OOM-Kill in der auf 350 MiB begrenzten isolierten
+API; dabei lagen Daten und PostgreSQL auf tmpfs. Das ist kein Beleg, dass
+unter identischer Benutzerlast auch die produktive Installation ausfällt.
+
+Der Heftfotoimport schließt nun die Multipart-Temporärdatei unmittelbar nach
+dem begrenzten Lesen und gibt die gelesenen Rohbytes nach der Normalisierung frei.
+Berechtigung, Bildqualität, 16-MP-Grenze, Uploadschlüssel und erneute Prüfung
+nach der Umwandlung bleiben erhalten. Zwei künstliche Prüfungen kontrollieren,
+dass die Temporärdatei bereits beim Beginn der Normalisierung geschlossen ist,
+auch wenn die Bilddaten ungültig sind. Vor der Änderung schlugen sie fehl.
+Nach den folgenden Messungen wurde dieselbe Änderung zusätzlich für Profilbilder
+umgesetzt und mit eigenen künstlichen gültigen und ungültigen Bildern geprüft.
+Der Empfang vom Fotodienst vermeidet außerdem eine vollständige Kopie des
+Antwortpuffers und die zusätzliche Kopie beim Prüfen des JPEG-Ausschnitts.
+Der Protokolltest prüft fragmentierten Empfang und abgebrochene Antworten;
+Bildinhalt, Formatprüfungen und Begrenzungen bleiben unverändert.
+
+Ein anschließender tmpfs-Lauf mit dem verschärften Überlappungsnachweis
+bestand ohne OOM; die API erreichte 341.741.568 Byte. Ein separater Lauf mit
+synthetischem DATA_DIR auf lokaler Platte bestand ebenfalls ohne OOM, erreichte
+aber 367.001.600 Byte – exakt das 350-MiB-Limit – und meldete zwei
+`memory.events:max`-Ereignisse. Dabei wurden rund 74 MB Dateicache und rund
+4 MB Shared Memory am beobachteten Maximum erfasst. Cache ist grundsätzlich
+rückgewinnbar; aus dieser Stichprobe lässt sich dennoch keine belastbare
+Speicherreserve ableiten. Beide Läufe benutzten einen künstlichen verzögerten
+Worker, systemd-Speicherlimits und einen CPU-Kern. Beim Plattenlauf waren elf
+explizite Überlastwiederholungen in der Mischphase erforderlich.
+
+Ein weiterer Plattenlauf nach der Profilbildänderung, aber vor der Änderung
+des Empfangspuffers, bestand ohne OOM. Er verzeichnete 166 `max`-Ereignisse
+und ein kurzzeitig vom Kernel gemeldetes Maximum von 367.321.088 Byte; das
+eingestellte Limit betrug weiterhin 367.001.600 Byte. Solche kurzzeitigen
+Überschreitungen sind keine zusätzliche fest zugesicherte Kapazität.
+Nach der Anpassung des Empfangspuffers bestand auch ein weiterer Plattenlauf;
+die API meldete 162 `max`-Ereignisse, keinen OOM und eine vorübergehende
+Spitze von 367.091.712 Byte. Zehn ausdrückliche Überlastwiederholungen waren
+in der Mischphase erforderlich. Dies belegt trotz geringerer Kopien keine
+ausreichende Speicherreserve und ist kein direkter Vorher-nachher-Benchmark.
+
+Die frühere Freigabe reduziert die Lebensdauer doppelter Fotodaten, beweist
+aber keine dauerhafte Vermeidung von OOM. Längere und anders zusammengesetzte
+Last, mehrere API-Prozesse, tatsächliche Produktivlast sowie Aktivierung und
+Rückweg sind weiterhin offen. Der zugehörige Roadmap-Hauptpunkt bleibt offen.
