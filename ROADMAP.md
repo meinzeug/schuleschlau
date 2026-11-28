@@ -4313,8 +4313,8 @@ Bestandteil des bestehenden Buildvertrags.
   abgelehnten Rückweg und erhaltene Daten; Migration 0065 wird zusätzlich
   direkt auf unveränderten Stand nach verweigerter Rückmigration getestet.
   Die betroffenen Prüfungen bestanden isoliert auf SQLite und PostgreSQL.
-  Der fehlgeschlagene vollständige GitHub-Lauf ist damit nicht nachträglich
-  erfolgreich; eine erneute Gesamtprüfung des gepushten Fixes bleibt nötig.
+  Der erneute vollständige GitHub-Lauf `46093817723` für `39f2b13` bestand;
+  der ursprüngliche Lauf bleibt fehlgeschlagen.
 
 - [x] **Verspätete JSON-Antworten beim Anmeldewechsel abfangen.** Für ein
   bereits angezeigtes Konto verwirft der gemeinsame Flutter-Transport eine

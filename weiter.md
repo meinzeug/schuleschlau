@@ -46,8 +46,8 @@ Testerwartungen fehl: Der Katalogtest erwartete 24 statt 26 Fächer, zwei
 Migrationstests erwarteten die Meldung eines älteren Kopfs. Der lokale Fix
 prüft stattdessen den vollständigen unveränderten Fachzustand und ergänzt die
 direkte Rückmigrationssperre von 0065. Die betroffenen künstlichen SQLite-
-und PostgreSQL-Prüfungen bestanden. Der komplette GitHub-Lauf muss für den
-gepushten Fix neu bestanden werden; den alten Lauf nicht als grün bezeichnen.
+und PostgreSQL-Prüfungen bestanden. Der erneute vollständige GitHub-Lauf
+`46093817723` für `39f2b13` bestand; der ursprüngliche Lauf bleibt fehlgeschlagen.
 
 ## Ergänzung 28. November 2026: Lerntipps beim Anmeldewechsel
 
