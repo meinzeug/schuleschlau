@@ -941,6 +941,13 @@ Der unabhängige Watchdog aus Commit `96c43ca` ist lokal installiert. Er meldet 
   echter Anbietertest mit einer künstlichen Klassenarbeit sind gesondert zu
   prüfen; Vorbereitung allein ist kein Deploymentnachweis.
 
+- Neu priorisiert: Heftthemen sollen ohne weiteren Kinderauftrag im Hintergrund
+  einsatzbereite Lernrunden erhalten. Zuerst Quellen-/Sitzungsbindung,
+  Idempotenz, Reservierung und fachliche Aktualität absichern; Details in
+  `docs/AUTO_ROUND_PLAN_2026_11_28.md`. Der umfassende MediaExplorer-Auftrag
+  und die offiziellen Anbietergrenzen stehen in `docs/MEDIAEXPLORER_PLAN_2026_11_28.md`.
+  Beide Aufträge sind geplant, aber noch nicht implementiert oder abgenommen.
+
 ## Nützliche Prüfungen
 
 - CI: `gh run list --limit 5` und `gh run view <ID>`; ein laufender oder abgebrochener Workflow ist kein grüner Gesamtnachweis.

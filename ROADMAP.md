@@ -12,6 +12,27 @@ physischer Hardware. Historische Testangaben bleiben als solche erhalten.
 
 **Stand der Bestandsaufnahme: 31.10.2026.** Diese Datei ist der lokale Arbeitsplan für die Weiterentwicklung von SchuleSchlau im bestehenden Repository `schulpilot`. Sie beschreibt offene Arbeiten und erforderliche Nachweise; sie ist keine Zusicherung, dass Software oder Lernwirkung fehlerfrei sein können.
 
+## Neue Betreiberaufträge vom 28.11.2026
+
+- [ ] **P0 – Heftthemen automatisch mit vorbereiteten Lernrunden versehen.**
+  Nach der gespeicherten Heftverarbeitung sollen passende Themenrunden bereits
+  im Hintergrund entstehen, damit das Kind sie unmittelbar öffnen kann.
+  Bestehende Einheiten, Antworten, Quellen- und Elternplanrevisionen sowie
+  Kosten- und Zugriffsgrenzen bleiben geschützt. Ein Leseaufruf startet keinen
+  Auftrag, und reine Vorbereitung erzeugt keinen Lernbeleg. Das bisherige
+  ausdrückliche Einzelstartgebot wird für diese beauftragte Hintergrund-
+  vorbereitung angepasst; Lernbeginn und weitere Antworten bleiben bewusst.
+  [Architektur, Reihenfolge und offene Abnahme](docs/AUTO_ROUND_PLAN_2026_11_28.md).
+
+- [ ] **P1 – MediaExplorer als geprüften, wiederverwendbaren Medienkatalog
+  integrieren.** Offizielle YouTube-Recherche, weitere Medienarten,
+  fach-/stufenbezogene Zuordnung, redaktionelle Freigabe, Kostenkontrolle und
+  gegebenenfalls nachgewiesene Videoanalyse in bestehende Katalog-, Worker-,
+  Eltern- und Kinderpfade integrieren. Sensible historische Quellen benötigen
+  altersgerechten Kontext und menschliche Freigabe. API-Bedingungen, Fristen
+  und tatsächlicher Prüfumfang sind verbindlich; keine erfundenen Quellen.
+  [Abhängigkeiten und elf offene Arbeitsschritte](docs/MEDIAEXPLORER_PLAN_2026_11_28.md).
+
 ## Ziel und Umgang mit dieser Roadmap
 
 SchuleSchlau soll Kinder vor und nach der Schule altersgerecht beim Verstehen, Üben und Vorbereiten begleiten. Fotografierte Hefte, Arbeitsblätter, Arbeitshefte, Bücher und Klassenarbeiten sollen sicher verfügbar sein und zu nachvollziehbaren, fachlich passenden Lernangeboten führen. Eltern behalten Übersicht und Kontrolle, ohne jeden Lernschritt übernehmen zu müssen. Die App muss auch auf kleinen Smartphones ruhig, verständlich und zuverlässig bedienbar sein.
