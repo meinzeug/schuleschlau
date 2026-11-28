@@ -27,5 +27,4 @@ def upgrade():
 
 
 def downgrade():
-    op.drop_index("ix_notebook_auto_status_created", table_name="notebook_auto_intents")
-    op.drop_table("notebook_auto_intents")
+    raise RuntimeError("Published automatic notebook intents require a forward correction.")

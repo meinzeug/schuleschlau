@@ -46,10 +46,13 @@ with engine.connect() as connection:
 command.upgrade(config, 'head')
 from alembic.script import ScriptDirectory
 expected_head = ScriptDirectory.from_config(config).get_current_head()
-with engine.connect() as connection:
+with engine.begin() as connection:
     assert connection.exec_driver_sql('select version_num from alembic_version').scalar_one() == expected_head
     row = connection.execute(select(Table('materials', MetaData(), autoload_with=connection))).mappings().one()
     assert row['content'] == 'Originaltext' and row['visual_observations'] == []
+    intents = Table('notebook_auto_intents', MetaData(), autoload_with=connection)
+    connection.execute(intents.insert().values(id='i'*32, child_id='c'*32, material_id='m'*32,
+        revision=row['revision'], family_id='f'*32, selection={}, status='pending', created=1))
 try:
     command.downgrade(config, '0046')
 except RuntimeError as error:
@@ -59,6 +62,7 @@ else:
     raise AssertionError('published curriculum downgrade must fail closed')
 with engine.connect() as connection:
     assert connection.exec_driver_sql('select version_num from alembic_version').scalar_one() == expected_head
+    assert connection.execute(select(Table('notebook_auto_intents', MetaData(), autoload_with=connection))).mappings().one()['id'] == 'i'*32
 sys.path.insert(0, 'deploy')
 from visual_restore_probe import probe
 with DB.begin() as db:
