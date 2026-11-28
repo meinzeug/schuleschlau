@@ -42,6 +42,18 @@ class CollectionScreen extends StatelessWidget {
     }
   }
 
+  VoidCallback photoAction(BuildContext context) {
+    final identity = state.api.requestIdentity();
+    return () {
+      if (context.mounted &&
+          ModalRoute.of(context)?.isCurrent != false &&
+          !state.authenticationPending &&
+          state.api.ownsRequest(identity)) {
+        unawaited(addPhoto(context));
+      }
+    };
+  }
+
   @override
   Widget build(BuildContext context) => PageFrame(
     state: state,
@@ -99,12 +111,17 @@ class CollectionScreen extends StatelessWidget {
             title: 'Dein Stoff. Gut sortiert.',
             description: 'Hier findest du Seiten aus Heften, Arbeitsblättern, Arbeitsheften und Büchern.',
             icon: Icons.folder_copy_outlined,
-            action: Align(
-              alignment: Alignment.centerLeft,
-              child: FilledButton.icon(
-                onPressed: () => addPhoto(context),
-                icon: const Icon(Icons.add_a_photo_outlined),
-                label: const Text('Seiten hinzufügen'),
+            action: ListenableBuilder(
+              listenable: state.authenticationChanges,
+              builder: (context, _) => Align(
+                alignment: Alignment.centerLeft,
+                child: FilledButton.icon(
+                  onPressed: state.authenticationPending
+                      ? null
+                      : photoAction(context),
+                  icon: const Icon(Icons.add_a_photo_outlined),
+                  label: const Text('Seiten hinzufügen'),
+                ),
               ),
             ),
           ),
@@ -126,7 +143,7 @@ class CollectionScreen extends StatelessWidget {
                     '1',
                 allPages: PagedCollection(state, childId: childId),
                 onAddPhoto: state.isChild || state.canManage
-                    ? () => addPhoto(context)
+                    ? photoAction(context)
                     : null,
               ),
       ],
@@ -217,6 +234,7 @@ class _PagedCollectionState extends State<_PagedCollectionBody> {
   DateTimeRange? dates;
   int page = 1, pageSize = 20, generation = 0, liveRevision = 0;
   bool loading = true;
+  bool authenticationPaused = false;
   final toolsKey = GlobalKey();
   bool get simpleLearning =>
       widget.learning && widget.state.isChild && widget.onSelect == null;
@@ -224,12 +242,14 @@ class _PagedCollectionState extends State<_PagedCollectionBody> {
   final ownedRoutes = <ModalRoute<dynamic>>{};
   String get cacheKey =>
       '${widget.learning ? 'learning' : 'materials'}:${widget.childId}${widget.subjectId == null ? '' : ':${widget.subjectId}:${widget.topicKey ?? 'topics'}:${widget.initialSection}'}';
-  bool get active =>
+  bool get sameOwner =>
       mounted &&
       owner != null &&
       identical(widget.state.user, owner) &&
       widget.state.familyId == family &&
       widget.state.api.token == session;
+  bool get active =>
+      sameOwner && !widget.state.authenticationPending && !authenticationPaused;
   bool get filtered =>
       search.text.trim().isNotEmpty ||
       subject != null ||
@@ -242,7 +262,9 @@ class _PagedCollectionState extends State<_PagedCollectionBody> {
     owner = widget.state.user;
     family = widget.state.familyId;
     session = widget.state.api.token;
+    authenticationPaused = widget.state.authenticationPending;
     widget.state.addListener(identityChanged);
+    widget.state.authenticationChanges.addListener(authenticationChanged);
     liveRevision = widget.state.revision;
     section = widget.initialSection;
     final saved = widget.onSelect == null
@@ -272,6 +294,7 @@ class _PagedCollectionState extends State<_PagedCollectionBody> {
   void dispose() {
     closeOwnedRoutes();
     widget.state.removeListener(identityChanged);
+    widget.state.authenticationChanges.removeListener(authenticationChanged);
     debounce?.cancel();
     search.dispose();
     searchFocus.dispose();
@@ -282,7 +305,7 @@ class _PagedCollectionState extends State<_PagedCollectionBody> {
   }
 
   void identityChanged() {
-    if (mounted && !active) {
+    if (mounted && !sameOwner) {
       generation++;
       debounce?.cancel();
       closeOwnedRoutes();
@@ -302,6 +325,26 @@ class _PagedCollectionState extends State<_PagedCollectionBody> {
       liveRevision = widget.state.revision;
       load();
     }
+  }
+
+  void authenticationChanged() {
+    if (!mounted) return;
+    generation++;
+    debounce?.cancel();
+    closeOwnedRoutes();
+    searchFocus.unfocus();
+    setState(() {
+      authenticationPaused = true;
+      data = null;
+      error = null;
+      loading = false;
+      selectedPages.clear();
+      selectingPages = allMatchingPages = false;
+      search.clear();
+      recentQueries.clear();
+      rememberedRounds.clear();
+      comparedRounds.clear();
+    });
   }
 
   void closeOwnedRoutes() {
@@ -424,6 +467,7 @@ class _PagedCollectionState extends State<_PagedCollectionBody> {
   }
 
   void change(VoidCallback edit, {bool delayed = false, bool scroll = false}) {
+    if (!active) return;
     debounce?.cancel();
     generation++;
     setState(() {
@@ -455,6 +499,7 @@ class _PagedCollectionState extends State<_PagedCollectionBody> {
   }
 
   Future<void> filters() async {
+    if (!active) return;
     // Do not reopen the search keyboard when returning from the modal.
     FocusManager.instance.primaryFocus?.unfocus();
     var draftStatus = status, draftSort = sort, draftSize = pageSize;
@@ -468,6 +513,7 @@ class _PagedCollectionState extends State<_PagedCollectionBody> {
         filterRoute ??= ModalRoute.of(ctx);
         if (filterRoute != null) ownedRoutes.add(filterRoute!);
         if (!active) closeOwnedRoutes();
+        bool valid() => active && ctx.mounted && filterRoute?.isCurrent == true;
         return StatefulBuilder(
           builder: (ctx, set) => Padding(
             padding: const EdgeInsets.all(16),
@@ -497,7 +543,11 @@ class _PagedCollectionState extends State<_PagedCollectionBody> {
                           child: Text('Bestätigt'),
                         ),
                       ],
-                      onChanged: (value) => set(() => draftStatus = value!),
+                      onChanged: (value) {
+                        if (valid() && value != null) {
+                          set(() => draftStatus = value);
+                        }
+                      },
                     ),
                     const SizedBox(height: 16),
                   ],
@@ -519,7 +569,11 @@ class _PagedCollectionState extends State<_PagedCollectionBody> {
                         child: Text('Älteste zuerst'),
                       ),
                     ],
-                    onChanged: (value) => set(() => draftSort = value!),
+                    onChanged: (value) {
+                      if (valid() && value != null) {
+                        set(() => draftSort = value);
+                      }
+                    },
                   ),
                   const SizedBox(height: 16),
                   DropdownButtonFormField<int>(
@@ -532,12 +586,17 @@ class _PagedCollectionState extends State<_PagedCollectionBody> {
                       for (final size in [10, 20, 50])
                         DropdownMenuItem(value: size, child: Text('$size')),
                     ],
-                    onChanged: (value) => set(() => draftSize = value!),
+                    onChanged: (value) {
+                      if (valid() && value != null) {
+                        set(() => draftSize = value);
+                      }
+                    },
                   ),
                   if (!widget.learning) ...[
                     const SizedBox(height: 12),
                     OutlinedButton.icon(
                       onPressed: () async {
+                        if (!valid()) return;
                         ModalRoute<dynamic>? dateRoute;
                         final selected = await showDateRangePicker(
                           context: ctx,
@@ -559,7 +618,7 @@ class _PagedCollectionState extends State<_PagedCollectionBody> {
                           await dateRoute!.completed;
                           ownedRoutes.remove(dateRoute);
                         }
-                        if (selected != null && ctx.mounted) {
+                        if (selected != null && valid()) {
                           set(() => draftDates = selected);
                         }
                       },
@@ -572,17 +631,23 @@ class _PagedCollectionState extends State<_PagedCollectionBody> {
                     ),
                     if (draftDates != null)
                       TextButton(
-                        onPressed: () => set(() => draftDates = null),
+                        onPressed: () {
+                          if (valid()) set(() => draftDates = null);
+                        },
                         child: const Text('Zeitraum entfernen'),
                       ),
                   ],
                   const SizedBox(height: 16),
                   FilledButton(
-                    onPressed: () => Navigator.pop(ctx, true),
+                    onPressed: () {
+                      if (valid()) Navigator.pop(ctx, true);
+                    },
                     child: const Text('Anwenden'),
                   ),
                   TextButton(
-                    onPressed: () => Navigator.pop(ctx, false),
+                    onPressed: () {
+                      if (valid()) Navigator.pop(ctx, false);
+                    },
                     child: const Text('Abbrechen'),
                   ),
                 ],
@@ -1020,7 +1085,13 @@ class _PagedCollectionState extends State<_PagedCollectionBody> {
   @override
   Widget build(BuildContext context) {
     if (!active) {
-      return const Notice('Bitte melde dich erneut an.');
+      return Notice(
+        widget.state.authenticationPending
+            ? 'Anmeldung läuft …'
+            : sameOwner
+            ? 'Öffne die Seite erneut.'
+            : 'Bitte melde dich erneut an.',
+      );
     }
     final items = (data?['items'] as List? ?? []).cast<Json>();
     final subjects = (data?['subjects'] as List? ?? []).cast<Json>();

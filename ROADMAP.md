@@ -4684,6 +4684,16 @@ Bestandteil des bestehenden Buildvertrags.
 
   - [ ] **Verspätete gemeinsame API-Antworten nach Kontowechsel absichern.**
 
+    **Hefte- und Lernübersicht während Anmeldewechsel schützen:** Fachregal
+    und paginierte Sammlungen starten während einer Anmeldung keine privaten
+    Listenabrufe und verbergen vorhandene Einträge. Nach Abbruch ist ein
+    erneuter Einstieg erforderlich. Alte Filterdialoge schließen, ihre
+    Aktionen bleiben wirkungslos; die Fotoaktion ist während der Anmeldung
+    deaktiviert und alte Fotoaufrufe bleiben an die frühere Anmeldung
+    gebunden. 37 künstliche Sammlungsfälle, 48 Hefterfälle und fünf Chrome-Fälle bestanden;
+    die statische Analyse war fehlerfrei. Bereits gesendete Transporte und
+    die übergreifende Cookie-Lücke bleiben offen.
+
     **Lernstand und Fachhefter beim Anmeldewechsel schützen:** Beide Ansichten
     laden während der Anmeldung keine privaten Daten, verbergen vorherige
     Inhalte und verlangen nach Abbruch einen bewussten erneuten Einstieg.

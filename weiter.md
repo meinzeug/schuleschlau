@@ -1,5 +1,14 @@
 # Übergabe an die nächste Coding-KI
 
+## Ergänzung 28. November 2026: Hefte- und Lernübersichten beim Login
+
+Das Fachregal und paginierte Sammlungen senden während einer Anmeldung keine
+privaten Listenabrufe. Alte Inhalte und Filterdialoge verschwinden; alte
+Filter- und Fotoaktionen bleiben an die vorherige Anmeldung gebunden. Nach
+Abbruch erfolgt der erneute Einstieg bewusst. 37 künstliche Sammlungsfälle, 48 Hefterfälle,
+fünf Chrome-Fälle und die statische Analyse bestanden. Der allgemeine
+Cookie-Wettlauf und schon gesendete Transporte bleiben offen.
+
 ## Ergänzung 28. November 2026: Lernstand und Fachhefter beim Login
 
 Beide Ansichten sperren private Abrufe während einer Anmeldung und verbergen

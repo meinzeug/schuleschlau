@@ -66,12 +66,15 @@ class _NotebookShelfState extends State<_NotebookShelfBody> {
       reviewOnly = false;
   int generation = 0;
   int stateRevision = 0;
-  bool get current =>
+  bool authenticationPaused = false;
+  bool get sameOwner =>
       mounted &&
       owner != null &&
       identical(widget.state.user, owner) &&
       family == widget.state.familyId &&
       session == widget.state.api.token;
+  bool get current =>
+      sameOwner && !widget.state.authenticationPending && !authenticationPaused;
   String get memoryKey => 'notebook-shelf:${widget.childId}';
 
   @override
@@ -81,7 +84,9 @@ class _NotebookShelfState extends State<_NotebookShelfBody> {
     family = widget.state.familyId;
     session = widget.state.api.token;
     stateRevision = widget.state.revision;
+    authenticationPaused = widget.state.authenticationPending;
     widget.state.addListener(identityChanged);
+    widget.state.authenticationChanges.addListener(authenticationChanged);
     final saved = widget.state.collectionViews[memoryKey];
     list = saved?['list'] as bool? ?? widget.state.isChild;
     ownOnly = saved?['own_only'] as bool? ?? widget.state.isChild;
@@ -108,7 +113,7 @@ class _NotebookShelfState extends State<_NotebookShelfBody> {
   }
 
   void identityChanged() {
-    if (mounted && !current) {
+    if (mounted && !sameOwner) {
       generation++;
       widget.state.collectionViews.remove(memoryKey);
       setState(() {
@@ -124,10 +129,24 @@ class _NotebookShelfState extends State<_NotebookShelfBody> {
     }
   }
 
+  void authenticationChanged() {
+    if (!mounted) return;
+    generation++;
+    searchFocus.unfocus();
+    setState(() {
+      authenticationPaused = true;
+      data = null;
+      error = null;
+      search.clear();
+      showSearch = false;
+    });
+  }
+
   @override
   void dispose() {
     generation++;
     widget.state.removeListener(identityChanged);
+    widget.state.authenticationChanges.removeListener(authenticationChanged);
     search.dispose();
     searchFocus.dispose();
     super.dispose();
@@ -213,6 +232,7 @@ class _NotebookShelfState extends State<_NotebookShelfBody> {
             ),
     ),
     onChanged: (_) {
+      if (!current) return;
       setState(() {});
       remember();
     },
@@ -220,7 +240,15 @@ class _NotebookShelfState extends State<_NotebookShelfBody> {
 
   @override
   Widget build(BuildContext context) {
-    if (!current) return SizedBox();
+    if (!current) {
+      return Notice(
+        widget.state.authenticationPending
+            ? 'Anmeldung läuft …'
+            : sameOwner
+            ? 'Öffne deine Hefte erneut.'
+            : 'Bitte melde dich erneut an.',
+      );
+    }
     if (allPages) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -232,6 +260,7 @@ class _NotebookShelfState extends State<_NotebookShelfBody> {
               alignment: Alignment.centerLeft,
               child: TextButton.icon(
                 onPressed: () {
+                  if (!current) return;
                   setState(() => allPages = false);
                   remember();
                 },
@@ -431,6 +460,7 @@ class _NotebookShelfState extends State<_NotebookShelfBody> {
                 ),
                 TextButton(
                   onPressed: () {
+                    if (!current) return;
                     searchFocus.unfocus();
                     setState(() {
                       ownOnly = false;
