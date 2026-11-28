@@ -4293,9 +4293,7 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
               'Vergleiche gleich große Teile: Beim Addieren bleibt der gemeinsame Nenner stehen.',
             ),
           if (hintExhausted)
-            Text(
-              'Du hast alle vorhandenen Tipps gesehen. Unter „Mehr Hilfe“ findest du andere Unterstützung.',
-            ),
+            Text('Alle Tipps gesehen. Unter „Mehr Hilfe“ geht es weiter.'),
           Wrap(
             spacing: 8,
             runSpacing: 4,
@@ -4309,12 +4307,13 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
                 icon: const Icon(Icons.edit_outlined),
                 label: const Text('Zur eigenen Eingabe'),
               ),
-              TextButton(
-                onPressed: actionBusy || hintExhausted
-                    ? null
-                    : () => perform(() => requestHint(u, q)),
-                child: Text('Noch ein Tipp'),
-              ),
+              if (!hintExhausted)
+                TextButton(
+                  onPressed: actionBusy
+                      ? null
+                      : () => perform(() => requestHint(u, q)),
+                  child: Text('Noch ein Tipp'),
+                ),
               TextButton(
                 onPressed: actionBusy ? null : () => perform(() => moreHelp(u)),
                 child: Text('Mehr Hilfe'),
