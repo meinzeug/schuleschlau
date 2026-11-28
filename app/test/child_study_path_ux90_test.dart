@@ -104,6 +104,40 @@ void main() {
       );
     }
   }
+  for (final count in [3, 4]) {
+    testWidgets(
+      'Bei $count Lernschritten steht die Suche passend zur Listenlänge',
+      (tester) async {
+        final requests = <http.Request>[];
+        final state = f.account((request) async {
+          requests.add(request);
+          return f.reply(path([
+            for (var i = 0; i < count; i++) block('$i', 'planned'),
+          ]));
+        });
+        await f.show(
+          tester,
+          StudyPathPanel(state, 'child', 'day'),
+          size: const Size(390, 844),
+        );
+        await f.tap(tester, find.text('Alle Lernschritte'));
+        final filter = find.text('Suchen und filtern');
+        final first = find.widgetWithText(PlanRow, 'Thema 0');
+        expect(filter, findsOneWidget);
+        expect(first, findsOneWidget);
+        final filterY = tester.getTopLeft(filter).dy;
+        final firstY = tester.getTopLeft(first).dy;
+        expect(count <= 3 ? filterY > firstY : filterY < firstY, isTrue);
+        await f.tap(tester, filter);
+        await tester.enterText(f.input('Lernschritte suchen'), 'Thema 1');
+        await tester.pump();
+        expect(find.widgetWithText(PlanRow, 'Thema 1'), findsOneWidget);
+        expect(first, findsNothing);
+        expect(requests.every((request) => request.method == 'GET'), isTrue);
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
   testWidgets(
     'CK033 planned stage opens useful stored details without preparing a round',
     (tester) async {

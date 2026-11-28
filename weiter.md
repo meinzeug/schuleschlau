@@ -1,5 +1,14 @@
 # Übergabe an die nächste Coding-KI
 
+## Ergänzung 28. November 2026: Kurze Lernwege
+
+Kinder sehen bei bis zu drei Lernschritten die Schritte vor dem weiterhin
+zugänglichen Such-/Filterbereich. Bei längeren Listen bleibt die Suche vor
+der Liste; Elternansichten sind unverändert. 13 künstliche Flutter-VM-Fälle
+und die beiden neuen Fälle im Chrome-Webrunner bestanden. Die Ausgangsansicht
+wurde bei 390 Pixeln mit Beispieldaten im
+lokalen Browser angesehen; eine umfassende Kinderabnahme bleibt offen.
+
 ## Ergänzung 28. November 2026: Noten-PDF-Parser
 
 Der reguläre Notenimport lässt je API-Prozess nur einen isolierten PDF-Leser

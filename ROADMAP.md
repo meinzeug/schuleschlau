@@ -1245,6 +1245,15 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – Alle Kinderansichten sprachlich und in ihrer Bedienung entrümpeln**
 
+  - [x] **Kurze Lernwege vor Suchwerkzeugen anzeigen.** Bei höchstens drei
+    Lernschritten in der Kinderansicht stehen die Schritte vor der weiterhin
+    erreichbaren Suche; bei längeren Listen bleibt sie davor. Suche und Filter
+    verändern weiterhin keine Lerndaten. 13 künstliche Lernwegfälle bestanden
+    auf der Flutter-VM, darunter kurze und längere Listen sowie Suchen und
+    Zurücksetzen; die zwei neuen Listenfälle bestanden auch im Chrome-Webrunner.
+    Die Ausgangsansicht wurde bei 390 Pixeln im lokalen Browser
+    mit Beispieldaten angesehen. Die vollständige Kinderabnahme bleibt offen.
+
   - [x] **Lernzeit in der Runde verständlich benennen.** Die kompakte Uhr
     nennt ihre Einheit „Min.“; die Sprachausgabe liest Minuten und Sekunden
     sowie ein tatsächlich vorhandenes Mindestziel aus. Ohne Ziel wird keines

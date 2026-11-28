@@ -667,6 +667,18 @@ class _StudyPathPanelState extends State<StudyPathPanel>
         readError != null ||
         actionError != null ||
         blocks.any((block) => (block['error'] as String? ?? '').isNotEmpty);
+    final shortChildPath = state.isChild && blocks.length <= 3;
+    final childFilter = ExpansionTile(
+      title: Text(
+        blockFilter != 'all' || blockSearch.text.trim().isNotEmpty
+            ? 'Suchen und filtern · aktiv'
+            : 'Suchen und filtern',
+      ),
+      onExpansionChanged: (open) {
+        if (!open) FocusManager.instance.primaryFocus?.unfocus();
+      },
+      children: [blockFilterControls(total, ready, completed)],
+    );
     return Panel(
       padding: EdgeInsets.all(widget.dense ? 16 : 20),
       child: Column(
@@ -1047,22 +1059,9 @@ class _StudyPathPanelState extends State<StudyPathPanel>
                   }
                 },
                 children: [
-                  if (state.isChild)
-                    ExpansionTile(
-                      title: Text(
-                        blockFilter != 'all' ||
-                                blockSearch.text.trim().isNotEmpty
-                            ? 'Suchen und filtern · aktiv'
-                            : 'Suchen und filtern',
-                      ),
-                      onExpansionChanged: (open) {
-                        if (!open) {
-                          FocusManager.instance.primaryFocus?.unfocus();
-                        }
-                      },
-                      children: [blockFilterControls(total, ready, completed)],
-                    )
-                  else
+                  if (state.isChild && !shortChildPath)
+                    childFilter
+                  else if (!state.isChild)
                     blockFilterControls(total, ready, completed),
                   if (!state.isChild ||
                       blockFilter != 'all' ||
@@ -1141,6 +1140,7 @@ class _StudyPathPanelState extends State<StudyPathPanel>
                               }
                             },
                     ),
+                  if (shortChildPath) childFilter,
                 ],
               ),
             ],
