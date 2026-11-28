@@ -4684,6 +4684,16 @@ Bestandteil des bestehenden Buildvertrags.
 
   - [ ] **Verspätete gemeinsame API-Antworten nach Kontowechsel absichern.**
 
+    **Sprachwerkstatt während Anmeldewechsel schützen:** Beim Öffnen während
+    einer Anmeldung werden keine Wortschatz-, Material- oder Projektanfragen
+    gestartet. Eine zuvor offene Ansicht verbirgt ihre Inhalte, stoppt ihre
+    Statusabfragen und sichert den ungespeicherten Entwurf kontogebunden;
+    überholte Eingaben und alte Aktions-/Navigationsaufrufe ändern diesen
+    Stand nicht. Nach Abbruch ist ein bewusstes erneutes Öffnen nötig.
+    33 künstliche Flutter-Fälle und drei gezielte Chrome-Fälle bestanden.
+    Bereits gesendete Aufträge können trotzdem abgeschlossen sein; ein
+    serverseitiger Cookie-Wettlauf zwischen Tabs bleibt offen.
+
     **Lerntipps und Themenauswahl beim Anmeldewechsel schützen:** Bereits
     geöffnete private Tipps werden beim Anmeldebeginn geleert; während einer
     laufenden Anmeldung erstmals aufgebaute Tipps und Themenauswahlen senden

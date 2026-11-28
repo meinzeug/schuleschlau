@@ -1,5 +1,15 @@
 # Übergabe an die nächste Coding-KI
 
+## Ergänzung 28. November 2026: Sprachwerkstatt beim Anmeldewechsel
+
+Die Sprachwerkstatt bindet Abrufe und Aktionen nun an die Anmeldeabsicht und
+sendet beim Öffnen während einer Anmeldung keine privaten Anfragen. Bei
+Anmeldebeginn wird der Entwurf kontogebunden gesichert und alte Inhalte werden
+verborgen; späte Eingaben überschreiben den gesicherten Entwurf nicht. Nach
+Abbruch ist ein bewusstes erneutes Öffnen nötig. 33 künstliche Flutter-Fälle
+und drei gezielte Chrome-Fälle bestanden. Bereits gesendete Aufträge und der
+offene serverseitige Cookie-Wettlauf sind davon nicht rückgängig gemacht.
+
 ## Ergänzung 28. November 2026: Fehlgeschlagener CI-Lauf
 
 GitHub-Lauf `46091286305` für `d09c546` schlug wegen drei veralteter

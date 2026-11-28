@@ -135,19 +135,26 @@ class _LanguageWorkshopState extends State<_LanguageWorkshopBody>
   late final Json? owner;
   late final family = widget.state.familyId;
   late final token = widget.state.api.token;
+  late final (Object?, String?, int?) authentication;
   bool foreground = true, routeVisible = true, automaticReadBlocked = false;
+  bool authenticationInvalidated = false;
   String get base => '/children/${widget.childId}';
-  bool get current =>
+  bool get sameOwner =>
       mounted &&
       owner != null &&
       identical(owner, widget.state.user) &&
       family == widget.state.familyId &&
       token == widget.state.api.token;
+  bool get current =>
+      sameOwner &&
+      !widget.state.authenticationPending &&
+      widget.state.api.ownsRequest(authentication);
 
   @override
   void initState() {
     super.initState();
     owner = widget.state.user;
+    authentication = widget.state.api.requestIdentity();
     foreground =
         WidgetsBinding.instance.lifecycleState == null ||
         WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
@@ -177,6 +184,7 @@ class _LanguageWorkshopState extends State<_LanguageWorkshopBody>
     projectSearch.addListener(formChanged);
     wordSearch.addListener(formChanged);
     widget.state.addListener(accountChanged);
+    widget.state.authenticationChanges.addListener(authenticationChanged);
     if (foreground) load();
   }
 
@@ -248,7 +256,7 @@ class _LanguageWorkshopState extends State<_LanguageWorkshopBody>
   }
 
   void accountChanged() {
-    if (!current && mounted) {
+    if (!sameOwner && mounted) {
       widget.state.collectionViews.remove(draftKey);
       generation++;
       poll?.cancel();
@@ -266,9 +274,24 @@ class _LanguageWorkshopState extends State<_LanguageWorkshopBody>
     }
   }
 
-  @override
-  void dispose() {
-    if (current &&
+  void authenticationChanged() {
+    if (!mounted) return;
+    if (!authenticationInvalidated && widget.state.authenticationPending) {
+      saveDraft();
+    }
+    authenticationInvalidated = true;
+    generation++;
+    poll?.cancel();
+    FocusManager.instance.primaryFocus?.unfocus();
+    setState(() {
+      loading = false;
+      busy = false;
+      automaticReadBlocked = true;
+    });
+  }
+
+  void saveDraft() {
+    if (sameOwner &&
         goal.text.runes.length <= 500 &&
         draft.text.runes.length <= 6000) {
       widget.state.collectionViews[draftKey] = {
@@ -299,9 +322,17 @@ class _LanguageWorkshopState extends State<_LanguageWorkshopBody>
         widget.state.collectionViews.remove(keys.removeAt(0));
       }
     }
+  }
+
+  @override
+  void dispose() {
+    if (!authenticationInvalidated && !widget.state.authenticationPending) {
+      saveDraft();
+    }
     generation++;
     poll?.cancel();
     widget.state.removeListener(accountChanged);
+    widget.state.authenticationChanges.removeListener(authenticationChanged);
     WidgetsBinding.instance.removeObserver(this);
     goal.removeListener(formChanged);
     draft.removeListener(formChanged);
@@ -691,7 +722,11 @@ class _LanguageWorkshopState extends State<_LanguageWorkshopBody>
     state: widget.state,
     title: 'Sprachwerkstatt',
     child: !current
-        ? SizedBox.shrink()
+        ? Text(
+            widget.state.authenticationPending
+                ? 'Anmeldung läuft …'
+                : 'Öffne die Sprachwerkstatt bitte erneut.',
+          )
         : Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -917,10 +952,14 @@ class _LanguageWorkshopState extends State<_LanguageWorkshopBody>
                             SizedBox(height: 8),
                             if (words.isEmpty)
                               TextButton(
-                                onPressed: () => openRoute(
-                                  context,
-                                  '/vocabulary/${widget.childId}',
-                                ),
+                                onPressed: () {
+                                  if (current) {
+                                    openRoute(
+                                      context,
+                                      '/vocabulary/${widget.childId}',
+                                    );
+                                  }
+                                },
                                 child: Text('Zuerst Schulwörter bestätigen'),
                               ),
                             if ((selected.isNotEmpty || undoneWords != null) &&
@@ -1730,8 +1769,11 @@ class _LanguageWorkshopState extends State<_LanguageWorkshopBody>
         ],
         SizedBox(height: 16),
         TextButton(
-          onPressed: () =>
-              openRoute(context, '/language-projects/${widget.childId}'),
+          onPressed: () {
+            if (current) {
+              openRoute(context, '/language-projects/${widget.childId}');
+            }
+          },
           child: Text('Zur Sprachwerkstatt'),
         ),
       ],
