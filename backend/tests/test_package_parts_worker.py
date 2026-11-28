@@ -88,6 +88,23 @@ def snapshot(day_id):
         return copy.deepcopy(day.preparation)
 
 
+def pending_automatic_stage(db, day_id, child_id, source_refs):
+    """The worker may reserve one later stage, never repeat a package call."""
+    day = db.get(SchoolDay, day_id)
+    jobs = list(db.scalars(select(Job).where(Job.child_id == child_id, Job.kind == "study_block")))
+    assert len(jobs) == 1
+    job = jobs[0]
+    assert job.status == "queued" and job.payload["automatic_study_stage"] is True
+    assert job.payload["day_id"] == day_id and job.payload["source_hash"] == day.learning_plan["source_hash"]
+    block = next(block for block in day.learning_plan["blocks"] if block["id"] == job.payload["block_id"])
+    assert block["job_id"] == job.id and not block.get("unit_id")
+    assert set(block["material_ids"]).issubset({source["id"] for source in source_refs})
+    assert job.idempotency.endswith(f":auto:{day.preparation['run_id']}:{block['id']}")
+    usage = db.scalar(select(Usage).where(Usage.job_id == job.id))
+    assert usage is not None and usage.status == "reserved" and usage.function == "unit"
+    return job.id
+
+
 def artificial_day(api, household):
     owner, child = household
     allow_synthetic_test_transport()
@@ -312,13 +329,19 @@ def test_normal_parts_stage_privately_then_publish_once_with_graphics_and_preser
         assert db.scalar(select(func.count()).select_from(Attempt)) == 1
         jobs_before = db.scalar(select(func.count()).select_from(Job))
         usages_before = db.scalar(select(func.count()).select_from(Usage))
-        assert jobs_before == usages_before == len(expected)
+        # The final worker tick may also reserve the first ungenerated stage.
+        # This is a separate queued unit job, not another package invocation.
+        automatic_id = pending_automatic_stage(db, day_id, child["id"], old["sources"])
+        assert jobs_before == usages_before == len(expected) + 1
     for key in ("parts-first-explicit", "parts-after-completion"):
         assert preparation(api, day_id, key)["status"] == "ready"
-        assert run_one() is None
         assert api.get(f"/api/school-days/{day_id}").json()["package_version"] == 1
+        # GET/replay is read-only; a worker tick also cannot duplicate a
+        # still-queued stage. Do not claim the independent paid job here.
+        school_preparation.advance_one()
     assert len(calls) == len(expected)
     with DB() as db:
+        assert pending_automatic_stage(db, day_id, child["id"], old["sources"]) == automatic_id
         assert db.scalar(select(func.count()).select_from(Job)) == jobs_before
         assert db.scalar(select(func.count()).select_from(Usage)) == usages_before
         assert db.scalar(select(func.count()).select_from(LearningUnit)) == 4

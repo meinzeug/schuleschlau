@@ -7,7 +7,14 @@ from schulpilot import school_preparation, worker
 from schulpilot.db import DB, Attempt, Job, LearningUnit, Material, ProviderConfig, SchoolDay, Usage
 from schulpilot.providers import Result
 from sqlalchemy import func, select
-from test_package_parts_worker import artificial_day, bounded_output, preparation, run_one, snapshot
+from test_package_parts_worker import (
+    artificial_day,
+    bounded_output,
+    pending_automatic_stage,
+    preparation,
+    run_one,
+    snapshot,
+)
 
 
 def staged(api, household, monkeypatch):
@@ -90,9 +97,23 @@ def test_replay_then_finalization_reuses_started_unit_and_preserves_answer(api, 
         assert attempt.answer == "Künstliche Antwort" and attempt.outcome == "incorrect" and attempt.assisted
         assert db.scalar(select(func.count()).select_from(Attempt)) == 2
         assert "package_outputs" not in db.get(SchoolDay, day_id).preparation
+        automatic_id = pending_automatic_stage(db, day_id, child["id"], old["sources"])
+        counts = [db.scalar(select(func.count()).select_from(model)) for model in (Job, Usage, Attempt)]
     replay = publish(api, household, day_id)
     assert replay.status_code == 200 and replay.json()["unit_ids"] == [uid]
-    assert run_one() is None
+    # Replaying the published prefix neither creates a second job nor starts
+    # the separately reserved automatic stage. Repeated worker scheduling is
+    # idempotent while that stage remains queued.
+    for _ in range(3):
+        assert api.get(f"/api/school-days/{day_id}").status_code == 200
+        school_preparation.advance_one()
+    assert len(calls) == 3
+    with DB() as db:
+        assert pending_automatic_stage(db, day_id, child["id"], old["sources"]) == automatic_id
+        assert [db.scalar(select(func.count()).select_from(model)) for model in (Job, Usage, Attempt)] == counts
+        unit, attempt = db.get(LearningUnit, uid), db.get(Attempt, attempt_id)
+        assert unit.status == "active" and unit.active_seconds == 23 and unit.questions == original
+        assert attempt.answer == "Künstliche Antwort" and attempt.outcome == "incorrect" and attempt.assisted
 
 
 @pytest.mark.parametrize("fault", ["actor", "plan", "revision", "safe_text", "config", "receipt", "job", "usage"])
