@@ -286,7 +286,7 @@ void main() {
       await t.pumpWidget(hub());
       await t.pumpAndSettle();
       expect(
-        find.textContaining('Hier sammeln sich deine Lernideen'),
+        find.text('Deine Ideen erscheinen hier.'),
         findsOneWidget,
       );
       s.user = {...s.user!};
