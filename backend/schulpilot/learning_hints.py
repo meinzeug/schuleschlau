@@ -1,8 +1,52 @@
 """Progressive help for the saved error. No extra model call or fuzzy success."""
 
 import re
+from fractions import Fraction
+from math import gcd
 
 from .answer_evaluation import normalized
+from .checks import fraction_parts
+
+
+def clarify_fraction_product_hint(question, text):
+    """Explain the intermediate product only for a verified reduced choice task.
+
+    This is a projection, not a migration of historical hint events or answers.
+    Unknown task forms and inconsistent answer options remain unchanged.
+    """
+    if (not isinstance(text, str) or question.get("language")
+            or question.get("type") != "choice"
+            or not re.search(r"multiplizier", text, re.I)
+            or not re.search(r"nenner", text, re.I)
+            or re.search(r"kürz", text, re.I)):
+        return text
+    prompt = question.get("prompt", "")
+    if not isinstance(prompt, str) or not re.search(r"vollständig\s+gekürzt\w*", prompt, re.I):
+        return text
+    expressions = list(re.finditer(
+        r"(?<![\d/])([1-9]\d{0,2})\s*/\s*([1-9]\d{0,2})\s*(?:\*|×|·|mal)\s*([1-9]\d{0,2})(?![\d/])",
+        prompt, re.I,
+    ))
+    if len(expressions) != 1 or len(re.findall(r"\d+\s*/\s*\d+", prompt)) != 1:
+        return text
+    numerator, denominator, factor = map(int, expressions[0].groups())
+    product = numerator * factor
+    if gcd(product, denominator) <= 1:
+        return text
+    key = question.get("answer")
+    key_parts = fraction_parts(key) if isinstance(key, str) else None
+    result = Fraction(product, denominator)
+    if key_parts != (result.numerator, result.denominator):
+        return text
+    options = question.get("options")
+    if not isinstance(options, list):
+        return text
+    parsed = [fraction_parts(option) for option in options if isinstance(option, str)]
+    if sum(parts is not None and Fraction(*parts) == result for parts in parsed) != 1 or key_parts not in parsed:
+        return text
+    return (f"{text.rstrip()} Das ergibt zuerst {product}/{denominator}. "
+            "Kürze nun Zähler und Nenner durch dieselbe Zahl. "
+            "Wähle den vollständig gekürzten Bruch.")
 
 
 def match_parts(question, answer):
@@ -16,6 +60,7 @@ def match_parts(question, answer):
 
 
 def next_hint(question, previous_answer, shown):
+    shown = [clarify_fraction_product_hint(question, text) for text in shown]
     parts = match_parts(question, previous_answer or "") if previous_answer is not None else []
     wrong = next((i for i, part in enumerate(parts) if part["outcome"] != "correct"), None)
     candidates = []
@@ -65,4 +110,5 @@ def next_hint(question, previous_answer, shown):
         "Was weißt du schon über dieses Thema? Nutze es für den nächsten Schritt.",
         "Wenn du nicht weiterkommst, öffne die Erklärung und schau dir den Weg an.",
     ])
-    return next((value for value in candidates if value not in shown), None)
+    return next((value for candidate in candidates
+                 if (value := clarify_fraction_product_hint(question, candidate)) not in shown), None)

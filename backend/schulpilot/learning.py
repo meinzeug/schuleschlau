@@ -569,7 +569,11 @@ def unit_data(db, unit, include_answers=False, *, include_progress=True):
         value["hints_used"] = len(shown)
         if q["id"] in deferred_questions:
             value["controller_deferred"] = True
-        value["shown_hints"] = [{"number":e.detail.get("number"), "text":e.detail.get("text", "")} for e in sorted(shown,key=lambda e:(e.created,e.id))]
+        from .learning_hints import clarify_fraction_product_hint
+
+        value["shown_hints"] = [{"number": e.detail.get("number"),
+                                  "text": clarify_fraction_product_hint(q, e.detail.get("text", ""))}
+                                 for e in sorted(shown, key=lambda e: (e.created, e.id))]
         if (
             unit.status == "completed"
             or len(value["attempts"]) >= 3
@@ -1746,7 +1750,9 @@ def hint(unit_id: str, question_id: str, p=Depends(child_user), db=Depends(get_d
         if replay:
             if replay.detail.get("question_id") != question_id:
                 raise HTTPException(409, "Dieser Hinweisschlüssel gehört zu einer anderen Aufgabe.")
-            return {"hint": replay.detail["text"], "hints_used": replay.detail["number"],
+            from .learning_hints import clarify_fraction_product_hint
+
+            return {"hint": clarify_fraction_product_hint(q, replay.detail["text"]), "hints_used": replay.detail["number"],
                     "exhausted": replay.detail["number"] >= 3,
                     "presentation": hint_presentation(q, replay.detail["number"])}
     if unit.status not in ("active", "paused"):
