@@ -2844,7 +2844,27 @@ class _HomeworkDetailScreenState extends State<_HomeworkDetailBody>
               (turn['homework'] as Map?)?['action'] == helpKind,
         )
         .toList();
+    final helpTypes = allRelevant
+        .map((turn) => (turn['homework'] as Map?)?['action'])
+        .whereType<String>()
+        .where(
+          (kind) => const {
+            'explain',
+            'hint',
+            'plan',
+            'example',
+            'check',
+            'question',
+          }.contains(kind),
+        )
+        .toSet();
+    final showHelpFilters =
+        !taskFocusMode &&
+        (helpKind != 'all' ||
+            (allRelevant.isNotEmpty &&
+                (!widget.state.isChild || helpTypes.length > 1)));
     final displayedTasks = tasks;
+    final displayedGeneration = generation;
     final displayedTaskId = selectedId;
     final displayedAnalysisId = analysis?['id'];
     final displayedSourceRevision = photo?['revision'];
@@ -3103,8 +3123,12 @@ class _HomeworkDetailScreenState extends State<_HomeworkDetailBody>
                     ),
                   ),
               ],
-              if (allRelevant.isNotEmpty && !taskFocusMode) ...[
-                const Text('Geladene Lernhilfen nach Anfrageart'),
+              if (showHelpFilters) ...[
+                Text(
+                  widget.state.isChild
+                      ? 'Deine Hilfen'
+                      : 'Geladene Lernhilfen nach Anfrageart',
+                ),
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
@@ -3127,8 +3151,20 @@ class _HomeworkDetailScreenState extends State<_HomeworkDetailBody>
                         FilterChip(
                           label: Text(kind.value),
                           selected: helpKind == kind.key,
-                          onSelected: (_) =>
-                              setState(() => helpKind = kind.key),
+                          onSelected: (_) {
+                            if (!mounted ||
+                                !own ||
+                                !foreground ||
+                                !routeVisible ||
+                                generation != displayedGeneration ||
+                                selectedId != displayedTaskId ||
+                                analysis?['id'] != displayedAnalysisId ||
+                                photo?['revision'] != displayedSourceRevision ||
+                                ModalRoute.of(context)?.isCurrent == false) {
+                              return;
+                            }
+                            setState(() => helpKind = kind.key);
+                          },
                         ),
                   ],
                 ),
