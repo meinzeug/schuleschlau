@@ -602,7 +602,7 @@ void main() {
       expect(find.text('Ergebnis ansehen'), findsOneWidget);
       expect(find.text('Weiterlernen'), findsNothing);
       expect(find.text('Startseite'), findsNothing);
-      expect(find.text('Heute 12:00 / 20:00'), findsOneWidget);
+      expect(find.text('Heute 12:00 / 20:00 Min.'), findsOneWidget);
       await tapText(tester, 'Ergebnis ansehen');
       expect(server.acknowledgements, 1);
       expect(server.answers, 1);

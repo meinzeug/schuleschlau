@@ -639,6 +639,11 @@ Der unabhängige Watchdog aus Commit `96c43ca` ist lokal installiert. Er meldet 
   ausgeblendet. 57 künstliche Flutterfälle und der gezielte Chrome-Webrunnerfall
   bestanden. Ein tatsächlicher Screenreadertest steht weiter aus.
 
+- Die Lernrundenuhr nennt ihre Einheit und liest Zeitangaben für Hilfstechniken
+  in Minuten und Sekunden. Ohne Mindestziel wird keines erfunden; der Server
+  bestätigt Zielerfüllung weiterhin separat. 82 künstliche Fälle und zwei
+  gezielte Chrome-Fälle bestanden; kein echter Screenreader wurde geprüft.
+
 ## Nützliche Prüfungen
 
 - CI: `gh run list --limit 5` und `gh run view <ID>`; ein laufender oder abgebrochener Workflow ist kein grüner Gesamtnachweis.

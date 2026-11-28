@@ -1719,6 +1719,17 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
     return '${safe ~/ 60}:${(safe % 60).toString().padLeft(2, '0')}';
   }
 
+  String clockSpeech(int seconds) {
+    final safe = seconds.clamp(0, 1099511627776);
+    final minutes = safe ~/ 60;
+    final remainder = safe % 60;
+    final minuteText = '$minutes ${minutes == 1 ? 'Minute' : 'Minuten'}';
+    final secondText = '$remainder ${remainder == 1 ? 'Sekunde' : 'Sekunden'}';
+    if (minutes == 0) return secondText;
+    if (remainder == 0) return minuteText;
+    return '$minuteText $secondText';
+  }
+
   Widget learningClock(Json u) {
     final measured = measuredTime(u);
     final unitSeconds = (u['active_seconds_approx'] as num? ?? 0).toInt();
@@ -1753,10 +1764,15 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
             Expanded(
               child: Text(
                 measured == null
-                    ? 'Diese Einheit ${clockText(currentUnit)}'
+                    ? 'Diese Einheit ${clockText(currentUnit)} Min.'
                     : required
-                    ? 'Heute ${clockText(shown)} / ${clockText(goal)}'
-                    : 'Heute ${clockText(shown)}',
+                    ? 'Heute ${clockText(shown)} / ${clockText(goal)} Min.'
+                    : 'Heute ${clockText(shown)} Min.',
+                semanticsLabel: measured == null
+                    ? 'Diese Einheit ${clockSpeech(currentUnit)}'
+                    : required
+                    ? 'Heute ${clockSpeech(shown)} von ${clockSpeech(goal)} Mindestziel'
+                    : 'Heute ${clockSpeech(shown)}',
                 key: ValueKey(
                   measured == null
                       ? 'learning-unit-clock'
@@ -1792,7 +1808,8 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
         if (clockDetails) ...[
           if (measured != null)
             Text(
-              'Diese Einheit ${clockText(currentUnit)}',
+              'Diese Einheit ${clockText(currentUnit)} Min.',
+              semanticsLabel: 'Diese Einheit ${clockSpeech(currentUnit)}',
               key: ValueKey('learning-unit-clock'),
               style: TextStyle(fontSize: 12, color: context.palette.muted),
             ),

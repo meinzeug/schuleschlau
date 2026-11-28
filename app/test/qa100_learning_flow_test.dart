@@ -594,7 +594,7 @@ void main() {
       await room.openRound(t, s);
       await select(t, 'Katze');
       await select(t, 'Antwort prüfen');
-      expect(find.text('Heute 12:00 / 20:00'), findsOneWidget);
+      expect(find.text('Heute 12:00 / 20:00 Min.'), findsOneWidget);
       expect(find.text('Ergebnis ansehen'), findsOneWidget);
       expect(find.text('Runde geschafft!'), findsNothing);
       await select(t, 'Ergebnis ansehen');

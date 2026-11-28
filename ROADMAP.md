@@ -1215,6 +1215,15 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – Alle Kinderansichten sprachlich und in ihrer Bedienung entrümpeln**
 
+  - [x] **Lernzeit in der Runde verständlich benennen.** Die kompakte Uhr
+    nennt ihre Einheit „Min.“; die Sprachausgabe liest Minuten und Sekunden
+    sowie ein tatsächlich vorhandenes Mindestziel aus. Ohne Ziel wird keines
+    ergänzt. Der gespeicherte Serverstand entscheidet unverändert über die
+    Zielerfüllung. 82 künstliche Lernzeit- und Lernrundentests bestanden,
+    darunter die Zielerfüllung nach Serversynchronisierung; die beiden neuen
+    Sprachfälle bestanden auch im Chrome-Webrunner. Ein tatsächlicher
+    Screenreadertest und die umfassende Kinderabnahme bleiben offen.
+
   - [x] **Lernwegfortschritt ohne doppelte Zahl ausgeben.** Der sichtbare
     Fortschrittsbalken bleibt erhalten; Hilfstechnologien erhalten die bereits
     vorhandene klare Angabe „x von y Aufgaben bearbeitet“ statt zusätzlich

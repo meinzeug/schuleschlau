@@ -181,6 +181,38 @@ String unitClock(WidgetTester tester) => tester
     .data!;
 
 void main() {
+  testWidgets('Lernzeit nennt Einheit und Mindestziel auch für Sprachausgabe', (
+    tester,
+  ) async {
+    final semantics = tester.ensureSemantics();
+    try {
+      final h = await openUnit(tester, (_) async => reply(timedUnit(seconds: 61)));
+      final clock = find.byKey(const ValueKey('learning-day-clock'));
+      expect(find.text('Heute 1:01 / 20:00 Min.'), findsOneWidget);
+      expect(
+        tester.getSemantics(clock).label,
+        'Heute 1 Minute 1 Sekunde von 20 Minuten Mindestziel',
+      );
+      expect(tester.takeException(), isNull);
+      await h.close();
+    } finally {
+      semantics.dispose();
+    }
+  });
+
+  testWidgets('Lernzeit ohne Mindestziel erfindet kein Ziel', (tester) async {
+    final semantics = tester.ensureSemantics();
+    try {
+      final h = await openUnit(tester, (_) async => reply(timedUnit(seconds: 61, required: false)));
+      final clock = find.byKey(const ValueKey('learning-day-clock'));
+      expect(find.text('Heute 1:01 Min.'), findsOneWidget);
+      expect(tester.getSemantics(clock).label, 'Heute 1 Minute 1 Sekunde');
+      expect(tester.takeException(), isNull);
+      await h.close();
+    } finally {
+      semantics.dispose();
+    }
+  });
   testWidgets('Time displays never enter the inline fraction renderer', (
     tester,
   ) async {
@@ -192,7 +224,7 @@ void main() {
     final clock = tester.widget<Text>(
       find.byKey(const ValueKey('learning-day-clock')),
     );
-    expect(clock.data, 'Heute 6:25 / 20:00');
+    expect(clock.data, 'Heute 6:25 / 20:00 Min.');
     expect(find.text('Noch 13:35 Min.'), findsOneWidget);
     expect(tester.takeException(), isNull);
     await h.close();
@@ -206,13 +238,13 @@ void main() {
       });
       await tester.tap(find.byKey(const ValueKey('learning-time-details')));
       await tester.pumpAndSettle();
-      expect(find.text('Heute 0:00 / 20:00'), findsOneWidget);
+      expect(find.text('Heute 0:00 / 20:00 Min.'), findsOneWidget);
       expect(
         find.text('Tagesziel noch offen · Noch 20:00 Min.'),
         findsOneWidget,
       );
-      expect(find.text('Diese Einheit 2:00'), findsOneWidget);
-      expect(find.text('Heute 0:00 / 0:00'), findsNothing);
+      expect(find.text('Diese Einheit 2:00 Min.'), findsOneWidget);
+      expect(find.text('Heute 0:00 / 0:00 Min.'), findsNothing);
       expect(find.text('Tagesminimum geschafft'), findsNothing);
       await h.close();
     },
@@ -256,7 +288,7 @@ void main() {
       await tap(tester, 'Antwort prüfen');
       expect(operations, ['baseline', 'activity', 'answer']);
       expect(find.text('Richtig!'), findsOneWidget);
-      expect(find.text('Heute 12:03 / 20:00'), findsOneWidget);
+      expect(find.text('Heute 12:03 / 20:00 Min.'), findsOneWidget);
       expect(
         find.text('Tagesziel noch offen · Noch 7:57 Min.'),
         findsOneWidget,
@@ -281,8 +313,8 @@ void main() {
       });
       await tester.tap(find.byKey(const ValueKey('learning-time-details')));
       await tester.pumpAndSettle();
-      expect(find.text('Heute 12:00 / 20:00'), findsOneWidget);
-      expect(find.text('Diese Einheit 2:00'), findsOneWidget);
+      expect(find.text('Heute 12:00 / 20:00 Min.'), findsOneWidget);
+      expect(find.text('Diese Einheit 2:00 Min.'), findsOneWidget);
       expect(
         find.text('Tagesziel noch offen · Noch 8:00 Min.'),
         findsOneWidget,
@@ -313,16 +345,16 @@ void main() {
       });
       await tester.tap(find.byKey(const ValueKey('learning-time-details')));
       await tester.pumpAndSettle();
-      expect(find.text('Heute 12:03 / 20:00'), findsOneWidget);
+      expect(find.text('Heute 12:03 / 20:00 Min.'), findsOneWidget);
       await h.clock.advance(tester, const Duration(seconds: 3));
-      expect(find.text('Heute 12:06 / 20:00'), findsOneWidget);
-      expect(unitClock(tester), 'Diese Einheit 2:03');
+      expect(find.text('Heute 12:06 / 20:00 Min.'), findsOneWidget);
+      expect(unitClock(tester), 'Diese Einheit 2:03 Min.');
       expect(find.text('Noch ca. 7:54 Min.'), findsOneWidget);
       expect(beats, 1);
       background(tester);
       await h.clock.advance(tester, const Duration(seconds: 10));
-      expect(unitClock(tester), 'Diese Einheit 2:03');
-      expect(find.text('Heute 12:06 / 20:00'), findsOneWidget);
+      expect(unitClock(tester), 'Diese Einheit 2:03 Min.');
+      expect(find.text('Heute 12:06 / 20:00 Min.'), findsOneWidget);
       expect(beats, 1);
       expect(tester.takeException(), isNull);
       await h.close();
@@ -348,7 +380,7 @@ void main() {
         return reply(timedUnit(seconds: 1199));
       });
       await h.clock.advance(tester, const Duration(seconds: 1));
-      expect(find.text('Heute 20:00 / 20:00'), findsOneWidget);
+      expect(find.text('Heute 20:00 / 20:00 Min.'), findsOneWidget);
       expect(find.text('Tagesminimum geschafft'), findsNothing);
       expect(find.text('Zeit wird noch gespeichert …'), findsOneWidget);
       await tester.tap(find.byKey(const ValueKey('learning-time-details')));
@@ -359,7 +391,7 @@ void main() {
       expect(pendingProgress.value, lessThan(1));
       expect(beats, 1);
       await h.clock.advance(tester, const Duration(seconds: 19));
-      expect(find.text('Heute 20:19 / 20:00'), findsOneWidget);
+      expect(find.text('Heute 20:19 / 20:00 Min.'), findsOneWidget);
       expect(find.text('Tagesminimum geschafft'), findsOneWidget);
       expect(beats, 2);
       await h.close();
@@ -403,7 +435,7 @@ void main() {
       (request) async =>
           reply(timedUnit(status: 'completed', seconds: 720, required: false)),
     );
-    expect(find.text('Heute 12:00'), findsOneWidget);
+    expect(find.text('Heute 12:00 Min.'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('learning-time-details')));
     await tester.pump();
     expect(find.text('Heute ist kein Mindestziel eingeplant.'), findsOneWidget);
@@ -432,7 +464,7 @@ void main() {
       {'baseline': true},
       {'baseline': false},
     ]);
-    expect(find.text('Diese Einheit 51:00'), findsOneWidget);
+    expect(find.text('Diese Einheit 51:00 Min.'), findsOneWidget);
     expect(find.text('Was bedeutet cat?'), findsOneWidget);
     expect(find.text('Zeit für eine kurze Pause?'), findsNothing);
     await tap(tester, 'Katze');
@@ -573,7 +605,7 @@ void main() {
         {'baseline': true},
         {'baseline': false},
       ]);
-      expect(find.text('Diese Einheit 50:00'), findsOneWidget);
+      expect(find.text('Diese Einheit 50:00 Min.'), findsOneWidget);
       await h.close();
     },
   );
