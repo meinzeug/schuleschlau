@@ -21,6 +21,8 @@ class SubjectBadge extends StatelessWidget {
     'latein' => (const Color(0xFF008FE5), Icons.translate_rounded),
     'informatik' => (const Color(0xFF657CEB), Icons.code_rounded),
     'wirtschaft' => (const Color(0xFF159E9C), Icons.bar_chart_rounded),
+    'hauswirtschaft' => (const Color(0xFFB55D3A), Icons.restaurant_rounded),
+    'astronomie' => (const Color(0xFF485FC7), Icons.stars_rounded),
     'gemeinschaftskunde' ||
     'geschichte' => (const Color(0xFF18A75F), Icons.account_balance_outlined),
     'biologie' ||

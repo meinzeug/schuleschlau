@@ -25,6 +25,8 @@ const notebookCoverKeys = {
   'technik',
   'wirtschaft',
   'gemeinschaftskunde',
+  'hauswirtschaft',
+  'astronomie',
 };
 
 /// The server's public cover key is never interpolated as an arbitrary path.

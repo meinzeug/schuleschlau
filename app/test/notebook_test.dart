@@ -285,41 +285,62 @@ Future<void> refreshNotebook(WidgetTester tester, {bool settle = true}) async {
 }
 
 void main() {
-  for (final subject in ['Hauswirtschaft', 'Astronomie']) {
-    testWidgets('$subject öffnet sein eigenes Fachheft mobil', (tester) async {
-      const subjectId = '33333333333333333333333333333333';
-      final (_, _, requests) = await open(
-        tester,
-        shelf: true,
-        respond: (request) async {
-          if (request.url.path.endsWith('/subjects')) {
-            final value = subjects();
-            (value['items'] as List).add({
-              'id': subjectId,
-              'title': subject,
-              'cover_key': 'other',
-              'page_count': 1,
-              'review_count': 0,
-              'selected': false,
-            });
-            return jsonReply(value);
-          }
-          return jsonReply(pages(request, photos: false));
+  for (final entry in {
+    'Hauswirtschaft': 'hauswirtschaft',
+    'Astronomie': 'astronomie',
+  }.entries) {
+    final subject = entry.key;
+    for (final (width, textScale) in [(390.0, 1.0), (320.0, 2.0)]) {
+      testWidgets(
+        '$subject öffnet sein eigenes Fachheft mobil $width $textScale',
+        (tester) async {
+          const subjectId = '33333333333333333333333333333333';
+          final (_, _, requests) = await open(
+            tester,
+            shelf: true,
+            width: width,
+            textScale: textScale,
+            respond: (request) async {
+              if (request.url.path.endsWith('/subjects')) {
+                final value = subjects();
+                (value['items'] as List).add({
+                  'id': subjectId,
+                  'title': subject,
+                  'cover_key': entry.value,
+                  'page_count': 1,
+                  'review_count': 0,
+                  'selected': false,
+                });
+                return jsonReply(value);
+              }
+              return jsonReply(pages(request, photos: false));
+            },
+          );
+          expect(find.text(subject), findsOneWidget);
+          await page_tools.openPageTools(tester, 'notebook-shelf-tools');
+          await tap(tester, find.byTooltip('Kacheln'));
+          expect(
+            find.byWidgetPredicate(
+              (widget) =>
+                  widget is NotebookCover && widget.coverKey == entry.value,
+            ),
+            findsOneWidget,
+          );
+          await page_tools.closePageTools(tester, 'notebook-shelf-tools');
+          await tap(tester, find.text(subject));
+          expect(requests.every((request) => request.method == 'GET'), isTrue);
+          expect(
+            requests
+                .where((request) => request.url.path.endsWith('/materials'))
+                .last
+                .url
+                .queryParameters['subject_id'],
+            subjectId,
+          );
+          expect(tester.takeException(), isNull);
         },
       );
-      expect(find.text(subject), findsOneWidget);
-      await tap(tester, find.text(subject));
-      expect(requests.every((request) => request.method == 'GET'), isTrue);
-      expect(
-        requests
-            .where((request) => request.url.path.endsWith('/materials'))
-            .last
-            .url
-            .queryParameters['subject_id'],
-        subjectId,
-      );
-      expect(tester.takeException(), isNull);
-    });
+    }
   }
 
   test(
@@ -327,7 +348,27 @@ void main() {
     () {
       expect(notebookCoverPath('../private'), 'assets/folders/mein-heft.webp');
       expect(notebookCoverPath('mathematik'), 'assets/folders/mathematik.webp');
-      expect(notebookCoverKeys.length, 24);
+      expect(
+        notebookCoverPath('hauswirtschaft'),
+        'assets/folders/hauswirtschaft.webp',
+      );
+      expect(notebookCoverPath('astronomie'), 'assets/folders/astronomie.webp');
+      expect(
+        SubjectBadge.identity('hauswirtschaft'),
+        isNot(SubjectBadge.identity('other')),
+      );
+      expect(
+        SubjectBadge.identity('astronomie'),
+        isNot(SubjectBadge.identity('other')),
+      );
+      for (final key in ['hauswirtschaft', 'astronomie']) {
+        final color = SubjectBadge.identity(key).$1;
+        expect(
+          1.05 / (color.computeLuminance() + .05),
+          greaterThanOrEqualTo(3),
+        );
+      }
+      expect(notebookCoverKeys.length, 26);
     },
   );
 

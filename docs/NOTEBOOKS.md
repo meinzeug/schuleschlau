@@ -2,14 +2,20 @@
 
 ## Ablauf und Architektur
 
-„Hefte“ öffnet den festen Fachstamm mit echten Bildassets für24 Fächer. Die
+„Hefte“ öffnet den festen Fachstamm mit Bildassets für 26 Fächer. Die
 fotorealistischen Pappschnellhefter wurden mit dem eingebauten Bildwerkzeug
 erzeugt; schwarze handschriftliche Fachnamen, je Fach ein eigenes Motiv.
 Dateien: `app/assets/folders/*.webp`, vollständige Prompts/Herkunft in
 `docs/NOTEBOOK_ASSETS.json`. Zusätzlich „Mein Heft“ als neutrales Bild für
 eigene private Fächer und noch unzugeordnete Seiten. Keine privaten Fachnamen
-oder Kinderbilder an das Bildwerkzeug.25 WebP-Dateien zusammen784.908Bytes,
-640×640, Original-PNGs außerhalb von Git in artifacts/folder-covers erhalten.
+oder Kinderbilder an das Bildwerkzeug. Die beiden neuen Cover für
+Hauswirtschaft und Astronomie wurden am 28.11.2026 mit dem eingebauten
+Bildwerkzeug anhand des vorhandenen Biologiecovers als Stilreferenz erzeugt;
+die Prompts stehen mit den übrigen Herkunftsangaben in der JSON-Datei. Alle
+27 WebP-Dateien zusammen umfassen 838.930 Bytes bei 640×640 Pixeln. Die
+Original-PNGs der neuen Bilder liegen außerhalb von Git im lokalen
+Bildgenerierungsverzeichnis; die früheren Originale liegen in
+`artifacts/folder-covers`.
 
 Ein Fachhefter ist die Ansicht der eigenen Materialseiten eines stabilen
 Fachs, keine zweite Inhaltskopie oder neue Lernplattform. Suche, „Meine

@@ -127,6 +127,20 @@
       "id": "wirtschaft",
       "file": "app/assets/folders/wirtschaft.webp",
       "prompt": "Use case: product-mockup. ONE real closed German A4 Pappschnellhefter from a cohesive school folder set, ochre gold matte cardboard with natural fine paper fibres, narrow folded left spine and gently worn corners. A large cream paper label upper front contains ONLY the exact subject \"Wirtschaft\", neatly handwritten in BLACK PEN, readable at small thumbnail size. Full portrait A4 folder centered and fully visible on square warm-white studio background, near top-down front view, slight 2 degree rotation, natural soft shadow, 84 percent image height. Premium realistic cardboard product photography. No currency symbols, names, people, branding, watermarks, extra objects or additional text. Not a book, ring binder or plastic sleeve."
+    },
+    {
+      "id": "hauswirtschaft",
+      "file": "app/assets/folders/hauswirtschaft.webp",
+      "generated_on": "2026-11-28",
+      "style_reference": "app/assets/folders/biologie.webp",
+      "prompt": "Generate a new notebook cover for an educational app. Use the supplied image only as a style reference: same photorealistic square front view, solid-color paper cover, cream name label, thin spine at left, white background and soft shadows. Create an original light terracotta notebook with a single cream label saying exactly 'Hauswirtschaft' in friendly legible handwritten dark text. No other text, logos, icons, people or extra objects. Keep entire notebook visible. This is a new image, do not alter the reference."
+    },
+    {
+      "id": "astronomie",
+      "file": "app/assets/folders/astronomie.webp",
+      "generated_on": "2026-11-28",
+      "style_reference": "app/assets/folders/biologie.webp",
+      "prompt": "Generate a new notebook cover for an educational app. Use the supplied image only as a style reference: same photorealistic square front view, solid-color paper cover, cream name label, thin spine at left, white background and soft shadows. Create an original deep midnight blue notebook with a single cream label saying exactly 'Astronomie' in friendly legible handwritten dark text. No other text, logos, icons, people or extra objects. Keep entire notebook visible. This is a new image, do not alter the reference."
     }
   ]
 }

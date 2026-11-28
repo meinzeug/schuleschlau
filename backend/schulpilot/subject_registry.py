@@ -22,6 +22,7 @@ from .db import Assignment, Child, ChildSubject, LearningUnit, Mastery, Material
 SEED = Path(__file__).with_name("reference") / "subjects-v1.json"
 ADDITIONAL_SEED_V2 = Path(__file__).with_name("reference") / "subjects-additions-v2.json"
 ADDITIONAL_SEED_V3 = Path(__file__).with_name("reference") / "subjects-additions-v3.json"
+PUBLIC_COVERS_V4 = {"hauswirtschaft": "hauswirtschaft", "astronomie": "astronomie"}
 PRIVATE_MODELS = (Material, Assignment, LearningUnit, SchoolGrade, Mastery)
 
 
@@ -150,7 +151,7 @@ def _seed_addition(connection, path, version, start):
                 raise ValueError("Eine öffentliche Fachbezeichnung ist bereits anders zugeordnet.")
         insert_ignore(connection, subjects, [{
             "id": subject_id, "key": row["key"], "title": row["title"],
-            "owner_family_id": None, "cover_key": "other", "active": True,
+            "owner_family_id": None, "cover_key": PUBLIC_COVERS_V4.get(row["key"], "other"), "active": True,
             "sort_order": start + index, "created": int(time.time()),
         }])
         insert_ignore(connection, aliases, [{
@@ -168,6 +169,15 @@ def seed_additional_v3(connection):
     """Add the immutable v3 subjects after the existing v1 and v2 entries."""
     start = len(json.loads(SEED.read_text())["subjects"]) + len(json.loads(ADDITIONAL_SEED_V2.read_text())["subjects"])
     _seed_addition(connection, ADDITIONAL_SEED_V3, 3, start)
+
+
+def seed_public_covers_v4(connection):
+    """Replace only the old generic cover on these two public subjects."""
+    subjects, _, _ = tables()
+    for key, cover in PUBLIC_COVERS_V4.items():
+        connection.execute(subjects.update().where(
+            subjects.c.key == key, subjects.c.owner_family_id.is_(None),
+            subjects.c.cover_key == "other").values(cover_key=cover))
 
 
 def create_private_connection(connection, label, family_id, *, legacy=False):

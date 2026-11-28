@@ -1,5 +1,17 @@
 # Übergabe an die nächste Coding-KI
 
+## Ergänzung 28. November 2026: Neue öffentliche Heftcover
+
+Hauswirtschaft und Astronomie haben eigene allgemein erzeugte Heftcover,
+freigegebene Asset-Schlüssel und Fachsymbole. Migration 0065 ergänzt bestehende
+öffentliche Standardfächer ausschließlich bei generischem Cover; individuelle
+und private Einträge bleiben erhalten. Die isolierten Datenbankprüfungen
+bestanden für SQLite (18 bestanden, vier übersprungen) und PostgreSQL (22
+bestanden); vier mobile Navigationsfälle bestanden jeweils auf Flutter-VM und
+Chrome. Prompt und Herkunft sind in `docs/NOTEBOOK_ASSETS.json` dokumentiert.
+Eine native Geräte- oder Screenreaderabnahme sowie ein Deployment erfolgten
+nicht.
+
 ## Arbeitsstand 27. November 2026: Quellen und Kontowechsel
 
 Interaktive Sachgrafiken melden den erweiterten Erkundungszustand und den

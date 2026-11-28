@@ -3758,6 +3758,18 @@ Bestandteil des bestehenden Buildvertrags.
   in den jeweiligen anderen Hauptpunkten offen.
   [Prüfung und Grenzen](docs/NOTEBOOK_BROWSING_ACCEPTANCE_2026_11_24.md).
 
+  - [x] **Eigene Heftcover für Hauswirtschaft und Astronomie ergänzen.**
+    Zwei allgemein gehaltene, eigens erzeugte Grafiken ergänzen das bestehende
+    Heftdesign. Die feste Auswahlliste und Fachsymbole unterstützen beide
+    Fächer. Migration 0065 ersetzt nur bei den beiden öffentlichen Fächern
+    das generische Cover; private Fächer und bereits anders gesetzte Cover
+    bleiben erhalten. 18 synthetische SQLite-Fälle bestanden, vier wurden
+    übersprungen; die zugehörigen 22 PostgreSQL-Fälle bestanden. Je vier
+    mobile Flutter-Fälle liefen auf VM und im Chrome-Webrunner bei 320 und
+    390 Pixeln und bis zu doppelter Schriftgröße. Eine native Geräte- oder
+    Screenreaderabnahme ist dies nicht. Herkunft und Prompts stehen in
+    [NOTEBOOK_ASSETS.json](docs/NOTEBOOK_ASSETS.json).
+
   - [x] **Kinder-Löschung auf unbestätigte freie Quellen begrenzen.**
     Die Kinderansicht und sämtliche Löschwege schützen bestätigte Seiten,
     verknüpfte Übungen und Elternaufträge sowie fortgeschrittene Tagesabgaben;
