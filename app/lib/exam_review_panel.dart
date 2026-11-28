@@ -941,7 +941,7 @@ class _ExamReviewPanelState extends State<ExamReviewPanel> {
   );
 
   List<Widget> pageButtons() => [
-    for (final page in examObjects(data?['pages']))
+    for (final (index, page) in examObjects(data?['pages']).indexed)
       Padding(
         padding: const EdgeInsets.only(bottom: 8),
         child: OutlinedButton.icon(
@@ -957,10 +957,12 @@ class _ExamReviewPanelState extends State<ExamReviewPanel> {
                 : Icons.fact_check_outlined,
           ),
           label: Text(
-            '${page['title'] ?? 'Seite ${examObjects(data?['pages']).indexOf(page) + 1}'} · ${page['confirmed'] == true
+            '${state.isChild ? 'Seite ${index + 1}' : page['title'] ?? 'Seite ${index + 1}'} · ${page['confirmed'] == true
                 ? 'Bestätigt · ansehen'
                 : page['status'] == 'uploaded'
                 ? 'Gespeichertes Foto ansehen'
+                : state.isChild
+                ? 'Eltern prüfen noch'
                 : 'Text prüfen & bestätigen'}',
           ),
         ),
@@ -1058,15 +1060,13 @@ class _ExamReviewPanelState extends State<ExamReviewPanel> {
                 )),
                 leading: const Icon(Icons.info_outline_rounded),
                 title: const Text('Einige Stellen sind unklar'),
-                subtitle: const Text(
-                  'Tippe hier und vergleiche sie mit dem Foto.',
-                ),
+                subtitle: const Text('Deine Eltern können dir helfen.'),
                 children: [
                   for (final uncertainty in uncertainties)
                     Notice(uncertainty, warning: true),
                 ],
               )
-            else
+            else if (!state.isChild)
               for (final uncertainty in (data!['uncertainties'] as List? ?? []))
                 Notice('$uncertainty'),
             if (data!['error'] is String) Notice(data!['error']),
@@ -1083,7 +1083,11 @@ class _ExamReviewPanelState extends State<ExamReviewPanel> {
                 photoActions(),
             if (photos.isNotEmpty) ...[
               const SizedBox(height: 12),
-              Text('${photos.length} Fotos ausgewählt · noch nicht abgegeben'),
+              Text(
+                photos.length == 1
+                    ? '1 Foto ausgewählt · noch nicht abgegeben'
+                    : '${photos.length} Fotos ausgewählt · noch nicht abgegeben',
+              ),
               for (var i = 0; i < photos.length; i++)
                 ListTile(
                   contentPadding: EdgeInsets.zero,
@@ -1139,7 +1143,14 @@ class _ExamReviewPanelState extends State<ExamReviewPanel> {
               )
             else
               ...pageButtons(),
-            if (!compactReview)
+            if (!compactReview &&
+                state.isChild &&
+                examObjects(data!['pages']).any(
+                  (page) =>
+                      page['status'] != 'uploaded' && page['confirmed'] != true,
+                ))
+              const Notice('Deine Eltern prüfen noch deine Fotos.'),
+            if (!compactReview && !state.isChild)
               for (final page in examObjects(data!['pages']))
                 for (final uncertainty
                     in (page['uncertainties'] as List? ?? []))

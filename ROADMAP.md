@@ -33,6 +33,15 @@ physischer Hardware. Historische Testangaben bleiben als solche erhalten.
   und tatsächlicher Prüfumfang sind verbindlich; keine erfundenen Quellen.
   [Abhängigkeiten und elf offene Arbeitsschritte](docs/MEDIAEXPLORER_PLAN_2026_11_28.md).
 
+- [x] **Klassenarbeitsfotos in der Kinderansicht verständlicher benennen.**
+  Bei ungeprüften Fotos erklärt die lokale Oberfläche kurz die Zuständigkeit
+  der Eltern; Rohunsicherheiten bleiben für Eltern sichtbar. Geschriebene
+  Arbeiten ohne Datum behaupten keinen offenen Termin. Zwei echte
+  OpenRouter-Fototests und die Grenzen der anschließenden Elternprüfung stehen
+  im [Testbericht](docs/EXAM_REAL_AI_2026_11_28.md). Die zuletzt ergänzten
+  UI-Korrekturen sind lokal getestet, aber noch nicht ausgerollt; vollständige
+  Nacharbeit und alle anderen Kinderansichten bleiben gesondert offen.
+
 ## Ziel und Umgang mit dieser Roadmap
 
 SchuleSchlau soll Kinder vor und nach der Schule altersgerecht beim Verstehen, Üben und Vorbereiten begleiten. Fotografierte Hefte, Arbeitsblätter, Arbeitshefte, Bücher und Klassenarbeiten sollen sicher verfügbar sein und zu nachvollziehbaren, fachlich passenden Lernangeboten führen. Eltern behalten Übersicht und Kontrolle, ohne jeden Lernschritt übernehmen zu müssen. Die App muss auch auf kleinen Smartphones ruhig, verständlich und zuverlässig bedienbar sein.

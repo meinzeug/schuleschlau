@@ -426,10 +426,7 @@ void main() {
       };
       await fixture.mount(tester, selected: 'exam', tab: 'review');
       expect(find.text('Einige Stellen sind unklar'), findsOneWidget);
-      expect(
-        find.text('Tippe hier und vergleiche sie mit dem Foto.'),
-        findsOneWidget,
-      );
+      expect(find.text('Deine Eltern können dir helfen.'), findsOneWidget);
       expect(find.text('Eine Zuordnung ist unklar.'), findsNothing);
       expect(
         find.text('Wie heißt ein Teil von zwei gleichen Teilen?'),

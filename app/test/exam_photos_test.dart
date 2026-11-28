@@ -283,6 +283,30 @@ void main() {
       );
     },
   );
+  testWidgets(
+    'child sees a short parent-review notice instead of OCR details',
+    (tester) async {
+      final fixture = PhotoFixture();
+      fixture.scanStatus = 'needs_review';
+      fixture.pages.add({
+        'id': 'saved-page',
+        'revision': 1,
+        'status': 'review',
+        'confirmed': false,
+        'title': 'Unterrichtsmaterial',
+        'uncertainties': ['Künstliche Markierung ist nicht sicher zuzuordnen.'],
+      });
+      await fixture.mount(tester);
+      expect(find.text('Seite 1 · Eltern prüfen noch'), findsOneWidget);
+      expect(
+        find.text('Deine Eltern prüfen noch deine Fotos.'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('Künstliche Markierung'), findsNothing);
+      expect(find.textContaining('Text prüfen & bestätigen'), findsNothing);
+      expect(fixture.writes, isEmpty);
+    },
+  );
   for (final changed in ['account', 'family', 'token']) {
     testWidgets(
       'saved photo submission callback cannot act after $changed switch',
