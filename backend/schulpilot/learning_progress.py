@@ -6,6 +6,7 @@ are included immediately, without backfilling or changing their assessments.
 """
 
 from typing import Literal
+import sys
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import and_, case, func, or_, select
@@ -30,17 +31,22 @@ def _latest_attempts(child_id, unit_ids=None):
     by_time = (*partition, Attempt.created)
     number = valid_attempt_number(Attempt.evaluation)
     invalid_number = and_(Attempt.evaluation["attempt_number"].as_string().is_not(None), number.is_(None))
+    # PostgreSQL orders NaN above finite doubles; bounded comparisons exclude
+    # both infinities and NaN. SQLite stores NaN as NULL and infinities compare
+    # outside the same bounds. Unknown dates are not replaced by fake times.
+    created = case((Attempt.created.between(-sys.float_info.max, sys.float_info.max), Attempt.created), else_=None)
     latest = (
         select(
             Attempt.unit_id,
             Attempt.question_id,
             Attempt.outcome,
             Attempt.assisted,
-            Attempt.created,
+            created.label("created"),
             func.coalesce(Attempt.evaluation["method"].as_string(), "").label("evaluation_method"),
             conservative_independence_uncertain(Attempt.evaluation).label("independence_uncertain"),
             func.count().over(partition_by=partition).label("attempts"),
             invalid_number.label("invalid_attempt_number"),
+            func.max(case((created.is_(None), 1), else_=0)).over(partition_by=partition).label("unknown_time"),
             func.count().over(partition_by=by_time).label("same_time_count"),
             func.sum(case((number.is_(None), 1), else_=0)).over(partition_by=by_time).label("same_time_unordered"),
             func.count().over(partition_by=(*by_time, number)).label("same_time_same_number"),
@@ -66,7 +72,9 @@ def read_task_ledger(db, child_id, unit_ids=None):
         return []
     rows = [dict(row) for row in db.execute(select(latest).where(latest.c.position == 1)).mappings()]
     for row in rows:
-        ambiguous = row["same_time_count"] > 1 and (row["same_time_unordered"] > 0 or row["same_time_same_number"] > 1)
+        ambiguous = row["unknown_time"] > 0 or (row["same_time_count"] > 1 and (row["same_time_unordered"] > 0 or row["same_time_same_number"] > 1))
+        if row["unknown_time"]:
+            row["created"] = None
         if ambiguous:
             row.update(outcome="uncertain", evaluation_method="", independence_uncertain=True)
         elif row["invalid_attempt_number"]:
@@ -78,8 +86,8 @@ def read_ledger(db, child_id, unit_ids=None, *, category: EvidenceCategory | Non
     latest = _latest_attempts(child_id, unit_ids)
     if latest is None:
         return []
-    ambiguous = and_(latest.c.same_time_count > 1,
-                     or_(latest.c.same_time_unordered > 0, latest.c.same_time_same_number > 1))
+    ambiguous = or_(latest.c.unknown_time > 0, and_(latest.c.same_time_count > 1,
+                     or_(latest.c.same_time_unordered > 0, latest.c.same_time_same_number > 1)))
     reflection = and_(~ambiguous, latest.c.evaluation_method == "open_learning_v1")
     correct = latest.c.outcome == "correct"
     # Possible exposure cannot erase a recorded earlier attempt. A later
@@ -101,7 +109,9 @@ def read_ledger(db, child_id, unit_ids=None, *, category: EvidenceCategory | Non
     if category is not None:
         conditions.append(categories[category])
     if since is not None:
-        conditions.append(latest.c.created >= since)
+        conditions.extend([latest.c.unknown_time == 0, latest.c.created >= since])
+    last_known = case((latest.c.unknown_time == 0, latest.c.created), else_=None)
+    unit_last = case((func.max(latest.c.unknown_time) > 0, None), else_=func.max(last_known))
     fields = [LearningUnit.id, LearningUnit.subject, LearningUnit.topic, LearningUnit.status,
               LearningUnit.completed, LearningUnit.active_seconds, LearningUnit.round_kind]
     rows = db.execute(
@@ -114,12 +124,12 @@ def read_ledger(db, child_id, unit_ids=None, *, category: EvidenceCategory | Non
             func.sum(case((needs_practice, 1), else_=0)).label("needs_practice_tasks"),
             func.sum(case((uncertain, 1), else_=0)).label("uncertain_tasks"),
             func.sum(case((reflection, 1), else_=0)).label("reflection_tasks"),
-            func.max(latest.c.created).label("last_activity"),
+            unit_last.label("last_activity"),
         )
         .join(latest, latest.c.unit_id == LearningUnit.id)
         .where(*conditions)
         .group_by(*fields)
-        .order_by(func.max(latest.c.created).desc(), LearningUnit.id.desc())
+        .order_by(unit_last.desc().nullslast(), LearningUnit.id.desc())
     ).mappings()
     result = [dict(row) for row in rows]
     # The child predicate protects even inconsistent historical activity rows.
@@ -140,7 +150,8 @@ def totals(rows):
         "ongoing_rounds": sum(row["status"] != "completed" for row in rows),
         "active_seconds_approx": sum(int(row.get("active_seconds") or 0) for row in rows),
         "hints_used": sum(row.get("hints_used", 0) for row in rows),
-        "last_activity": max((row["last_activity"] for row in rows), default=None),
+        "last_activity": (None if any(row["last_activity"] is None for row in rows)
+                          else max((row["last_activity"] for row in rows), default=None)),
     }
 
 
