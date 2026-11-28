@@ -4919,6 +4919,16 @@ Bestandteil des bestehenden Buildvertrags.
     Lernwerkzeugsammlung sowie Flutter Analyze bestanden. Bereits versandte
     Abrufe und der allgemeine Cookie-Wettlauf bleiben gesondert zu betrachten.
 
+  - [x] **Fachstufe während einer Anmeldung nicht öffnen.** Der Eltern-
+    Stufendialog sendet während eines Anmeldeversuchs keine Fach- oder
+    Stufenabfragen. Nach dessen Abbruch öffnet er sich nur durch einen neuen
+    bewussten Aufruf. Alte Auswahl-, Schließen- und Speicheraktionen können
+    keinen späteren Dialog beeinflussen oder Änderungen auslösen. Drei
+    gezielte künstliche Fälle bestanden nativ und im Chrome-Webrunner; 35
+    Fälle angrenzender Elternfunktionen und Flutter Analyze bestanden. Der
+    allgemeine Cookie-Wettlauf und bereits gesendete Schreibvorgänge bleiben
+    gesondert zu betrachten.
+
   - [ ] **Verspätete gemeinsame API-Antworten nach Kontowechsel absichern.**
 
     **Hefte- und Lernübersicht während Anmeldewechsel schützen:** Fachregal

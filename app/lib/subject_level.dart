@@ -15,6 +15,7 @@ Future<void> editSubjectLevel(
       account != null &&
       identical(account, state.user) &&
       family == state.familyId &&
+      !state.authenticationPending &&
       state.api.ownsRequest(authentication) &&
       state.isParent;
   if (!current()) return;
@@ -110,7 +111,11 @@ Future<void> editSubjectLevel(
                       ],
                       onChanged: busy || !canManage
                           ? null
-                          : (value) => rebuild(() => selected = value ?? ''),
+                          : (value) {
+                              if (current() && route?.isCurrent == true) {
+                                rebuild(() => selected = value ?? '');
+                              }
+                            },
                     ),
                     const SizedBox(height: 12),
                     Text(
@@ -188,7 +193,9 @@ Future<void> editSubjectLevel(
                   onPressed: busy
                       ? null
                       : () {
-                          if (ctx.mounted && route?.isCurrent == true) {
+                          if (ctx.mounted &&
+                              current() &&
+                              route?.isCurrent == true) {
                             Navigator.pop(ctx);
                           }
                         },
