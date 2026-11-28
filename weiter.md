@@ -8,6 +8,11 @@ Sicherung wurde verschlüsselt offsite übertragen und isoliert mit dem
 authentifizierten Löschjournal wiederhergestellt. Die historische
 Vollständigkeit dieses Journals ist damit nicht nachgewiesen.
 
+Version 1.38.170 (`91dd102`) ist ausgerollt. Der anschließende Browsertest
+zeigte, dass der gespeicherte Aufgabentext eine LaTeX-Formel enthält und der
+erste Fix deshalb nicht griff. Der Folgefix prüft auch dieses Format; sein
+Release und der erneute Browsernachweis sind noch erforderlich.
+
 Bei der Aufgabe `3/8 · 12` erläutert die neue Hinweisprojektion für eindeutig
 geprüfte gekürzte Auswahlaufgaben den Zwischenschritt und das Kürzen. Alte
 Hilfsereignisse und Antworten bleiben unverändert; Hilfen zählen weiterhin als
