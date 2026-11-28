@@ -2214,6 +2214,14 @@ Die folgenden Punkte beschreiben ausstehende, wiederholbare Betriebs- und Freiga
     Writer und vollständige Anlagenbindung bleiben damit ungeprüft.
     [Grenzen und Tests](docs/ERASURE_JOURNAL_AUDIT_2026_11_07.md).
 
+    **28.11.2026, lokal:** Ein weiterer synthetischer Gegenversuch prüft
+    fehlende Belege auf einer oder beiden Seiten. Fehlt ein Beleg in beiden,
+    sieht der Restvergleich sauber aus, während eine alte isolierte
+    Testdatenbank das gelöschte Objekt behält. Ein Monitortest verwirft
+    unbelegte Freigabe-/Fence-Behauptungen. Dies schließt die historische
+    Vollständigkeitslücke ausdrücklich nicht; Einzelheiten und Testgrenzen:
+    [Nachweisgrenzen](docs/ERASURE_PROOF_BOUNDARIES_2026_11_28.md).
+
   **07.11.2026, erneut geöffnet:** Ein nachfolgender isolierter Gegenversuch
   zeigte, dass ein authentisches, aber nicht nachweislich vollständiges altes
   Löschjournal beim Restore gelöschte Daten zurücklassen kann. Ein vor dem

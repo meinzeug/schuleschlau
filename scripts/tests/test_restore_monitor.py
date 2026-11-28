@@ -156,6 +156,15 @@ class RestoreMonitorTest(unittest.TestCase):
             with self.subTest(completeness=completeness):
                 self.assertEqual(self.status(), ("restore_journal_completeness_unverified", False))
 
+    def test_unverified_fence_and_ack_claims_cannot_clear_completeness_alarm(self):
+        report = valid_report()
+        # These are deliberately forged assertions, not proof of either host's
+        # writer fence, the journal anchor, or historical deletion coverage.
+        report.update(erasure_journal_completeness_verified=True, writer_fence_verified=True,
+                      offsite_acknowledged=True, restore_activation_authorized=True)
+        self.report.write_text(json.dumps(report))
+        self.assertEqual(self.status(), ("restore_journal_completeness_unverified", False))
+
     def test_missing_only_gets_grace_with_valid_recent_setup_marker(self):
         self.assertEqual(self.status(), ("restore_rehearsal_missing", False))
         for marker, expected in ((str(NOW), True), (str(NOW - monitor.RESTORE_MAX_AGE), True),

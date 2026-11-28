@@ -17,8 +17,9 @@ spec = importlib.util.spec_from_file_location("audit_erasure_journal", MODULE)
 audit_module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(audit_module)
 
-from schulpilot.db import ErasureRequest  # noqa: E402
-from schulpilot.erasure import VOCABULARY_SCOPES, signed, verify  # noqa: E402
+from schulpilot.db import Base, ErasureRequest, Family  # noqa: E402
+from schulpilot.erasure import VOCABULARY_SCOPES, reconcile, signed, verify  # noqa: E402
+from sqlalchemy.orm import Session  # noqa: E402
 
 SCOPES = ("assignment", "grade", "grade_import", "grade_slot", *VOCABULARY_SCOPES)
 
@@ -79,6 +80,54 @@ def test_recent_signed_record_missing_from_outbox_is_reported():
     result = audit_module.compare([record(item)], [], 50)
     assert result["journal_recent_missing_outbox"] == 1
     assert audit_module.compare([record(item)], [], 150)["journal_recent_missing_outbox"] == 0
+
+
+@pytest.mark.parametrize("missing", ["journal", "outbox", "both"])
+def test_lost_erasure_evidence_does_not_authorize_restore(tmp_path, monkeypatch, missing):
+    """A signed, matching subset does not prove deletions it never recorded."""
+    key = "synthetic-key"
+    retained = row(scope="family")
+    lost = SimpleNamespace(id="c" * 32, scope="family", target="d" * 32,
+                           created=100, published=True, details=None)
+    ledger_rows = [record(retained)] + ([] if missing in ("journal", "both") else [record(lost)])
+    outbox_rows = [retained] + ([] if missing in ("outbox", "both") else [lost])
+    audit_engine = create_engine("sqlite://")
+    ErasureRequest.__table__.create(audit_engine)
+    with audit_engine.begin() as con:
+        for item in outbox_rows:
+            con.execute(ErasureRequest.__table__.insert().values(
+                id=item.id, scope=item.scope, target=item.target, created=item.created, published=True))
+    (tmp_path / ".erasure-ledger.lock").touch()
+    ledger = tmp_path / "ledger"
+    ledger.write_text("".join(signed(value, key) + "\n" for value in ledger_rows))
+    monkeypatch.setattr(audit_module.time, "time", lambda: 101)
+    comparison = run_audit(ledger, key, audit_engine, sqlite=True)
+    assert comparison["outbox_recent_matched"] == 1
+    assert comparison["outbox_recent_missing"] == (1 if missing == "journal" else 0)
+    assert comparison["journal_recent_missing_outbox"] == (1 if missing == "outbox" else 0)
+    assert comparison["historical_completeness_verified"] is False
+    assert comparison["writer_fence_verified"] is False
+    assert comparison["restore_activation_authorized"] is False
+
+    # The deletion of this entirely synthetic family is known only to the
+    # test. In the "both" case even a zero-difference comparison cannot see it.
+    if missing == "both":
+        restore_engine = create_engine("sqlite://")
+        Base.metadata.create_all(restore_engine)
+        with Session(restore_engine) as db:
+            db.add(Family(id=lost.target, name="synthetic", synthetic=True))
+            db.commit()
+            authenticated = [verify(line, key) for line in ledger.read_text().splitlines()]
+            reconcile(db, authenticated)
+            db.commit()
+            assert db.get(Family, lost.target) is not None
+            # A genuinely present authenticated deletion removes it; this
+            # controlled counterfactual does not reconstruct real history.
+            reconcile(db, [verify(signed(record(lost), key), key)])
+            db.commit()
+            assert db.get(Family, lost.target) is None
+        restore_engine.dispose()
+    audit_engine.dispose()
 
 
 def test_real_sqlite_read_and_signature_verification(tmp_path, monkeypatch):
