@@ -100,6 +100,10 @@ def test_postgres_catalog_upgrade_keeps_private_sources_answers_and_stable_subje
             assert db.scalar(text("SELECT answer FROM attempts WHERE id='a'")) == "Synthetic answer"
             assert db.scalar(text("SELECT count(*) FROM subjects")) == 26
             assert db.scalar(text("SELECT count(*) FROM catalog_topics")) == 0
+            # The new public media foundation is additive and starts empty;
+            # it cannot silently import personal content or a fake review.
+            for table in ("media_resources", "media_curriculum_links", "media_editorial_reviews"):
+                assert db.scalar(text(f"SELECT count(*) FROM {table}")) == 0
             assert "gin" in db.scalar(
                 text(
                     "SELECT indexdef FROM pg_indexes WHERE schemaname=:schema AND indexname='ix_catalog_topic_search'"

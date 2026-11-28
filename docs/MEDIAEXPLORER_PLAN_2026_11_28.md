@@ -29,6 +29,49 @@
   sind keine Inhaltsanalyse; ohne belegte Analyse keine Videozusammenfassung.
 
 ## Priorisierte Aufgaben (offen)
+
+### Technischer Zwischenstand: gemeinsamer Evidenzkern
+
+Eine additive Migration ergänzt öffentliche Medienreferenzen, mehrere
+Lehrplanzuordnungen und versionierte redaktionelle Entscheidungen. Eine
+interne, rein lesende Auswahlfunktion gibt ausschließlich öffentlich
+zugeordnete, verfügbare und frische Medien nach einer menschlichen
+Inhaltsprüfung zurück. Sie verlangt ausdrücklich passende Region, Schulform,
+Stufenart, Stufe und Altersangabe. Lehrplan- und Medienrevisionen müssen
+übereinstimmen; eine spätere Sperre schlägt eine ältere Freigabe. Historische
+Quellen brauchen eine Einordnung, Propaganda und sensible Inhalte zusätzlich
+eine Gegenperspektive. Ein bloßer Metadatentreffer gilt nie als Inhaltsprüfung.
+
+Die Tabellen enthalten keine Kinder-, Familien-, Aufgaben- oder Lernstands-ID.
+Sie dürfen bis zur Implementierung eines kontrollierten Importpfads und der
+automatischen Lösch-/Aktualisierungsfrist nicht mit echten YouTube-API-Daten
+befüllt werden. Die Auswahlfunktion selbst stellt die Quelle nicht dar und
+bildet noch keine Autorisierungsgrenze für einen zukünftigen Endpunkt. Sie ist
+nicht mit Sofatutor verbunden und verändert dessen Leerlisten nicht. Es gibt
+noch keine Recherche, Admin-Bedienung, Videoanalyse, Bewertung oder
+Schüleroberfläche; eine erfolgreiche Inhaltsprüfung oder rechtliche
+Freigabe wird damit nicht behauptet. Unbekanntes Alter oder unbekannte
+Stufenart liefert weiterhin keine Empfehlung. Die erste Auswahl unterstützt
+nur ausdrücklich im öffentlichen Lehrplan belegte Schulklassen; Phasen,
+Sprachlernjahre, Vorschule und Hochschule bleiben offen. Eine redaktionelle
+Zuordnung darf den belegten Klassenbereich nicht erweitern. Gespeicherte
+Prüfungen belegen die Erklärung der Prüferin oder des Prüfers, nicht eine
+kryptographische Unveränderlichkeit des externen Videos.
+
+Die von der Netzschicht unabhängige YouTube-Metadatenprüfung kann in
+synthetischen Tests bereits Suchergebnisse und Videoantworten auf tatsächlich
+gelieferte Kennungen begrenzen. Sie verwirft nichtöffentliche, unverarbeitete,
+laufende, altersbeschränkte, regional gesperrte und fehlerhafte Einträge;
+Statistiken und Freitextbeschreibungen werden nicht übernommen. Sie erzeugt
+ausschließlich kanonische Links und markiert alle Ergebnisse als ungeprüft.
+Der mögliche Suchtext stammt nur aus einem öffentlichen, digestgeprüften
+Lehrplanthema und dessen öffentlichem Stammfach; private Kindertexte sind
+keine Eingabe. Die Implementierung führt **keinen** API-Aufruf aus und belegt
+damit weder aktuelle Verfügbarkeit noch die Freischaltung oder Kosten eines
+YouTube-Kontos. Vor einem produktiven Abruf fehlen insbesondere feste
+Schlüsselverwaltung, API-Quota, Fristenlöschung, Rechte- und
+Jugendschutzprüfung sowie die ausdrückliche Aktivierung.
+
 1. [ ] Bestehende Katalog- und Providerpfade, explizite Alters-/Stufenangaben,
    Lernstands- und Rollenrechte sowie bisherige Freigaben nachvollziehen;
    konkrete Schnittstellen und Datenmodelle dokumentieren.
