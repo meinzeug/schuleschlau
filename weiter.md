@@ -10,9 +10,10 @@ für bestätigte Schultag-Lernwege und neue einzelne Heftseiten sowie einen
 MediaExplorer-Grundbaustein mit redaktionellen Entscheidungen; er ist noch
 nicht ausgerollt. Ein echter End-to-End-KI-Test der neuen automatischen
 Vorbereitung und die Anpassung vorgefertigter Runden an späteren Lernstand
-bleiben offen. Bei Mehrseitenaufträgen und einem gleichzeitigen
-Sitzungsentzug wurden weitere Fehler reproduziert; die Korrektur wird derzeit
-vor einem neuen Live-Test geprüft. Einzelheiten und offene Abnahme:
+bleiben offen. Fehler bei Mehrseitenaufträgen und gleichzeitigem
+Sitzungsentzug wurden mit künstlichen SQLite- und PostgreSQL-Fällen
+nachgestellt und lokal korrigiert; die neue Fassung benötigt noch den
+Live-Test. Einzelheiten und offene Abnahme:
 `docs/AUTO_ROUND_PLAN_2026_11_28.md` und
 `docs/MEDIAEXPLORER_PLAN_2026_11_28.md`.
 
