@@ -1832,6 +1832,7 @@ class _VocabularyScreenState extends State<_VocabularyBody>
         (pendingImport == null || singleSaved != null);
     var showCollection = !widget.state.isChild || pendingImport != null;
     String? pairError;
+    String? wordError, meaningError;
     String? titleError;
     final result = await scopedDialog<Json>(
       builder: (ctx) => _DialogFields(
@@ -2007,18 +2008,31 @@ class _VocabularyScreenState extends State<_VocabularyBody>
                         maxLength: 200,
                         decoration: InputDecoration(
                           labelText: 'Wort',
-                          errorText: pairError,
+                          errorText: wordError ?? pairError,
+                          errorMaxLines: 3,
+                          counterText: wordError != null || pairError != null
+                              ? ''
+                              : null,
                         ),
-                        onChanged: (_) => update(() => pairError = null),
+                        onChanged: (_) => update(() {
+                          wordError = null;
+                          pairError = null;
+                        }),
                       ),
                       TextField(
                         key: const ValueKey('vocabulary-single-meaning'),
                         controller: meaning,
                         maxLength: 200,
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           labelText: 'Bedeutung',
+                          errorText: meaningError,
+                          errorMaxLines: 3,
+                          counterText: meaningError != null ? '' : null,
                         ),
-                        onChanged: (_) => update(() => pairError = null),
+                        onChanged: (_) => update(() {
+                          meaningError = null;
+                          pairError = null;
+                        }),
                       ),
                       TextButton.icon(
                         onPressed: () => update(() {
@@ -2027,6 +2041,7 @@ class _VocabularyScreenState extends State<_VocabularyBody>
                           }
                           simpleWord = false;
                           pairError = null;
+                          wordError = meaningError = null;
                         }),
                         icon: const Icon(Icons.list_alt_rounded),
                         label: const Text('Mehrere Wörter oder Text'),
@@ -2079,10 +2094,15 @@ class _VocabularyScreenState extends State<_VocabularyBody>
                     if (simpleWord) {
                       if (word.text.trim().isEmpty ||
                           meaning.text.trim().isEmpty) {
-                        update(
-                          () => pairError =
-                              'Gib ein Wort und seine Bedeutung ein.',
-                        );
+                        update(() {
+                          pairError = null;
+                          wordError = word.text.trim().isEmpty
+                              ? 'Wort fehlt.'
+                              : null;
+                          meaningError = meaning.text.trim().isEmpty
+                              ? 'Bedeutung fehlt.'
+                              : null;
+                        });
                         return;
                       }
                       pairs.add({

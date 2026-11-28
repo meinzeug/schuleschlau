@@ -1,5 +1,14 @@
 # Übergabe an die nächste Coding-KI
 
+## Ergänzung 28. November 2026: Wortschatz-Fehler auf kleinen Displays
+
+Die lokale 390-Pixel-Vorschau zeigte eine abgeschnittene Fehlermeldung bei
+leerem Wortpaar. Der Dialog benennt jetzt jedes fehlende Feld kurz; bei einem
+Fehler räumt sein Zeichenzähler Platz ein. Die Grenze bleibt unverändert.
+34 künstliche Flutterfälle bestanden, fünf davon auch im Chrome-Webrunner auf
+320 und 390 Pixeln bei einfacher und doppelter Schrift. Weitere Seiten und
+eine echte Screenreaderabnahme bleiben offen.
+
 ## Ergänzung 28. November 2026: technische Fehlerübersicht bei Anmeldung
 
 Die Betreiberansicht bindet Daten, Bestätigungen und Aktionen an den

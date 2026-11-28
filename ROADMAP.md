@@ -1287,6 +1287,15 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – Alle Kinderansichten sprachlich und in ihrer Bedienung entrümpeln**
 
+  - [x] **Fehlende Wortpaare direkt und lesbar kennzeichnen.** In der
+    mobilen lokalen Vorschau war der allgemeine Fehlertext abgeschnitten. Die
+    Eingabe zeigt nun kurze Hinweise am jeweils fehlenden Feld; während eines
+    Hinweises macht der Zeichenzähler Platz, die Begrenzung bleibt erhalten.
+    34 künstliche Wortschatz- und Anmeldefälle bestanden, fünf davon auch im
+    Chrome-Webrunner bei 320 und 390 Pixeln sowie einfacher und doppelter
+    Schrift. Eine vollständige Screenreaderabnahme und die übrigen Kinderseiten
+    bleiben offen.
+
   - [x] **Heftseiten im Schultag direkt erreichbar machen.** Ein Öffnen von
     „Meine Heftseiten“ zeigt die vorhandenen Seiten und Runden unmittelbar,
     statt eine weitere Liste vorauszusetzen. Bei bis zu drei Einträgen stehen

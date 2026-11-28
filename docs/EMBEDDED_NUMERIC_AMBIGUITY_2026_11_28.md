@@ -29,4 +29,8 @@ erfolgreiche Wiederholung lief außerhalb dieser Einschränkung im isolierten
 Testcluster.
 
 Weitere 24 künstliche Fälle zur Mehrdeutigkeit und zu eingebetteten
-Gleichungen bestanden auf isoliertem SQLite.
+Gleichungen bestanden auf isoliertem SQLite. Zwei ergänzende künstliche Fälle
+zu Tutorprojektion und Fingerabdruck bestanden ebenfalls auf einer frisch
+angelegten SQLite-Datenbank im temporären RAM-Dateisystem. Die vorherige
+Ausführung im regulären temporären Dateisystem blieb schon bei der
+Schemaerstellung stehen; sie ist kein fehlgeschlagener Tutorfunktionsnachweis.

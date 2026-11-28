@@ -48,13 +48,24 @@ void main() {
           }
           expect(find.text('Wörter speichern in'), findsNothing);
           await fixture.tap(tester, find.text('Wort prüfen'));
-          expect(
-            find.text('Gib ein Wort und seine Bedeutung ein.'),
-            findsOneWidget,
-          );
+          for (final error in ['Wort fehlt.', 'Bedeutung fehlt.']) {
+            expect(find.text(error), findsOneWidget);
+            final rendered = tester.renderObject<RenderParagraph>(
+              find.descendant(
+                of: find.text(error),
+                matching: find.byType(RichText),
+              ),
+            );
+            expect(rendered.didExceedMaxLines, isFalse);
+          }
           expect(calls.where((r) => r.method == 'POST'), isEmpty);
           await tester.enterText(word, 'cat');
+          await tester.pumpAndSettle();
+          expect(find.text('Wort fehlt.'), findsNothing);
+          expect(find.text('Bedeutung fehlt.'), findsOneWidget);
           await tester.enterText(meaning, 'Katze');
+          await tester.pumpAndSettle();
+          expect(find.text('Bedeutung fehlt.'), findsNothing);
           await fixture.tap(tester, find.text('Wort prüfen'));
           final sent = calls.where((r) => r.method == 'POST').toList();
           expect(sent, hasLength(1));
@@ -92,6 +103,21 @@ void main() {
       );
     }
   }
+  testWidgets('a missing word is identified separately from a filled meaning', (
+    tester,
+  ) async {
+    final calls = <http.Request>[];
+    await fixture.open(tester, calls, openTools: false, cards: false);
+    await fixture.tap(tester, find.byTooltip('Wörter hinzufügen'));
+    await tester.enterText(
+      find.byKey(const ValueKey('vocabulary-single-meaning')),
+      'Apfel',
+    );
+    await fixture.tap(tester, find.text('Wort prüfen'));
+    expect(find.text('Wort fehlt.'), findsOneWidget);
+    expect(find.text('Bedeutung fehlt.'), findsNothing);
+    expect(calls.where((r) => r.method == 'POST'), isEmpty);
+  });
   testWidgets(
     'switching to a list retains both partial entries without sending',
     (tester) async {
