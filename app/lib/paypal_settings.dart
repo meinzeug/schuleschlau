@@ -12,7 +12,9 @@ class PayPalSettings extends StatefulWidget {
 }
 
 class _PayPalSettingsState extends State<PayPalSettings> {
+  late final ownerState = widget.state;
   late final account = widget.state.user;
+  late final identity = widget.state.api.requestIdentity();
   final client = TextEditingController(),
       merchant = TextEditingController(),
       webhook = TextEditingController(),
@@ -29,13 +31,25 @@ class _PayPalSettingsState extends State<PayPalSettings> {
   String? error, notice;
   int generation = 0;
   bool get own =>
-      mounted && widget.state.isAdmin && identical(account, widget.state.user);
+      mounted &&
+      identical(ownerState, widget.state) &&
+      widget.state.isAdmin &&
+      identical(account, widget.state.user) &&
+      !widget.state.authenticationPending &&
+      widget.state.api.ownsRequest(identity);
   bool get busy => loading || saving;
 
   @override
   void initState() {
     super.initState();
     widget.state.addListener(changedAccount);
+    widget.state.authenticationChanges.addListener(changedAccount);
+  }
+
+  @override
+  void didUpdateWidget(covariant PayPalSettings oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.state, widget.state)) changedAccount();
   }
 
   void changedAccount() {
@@ -61,7 +75,8 @@ class _PayPalSettingsState extends State<PayPalSettings> {
   @override
   void dispose() {
     generation++;
-    widget.state.removeListener(changedAccount);
+    ownerState.removeListener(changedAccount);
+    ownerState.authenticationChanges.removeListener(changedAccount);
     for (final field in [
       client,
       merchant,

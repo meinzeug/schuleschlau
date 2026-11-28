@@ -4879,6 +4879,16 @@ Bestandteil des bestehenden Buildvertrags.
     gesendete Schreibvorgänge werden dadurch nicht rückgängig gemacht. Die
     übergreifende Kontowechsel- und Cookie-Abnahme bleibt offen.
 
+  - [x] **Zahlungseinstellungen beim Anmeldewechsel schützen.** Ein neuer
+    Anmeldeversuch blendet die alte administrative Konfiguration aus und
+    entfernt einen ungespeicherten Client-Secret-Entwurf aus den Feldern.
+    Frühere Lade- und Speicheraktionen können nach dem Wechsel keine neue
+    Aktion starten; verspätete Antworten stellen den Entwurf nicht wieder her.
+    Vier künstliche Fälle bestanden nativ und im Chrome-Webrunner, 18 Fälle
+    in der zugehörigen Testsammlung nativ; sieben plattformspezifische Fälle
+    wurden dort übersprungen. Flutter Analyze war fehlerfrei. Schon vom Server
+    angenommene Änderungen und der allgemeine Cookie-Wettlauf bleiben gesondert.
+
   - [ ] **Verspätete gemeinsame API-Antworten nach Kontowechsel absichern.**
 
     **Hefte- und Lernübersicht während Anmeldewechsel schützen:** Fachregal
