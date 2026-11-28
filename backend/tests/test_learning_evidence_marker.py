@@ -142,3 +142,23 @@ def test_invalid_or_legacy_markers_are_never_reported_as_matches(api, household)
             snapshot(db, "missing-child", "Mathematik")
         with pytest.raises(ValueError):
             snapshot(db, child["id"], " ")
+
+
+def test_foreign_source_changes_are_not_attributed_to_child(api, household):
+    parent, child = household
+    sibling = create_child(api, parent, username="marker-source-sibling")
+    with DB.begin() as db:
+        unit = add_unit(db, child["id"])
+        add_attempt(db, unit)
+        foreign = Material(child_id=sibling["id"], title="Nicht zugeordnet", content=CANARY,
+                           confirmed=True, status="confirmed", subject="Mathematik", topic="Künstlich")
+        db.add(foreign)
+        db.flush()
+        db.add(UnitSource(unit_id=unit.id, material_id=foreign.id, revision=foreign.revision))
+        db.flush()
+        initial = snapshot(db, child["id"], "Mathematik")
+        foreign.revision += 1
+        foreign.confirmed = False
+        foreign.content = "Anderer künstlicher Inhalt"
+        db.flush()
+        assert matches(initial, snapshot(db, child["id"], "Mathematik"))
