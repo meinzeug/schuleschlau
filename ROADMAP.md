@@ -1329,6 +1329,19 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – Alle Kinderansichten sprachlich und in ihrer Bedienung entrümpeln**
 
+  - [x] **Leere spätere Wörterseiten verständlich machen.** Eine nach
+    Änderungen leer gewordene Listenseite behauptet keinen insgesamt leeren
+    Wortschatz mehr und bietet direkt den Rückweg. Fünf künstliche Widgetfälle
+    prüfen 320 und 390 Pixel, große Schrift und veraltete Aktionen bei
+    Anmelde- und Kontowechsel. Die gesamte Wortschatzabnahme bleibt offen.
+
+  - [x] **Unnötige Hausaufgaben-Hilfefilter ausblenden.** Gibt es nur eine
+    Hilfeart, entfällt der Filter in der Kinderansicht. Bei mehreren Arten
+    oder einer aktiven Filterung bleibt er erreichbar und rücksetzbar. Die
+    isolierten Widgettests decken mobile Breiten, große Schrift und veraltete
+    Aktionen bei Anmeldewechsel ab; die vollständige Hausaufgabenabnahme
+    bleibt offen.
+
   - [x] **Datum einer geschriebenen Arbeit eindeutig benennen.** In der
     mobilen Vorschau war bei der Nacharbeit nur von einem „Termin“ die Rede.
     Das optionale Datum heißt nun „Geschrieben am“ und kann wieder entfernt
