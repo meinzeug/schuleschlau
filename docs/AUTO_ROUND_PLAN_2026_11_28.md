@@ -51,6 +51,14 @@ und ihre vollständige Browserprüfung stehen noch aus. Die bei automatischen
 Etappen beobachtete Lernstandsänderung ist noch nicht atomar vollständig
 abgesichert; siehe [Evidenzbeobachtung](AUTOMATIC_EVIDENCE_OBSERVATION.md).
 Deshalb bleibt der übergeordnete Punkt offen.
+
+Ein künstlicher End-to-End-Test deckt inzwischen Upload, zwei Erkennungen und
+eine vorbereitete Runde ab; ein zweiter prüft parallele Uploadwiederholungen
+mit demselben Schlüssel. Ein weiterer Test prüft die private In-App-Meldung
+mit der passenden Rundenroute, wiederholten Recovery-Läufen, Zugriffstrennung
+und Quellenänderung auf SQLite und PostgreSQL. Dabei findet kein Anbieter- oder
+Push-Aufruf statt; eine tatsächliche Firebase-Zustellung ist damit nicht
+nachgewiesen.
 1. Trigger ausschließlich an einer gespeicherten bestätigten Heft-/Lernweg-
    Revision, nicht bei GET, und ein dauerhaftes revisionsgebundenes Journal:
    Block- und Quell-IDs, Reihenfolge, Zustand, Ursprungssitzung und -familie,
