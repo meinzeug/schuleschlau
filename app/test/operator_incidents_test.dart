@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:schulpilot/operator_incidents_screen.dart';
+import 'package:schulpilot/ui.dart';
 
 import 'parent_saved_tools_ux90_test.dart' as saved;
 import 'parent_insights_test.dart' show response;
@@ -107,6 +108,117 @@ Future<void> openDetail(WidgetTester t) =>
     tap(t, find.text('Fehlerdetails ansehen'));
 
 void main() {
+  testWidgets('a new login closes an operator repair confirmation', (t) async {
+    final f = saved.Fixture();
+    await mount(t, f);
+    await openDetail(t);
+    await tap(t, find.text('Reparaturvorschlag anfordern'));
+    final old = t
+        .widget<FilledButton>(
+          find.widgetWithText(FilledButton, 'Patch vorschlagen lassen'),
+        )
+        .onPressed!;
+    final revision = f.state.beginAuthentication();
+    await t.pumpAndSettle();
+    expect(find.text('Reparaturvorschlag anfordern?'), findsNothing);
+    expect(find.text('Technischer Fehler: decision_closed'), findsNothing);
+    f.state.cancelAuthentication(revision);
+    await t.pumpAndSettle();
+    old();
+    await t.pumpAndSettle();
+    expect(f.requests.where((r) => r.method == 'POST'), isEmpty);
+    await tap(t, find.text('Ansicht wieder öffnen'));
+    expect(find.text('Technischer Fehler: decision_closed'), findsOneWidget);
+  });
+
+  testWidgets('operator repair retains its key after an interrupted login', (
+    t,
+  ) async {
+    final f = saved.Fixture();
+    var writes = 0;
+    f.respond = (r) async {
+      if (r.method == 'POST' && writes++ == 0) {
+        return http.Response(
+          '{"detail":"Unklare Antwort"}',
+          503,
+          headers: {'content-type': 'application/json'},
+        );
+      }
+      return regular(r);
+    };
+    await mount(t, f);
+    await openDetail(t);
+    await tap(t, find.text('Reparaturvorschlag anfordern'));
+    await tap(t, find.text('Patch vorschlagen lassen'));
+    final first = jsonDecode(f.requests.last.body)['request_key'];
+    final revision = f.state.beginAuthentication();
+    await t.pumpAndSettle();
+    f.state.cancelAuthentication(revision);
+    await t.pumpAndSettle();
+    await tap(t, find.text('Ansicht wieder öffnen'));
+    await tap(t, find.text('Reparaturvorschlag anfordern'));
+    await tap(t, find.text('Patch vorschlagen lassen'));
+    final posts = f.requests.where((r) => r.method == 'POST').toList();
+    expect(posts, hasLength(2));
+    expect(jsonDecode(posts.last.body)['request_key'], first);
+  });
+
+  testWidgets('token replacement hides the old operator details', (t) async {
+    final f = saved.Fixture();
+    await mount(t, f);
+    await openDetail(t);
+    f.state.api.token = 'replacement';
+    f.state.notifyListeners();
+    await t.pumpAndSettle();
+    expect(find.text('Technischer Fehler: decision_closed'), findsNothing);
+    expect(f.requests.where((r) => r.method == 'POST'), isEmpty);
+  });
+  testWidgets('an old repair action cannot request capabilities after resume', (
+    t,
+  ) async {
+    final f = saved.Fixture();
+    await mount(t, f);
+    await openDetail(t);
+    final old = t
+        .widget<ActionButton>(
+          find.widgetWithText(ActionButton, 'Reparaturvorschlag anfordern'),
+        )
+        .onPressed;
+    final revision = f.state.beginAuthentication();
+    await t.pumpAndSettle();
+    f.state.cancelAuthentication(revision);
+    await t.pumpAndSettle();
+    await tap(t, find.text('Ansicht wieder öffnen'));
+    final before = f.requests.length;
+    await old();
+    await t.pumpAndSettle();
+    expect(f.requests, hasLength(before));
+    expect(find.text('Reparaturvorschlag anfordern?'), findsNothing);
+  });
+  testWidgets('a late incident read cannot cross a login attempt', (t) async {
+    final f = saved.Fixture();
+    final pending = Completer<http.Response>();
+    var pendingDetail = true;
+    f.respond = (r) async =>
+        r.url.path.endsWith('/$identifier') && pendingDetail
+        ? pending.future
+        : regular(r);
+    await mount(t, f);
+    await t.ensureVisible(find.text('Fehlerdetails ansehen'));
+    await t.tap(find.text('Fehlerdetails ansehen'));
+    await t.pump();
+    final revision = f.state.beginAuthentication();
+    await t.pump();
+    pendingDetail = false;
+    pending.complete(response(detail()));
+    await t.pumpAndSettle();
+    f.state.cancelAuthentication(revision);
+    await t.pumpAndSettle();
+    expect(find.text('Technischer Fehler: decision_closed'), findsNothing);
+    await tap(t, find.text('Ansicht wieder öffnen'));
+    expect(find.text('Technischer Fehler: decision_closed'), findsOneWidget);
+    expect(f.requests.where((r) => r.method == 'POST'), isEmpty);
+  });
   testWidgets(
     'empty patch preserves real before checks without claiming after checks or offering download',
     (t) async {

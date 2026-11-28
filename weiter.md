@@ -1,5 +1,15 @@
 # Übergabe an die nächste Coding-KI
 
+## Ergänzung 28. November 2026: technische Fehlerübersicht bei Anmeldung
+
+Die Betreiberansicht bindet Daten, Bestätigungen und Aktionen an den
+Anmeldeversuch und Tokenstand. Alte Aktionen und Antworten werden nach einem
+abgebrochenen Wechsel nicht übernommen; eine bewusste Wiederaufnahme lädt
+den gespeicherten Stand. Der Schlüssel eines unklar beantworteten
+Reparaturauftrags bleibt erhalten. 27 künstliche Flutter-/Mobilfälle, zwei
+weitere gezielte Fälle und fünf Chrome-Fälle bestanden. Bereits gesendete
+Aufträge und der allgemeine Cookie-Wettlauf bleiben gesondert offen.
+
 ## Ergänzung 28. November 2026: Familienhilfe bei Anmeldung
 
 Die Auswahl zwischen Anruf und Nachricht und ihr Ersatzdialog sind an die

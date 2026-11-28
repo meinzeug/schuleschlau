@@ -19,14 +19,27 @@ class OperatorIncidentsScreen extends StatefulWidget {
 class _OperatorIncidentsScreenState extends State<OperatorIncidentsScreen> {
   final search = TextEditingController();
   late final Json? owner;
+  late final String? ownerToken, ownerFamily;
+  late (Object?, String?, int?) requestIdentity;
   Json? listing, detail, catalog;
   String kind = '', code = '', query = '';
   String? selected, error, notice, requestKey, requestedSnapshot;
   int generation = 0, detailGeneration = 0, page = 1;
   bool loading = false, reading = false, acting = false;
+  bool authenticationPaused = false;
   ModalRoute<bool>? confirmation;
+  bool get sameOwner =>
+      mounted &&
+      owner != null &&
+      identical(owner, widget.state.user) &&
+      widget.state.isAdmin &&
+      ownerToken == widget.state.api.token &&
+      ownerFamily == widget.state.familyId;
   bool get current =>
-      mounted && identical(owner, widget.state.user) && widget.state.isAdmin;
+      sameOwner &&
+      !widget.state.authenticationPending &&
+      !authenticationPaused &&
+      widget.state.api.ownsRequest(requestIdentity);
   bool get canAct =>
       current &&
       !acting &&
@@ -37,21 +50,83 @@ class _OperatorIncidentsScreenState extends State<OperatorIncidentsScreen> {
   void initState() {
     super.initState();
     owner = widget.state.user;
+    ownerToken = widget.state.api.token;
+    ownerFamily = widget.state.familyId;
+    requestIdentity = widget.state.api.requestIdentity();
+    authenticationPaused = widget.state.authenticationPending;
     widget.state.addListener(changed);
-    load();
+    widget.state.authenticationChanges.addListener(authenticationChanged);
+    if (current) load();
   }
 
   void changed() {
-    if (mounted && !current) {
+    if (mounted && !sameOwner) {
+      invalidate(identity: true);
+    }
+  }
+
+  void authenticationChanged() {
+    authenticationPaused = true;
+    invalidate();
+  }
+
+  void closeConfirmation() {
+    final route = confirmation;
+    confirmation = null;
+    if (route?.isActive == true) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (route!.isActive) route.navigator?.removeRoute(route);
+      });
+      WidgetsBinding.instance.ensureVisualUpdate();
+    }
+  }
+
+  void invalidate({bool identity = false}) {
+    if (mounted) {
       generation++;
       detailGeneration++;
-      final route = confirmation;
-      if (route?.isActive == true) route!.navigator?.removeRoute(route);
+      closeConfirmation();
       setState(() {
         listing = detail = catalog = null;
-        search.clear();
-        requestKey = requestedSnapshot = null;
+        loading = reading = acting = false;
+        error = notice = null;
+        if (identity) {
+          search.clear();
+          requestKey = requestedSnapshot = null;
+        }
       });
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant OperatorIncidentsScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.state, widget.state)) {
+      oldWidget.state.removeListener(changed);
+      oldWidget.state.authenticationChanges.removeListener(
+        authenticationChanged,
+      );
+      widget.state.addListener(changed);
+      widget.state.authenticationChanges.addListener(authenticationChanged);
+      invalidate(identity: true);
+    }
+  }
+
+  void resume(int viewGeneration) {
+    if (!sameOwner ||
+        widget.state.authenticationPending ||
+        viewGeneration != generation) {
+      return;
+    }
+    setState(() {
+      requestIdentity = widget.state.api.requestIdentity();
+      authenticationPaused = false;
+    });
+    final target = selected;
+    if (target == null) {
+      load();
+    } else {
+      open(target);
     }
   }
 
@@ -59,7 +134,9 @@ class _OperatorIncidentsScreenState extends State<OperatorIncidentsScreen> {
   void dispose() {
     generation++;
     detailGeneration++;
+    closeConfirmation();
     widget.state.removeListener(changed);
+    widget.state.authenticationChanges.removeListener(authenticationChanged);
     search.dispose();
     super.dispose();
   }
@@ -318,6 +395,13 @@ class _OperatorIncidentsScreenState extends State<OperatorIncidentsScreen> {
       'Stand unbekannt';
 
   Widget detailView() {
+    final viewGeneration = generation, viewDetailGeneration = detailGeneration;
+    final snapshot = detail;
+    bool validView() =>
+        current &&
+        generation == viewGeneration &&
+        detailGeneration == viewDetailGeneration &&
+        identical(snapshot, detail);
     final item = Json.from(detail!['incident'] as Map);
     final repairs = (detail!['repairs'] as List? ?? [])
         .whereType<Map>()
@@ -353,13 +437,17 @@ class _OperatorIncidentsScreenState extends State<OperatorIncidentsScreen> {
                 icon: Icons.refresh,
                 enabled: !acting && !reading,
                 secondary: true,
-                onPressed: () => open(selected!),
+                onPressed: () async {
+                  if (validView() && selected != null) await open(selected!);
+                },
               ),
               ActionButton(
                 label: 'Reparaturvorschlag anfordern',
                 icon: Icons.build_outlined,
                 enabled: !acting && !reading,
-                onPressed: repair,
+                onPressed: () async {
+                  if (validView()) await repair();
+                },
               ),
             ],
           ),
@@ -414,16 +502,24 @@ class _OperatorIncidentsScreenState extends State<OperatorIncidentsScreen> {
                     icon: Icons.download_outlined,
                     enabled: !acting,
                     secondary: true,
-                    onPressed: () => download(r),
+                    onPressed: () async {
+                      if (validView()) await download(r);
+                    },
                   ),
                   ActionButton(
                     label: 'Als geprüft freigeben',
                     enabled: !acting,
                     secondary: true,
-                    onPressed: () => review(r, 'approved'),
+                    onPressed: () async {
+                      if (validView()) await review(r, 'approved');
+                    },
                   ),
                   TextButton(
-                    onPressed: acting ? null : () => review(r, 'rejected'),
+                    onPressed: acting
+                        ? null
+                        : () {
+                            if (validView()) review(r, 'rejected');
+                          },
                     child: const Text('Vorschlag ablehnen'),
                   ),
                 ],
@@ -437,6 +533,29 @@ class _OperatorIncidentsScreenState extends State<OperatorIncidentsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final viewGeneration = generation, viewDetailGeneration = detailGeneration;
+    bool validView() =>
+        current &&
+        generation == viewGeneration &&
+        detailGeneration == viewDetailGeneration;
+    if (sameOwner &&
+        authenticationPaused &&
+        !widget.state.authenticationPending) {
+      return PageFrame(
+        state: widget.state,
+        title: 'Technische Fehler',
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Diese Ansicht ist pausiert.'),
+            TextButton(
+              onPressed: () => resume(viewGeneration),
+              child: const Text('Ansicht wieder öffnen'),
+            ),
+          ],
+        ),
+      );
+    }
     if (!current) return const SizedBox.shrink();
     if (selected != null) {
       return PageFrame(
@@ -449,6 +568,7 @@ class _OperatorIncidentsScreenState extends State<OperatorIncidentsScreen> {
               onPressed: acting
                   ? null
                   : () {
+                      if (!validView()) return;
                       detailGeneration++;
                       setState(() {
                         selected = null;
@@ -464,7 +584,11 @@ class _OperatorIncidentsScreenState extends State<OperatorIncidentsScreen> {
             if (error != null) ...[
               Semantics(liveRegion: true, child: Notice(error!, warning: true)),
               TextButton(
-                onPressed: reading || acting ? null : () => open(selected!),
+                onPressed: reading || acting
+                    ? null
+                    : () {
+                        if (validView() && selected != null) open(selected!);
+                      },
                 child: const Text('Fehlerdetails erneut laden'),
               ),
             ],
@@ -505,7 +629,7 @@ class _OperatorIncidentsScreenState extends State<OperatorIncidentsScreen> {
                         onPressed: loading || acting
                             ? null
                             : () {
-                                if (!current) return;
+                                if (!validView()) return;
                                 search.clear();
                                 query = kind = code = '';
                                 load(targetPage: 1);
@@ -525,7 +649,7 @@ class _OperatorIncidentsScreenState extends State<OperatorIncidentsScreen> {
                     widget.state.api.token,
                     selected,
                   ),
-                  isCurrent: () => current && selected == null,
+                  isCurrent: () => validView() && selected == null,
                   active:
                       query.isNotEmpty || kind.isNotEmpty || code.isNotEmpty,
                   summary: [
@@ -544,6 +668,7 @@ class _OperatorIncidentsScreenState extends State<OperatorIncidentsScreen> {
                         onSubmitted: loading || acting
                             ? null
                             : (_) {
+                                if (!validView()) return;
                                 query = search.text.trim();
                                 load(targetPage: 1);
                               },
@@ -576,6 +701,7 @@ class _OperatorIncidentsScreenState extends State<OperatorIncidentsScreen> {
                               onChanged: loading || acting
                                   ? null
                                   : (v) {
+                                      if (!validView()) return;
                                       kind = v ?? '';
                                       load(targetPage: 1);
                                     },
@@ -604,6 +730,7 @@ class _OperatorIncidentsScreenState extends State<OperatorIncidentsScreen> {
                               onChanged: loading || acting
                                   ? null
                                   : (v) {
+                                      if (!validView()) return;
                                       code = v ?? '';
                                       load(targetPage: 1);
                                     },
@@ -614,6 +741,7 @@ class _OperatorIncidentsScreenState extends State<OperatorIncidentsScreen> {
                             enabled: !loading && !acting,
                             icon: Icons.search,
                             onPressed: () async {
+                              if (!validView()) return;
                               query = search.text.trim();
                               await load(targetPage: 1);
                             },
@@ -638,7 +766,9 @@ class _OperatorIncidentsScreenState extends State<OperatorIncidentsScreen> {
                   ActionPanel(
                     actionLabel: 'Fehlerdetails ansehen',
                     enabled: !loading && !reading && !acting,
-                    onPressed: () => open(item['id']),
+                    onPressed: () {
+                      if (validView()) open(item['id']);
+                    },
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
@@ -660,18 +790,26 @@ class _OperatorIncidentsScreenState extends State<OperatorIncidentsScreen> {
                   children: [
                     TextButton(
                       onPressed: page > 1 && !loading && !acting
-                          ? () => load(targetPage: page - 1)
+                          ? () {
+                              if (validView()) load(targetPage: page - 1);
+                            }
                           : null,
                       child: const Text('Vorherige Fehlergruppen'),
                     ),
                     TextButton(
                       onPressed: page * 30 < total && !loading && !acting
-                          ? () => load(targetPage: page + 1)
+                          ? () {
+                              if (validView()) load(targetPage: page + 1);
+                            }
                           : null,
                       child: const Text('Weitere Fehlergruppen'),
                     ),
                     TextButton(
-                      onPressed: !loading && !acting ? () => load() : null,
+                      onPressed: !loading && !acting
+                          ? () {
+                              if (validView()) load();
+                            }
+                          : null,
                       child: const Text('Übersicht neu laden'),
                     ),
                   ],
@@ -685,7 +823,15 @@ class _OperatorIncidentsScreenState extends State<OperatorIncidentsScreen> {
             TextButton(
               onPressed: loading || reading || acting
                   ? null
-                  : () => selected != null ? open(selected!) : load(),
+                  : () {
+                      if (validView()) {
+                        if (selected != null) {
+                          open(selected!);
+                        } else {
+                          load();
+                        }
+                      }
+                    },
               child: const Text('Erneut laden'),
             ),
           ],

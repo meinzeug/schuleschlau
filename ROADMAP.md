@@ -4562,6 +4562,17 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Echtzeitstatus gezielt und zuverlässig bereitstellen**
 
+  - [x] **Technische Fehlerübersicht an die Anmeldung binden.** Ein
+    Anmeldeversuch oder Tokenwechsel blendet Betriebsdetails aus und schließt
+    Bestätigungen. Alte Aktionen und verspätete Antworten bleiben nach einem
+    Abbruch unwirksam. Eine ausdrückliche Wiederaufnahme liest den aktuellen
+    Stand; bei unklar beantwortetem Reparaturauftrag bleibt dessen Schlüssel
+    erhalten. 27 künstliche Widget- und mobile Verwaltungsfälle und zwei
+    weitere Fälle für alte Aktionen und verspätete Antworten bestanden; fünf
+    dieser Kontowechselfälle bestanden auch im Chrome-Webrunner. Ein bereits
+    gesendeter Auftrag kann serverseitig angekommen sein. Der allgemeine
+    Cookie-Wettlauf bleibt offen.
+
   - [x] **Familienhilfe an die ursprüngliche Anmeldung binden.** Eine neue
     Anmeldung schließt die frühere Auswahl für Anruf oder Nachricht, auch
     wenn sie danach abgebrochen wird. Während einer Anmeldung öffnet sie sich
