@@ -744,12 +744,20 @@ class _ProgressScreenState extends State<ProgressScreen> {
                   ),
                 if ((data!['items'] as List).isEmpty && !loading) ...[
                   Notice(
-                    category != null
+                    widget.state.isChild && viewFiltered
+                        ? 'Für diese Ansicht gibt es gerade keine Ergebnisse.'
+                        : category != null
                         ? 'Für „${categories[category]}“ sind hier keine passenden Aufgaben gespeichert. Du kannst alle Ergebnisse oder ein anderes Fach ansehen.'
                         : subject == null
                         ? 'Hier erscheinen beantwortete Aufgaben – auch aus noch nicht abgeschlossenen Runden.'
                         : 'Für ${topic == null ? 'das Fach „$subject“' : '„$subject · $topic“'} sind noch keine beantworteten Aufgaben gespeichert.',
                   ),
+                  if (widget.state.isChild && viewFiltered)
+                    TextButton.icon(
+                      onPressed: resetViewAction(data!, generation),
+                      icon: const Icon(Icons.filter_alt_off_outlined),
+                      label: const Text('Ansichtsfilter zurücksetzen'),
+                    ),
                   if (category != null)
                     TextButton.icon(
                       onPressed: () => choose(
@@ -836,6 +844,17 @@ class _ProgressScreenState extends State<ProgressScreen> {
     roundStatus = roundKind = 'all';
     choose(nextSubject: subject, nextTopic: topic, force: true);
   }
+
+  VoidCallback resetViewAction(Json snapshot, int request) => () {
+    if (!current ||
+        loading ||
+        request != generation ||
+        !identical(data, snapshot) ||
+        ModalRoute.of(context)?.isCurrent == false) {
+      return;
+    }
+    resetView();
+  };
 
   Future<void> pickPage(Json snapshot, int request) async {
     if (!current ||
