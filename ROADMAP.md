@@ -2715,6 +2715,17 @@ Bestandteil des bestehenden Buildvertrags.
 
 - [ ] **P1 – Kapazitätsannahmen vor wachsendem Betrieb messen**
 
+  - [x] **Fehlerhafte Längenangaben vor der Anfrageverarbeitung behandeln.**
+    Sehr lange Ziffernfolgen und nicht zulässige Sonderzeichen in
+    `Content-Length` führten im direkten künstlichen Middlewaretest zuvor zu
+    einer Ausnahme. Die Eingabe wird nun als ASCII-Dezimalzahl ohne
+    Integerkonvertierung mit der bestehenden Pfadgrenze verglichen. Gültige
+    Werte einschließlich führender Nullen bleiben zulässig; die Prüfung der
+    tatsächlich empfangenen Bytes bleibt erhalten. Zwölf Grenzfälle bestanden
+    auf SQLite und isoliertem PostgreSQL; angrenzende Foto-, Profilbild- und
+    Klassenarbeitsfälle bestanden ebenfalls. Dies ist kein Nachweis des
+    Verhaltens jedes vorgeschalteten HTTP-Servers und keine Lastabnahme.
+
   - [x] **Alte Quellbilder vor Ausschnitt-Dekodierung begrenzen.** Auch
     historische oder beschädigte Speicherdateien werden beim Erzeugen eines
     Heftausschnitts vor dem Laden der Pixel auf die bestehende Grenze von

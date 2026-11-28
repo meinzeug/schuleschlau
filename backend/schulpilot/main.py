@@ -253,7 +253,14 @@ async def security_headers(request: Request, call_next):
             return JSONResponse({"detail": "Sicherheitsheader fehlt."}, status_code=403)
         maximum = request_body_limit(request.url.path)
         length = request.headers.get("content-length", "0")
-        if not length.isdigit() or int(length) > maximum:
+        # HTTP Content-Length is ASCII decimal. Compare normalized digit
+        # strings without converting arbitrary input to an unbounded integer.
+        if not length.isascii() or not length.isdigit():
+            return JSONResponse({"detail": "Anfrage ist zu groß."}, status_code=413)
+        normalized = length.lstrip("0") or "0"
+        maximum_digits = str(maximum)
+        if (len(normalized) > len(maximum_digits)
+                or (len(normalized) == len(maximum_digits) and normalized > maximum_digits)):
             return JSONResponse({"detail": "Anfrage ist zu groß."}, status_code=413)
     try:
         if (

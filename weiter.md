@@ -644,6 +644,13 @@ Der unabhängige Watchdog aus Commit `96c43ca` ist lokal installiert. Er meldet 
   bestätigt Zielerfüllung weiterhin separat. 82 künstliche Fälle und zwei
   gezielte Chrome-Fälle bestanden; kein echter Screenreader wurde geprüft.
 
+- Die Middleware vergleicht `Content-Length` als normalisierte ASCII-Ziffern
+  mit der unveränderten Pfadgrenze. Extrem lange Zahlen und unzulässige Zeichen
+  lösen dadurch keine Integer-Ausnahme aus; gültige führende Nullen bleiben
+  möglich. Zwölf künstliche Grenzfälle bestanden auf beiden Datenbanken;
+  angrenzend bestanden 77 SQLite-Fälle (einer übersprungen) und 77 Fälle auf
+  isoliertem PostgreSQL. Die vollständige produktive Lastabnahme bleibt offen.
+
 ## Nützliche Prüfungen
 
 - CI: `gh run list --limit 5` und `gh run view <ID>`; ein laufender oder abgebrochener Workflow ist kein grüner Gesamtnachweis.
