@@ -1329,6 +1329,13 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – Alle Kinderansichten sprachlich und in ihrer Bedienung entrümpeln**
 
+  - [x] **Pause mit ungesichertem Entwurf verständlich machen.** Der
+    scrollbare Dialog warnt kurz vor möglichem Verlust und lässt das Kind in
+    der Runde bleiben. Synthetische Widgettests prüfen 320/390 Pixel,
+    Bildschirmtastatur, große Schrift und veraltete Aktionen bei
+    Kontowechsel; überprüfte Antworten bleiben erhalten. Die vollständige
+    Geräteabnahme bleibt offen.
+
   - [x] **Unklare Übungsbelege verständlich und korrekt anzeigen.** In
     Wortschatz und Rückblick zählt eine unassistierte Antwort mit unklarer
     Selbstständigkeit nicht als sicherer Erstversuch. Nachgewiesene Hilfe

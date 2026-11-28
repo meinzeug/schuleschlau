@@ -2,8 +2,8 @@
 import math
 
 import pytest
-from sqlalchemy import select
 from schulpilot.db import DB, Attempt
+from sqlalchemy import select
 from test_adaptive_plan import fraction_profile as fraction_profile
 
 
