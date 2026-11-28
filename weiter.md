@@ -1,5 +1,16 @@
 # Übergabe an die nächste Coding-KI
 
+## Ergänzung 28. November 2026: Sammelfotos und Pipeline-Test
+
+Gespeicherte Heftfotos in der Sammelansicht lassen sich auch bei einer
+Unleserlichkeitsmarkierung direkt vergrößern; ohne Bild wird keine kaputte
+Vorschau angeboten. Große Schrift und kleine Breiten sind in Widgettests
+abgedeckt. Ein synthetischer End-to-End-Test prüft Foto-Upload, zwei
+Erkennungsschritte, höchstens einen automatisch reservierten Rundenauftrag,
+wiederholte GETs und Providerfehler ohne automatischen Retry. Zwei SQLite- und
+zwei PostgreSQL-Fälle bestanden; er ersetzt keinen echten KI- und Browsertest.
+Dieser Folgestand ist noch nicht deployed.
+
 ## Ergänzung 28. November 2026: Release und Bruchhinweis
 
 Version 1.38.169 (`2985266`) ist auf schuleschlau.dorfspy.de aktiv;
@@ -8,10 +19,15 @@ Sicherung wurde verschlüsselt offsite übertragen und isoliert mit dem
 authentifizierten Löschjournal wiederhergestellt. Die historische
 Vollständigkeit dieses Journals ist damit nicht nachgewiesen.
 
-Version 1.38.170 (`91dd102`) ist ausgerollt. Der anschließende Browsertest
-zeigte, dass der gespeicherte Aufgabentext eine LaTeX-Formel enthält und der
-erste Fix deshalb nicht griff. Der Folgefix prüft auch dieses Format; sein
-Release und der erneute Browsernachweis sind noch erforderlich.
+Version 1.38.171 (`f7f5df3`) ist ausgerollt; der öffentliche Healthcheck war
+erfolgreich. Der Browsertest von 1.38.170 zeigte, dass der gespeicherte
+Aufgabentext eine LaTeX-Formel enthält und der erste Fix deshalb nicht griff.
+Der Folgefix prüft auch dieses Format. Der aktive Servercode wurde lesend
+gegen genau die betroffene gespeicherte Aufgabe und den vorhandenen Hinweis
+geprüft; die Ergänzung griff. 67 synthetische Bruchtests bestanden. Der
+anschließende Browsernachweis ist offen, weil die In-App-Browseransicht nach
+dem Neuladen nicht mehr reagierte. Keine Antwort oder neue Hilfe wurde für
+den Test abgegeben.
 
 Bei der Aufgabe `3/8 · 12` erläutert die neue Hinweisprojektion für eindeutig
 geprüfte gekürzte Auswahlaufgaben den Zwischenschritt und das Kürzen. Alte
