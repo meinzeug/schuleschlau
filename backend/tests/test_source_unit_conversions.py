@@ -44,7 +44,7 @@ def test_unsafe_block_excluded_without_rewriting_original():
     material = SimpleNamespace(id="a" * 32, revision=1, purpose="notebook", confirmed=True,
                                legibility="readable", uncertainties=[], content=original, source_blocks=blocks)
     result = learning_source(None, material)
-    assert result["policy_version"] == "literal-safety-9"
+    assert result["policy_version"] == "literal-safety-10"
     assert result["content"] == blocks[0]["text"]
     assert [item["reason"] for item in result["exclusions"]] == ["false_unit_conversion"]
     assert material.content == original and material.source_blocks == blocks

@@ -23,7 +23,7 @@ def test_the_warning_explains_the_two_exact_values():
 
 
 @pytest.mark.parametrize('answer', [
-    '1.000 = 1000', '1,000 = 1', 'Beispiel: 1.000 = 1000',
+    '1.000 = 1000', '1,000 = 1', 'Beispiel: 1.000 = 1000', '1.000 m = 1 km',
 ])
 def test_ambiguous_separator_is_not_called_a_false_equation(answer):
     warnings = arithmetic_warnings(answer)

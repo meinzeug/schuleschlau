@@ -776,6 +776,18 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
   [Prüfbericht und Grenzen](docs/OCR_FREE_PROVIDER_PROBE_2026_11_28.md).
   Der Hauptpunkt bleibt offen.
 
+  - [x] **Mehrdeutige Zahlentrenner bei Einheiten nicht als gesicherten Stoff
+    übernehmen.** Eine vollständige unterstützte Umrechnung wie
+    `1.000 m = 1 km` bleibt bei möglicher Dezimal- oder Tausenderlesung
+    ungeklärt; weder Original noch Schülerantwort werden umgeschrieben.
+    Der Tutor erhält den Block nicht als gesicherten Stoff, und die Nacharbeit
+    nennt die Unsicherheit ohne eine Fehlerbehauptung. Alte Gegenprüfungen
+    behalten ihre Policy. 172 künstliche Quellen-, Einheiten-, Tutor- und
+    Nacharbeitsfälle bestanden jeweils auf isoliertem SQLite und PostgreSQL.
+    Andere Schreibweisen und
+    die Prüfung am Foto bleiben offen.
+    [Umfang und Grenzen](docs/UNIT_SEPARATOR_AMBIGUITY_2026_11_28.md).
+
   - [x] **Mehrdeutige Gleichungen in Fließtext von Lernquellen trennen.**
     Isolierte Beispiele wie `Beispiel: 1.000 = 1000` werden ebenfalls als
     ungeklärt behandelt; weder Zahl noch Originalabschrift werden umgedeutet.

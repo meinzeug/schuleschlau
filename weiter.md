@@ -1,5 +1,15 @@
 # Übergabe an die nächste Coding-KI
 
+## Ergänzung 28. November 2026: Einheiten mit mehrdeutigen Zahlentrennern
+
+`literal-safety-10` behandelt begrenzte vollständige Einheitenumrechnungen
+wie `1.000 m = 1 km` bei möglicher Dezimal- oder Tausenderlesung als
+ungeklärt. Die Originale bleiben erhalten, Gegenprüfungen sind
+versionsgebunden, und ein geänderter Ausschluss ändert den Lernweg-
+Fingerabdruck. Je 172 künstliche SQLite- und PostgreSQL-Fälle bestanden;
+Umfang und Grenzen: docs/UNIT_SEPARATOR_AMBIGUITY_2026_11_28.md. Der echte OCR-Nachweis bleibt
+offen. Der vollständige GitHub-Lauf 46108020183 für `e550726` war erfolgreich.
+
 ## Ergänzung 28. November 2026: Wortschatz-Fehler auf kleinen Displays
 
 Die lokale 390-Pixel-Vorschau zeigte eine abgeschnittene Fehlermeldung bei

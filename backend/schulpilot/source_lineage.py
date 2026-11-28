@@ -22,7 +22,7 @@ from .db import Job, LearningUnit, UnitSource, Usage
 from .source_lineage_models import SourceImageReceipt, SourceInvalidation, SourceRevision
 from .subject_content import SourceBlock
 
-POLICY_VERSION = "literal-safety-9"
+POLICY_VERSION = "literal-safety-10"
 PREPROCESS_VERSION = "exif-rgb-max3200-jpeg95-1"
 AUTO_CONFLICT_SUMMARY = "Abweichender Schüler-/Korrekturbereich bleibt ungeklärt."
 AUTO_CONFLICT_LOCAL = "Die beiden Abschriften dieses Schüler-/Korrekturbereichs unterscheiden sich; Original erhalten."
@@ -287,6 +287,34 @@ _UNIT_NAMES = "|".join(map(re.escape, sorted(_UNIT_VALUES, key=len, reverse=True
 _CONVERSION = re.compile(
     rf"\s*({_UNIT_NUMBER})\s*({_UNIT_NAMES})\s*=\s*({_UNIT_NUMBER})\s*({_UNIT_NAMES})\s*[.!]?\s*"
 )
+_UNIT_AMBIGUOUS_NUMBER = r"[1-9][0-9]{0,2}[.,][0-9]{3}"
+_AMBIGUOUS_CONVERSION = re.compile(
+    rf"\s*({_UNIT_AMBIGUOUS_NUMBER}|{_UNIT_NUMBER})\s*({_UNIT_NAMES})\s*=\s*"
+    rf"({_UNIT_AMBIGUOUS_NUMBER}|{_UNIT_NUMBER})\s*({_UNIT_NAMES})\s*[.!]?\s*"
+)
+
+
+def ambiguous_unit_conversion(text):
+    """Find bounded same-dimension conversions whose separator has two readings.
+
+    No transcription, decimal convention, or correctness is inferred.
+    """
+    for raw in text.splitlines():
+        line = raw.strip()
+        if len(line) > 160:
+            continue
+        if line.startswith(r"\(") and line.endswith(r"\)"):
+            line = line[2:-2].strip()
+        elif line.startswith("$") and line.endswith("$") and len(line) >= 2:
+            line = line[1:-1].strip()
+        match = _AMBIGUOUS_CONVERSION.fullmatch(line)
+        if not match:
+            continue
+        left, left_unit, right, right_unit = match.groups()
+        if (_UNIT_VALUES[left_unit][0] == _UNIT_VALUES[right_unit][0]
+                and (_AMBIGUOUS_SEPARATOR.fullmatch(left) or _AMBIGUOUS_SEPARATOR.fullmatch(right))):
+            return True
+    return False
 
 
 def false_unit_conversion(text):
@@ -553,7 +581,8 @@ def learning_source(db, material, revision=None):
             or page_warning
         ):
             blocked = "reading_uncertain"
-        if not blocked and ambiguous_numeric_equality(block["text"]):
+        if not blocked and (ambiguous_numeric_equality(block["text"])
+                            or ambiguous_unit_conversion(block["text"])):
             blocked = "ambiguous_numeric"
         if not blocked and false_equality(block["text"], include_embedded=True):
             blocked = "false_equality"

@@ -405,6 +405,7 @@ def _protected_readings(data, snapshot):
 
     from .source_lineage import (
         ambiguous_numeric_equality,
+        ambiguous_unit_conversion,
         false_divisibility,
         false_equality,
         false_gcd_lcm,
@@ -416,11 +417,11 @@ def _protected_readings(data, snapshot):
     # an absent or older receipt keeps the old merge reproducible.
     receipt = getattr(snapshot, "receipt", None)
     policy = receipt.get("policy_version") if isinstance(receipt, dict) else None
-    embedded_check = policy in {"literal-safety-4", "literal-safety-5", "literal-safety-6", "literal-safety-7", "literal-safety-8", "literal-safety-9"}
-    divisibility_check = policy in {"literal-safety-5", "literal-safety-6", "literal-safety-7", "literal-safety-8", "literal-safety-9"}
-    unit_check = policy in {"literal-safety-6", "literal-safety-7", "literal-safety-8", "literal-safety-9"}
-    gcd_lcm_check = policy in {"literal-safety-7", "literal-safety-8", "literal-safety-9"}
-    ambiguity_check = policy in {"literal-safety-8", "literal-safety-9"}
+    embedded_check = policy in {"literal-safety-4", "literal-safety-5", "literal-safety-6", "literal-safety-7", "literal-safety-8", "literal-safety-9", "literal-safety-10"}
+    divisibility_check = policy in {"literal-safety-5", "literal-safety-6", "literal-safety-7", "literal-safety-8", "literal-safety-9", "literal-safety-10"}
+    unit_check = policy in {"literal-safety-6", "literal-safety-7", "literal-safety-8", "literal-safety-9", "literal-safety-10"}
+    gcd_lcm_check = policy in {"literal-safety-7", "literal-safety-8", "literal-safety-9", "literal-safety-10"}
+    ambiguity_check = policy in {"literal-safety-8", "literal-safety-9", "literal-safety-10"}
     result = copy.deepcopy(data)
     result["visual_observations"] = _merged_visual_observations(data, snapshot)[0][:20]
     blocks = result["source_blocks"]
@@ -456,7 +457,8 @@ def _protected_readings(data, snapshot):
         return (block.get("literal_role") in ("student_work", "annotation")
             or any(mark.get("kind") != "ink" for mark in block.get("annotations", []))
             or (ambiguity_check and ambiguous_numeric_equality(
-                block["text"], include_embedded=policy == "literal-safety-9"))
+                block["text"], include_embedded=policy in {"literal-safety-9", "literal-safety-10"}))
+            or (policy == "literal-safety-10" and ambiguous_unit_conversion(block["text"]))
             or false_equality(block["text"], include_embedded=embedded_check)
             or (divisibility_check and false_divisibility(block["text"]))
             or (unit_check and false_unit_conversion(block["text"]))

@@ -142,9 +142,9 @@ def test_tutor_payload_excludes_embedded_false_calculation_without_changing_sour
         assert db.scalar(select(func.count()).select_from(Attempt)) == 0
 
 
-def test_tutor_payload_excludes_embedded_ambiguous_number_without_changing_source(tutor_notebook, transport):
+@pytest.mark.parametrize("ambiguous", ["Beispiel: 1.000 = 1000", "1.000 m = 1 km"])
+def test_tutor_payload_excludes_ambiguous_number_without_changing_source(tutor_notebook, transport, ambiguous):
     good = "Ein Bruch beschreibt Teile eines Ganzen."
-    ambiguous = "Beispiel: 1.000 = 1000"
     with DB.begin() as db:
         material = db.get(Material, tutor_notebook["material_id"])
         set_blocks(material, [{"kind": "paragraph", "text": good}, {"kind": "paragraph", "text": ambiguous}])
