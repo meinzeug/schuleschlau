@@ -1869,6 +1869,7 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
       final leave = await showUnitDialog<bool>(
         context: context,
         builder: (dialog) => AlertDialog(
+          scrollable: true,
           title: Text('Jetzt eine Pause machen?'),
           content: Text(
             u?['learning_session'] is Map &&
@@ -1878,7 +1879,7 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
                     draftSnapshot()?.toString() == savedDraftSignature
                 ? 'Deine Eingabe ist gespeichert. Du kannst später hier weiterlernen.'
                 : u?['learning_session'] is Map
-                ? 'Deine letzte Änderung ist noch nicht sicher auf dem Server gespeichert. Bleib hier, um sie zu sichern, oder mache bewusst eine Pause. Geprüfte Antworten bleiben erhalten.'
+                ? 'Deine letzte Eingabe ist noch nicht sicher auf dem Server und kann verloren gehen. Geprüfte Antworten bleiben erhalten.'
                 : 'Deine ungeprüfte Antwort musst du später neu eingeben. Geprüfte Antworten bleiben gespeichert.',
           ),
           actions: [
