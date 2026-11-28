@@ -120,3 +120,33 @@ def test_legacy_auto_job_without_flag_keeps_original_behavior(study, stage_trans
         assert job.status == "completed", job.error
         assert "automatic_evidence_observation" not in job.payload
         assert db.scalar(select(func.count()).select_from(Attempt)) == 1
+
+
+def test_auto_change_while_payload_is_built_does_not_call_provider(study, stage_transport, monkeypatch):
+    from schulpilot import learning_evidence_marker
+
+    with DB.begin() as db:
+        previous = make_practice(db, study["child"]["id"])
+    real_snapshot = learning_evidence_marker.snapshot
+    count = 0
+
+    def snapshot_then_answer(db, child_id, subject, **kwargs):
+        nonlocal count
+        marker = real_snapshot(db, child_id, subject, **kwargs)
+        count += 1
+        if count == 1:
+            with DB.begin() as other:
+                add_attempt(other, previous)
+        return marker
+
+    monkeypatch.setattr(learning_evidence_marker, "snapshot", snapshot_then_answer)
+    arm_automatic_rounds(study)
+    assert advance_auto_rounds(study["day_id"])
+    job_id = finish()
+    with DB() as db:
+        job = db.get(Job, job_id)
+        usage = db.scalar(select(Usage).where(Usage.job_id == job_id))
+        assert job.status == "failed" and "Lernstand" in job.error
+        assert usage.status == "failed_not_sent" and usage.cost_micros == 0
+        assert db.scalar(select(func.count()).select_from(Attempt)) == 1
+    assert stage_transport["calls"] == []

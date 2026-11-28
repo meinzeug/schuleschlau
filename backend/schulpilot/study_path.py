@@ -741,6 +741,14 @@ def process(job_id):
             payload = with_history(payload, previous_prompts)
             values = {c.name: getattr(config, c.name) for c in ProviderConfig.__table__.columns}
             route_snapshot = copy.deepcopy(selection(config))
+            if automatic:
+                # Catch evidence observed to change while the provider payload
+                # was assembled. This is not an atomic proof: another device
+                # may still write immediately after this comparison.
+                from .learning_evidence_marker import matches
+
+                if not matches(evidence_marker, snapshot(db, child.id, block["subject"])):
+                    raise ProviderError("Dein Lernstand hat sich während der Vorbereitung geändert. Bitte erneut öffnen.")
             db.rollback()
         provider_requested = True
         request_config = ProviderConfig(**values)
