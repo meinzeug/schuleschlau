@@ -59,6 +59,9 @@ mit der passenden Rundenroute, wiederholten Recovery-Läufen, Zugriffstrennung
 und Quellenänderung auf SQLite und PostgreSQL. Dabei findet kein Anbieter- oder
 Push-Aufruf statt; eine tatsächliche Firebase-Zustellung ist damit nicht
 nachgewiesen.
+Dieselben Eigenschaften wurden auch für automatisch vorbereitete einzelne
+Heftseiten geprüft, einschließlich paralleler Recovery-Läufe und
+Quellenänderungen vor und nach dem Bereitstellen der In-App-Meldung.
 1. Trigger ausschließlich an einer gespeicherten bestätigten Heft-/Lernweg-
    Revision, nicht bei GET, und ein dauerhaftes revisionsgebundenes Journal:
    Block- und Quell-IDs, Reihenfolge, Zustand, Ursprungssitzung und -familie,

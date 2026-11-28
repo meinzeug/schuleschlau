@@ -1329,6 +1329,13 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – Alle Kinderansichten sprachlich und in ihrer Bedienung entrümpeln**
 
+  - [x] **Leeren Lernweg ruhig und verständlich darstellen.** Ohne Schritte
+    und ohne aktive Filter entfallen wirkungslose Such- und Rücksetzknöpfe.
+    Aktive Filter bleiben bei leeren Ergebnissen zurücksetzbar; veraltete
+    Aktionen nach einem Anmeldewechsel sind unwirksam. Synthetische
+    Widgettests prüfen 320/390 Pixel und große Schrift; die vollständige
+    Kinderabnahme bleibt offen.
+
   - [x] **Hilfebereich nach dem letzten Tipp vereinfachen.** Ein als
     ausgeschöpft bestätigter Hinweiszustand zeigt einen kurzen Text und den
     erreichbaren Weg zu weiterer Hilfe statt eines dauerhaft deaktivierten
