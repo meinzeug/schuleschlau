@@ -23,6 +23,16 @@ def clarify_fraction_product_hint(question, text):
     prompt = question.get("prompt", "")
     if not isinstance(prompt, str) or not re.search(r"vollständig\s+gekürzt\w*", prompt, re.I):
         return text
+    # The saved question can use LaTeX even though its choices use `9/2`.
+    # Normalize only simple, positive numeric fractions and explicit products;
+    # unsupported fraction commands must not be silently overlooked.
+    prompt = re.sub(
+        r"\\[dt]?frac\s*\{\s*([1-9]\d{0,2})\s*\}\s*\{\s*([1-9]\d{0,2})\s*\}",
+        r"\1/\2", prompt,
+    )
+    if re.search(r"\\[dt]?frac\b", prompt):
+        return text
+    prompt = re.sub(r"\\(?:cdotp|cdot|times)(?![A-Za-z])", " * ", prompt)
     expressions = list(re.finditer(
         r"(?<![\d/])([1-9]\d{0,2})\s*/\s*([1-9]\d{0,2})\s*(?:\*|×|·|mal)\s*([1-9]\d{0,2})(?![\d/])",
         prompt, re.I,

@@ -31,6 +31,16 @@ def test_product_hint_names_the_intermediate_and_next_step(operator):
     assert next_hint(question, None, [question["hints"][0]]) == question["hints"][1]
 
 
+@pytest.mark.parametrize("fraction_command,product_command", [
+    (r"\frac", r"\cdot"), (r"\dfrac", r"\times"), (r"\tfrac", r"\cdotp"),
+])
+def test_latex_product_uses_the_same_validated_intermediate(fraction_command, product_command):
+    question = product_question()
+    question["prompt"] = (rf"Übung: Berechne \({fraction_command}{{3}}{{8}}{product_command}12\). "
+                          "Welcher vollständig gekürzte Bruch ist das Ergebnis?")
+    assert "zuerst 36/8" in next_hint(question, None, [])
+
+
 @pytest.mark.parametrize("changes", [
     {"answer": "9/8"},
     {"options": ["9/2", "18/4", "3/2"]},
@@ -38,6 +48,8 @@ def test_product_hint_names_the_intermediate_and_next_step(operator):
     {"prompt": "Berechne 3/8 mal 12. Gib einen Bruch an."},
     {"type": "short"},
     {"language": {"skill": "spelling"}},
+    {"prompt": r"Berechne \(\frac{3}{8}\cdot12 + \frac{1}{2}\). Welcher vollständig gekürzte Bruch ist das Ergebnis?"},
+    {"prompt": r"Berechne \(\frac{3}{8}\cdot12 + \frac{x}{2}\). Welcher vollständig gekürzte Bruch ist das Ergebnis?"},
 ])
 def test_ambiguous_or_unverified_tasks_keep_the_original_hint(changes):
     question = product_question() | changes
@@ -48,6 +60,8 @@ def test_ambiguous_or_unverified_tasks_keep_the_original_hint(changes):
 def test_saved_hint_projection_replay_and_assisted_answer(api, household):
     _, child = household
     q = product_question()
+    q["prompt"] = (r"Übung: Berechne \(\frac{3}{8}\cdot12\). "
+                   "Welcher vollständig gekürzte Bruch ist das Ergebnis?")
     original = copy.deepcopy(q)
     request_key = "old-synthetic-hint-001"
     with DB.begin() as db:
