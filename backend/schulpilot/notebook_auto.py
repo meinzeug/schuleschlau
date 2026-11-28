@@ -4,7 +4,7 @@ The originating session and exact safe source selection remain bound to the job.
 Neither listing pages nor reopening a status page schedules paid work.
 """
 from fastapi import HTTPException
-from sqlalchemy import delete, select, update
+from sqlalchemy import and_, delete, or_, select, update
 
 from .db import DB, Child, Job, LearningUnit, Material, Session, UnitSource, User
 from .material_vocabulary import preview
@@ -12,6 +12,8 @@ from .notebook_auto_models import NotebookAutoIntent
 from .notebook_practice import selection
 from .providers import ProviderError
 from .security import Principal
+
+_cursor = None
 
 
 def arm(db, child, material, authority):
@@ -94,11 +96,23 @@ def _advance(db, intent_id):
 
 
 def advance_one():
+    # The cursor is only a bounded scheduling hint. Each intent is still
+    # checked and serialized afresh; wrap around after the last page.
+    global _cursor
     with DB() as db:
-        ids = list(db.scalars(select(NotebookAutoIntent.id).where(
-            NotebookAutoIntent.status.in_(("pending", "queued")))
-            .order_by(NotebookAutoIntent.created, NotebookAutoIntent.id).limit(100)))
-    for intent_id in ids:
+        query = (select(NotebookAutoIntent.created, NotebookAutoIntent.id)
+                 .where(NotebookAutoIntent.status.in_(("pending", "queued")))
+                 .order_by(NotebookAutoIntent.created, NotebookAutoIntent.id).limit(100))
+        if _cursor is not None:
+            created, intent_id = _cursor
+            query = query.where(or_(NotebookAutoIntent.created > created,
+                                    and_(NotebookAutoIntent.created == created, NotebookAutoIntent.id > intent_id)))
+        rows = list(db.execute(query))
+        if not rows and _cursor is not None:
+            _cursor = None
+            return
+        _cursor = tuple(rows[-1]) if len(rows) == 100 else None
+    for _, intent_id in rows:
         try:
             with DB.begin() as db:
                 _advance(db, intent_id)

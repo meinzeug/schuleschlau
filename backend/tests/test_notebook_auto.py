@@ -204,3 +204,22 @@ def test_auto_image_countercheck_arms_standalone_round(pipeline):
         intent = db.scalar(select(NotebookAutoIntent).where(NotebookAutoIntent.material_id == page["id"]))
         assert intent.status == "queued"
         assert db.get(Job, intent.job_id).payload["material_revision"] == revision
+
+
+def test_round_robin_reaches_intents_after_first_hundred(notebook, monkeypatch):
+    intent_id, _ = prepare(notebook)
+    with DB.begin() as db:
+        seed = db.get(NotebookAutoIntent, intent_id)
+        for index in range(101):
+            db.add(NotebookAutoIntent(
+                id=f"{index:032x}", child_id=seed.child_id, material_id=seed.material_id,
+                revision=1000 + index, user_id=seed.user_id, session_id=seed.session_id,
+                family_id=seed.family_id, selection=seed.selection, status="pending", created=1,
+            ))
+    seen = []
+    monkeypatch.setattr(notebook_auto, "_cursor", None)
+    monkeypatch.setattr(notebook_auto, "_advance", lambda db, identifier: seen.append(identifier))
+    notebook_auto.advance_one()
+    assert f"{100:032x}" not in seen
+    notebook_auto.advance_one()
+    assert f"{100:032x}" in seen
