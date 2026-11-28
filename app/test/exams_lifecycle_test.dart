@@ -63,7 +63,8 @@ void main() {
       await value.mount(tester, selected: 'exam', tab: 'review');
       expect(find.text('Bruchtest vorbereiten'), findsOneWidget);
       expect(find.text('Mathematik · Klassenarbeit (KA)'), findsOneWidget);
-      expect(find.text('Termin noch offen'), findsOneWidget);
+      expect(find.text('Termin noch offen'), findsNothing);
+      expect(find.text('Termin offen'), findsNothing);
       expect(
         tester.getTopLeft(find.text('Bruchtest vorbereiten')).dy,
         lessThan(tester.getTopLeft(find.text('Arbeit fotografieren')).dy),
@@ -72,4 +73,60 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+  testWidgets(
+    'a written exam shows its date without suggesting an open appointment',
+    (tester) async {
+      final value = fixture.Fixture();
+      value.details = {...value.details, 'exam_date': '2026-11-28'};
+      value.report = {...value.report, 'tasks': []};
+      await value.mount(tester, selected: 'exam', tab: 'review');
+      expect(find.text('Geschrieben am 28.11.2026'), findsOneWidget);
+      expect(find.text('Termin noch offen'), findsNothing);
+      expect(value.writes, isEmpty);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('the review list labels an existing date as a writing date', (
+    tester,
+  ) async {
+    final value = fixture.Fixture();
+    value.listOverride = {
+      'child_id': 'child',
+      'can_manage': true,
+      'exams': [
+        {...fixture.exam(purpose: 'review'), 'exam_date': '2026-11-28'},
+      ],
+      'sources': [],
+      'has_more': false,
+    };
+    await value.mount(tester, tab: 'review');
+    expect(find.text('Geschrieben am 28.11.2026'), findsOneWidget);
+    expect(find.text('Termin offen'), findsNothing);
+    expect(value.writes, isEmpty);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+    'the review list does not call an omitted writing date an open appointment',
+    (tester) async {
+      final value = fixture.Fixture();
+      await value.mount(tester, tab: 'review');
+      expect(find.text('Geschriebene Beispielarbeit'), findsOneWidget);
+      expect(find.text('Termin offen'), findsNothing);
+      expect(value.writes, isEmpty);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('an exam being prepared still shows its missing appointment', (
+    tester,
+  ) async {
+    final value = fixture.Fixture();
+    await value.mount(tester, tab: 'prepare');
+    expect(find.text('Bruchtest vorbereiten'), findsOneWidget);
+    expect(find.text('Termin offen'), findsOneWidget);
+    expect(value.writes, isEmpty);
+    expect(tester.takeException(), isNull);
+  });
 }

@@ -463,11 +463,14 @@ class _ExamsBodyState extends State<_ExamsBody> {
                         Text(
                           '${exam['subject']} · ${exam['kind'] == 'test' ? 'LK' : 'KA'}',
                         ),
-                        Text(
-                          exam['exam_date'] == null
-                              ? 'Termin offen'
-                              : friendlyDate(exam['exam_date']),
-                        ),
+                        if (exam['exam_date'] != null)
+                          Text(
+                            tab == 'review'
+                                ? 'Geschrieben am ${friendlyDate(exam['exam_date'])}'
+                                : friendlyDate(exam['exam_date']),
+                          )
+                        else if (tab != 'review')
+                          const Text('Termin offen'),
                         if (exam['archived'] == true) const Text('Archiviert'),
                         if (exam['source_status'] == 'stale')
                           const Notice('Heftquelle geändert · Plan prüfen'),
@@ -917,11 +920,10 @@ class _ExamsBodyState extends State<_ExamsBody> {
                     Text(
                       '${detail!['subject']} · ${detail!['kind'] == 'test' ? 'Leistungskontrolle (LK)' : 'Klassenarbeit (KA)'}',
                     ),
-                    Text(
-                      detail!['exam_date'] == null
-                          ? 'Termin noch offen'
-                          : 'Arbeit am ${friendlyDate(detail!['exam_date'])}',
-                    ),
+                    if (detail!['exam_date'] != null)
+                      Text(
+                        'Geschrieben am ${friendlyDate(detail!['exam_date'])}',
+                      ),
                     const SizedBox(height: 12),
                     ExamReviewPanel(
                       state,
