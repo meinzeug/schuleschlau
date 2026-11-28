@@ -4170,7 +4170,18 @@ class _VocabularyScreenState extends State<_VocabularyBody>
                         : 16,
                   ),
                   if (loading) const Center(child: CircularProgressIndicator()),
-                  if (data != null && (data!['items'] as List).isEmpty)
+                  if (data != null &&
+                      (data!['items'] as List).isEmpty &&
+                      page > 1)
+                    ActionPanel(
+                      actionLabel: 'Vorherige Seite',
+                      onPressed: itemAction(() {
+                        page--;
+                        load();
+                      }),
+                      child: const Text('Auf dieser Seite sind keine Wörter.'),
+                    )
+                  else if (data != null && (data!['items'] as List).isEmpty)
                     Panel(
                       child: Text(
                         filtered
@@ -4516,6 +4527,7 @@ class _VocabularyScreenState extends State<_VocabularyBody>
                             ),
                     ),
                   if (data != null &&
+                      !(page > 1 && (data!['items'] as List).isEmpty) &&
                       (!widget.state.isChild ||
                           page > 1 ||
                           (data!['pagination']['total'] as int) > 0))
