@@ -21,7 +21,11 @@ Eine erneute Beobachtung beim ausdrücklichen Start meldet erkannte spätere
 Selbstständigkeitsmarker werden in den geprüften Ledger-/Sortierpfaden
 konservativ behandelt; ein Fehler beim Aufbau der Startprojektion rollt den
 Start zurück. Netzwerk-/Serialisierungsfehler nach Commit und nicht endliche
-Zeitstempel in anderen Pfaden bleiben offen.
+Zeitstempel in Rundendetail und unkompakter Altübersicht bleiben offen.
+Lernziel- und Kompetenzprojektionen behandeln die nachgestellten nicht
+endlichen Zeiten je betroffenem Beleg als unklar; andere Belege und
+gespeicherte Antworten bleiben erhalten. Endliche, kalenderungültige Zeiten
+und der Altclient-Vertrag sind dadurch nicht abschließend geprüft.
 Die Zeit zwischen Vergleich und Veröffentlichung ist weiterhin nicht atomar
 geschützt; der fachgebundene Evidenzversionszähler und echte KI-/Browserproben
 bleiben offen. Synthetische Gegenproben belegen zudem, dass ein auf beiden
