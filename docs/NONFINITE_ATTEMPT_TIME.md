@@ -22,14 +22,14 @@ Clients eine Aufgabenliste erwarten könnten und eine leere Ersatzliste falsche
 Tatsachen vorgäbe. Beide Probleme sind als strikte XFAIL-Regressionen in
 `test_nonfinite_attempt_time.py` reproduziert; sie sind nicht gelöst.
 
-Auch Coaching-Beobachtungen, quellengebundene Lernziel- und
-Kompetenzberechnungen sowie deren Abruf- und Tagesplanung müssen nicht-endliche
-Zeiten für jede Aufgabe und fachübergreifende Exposition noch konservativ
-berücksichtigen. Insbesondere darf ein zeitlich nicht einordenbarer Versuch
-nicht als eigenständiger Erfolg oder neuer Prüftag gelten. Eine weitere strikte
-XFAIL-Regression zeigt die bestehende Coaching-Fehlklassifikation. Pauschale
-Ausnahmen im gemeinsamen Coaching wurden nicht eingebaut, weil sie die
-Heute-Seite wegen einer einzelnen Altaufgabe blockieren könnten.
+Coaching-Beobachtungen behandeln betroffene Aufgaben als unklar, vergeben keine
+datierten Prüferfolge daraus und berücksichtigen bei identischen Fragen deren
+unklare frühere Exposition. Im kombinierten synthetischen Test blieben die
+kompakte Heute-Seite und eine getrennte Fachrunde auf SQLite und PostgreSQL
+verfügbar. Pauschale Ausnahmen im gemeinsamen Coaching wurden nicht eingebaut.
+Quellengebundene Lernziel- und Kompetenzberechnungen und deren Abruf- und
+Tagesplanung müssen nicht-endliche Zeiten und fachübergreifende Exposition noch
+gesondert konservativ berücksichtigen; die Coaching-Prüfung belegt sie nicht.
 
 Endliche, aber außerhalb der vom Datumsdienst unterstützten Kalendergrenzen
 liegende Zeiten sowie Zeitangaben anderer Tabellen sind hier nicht abgedeckt.

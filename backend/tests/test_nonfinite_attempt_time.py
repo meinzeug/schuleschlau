@@ -82,7 +82,6 @@ def test_unordered_mixed_times_are_uncertain_without_fabricated_latest_date(api)
         assert item['outcome'] == 'uncertain' and item['created'] is None
 
 
-@pytest.mark.xfail(strict=True, reason='Coaching observations do not yet classify non-finite dates as uncertain')
 def test_bad_times_must_not_become_coaching_success(api):
     from schulpilot.coaching import observations
     demo, unit_id = prepared(api)
