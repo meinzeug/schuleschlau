@@ -97,3 +97,41 @@ gesondert konservativ berücksichtigen; die Coaching-Prüfung belegt sie nicht.
 Endliche, aber außerhalb der vom Datumsdienst unterstützten Kalendergrenzen
 liegende Zeiten sowie Zeitangaben anderer Tabellen sind hier nicht abgedeckt.
 Dies ist kein Freigabenachweis für die unbehobenen Funktionen.
+
+### Eingrenzung eines künftigen API-Vertrags
+
+Ein ausschließlich lesender, ausdrücklich angeforderter neuer Vertrag könnte
+beschädigte Versuchszeiten als unbekannt ausweisen und gleichzeitig die echten
+Antworten, Bewertungen und Hilfemarker erhalten. Er müsste pro Antwort auch
+eine unbestimmbare Reihenfolge und Selbstständigkeit ausdrücken. Der Server
+müsste ihn auf die jeweils geprüften Routen begrenzen; eine Capability wäre ein
+Formatwunsch, niemals ein Ersatz für Familien- oder Sitzungsrechte. Sie dürfte
+erst nach nachgewiesener Unterstützung der jeweiligen Anzeige und ihrer
+Folgeaktionen gesendet werden. Das ist ein Entwurf, keine bestehende API.
+
+Die Übersicht braucht darüber hinaus einen Vertrag für **jeden** Eintrag, der
+auch intakte Runden samt unveränderten Fragen zugänglich hält. Der historische
+Client `833f910` und der aktuelle Client rufen im Schultagsablauf beide die
+ungekürzte Übersicht ab. Deshalb ist ein Fehler für die ganze Übersicht oder
+ein einzelner Fehler aus dem gemeinsam aufgerufenen `unit_data` keine belegte
+Lösung. Ein ausgelassener Eintrag oder eine erfundene leere Fragenliste wäre
+ebenfalls kein nachgewiesener kompatibler Altvertrag. Auch ein nachträglich
+fehlschlagender Schreibaufruf darf keinen Erfolg oder Wiederholbedarf
+vortäuschen, wenn die Änderung bereits gespeichert wurde.
+
+Ein weiterer konkreter Blocker ist der quellengebundene Abruf
+`GET /units/{id}/learning-session/knowledge`: Mit einer künstlichen,
+bestätigten Bruchquelle und einem korrekten, unassistierten Versuch verursacht
+`+Infinity` HTTP 500 durch `OverflowError`; `-Infinity` und PostgreSQL-NaN
+führen zu einer falschen unabhängigen Lernzielbewertung. Die strikten XFAILs in
+`test_nonfinite_knowledge_contract.py` dokumentieren diese Fälle. SQLite kann
+wegen seiner NOT-NULL-Regel NaN nicht einfügen. Die gespeicherten Originale
+werden in einem gesonderten Test nach dem Abruf überprüft und nicht geändert. Ein bloßer
+JSON-Ersatz von `created` durch `null` behebt diese Projektionen nicht.
+
+Vor einer Umsetzung müssen neben Rundendetail und Übersicht auch Lernziel- und
+Kompetenzprojektionen, Wiederholungsexposition sowie die betroffenen schreibenden
+Routen geprüft werden; danach sind konkrete alte und neue Clients einschließlich
+Kinder- und Elternansicht sowie isolierte Familien und andere Fächer zu testen.
+Bis dahin bleiben die beiden Rundendetail-/Übersichts-XFAILs und die neuen
+Wissens-XFAILs offen. Es wird keine globale Capability angekündigt.
