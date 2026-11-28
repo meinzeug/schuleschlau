@@ -10,7 +10,7 @@ import hashlib
 import json
 
 from fastapi import HTTPException
-from sqlalchemy import select, update
+from sqlalchemy import and_, or_, select, update
 from sqlalchemy.orm import load_only
 
 from .commerce import usage_terms
@@ -24,6 +24,7 @@ from .security import Principal, child_access, digest, rate_limit
 MAX_ATTEMPTS = 2
 ACTIVE = ("queued", "running")
 _MISSING_JOB = "Die Vorbereitung wurde unterbrochen. Deine Seiten und fertigen Runden sind gespeichert."
+_auto_rounds_cursor = None
 
 
 def _state(day):
@@ -1064,13 +1065,27 @@ def advance_auto_rounds(day_id):
 
 
 def advance_auto_rounds_one():
+    # Keep each scan bounded, but advance past busy or rate-limited days. A
+    # fixed first page can otherwise starve all later families indefinitely.
+    # The cursor is only a scheduling hint: state and permissions are still
+    # checked under the normal locks by advance_auto_rounds on every visit.
+    global _auto_rounds_cursor
     with DB() as db:
-        ids = list(db.scalars(
-            select(SchoolDay.id)
+        query = (
+            select(SchoolDay.created, SchoolDay.id)
             .where(SchoolDay.preparation["auto_rounds"]["status"].as_string() == "pending")
             .order_by(SchoolDay.created, SchoolDay.id).limit(100)
-        ))
+        )
+        if _auto_rounds_cursor is not None:
+            created, day_id = _auto_rounds_cursor
+            query = query.where(or_(SchoolDay.created > created,
+                                    and_(SchoolDay.created == created, SchoolDay.id > day_id)))
+        rows = list(db.execute(query))
+        if not rows and _auto_rounds_cursor is not None:
+            _auto_rounds_cursor = None
+            return False
+        _auto_rounds_cursor = tuple(rows[-1]) if len(rows) == 100 else None
     changed = False
-    for day_id in ids:
+    for _, day_id in rows:
         changed = advance_auto_rounds(day_id) or changed
     return changed

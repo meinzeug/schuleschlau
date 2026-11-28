@@ -34,6 +34,28 @@ from sqlalchemy import func, select
 from test_providers import configured
 
 
+def test_automatic_scheduler_does_not_starve_later_days(study, monkeypatch):
+    from schulpilot import school_preparation
+
+    with DB.begin() as db:
+        child_id = db.get(SchoolDay, study["day_id"]).child_id
+        for index in range(101):
+            db.add(SchoolDay(id=f"{index:032x}", child_id=child_id,
+                             school_date=f"test-{index}", created=10,
+                             preparation={"auto_rounds": {"status": "pending"}}))
+    visited = []
+    monkeypatch.setattr(school_preparation, "_auto_rounds_cursor", None)
+    monkeypatch.setattr(school_preparation, "advance_auto_rounds", lambda day_id: visited.append(day_id) and False)
+    assert not school_preparation.advance_auto_rounds_one()
+    assert len(visited) == 100
+    assert not school_preparation.advance_auto_rounds_one()
+    assert len(visited) == 101
+    assert len(set(visited)) == 101
+    # A subsequent scan wraps around and revisits temporarily busy days.
+    assert not school_preparation.advance_auto_rounds_one()
+    assert len(visited) == 201
+
+
 def test_large_dense_batches_keep_every_page_inside_the_total_cap():
     from types import SimpleNamespace
 
