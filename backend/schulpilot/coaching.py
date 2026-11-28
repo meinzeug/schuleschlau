@@ -8,13 +8,15 @@ import copy
 import hashlib
 import json
 import logging
+import math
 import re
+import sys
 import unicodedata
 from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, Header, HTTPException
-from sqlalchemy import func, or_, select, update
+from sqlalchemy import case, func, or_, select, update
 
 from . import schemas as s
 from .attempt_order import valid_attempt_number
@@ -67,10 +69,12 @@ def observations(db, unit):
     attempts = list(db.scalars(select(Attempt).where(Attempt.unit_id == unit.id).order_by(
         Attempt.question_id, Attempt.created, func.coalesce(valid_attempt_number(Attempt.evaluation), 0), Attempt.id)))
     events = list(db.scalars(select(Activity).where(Activity.unit_id == unit.id)))
+    bad_time = {a.question_id for a in attempts if not math.isfinite(a.created)}
     return [
         {
             "question_id": q["id"],
             "learning_goal_id": q.get("learning_goal_id"),
+            "time_uncertain": q["id"] in bad_time,
             "type": q["type"],
             "prompt": q["prompt"],
             "expected_answer": q["answer"],
@@ -82,11 +86,11 @@ def observations(db, unit):
             ) else (q.get("presentation") or {}).get("evidence_kind", "knowledge"),
             "attempts": [
                 {"answer": a.answer, "outcome": a.outcome, "assisted": a.assisted,
-                 "independence_uncertain": bool((a.evaluation or {}).get("independence_uncertain"))}
+                 "independence_uncertain": q["id"] in bad_time or bool((a.evaluation or {}).get("independence_uncertain"))}
                 for a in attempts
                 if a.question_id == q["id"]
             ],
-            "deterministic_outcome": next(
+            "deterministic_outcome": "uncertain" if q["id"] in bad_time else next(
                 (a.outcome for a in reversed(attempts) if a.question_id == q["id"]), "uncertain"
             ),
             "hints_used": sum(e.kind == "hint" and e.detail.get("question_id") == q["id"] for e in events),
@@ -98,7 +102,7 @@ def observations(db, unit):
 def uncertain_independence(question):
     """A correct first attempt may have been exposed without proof of help."""
     attempts = question["attempts"]
-    return len(attempts) == 1 and bool(attempts[0].get("independence_uncertain"))
+    return bool(question.get("time_uncertain")) or (len(attempts) == 1 and bool(attempts[0].get("independence_uncertain")))
 
 
 def open_contribution(question):
@@ -171,7 +175,9 @@ def root_and_units(db, unit):
             .group_by(Attempt.unit_id)
         ).all()
     )
-    units.sort(key=lambda u: (u.completed or 2**62, answered_at.get(u.id, 0), depth(u), u.created, u.id))
+    units.sort(key=lambda u: (u.completed or 2**62,
+        answered_at[u.id] if u.id in answered_at and math.isfinite(answered_at[u.id]) else 0,
+        depth(u), u.created, u.id))
     return root, units
 
 
@@ -258,11 +264,15 @@ def goal_states(db, unit):
     # A question becomes known when it is answered, even when its round is
     # still open. Completion order can differ from answer order, including
     # across devices and midnight; it cannot establish a new recall probe.
+    valid_time = Attempt.created.between(-sys.float_info.max, sys.float_info.max)
     attempt_bounds = {(unit_id, question_id): (first, last) for unit_id, question_id, first, last in db.execute(
-        select(Attempt.unit_id, Attempt.question_id, func.min(Attempt.created), func.max(Attempt.created))
+        select(Attempt.unit_id, Attempt.question_id,
+               func.min(case((valid_time, Attempt.created), else_=None)),
+               func.max(case((valid_time, Attempt.created), else_=None)))
         .where(Attempt.unit_id.in_([old.id for old in chain])).group_by(Attempt.unit_id, Attempt.question_id))}
     groups_by_unit = {}
     encounters = {}
+    unknown_signatures = set()
     contribution_goals, assessed_goals = set(), set()
     for old in chain:
         old_report = db.get(UnitCoaching, old.id)
@@ -296,10 +306,15 @@ def goal_states(db, unit):
             signature = ((fraction_task_signature(item["prompt"]) or normalized_prompt(item["prompt"]))
                 if old.subject.casefold() in ("mathe", "mathematik") else
                 " ".join(unicodedata.normalize("NFC", item["prompt"]).split()))
+            if item["time_uncertain"]:
+                unknown_signatures.add(signature)
+                continue
             encounters.setdefault(signature, []).append((bounds[0], old.id, item["question_id"],
                 goal_id if eligible_goal else None))
     fresh_groups = set()
-    for values in encounters.values():
+    for signature, values in encounters.items():
+        if signature in unknown_signatures:
+            continue
         first = min(value[0] for value in values)
         earliest = [value for value in values if value[0] == first]
         if len(earliest) == 1 and earliest[0][3] is not None:
@@ -315,6 +330,9 @@ def goal_states(db, unit):
                 count = practice[goal_id]
                 count["practiced_tasks"] += 1
                 count["attempts"] += len(attempts)
+                if item["time_uncertain"]:
+                    count["uncertain_tasks"] += 1
+                    continue
                 if open_contribution(item):
                     count["reflection_tasks"] += 1
                     continue
@@ -344,6 +362,10 @@ def goal_states(db, unit):
             # separate assessed questions for the same goal.
             items = [item for item in items if not open_contribution(item)]
             if not items:
+                continue
+            # An unknown answer time cannot establish a dated check or a
+            # difficulty ordering for any goal containing that answer.
+            if any(item["time_uncertain"] for item in items):
                 continue
             clean = (
                 not helped
