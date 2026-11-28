@@ -1660,6 +1660,10 @@ class _AdminScreenState extends State<AdminScreen> {
       itemBuilder: (_) => const [
         PopupMenuItem(value: '/admin/users', child: Text('Benutzer verwalten')),
         PopupMenuItem(
+          value: '/admin/media-explorer',
+          child: Text('Medienredaktion'),
+        ),
+        PopupMenuItem(
           value: '/admin/settings',
           child: Text('Betriebseinstellungen'),
         ),
@@ -1736,7 +1740,24 @@ class _AdminScreenState extends State<AdminScreen> {
               ),
               Align(
                 alignment: Alignment.centerLeft,
-                child: headerActions(context)[2],
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    headerActions(context)[2],
+                    OutlinedButton.icon(
+                      onPressed: own
+                          ? () {
+                              if (own && !widget.state.authenticationPending) {
+                                openRoute(context, '/admin/media-explorer');
+                              }
+                            }
+                          : null,
+                      icon: const Icon(Icons.video_library_outlined),
+                      label: const Text('Medienredaktion'),
+                    ),
+                  ],
+                ),
               ),
               if (emergencyMessage != null)
                 Semantics(liveRegion: true, child: Notice(emergencyMessage!)),

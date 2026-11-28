@@ -125,6 +125,10 @@ Future<void> mount(
     routes: [
       GoRoute(path: '/admin', builder: (_, _) => AdminScreen(state)),
       GoRoute(
+        path: '/admin/media-explorer',
+        builder: (_, _) => const Scaffold(body: Text('Redaktionsziel')),
+      ),
+      GoRoute(
         path: '/admin/settings',
         builder: (_, _) => InstallationScreen(state, initial: false),
       ),
@@ -151,6 +155,30 @@ Future<void> tap(WidgetTester tester, Finder finder) async {
 
 void main() {
   setUp(() => FlutterSecureStorage.setMockInitialValues({}));
+  testWidgets('media editorial screen is directly reachable from admin', (
+    tester,
+  ) async {
+    final requests = <http.Request>[];
+    await mount(tester, requests, width: 320);
+    await tap(tester, find.widgetWithText(OutlinedButton, 'Medienredaktion'));
+    expect(find.text('Redaktionsziel'), findsOneWidget);
+  });
+  testWidgets('an old media link cannot open during a new sign-in', (
+    tester,
+  ) async {
+    final requests = <http.Request>[];
+    await mount(tester, requests, width: 320);
+    final state = tester.widget<AdminScreen>(find.byType(AdminScreen)).state;
+    final old = tester
+        .widget<OutlinedButton>(
+          find.widgetWithText(OutlinedButton, 'Medienredaktion'),
+        )
+        .onPressed!;
+    state.beginAuthentication();
+    old();
+    await tester.pumpAndSettle();
+    expect(find.text('Redaktionsziel'), findsNothing);
+  });
   for (final width in [320.0, 390.0, 1440.0]) {
     testWidgets(
       'admin workspace separates real status and configuration at $width px',

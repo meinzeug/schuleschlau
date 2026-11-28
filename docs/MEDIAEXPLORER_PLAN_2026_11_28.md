@@ -93,9 +93,23 @@ jeweiligen öffentlichen Mediums und Themas. Eine seitenweise Liste zeigt
 bestehende und entfernte Zuordnungen. Keine dieser Aktionen startet
 einen externen Abruf, erzeugt Lernfortschritt oder ersetzt die separate
 menschliche Inhaltsfreigabe. Die Freigabepolitik prüft weiterhin jede
-Zuordnung beim Lesen. Eine grafische Redaktionsoberfläche fehlt. Es wurden
+Zuordnung beim Lesen. Es wurden
 ausschließlich künstliche Daten getestet; eine Prüfung mit einem echten
 Medienanbieter hat dabei nicht stattgefunden.
+
+Die Adminansicht „Medienredaktion“ zeigt vorhandene Kandidaten seitenweise,
+öffnet nur explizit angeklickte kanonische YouTube-Links und übermittelt eine
+eindeutige redaktionelle Entscheidung mit Medienrevision und bisheriger
+Prüfnummer. Freigaben setzen eine selbst bestätigte Inhaltsprüfung und je nach
+Inhaltsart eine Einordnung beziehungsweise Gegenperspektive voraus; eine
+vorsorgliche Sperre ist auch ohne Inhaltsprüfung möglich. Die eigene
+Bestätigung ist keine unabhängige technische Bestätigung der Sichtung.
+Sitzungswechsel verwerfen den Entwurf und spätere Antworten der alten Sitzung.
+Die Oberfläche startet keine Recherche oder Provideraufträge, importiert
+keine Kandidaten und bedient noch nicht die Themenzuordnung; nach einem
+Revisionskonflikt muss das Medium bewusst neu geöffnet werden. Geprüft wurde
+mit künstlichen Widgetdaten; echte Quellen-, Rechts- und Kinderabnahme bleiben
+offen.
 
 Die von der Netzschicht unabhängige YouTube-Metadatenprüfung kann in
 synthetischen Tests bereits Suchergebnisse und Videoantworten auf tatsächlich

@@ -50,7 +50,16 @@ physischer Hardware. Historische Testangaben bleiben als solche erhalten.
     neue Zuordnungen werden auditiert. Eine Zuordnung ist ausdrücklich
     keine Inhaltsprüfung oder Freigabe. Korrekturen und Entfernungen sind
     revisionsgebunden und historisiert, entfernte Zuordnungen werden sofort
-    ausgeblendet. Die Recherche und eine grafische Redaktion bleiben offen.
+    ausgeblendet. Die Recherche und die grafische Themenzuordnung bleiben offen.
+
+  - [x] **Redaktionelle Entscheidungen in der Adminansicht ermöglichen.**
+    Vorhandene Kandidaten können seitenweise angesehen und ausschließlich über
+    sichere Links ausdrücklich extern geöffnet werden. Freigaben benötigen
+    eine bestätigte Inhaltsprüfung und gegebenenfalls Kontext oder
+    Gegenperspektive; Ablehnung und Sperre sind getrennt möglich. Ein
+    Sitzungswechsel verwirft den Entwurf, Revisionskonflikte werden nicht
+    automatisch wiederholt. Die Bedienung ist mit künstlichen Widgetdaten
+    geprüft; Recherche und tatsächliche Quellensichtung bleiben offen.
 
 - [x] **Klassenarbeitsfotos in der Kinderansicht verständlicher benennen.**
   Bei ungeprüften Fotos erklärt die lokale Oberfläche kurz die Zuständigkeit

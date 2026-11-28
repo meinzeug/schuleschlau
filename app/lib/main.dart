@@ -25,6 +25,7 @@ import 'parent_plan_screen.dart';
 import 'material_actions.dart';
 import 'settings_screen.dart';
 import 'admin_users_screen.dart';
+import 'admin_media_explorer_screen.dart';
 import 'operator_incidents_screen.dart';
 import 'installation_screen.dart';
 import 'school_day_screen.dart';
@@ -312,6 +313,10 @@ class _SchulpilotAppState extends State<SchulpilotApp>
           widget.state,
           userId: s.uri.queryParameters['user'],
         ),
+      ),
+      GoRoute(
+        path: '/admin/media-explorer',
+        builder: (context, s) => AdminMediaExplorerScreen(widget.state),
       ),
       GoRoute(
         path: '/admin/settings',
