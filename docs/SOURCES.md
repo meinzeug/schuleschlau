@@ -5,8 +5,9 @@ verlinkt den [Fachlehrplan Französisch, Stand 01.08.2019](https://www.bildung-l
 Die gedruckten Seiten 12 und 17 unterscheiden kommunikative Inhaltsfelder für
 die Schuljahrgänge 7/8 und 9/10. Die Katalogtitel fassen diese Bereiche in
 eigenen Worten zusammen. Beide Bänder bleiben über die Katalog-API ausdrücklich
-filterbare Phasen ohne automatische Klassenfilterung; eine Auswahloberfläche
-für diese Phasen ist noch nicht angebunden. Weder Sprachwahl noch Sprachlernjahr,
+filterbare Phasen ohne automatische Klassenfilterung. Die Elternansicht zeigt
+nach ausdrücklicher Fachauswahl eine reine Vorschau der erfassten Phasen mit
+Fundstelle und Unvollständigkeitshinweis; sie speichert keine Kurswahl. Weder Sprachwahl noch Sprachlernjahr,
 konkrete schulische Reihenfolge oder individueller Lernstand sind dadurch
 belegt. Eine Einbindung in die automatische Lernplanung anhand einer Klasse
 allein findet nicht statt.

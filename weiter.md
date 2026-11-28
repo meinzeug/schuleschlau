@@ -1,11 +1,26 @@
 # Übergabe an die nächste Coding-KI
 
+## Ergänzung 28. November 2026: Lehrplanvorschau und Anmeldung
+
+Das elterliche Bildungsprofil bietet eine reine Themenvorschau nach bewusster
+Fachauswahl. Jahrgangsband und Quelle sind sichtbar; es erfolgt weder eine
+Kurswahl noch eine automatische Planung. Die Übersicht ist unvollständig.
+Die Fachansicht Lernen blendet bei neuer Anmeldeabsicht ihre Daten aus und
+blockiert alte zufällige Rundenaktionen auch nach einem Abbruch. Für eine neue
+Ansicht ist ein ausdrücklicher Einstieg nötig. Künstliche Widgettests prüfen
+u. a. überholte Aktionen und Antworten: 54 Elternprofil-/Vorschaufälle,
+17 Fachseitenfälle und 37 Sammlungsfälle bestanden lokal; die sieben Vorschau-
+und 17 Fachseitenfälle bestanden auch im Chrome-Webrunner. Der allgemeine
+Cookie-Wettlauf und bereits versandte Anfragen bleiben offen. Der GitHub-Lauf 46101188257 hatte
+vor dieser Korrektur eine fehlgeschlagene Flutter-Testgruppe; ein neuer Lauf
+muss am tatsächlichen Commit geprüft werden.
+
 ## Ergänzung 28. November 2026: Französisch-Lehrplan Sachsen-Anhalt
 
 Acht quellengestützte Inhaltsüberschriften für die amtlichen Phasen 7/8 und
 9/10 sind im versionierten öffentlichen Katalog. Die Katalog-API kann die
-Phasen gezielt filtern; eine Auswahloberfläche und eine Nutzung im Lernplan
-nach bestätigter Sprachwahl fehlen noch. Es wird kein Sprachlernjahr aus der
+Phasen gezielt filtern; die Elternvorschau zeigt sie ohne Kurswahl. Eine Nutzung
+im Lernplan nach bestätigter Sprachwahl fehlt noch. Es wird kein Sprachlernjahr aus der
 Klassenstufe abgeleitet. Migration 0066 ist additiv und erhielt künstliche
 Antworten und Lernzeit in SQLite- und PostgreSQL-Tests. 33 SQLite-Fälle (ein
 PostgreSQL-Fall übersprungen), 34 PostgreSQL-Fälle sowie der ergänzte

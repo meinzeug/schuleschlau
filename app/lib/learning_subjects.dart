@@ -38,18 +38,21 @@ class _LearningSubjectsState extends State<LearningSubjectsScreen> {
   Json? catalog, listing;
   Object? error;
   bool ownOnly = true, list = true, starting = false;
+  bool authenticationPaused = false;
   int generation = 0, revision = 0;
 
   AppState get state => widget.state;
   String get memoryKey => 'learning-subject-shelf:${widget.childId}';
   String get subjectRoute =>
       '/learn/${widget.childId}/subject/${widget.subjectId}';
-  bool get current =>
+  bool get sameOwner =>
       mounted &&
       owner != null &&
       identical(owner, state.user) &&
       family == state.familyId &&
       session == state.api.token;
+  bool get current =>
+      sameOwner && !state.authenticationPending && !authenticationPaused;
 
   @override
   void initState() {
@@ -58,17 +61,32 @@ class _LearningSubjectsState extends State<LearningSubjectsScreen> {
     family = state.familyId;
     session = state.api.token;
     revision = state.revision;
+    authenticationPaused = state.authenticationPending;
     final saved = state.collectionViews[memoryKey];
     ownOnly = saved?['own_only'] as bool? ?? true;
     list = saved?['list'] as bool? ?? true;
     search.text = saved?['q'] as String? ?? '';
     state.addListener(changed);
+    state.authenticationChanges.addListener(authenticationChanged);
     load();
+  }
+
+  void authenticationChanged() {
+    if (!mounted) return;
+    generation++;
+    searchFocus.unfocus();
+    state.collectionViews.remove(memoryKey);
+    setState(() {
+      authenticationPaused = true;
+      catalog = listing = null;
+      error = null;
+      search.clear();
+    });
   }
 
   void changed() {
     if (!mounted) return;
-    if (!current) {
+    if (!sameOwner) {
       generation++;
       state.collectionViews.remove(memoryKey);
       searchFocus.unfocus();
@@ -77,7 +95,7 @@ class _LearningSubjectsState extends State<LearningSubjectsScreen> {
         error = null;
         search.clear();
       });
-    } else if (revision != state.revision) {
+    } else if (current && revision != state.revision) {
       revision = state.revision;
       load();
     }
@@ -87,6 +105,7 @@ class _LearningSubjectsState extends State<LearningSubjectsScreen> {
   void dispose() {
     generation++;
     state.removeListener(changed);
+    state.authenticationChanges.removeListener(authenticationChanged);
     search.dispose();
     searchFocus.dispose();
     super.dispose();
@@ -427,7 +446,39 @@ class _LearningSubjectsState extends State<LearningSubjectsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (!current) return const SizedBox.shrink();
+    if (!current) {
+      return PageFrame(
+        state: state,
+        title: 'Lernen',
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                state.authenticationPending
+                    ? 'Anmeldung läuft …'
+                    : sameOwner
+                    ? 'Öffne Lernen erneut.'
+                    : 'Bitte melde dich erneut an.',
+              ),
+              if (!state.authenticationPending && sameOwner)
+                TextButton(
+                  onPressed: () {
+                    if (!sameOwner || state.authenticationPending) return;
+                    openRoute(
+                      context,
+                      widget.subjectId == null
+                          ? '/app'
+                          : '/learn/${widget.childId}',
+                    );
+                  },
+                  child: const Text('Zurück'),
+                ),
+            ],
+          ),
+        ),
+      );
+    }
     final subjects = [
       for (final row in catalog?['items'] as List? ?? []) Json.from(row),
     ];

@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 
 import 'api.dart';
 import 'parent_form_guard.dart';
+import 'curriculum_topics_dialog.dart';
 import 'ui.dart';
 
 /// Curriculum selection is an explicit parent action, never a learning result.
@@ -121,7 +122,7 @@ class _CurriculumProfileEditorState extends State<CurriculumProfileEditor>
       accessPaused = false,
       checkingAccess = false;
   ModalRoute<bool>? discardRoute;
-  ModalRoute<void>? otherRegionsRoute;
+  ModalRoute<void>? otherRegionsRoute, topicsRoute;
   bool get sameOwner =>
       mounted &&
       !closing &&
@@ -201,8 +202,9 @@ class _CurriculumProfileEditorState extends State<CurriculumProfileEditor>
     closing = true;
     epoch++;
     final route = ModalRoute.of(context), extra = discardRoute;
-    final regions = otherRegionsRoute;
+    final regions = otherRegionsRoute, topics = topicsRoute;
     scheduleMicrotask(() {
+      if (topics?.isActive == true) topics!.navigator?.removeRoute(topics);
       if (regions?.isActive == true) {
         regions!.navigator?.removeRoute(regions);
       }
@@ -221,10 +223,14 @@ class _CurriculumProfileEditorState extends State<CurriculumProfileEditor>
       return;
     }
     epoch++;
-    final extra = discardRoute, regions = otherRegionsRoute;
+    final extra = discardRoute,
+        regions = otherRegionsRoute,
+        topics = topicsRoute;
     discardRoute = null;
     otherRegionsRoute = null;
+    topicsRoute = null;
     scheduleMicrotask(() {
+      if (topics?.isActive == true) topics!.navigator?.removeRoute(topics);
       if (regions?.isActive == true) regions!.navigator?.removeRoute(regions);
       if (extra?.isActive == true) extra!.navigator?.removeRoute(extra);
     });
@@ -254,6 +260,12 @@ class _CurriculumProfileEditorState extends State<CurriculumProfileEditor>
   @override
   void dispose() {
     epoch++;
+    final topics = topicsRoute;
+    if (topics != null) {
+      scheduleMicrotask(() {
+        if (topics.isActive) topics.navigator?.removeRoute(topics);
+      });
+    }
     ownerState.removeListener(identityChanged);
     ownerState.authenticationChanges.removeListener(authenticationChanged);
     WidgetsBinding.instance.removeObserver(this);
@@ -598,6 +610,39 @@ class _CurriculumProfileEditorState extends State<CurriculumProfileEditor>
     }
   }
 
+  Future<void> showCurriculumTopics() async {
+    final code = stateCode, form = schoolForm;
+    if (!interactive ||
+        code == null ||
+        form == null ||
+        !forms.any((item) => item['id'] == form)) {
+      return;
+    }
+    final rawStateLabel = chosenState?['name'];
+    final rawFormLabel = forms.firstWhere(
+      (item) => item['id'] == form,
+    )['label'];
+    final stateLabel = rawStateLabel is String ? rawStateLabel : null;
+    final formLabel = rawFormLabel is String ? rawFormLabel : null;
+    final route = DialogRoute<void>(
+      context: context,
+      builder: (_) => CurriculumTopicsDialog(
+        ownerState,
+        stateCode: code,
+        schoolForm: form,
+        stateLabel: stateLabel,
+        schoolFormLabel: formLabel,
+      ),
+    );
+    topicsRoute = route;
+    try {
+      await Navigator.of(context, rootNavigator: true).push(route);
+      await route.completed;
+    } finally {
+      if (identical(topicsRoute, route)) topicsRoute = null;
+    }
+  }
+
   Future<void> showOtherEducationRegions() async {
     if (!interactive || scopeLoading) return;
     setState(() => scopeLoading = true);
@@ -885,6 +930,18 @@ class _CurriculumProfileEditorState extends State<CurriculumProfileEditor>
                 const SizedBox(height: 14),
                 const Text(
                   'Lehrpläne können mehrere Klassen oder Oberstufenphasen zusammenfassen. Das zeigen wir bei den Themen an.',
+                ),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    key: const ValueKey('curriculum-open-topics'),
+                    onPressed:
+                        enabled && stateCode != null && schoolForm != null
+                        ? showCurriculumTopics
+                        : null,
+                    icon: const Icon(Icons.menu_book_outlined),
+                    label: const Text('Lehrplanthemen ansehen'),
+                  ),
                 ),
                 if (chosenState?['coverage'] != 'complete') ...[
                   const SizedBox(height: 10),

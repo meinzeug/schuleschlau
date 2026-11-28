@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -80,6 +81,7 @@ Future<(AppState, GoRouter)> open(
   double width = 390,
   double scale = 1,
   String? initial,
+  bool pendingAtMount = false,
   Future<http.Response> Function(http.Request)? respond,
 }) async {
   t.view.physicalSize = Size(width, 1000);
@@ -110,6 +112,7 @@ Future<(AppState, GoRouter)> open(
           'child_id': 'child',
           'display_name': 'Künstliches Testkind',
         };
+  if (pendingAtMount) state.beginAuthentication();
   final router = GoRouter(
     initialLocation: initial ?? '/learn/child',
     routes: [
@@ -168,6 +171,23 @@ Future<void> tap(WidgetTester t, Finder finder) async {
 }
 
 void main() {
+  testWidgets(
+    'Opening a subject during authentication makes no private requests',
+    (t) async {
+      final calls = <http.Request>[];
+      await open(
+        t,
+        calls,
+        initial: '/learn/child/subject/$math',
+        pendingAtMount: true,
+      );
+      expect(find.text('Anmeldung läuft …'), findsOneWidget);
+      expect(find.byKey(const ValueKey('random-subject-round')), findsNothing);
+      expect(calls, isEmpty);
+      expect(t.takeException(), isNull);
+    },
+  );
+
   testWidgets('A stale subject error does not expose its old account details', (
     t,
   ) async {
@@ -193,10 +213,7 @@ void main() {
     );
     await t.pumpAndSettle();
     expect(find.text('Veraltetes privates Detail'), findsNothing);
-    expect(
-      find.text('Dein Zugang hat sich geändert. Bitte lade die Fächer erneut.'),
-      findsOneWidget,
-    );
+    expect(find.text('Anmeldung läuft …'), findsOneWidget);
     expect(t.takeException(), isNull);
   });
 
@@ -237,16 +254,11 @@ void main() {
       );
       await t.pumpAndSettle();
       expect(find.text('Veraltetes Fach'), findsNothing);
-      expect(
-        find.text(
-          'Dein Zugang hat sich geändert. Bitte lade die Fächer erneut.',
-        ),
-        findsOneWidget,
-      );
+      expect(find.text('Anmeldung läuft …'), findsOneWidget);
       state.cancelAuthentication(intent);
-      defer = false;
-      await tap(t, find.text('Erneut laden'));
-      expect(find.text('Mathematik'), findsOneWidget);
+      await t.pumpAndSettle();
+      expect(find.text('Öffne Lernen erneut.'), findsOneWidget);
+      expect(find.text('Mathematik'), findsNothing);
       expect(calls.where((q) => q.method == 'POST'), isEmpty);
       expect(t.takeException(), isNull);
     },
@@ -282,20 +294,47 @@ void main() {
       pending.complete(response(late));
       await t.pumpAndSettle();
       expect(find.text('Veraltetes Thema'), findsNothing);
-      expect(
-        find.text(
-          'Dein Zugang hat sich geändert. Bitte lade die Liste erneut.',
-        ),
-        findsOneWidget,
-      );
-      final button = t.widget<OutlinedButton>(
-        find.byKey(const ValueKey('random-subject-round')),
-      );
-      expect(button.onPressed, isNull);
+      expect(find.text('Anmeldung läuft …'), findsOneWidget);
+      expect(find.byKey(const ValueKey('random-subject-round')), findsNothing);
       state.cancelAuthentication(intent);
       defer = false;
-      await tap(t, find.text('Erneut laden'));
+      await t.pumpAndSettle();
+      expect(find.text('Öffne Lernen erneut.'), findsOneWidget);
+      await tap(t, find.text('Zurück'));
+      await tap(t, find.text('Mathematik'));
       expect(find.text('Brüche'), findsOneWidget);
+      expect(calls.where((q) => q.method == 'POST'), isEmpty);
+      expect(t.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'A retained random action cannot run across an authentication intent',
+    (t) async {
+      final calls = <http.Request>[];
+      final (state, _) = await open(
+        t,
+        calls,
+        initial: '/learn/child/subject/$math',
+      );
+      final action = t
+          .widget<OutlinedButton>(
+            find.byKey(const ValueKey('random-subject-round')),
+          )
+          .onPressed;
+      expect(action, isNotNull);
+      final before = calls.length;
+      final intent = state.beginAuthentication();
+      action!();
+      await t.pumpAndSettle();
+      expect(find.text('Anmeldung läuft …'), findsOneWidget);
+      expect(find.text('Brüche'), findsNothing);
+      expect(calls.length, before);
+      state.cancelAuthentication(intent);
+      action();
+      await t.pumpAndSettle();
+      expect(find.text('Öffne Lernen erneut.'), findsOneWidget);
+      expect(calls.length, before);
       expect(calls.where((q) => q.method == 'POST'), isEmpty);
       expect(t.takeException(), isNull);
     },
@@ -350,10 +389,19 @@ void main() {
       await tap(t, find.text('Mathematik'));
       expect(find.text('Brüche'), findsOneWidget);
       expect(find.text('Wähle ein Thema.'), findsOneWidget);
-      expect(
-        t.widget<NavigationBar>(find.byType(NavigationBar).last).selectedIndex,
-        1,
-      );
+      if (kIsWeb && width >= 720) {
+        expect(
+          t.widget<NavigationRail>(find.byType(NavigationRail)).selectedIndex,
+          1,
+        );
+      } else {
+        expect(
+          t
+              .widget<NavigationBar>(find.byType(NavigationBar).last)
+              .selectedIndex,
+          1,
+        );
+      }
       expect(find.text('Deutsch'), findsNothing);
       expect(find.text('Zufälliges Thema üben'), findsOneWidget);
       expect(

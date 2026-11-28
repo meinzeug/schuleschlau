@@ -91,6 +91,7 @@ class Fixture {
   Json stored = profile();
   Json currentCatalog = catalog();
   Future<http.Response>? pendingGet, pendingPut, pendingDach, pendingMe;
+  Future<http.Response> Function(http.Request)? topicsHandler;
   int failures = 0, failureStatus = 409;
   final child = ValueNotifier(childId);
   final replacement = ValueNotifier<AppState?>(null);
@@ -110,6 +111,11 @@ class Fixture {
               if (request.url.path == '/api/curriculum/catalog' &&
                   request.method == 'GET') {
                 return response(currentCatalog);
+              }
+              if (request.url.path == '/api/curriculum/topics' &&
+                  request.method == 'GET' &&
+                  topicsHandler != null) {
+                return topicsHandler!(request);
               }
               if (request.url.path == '/api/curriculum/dach-scope' &&
                   request.method == 'GET') {

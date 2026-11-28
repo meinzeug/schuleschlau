@@ -986,10 +986,22 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
 
 - [ ] **P1 – Lehrplanabdeckung fachlich kuratieren und offen ausweisen**
 
+  - [x] **Erfasste Lehrplanthemen in der Elternansicht lesbar machen.** Im
+    Bildungsprofil zeigt eine ausdrücklich geöffnete Vorschau nach Fachwahl
+    vorhandene Themen mit Geltungsbereich und Fundstelle. Sie weist auf
+    Lücken hin und legt keine Kurse an; Klassennummern werden nicht als
+    Sprachlernjahre interpretiert. Ein abgebrochener Kontowechsel übernimmt
+    keine verspäteten Daten. Die Vorschau wurde mit künstlichen Daten auf
+    schmalem Bildschirm und mit vergrößerter Schrift geprüft. 54 künstliche
+    Flutterfälle bestanden; die sieben Vorschaufälle bestanden auch im
+    Chrome-Webrunner. Die fachliche Vollständigkeit und verbindliche Kurswahl
+    bleiben offen.
+
   - [x] **Französisch für Sachsen-Anhalts Sekundarschule im Katalog belegen.**
     Acht kurze eigene Inhaltsüberschriften stammen aus den amtlichen Phasen
     7/8 und 9/10. Die Phasen können über die Katalog-API explizit gefiltert
-    werden; eine Auswahloberfläche und automatische Planung nach bestätigtem
+    werden; die Eltern können die erfassten Phasen als Vorschau einsehen.
+    Eine verbindliche Kurswahl und automatische Planung nach bestätigtem
     Sprachkurs sind noch nicht angebunden. Die Klassenstufe allein erzeugt
     deshalb keine Sprachwahl und zieht diese Inhalte nicht in den KI-Kontext.
     Die additive Migration erhält vorhandene Antworten und Lernzeit und ist
@@ -4490,6 +4502,15 @@ Bestandteil des bestehenden Buildvertrags.
   **Abnahme:** Dokumentation, Bewertung, gegebenenfalls Folgenabschätzung, vereinbarte Maßnahmen und Zuständigkeiten liegen für den vorgesehenen Freigabeumfang vor; offene Risiken sind vor der jeweiligen Freigabe entschieden.
 
 - [ ] **P1 – Echtzeitstatus gezielt und zuverlässig bereitstellen**
+
+  - [x] **Fachansicht bei neuer Anmeldung anhalten.** Die Themen- und
+    Fächerliste wird ausgeblendet, solange eine Anmeldung läuft. Überholte
+    Ladeantworten und eingefangene Aktionen können auch nach Abbruch keine
+    zufällige Runde starten; die Seite wird bewusst neu geöffnet. Die
+    Regressionen verwenden künstliche Konten: 17 Fachseitenfälle und 37
+    Sammlungsfälle bestanden lokal, die Fachseitenfälle auch im Chrome-
+    Webrunner. Bereits abgeschickte Anfragen und der allgemeine Browser-
+    Cookie-Wettlauf bleiben gesondert zu behandeln.
 
   - [x] **Lehrplanentwürfe bei neuer Anmeldung sichern.** Eine begonnene
     Anmeldung pausiert den Editor, ohne die ungespeicherte Auswahl zu löschen.
