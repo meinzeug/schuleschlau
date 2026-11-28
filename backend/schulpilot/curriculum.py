@@ -163,6 +163,17 @@ def seed_additional(db):
             raise ValueError("Ein versionierter Lehrplanbestand fehlt.")
         import_catalogue(db, json.loads(path.read_text()))
 
+    # Historical migration 0041 also invokes this helper, before the new
+    # subject exists. Migration 0063 adds both the subject and its catalogue;
+    # fresh databases seed the subject before calling this function.
+    if db.scalar(select(Subject.id).where(
+        Subject.key == "hauswirtschaft", Subject.owner_family_id.is_(None)
+    )) is not None:
+        path = REFERENCE / "curriculum-st-sekundarschule-hauswirtschaft-2019.json"
+        if not path.is_file():
+            raise ValueError("Ein versionierter Lehrplanbestand fehlt.")
+        import_catalogue(db, json.loads(path.read_text()))
+
 
 @router.post("/admin/curriculum/import")
 def import_reviewed(data: CatalogueInput, p=Depends(admin), db=Depends(get_db)):

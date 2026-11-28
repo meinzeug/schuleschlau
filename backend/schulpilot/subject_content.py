@@ -87,6 +87,7 @@ PROFILES = {
     "Sport": ("movement", "fairplay"),
     "Technik": ("gears", "forces"),
     "Wirtschaft": ("money", "statements"),
+    "Hauswirtschaft": ("statements",),
 }
 for _subject, _kinds in {
     "Mathematik": ("function_graph", "data_plot"),
@@ -108,7 +109,13 @@ for _subject in ("Physik", "Technik", "Deutsch", "Deutsch als Zweitsprache"):
 # Only aliases from the versioned public subject catalogue share a profile.
 # Stored material and unit labels remain their original snapshots.
 _profile_aliases = {}
-for _row in json.loads((Path(__file__).with_name("reference") / "subjects-v1.json").read_text())["subjects"]:
+_reference = Path(__file__).with_name("reference")
+_subject_rows = [
+    row
+    for filename in ("subjects-v1.json", "subjects-additions-v2.json")
+    for row in json.loads((_reference / filename).read_text())["subjects"]
+]
+for _row in _subject_rows:
     _title = _row["title"]
     if _title not in PROFILES:
         continue

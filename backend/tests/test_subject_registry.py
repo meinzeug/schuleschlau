@@ -21,7 +21,7 @@ def test_reference_subjects_exist_before_any_account_or_material(api):
         "Sport",
         "Kunst",
     } <= titles
-    assert len({r["id"] for r in listed}) == len(listed) == 24
+    assert len({r["id"] for r in listed}) == len(listed) == 25
     with DB.begin() as db:
         assert db.scalar(select(func.count()).select_from(Material)) == 0
         assert (
@@ -38,7 +38,7 @@ def test_new_parent_and_independent_child_can_open_all_empty_subjects(api, house
     parent, child = household
     path = f"/api/children/{child['id']}/subjects"
     parent = api.get(path).json()
-    assert len(parent["items"]) == 24
+    assert len(parent["items"]) == 25
     assert all(row["page_count"] == row["photo_count"] == row["review_count"] == 0 for row in parent["items"])
     with TestClient(app, headers=HEADERS) as kid:
         login = kid.post("/api/auth/login", json={"username": "test-child", "password": "secure-child-pass-123"}).json()
@@ -131,7 +131,7 @@ def test_parent_explicit_custom_subject_is_idempotent_and_does_not_change_seed(a
     assert one.status_code == two.status_code == 201
     assert one.json()["id"] == two.json()["id"]
     assert one.json()["family_subject"]
-    assert len(api.get("/api/subjects").json()["items"]) == 24
+    assert len(api.get("/api/subjects").json()["items"]) == 25
     with DB() as db:
         assert resolve(db, "Naturwissenschaften", parent["families"][0]["id"]).id != resolve(db, "Biologie").id
 

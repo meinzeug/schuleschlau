@@ -1,0 +1,153 @@
+{
+  "version": 1,
+  "retrieved": "2026-11-28",
+  "documents": [
+    {
+      "id": "st-sek-hauswirtschaft-2019",
+      "state_code": "DE-ST",
+      "edition": "Stand 01.08.2019",
+      "effective_from": null,
+      "school_form_label": "Sekundarschule",
+      "school_form_id": "de-st.sekundarschule",
+      "school_form_scope": "specific",
+      "applies_to_school_forms": [],
+      "source_status": "current_verified",
+      "retrieved": "2026-11-28",
+      "document_kind": "curriculum",
+      "official_url": "https://www.bildung-lsa.de/files/164f3f97e3adf65ff6f44685dd9e1ced/lp_sks_hausw_01_08_2019.pdf",
+      "title": "Fachlehrplan Sekundarschule Hauswirtschaft",
+      "applicability_note": "Die Übersicht gilt für die angegebenen Doppeljahrgänge; Zusammenleben und Wohnen sowie Ernährungsverhalten sind verbindlich in Jahrgang 9. Die konkrete Unterrichtsfolge ist unbekannt. Praktische Tätigkeiten benötigen schulische Sicherheits- und Hygienevorgaben sowie gegebenenfalls Aufsicht. Keine individuellen Diät- oder Gewichtsempfehlungen und keine Aufforderung, private Haushalts- oder Finanzdaten preiszugeben. Die digitale Bildung wurde 2019 in die Fachkontexte integriert.",
+      "source_notes": "Ministerium für Bildung Sachsen-Anhalt; Landesportal Sachsen-Anhalt, CC BY-SA 3.0 (https://creativecommons.org/licenses/by-sa/3.0/); Kapitel 3.1, gedruckte Seite 11. PDF-SHA256 e8904840d4b098e853f79c2a7ce04f2158226dd39dc86cfb82a27b29ee032630; amtlicher Index https://www.bildung-lsa.de/index.php?KAT_ID=16003."
+    }
+  ],
+  "topics": [
+    {
+      "id": "st-sek-hauswirtschaft-2019.56-gesund",
+      "document_id": "st-sek-hauswirtschaft-2019",
+      "subject_key": "hauswirtschaft",
+      "title": "Gesundheit und Wohlbefinden im Haushalt",
+      "grade_kind": "band",
+      "grades": [
+        5,
+        6
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 11,
+      "quote": "gesund leben",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-hauswirtschaft-2019.56-textilien",
+      "document_id": "st-sek-hauswirtschaft-2019",
+      "subject_key": "hauswirtschaft",
+      "title": "Textilien nutzen und gestalten",
+      "grade_kind": "band",
+      "grades": [
+        5,
+        6
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 11,
+      "quote": "Textilien",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-hauswirtschaft-2019.78-ressourcen",
+      "document_id": "st-sek-hauswirtschaft-2019",
+      "subject_key": "hauswirtschaft",
+      "title": "Haushaltsarbeit und Ressourcen",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 11,
+      "quote": "Ressourcen nutzen",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-hauswirtschaft-2019.78-lebensmittel",
+      "document_id": "st-sek-hauswirtschaft-2019",
+      "subject_key": "hauswirtschaft",
+      "title": "Lebensmittel auswählen und beurteilen",
+      "grade_kind": "band",
+      "grades": [
+        7,
+        8
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 11,
+      "quote": "Lebensmittel auswählen",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-hauswirtschaft-2019.9-wohnen",
+      "document_id": "st-sek-hauswirtschaft-2019",
+      "subject_key": "hauswirtschaft",
+      "title": "Zusammenleben und Wohnen",
+      "grade_kind": "exact",
+      "grades": [
+        9
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 11,
+      "quote": "Zusammenleben und Wohnen",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-hauswirtschaft-2019.9-ernaehrung",
+      "document_id": "st-sek-hauswirtschaft-2019",
+      "subject_key": "hauswirtschaft",
+      "title": "Ernährungsverhalten untersuchen",
+      "grade_kind": "exact",
+      "grades": [
+        9
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 11,
+      "quote": "Ernährungsverhalten",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    },
+    {
+      "id": "st-sek-hauswirtschaft-2019.910-global",
+      "document_id": "st-sek-hauswirtschaft-2019",
+      "subject_key": "hauswirtschaft",
+      "title": "Haushaltsführung in einer vernetzten Welt",
+      "grade_kind": "band",
+      "grades": [
+        9,
+        10
+      ],
+      "phase_label": null,
+      "section": "3.1",
+      "page": 11,
+      "quote": "Haushaltsführung und Ressourcennutzung",
+      "canonical_topic_key": null,
+      "common_fact_keywords": [],
+      "mapping_status": "curated_source_heading"
+    }
+  ],
+  "coverage": {
+    "complete": false,
+    "note": "Nur amtliche Überblicksschwerpunkte; keine Schulreihenfolge, Kursbelegung, individuellen Ernährungsratschläge oder vollständige Fachabdeckung."
+  }
+}

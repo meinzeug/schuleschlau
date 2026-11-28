@@ -972,7 +972,8 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
   gespeichert werden; ein automatischer Übergang ist nicht implementiert.
   Als erste fachlich belegte Erweiterung wurden Mathematik, Deutsch, Englisch,
   Geschichte, Biologie, Physik, Chemie, Geographie sowie Übersichten für Ethik,
-  Informatik, Musik, Kunst, Sport, Technik, Wirtschaft und Sozialkunde der
+  Informatik, Musik, Kunst, Sport, Technik, Wirtschaft, Sozialkunde und
+  Hauswirtschaft der
   Sekundarschule Sachsen-Anhalt für die jeweils belegten Jahrgänge bzw.
   Abschlussphasen ergänzt. Weitere Fächer, Österreich,
   die Schweiz und Hochschulen bleiben offen; keine Vollständigkeit behaupten.
@@ -984,6 +985,20 @@ Bei der Bestandsaufnahme vom 31.10. waren physische Android- und aktuelle sichtb
   Clients getestet.
 
 - [ ] **P1 – Lehrplanabdeckung fachlich kuratieren und offen ausweisen**
+
+  - [x] **Hauswirtschaft der Sekundarschule Sachsen-Anhalt ergänzen.** Das
+    Fach erhält eine eigenständige versionierte Stammkennung. Sieben amtliche
+    Überblicksschwerpunkte sind den belegten Doppeljahrgängen beziehungsweise
+    den ausdrücklich für Jahrgang 9 vorgesehenen Inhalten zugeordnet. Die
+    2019 geänderte digitale Bildung und Hinweise zu Aufsicht, Hygiene und
+    sensiblen Ernährungs- und Haushaltsdaten bleiben im Planungskontext
+    sichtbar. Die additive Migration erhält vorhandene private Fachkennungen,
+    Antworten und Lernzeit; ein gleichnamiges privates Fach kann weiterhin
+    separat erscheinen. 125 künstliche SQLite-Fälle bestanden (drei
+    PostgreSQL-Fälle übersprungen), ebenso 128 Fälle mit isoliertem PostgreSQL.
+    Zwei neue künstliche Darstellungen und ihr Grafik-Ausgabeschema wurden
+    zusätzlich geprüft. Die umfassende DACH-Abdeckung und das Ausrollen bleiben
+    offen. [Quelle und Grenzen](docs/SOURCES.md).
 
   - [x] **Sozialkunde der Sekundarschule Sachsen-Anhalt ergänzen.** Die
     amtliche Übersicht ist ausdrücklich dem bestehenden Sammelfach

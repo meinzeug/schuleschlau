@@ -1,3 +1,26 @@
+## 28.11.2026 · Hauswirtschaft Sachsen-Anhalt
+
+Der [amtliche Sekundarschulindex](https://www.bildung-lsa.de/index.php?KAT_ID=16003)
+verlinkt den [Fachlehrplan Hauswirtschaft, Stand 01.08.2019](https://www.bildung-lsa.de/files/164f3f97e3adf65ff6f44685dd9e1ced/lp_sks_hausw_01_08_2019.pdf).
+Die Übersicht auf gedruckter Seite 11 enthält zwei Schwerpunkte für 5/6,
+zwei für 7/8 und drei für 9/10. Zwei dieser drei sind ausdrücklich im
+Jahrgang 9 verbindlich. Die Fußnote beschreibt die Neuordnung der digitalen
+Bildung gegenüber dem älteren Plan; der ältere eigenständige
+Computerschwerpunkt wird nicht als weiterer aktueller Hauswirtschaftsbereich
+übernommen. Praktische Arbeit erfordert passende Sicherheits- und
+Hygieneregeln und gegebenenfalls Aufsicht. Der Katalog enthält keine
+individuellen Ernährungs- oder Gewichtsempfehlungen.
+
+Quelle: Ministerium für Bildung und Landesportal Sachsen-Anhalt,
+[CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/); abgerufen am
+28.11.2026. PDF-SHA256:
+`e8904840d4b098e853f79c2a7ce04f2158226dd39dc86cfb82a27b29ee032630`.
+Die Katalogtitel sind kurze eigene Formulierungen. Sie belegen weder die
+konkrete Reihenfolge an einer Schule noch individuelle Kursbelegung oder
+Kompetenz. Ein bereits vorhandenes privates Fach gleichen Namens und seine
+Verweise werden nicht automatisch umgehängt und können weiterhin separat
+sichtbar sein.
+
 ## 27.11.2026 · Sozialkunde Sachsen-Anhalt
 
 Der [amtliche Sekundarschulindex](https://www.bildung-lsa.de/index.php?KAT_ID=16003)

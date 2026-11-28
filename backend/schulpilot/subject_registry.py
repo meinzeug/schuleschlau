@@ -20,6 +20,7 @@ from sqlalchemy.orm import Session as SASession
 from .db import Assignment, Child, ChildSubject, LearningUnit, Mastery, Material, SchoolGrade, Subject, SubjectAlias
 
 SEED = Path(__file__).with_name("reference") / "subjects-v1.json"
+ADDITIONAL_SEED_V2 = Path(__file__).with_name("reference") / "subjects-additions-v2.json"
 PRIVATE_MODELS = (Material, Assignment, LearningUnit, SchoolGrade, Mastery)
 
 
@@ -130,6 +131,33 @@ def seed_connection(connection):
     insert_ignore(connection, aliases, alias_rows)
     insert_ignore(connection, providers, provider_rows)
     return {"seed_version": 1, "reference_subjects": len(provider_rows), "general_subjects": len(known)}
+
+
+def seed_additional_v2(connection):
+    """Add independently versioned public subjects without rewriting v1."""
+    seed = json.loads(ADDITIONAL_SEED_V2.read_text())
+    if seed.get("seed_version") != 2:
+        raise ValueError("Ungültige Fachstamm-Ergänzung.")
+    subjects, aliases, _ = tables()
+    start = len(json.loads(SEED.read_text())["subjects"])
+    for index, row in enumerate(seed["subjects"]):
+        existing = connection.execute(sa.select(subjects.c.id).where(
+            subjects.c.key == row["key"], subjects.c.owner_family_id.is_(None))).scalar_one_or_none()
+        subject_id = existing or identity(row["key"])
+        for label in {row["title"], *row["aliases"]}:
+            existing_alias = connection.execute(sa.select(aliases.c.subject_id).where(
+                aliases.c.key == alias_key(label))).scalar_one_or_none()
+            if existing_alias is not None and existing_alias != subject_id:
+                raise ValueError("Eine öffentliche Fachbezeichnung ist bereits anders zugeordnet.")
+        insert_ignore(connection, subjects, [{
+            "id": subject_id, "key": row["key"], "title": row["title"],
+            "owner_family_id": None, "cover_key": "other", "active": True,
+            "sort_order": start + index, "created": int(time.time()),
+        }])
+        insert_ignore(connection, aliases, [{
+            "key": alias_key(label), "subject_id": subject_id, "family_id": None,
+            "normalized": normalized(label),
+        } for label in {row["title"], *row["aliases"]}])
 
 
 def create_private_connection(connection, label, family_id, *, legacy=False):

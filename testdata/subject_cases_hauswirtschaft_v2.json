@@ -1,0 +1,92 @@
+{
+  "version": 2,
+  "provenance": "Zwei künstliche, lokal geprüfte Regressionsbeispiele; keine OCR- oder KI-Ausgaben.",
+  "cases": [
+    {
+      "id": "HAU01",
+      "subject": "Hauswirtschaft",
+      "source": "Vor der Zubereitung werden die Hände mit Wasser und Seife gewaschen.",
+      "question": {
+        "id": "hau01",
+        "type": "choice",
+        "prompt": "Was nutzt man zum Händewaschen?",
+        "answer": "Wasser und Seife",
+        "options": [
+          "Wasser und Seife",
+          "Das Gegenteil der beschriebenen Eigenschaft",
+          "Die Heftstelle enthält diese Behauptung nicht"
+        ],
+        "accepted": [],
+        "hints": [
+          "Lies die passende Heftstelle.",
+          "Vergleiche die wichtigen Merkmale.",
+          "Schau dir das Beispiel im Heft noch einmal an."
+        ],
+        "explanation": "Vor der Zubereitung werden die Hände mit Wasser und Seife gewaschen.",
+        "presentation": {
+          "version": 1,
+          "evidence_kind": "knowledge",
+          "blocks": [
+            {
+              "kind": "statements",
+              "title": "Zum Heftinhalt",
+              "disclosure": "solution",
+              "source_excerpt": "Vor der Zubereitung werden die Hände mit Wasser und Seife gewaschen.",
+              "labels": [
+                "Wasser",
+                "Seife"
+              ],
+              "numbers": [],
+              "connections": [],
+              "unit": "",
+              "variant": ""
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "HAU02",
+      "subject": "Hauswirtschaft",
+      "source": "Das Pflegeetikett nennt die Waschtemperatur und Hinweise zur Textilpflege.",
+      "question": {
+        "id": "hau02",
+        "type": "choice",
+        "prompt": "Was nennt das Pflegeetikett?",
+        "answer": "Waschtemperatur",
+        "options": [
+          "Waschtemperatur",
+          "Das Gegenteil der beschriebenen Eigenschaft",
+          "Die Heftstelle enthält diese Behauptung nicht"
+        ],
+        "accepted": [],
+        "hints": [
+          "Lies die passende Heftstelle.",
+          "Vergleiche die wichtigen Merkmale.",
+          "Schau dir das Beispiel im Heft noch einmal an."
+        ],
+        "explanation": "Das Pflegeetikett nennt die Waschtemperatur und Hinweise zur Textilpflege.",
+        "presentation": {
+          "version": 1,
+          "evidence_kind": "knowledge",
+          "blocks": [
+            {
+              "kind": "statements",
+              "title": "Zum Heftinhalt",
+              "disclosure": "solution",
+              "source_excerpt": "Das Pflegeetikett nennt die Waschtemperatur und Hinweise zur Textilpflege.",
+              "labels": [
+                "Pflegeetikett",
+                "Waschtemperatur"
+              ],
+              "numbers": [],
+              "connections": [],
+              "unit": "",
+              "variant": ""
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

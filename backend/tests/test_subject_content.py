@@ -19,6 +19,7 @@ from schulpilot.subject_content import (
 )
 
 CASES = json.loads((Path(__file__).parents[2] / "testdata/subject_cases_v1.json").read_text())["cases"]
+CASES += json.loads((Path(__file__).parents[2] / "testdata/subject_cases_hauswirtschaft_v2.json").read_text())["cases"]
 
 
 @pytest.mark.parametrize("case", CASES, ids=lambda c: c["id"])
@@ -40,7 +41,7 @@ def test_both_curated_sources_per_subject_validate_and_evaluate(case):
 
 
 def test_subject_matrix_is_complete_and_has_two_sources_each():
-    assert len(CASES) == 48
+    assert len(CASES) == 50
     subjects = {canonical_profile(subject) for subject in PROFILES}
     assert subjects == {c["subject"] for c in CASES}
     assert all(sum(c["subject"] == subject for c in CASES) == 2 for subject in subjects)

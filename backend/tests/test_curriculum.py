@@ -69,7 +69,7 @@ def test_catalogue_has_16_inventory_states_without_false_complete_claim(api, hou
     assert result.status_code == 200
     value = result.json()
     assert len(value["states"]) == 16 and len({row["code"] for row in value["states"]}) == 16
-    assert len(value["subjects"]) == 24 and value["coverage"]["complete"] is False
+    assert len(value["subjects"]) == 25 and value["coverage"]["complete"] is False
     assert all(row["coverage"] in ("partial", "sources_only") and row["school_forms_complete"] is False for row in value["states"])
     assert "keine vollständige Abdeckung" in value["notice"]
     assert all(form["id"].startswith(row["code"].lower() + ".") for row in value["states"] for form in row["school_forms"])

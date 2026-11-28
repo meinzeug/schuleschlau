@@ -651,6 +651,13 @@ Der unabhängige Watchdog aus Commit `96c43ca` ist lokal installiert. Er meldet 
   angrenzend bestanden 77 SQLite-Fälle (einer übersprungen) und 77 Fälle auf
   isoliertem PostgreSQL. Die vollständige produktive Lastabnahme bleibt offen.
 
+- Hauswirtschaft ist als eigenes Fach mit dem amtlichen Überblick der
+  Sekundarschule Sachsen-Anhalt, Fassung 01.08.2019, vorbereitet. Die neue
+  Migration `0063` erhält bestehende private Fachkennungen und Lernbelege;
+  gleichnamige private Fächer können weiterhin separat erscheinen. 125 SQLite-
+  und 128 PostgreSQL-Fälle sowie gezielte künstliche Grafikschemafälle
+  bestanden. Weitere Regionen und eine umfassende Fachabnahme bleiben offen.
+
 ## Nützliche Prüfungen
 
 - CI: `gh run list --limit 5` und `gh run view <ID>`; ein laufender oder abgebrochener Workflow ist kein grüner Gesamtnachweis.
