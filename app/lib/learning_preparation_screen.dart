@@ -282,6 +282,10 @@ class _LearningPreparationScreenState extends State<_LearningPreparationBody>
     final validMaterial =
         reviewMaterial is String &&
         RegExp(r'^[0-9a-f]{32}$').hasMatch(reviewMaterial);
+    final retryMaterial = job?['notebook_retry_material_id'];
+    final validRetryMaterial =
+        retryMaterial is String &&
+        RegExp(r'^[0-9a-f]{32}$').hasMatch(retryMaterial);
     final planning = job?['kind'] == 'decision';
     final failure = error ?? job?['error'];
     final missingJob =
@@ -505,6 +509,17 @@ class _LearningPreparationScreenState extends State<_LearningPreparationBody>
                     label: Text(
                       validMaterial ? 'Heftseite ansehen' : 'Zu meinen Heften',
                     ),
+                  ),
+                if (failed && !missingVisual && validRetryMaterial)
+                  TextButton.icon(
+                    onPressed: () {
+                      if (canRead &&
+                          ModalRoute.of(context)?.isCurrent != false) {
+                        openRoute(context, '/material/$retryMaterial');
+                      }
+                    },
+                    icon: const Icon(Icons.menu_book_outlined),
+                    label: const Text('Heftseite ansehen'),
                   ),
                 if ((failed || error != null) &&
                     widget.state.isChild &&

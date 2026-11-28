@@ -3,6 +3,35 @@ import 'package:flutter/material.dart';
 import 'api.dart';
 import 'ui.dart';
 
+String? automaticPreparationLabel(dynamic item) {
+  final info = item['automatic_preparation'];
+  if (item['kind'] != 'material' || info is! Map) return null;
+  switch (info['status']) {
+    case 'pending':
+    case 'queued':
+      return 'Runde wartet auf Vorbereitung';
+    case 'running':
+      return 'Deine Runde entsteht';
+    case 'ready':
+      return 'Runde ist bereit';
+    case 'blocked':
+      return info['job_id'] is String
+          ? 'Vorbereitung angehalten'
+          : 'Vorbereitung angehalten · Heftseite ansehen';
+    default:
+      return 'Vorbereitung prüfen';
+  }
+}
+
+bool automaticPreparationCanOpen(dynamic item) {
+  final info = item['automatic_preparation'];
+  return info is Map &&
+      ((info['job_id'] is String && (info['job_id'] as String).isNotEmpty) ||
+          (info['status'] == 'blocked' &&
+              item['id'] is String &&
+              (item['id'] as String).isNotEmpty));
+}
+
 bool planItemDue(Json plan, dynamic item) {
   final scheduled = item['scheduled_for'];
   final date = plan['date'];
@@ -32,6 +61,7 @@ Json? nextLearningItem(Json data, {String? excludeUnitId}) {
     if (raw is! Map) continue;
     final item = Json.from(raw);
     if (item['automatic_unavailable'] == true ||
+        automaticPreparationLabel(item) != null ||
         !planItemDue(plan, item) ||
         item['kind'] == 'unit' && item['id'] == excludeUnitId ||
         item['status'] == 'completed' ||
@@ -96,6 +126,19 @@ Future<void> openPlanItem(
       : <String, dynamic>{};
   if (!planItemDue(plan, item)) {
     throw ApiError('Dieser Lernauftrag ist für einen späteren Tag eingeplant.');
+  }
+  final autoLabel = automaticPreparationLabel(item);
+  if (autoLabel != null) {
+    if (automaticPreparationCanOpen(item)) {
+      final job = item['automatic_preparation']['job_id'];
+      openRoute(
+        context,
+        job is String && job.isNotEmpty
+            ? '/learning-preparation/${data['child']['id']}/$job'
+            : '/material/${item['id']}',
+      );
+    }
+    return; // A read or tap never retries or starts an automatic preparation.
   }
   if (item['kind'] == 'study_path') {
     final dayId = item['id'], blockId = item['block_id'];

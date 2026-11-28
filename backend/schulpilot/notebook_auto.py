@@ -7,6 +7,7 @@ import time
 
 from fastapi import HTTPException
 from sqlalchemy import and_, delete, or_, select, update
+from sqlalchemy.orm import load_only
 
 from .db import DB, Child, Job, LearningUnit, Material, RateBucket, Session, UnitSource, User
 from .material_vocabulary import preview
@@ -53,6 +54,79 @@ def _includes_source(payload, material):
         and type(ref.get("revision")) is int and ref["revision"] == material.revision
         for ref in refs
     )
+
+
+def annotate_plan(db, child, lists):
+    """Project existing auto preparation, never create work while reading.
+
+    The only disclosed job identifier must match the same child's exact
+    current source revision. Intent authority and raw provider details stay
+    private; an orphaned or inconsistent job is not made into a link.
+    """
+    items = [item for entries in lists for item in entries if item.get("kind") == "material"]
+    ids = {item.get("id") for item in items if isinstance(item.get("id"), str)}
+    if not ids:
+        return
+    identifiers = sorted(ids)
+    rows = []
+    for start in range(0, len(identifiers), 500):
+        rows.extend(db.execute(select(NotebookAutoIntent, Material, Job).select_from(NotebookAutoIntent).join(
+            Material, Material.id == NotebookAutoIntent.material_id).outerjoin(
+            Job, and_(Job.id == NotebookAutoIntent.job_id, Job.child_id == child.id, Job.kind == "unit")).where(
+            NotebookAutoIntent.child_id == child.id, NotebookAutoIntent.family_id == child.family_id,
+            Material.id.in_(identifiers[start:start + 500]), Material.child_id == child.id,
+            Material.confirmed.is_(True), Material.revision == NotebookAutoIntent.revision,
+        ).options(load_only(NotebookAutoIntent.id, NotebookAutoIntent.status),
+                  load_only(Material.id, Material.revision),
+                  load_only(Job.id, Job.child_id, Job.kind, Job.status, Job.payload, Job.result))))
+    statuses = {}
+    for intent, material, job in rows:
+        valid_job = (job is not None and job.child_id == child.id and job.kind == "unit"
+                     and _includes_source(job.payload, material))
+        if valid_job and job.status == "completed":
+            result = job.result if isinstance(job.result, dict) else {}
+            unit_id = result.get("unit_id")
+            valid_job = bool(isinstance(unit_id, str) and db.scalar(select(UnitSource.unit_id).join(
+                LearningUnit, LearningUnit.id == UnitSource.unit_id).where(
+                LearningUnit.child_id == child.id, UnitSource.unit_id == unit_id,
+                UnitSource.material_id == material.id, UnitSource.revision == material.revision)))
+        if intent.status == "pending":
+            status = "pending"
+        elif intent.status == "queued":
+            status = job.status if valid_job and job.status in ("queued", "running") else (
+                "ready" if valid_job and job.status == "completed" else "blocked")
+        elif intent.status == "blocked":
+            status = "blocked"
+        elif intent.status == "completed" and valid_job and job.status == "completed":
+            status = "ready"
+        else:
+            continue
+        value = {"status": status}
+        if valid_job and (intent.status != "pending"):
+            value["job_id"] = job.id
+        statuses[material.id] = value
+    for item in items:
+        if item.get("id") in statuses:
+            item["automatic_preparation"] = dict(statuses[item["id"]])
+
+
+def failed_source(db, job, child):
+    """Return only the still-current source of this failed auto intent."""
+    if job.kind != "unit" or job.status != "failed" or job.child_id != child.id:
+        return None
+    row = db.execute(select(NotebookAutoIntent, Material).select_from(NotebookAutoIntent).join(
+        Material, Material.id == NotebookAutoIntent.material_id).where(
+        NotebookAutoIntent.job_id == job.id, NotebookAutoIntent.child_id == job.child_id,
+        NotebookAutoIntent.family_id == child.family_id,
+        NotebookAutoIntent.status.in_(("queued", "blocked")), Material.child_id == job.child_id,
+        Material.confirmed.is_(True), Material.purpose == "notebook",
+        Material.revision == NotebookAutoIntent.revision,
+    ).options(load_only(NotebookAutoIntent.id), load_only(Material.id, Material.revision))).first()
+    if row:
+        _, material = row
+        if _includes_source(job.payload, material):
+            return material.id
+    return None
 
 
 def lock_publication_session(db, job):

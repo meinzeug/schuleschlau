@@ -1140,6 +1140,10 @@ def plan(db, child, *, learning_paths=None, include_language=True):
         item.get("status") not in ("active", "paused"), not item.get("mandatory", False),
         -grade_priorities.get(subject_key(item["subject"]), 0),
     ))
+    from .notebook_auto import annotate_plan
+
+    annotate_plan(db, child, [proposal["today"], proposal["later"], optional,
+                              *(day["items"] for day in proposal["week"])])
     return {
         **proposal,
         "deferred_rounds": deferred_rounds,

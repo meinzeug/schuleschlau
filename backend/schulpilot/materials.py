@@ -736,7 +736,11 @@ def enqueue(db, p, child, kind, payload, idempotency, *, commit=True):
 
         guard(db, child, payload)
     if payload.get("material_id"):
-        payload["material_revision"] = db.get(Material, payload["material_id"]).revision
+        # The source may have changed while this request waited for Child.
+        source = db.get(Material, payload["material_id"], populate_existing=True)
+        if not source or source.child_id != child.id:
+            raise HTTPException(404, "Material nicht gefunden.")
+        payload["material_revision"] = source.revision
     if payload.get("assignment_id"):
         payload["assignment_revision"] = db.get(Assignment, payload["assignment_id"]).revision
     existing = db.scalar(select(Job).where(Job.idempotency == key))
@@ -746,6 +750,19 @@ def enqueue(db, p, child, kind, payload, idempotency, *, commit=True):
         if existing.child_id != child.id or existing.kind != kind or comparable != payload_comparable:
             raise HTTPException(409, "Dieser Anfrageschlüssel wurde bereits für einen anderen Auftrag verwendet.")
         return {"id": existing.id, "status": existing.status}
+    if (kind == "unit" and payload.get("material_id") and not payload.get("notebook_practice")
+            and not payload.get("assignment_id") and not payload.get("review_of")):
+        # Old clients and a tap on a stale list must not reserve another paid
+        # job for the same source while the automatic one is still pending.
+        # The Child lock above serializes this check with the auto scheduler.
+        from .notebook_auto_models import NotebookAutoIntent
+
+        if db.scalar(select(NotebookAutoIntent.id).where(
+                NotebookAutoIntent.child_id == child.id, NotebookAutoIntent.family_id == child.family_id,
+                NotebookAutoIntent.material_id == payload["material_id"],
+                NotebookAutoIntent.revision == payload.get("material_revision"),
+                NotebookAutoIntent.status.in_(("pending", "queued"))).limit(1)):
+            raise HTTPException(409, "Deine Runde wird schon vorbereitet. Bitte öffne den aktuellen Lernstand.")
     if kind in ("unit", "package"):
         from .source_lineage import usable_source
 
@@ -943,7 +960,7 @@ def job_view(job_id: str, p=Depends(authenticated), db=Depends(get_db)):
     job = db.get(Job, job_id)
     if not job:
         raise HTTPException(404, "Auftrag nicht gefunden.")
-    child_access(db, p, job.child_id)
+    child = child_access(db, p, job.child_id)
     # A deliberate, audited repair may replace a failed preparation. Reading
     # the old link only discovers that existing job; it never starts another.
     recovery = None
@@ -967,11 +984,15 @@ def job_view(job_id: str, p=Depends(authenticated), db=Depends(get_db)):
                         and material.purpose == "notebook" and material.revision == source.get("revision")):
                     review_material_id = material.id
                     break
+    from .notebook_auto import failed_source
+
+    retry_material_id = failed_source(db, job, child)
     return {
         "id": job.id,
         "kind": job.kind,
         "material_id": job.payload.get("material_id") if job.kind == "extract" else None,
         "review_material_id": review_material_id,
+        "notebook_retry_material_id": retry_material_id,
         "status": job.status,
         "result": job.result,
         "error": job.error,

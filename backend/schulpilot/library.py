@@ -337,6 +337,10 @@ def startable_topics(items, current, db=None, child=None):
                 or item.get("status") == "completed"
                 or (item.get("scheduled_for") or current["date"]) > current["date"]):
             continue
+        if item["kind"] == "material" and item.get("automatic_preparation"):
+            # A random selection must never turn an automatic pending or
+            # failed preparation into a fresh paid manual request.
+            continue
         if item["kind"] == "study_path":
             if not item.get("block_id") or db is None or child is None:
                 continue

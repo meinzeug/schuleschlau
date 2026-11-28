@@ -677,7 +677,8 @@ class _PagedCollectionState extends State<_PagedCollectionBody> {
       widget.onSelect!(item);
       return;
     }
-    if (simpleLearning && item['status'] != 'completed') {
+    if ((simpleLearning || automaticPreparationLabel(item) != null) &&
+        item['status'] != 'completed') {
       FocusManager.instance.primaryFocus?.unfocus();
       setState(() => opening = item['id']);
       try {
@@ -1755,15 +1756,17 @@ class _PagedCollectionState extends State<_PagedCollectionBody> {
     final future =
         due != null && due.compareTo(data?['date'] ?? '9999-01-01') > 0;
     final resume = ['active', 'paused'].contains(item['status']);
+    final autoLabel = automaticPreparationLabel(item);
     final label = item['status'] == 'completed'
         ? 'Rückblick ansehen'
         : future
         ? 'Ab ${DateFormat('dd.MM.').format(DateTime.parse(due))}'
-        : resume
-        ? 'Fortsetzen'
-        : item['kind'] == 'unit'
-        ? 'Runde starten'
-        : 'Runde vorbereiten';
+        : autoLabel ??
+              (resume
+                  ? 'Fortsetzen'
+                  : item['kind'] == 'unit'
+                  ? 'Runde starten'
+                  : 'Runde vorbereiten');
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Material(
@@ -1803,7 +1806,11 @@ class _PagedCollectionState extends State<_PagedCollectionBody> {
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
               : roundActions(item),
-          onTap: future || opening != null || deletingMaterial != null
+          onTap:
+              future ||
+                  opening != null ||
+                  deletingMaterial != null ||
+                  (autoLabel != null && !automaticPreparationCanOpen(item))
               ? null
               : () => open(item),
         ),
@@ -1834,13 +1841,20 @@ class _PagedCollectionState extends State<_PagedCollectionBody> {
     final later =
         scheduled != null &&
         scheduled.isAfter(DateTime.parse(data?['date'] ?? '9999-01-01'));
-    final actionable = simpleLearning
-        ? item['status'] == 'completed' || !later
-        : !widget.learning ||
-              item['kind'] == 'unit' ||
-              widget.state.isChild && data?['paused'] != true && !later ||
-              !widget.state.isChild &&
-                  ['review', 'study_path', 'material'].contains(item['kind']);
+    final autoLabel = automaticPreparationLabel(item);
+    final actionable =
+        (autoLabel == null || automaticPreparationCanOpen(item)) &&
+        (simpleLearning
+            ? item['status'] == 'completed' || !later
+            : !widget.learning ||
+                  item['kind'] == 'unit' ||
+                  widget.state.isChild && data?['paused'] != true && !later ||
+                  !widget.state.isChild &&
+                      [
+                        'review',
+                        'study_path',
+                        'material',
+                      ].contains(item['kind']));
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Panel(
@@ -1915,7 +1929,9 @@ class _PagedCollectionState extends State<_PagedCollectionBody> {
                     if (widget.learning) ...[
                       Text(
                         {
-                          if (count > 0)
+                          if (autoLabel != null && !simpleLearning)
+                            autoLabel
+                          else if (count > 0)
                             '$closed von $count Aufgaben'
                           else
                             item['assignment_kind'] == 'homework'
@@ -1953,11 +1969,12 @@ class _PagedCollectionState extends State<_PagedCollectionBody> {
                         Padding(
                           padding: const EdgeInsets.only(top: 7),
                           child: Text(
-                            ['active', 'paused'].contains(item['status'])
-                                ? 'Hier weiterlernen'
-                                : item['kind'] == 'unit'
-                                ? 'Runde starten'
-                                : 'Runde vorbereiten',
+                            autoLabel ??
+                                (['active', 'paused'].contains(item['status'])
+                                    ? 'Hier weiterlernen'
+                                    : item['kind'] == 'unit'
+                                    ? 'Runde starten'
+                                    : 'Runde vorbereiten'),
                             style: TextStyle(
                               color: context.palette.teal,
                               fontWeight: FontWeight.w600,

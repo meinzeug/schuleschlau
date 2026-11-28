@@ -24,6 +24,16 @@ physischer Hardware. Historische Testangaben bleiben als solche erhalten.
   vorbereitung angepasst; Lernbeginn und weitere Antworten bleiben bewusst.
   [Architektur, Reihenfolge und offene Abnahme](docs/AUTO_ROUND_PLAN_2026_11_28.md).
 
+  - [x] **Status automatischer Einzelheft-Runden im Lernbereich zeigen.**
+    Wartende und laufende Vorbereitungen werden als solche angezeigt;
+    bestehende passende Jobs öffnen ihre Statusseite. Nach einem Fehler führt
+    ein überprüfter Verweis zur aktuellen Heftseite für eine ausdrücklich
+    ausgewählte reguläre Übung. Lesezugriffe erzeugen keine Jobs; ein
+    veralteter einfacher Materialstart kann während der automatischen
+    Vorbereitung nicht doppelt reservieren. Synthetische Mobil-, Konto- und
+    PostgreSQL-Renntests prüfen die Grenzen. Die echte KI- und Browserabnahme
+    des übergeordneten Ablaufs bleibt offen.
+
 - [ ] **P1 – MediaExplorer als geprüften, wiederverwendbaren Medienkatalog
   integrieren.** Offizielle YouTube-Recherche, weitere Medienarten,
   fach-/stufenbezogene Zuordnung, redaktionelle Freigabe, Kostenkontrolle und

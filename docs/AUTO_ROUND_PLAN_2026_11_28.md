@@ -76,6 +76,17 @@ Ein verspätetes Ergebnis wird zurückgerollt; bei zuerst abgeschlossener
 Veröffentlichung entsteht genau eine In-App-Meldung. Wiederholte Recovery
 startet keinen neuen Anbieteraufruf, und unbekannte Kosten bleiben reserviert.
 Dies belegt weder tatsächliche Push-Zustellung noch allgemeine Deadlockfreiheit.
+Im Lernbereich zeigt eine bestätigte einzelne Heftseite jetzt die laufende,
+wartende oder angehaltene automatische Vorbereitung statt eines erneuten
+Startknopfs. Ein vorhandener Job wird nur nach Kind-, Familien- und aktueller
+Quellrevisionsprüfung verlinkt; die Anzeige startet keine KI. Nach Fehlern
+führt der Status bei unveränderter Quelle zur Heftseite, wo eine spätere
+Übung ausdrücklich regulär ausgewählt werden kann. Ein einfacher Material-
+POST aus einer veralteten Ansicht wird während des automatischen Wartens oder
+Laufens unter Child-Sperre vor der Reservierung abgewiesen; Elternaufträge
+und ausdrückliche Heftauswahlen bleiben separat. Bisherige Antworten und
+Runden bleiben erhalten. Die vollständige Browser- und Echtanbieterabnahme
+steht weiterhin aus.
 1. Trigger ausschließlich an einer gespeicherten bestätigten Heft-/Lernweg-
    Revision, nicht bei GET, und ein dauerhaftes revisionsgebundenes Journal:
    Block- und Quell-IDs, Reihenfolge, Zustand, Ursprungssitzung und -familie,
