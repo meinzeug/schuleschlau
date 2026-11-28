@@ -4870,6 +4870,15 @@ Bestandteil des bestehenden Buildvertrags.
     erhalten. Künstliche Widgettests prüfen verzögerten Status, Bildauftrag
     und Erklärgrafik-Auftrag; die gesonderte Cookie-Lücke bleibt offen.
 
+  - [x] **Kinderbriefkasten beim Kontowechsel schützen.** Eine beginnende
+    Anmeldung sowie ein Token- oder Familienwechsel verbergen die alte
+    Ansicht und schließen offene Lesedialoge. Alte Aktionen und verspätete
+    Fehler bleiben wirkungslos; private Suchfilter werden verworfen. Fünf
+    künstliche Widgetfälle bestanden nativ und im Chrome-Webrunner; 52
+    bestehende und gezielte Fälle liefen zuvor zusammen erfolgreich. Bereits
+    gesendete Schreibvorgänge werden dadurch nicht rückgängig gemacht. Die
+    übergreifende Kontowechsel- und Cookie-Abnahme bleibt offen.
+
   - [ ] **Verspätete gemeinsame API-Antworten nach Kontowechsel absichern.**
 
     **Hefte- und Lernübersicht während Anmeldewechsel schützen:** Fachregal

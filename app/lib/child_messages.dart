@@ -57,16 +57,24 @@ class _ChildMessagesHubState extends State<_ChildMessagesBody> {
   final search = TextEditingController();
   final privateRoutes = <Route<dynamic>>{};
   late final account = widget.state.user;
+  late final family = widget.state.familyId;
+  late final identity = widget.state.api.requestIdentity();
   String get cacheKey => 'child_mailbox:${widget.data['child']['id']}';
   bool get current =>
-      mounted && account != null && identical(account, widget.state.user);
+      mounted &&
+      account != null &&
+      identical(account, widget.state.user) &&
+      family == widget.state.familyId &&
+      !widget.state.authenticationPending &&
+      widget.state.api.ownsRequest(identity);
   @override
   void initState() {
     super.initState();
-    if (!identical(
-      widget.state.collectionViews[cacheKey]?['account'],
-      account,
-    )) {
+    final old = widget.state.collectionViews[cacheKey];
+    if (!identical(old?['account'], account) ||
+        old?['family'] != family ||
+        old?['identity'] != identity ||
+        !current) {
       widget.state.collectionViews.remove(cacheKey);
     }
     final memory = widget.state.collectionViews[cacheKey];
@@ -81,10 +89,14 @@ class _ChildMessagesHubState extends State<_ChildMessagesBody> {
     final saved = memory?['section'];
     if (['inbox', 'wishes', 'done'].contains(saved)) section = saved;
     widget.state.addListener(accountChanged);
+    widget.state.authenticationChanges.addListener(accountChanged);
   }
 
   void accountChanged() {
     if (!current && mounted) {
+      if (widget.state.collectionViews[cacheKey]?['identity'] == identity) {
+        widget.state.collectionViews.remove(cacheKey);
+      }
       closePrivateRoutes();
       search.clear();
       setState(() {});
@@ -94,6 +106,7 @@ class _ChildMessagesHubState extends State<_ChildMessagesBody> {
   @override
   void dispose() {
     widget.state.removeListener(accountChanged);
+    widget.state.authenticationChanges.removeListener(accountChanged);
     closePrivateRoutes();
     search.dispose();
     super.dispose();
@@ -103,6 +116,8 @@ class _ChildMessagesHubState extends State<_ChildMessagesBody> {
     if (current) {
       widget.state.collectionViews[cacheKey] = {
         'account': account,
+        'family': family,
+        'identity': identity,
         'section': section,
         'sender': sender,
         'order': order,
@@ -177,12 +192,11 @@ class _ChildMessagesHubState extends State<_ChildMessagesBody> {
 
   Future<void> compose(Future<void> Function() action) async {
     if (!current || composing) return;
-    final account = widget.state.user;
     setState(() => composing = true);
     try {
       await action();
     } catch (error) {
-      if (mounted && identical(widget.state.user, account)) {
+      if (mounted && current) {
         showError(context, error);
       }
     } finally {
