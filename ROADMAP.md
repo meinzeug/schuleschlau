@@ -33,6 +33,14 @@ physischer Hardware. Historische Testangaben bleiben als solche erhalten.
   und tatsächlicher Prüfumfang sind verbindlich; keine erfundenen Quellen.
   [Abhängigkeiten und elf offene Arbeitsschritte](docs/MEDIAEXPLORER_PLAN_2026_11_28.md).
 
+  - [x] **Öffentliche Lehrplanthemen revisionsgebunden zuordnen.** Eine
+    administrative API prüft die Herkunft des Themas, den belegten
+    Klassenbereich und die Medienregion. Wiederholte Zuordnungen sind
+    idempotent, veraltete und widersprüchliche Eingaben werden abgewiesen;
+    neue Zuordnungen werden auditiert. Eine Zuordnung ist ausdrücklich
+    keine Inhaltsprüfung oder Freigabe. Die Recherche, eine grafische
+    Redaktion und das Ändern oder Entfernen von Zuordnungen bleiben offen.
+
 - [x] **Klassenarbeitsfotos in der Kinderansicht verständlicher benennen.**
   Bei ungeprüften Fotos erklärt die lokale Oberfläche kurz die Zuständigkeit
   der Eltern; Rohunsicherheiten bleiben für Eltern sichtbar. Geschriebene

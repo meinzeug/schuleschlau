@@ -74,6 +74,20 @@ Nachweis dar, dass die erklärende Person es tatsächlich angesehen hat. Eine
 Oberfläche, Urheber-/Nutzungsrechte, Kontrollworkflow und Fristenbehandlung
 bleiben offen.
 
+Für vorhandene Kandidaten kann die Redaktion über einen zusätzlichen
+Admin-API-Pfad ein bestehendes öffentliches Lehrplanthema ansehen und mit
+explizitem, belegtem Klassenbereich zuordnen. Vor der Zuordnung werden die
+Medienrevision, der Themendigest, Fach und Herkunft des Lehrplans sowie die
+passende Medienregion geprüft. Gleiche Zuordnungen sind idempotent, parallele
+Schreibaufträge werden serialisiert und eine abweichende alte Zuordnung wird
+nicht überschrieben. Erfolgreiche Neuanlagen erhalten ein Audit; eine
+seitenweise Liste zeigt bestehende Zuordnungen. Keine dieser Aktionen startet
+einen externen Abruf, erzeugt Lernfortschritt oder ersetzt die separate
+menschliche Inhaltsfreigabe. Die Freigabepolitik prüft weiterhin jede
+Zuordnung beim Lesen. Ein Änderungs-/Entfernungsworkflow und eine grafische
+Redaktionsoberfläche fehlen; bestehende Zuordnungen sind über diesen Pfad
+noch nicht änderbar. Es wurden ausschließlich künstliche Daten getestet.
+
 Die von der Netzschicht unabhängige YouTube-Metadatenprüfung kann in
 synthetischen Tests bereits Suchergebnisse und Videoantworten auf tatsächlich
 gelieferte Kennungen begrenzen. Sie verwirft nichtöffentliche, unverarbeitete,
