@@ -17,7 +17,7 @@ import hashlib
 import hmac
 import json
 
-from sqlalchemy import and_, select
+from sqlalchemy import String, and_, cast, func, literal, select, union_all
 
 from .competence_models import QuestionCompetence
 from .competences import VERSION as COMPETENCE_VERSION
@@ -49,64 +49,71 @@ def snapshot(db, child_id: str, subject: str, *, exclude_unit_id: str | None = N
         raise ValueError("Invalid excluded unit")
     key = subject_key(subject)
 
-    # Select scalar columns only. In particular, Attempt.answer and
-    # LearningUnit.questions are deliberately absent from every query.
-    units = {
-        row.id: row.round_kind
-        for row in db.execute(select(LearningUnit.id, LearningUnit.subject, LearningUnit.round_kind).where(
-            LearningUnit.child_id == child_id
-        ))
-        if subject_key(row.subject) == key and row.id != exclude_unit_id
-    }
-    attempts = []
-    attempted_pairs = set()
-    attempted_units = set()
-    if units:
-        query = select(
-            Attempt.id, Attempt.unit_id, Attempt.question_id, Attempt.created,
-            Attempt.outcome, Attempt.assisted,
-            Attempt.evaluation["method"].as_string().label("method"),
-            Attempt.evaluation["independence_uncertain"].as_boolean().label("independence_uncertain"),
-            Attempt.evaluation["attempt_number"].as_integer().label("attempt_number"),
-        ).join(LearningUnit, LearningUnit.id == Attempt.unit_id).where(LearningUnit.child_id == child_id)
-        for row in db.execute(query):
-            if row.unit_id not in units:
-                continue
-            attempted_units.add(row.unit_id)
-            attempted_pairs.add((row.unit_id, row.question_id))
-            attempts.append([row.unit_id, row.question_id, row.id, row.created, row.outcome, row.assisted,
-                             row.method, row.independence_uncertain, row.attempt_number])
+    # Read all evidence rows in one SQL statement. At PostgreSQL READ COMMITTED
+    # each statement observes one committed snapshot; separate SELECTs could mix
+    # rows from different commits. The JSON arrays contain metadata only.
+    # This does not protect the later comparison-to-publication interval.
+    json_array = func.json_build_array if db.get_bind().dialect.name == "postgresql" else func.json_array
 
-    corrections, hints, sources, bindings = [], [], [], []
-    if attempted_units:
-        corrections = [list(row)[1:] for row in db.execute(select(
-            Attempt.unit_id,
-            AttemptAssessment.id, AttemptAssessment.attempt_id, AttemptAssessment.rules_version,
-            AttemptAssessment.outcome, AttemptAssessment.created,
-        ).join(Attempt, Attempt.id == AttemptAssessment.attempt_id)
-            .join(LearningUnit, LearningUnit.id == Attempt.unit_id)
-            .where(LearningUnit.child_id == child_id)) if row.unit_id in attempted_units]
-        # Do not select Activity.detail; only explicitly recorded hints for
-        # already-attempted rounds are related to a saved observation.
-        hints = [list(row) for row in db.execute(select(Activity.id, Activity.unit_id, Activity.created)
-            .join(LearningUnit, LearningUnit.id == Activity.unit_id).where(
-                Activity.child_id == child_id, LearningUnit.child_id == child_id, Activity.kind == "hint"))
-            if row.unit_id in attempted_units]
-        # A foreign or removed material never grants access: the left join is
-        # explicitly child-scoped and contributes only a missing-source marker.
-        sources = [list(row) for row in db.execute(select(
-            UnitSource.unit_id, UnitSource.material_id, UnitSource.revision,
-            Material.revision, Material.confirmed,
-        ).join(LearningUnit, LearningUnit.id == UnitSource.unit_id)
+    def float_text(column):
+        # SQLite JSON rounds REAL values; 17 significant digits preserve the
+        # original double and therefore the existing digest across upgrades.
+        return cast(column, String) if db.get_bind().dialect.name == "postgresql" else func.printf("%!.17g", column)
+
+    def rows(kind, *columns):
+        return select(literal(kind).label("kind"), cast(json_array(*columns), String).label("data"))
+
+    statement = union_all(
+        rows("unit", LearningUnit.id, LearningUnit.subject, LearningUnit.round_kind)
+            .where(LearningUnit.child_id == child_id),
+        rows("attempt", Attempt.unit_id, Attempt.question_id, Attempt.id, float_text(Attempt.created),
+             Attempt.outcome, Attempt.assisted, Attempt.evaluation["method"].as_string(),
+             Attempt.evaluation["independence_uncertain"].as_boolean(),
+             Attempt.evaluation["attempt_number"].as_integer())
+            .select_from(Attempt).join(LearningUnit, LearningUnit.id == Attempt.unit_id).where(LearningUnit.child_id == child_id),
+        rows("correction", Attempt.unit_id, AttemptAssessment.id, AttemptAssessment.attempt_id,
+             AttemptAssessment.rules_version, AttemptAssessment.outcome, float_text(AttemptAssessment.created))
+            .select_from(AttemptAssessment).join(Attempt, Attempt.id == AttemptAssessment.attempt_id)
+            .join(LearningUnit, LearningUnit.id == Attempt.unit_id).where(LearningUnit.child_id == child_id),
+        rows("hint", Activity.id, Activity.unit_id, Activity.created)
+            .select_from(Activity).join(LearningUnit, LearningUnit.id == Activity.unit_id)
+            .where(Activity.child_id == child_id, LearningUnit.child_id == child_id, Activity.kind == "hint"),
+        rows("source", UnitSource.unit_id, UnitSource.material_id, UnitSource.revision,
+             Material.revision, Material.confirmed)
+            .select_from(UnitSource).join(LearningUnit, LearningUnit.id == UnitSource.unit_id)
             .outerjoin(Material, and_(Material.id == UnitSource.material_id, Material.child_id == child_id))
-            .where(LearningUnit.child_id == child_id)) if row.unit_id in attempted_units]
-        rows = db.execute(select(
-            QuestionCompetence.unit_id, QuestionCompetence.question_id,
-            QuestionCompetence.competence_id, QuestionCompetence.catalog_version,
-            QuestionCompetence.role, QuestionCompetence.question_digest,
-        ).join(LearningUnit, LearningUnit.id == QuestionCompetence.unit_id)
-            .where(QuestionCompetence.child_id == child_id, LearningUnit.child_id == child_id))
-        bindings = [list(row) for row in rows if (row.unit_id, row.question_id) in attempted_pairs]
+            .where(LearningUnit.child_id == child_id),
+        rows("binding", QuestionCompetence.unit_id, QuestionCompetence.question_id,
+             QuestionCompetence.competence_id, QuestionCompetence.catalog_version,
+             QuestionCompetence.role, QuestionCompetence.question_digest)
+            .select_from(QuestionCompetence).join(LearningUnit, LearningUnit.id == QuestionCompetence.unit_id)
+            .where(QuestionCompetence.child_id == child_id, LearningUnit.child_id == child_id),
+    )
+    grouped = {name: [] for name in ("unit", "attempt", "correction", "hint", "source", "binding")}
+    for kind, data in db.execute(statement):
+        grouped[kind].append(json.loads(data))
+
+    units = {identifier: round_kind for identifier, subject_name, round_kind in grouped["unit"]
+             if subject_key(subject_name) == key and identifier != exclude_unit_id}
+    attempts = [row for row in grouped["attempt"] if row[0] in units]
+    for row in attempts:
+        # SQLite json_array encodes booleans as 0/1; normalise them back to
+        # the Python values used by the original marker on both databases.
+        row[3] = float(row[3])
+        row[5] = bool(row[5])
+        if row[7] is not None:
+            row[7] = bool(row[7])
+    attempted_units = {row[0] for row in attempts}
+    attempted_pairs = {(row[0], row[1]) for row in attempts}
+    corrections = [row[1:] for row in grouped["correction"] if row[0] in attempted_units]
+    for row in corrections:
+        row[-1] = float(row[-1])
+    hints = [row for row in grouped["hint"] if row[1] in attempted_units]
+    sources = [row for row in grouped["source"] if row[0] in attempted_units]
+    for row in sources:
+        if row[4] is not None:
+            row[4] = bool(row[4])
+    bindings = [row for row in grouped["binding"] if (row[0], row[1]) in attempted_pairs]
 
     # JSON sorting on each record handles missing optional fields without
     # comparing unlike Python types and keeps ordering independent of DB rows.

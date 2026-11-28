@@ -12,13 +12,32 @@ API-Clients ausgegeben. Der Aufbewahrungszeitraum entspricht dem des Jobs.
 **Grenze:** Der Vergleich ist eine Best-Effort-Beobachtung, keine atomare
 Vollständigkeits- oder Aktualitätsgarantie. Nicht alle Antwortpfade sperren das
 Kind; eine Antwort kann deshalb zwischen Vergleich und Commit entstehen. Die
-mehrteilige Abfrage des Markers kann außerdem eine parallele Änderung nur zum
-Teil sehen. Der Marker ist weder ein Beherrschungsurteil noch ein sicherer
-Hinweis beim späteren Start. Dafür ist ein einheitlicher, atomar aktualisierter
+Marker-Metadaten werden in einer einzelnen SQL-Anweisung gelesen; bei
+PostgreSQL `READ COMMITTED` sieht diese Anweisung einen konsistenten
+Statement-Snapshot. Das ersetzt weder eine transaktionsübergreifende Version
+noch eine Sperre bis zur Veröffentlichung. Der Marker ist weder ein
+Beherrschungsurteil noch ein sicherer Hinweis beim späteren Start. Dafür ist ein einheitlicher, atomar aktualisierter
 kind-/fachgebundener Evidenzversionszähler über sämtliche Antwort-, Hilfe- und
 Korrekturpfade nötig. Dieser muss auch Revisionen, Löschungen, Migrationen und
 parallele Transaktionen abdecken. Bewusst keine Sperre aller historischen
 Units und keine Änderung oder Überschreibung vorhandener Antworten.
+
+## Inventar der Evidenz- und Sperrpfade (Stand 28.11.2026)
+
+| Pfad | Veränderung und Sperrung | Konsequenz für einen künftigen Zähler |
+|---|---|---|
+| `learning.answer`, `get_unit` | Antwort und Aktivitäten unter Unit-Sperre; reguläre Sachantworten benötigen nicht durchgängig eine Child-Sperre. Sprachantworten sperren zusätzlich Child. Wiederholungen mit passendem Antwortschlüssel sind idempotent. | Antwort, ggf. Hilfen und Version in derselben Transaktion; Unit vor Child/Zähler. Keine Erhöhung beim Replay oder Rollback. |
+| `learning.hint`, `learning.explanation`, `learning_tips` | Hilfe-/Erklärungsaktivitäten für konkrete Unit; Hinweise nutzen einen optionalen idempotenten Schlüssel. | Auch relevante Hilfen und geänderte Unterstützungssemantik erfassen; einen ungelesenen Hinweis nicht als Antwort zählen. |
+| `assessments.recheck` über `learning.recheck_answer` | Unit zuerst, anschließend Child; neuer revisionsgebundener `AttemptAssessment` und aktualisierter Ausgangsversuch in derselben Transaktion. | Genau einmal pro neuer Nachbewertung erhöhen; vorhandene Nachprüfung ist Replay. |
+| `schulbuddy.process` / `record_help` | Betroffene laufende Units sortiert vor Child sperren; Erklärung als Hilfsaktivität, keine alten Antworten umschreiben. | Alle betroffenen Fachschlüssel sortiert behandeln; bisheriger Marker erfasst nur `hint`, nicht die Tutor-Aktivität `explanation`. |
+| `learning_entry.remember_generated` / `QuestionCompetence` | Zuordnung von Aufgaben zu versionierten Kompetenzen beim Erzeugen der Unit. | Änderungen oder Löschung vorhandener Bindungen für bereits beantwortete Aufgaben beachten; neue unbeantwortete Units sind kein Leistungsnachweis. |
+| `materials.confirm`, `lock_material_units`, `delete_material` | Beteiligte Units in ID-Reihenfolge vor Child; Seitenrevision und -bestätigung bzw. Löschen beeinflussen referenzierte Quellen. | Alte und neue Fachschlüssel bei Fachwechsel berücksichtigen; Quellen-/Planungsrevision zusätzlich prüfen, Zähler nicht als Ersatz. |
+| `worker` Aufbewahrung / Löschung und `unit_erasure` | Löschung alter Units samt abhängigen Antworten bzw. separater Aktivitäten; bestehendes Löschjournal wird fortgeführt. | Dieselbe deterministische Sperrordnung, atomare Zähleränderung und Restore-/Journalbehandlung nachweisen; nicht nur die normalen API-Pfade instrumentieren. |
+| `grades.priorities`, `learning_progress.read_ledger`, `learning_guidance.strategies` | Strategie nutzt aktuelle Notenprioritäten und die jüngsten zwei belegten Runden je Fach; Lesepfade erzeugen keine Nachweise. | Notenrevision und sämtliche dort genutzten Zustände gesondert bewachen. Marker/Zähler allein belegen keine vollständige strategische Aktualität. |
+| `study_path.process` | Erst Payload/Beobachtung, Anbieteraufruf ohne DB-Sperre; nachher Child-Sperre, erneute Prüfungen, Marker-Vergleich und neue Unit in einer Transaktion. | Solange Antwortpfade nicht alle dieselbe Sperre nehmen, kann ein anderer Unit-Writer nach dem Vergleich committen. Die neue Einzellesung schließt diese Lücke nicht. |
+
+Dieses Inventar ist eine Arbeitsgrundlage und kein Nachweis, dass bereits alle
+administrativen, Migrations-, Import- und Wiederherstellungspfade erfasst sind.
 
 ## Für einen belastbaren Versionszähler noch abzudecken
 
