@@ -2489,6 +2489,14 @@ class _UnitScreenState extends State<UnitScreen> with WidgetsBindingObserver {
                   : '${questions.length} Aufgaben · Schritt für Schritt',
               style: TextStyle(fontSize: 16),
             ),
+            if (u['status'] == 'not_started' &&
+                u['practice_evidence_may_have_changed'] == true) ...[
+              const SizedBox(height: 12),
+              const Text(
+                'Dein Lernstand könnte sich seit der Vorbereitung geändert haben. Du kannst diese Runde trotzdem machen.',
+                key: ValueKey('prepared-round-evidence-notice'),
+              ),
+            ],
             if (prepared || preparing) ...[
               SizedBox(height: 12),
               TextButton(

@@ -72,3 +72,22 @@ Umbau statt einzelner nachträglicher Updates:
    SQLite-Entwicklungstests ergänzen. Erst danach darf ein Start-Hinweis die
    Version als verlässlich verwenden; begonnene/beantwortete Units bleiben
    unverändert.
+
+## Vorsichtiger Hinweis vor einer Runde
+
+Nur im Kinderzugang einer noch nicht begonnenen, unbeantworteten automatischen
+Etappe mit eindeutig zuordenbarem abgeschlossenem Auftrag zeigt ein erkannter
+Markerunterschied einen vorsichtigen Hinweis. Er blockiert den Start nicht;
+der private Marker wird nicht ausgegeben. Ein fehlender, alter oder
+mehrdeutiger Marker bedeutet unbekannt, nicht „aktuell“. Der Job kann nach
+Ablauf der Aufbewahrung fehlen. Die Anzeige ist deshalb keine Garantie für
+Aktualität und beantwortete oder bereits begonnene Runden bleiben unverändert.
+
+Eine ausdrückliche Neuvorbereitung derselben bereits gespeicherten Etappe ist
+noch nicht verfügbar. Der bestehende Generator lehnt eine belegte `unit_id`
+ab. Eine neue Version benötigt einen eigenen idempotenten POST, Unit→Child-
+Sperrung, unveränderte alte Unit samt Antworten, eine eindeutige und bei
+Parallelstarts geprüfte Lernwegverknüpfung, erneute Quellen-/Familien-/Tarif-
+und Anbieterprüfung sowie getrennte Kostenreservierung. Das Öffnen der Runde
+oder der Hinweis dürfen keine KI starten. Erst nach diesen Prüfungen und
+Mehrgeräte-/Fehler-/Erhaltstests darf eine solche Aktion angeboten werden.

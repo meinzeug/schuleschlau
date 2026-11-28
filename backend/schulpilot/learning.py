@@ -1510,6 +1510,11 @@ def unit_view(unit_id: str, p=Depends(authenticated), db=Depends(get_db),
     if p.user.role == "child":
         language_capability(unit, capabilities, db)
     value = unit_data(db, unit, p.user.role == "parent")
+    if p.user.role == "child":
+        from .prepared_round_observation import may_have_changed
+
+        if may_have_changed(db, unit):
+            value["practice_evidence_may_have_changed"] = True
     can_prepare = not unit.synthetic
     if can_prepare and p.user.role == "parent":
         try:
