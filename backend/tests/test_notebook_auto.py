@@ -223,3 +223,105 @@ def test_round_robin_reaches_intents_after_first_hundred(notebook, monkeypatch):
     assert f"{100:032x}" not in seen
     notebook_auto.advance_one()
     assert f"{100:032x}" in seen
+
+
+def test_exhausted_job_rate_waits_until_next_window(notebook, monkeypatch):
+    from schulpilot.db import RateBucket
+
+    intent_id, _ = prepare(notebook)
+    timestamp = int(notebook_auto.time.time())
+    tick = timestamp // 60
+    clock = [timestamp]
+    monkeypatch.setattr(notebook_auto.time, "time", lambda: clock[0])
+    with DB.begin() as db:
+        row = db.get(NotebookAutoIntent, intent_id)
+        db.add(RateBucket(id=f"job:{row.user_id}:{tick}", count=30, expires=(tick + 1) * 60))
+    for _ in range(3):
+        notebook_auto.advance_one()
+    with DB() as db:
+        assert db.get(NotebookAutoIntent, intent_id).status == "pending"
+        assert db.scalar(select(func.count()).select_from(Job).where(Job.child_id == notebook.child["id"])) == 0
+    clock[0] = (tick + 1) * 60
+    notebook_auto.advance_one()
+    with DB() as db:
+        assert db.get(NotebookAutoIntent, intent_id).status == "queued"
+
+
+def test_actual_job_rate_race_stays_pending_without_reservation(notebook, monkeypatch):
+    from fastapi import HTTPException
+    from schulpilot import materials
+    from schulpilot.db import Usage
+
+    intent_id, _ = prepare(notebook)
+
+    def limited(*args, **kwargs):
+        raise HTTPException(429, "Zu viele Anfragen. Bitte später erneut versuchen.")
+
+    monkeypatch.setattr(materials, "rate_limit", limited)
+    notebook_auto.advance_one()
+    with DB() as db:
+        assert db.get(NotebookAutoIntent, intent_id).status == "pending"
+        assert db.scalar(select(func.count()).select_from(Job).where(Job.child_id == notebook.child["id"])) == 0
+        assert db.scalar(select(func.count()).select_from(Usage).where(Usage.child_id == notebook.child["id"])) == 0
+
+
+def test_cost_429_even_with_same_text_blocks_without_retry(notebook, monkeypatch):
+    from fastapi import HTTPException
+    from schulpilot import materials
+    from schulpilot.db import Usage
+
+    intent_id, _ = prepare(notebook)
+    calls = []
+
+    def rejected(*args, **kwargs):
+        calls.append(True)
+        raise HTTPException(429, "Zu viele Anfragen. Bitte später erneut versuchen.")
+
+    monkeypatch.setattr(materials, "reserve", rejected)
+    notebook_auto.advance_one()
+    notebook_auto.advance_one()
+    with DB() as db:
+        assert db.get(NotebookAutoIntent, intent_id).status == "blocked"
+        assert db.scalar(select(func.count()).select_from(Job).where(Job.child_id == notebook.child["id"])) == 0
+        assert db.scalar(select(func.count()).select_from(Usage).where(Usage.child_id == notebook.child["id"])) == 0
+    assert len(calls) == 1
+
+
+def test_two_children_share_atomic_job_limit_and_wait_independently(notebook, monkeypatch):
+    from concurrent.futures import ThreadPoolExecutor
+
+    from conftest import create_child
+    from schulpilot.db import RateBucket
+
+    second_child = create_child(notebook.parent_api, notebook.parent, username="test-child-two")
+    first_id, _ = prepare(notebook)
+    stamp = int(notebook_auto.time.time())
+    tick = stamp // 60
+    clock = [stamp]
+    monkeypatch.setattr(notebook_auto.time, "time", lambda: clock[0])
+    with DB.begin() as db:
+        first = db.get(NotebookAutoIntent, first_id)
+        parent_id = notebook.parent["id"]
+        session = db.scalar(select(Session).where(Session.user_id == parent_id).order_by(Session.created.desc()))
+        first.user_id, first.session_id = parent_id, session.id
+        source = db.get(Material, first.material_id)
+        child = db.get(Child, second_child["id"])
+        page = Material(child_id=child.id, title="Künstliche zweite Seite", subject=source.subject,
+                        topic=source.topic, content=source.content, confirmed=True, status="confirmed")
+        db.add(page)
+        db.flush()
+        notebook_auto.arm(db, child, page, {"version": 1, "user_id": parent_id,
+                                            "session_id": session.id, "family_id": child.family_id})
+        db.add(RateBucket(id=f"job:{parent_id}:{tick}", count=29, expires=(tick + 1) * 60))
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        list(pool.map(lambda _: notebook_auto.advance_one(), range(2)))
+    with DB() as db:
+        intents = list(db.scalars(select(NotebookAutoIntent)))
+        assert sorted(row.status for row in intents) == ["pending", "queued"]
+        assert db.get(RateBucket, f"job:{parent_id}:{tick}").count == 30
+        assert db.scalar(select(func.count()).select_from(Job)) == 1
+    clock[0] = (tick + 1) * 60
+    notebook_auto.advance_one()
+    with DB() as db:
+        assert sorted(row.status for row in db.scalars(select(NotebookAutoIntent))) == ["queued", "queued"]
+        assert db.scalar(select(func.count()).select_from(Job)) == 2

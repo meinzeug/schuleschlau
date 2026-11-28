@@ -3,10 +3,12 @@
 The originating session and exact safe source selection remain bound to the job.
 Neither listing pages nor reopening a status page schedules paid work.
 """
+import time
+
 from fastapi import HTTPException
 from sqlalchemy import and_, delete, or_, select, update
 
-from .db import DB, Child, Job, LearningUnit, Material, Session, UnitSource, User
+from .db import DB, Child, Job, LearningUnit, Material, RateBucket, Session, UnitSource, User
 from .material_vocabulary import preview
 from .notebook_auto_models import NotebookAutoIntent
 from .notebook_practice import selection
@@ -38,7 +40,7 @@ def arm(db, child, material, authority):
 
 
 def _advance(db, intent_id):
-    from .materials import enqueue
+    from .materials import JOB_RATE_LIMIT, JOB_RATE_SECONDS, enqueue
     from .notebook_practice import guard
     from .study_authority import validate
 
@@ -89,6 +91,12 @@ def _advance(db, intent_id):
         return
     if db.scalar(select(Job.id).where(Job.child_id == child.id, Job.status.in_(("queued", "running")))):
         return
+    # Read-only advisory check: avoid writing the same exhausted bucket once
+    # per worker tick. The atomic limiter in enqueue remains authoritative.
+    tick = int(time.time()) // JOB_RATE_SECONDS
+    bucket = db.get(RateBucket, f"job:{intent.user_id}:{tick}")
+    if bucket and bucket.count >= JOB_RATE_LIMIT:
+        return
     principal = Principal(db.get(User, intent.user_id), db.get(Session, intent.session_id))
     result = enqueue(db, principal, child, "unit", payload,
                      "notebook-auto:" + material.id + ":" + str(material.revision), commit=False)
@@ -96,6 +104,8 @@ def _advance(db, intent_id):
 
 
 def advance_one():
+    from .materials import JobRateLimitExceeded
+
     # The cursor is only a bounded scheduling hint. Each intent is still
     # checked and serialized afresh; wrap around after the last page.
     global _cursor
@@ -116,6 +126,10 @@ def advance_one():
         try:
             with DB.begin() as db:
                 _advance(db, intent_id)
+        except JobRateLimitExceeded:
+            # Transaction rolls back before a job/reservation exists. A later
+            # window may reserve it once; this is never a provider retry.
+            continue
         except (ProviderError, HTTPException, ValueError, TypeError):
             # Reservation and intent update roll back together; never retry a
             # rejected reservation or provider failure automatically.

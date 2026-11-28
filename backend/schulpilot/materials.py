@@ -31,6 +31,16 @@ from .photo_isolation import normalize_photo
 from .providers import ProviderError, config_for_function, external_allowed, reserve
 from .security import authenticated, child_access, lock_session_after_child, rate_limit
 
+# This marker applies only to the per-user job-creation limiter, before a
+# job or provider reservation exists. API clients keep the same 429 response.
+JOB_RATE_LIMIT = 30
+JOB_RATE_SECONDS = 60
+
+
+class JobRateLimitExceeded(HTTPException):
+    pass
+
+
 router = APIRouter(tags=["Materialien und KI-Aufträge"])
 _MAX_SOURCE_IMAGE_PIXELS = 16_000_000
 Image.MAX_IMAGE_PIXELS = _MAX_SOURCE_IMAGE_PIXELS
@@ -762,7 +772,12 @@ def enqueue(db, p, child, kind, payload, idempotency, *, commit=True):
         review_origin = origin(db, p, child)
         if review_origin:
             payload["auto_review_origin"] = review_origin
-    rate_limit(db, "job:" + p.user.id, 30, 60, commit=False)
+    try:
+        rate_limit(db, "job:" + p.user.id, JOB_RATE_LIMIT, JOB_RATE_SECONDS, commit=False)
+    except HTTPException as error:
+        if error.status_code == 429 and error.detail == "Zu viele Anfragen. Bitte später erneut versuchen.":
+            raise JobRateLimitExceeded(status_code=error.status_code, detail=error.detail, headers=error.headers) from None
+        raise
     # Atomically limit each child to one pending paid operation.
     if db.scalar(select(Job.id).where(Job.child_id == child.id, Job.status.in_(["queued", "running"]))):
         raise HTTPException(409, "Für dieses Kind wird bereits ein Auftrag verarbeitet.")
