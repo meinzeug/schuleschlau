@@ -3,7 +3,7 @@
 from sqlalchemy import select
 
 from .db import Attempt, Job
-from .learning_evidence_marker import matches, snapshot
+from .learning_evidence_marker import EvidenceMetadataError, matches, snapshot
 
 
 def may_have_changed(db, unit):
@@ -20,12 +20,22 @@ def may_have_changed(db, unit):
         Job.child_id == unit.child_id, Job.kind == "study_block", Job.status == "completed",
         Job.result["unit_id"].as_string() == unit.id,
     ).limit(2)))
-    if len(jobs) != 1 or (jobs[0].payload or {}).get("automatic_study_stage") is not True:
+    if len(jobs) != 1 or not isinstance(jobs[0].payload, dict):
         return False
-    observed = jobs[0].payload.get("automatic_evidence_observation")
+    payload = jobs[0].payload
+    if payload.get("automatic_study_stage") is not True:
+        return False
+    observed = payload.get("automatic_evidence_observation")
     if not isinstance(observed, dict) or observed.get("consistency") != "best_effort":
         return False
     marker = observed.get("marker")
     if not matches(marker, marker):
         return False
-    return not matches(marker, snapshot(db, unit.child_id, unit.subject, exclude_unit_id=unit.id))
+    try:
+        current = snapshot(db, unit.child_id, unit.subject, exclude_unit_id=unit.id)
+    except EvidenceMetadataError:
+        # Invalid private metadata is unknown, never a freshness verdict and
+        # never a reason to block an otherwise authorised, valid round. DB,
+        # authorisation and unexpected programming errors still propagate.
+        return False
+    return not matches(marker, current)

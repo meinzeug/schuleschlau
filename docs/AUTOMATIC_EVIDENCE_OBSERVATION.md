@@ -110,7 +110,17 @@ Eine PostgreSQL-Prüfung lässt zwischen Ansicht und Startbeobachtung eine ander
 Transaktion eine Antwort speichern. Dies belegt diesen konkreten Fall, keine
 Atomarität: Eine spätere Änderung nach der Beobachtung kann weiterhin
 unbemerkt bleiben; eine verlorene Startantwort übermittelt den Hinweis nicht
-nachträglich an ein anderes Gerät.
+nachträglich an ein anderes Gerät. Nicht interpretierbare historische
+Marker-Payloads und ausdrücklich erkannte ungültige Evidenzmetadaten ergeben
+für diesen Hinweis „unbekannt“ und blockieren die Runde nicht. Datenbank-,
+Berechtigungs- und unerwartete Programmfehler werden nicht verschluckt.
+Separat offen: Eine ungültige historische `attempt_number` kann beim Lesen
+des Lernstands in `learning_progress.read_ledger` PostgreSQL-`DataError`
+auslösen. Isoliert auf PostgreSQL reproduziert: Der Start wird zunächst
+committet, anschließend scheitert die Erstellung der Antwort mit HTTP 500;
+die Runde bleibt aktiv. Ein nicht endlicher Zeitstempel kann andere
+Antwortpfade ebenfalls mit einem `ValueError` unterbrechen. Diese unabhängigen
+Pfade sind durch die fehlertolerante Beratungsbeobachtung nicht repariert.
 
 Eine ausdrückliche Neuvorbereitung derselben bereits gespeicherten Etappe ist
 noch nicht verfügbar. Der bestehende Generator lehnt eine belegte `unit_id`

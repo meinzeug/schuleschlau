@@ -100,3 +100,84 @@ def test_start_never_invents_a_warning_for_unrelated_or_unknown_evidence(api, st
     result = study["client"].post(f"/api/units/{unit_id}/start")
     assert result.status_code == 200, result.text
     assert "practice_evidence_may_have_changed" not in result.json()
+
+
+@pytest.mark.parametrize("broken", [[], {"automatic_study_stage": True, "automatic_evidence_observation": []},
+                                    {"automatic_study_stage": True, "automatic_evidence_observation": {
+                                        "consistency": "best_effort", "marker": {"version": 1, "digest": []}}}])
+def test_invalid_historical_job_metadata_does_not_prevent_start(study, broken):
+    _, unit_id, _ = prepared(study)
+    with DB.begin() as db:
+        job = db.scalar(select(Job).where(Job.idempotency == "artificial-prepared-start"))
+        job.payload = broken
+    result = study["client"].post(f"/api/units/{unit_id}/start")
+    assert result.status_code == 200, result.text
+    assert result.json()["status"] == "active"
+    assert "practice_evidence_may_have_changed" not in result.json()
+
+
+@pytest.mark.parametrize("field,value", [("attempt_number", "not-a-number"),
+                                          ("independence_uncertain", "not-a-bool")])
+def test_invalid_historical_attempt_metadata_is_unknown_to_observation(study, field, value):
+    earlier, unit_id, _ = prepared(study)
+    with DB.begin() as db:
+        add_attempt(db, earlier)
+        attempt = db.scalar(select(Attempt).where(Attempt.unit_id == earlier))
+        attempt.evaluation = {**attempt.evaluation, field: value}
+    with DB() as db:
+        assert prepared_round_observation.may_have_changed(db, db.get(LearningUnit, unit_id)) is False
+
+
+def test_snapshot_validation_failure_does_not_prevent_start(study, monkeypatch):
+    from schulpilot.learning_evidence_marker import EvidenceMetadataError
+
+    _, unit_id, _ = prepared(study)
+    def invalid(*_args, **_kwargs):
+        raise EvidenceMetadataError("synthetic invalid metadata")
+    monkeypatch.setattr(prepared_round_observation, "snapshot", invalid)
+    result = study["client"].post(f"/api/units/{unit_id}/start")
+    assert result.status_code == 200, result.text
+    assert result.json()["status"] == "active"
+    assert "practice_evidence_may_have_changed" not in result.json()
+
+
+def test_database_failure_during_observation_is_not_suppressed(study, monkeypatch):
+    from sqlalchemy.exc import OperationalError
+
+    _, unit_id, _ = prepared(study)
+    def unavailable(*_args, **_kwargs):
+        raise OperationalError("synthetic statement", {}, RuntimeError("database unavailable"))
+    monkeypatch.setattr(prepared_round_observation, "snapshot", unavailable)
+    result = study["client"].post(f"/api/units/{unit_id}/start")
+    assert result.status_code == 500
+    with DB() as db:
+        assert db.get(LearningUnit, unit_id).status == "not_started"
+
+
+@pytest.mark.skipif(engine.dialect.name != "postgresql", reason="PostgreSQL non-finite float fixture")
+def test_nonfinite_historical_timestamp_is_unknown_to_observation(study):
+    earlier, unit_id, _ = prepared(study)
+    with DB.begin() as db:
+        add_attempt(db, earlier)
+        attempt = db.scalar(select(Attempt).where(Attempt.unit_id == earlier))
+        attempt.created = float("nan")
+    with DB() as db:
+        assert prepared_round_observation.may_have_changed(db, db.get(LearningUnit, unit_id)) is False
+
+
+def test_other_child_cannot_start_or_trigger_observation(api, study, monkeypatch):
+    from conftest import HEADERS, create_child
+
+    _, unit_id, _ = prepared(study)
+    create_child(api, study["parent"], username="start-observer-sibling")
+    observed = []
+    monkeypatch.setattr(prepared_round_observation, "snapshot", lambda *_args, **_kwargs: observed.append(True))
+    with TestClient(app, headers=HEADERS) as sibling:
+        login = sibling.post("/api/auth/login", json={"username": "start-observer-sibling", "password": "secure-child-pass-123"})
+        assert login.status_code == 200
+        sibling.headers["Authorization"] = "Bearer " + login.json()["token"]
+        result = sibling.post(f"/api/units/{unit_id}/start")
+    assert result.status_code in (403, 404)
+    assert not observed
+    with DB() as db:
+        assert db.get(LearningUnit, unit_id).status == "not_started"

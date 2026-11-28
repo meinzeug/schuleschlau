@@ -16,6 +16,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
+import re
 
 from sqlalchemy import String, and_, cast, func, literal, select, union_all
 
@@ -25,6 +26,10 @@ from .db import Activity, Attempt, AttemptAssessment, Child, LearningUnit, Mater
 from .grades import subject_key
 
 VERSION = "practice-evidence-marker-1"
+
+
+class EvidenceMetadataError(ValueError):
+    """Invalid evidence metadata; callers must not treat this as fresh evidence."""
 
 
 def snapshot(db, child_id: str, subject: str, *, exclude_unit_id: str | None = None) -> dict[str, str]:
@@ -42,11 +47,11 @@ def snapshot(db, child_id: str, subject: str, *, exclude_unit_id: str | None = N
     a comprehensive semantic integrity check for legacy unbound question text.
     """
     if not isinstance(child_id, str) or not child_id or not db.get(Child, child_id):
-        raise ValueError("Unknown child")
+        raise EvidenceMetadataError("Unknown child")
     if not isinstance(subject, str) or not subject.strip() or len(subject) > 80:
-        raise ValueError("Invalid subject")
+        raise EvidenceMetadataError("Invalid subject")
     if exclude_unit_id is not None and (not isinstance(exclude_unit_id, str) or not exclude_unit_id):
-        raise ValueError("Invalid excluded unit")
+        raise EvidenceMetadataError("Invalid excluded unit")
     key = subject_key(subject)
 
     # Read all evidence rows in one SQL statement. At PostgreSQL READ COMMITTED
@@ -68,8 +73,8 @@ def snapshot(db, child_id: str, subject: str, *, exclude_unit_id: str | None = N
             .where(LearningUnit.child_id == child_id),
         rows("attempt", Attempt.unit_id, Attempt.question_id, Attempt.id, float_text(Attempt.created),
              Attempt.outcome, Attempt.assisted, Attempt.evaluation["method"].as_string(),
-             Attempt.evaluation["independence_uncertain"].as_boolean(),
-             Attempt.evaluation["attempt_number"].as_integer())
+             Attempt.evaluation["independence_uncertain"].as_string(),
+             Attempt.evaluation["attempt_number"].as_string())
             .select_from(Attempt).join(LearningUnit, LearningUnit.id == Attempt.unit_id).where(LearningUnit.child_id == child_id),
         rows("correction", Attempt.unit_id, AttemptAssessment.id, AttemptAssessment.attempt_id,
              AttemptAssessment.rules_version, AttemptAssessment.outcome, float_text(AttemptAssessment.created))
@@ -91,23 +96,48 @@ def snapshot(db, child_id: str, subject: str, *, exclude_unit_id: str | None = N
     )
     grouped = {name: [] for name in ("unit", "attempt", "correction", "hint", "source", "binding")}
     for kind, data in db.execute(statement):
-        grouped[kind].append(json.loads(data))
+        try:
+            grouped[kind].append(json.loads(data))
+        except (ValueError, TypeError) as error:
+            raise EvidenceMetadataError("Invalid evidence metadata") from error
 
+    if any(not isinstance(row[1], str) for row in grouped["unit"]):
+        raise EvidenceMetadataError("Invalid evidence subject")
     units = {identifier: round_kind for identifier, subject_name, round_kind in grouped["unit"]
              if subject_key(subject_name) == key and identifier != exclude_unit_id}
     attempts = [row for row in grouped["attempt"] if row[0] in units]
     for row in attempts:
         # SQLite json_array encodes booleans as 0/1; normalise them back to
         # the Python values used by the original marker on both databases.
-        row[3] = float(row[3])
+        try:
+            row[3] = float(row[3])
+        except (ValueError, TypeError, OverflowError) as error:
+            raise EvidenceMetadataError("Invalid evidence timestamp") from error
         row[5] = bool(row[5])
         if row[7] is not None:
-            row[7] = bool(row[7])
+            value = row[7]
+            if value in (True, False, 0, 1):
+                row[7] = bool(value)
+            elif isinstance(value, str) and value.lower() in ("true", "false", "1", "0"):
+                row[7] = value.lower() in ("true", "1")
+            else:
+                raise EvidenceMetadataError("Invalid independence marker")
+        if row[8] is not None:
+            value = row[8]
+            if type(value) is int:
+                row[8] = value
+            elif isinstance(value, str) and re.fullmatch(r"[+-]?[0-9]+", value):
+                row[8] = int(value)
+            else:
+                raise EvidenceMetadataError("Invalid attempt number")
     attempted_units = {row[0] for row in attempts}
     attempted_pairs = {(row[0], row[1]) for row in attempts}
     corrections = [row[1:] for row in grouped["correction"] if row[0] in attempted_units]
     for row in corrections:
-        row[-1] = float(row[-1])
+        try:
+            row[-1] = float(row[-1])
+        except (ValueError, TypeError, OverflowError) as error:
+            raise EvidenceMetadataError("Invalid correction timestamp") from error
     hints = [row for row in grouped["hint"] if row[1] in attempted_units]
     sources = [row for row in grouped["source"] if row[0] in attempted_units]
     for row in sources:
@@ -131,7 +161,10 @@ def snapshot(db, child_id: str, subject: str, *, exclude_unit_id: str | None = N
         "sources": canonical(sources),
         "bindings": canonical(bindings),
     }
-    data = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
+    try:
+        data = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
+    except (ValueError, TypeError, OverflowError) as error:
+        raise EvidenceMetadataError("Invalid evidence metadata") from error
     return {"version": VERSION, "digest": hashlib.sha256(data).hexdigest()}
 
 

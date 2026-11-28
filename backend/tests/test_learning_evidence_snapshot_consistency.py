@@ -13,11 +13,14 @@ from sqlalchemy import event
 from test_learning_evidence_marker import add_attempt, add_unit
 
 
-def test_single_metadata_statement_preserves_existing_digest(api, household):
+@pytest.mark.parametrize("flag", [None, True, False])
+def test_single_metadata_statement_preserves_existing_digest(api, household, flag):
     _, child = household
     with DB.begin() as db:
         unit = add_unit(db, child["id"])
         answer = add_attempt(db, unit)
+        if flag is not None:
+            answer.evaluation = {**answer.evaluation, "independence_uncertain": flag}
         page = Material(child_id=child["id"], title="Künstlich", content="Übung", subject="Mathematik",
                         topic="Brüche", confirmed=True, status="confirmed")
         db.add(page)
@@ -34,7 +37,7 @@ def test_single_metadata_statement_preserves_existing_digest(api, household):
         payload = {
             "version": VERSION, "competence_catalog_version": COMPETENCE_VERSION,
             "child": child["id"], "subject": "mathematik", "units": [[unit.id, "study_block"]],
-            "attempts": [[unit.id, "q1", answer.id, answer.created, "incorrect", False, "exact", None, 1]],
+            "attempts": [[unit.id, "q1", answer.id, answer.created, "incorrect", False, "exact", flag, 1]],
             "corrections": [[correction.id, answer.id, "fixture", "incorrect", correction.created]],
             "hints": [[hint.id, unit.id, hint.created]],
             "sources": [[unit.id, page.id, source.revision, page.revision, True]],
