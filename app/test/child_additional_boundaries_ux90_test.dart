@@ -199,7 +199,8 @@ void main() {
         }),
       );
       await tester.pumpAndSettle();
-      expect(find.text('Zeig mir deine Heftseiten'), findsOneWidget);
+      expect(find.text('Deine Seiten sind gespeichert'), findsOneWidget);
+      expect(find.text('Mit diesen Seiten weiter'), findsOneWidget);
       expect(reads, 3);
       expect(stage, 'collecting');
     },
