@@ -5,12 +5,16 @@
 Version 1.38.168 (`5a8d171`) wurde nach abgeglichenem Offsite-Journal und
 isolierter echter Wiederherstellung aktiviert; öffentlicher Healthcheck und
 API-/Worker-/Fotodienst waren erfolgreich. Der danach gepushte Stand
-`055e68b` enthält eine erste automatische, quellen-/sitzungsgebundene
-Vorbereitung für bestätigte Schultag-Lernwege sowie einen MediaExplorer-
-Grundbaustein; er ist noch nicht ausgerollt. Stand und offene Abnahme:
+`000c01b` enthält automatische, quellen-/sitzungsgebundene Vorbereitung
+für bestätigte Schultag-Lernwege und neue einzelne Heftseiten sowie einen
+MediaExplorer-Grundbaustein mit redaktionellen Entscheidungen; er ist noch
+nicht ausgerollt. Ein echter End-to-End-KI-Test der neuen automatischen
+Vorbereitung und die Anpassung vorgefertigter Runden an späteren Lernstand
+bleiben offen. Bei Mehrseitenaufträgen und einem gleichzeitigen
+Sitzungsentzug wurden weitere Fehler reproduziert; die Korrektur wird derzeit
+vor einem neuen Live-Test geprüft. Einzelheiten und offene Abnahme:
 `docs/AUTO_ROUND_PLAN_2026_11_28.md` und
-`docs/MEDIAEXPLORER_PLAN_2026_11_28.md`. Unabhängige Heftseiten und
-Anpassung vorgefertigter Runden an späteren Lernstand bleiben offen.
+`docs/MEDIAEXPLORER_PLAN_2026_11_28.md`.
 
 Der echte Browser-Fototest mit ausschließlich künstlichen Klassenarbeiten ist
 in `docs/EXAM_REAL_AI_2026_11_28.md` dokumentiert. Sol und Luna verarbeiteten
@@ -19,7 +23,9 @@ Elternprüfung. Die klar als künstlich benannten Testarbeiten liegen im vom
 Betreiber ausdrücklich für Tests freigegebenen Kinderkonto. Eine separat
 angelegte Beta-Bewerbung des künstlichen Testhaushalts ist noch offen; sie
 ist keine erteilte Freigabe. Im Live-Test traten bei parallelen Ausschnitten
-vorübergehend Foto-503 auf, deren Fix separat geprüft wird.
+vorübergehend Foto-503 auf. Ein lokaler Fix mit begrenzter Warteschlange und
+Pausierung bei verdeckter Seite ist getestet und gepusht, aber noch nicht
+auf dem Live-Stand geprüft.
 
 ## Ergänzung 28. November 2026: Einheiten mit mehrdeutigen Zahlentrennern
 

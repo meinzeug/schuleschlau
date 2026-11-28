@@ -733,11 +733,11 @@ void main() {
       expect(find.text('Meinen Versuch ansehen lassen'), findsOneWidget);
       expect(find.text('Kleiner Hinweis'), findsOneWidget);
       expect(find.text('Mit passendem Heftstoff üben'), findsNothing);
-      expect(find.text('Beispielfoto · Bestätigt · ansehen'), findsNothing);
+      expect(find.text('Seite 1 · Bestätigt · ansehen'), findsNothing);
       expect(fixture.writes, isEmpty);
 
       await fixtures.tap(tester, find.text('Fotos der Arbeit'));
-      expect(find.text('Beispielfoto · Bestätigt · ansehen'), findsOneWidget);
+      expect(find.text('Seite 1 · Bestätigt · ansehen'), findsOneWidget);
       expect(fixture.writes, isEmpty);
 
       await fixtures.tap(tester, find.text('Mehr Hilfe'));
