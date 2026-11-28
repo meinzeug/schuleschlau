@@ -8,13 +8,14 @@ import pytest
 from schulpilot.competence_models import QuestionCompetence
 from schulpilot.competences import VERSION as COMPETENCE_VERSION
 from schulpilot.db import DB, Activity, Attempt, AttemptAssessment, Material, UnitSource, engine
-from schulpilot.learning_evidence_marker import VERSION, matches, snapshot
+from schulpilot.learning_evidence_marker import LEGACY_VERSION, VERSION, matches, snapshot
 from sqlalchemy import event
 from test_learning_evidence_marker import add_attempt, add_unit
 
 
 @pytest.mark.parametrize("flag", [None, True, False])
-def test_single_metadata_statement_preserves_existing_digest(api, household, flag):
+@pytest.mark.parametrize("version", [LEGACY_VERSION, VERSION])
+def test_single_metadata_statement_preserves_existing_digest(api, household, flag, version):
     _, child = household
     with DB.begin() as db:
         unit = add_unit(db, child["id"])
@@ -35,7 +36,7 @@ def test_single_metadata_statement_preserves_existing_digest(api, household, fla
         db.add_all([source, hint, correction, binding])
         db.flush()
         payload = {
-            "version": VERSION, "competence_catalog_version": COMPETENCE_VERSION,
+            "version": version, "competence_catalog_version": COMPETENCE_VERSION,
             "child": child["id"], "subject": "mathematik", "units": [[unit.id, "study_block"]],
             "attempts": [[unit.id, "q1", answer.id, answer.created, "incorrect", False, "exact", flag, 1]],
             "corrections": [[correction.id, answer.id, "fixture", "incorrect", correction.created]],
@@ -43,6 +44,8 @@ def test_single_metadata_statement_preserves_existing_digest(api, household, fla
             "sources": [[unit.id, page.id, source.revision, page.revision, True]],
             "bindings": [[unit.id, "q1", "math.fractions.reduce", COMPETENCE_VERSION, "practice", "a" * 64]],
         }
+        if version == VERSION:
+            payload["explanations"] = []
         digest = hashlib.sha256(json.dumps(payload, ensure_ascii=False, sort_keys=True,
                                            separators=(",", ":"), allow_nan=False).encode()).hexdigest()
         statements = []
@@ -57,11 +60,11 @@ def test_single_metadata_statement_preserves_existing_digest(api, household, fla
             return original_hash(value)
         try:
             with patch("schulpilot.learning_evidence_marker.hashlib.sha256", record_hash):
-                result = snapshot(db, child["id"], "Mathe")
+                result = snapshot(db, child["id"], "Mathe", version=version)
         finally:
             event.remove(engine, "before_cursor_execute", inspect)
         assert json.loads(captured[0]) == payload
-        assert result == {"version": VERSION, "digest": digest}, (captured, payload)
+        assert result == {"version": version, "digest": digest}, (captured, payload)
         combined = [item for item in statements if "UNION ALL" in item.upper()]
         assert len(combined) == 1 and len(statements) <= 2
 

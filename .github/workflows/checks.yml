@@ -44,7 +44,9 @@ jobs:
     # The complete partition has previously needed nearly 22 minutes, and
     # runner variability exhausted 25 minutes on 2026-11-03. Keep the full
     # source-bound execution and aggregation contract; allow enough headroom.
-    timeout-minutes: 40
+    # A full shard reached 99% at 40 minutes on the hosted runner; allow
+    # headroom so failures and the complete partition receipt are reported.
+    timeout-minutes: 55
     strategy:
       fail-fast: false
       matrix:
